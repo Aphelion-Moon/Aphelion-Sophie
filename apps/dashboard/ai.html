@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Sophie AI · Community Services</title><link rel="stylesheet" href="/dashboard/styles.css"><script type="module" src="/dashboard/ai-app.js"></script></head>
+<body><a class="skip-link" href="#main">Skip to content</a><header class="topbar"><div class="identity"><img id="avatar" src="/dashboard/sophie-avatar.png" alt="" width="52" height="52"><div><strong>Sophie</strong><span>Community Services</span></div></div><div class="header-actions"><label class="quiet"><input id="quiet" type="checkbox"> Quiet mode</label><button id="logout" hidden>Sign out</button></div></header>
+<main id="main" tabindex="-1"><nav class="service-nav" aria-label="Community Services"><!-- service-navigation --></nav>
+<div class="page-heading"><div><p class="eyebrow">APHELION / COMMUNITY SERVICES</p><h1>Sophie AI</h1><p class="intro">Choose where Sophie joins in and how she sounds.</p></div></div>
+<p id="notice" class="notice" role="status">Loading your workspace…</p><p id="error" class="error-box" role="alert" hidden></p><button id="retry">Reload</button>
+<noscript><p>This page needs JavaScript.</p></noscript><div id="workspace" class="ai-workspace" hidden>
+<section id="participation" class="panel case-panel" hidden><h2>Participation</h2><p id="active-state"></p><button id="disable-ai">Disable AI now</button>
+<p>Each member chooses whether Sophie may process their messages. Tickets and onboarding are always excluded. New channels and threads are ignored until explicitly configured and qualified.</p>
+<label><input id="desired-enabled" type="checkbox"> Request AI enabled</label><p class="muted">Saving a request does not activate an unqualified worker. Current release and audience checks must pass.</p>
+<label for="deadline">Maximum complete-response time, seconds</label><input id="deadline" type="number" min="1" max="15" value="15">
+<div id="channels"></div><button id="add-channel">Add channel</button>
+<h3>Approved social reactions</h3><p>Choose up to 16 reactions Sophie may use. Operational status symbols are reserved. Custom emojis must belong to this server and be available when she reacts.</p><div id="emojis"></div><button id="add-emoji">Add reaction</button>
+<div class="actions"><button id="review-configuration" class="primary">Review participation changes</button></div>
+</section>
+<section id="personality" class="panel case-panel" hidden><h2>Personality</h2><p>Authored identity persists across restarts. Conversations do not rewrite it. Use synthetic examples only.</p>
+<label for="character-core">Character and conversational style</label><textarea id="character-core" rows="10" maxlength="4000"></textarea><div id="examples"></div><button id="add-example">Add dialogue example</button><div class="actions"><button id="review-personality" class="primary">Review personality publication</button></div></section>
+<section id="review" class="panel case-panel" hidden><h2>Review publication</h2><p id="review-summary"></p><pre id="review-content" class="ai-review"></pre><p>Publication updates the saved revision. The active release must acknowledge and qualify the change before using it.</p><button id="publish" class="primary">Publish this version</button><button id="cancel-review">Return to editing</button></section>
+<section class="panel case-panel"><h2>Learning and privacy</h2><p>Personal chat memory, automatic learning and feedback collection are off. Temporary conversation context is limited to its approved channel and opted-in sources. Sophie’s authored identity and approved knowledge are separate from personal memory.</p><p>Restricted conversations need their own audience and worker qualification. No cloud provider or file tools are enabled by these settings.</p><a href="/ai-preferences">Manage your own processing consent</a></section>
+</div></main></body></html>

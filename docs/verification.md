@@ -1,6 +1,6 @@
 # Verification and release limits
 
-The current source passed these checks on 27 September 2026:
+The pre-AI baseline at `02e0e1ffe47049347a572c27ae695d65bb55bf08` passed these checks on 27 September 2026:
 
 - Repository validation: 442 JavaScript modules, 31 reference checksums, and eight
   asset copies; module conventions passed.
@@ -35,3 +35,18 @@ is current; the host and connector own their expected loopback listeners; the
 host error log is empty. Existing records and authored configuration are retained.
 No private content was inspected. Authenticated browser and interactive Discord
 acceptance remain separate from these public and operational checks.
+
+## Local AI candidate
+
+The schema056 foundation has 37 focused unit/adapter checks and 12 isolated
+PostgreSQL scenarios passing. The database fixture stopped cleanly. Synthetic browser
+checks covered participation review/publication, disabled-state reporting, and
+member opt-in/opt-out; the browser reported no console errors. No production data
+or actual model was used. Source-bound results and the continuation are in
+`GitHub/.agent_docs/aphelion-sophie`.
+
+AI is not production-ready or live. Actual Discord/worker composition, knowledge,
+recovery and enabled-feature acceptance remain in progress. Hyper-V is not installed;
+the pinned Windows runtime includes LLVM OpenMP and needs a named licence-scope
+decision. No host role, service, permission, deployment or model trial was changed.
+The 15-second ceiling is implemented but has not been measured with a local model.

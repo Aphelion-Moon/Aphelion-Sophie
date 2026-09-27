@@ -5,6 +5,11 @@ import { DASHBOARD_GROUPS, dashboardPageAllowed } from '../../../contracts/dashb
 
 export const DASHBOARD_CSP = "default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self'; connect-src 'self'; form-action 'self'; frame-ancestors 'none'; base-uri 'none'; object-src 'none'";
 const assets = [
+  ['/ai', '../../dashboard/ai.html', 'text/html; charset=utf-8'],
+  ['/ai-preferences', '../../dashboard/ai-preferences.html', 'text/html; charset=utf-8'],
+  ['/dashboard/ai-app.js', '../../dashboard/ai-app.js', 'text/javascript; charset=utf-8'],
+  ['/modules/assistant/participation.js', '../../../modules/assistant/participation.js', 'text/javascript; charset=utf-8'],
+  ['/modules/assistant/personality.js', '../../../modules/assistant/personality.js', 'text/javascript; charset=utf-8'],
   ['/login', '../../dashboard/login.html', 'text/html; charset=utf-8'],
   ['/localizations', '../../dashboard/localizations.html', 'text/html; charset=utf-8'],
   ['/dashboard/localizations-app.js', '../../dashboard/localizations-app.js', 'text/javascript; charset=utf-8'],

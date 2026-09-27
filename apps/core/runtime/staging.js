@@ -1,3 +1,6 @@
+import { createAiControls } from '../storage/ai-controls.js';
+import { createAiControlsHttp } from '../http/ai-controls.js';
+import { inspectAutomationChannel } from '../storage/automation-channel-policy.js';
 import { createSystemWordingHttp } from '../http/system-wording.js';
 import { createOnboardingEntryPanel } from '../discord/onboarding-entry-panel.js';
 import { createSystemWordingReader, createSystemWordingStore } from '../storage/system-wording.js';
@@ -53,7 +56,7 @@ import { createPermissionOptions } from '../discord/permission-options.js';
 import { runtimeDatabaseAvailable } from '../storage/runtime-maintenance.js';
 
 /** Explicit staging host. Construction starts no listener, connection, registration, migration or service. */
-export async function createStagingRuntime({ configuration, pool, token, clientSecret = null, fetch, connect, clock = Date.now, random = Math.random, onFault, configurationApplyEnabled = false }) {
+export async function createStagingRuntime({ configuration, pool, aiControlPool = null, token, clientSecret = null, fetch, connect, clock = Date.now, random = Math.random, onFault, configurationApplyEnabled = false }) {
   validateStagingRuntime(configuration); const fixed = structuredClone(configuration);
   requireCondition(typeof onFault === 'function', 'TRUSTED_ADAPTERS_REQUIRED');
   await requireUnquarantinedDatabase(pool);
@@ -94,6 +97,13 @@ export async function createStagingRuntime({ configuration, pool, token, clientS
   let dashboard = null;
   if (auth !== null) {
     const browser = lane(), { authorization, roles } = browser;
+    const aiChannels = createAutomationChannels({ transport: browser.transport });
+    const ai = aiControlPool === null ? null : createAiControlsHttp({ auth, authorization, controls: createAiControls({
+      pool: aiControlPool, guildId: fixed.mapping.guildId, authorize: authorization.authorize,
+      memberPresence: actor => authorization.aiMemberPresence(actor),
+      inspectChannel: (_client, channelId) => inspectAutomationChannel(pool, { guildId: fixed.mapping.guildId,
+        protectedCategoryId: fixed.casePolicy.categoryId, channels: aiChannels, channelId }),
+    }) });
     const permissions = createPermissionEditorHttp({ auth, authorization, store: createPermissionEditor({ pool,
       authorize: authorization.authorize, configuration: fixed, options: createPermissionOptions({ transport: browser.transport }),
       observeActor: userId => roles.observeActor(userId), clock, applyEnabled: configurationApplyEnabled }) });
@@ -114,7 +124,7 @@ export async function createStagingRuntime({ configuration, pool, token, clientS
     const management = createCaseManagementHttp({ auth, authorization, store: browser.store, discord: roles, limits: fixed.limits, enabled });
     const contactNavigation = createContactNavigationHttp({ auth, authorization, store: browser.intakeStore, discord: roles, channels: browser.channels, enabled });
     const contactEntry = createContactEntryHttp({ auth, authorization, store: browser.intakeStore, discord: roles, channels: browser.channels, enabled });
-    dashboard = createDashboardAuthHttpServer({ configuration: fixed.dashboard, auth, authorization, enabled, onFault: fault, transcripts, caseExports, notes, replies, answers, automation, permissions, labels, management, contactEntry, contactNavigation,
+    dashboard = createDashboardAuthHttpServer({ configuration: fixed.dashboard, auth, authorization, ai, enabled, onFault: fault, transcripts, caseExports, notes, replies, answers, automation, permissions, labels, management, contactEntry, contactNavigation,
       wording: createSystemWordingHttp({ auth, authorization, store: createSystemWordingStore({ pool, authorize: authorization.authorize, guildId: fixed.mapping.guildId, definitionId: fixed.definitionId }) }),
       authoring: createOnboardingAuthoringHttp({ auth, authorization, store: createOnboardingAuthoringStore({ pool, authorize: authorization.authorize,
         guildId: fixed.mapping.guildId, definitionId: fixed.definitionId }) }),

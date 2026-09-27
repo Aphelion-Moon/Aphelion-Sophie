@@ -1,6 +1,6 @@
 # Current implementation workplan
 
-Revision: 2026-09-27-sophie-staging. Isolated Sophie staging is online with a current Gateway and verified signed interactions endpoint. Public login and authorization checks pass. Native Windows service qualification remains open; production recovery is deferred.
+Revision: 2026-09-27-sophie-ai-foundation. AI workstream in local implementation: five participation presets, consent, authored personality, bounded inference and dashboard controls. Staging is unchanged. Worker qualification and production release remain open.
 
 All production release gates remain open; pure and isolated database checks are not full application acceptance.
 
@@ -12,7 +12,7 @@ Deterministic administration, Whitelist onboarding, protected editors, role/perm
 
 Recorded baseline: Pinned executable d4ca16ab6286a4ef186733d6829828e74d3fc176, schema 055; current results are listed in docs/verification.md.
 
-Current work: Owner private Discord and authenticated website acceptance; then remaining administration and native service qualification.
+Current work: Complete the owner-requested AI workstream; external SAI continuation at GitHub/.agent_docs/aphelion-sophie/workplan.md. Preserve administration acceptance and open production gates.
 
 418 unit tests, 13 isolated configuration scenarios, 16 isolated staging scenarios, 28 public HTTPS checks, 55 live migration checks and 71 live restricted-table checks pass. The Gateway is current. These results do not establish production readiness.
 
@@ -90,6 +90,7 @@ Current work: Owner private Discord and authenticated website acceptance; then r
 | Whitelist arrival, permitted navigation and Meridian-informed editor (P05, P08, P13, P14, P27) | Local next-test feedback: verified arrival before one Begin Whitelist link, default one-hour closure notice, permission-filtered HTML with one-use session bootstrap and renewal, and Meridian-informed responsive presentation. 45 focused unit checks, 88 Onboarding/wording, 18 authorization and 16 runtime scenarios pass; synthetic desktop/mobile editing and quiet mode checked. See docs/whitelist-test-feedback.md. Subsequently deployed with owner authorization on pinned036c3db/schema054; 768 Git hashes, orderly shutdown, current Gateway, process/port ownership and 26 public checks passed. No migration, configuration, command or grant changes. Private client acceptance remains open. | docs/evidence/whitelist-test-feedback-verification.json; owned synthetic clusters/preview servers stopped. Current authority and no-AI boundaries remain intact. Authorized live replacement: docs/evidence/whitelist-test-feedback-live.json; 26 public checks, 54 migration and 70 runtime table checks pass. | Private Discord/browser acceptance; custom typography assets/licences and production gates remain open. |
 | Website role configuration and durable apply workflow (P03, P05, P08, P11, P15) | Website role/feature configuration and apply workflow implemented locally on schema055. Crew/base, Whitelist, Muzzled, Staff/lead ops, capability grants, responder groups and category routing are editable. Durable apply/status/retry, owner maintenance, role/case reconciliation, restart selection, lockout protection and restore quarantine are verified. 14 focused unit checks and 123 isolated scenarios pass (87 permissions/authorization, 16 runtime, 20 recovery/upgrade). Lead ops only is the owner-selected initial editor grant. Staging remains036c3db/schema054; deploying the new host and schema requires scoped authorization. | docs/permission-configuration.md; docs/evidence/website-configuration-verification.json. Synthetic desktop save/review/approve/apply/status/retry and mobile comparison checked. No dependencies added. | Scoped staging deployment authorization; live private role, Muzzled, Whitelist revocation and case ACL acceptance. Production gates remain open. |
 | Authorized schema055 configuration deployment (P03, P05, P08, P11, P15) | Owner-authorized a5e0232/schema055 deployment completed with the configurable host and Lead ops-only permissions.publish at capability version2. 779 Git file hashes verified; encrypted preservation restored in quarantine; migration preserved all 70 existing tables. Current Gateway, process/loopback-port ownership, 32 public HTTPS checks and 55 migration/71 restricted runtime table checks pass. Next: owner private Roles and permissions/apply/ACL acceptance. No production approval. | docs/evidence/website-configuration-live.json; docs/permission-configuration.md. Current encrypted backup completed; independent off-host recovery remains unverified. | Owner private live configuration/apply and role/ACL acceptance; production gates remain open. |
+| Local AI participation and control foundation (P23, P24, P25) | Schema056 candidate, five preset policies, isolated AI control state, versioned publications/consent, deadline-aware scheduler/client, metadata-only receipts, transient context and core-owned output. Authenticated dashboard participation/personality/member controls. No live deployment, model inference or added package dependency. | 37 focused unit/adapter checks and 12 isolated PostgreSQL scenarios passed; synthetic dashboard review/publication and opt-in/opt-out passed with no browser console errors. Logs and source-bound evidence under GitHub/.agent_docs/aphelion-sophie. These are offline foundation results, not feature completion. | Actual runtime composition, knowledge, recovery, worker isolation and model qualification, dialogue evaluation and explicit live activation. Personal memory and restricted lanes remain gated; full AI readiness has not been reached. |
 
 ## Next implementation sequence
 
@@ -114,7 +115,7 @@ These are bounded next steps within the task dependencies below. An unresolved l
 
 ## Task status
 
-Status counts: 1 complete; 23 in progress; 16 planned, not started. These are full-task statuses, not a percentage of code or release readiness.
+Status counts: 1 complete; 26 in progress; 13 planned, not started. These are full-task statuses, not a percentage of code or release readiness.
 
 An in-progress task can contain several verified milestones and still have unfinished implementation or acceptance. Acceptance IDs below link requirements to tasks; they do not assert that those specifications have passed.
 
@@ -143,9 +144,9 @@ An in-progress task can contain several verified milestones and still have unfin
 | P20 — Implement MediaWiki ingestion and sync | planned_not_started | P03, P06, P19 |
 | P21 — Implement direct lookup and source authority | planned_not_started | P20 |
 | P22 — Implement knowledge administration | planned_not_started | P08, P20, P21 |
-| P23 — Provision and benchmark local model | planned_not_started | P01, P02, P07 |
-| P24 — Implement non-ticket knowledge assistant | planned_not_started | P19, P21, P23 |
-| P25 — Implement AI controls and evaluation tooling | planned_not_started | P08, P24 |
+| P23 — Provision and benchmark local model | in_progress | P01, P02, P07 |
+| P24 — Implement non-ticket knowledge assistant | in_progress | P19, P21, P23 |
+| P25 — Implement AI controls and evaluation tooling | in_progress | P08, P24 |
 | P26 — Implement backups, deletion and operator runbooks | in_progress | P06, P07, P12 |
 | P27 — Run administration failure and permission suite | in_progress | P16, P17, P18, P26 |
 | P28 — Run local AI isolation, quality and host-load suite | planned_not_started | P25, P26, P39 |
@@ -808,11 +809,19 @@ Boundary: Preview has no case-context or transcript import path.
 
 ## P23 — Provision and benchmark local model
 
-Status: **planned_not_started**. Phase: Local AI. Priority: P0.
+Status: **in_progress**. Phase: Local AI. Priority: P0.
 
 Depends on: P01, P02, P07. Acceptance: T31, T32, T33.
 
-Not implemented. Reference-pack acceptance requirements still apply.
+Fixed local llama.cpp adapter, exact-template token accounting, one-worker fair queue and 15-second total-turn expiry; pinned runtime/model proposal and read-only host prerequisites. Approve runtime/image scope; enable and qualify Hyper-V isolation; verify model hashes/template, actual latency, memory and representative host load. No model has run.
+
+Implemented scope:
+
+- Fixed local llama.cpp adapter, exact-template token accounting, one-worker fair queue and 15-second total-turn expiry; pinned runtime/model proposal and read-only host prerequisites.
+
+Remaining scope:
+
+- Approve runtime/image scope; enable and qualify Hyper-V isolation; verify model hashes/template, actual latency, memory and representative host load. No model has run.
 
 Full task deliverables:
 
@@ -824,11 +833,19 @@ Boundary: No cloud fallback, auto-download or claimed unmeasured throughput.
 
 ## P24 — Implement non-ticket knowledge assistant
 
-Status: **planned_not_started**. Phase: Local AI. Priority: P0.
+Status: **in_progress**. Phase: Local AI. Priority: P0.
 
 Depends on: P19, P21, P23. Acceptance: T22, T25, T26, T29, T30, T34, T48, T52.
 
-Not implemented. Reference-pack acceptance requirements still apply.
+Five channel presets; per-member channel consent; metadata-first exclusion; transient scoped context; durable admission/pacing/replay receipts; current-source and delivery revalidation; strict reply/react/silent rendering with fixed core targets. Connect actual Discord observations and event lifecycle, qualified worker composition, public knowledge retrieval, durable effect recovery and applicable release evaluation. No live AI activation.
+
+Implemented scope:
+
+- Five channel presets; per-member channel consent; metadata-first exclusion; transient scoped context; durable admission/pacing/replay receipts; current-source and delivery revalidation; strict reply/react/silent rendering with fixed core targets.
+
+Remaining scope:
+
+- Connect actual Discord observations and event lifecycle, qualified worker composition, public knowledge retrieval, durable effect recovery and applicable release evaluation. No live AI activation.
 
 Full task deliverables:
 
@@ -841,11 +858,19 @@ Boundary: No ticket data/tools, case advice automation or arbitrary browsing.
 
 ## P25 — Implement AI controls and evaluation tooling
 
-Status: **planned_not_started**. Phase: Local AI. Priority: P1.
+Status: **in_progress**. Phase: Local AI. Priority: P1.
 
 Depends on: P08, P24. Acceptance: T26, T31, T33, T42, T48.
 
-Not implemented. Reference-pack acceptance requirements still apply.
+Versioned exact-review configuration/personality publications; independent AI disable; authenticated control routes; participation, quiet hours, pacing, reactions and own-consent dashboard. Synthetic browser publication and opt-in/opt-out verified. Applied-worker acknowledgement, scoped runtime status/resources, knowledge administration, operator release controls and real model/personality evaluation.
+
+Implemented scope:
+
+- Versioned exact-review configuration/personality publications; independent AI disable; authenticated control routes; participation, quiet hours, pacing, reactions and own-consent dashboard. Synthetic browser publication and opt-in/opt-out verified.
+
+Remaining scope:
+
+- Applied-worker acknowledgement, scoped runtime status/resources, knowledge administration, operator release controls and real model/personality evaluation.
 
 Full task deliverables:
 

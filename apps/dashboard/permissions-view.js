@@ -1,6 +1,10 @@
 const labels = { 'member.mute': 'Mute members', 'member.unmute': 'Unmute members', 'shuttle.publish': 'Publish Shuttle guidance',
   'case.registry': 'Inspect case registry', 'case.forms.publish': 'Publish ticket forms', 'answers.publish': 'Publish public answers',
-  'automation.publish': 'Publish static automation', 'permissions.publish': 'Configure roles and permissions' };
+  'automation.publish': 'Publish static automation', 'permissions.publish': 'Configure roles and permissions',
+  'ai.control': 'Configure AI participation and disable AI', 'ai.personality.publish': 'Publish Sophie’s personality',
+  'ai.knowledge.publish': 'Publish AI knowledge', 'ai.memory.audit': 'Audit permitted AI memories',
+  'ai.sandbox.publish': 'Review AI sandbox profiles', 'ai.runtime.apply': 'Apply reviewed AI runtime changes',
+  'ai.silence': 'Silence AI in permitted channels' };
 const caseLabels = { 'quick-help': 'Quick Help', 'admin-help': 'Admin Help', 'staff-report': 'Report a Staffer', 'tech-support': 'Tech Support',
   'database-support': 'Database Support', 'head-admin-contact': 'Head Admin contact (lead ops only)', 'shuttle': 'Shuttle assistance',
   'staff-contact': 'Staff contact', 'player-report': 'Player report' };

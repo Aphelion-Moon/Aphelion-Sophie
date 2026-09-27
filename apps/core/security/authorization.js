@@ -35,7 +35,7 @@ export function createCoreAuthorization({ principals, discord, authorityStore, p
     const { observation, grant: latest, version, presenceEpoch } = await current(grant.userId, capability === 'case.read');
     requireCondition(latest.capabilityEpoch === grant.capabilityEpoch && latest.policyVersion === grant.policyVersion, 'CAPABILITY_REVOKED');
     requireCondition(observation.present && !observation.bot, 'OPERATION_DENIED');
-    if (['shuttle.self', 'case.create'].includes(capability)) {
+    if (['shuttle.self', 'case.create', 'ai.self'].includes(capability)) {
       requireCondition(scope.userId === grant.userId, 'OPERATION_DENIED');
       if (capability === 'shuttle.self') requireCondition(!observation.timedOut && !observation.roleIds.includes(fixed.muzzled), 'OPERATION_DENIED');
     } else if (capability === 'answers.read') {
@@ -84,7 +84,7 @@ export function createCoreAuthorization({ principals, discord, authorityStore, p
       const { observation, version } = await current(principal.userId);
       requireCondition(observation.present && !observation.bot, 'OPERATION_DENIED');
       const capabilities = {};
-      for (const capability of ['shuttle.publish', 'case.forms.publish', 'answers.publish', 'automation.publish', 'permissions.publish']) {
+      for (const capability of ['shuttle.publish', 'case.forms.publish', 'answers.publish', 'automation.publish', 'permissions.publish', 'ai.control', 'ai.personality.publish']) {
         capabilities[capability] = await allowed(async () => { requireConfiguredCapability(fixed, capability, observation, clock()); return true; });
       }
       const manageable = [];
@@ -126,6 +126,15 @@ export function createCoreAuthorization({ principals, discord, authorityStore, p
     async authorizeRecorded(capability, grant, scope) {
       requireCondition(['member.mute', 'member.unmute', 'case.manage'].includes(capability), 'RECORDED_CAPABILITY_UNSUPPORTED');
       return allowed(() => check(capability, grant, scope));
+    },
+    /** Current presence binding for own AI consent; departure/rejoin never restores an old enrollment. */
+    async aiMemberPresence(actor) {
+      const held = actors.get(actor); requireCondition(held !== undefined, 'UNTRUSTED_PRINCIPAL');
+      const principal = await principals.resolvePrincipal(held.proof);
+      requireCondition(principal.guildId === fixed.guildId && principal.userId === actor.userId, 'UNTRUSTED_PRINCIPAL');
+      const observation = await current(actor.userId, true);
+      requireCondition(observation.observation.present && !observation.observation.bot, 'OPERATION_DENIED');
+      return observation.presenceEpoch;
     },
     /** Assignment validates its recipient independently; it never grants case access. */
     async resolveCaseResponder({ userId, ...scope }) {

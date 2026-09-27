@@ -7,6 +7,7 @@ import { requireReplyId, validateCaseReplyPayload } from '../../../modules/ticke
 import { stagingRolePayload, stagingChannelPayload } from './staging-resources.js';
 import { ticketDirectNotice } from '../../../modules/tickets/direct-notice.js';
 import { automationPayload, automationEmoji } from '../../../modules/automation/delivery.js';
+import { validateAiMessagePayload } from '../../../modules/assistant/output.js';
 
 /** Stable errors never retain tokens, URLs, response bodies or the original fetch error. */
 export class DiscordError extends Error {
@@ -51,15 +52,16 @@ export function createDiscordTransport({ guildId, token, fetch, clock, enabled }
   let globalUntil = 0;
   let rateLimitInvalid = false;
   let busy = false;
-  async function request(method, path, route, body = undefined, jsonResult = false) {
+  async function request(method, path, route, body = undefined, jsonResult = false, deadline = null) {
     requireCondition(await enabled() === true, 'DISCORD_TRANSPORT_DISABLED');
     if (rateLimitInvalid) throw new DiscordError('DISCORD_RATE_LIMIT_INVALID');
     const remaining = Math.max(globalUntil, cooldowns.get(route) ?? 0) - clock();
     if (remaining > 0) throw new DiscordError('RATE_LIMITED', Math.ceil(remaining));
     if (busy) throw new DiscordError('DISCORD_BUSY', 250);
+    if (deadline !== null) requireCondition(Number.isSafeInteger(deadline) && deadline > clock() && deadline - clock() <= 15000, 'AI_DEADLINE_EXPIRED');
     busy = true;
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 5_000);
+    const timeout = setTimeout(() => controller.abort(), deadline === null ? 5_000 : Math.max(1, Math.min(5_000, deadline - clock())));
     const write = method !== 'GET';
     let response;
     try {
@@ -125,6 +127,22 @@ export function createDiscordTransport({ guildId, token, fetch, clock, enabled }
   }
   return Object.freeze({
     guildId,
+    async getAiSourceMetadata(channelId, messageId) {
+      requireId(channelId); requireId(messageId);
+      const raw = await request('GET', `/channels/${channelId}/messages/${messageId}`, 'automation-source');
+      if (raw === null) return null;
+      return { id: raw.id, channelId: raw.channel_id, authorId: raw.author?.id, bot: raw.author?.bot === true,
+        webhook: raw.webhook_id != null, type: raw.type, revision: raw.edited_timestamp ?? 'original' };
+    },
+    async createAiMessage(channelId, messageId, payload, deadline) {
+      requireId(channelId); requireId(messageId); validateAiMessagePayload(payload);
+      return request('POST', `/channels/${channelId}/messages`, 'automation-create', { ...payload,
+        nonce: messageId, enforce_nonce: true, message_reference: { message_id: messageId, channel_id: channelId, fail_if_not_exists: true } }, true, deadline);
+    },
+    async createAiReaction(channelId, messageId, emoji, deadline) {
+      requireId(channelId); requireId(messageId);
+      return request('PUT', `/channels/${channelId}/messages/${messageId}/reactions/${encodeURIComponent(automationEmoji({ kind: 'reaction', emoji: { id: emoji.id, name: emoji.name } }))}/@me`, 'automation-react', undefined, false, deadline);
+    },
     async getAutomationSource(channelId, messageId) {
       requireId(channelId); requireId(messageId);
       const raw = await request('GET', `/channels/${channelId}/messages/${messageId}`, 'automation-source');

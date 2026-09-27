@@ -254,7 +254,7 @@ export async function runCaseContactsSuite(cluster, run) {
     await removeContactMigration(f.admin);
     for (const table of ['case_forms', 'case_form_drafts', 'case_form_editor_actions']) await f.admin.query(`ALTER TABLE sophie_core.${table} DROP CONSTRAINT ${table}_case_type_check;
       ALTER TABLE sophie_core.${table} ADD CONSTRAINT ${table}_case_type_check CHECK (case_type IN ('admin-help', 'staff-report', 'tech-support', 'database-support', 'head-admin-contact', 'player-report'))`);
-    assert.deepEqual(await migrateCore(f.admin), { migrations: 55 }); assert.deepEqual(await f.rows('case_forms'), forms);
+    assert.deepEqual(await migrateCore(f.admin), { migrations: 56 }); assert.deepEqual(await f.rows('case_forms'), forms);
     assert.deepEqual(await f.rows('case_intakes'), before); assert.deepEqual(await f.rows('case_form_slots'), slots);
     await assert.rejects(f.admin.query("UPDATE sophie_core.case_intakes SET contact_status = 'confirmed'"), { code: '23514' });
     await publish(f); assert.equal((await f.selectContact()).review.state, 'review');

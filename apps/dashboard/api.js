@@ -42,6 +42,15 @@ export function createDashboardApi({ fetch, navigate = path => globalThis.locati
   const answer = value => { if (typeof value !== 'string' || !/^[a-z][a-z0-9-]{0,39}$/.test(value)) throw new DashboardFailure('invalid', 400); return value; };
   const cursor = value => { if (typeof value !== 'string' || !/^[A-Za-z0-9_-]{1,320}$/.test(value)) throw new DashboardFailure('invalid', 400); return value; };
   return Object.freeze({
+    aiPublication: kind => {
+      if (!['configuration', 'personality'].includes(kind)) throw new DashboardFailure('invalid', 400);
+      return request(`/api/ai/publication?kind=${kind}`);
+    },
+    aiReview: body => request('/api/ai/review', body),
+    aiPublish: body => request('/api/ai/publish', body),
+    aiDisable: () => request('/api/ai/disable', {}),
+    aiConsents: () => request('/api/ai/consents'),
+    aiConsent: body => request('/api/ai/consent', body),
     async session() {
       let value;
       try {
@@ -56,12 +65,14 @@ export function createDashboardApi({ fetch, navigate = path => globalThis.locati
       if (value.canEditAnswers !== undefined && typeof value.canEditAnswers !== 'boolean') throw new DashboardFailure('unavailable');
       if (value.canEditPermissions !== undefined && typeof value.canEditPermissions !== 'boolean') throw new DashboardFailure('unavailable');
       if (value.canEditAutomation !== undefined && typeof value.canEditAutomation !== 'boolean') throw new DashboardFailure('unavailable');
+      for (const key of ['canControlAi', 'canEditPersonality', 'aiAvailable']) if (value[key] !== undefined && typeof value[key] !== 'boolean') throw new DashboardFailure('unavailable');
       for (const group of document?.querySelectorAll('.nav-group') ?? []) {
         const links = [...group.querySelectorAll('a')];
         for (const link of links) link.hidden = !dashboardPageAllowed(link.getAttribute('href'), value);
         group.hidden = links.every(link => link.hidden);
       }
-      csrf = value.csrfToken; return { userId: value.userId, guildId: value.guildId, canEditOnboarding: value.canEditOnboarding, canEditForms: value.canEditForms, canEditPermissions: value.canEditPermissions === true, canEditAnswers: value.canEditAnswers === true, canEditAutomation: value.canEditAutomation === true };
+      csrf = value.csrfToken; return { userId: value.userId, guildId: value.guildId, canEditOnboarding: value.canEditOnboarding, canEditForms: value.canEditForms, canEditPermissions: value.canEditPermissions === true, canEditAnswers: value.canEditAnswers === true, canEditAutomation: value.canEditAutomation === true,
+        canControlAi: value.canControlAi === true, canEditPersonality: value.canEditPersonality === true, aiAvailable: value.aiAvailable === true };
     },
     automation: () => request('/api/automation'),
     automationHistory: (before = null) => request('/api/automation/history' + (before === null ? '' : '?before=' + number(before))),

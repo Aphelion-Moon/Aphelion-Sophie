@@ -2,7 +2,8 @@ import { requireCondition, requireFreshObservation, requireId, requireInteger, r
 import { validateResponders } from './case-responders.js';
 
 const REQUIRED_CAPABILITIES = Object.freeze(['member.mute', 'member.unmute', 'shuttle.publish', 'case.registry']);
-export const CONFIGURED_CAPABILITIES = Object.freeze([...REQUIRED_CAPABILITIES, 'case.forms.publish', 'answers.publish', 'automation.publish', 'permissions.publish']);
+export const AI_CAPABILITIES = Object.freeze(['ai.control', 'ai.personality.publish', 'ai.knowledge.publish', 'ai.memory.audit', 'ai.sandbox.publish', 'ai.runtime.apply', 'ai.silence']);
+export const CONFIGURED_CAPABILITIES = Object.freeze([...REQUIRED_CAPABILITIES, 'case.forms.publish', 'answers.publish', 'automation.publish', 'permissions.publish', ...AI_CAPABILITIES]);
 export const MAX_CAPABILITY_ROLES = 50;
 
 export function validateActorObservation(actor, now) {

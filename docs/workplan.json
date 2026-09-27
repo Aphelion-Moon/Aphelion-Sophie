@@ -1,10 +1,10 @@
 {
   "schema_version": 2,
-  "revision": "2026-09-27-sophie-staging",
+  "revision": "2026-09-27-sophie-ai-foundation",
   "reference_plan_version": "1.1",
   "source": "Sophie-Implementation-Plans-v1.1/backlog.json",
   "owner_decisions": "docs/decisions/0001-owner-policy.md",
-  "schedule": "Isolated Sophie staging is online with a current Gateway and verified signed interactions endpoint. Public login and authorization checks pass. Native Windows service qualification remains open; production recovery is deferred.",
+  "schedule": "AI workstream in local implementation: five participation presets, consent, authored personality, bounded inference and dashboard controls. Staging is unchanged. Worker qualification and production release remain open.",
   "release_status": "All production release gates remain open; pure and isolated database checks are not full application acceptance.",
   "tasks": [
     {
@@ -825,8 +825,14 @@
       ],
       "suggested_owner": "Repository maintainer; separate human review where required",
       "guardrail": "No cloud fallback, auto-download or claimed unmeasured throughput.",
-      "status": "planned_not_started",
-      "implementation_note": "Not implemented. Reference-pack acceptance requirements still apply."
+      "status": "in_progress",
+      "implementation_note": "Fixed local llama.cpp adapter, exact-template token accounting, one-worker fair queue and 15-second total-turn expiry; pinned runtime/model proposal and read-only host prerequisites. Approve runtime/image scope; enable and qualify Hyper-V isolation; verify model hashes/template, actual latency, memory and representative host load. No model has run.",
+      "completed_scope": [
+        "Fixed local llama.cpp adapter, exact-template token accounting, one-worker fair queue and 15-second total-turn expiry; pinned runtime/model proposal and read-only host prerequisites."
+      ],
+      "remaining_scope": [
+        "Approve runtime/image scope; enable and qualify Hyper-V isolation; verify model hashes/template, actual latency, memory and representative host load. No model has run."
+      ]
     },
     {
       "id": "P24",
@@ -856,8 +862,14 @@
       ],
       "suggested_owner": "Repository maintainer; separate human review where required",
       "guardrail": "No ticket data/tools, case advice automation or arbitrary browsing.",
-      "status": "planned_not_started",
-      "implementation_note": "Not implemented. Reference-pack acceptance requirements still apply."
+      "status": "in_progress",
+      "implementation_note": "Five channel presets; per-member channel consent; metadata-first exclusion; transient scoped context; durable admission/pacing/replay receipts; current-source and delivery revalidation; strict reply/react/silent rendering with fixed core targets. Connect actual Discord observations and event lifecycle, qualified worker composition, public knowledge retrieval, durable effect recovery and applicable release evaluation. No live AI activation.",
+      "completed_scope": [
+        "Five channel presets; per-member channel consent; metadata-first exclusion; transient scoped context; durable admission/pacing/replay receipts; current-source and delivery revalidation; strict reply/react/silent rendering with fixed core targets."
+      ],
+      "remaining_scope": [
+        "Connect actual Discord observations and event lifecycle, qualified worker composition, public knowledge retrieval, durable effect recovery and applicable release evaluation. No live AI activation."
+      ]
     },
     {
       "id": "P25",
@@ -882,8 +894,14 @@
       ],
       "suggested_owner": "Repository maintainer; separate human review where required",
       "guardrail": "No persistent member profiling or case-content feedback.",
-      "status": "planned_not_started",
-      "implementation_note": "Not implemented. Reference-pack acceptance requirements still apply."
+      "status": "in_progress",
+      "implementation_note": "Versioned exact-review configuration/personality publications; independent AI disable; authenticated control routes; participation, quiet hours, pacing, reactions and own-consent dashboard. Synthetic browser publication and opt-in/opt-out verified. Applied-worker acknowledgement, scoped runtime status/resources, knowledge administration, operator release controls and real model/personality evaluation.",
+      "completed_scope": [
+        "Versioned exact-review configuration/personality publications; independent AI disable; authenticated control routes; participation, quiet hours, pacing, reactions and own-consent dashboard. Synthetic browser publication and opt-in/opt-out verified."
+      ],
+      "remaining_scope": [
+        "Applied-worker acknowledgement, scoped runtime status/resources, knowledge administration, operator release controls and real model/personality evaluation."
+      ]
     },
     {
       "id": "P26",
@@ -1294,7 +1312,7 @@
   "checkpoint": {
     "summary": "Deterministic administration, Whitelist onboarding, protected editors, role/permission configuration and the configurable staging host are implemented.",
     "recorded_baseline": "Pinned executable d4ca16ab6286a4ef186733d6829828e74d3fc176, schema 055; current results are listed in docs/verification.md.",
-    "current_work": "Owner private Discord and authenticated website acceptance; then remaining administration and native service qualification.",
+    "current_work": "Complete the owner-requested AI workstream; external SAI continuation at GitHub/.agent_docs/aphelion-sophie/workplan.md. Preserve administration acceptance and open production gates.",
     "evidence_note": "418 unit tests, 13 isolated configuration scenarios, 16 isolated staging scenarios, 28 public HTTPS checks, 55 live migration checks and 71 live restricted-table checks pass. The Gateway is current. These results do not establish production readiness."
   },
   "milestones": [
@@ -2122,6 +2140,17 @@
       "implemented": "Owner-authorized a5e0232/schema055 deployment completed with the configurable host and Lead ops-only permissions.publish at capability version2. 779 Git file hashes verified; encrypted preservation restored in quarantine; migration preserved all 70 existing tables. Current Gateway, process/loopback-port ownership, 32 public HTTPS checks and 55 migration/71 restricted runtime table checks pass. Next: owner private Roles and permissions/apply/ACL acceptance. No production approval.",
       "evidence": "docs/evidence/website-configuration-live.json; docs/permission-configuration.md. Current encrypted backup completed; independent off-host recovery remains unverified.",
       "remaining": "Owner private live configuration/apply and role/ACL acceptance; production gates remain open."
+    },
+    {
+      "title": "Local AI participation and control foundation",
+      "tasks": [
+        "P23",
+        "P24",
+        "P25"
+      ],
+      "implemented": "Schema056 candidate, five preset policies, isolated AI control state, versioned publications/consent, deadline-aware scheduler/client, metadata-only receipts, transient context and core-owned output. Authenticated dashboard participation/personality/member controls. No live deployment, model inference or added package dependency.",
+      "evidence": "37 focused unit/adapter checks and 12 isolated PostgreSQL scenarios passed; synthetic dashboard review/publication and opt-in/opt-out passed with no browser console errors. Logs and source-bound evidence under GitHub/.agent_docs/aphelion-sophie. These are offline foundation results, not feature completion.",
+      "remaining": "Actual runtime composition, knowledge, recovery, worker isolation and model qualification, dialogue evaluation and explicit live activation. Personal memory and restricted lanes remain gated; full AI readiness has not been reached."
     }
   ],
   "next_steps": [
