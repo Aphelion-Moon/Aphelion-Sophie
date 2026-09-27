@@ -19,9 +19,16 @@ export function createAiTurns({ admission, scheduler, context, knowledge, messag
       if (!await current(request, sources, history)) { await admission.settle(request, 'cancelled'); return { state: 'cancelled' }; }
       const generated = await scheduler.submit({ id: request.messageId, member: `${request.guildId}.${request.userId}`, receivedAt: request.receivedAt,
         deadline: request.deadline, proactive: request.decision.proactive,
-        beforeExecute: () => current(request, sources, history),
+        beforeExecute: async () => {
+          if (!await current(request, sources, history)) return false;
+          if (request.profile.typing && !request.decision.proactive && request.decision.outcomes.includes('reply')) {
+            try { await messages.typing(request); } catch { /* An optional indicator failure cannot authorize or replay a response. */ }
+          }
+          return current(request, sources, history);
+        },
         payload: { workerDomain: request.binding.workerDomain, releaseHash: request.binding.releaseHash,
-          messages: buildAiPrompt({ request, history, sources }) } });
+          boundary: { guildId: request.guildId, channelId: request.channelId, continuity: request.binding.continuity, boundaryEpoch: request.binding.boundaryEpoch },
+          ...buildAiPrompt({ request, history, sources }) } });
       if (generated.state !== 'completed') { const state = ['expired', 'cancelled'].includes(generated.state) ? generated.state : 'unavailable'; await admission.settle(request, state); return { state }; }
       const output = validateAiOutput(generated.result, { outcomes: request.decision.outcomes, answerOnly: request.decision.answerOnly,
         sources, emojiKeys: request.config.emojis.map(emoji => emoji.key) });

@@ -9,6 +9,12 @@ export function createAiMessages({ transport, botUserId, revalidate, canReact, c
     requireCondition(await revalidate(request) === true && clock() < request.deadline, 'AI_DELIVERY_REVOKED');
   }
   return Object.freeze({
+    async typing(request) {
+      requireCondition(request.profile.typing && !request.decision.proactive && request.decision.outcomes.includes('reply'), 'AI_TYPING_UNAVAILABLE');
+      await current(request);
+      // One short indicator, no queued refresh loop or promise that a reply will be delivered.
+      await transport.indicateAiTyping(request.channelId, Math.min(request.deadline, clock() + 1000));
+    },
     async reply(request, payload) {
       validateAiMessagePayload(payload); await current(request);
       const response = await transport.createAiMessage(request.channelId, request.messageId, payload, request.deadline);

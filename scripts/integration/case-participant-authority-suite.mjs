@@ -126,7 +126,7 @@ export async function runCaseParticipantAuthoritySuite(cluster, run) {
   await scenario('PA10 presence migration preserves existing Staff grants without inventing case invitations', async f => {
     const actor = await f.actor(OTHER), prior = (await f.rows('actor_authority')).map(({ presence_epoch, ...rest }) => rest);
     await f.admin.query("ALTER TABLE sophie_core.actor_authority DROP COLUMN presence_epoch; DELETE FROM sophie_migrations.applied WHERE id = '026-case-participant-presence.sql'");
-    assert.deepEqual(await migrateCore(f.admin), { migrations: 56 });
+    assert.deepEqual(await migrateCore(f.admin), { migrations: 57 });
     const rows = await f.rows('actor_authority'); assert.deepEqual(rows.map(({ presence_epoch, ...rest }) => rest), prior); assert.equal(rows.every(row => Number(row.presence_epoch) === 1), true);
     assert.equal(await f.authorization.authorize('case.manage', actor, { guildId: GUILD, type: 'staff-contact', openerId: USER }), true);
     assert.equal((await f.rows('case_reservations')).length, 0); assert.equal(f.discord.state.calls.some(call => call.method !== 'GET'), false);

@@ -5,7 +5,7 @@ import { validateAiOutput, renderAiReply } from '../modules/assistant/output.js'
 
 const event = (fields = {}) => ({ addressed: false, question: false, directedToOther: false, now: 1000, ...fields });
 const decide = (mode, fields, profile = {}) => participationDecision({ ...defaultParticipation(mode), ...profile }, event(fields));
-const source = { id: 'guide', url: 'https://example.test/approved' };
+const source = { id: 'guide', url: 'https://example.test/approved', attribution: 'Synthetic authors', rights: 'Synthetic fixture' };
 const answer = { kind: 'reply', text: 'The approved guide says to use the arrivals door.', purpose: 'answer', support: 'provided_sources', citations: ['guide'] };
 const options = { outcomes: ['reply', 'react', 'silent'], answerOnly: false, sources: [source], emojiKeys: ['celebrate'] };
 
@@ -66,6 +66,7 @@ test('SAI AT-12 rendering disables pings and renders only canonical source links
   assert.equal(output.content.includes('https://unreviewed.test'), false);
   assert.equal(output.content.includes('<@'), false);
   assert.equal(output.content.endsWith('<https://example.test/approved>'), true);
+  assert.ok(output.content.includes('Synthetic authors · Synthetic fixture'));
   assert.deepEqual(output.allowed_mentions, { parse: [], users: [], roles: [], replied_user: false });
   assert.equal(output.flags, 4);
 });

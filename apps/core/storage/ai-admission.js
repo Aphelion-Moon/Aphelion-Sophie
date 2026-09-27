@@ -25,16 +25,18 @@ export function createAiAdmission({ pool, guildId, ingress, inspectContext, insp
     // These trusted core adapters read current exclusion/ACL/member metadata, never case content.
     const context = await inspectContext(event), member = await inspectMember(event);
     if (!context?.eligible || !member?.eligible || context.audienceHash !== qualification.audience_sha256 ||
+      context.restricted !== qualification.restricted || typeof context.canReply !== 'boolean' || typeof context.canReact !== 'boolean' ||
       !Number.isSafeInteger(member.presenceEpoch) || !Number.isSafeInteger(member.accessEpoch) ||
       typeof context.continuity !== 'string' || context.continuity.length === 0 || typeof context.messageRevision !== 'string' ||
       member.presenceEpoch !== Number(consent.presence_epoch)) return null;
     const now = clock();
     if ([context, member].some(value => !Number.isSafeInteger(value.checkedAt) || value.checkedAt > now || now - value.checkedAt > 5000)) return null;
     return { config, character, profile: channel.profile, deadline: event.receivedAt + config.deadlineMs,
+      capabilities: { reply: context.canReply, react: context.canReact },
       binding: { epoch: Number(state.epoch), configurationHash: configuration.sha256, personalityHash: personality.sha256,
         boundaryEpoch: Number(qualification.boundary_epoch), audienceHash: context.audienceHash, consentEpoch: Number(consent.epoch),
         presenceEpoch: member.presenceEpoch, accessEpoch: member.accessEpoch, continuity: context.continuity,
-        inputRevision: aiDigest([event.messageId, context.messageRevision]),
+        inputRevision: aiDigest([event.messageId, context.messageRevision]), canReply: context.canReply, canReact: context.canReact,
         workerDomain: qualification.worker_domain, releaseHash: qualification.release_sha256, restricted: qualification.restricted } };
   }
   return Object.freeze({
@@ -50,6 +52,7 @@ export function createAiAdmission({ pool, guildId, ingress, inspectContext, insp
           if (duplicate.rowCount) return null;
           const content = ingress.content(proof); if (content === null) return null;
           const decision = participationDecision(initial.profile, { addressed: content.addressed, question: questionCandidate(content.text), directedToOther: content.directedToOther, now: clock() });
+          decision.outcomes = decision.outcomes.filter(kind => kind === 'silent' || initial.capabilities[kind]);
           const inputRevision = aiDigest([event.messageId, content.inputRevision]);
           if (inputRevision !== initial.binding.inputRevision) return null;
           if (!decision.infer) return decision.context ? { ...event, inputRevision, ...initial, decision, text: content.text } : null;

@@ -325,3 +325,21 @@ platform-policy clearance or release pass is inferred. Production recovery remai
 deferred as previously requested. The missing external continuation is reconstructed
 from retained source/evidence with uncertainties identified, not historical work
 marked unperformed.
+### Local AI trial artifacts — 27 September 2026
+
+The owner explicitly approved the candidates in the external local-worker proposal:
+llama.cpp b10977 Windows CPU (SHA-256
+`bdbb1ee5368b44112fa3fa9b3ac168a15d0d492e5c2f9fbe2074dd2f4628a4b9`), including the
+named Apache 2.0 with LLVM exceptions scope for its bundled LLVM OpenMP runtime;
+Bartowski's Phi-4-mini-instruct Q4_K_M conversion at
+`7ff82c2aaa4dde30121698a973765f39be5288c0` (published SHA-256
+`01999f17c39cc3074afae5e9c539bc82d45f2dd7faa3917c66cbef76fce8c0c2`); and the named
+Windows Server Core image
+`sha256:e10503b9a4f7faafa30aa0f5d0e8e7f7ca30a4496b3b87d61178b4d7c6815fb5`
+using the existing Docker Engine. This authorizes candidate preparation and synthetic
+qualification, not live AI activation, new general dependency exceptions, Hyper-V
+installation, host reboot, cloud processing or production deployment.
+
+The owner subsequently authorized enabling Hyper-V with management tools **without
+automatic reboot**. This is a scoped host-role installation approval; reboot and
+live AI activation remain separate operations.

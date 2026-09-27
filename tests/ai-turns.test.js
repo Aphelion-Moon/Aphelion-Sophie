@@ -8,6 +8,8 @@ import { DRAFT_PERSONALITY } from '../modules/assistant/personality.js';
 import { createDiscordTransport } from '../apps/core/discord/transport.js';
 import { renderAiReply } from '../modules/assistant/output.js';
 import { createAiControlsHttp } from '../apps/core/http/ai-controls.js';
+import { createAiKnowledgeHttp } from '../apps/core/http/ai-knowledge.js';
+import { createAiMessages } from '../apps/core/discord/ai-messages.js';
 import { createDashboardApi } from '../apps/dashboard/api.js';
 
 function packet(change = {}) { return { t: 'MESSAGE_CREATE', d: { guild_id: '101', channel_id: '202', id: '303', author: { id: '404', bot: false }, type: 0, content: 'Synthetic hello', mentions: [], ...change } }; }
@@ -112,4 +114,31 @@ test('SAI AT-07 dashboard session preserves explicit AI access flags and denies 
   const api = createDashboardApi({ document: null, fetch: async () => new Response(JSON.stringify(session)) });
   assert.equal((await api.session()).canControlAi, true); assert.equal((await api.session()).canEditPersonality, false);
   session.aiAvailable = 'yes'; await assert.rejects(api.session(), /unavailable/);
+});
+
+test('SAI AT-07/19 typing is brief, fixed to an admitted addressed turn and cannot survive revocation', async () => {
+  let eligible = true; const calls = [];
+  const messages = createAiMessages({ botUserId: '505', clock: () => 1000, revalidate: async () => eligible, canReact: async () => false,
+    transport: { indicateAiTyping: async (...values) => calls.push(values) } });
+  const addressed = request({ decision: { ...request().decision, proactive: false } });
+  await messages.typing(addressed); assert.deepEqual(calls, [['202',2000]]);
+  await assert.rejects(messages.typing(request()),/AI_TYPING_UNAVAILABLE/);
+  eligible = false; await assert.rejects(messages.typing(addressed),/AI_DELIVERY_REVOKED/); assert.equal(calls.length,1);
+  const f = turnsFixture(); f.value.decision.proactive = false;
+  f.messages.typing = async () => { f.revoke(); };
+  f.scheduler.submit = async input => { assert.equal(await input.beforeExecute(),false); return { state: 'cancelled' }; };
+  assert.deepEqual(await f.turns.handle({}),{ state: 'cancelled' }); assert.equal(f.sent.length,0);
+});
+
+test('SAI AT-06/08 knowledge HTTP requires current publication authority and explicit public-source confirmation', async () => {
+  const actor = { userId: '123', guildId: '101' }, proof = {}; let allowed = true, writes = 0;
+  const http = createAiKnowledgeHttp({ auth: { authenticate: async () => ({ proof }), resolvePrincipal: async () => ({}) },
+    authorization: { resolveActor: async () => actor, authorize: async capability => { assert.equal(capability,'ai.knowledge.publish'); return allowed; } },
+    knowledge: { publish: async input => { assert.equal(input.actor,actor); writes++; return { revision: 1 }; } } });
+  const req = { path: '/api/ai/knowledge/publish', method: 'POST', query: new URLSearchParams(), credentials: {},
+    body: { expectedEpoch: 0, document: {}, reviewHash: 'a'.repeat(64), requestId: 'b'.repeat(64), confirmed: true, approvedPublic: true } };
+  await assert.rejects(http.execute({ ...req, body: { ...req.body, approvedPublic: false } }),/KNOWLEDGE_CONFIRMATION_REQUIRED/);
+  await assert.rejects(http.execute({ ...req, body: { ...req.body, actor: {} } }),/KNOWLEDGE_INPUT_INVALID/);
+  allowed = false; await assert.rejects(http.execute(req),/OPERATION_DENIED/); assert.equal(writes,0);
+  allowed = true; assert.equal((await http.execute(req)).revision,1); assert.equal(writes,1);
 });

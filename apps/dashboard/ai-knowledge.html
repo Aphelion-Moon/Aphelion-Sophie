@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Approved knowledge · Sophie</title><link rel="stylesheet" href="/dashboard/styles.css"><script type="module" src="/dashboard/ai-knowledge-app.js"></script></head>
+<body><a class="skip-link" href="#main">Skip to content</a><header class="topbar"><div class="identity"><img id="avatar" src="/dashboard/sophie-avatar.png" alt="" width="52" height="52"><div><strong>Sophie</strong><span>Community Services</span></div></div><div class="header-actions"><label class="quiet"><input id="quiet" type="checkbox"> Quiet mode</label><button id="logout" hidden>Sign out</button></div></header>
+<main id="main" tabindex="-1"><nav class="service-nav" aria-label="Community Services"><!-- service-navigation --></nav>
+<div class="page-heading"><div><p class="eyebrow">APHELION / COMMUNITY SERVICES</p><h1>Approved knowledge</h1><p class="intro">Publish public reference material Sophie may cite.</p></div></div>
+<p id="notice" class="notice" role="status">Loading your workspace…</p><p id="error" class="error-box" role="alert" hidden></p><button id="retry">Reload</button>
+<noscript><p>This page needs JavaScript.</p></noscript><div id="workspace" class="ai-workspace" hidden>
+<section class="panel case-panel"><h2>Publications</h2><p>Use reviewed public material with permission to reuse it. Never paste tickets, reports, onboarding sessions or private conversations. Publication does not activate AI.</p><div id="catalogue"></div><button id="new-document">New public document</button></section>
+<section id="editor" class="panel case-panel" hidden><h2 id="editor-title">Public document</h2><p id="document-state"></p>
+<label for="document-id">Stable document name</label><input id="document-id" maxlength="48" pattern="[a-z][a-z0-9-]*" placeholder="arrival-guide">
+<label for="document-title">Title</label><input id="document-title" maxlength="200">
+<label for="authority">Source authority</label><select id="authority"><option value="reference">Reference</option><option value="policy">Community policy</option><option value="lore">Lore</option><option value="community-event">Community event</option></select>
+<label for="source-url">Public source link</label><input id="source-url" type="url" maxlength="1000" placeholder="https://…">
+<label for="rights">Licence or reuse permission</label><input id="rights" maxlength="300">
+<label for="attribution">Required author attribution</label><input id="attribution" maxlength="500">
+<label for="source-revision">Source revision or publication date</label><input id="source-revision" maxlength="160">
+<label for="aliases">Other lookup names, one per line</label><textarea id="aliases" rows="3" maxlength="2020"></textarea>
+<div id="sections"></div><button id="add-section">Add section</button>
+<div class="actions"><button id="review-document" class="primary">Review publication</button><button id="request-withdraw">Withdraw current publication</button></div></section>
+<section id="review" class="panel case-panel" hidden><h2 id="review-title">Review publication</h2><p id="review-summary"></p><pre id="review-content" class="ai-review"></pre>
+<label id="public-confirmation"><input id="approved-public" type="checkbox"> I confirm this material is public, approved, and permitted for this use.</label>
+<button id="confirm" class="primary">Confirm publication</button><button id="cancel-review">Return to editing</button></section>
+<section class="panel case-panel"><h2>Source freshness</h2><p>This editor publishes owner-reviewed public documents. Imported sources retain their revision and expiry; automatic wiki synchronization is not connected yet. Withdrawal immediately removes the document from retrieval and invalidates pending answers that cite it.</p></section>
+</div></main></body></html>

@@ -21,14 +21,14 @@ function publication(kind, document) {
 }
 
 /** Authenticated controls own desired state. Activation requires separate installation evidence. */
-export function createAiControls({ pool, guildId, authorize, inspectChannel, memberPresence, noticeRevision = 1 }) {
+export function createAiControls({ pool, guildId, authorize, inspectChannel, memberPresence, invalidate = () => {}, noticeRevision = 1 }) {
   requireId(guildId); requireInteger(noticeRevision, 1);
   for (const fn of [authorize, inspectChannel, memberPresence]) requireCondition(typeof fn === 'function', 'TRUSTED_ADAPTERS_REQUIRED');
   async function access(actor, action, scope = {}) {
     requireCondition(await authorize(action, actor, { guildId, ...scope }) === true, 'OPERATION_DENIED');
     const grant = operatorGrant(actor); requireCondition(grant.guildId === guildId, 'FOREIGN_GUILD'); return grant;
   }
-  async function transaction(actor, action, work, scope = {}) {
+  async function transaction(actor, action, work, scope = {}, changes = false) {
     await access(actor, action, scope);
     return inTransaction(pool, async client => {
       // One short AI control lock; never acquires the administration maintenance barrier.
@@ -36,7 +36,7 @@ export function createAiControls({ pool, guildId, authorize, inspectChannel, mem
       await client.query('INSERT INTO sophie_ai.state(guild_id) VALUES($1) ON CONFLICT DO NOTHING', [guildId]);
       const state = (await client.query('SELECT * FROM sophie_ai.state WHERE guild_id=$1 FOR UPDATE', [guildId])).rows[0];
       const result = await work(client, state); await access(actor, action, scope); return result;
-    });
+    }).finally(() => { if (changes) invalidate(); });
   }
   async function current(client, kind) {
     const row = (await client.query('SELECT * FROM sophie_ai.publications WHERE guild_id=$1 AND kind=$2 ORDER BY revision DESC LIMIT 1', [guildId, kind])).rows[0];
@@ -87,12 +87,12 @@ export function createAiControls({ pool, guildId, authorize, inspectChannel, mem
           disabled=CASE WHEN $3 THEN disabled ELSE true END WHERE guild_id=$1`, [guildId, next, request.document.enabled]);
         else await client.query('UPDATE sophie_ai.state SET personality_revision=$2,epoch=epoch+1 WHERE guild_id=$1', [guildId, next]);
         return { revision: next, duplicate: false, activation: 'qualification-required' };
-      });
+      }, {}, true);
     },
     disable: ({ actor }) => transaction(actor, 'ai.control', async (client, state) => {
       if (!state.disabled) await client.query('UPDATE sophie_ai.state SET disabled=true,epoch=epoch+1 WHERE guild_id=$1', [guildId]);
       return { disabled: true, epoch: Number(state.epoch) + (state.disabled ? 0 : 1) };
-    }),
+    }, {}, true),
     async consent({ actor, channelId, enabled, expectedEpoch, acceptedNoticeRevision }) {
       requireId(channelId); requireInteger(expectedEpoch); requireInteger(acceptedNoticeRevision, 1);
       requireCondition(typeof enabled === 'boolean' && (!enabled || acceptedNoticeRevision === noticeRevision), 'AI_NOTICE_STALE');
@@ -112,7 +112,7 @@ export function createAiControls({ pool, guildId, authorize, inspectChannel, mem
           epoch=EXCLUDED.epoch,enabled=EXCLUDED.enabled,presence_epoch=EXCLUDED.presence_epoch,notice_revision=EXCLUDED.notice_revision,updated_at=clock_timestamp()`,
         [guildId, channelId, actor.userId, epoch, enabled, presence, acceptedNoticeRevision]);
         return { channelId, enabled, epoch, noticeRevision: acceptedNoticeRevision };
-      }, { userId: actor.userId });
+      }, { userId: actor.userId }, true);
     },
     ownConsents: ({ actor }) => transaction(actor, 'ai.self', async client => ({ noticeRevision,
       channels: (await client.query('SELECT channel_id AS "channelId",epoch,enabled,notice_revision AS "noticeRevision" FROM sophie_ai.consents WHERE guild_id=$1 AND user_id=$2 ORDER BY channel_id LIMIT 101', [guildId, actor.userId])).rows.map(row => ({ ...row, epoch: Number(row.epoch) }))

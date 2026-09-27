@@ -2,6 +2,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createAiScheduler } from '../apps/knowledge-worker/scheduler.js';
 import { createLlamaClient } from '../apps/knowledge-worker/llama-client.js';
+import { buildAiPrompt } from '../apps/knowledge-worker/prompt.js';
+import { DRAFT_PERSONALITY } from '../modules/assistant/personality.js';
 
 const tick = () => new Promise(resolve => setImmediate(resolve));
 function pending() { let resolve; const promise = new Promise(done => { resolve = done; }); return { promise, resolve }; }
@@ -87,4 +89,23 @@ test('SAI AT-04 local runtime endpoint cannot become arbitrary egress or credent
   for (const endpoint of ['https://api.example.test/', 'https://10.0.0.1.evil.example/', 'https://192.168.1.1.attacker.test/', 'http://10.0.0.1/', 'http://localhost:1234/', 'http://127.0.0.1:1234/other', 'http://user:secret@127.0.0.1/']) {
     assert.throws(() => createLlamaClient({ endpoint, apiKey: 'synthetic'.repeat(8), modelId: 'model' }), /AI_WORKER_ENDPOINT_INVALID/);
   }
+});
+
+test('SAI AT-12 over-budget context drops whole old messages and retains the policy and current question', async () => {
+  const prompt = buildAiPrompt({ request: { character: DRAFT_PERSONALITY, decision: { outcomes: ['reply','silent'], answerOnly: false }, config: { emojis: [] },
+    userId: '1', text: 'Current question must remain complete' }, history: [{ userId: '2', text: 'Old conversation '.repeat(300) }], sources: [] });
+  const original = structuredClone(prompt); let finalMessages, attempts = 0, tooLarge;
+  const client = createLlamaClient({ endpoint: 'http://127.0.0.1:12345', apiKey: 'synthetic'.repeat(8), modelId: 'reviewed-model',
+    fetchImpl: async (url, options) => {
+      const body = JSON.parse(options.body);
+      if (url.pathname === '/apply-template') { attempts++; tooLarge = body.messages.some(item => item.content.includes('Old conversation'));
+        return Response.json({ prompt: body.messages.map(item => item.content).join('\n') }); }
+      if (url.pathname === '/tokenize') return Response.json({ tokens: Array(tooLarge ? 4100 : 1000).fill(1) });
+      finalMessages = body.messages; return Response.json({ choices: [{ finish_reason: 'stop', message: { role: 'assistant', content: '{"kind":"silent"}' } }] });
+    } });
+  assert.deepEqual(await client.generate(prompt,{ signal: new AbortController().signal, deadline: Date.now()+14000 }),{ kind: 'silent' });
+  assert.equal(attempts,2); assert.deepEqual(prompt,original);
+  assert.deepEqual(finalMessages[0],original.messages[0]); assert.deepEqual(finalMessages.at(-1),original.messages.at(-1));
+  assert.equal(finalMessages.some(item => item.content.includes('Old conversation')),false);
+  await assert.rejects(client.generate({ ...prompt, trimGroups: [[0]] },{ signal: new AbortController().signal, deadline: Date.now()+14000 }),/AI_PROMPT_INVALID/);
 });

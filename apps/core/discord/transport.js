@@ -139,6 +139,10 @@ export function createDiscordTransport({ guildId, token, fetch, clock, enabled }
       return request('POST', `/channels/${channelId}/messages`, 'automation-create', { ...payload,
         nonce: messageId, enforce_nonce: true, message_reference: { message_id: messageId, channel_id: channelId, fail_if_not_exists: true } }, true, deadline);
     },
+    async indicateAiTyping(channelId, deadline) {
+      requireId(channelId);
+      return request('POST', `/channels/${channelId}/typing`, 'ai-typing', undefined, false, deadline);
+    },
     async createAiReaction(channelId, messageId, emoji, deadline) {
       requireId(channelId); requireId(messageId);
       return request('PUT', `/channels/${channelId}/messages/${messageId}/reactions/${encodeURIComponent(automationEmoji({ kind: 'reaction', emoji: { id: emoji.id, name: emoji.name } }))}/@me`, 'automation-react', undefined, false, deadline);

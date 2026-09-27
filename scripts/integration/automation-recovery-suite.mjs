@@ -147,7 +147,7 @@ export async function runAutomationRecoverySuite(cluster,run) {
     } finally {await server.close();}
   });
   await scenario('AR16 migration replay and encrypted restore preserve exact operator recovery receipts and audit',async f=>{
-    const {messageId}=await f.uncertain();await f.recovery.change(await f.request('recover',messageId));assert.deepEqual(await migrateCore(f.admin),{migrations: 56});
+    const {messageId}=await f.uncertain();await f.recovery.change(await f.request('recover',messageId));assert.deepEqual(await migrateCore(f.admin),{migrations: 57});
     const configuration=stagingConfiguration('a'.repeat(64));configuration.capabilityPolicy=f.policy;configuration.automationEnabled=true;
     const {configuration:database,binaryRoot,directory:parent}=cluster.recovery,tools=await reviewedRecoveryTools(binaryRoot),key=randomBytes(32),maxDatabaseBytes=33554432;
     const backup=await createRecoveryBundle({pool:f.admin,database,tools,configuration,buildId:'a'.repeat(64),vaultRoots:[],parent,key,maxDatabaseBytes});

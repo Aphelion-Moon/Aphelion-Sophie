@@ -81,6 +81,16 @@ export async function runGatewaySuite(cluster, run) {
     assert.equal((await lifecycle()).status, 'offline');
   });
 
+  await scenario('AI13 ordinary messages preserve AI continuity; audience changes and disconnect revoke it', async () => {
+    await boot(); const initial = await observer.readAiContinuity(); assert.equal(typeof initial, 'string');
+    await send('MESSAGE_CREATE', { guild_id: GUILD, channel_id: '123', id: '124', author: { id: USER }, content: 'Synthetic only' });
+    assert.equal(await observer.readAiContinuity(), initial);
+    await memberEvent([CREW]); const changed = await observer.readAiContinuity(); assert.notEqual(changed, initial);
+    await send('MESSAGE_CREATE', { guild_id: GUILD, channel_id: '123', id: '125', author: { id: USER }, content: 'Synthetic only' });
+    assert.equal(await observer.readAiContinuity(), changed);
+    await observer.pause(connection); assert.equal(await observer.readAiContinuity(), null);
+  });
+
   await scenario('G02 Whitelist loss revokes old progress atomically and duplicate dispatch does not replay it', async () => {
     await boot(); discord.state.members.get(USER).push(WHITELIST);
     await memberEvent(discord.state.members.get(USER));

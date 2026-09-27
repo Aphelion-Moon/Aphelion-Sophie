@@ -24,7 +24,7 @@ async function signedHttp(address, signed) {
   });
 }
 export async function runStagingRuntimeSuite(cluster, run) {
-  async function fixture({ dashboard = true, automaticWorkers = false, ready = true, answers = false, automation = false, automationIngress = false } = {}) {
+  async function fixture({ dashboard = true, automaticWorkers = false, ready = true, answers = false, automation = false, automationIngress = false, unavailableAi = false } = {}) {
     const f = await onboardingWorkflow(cluster, { extraCapabilities: { 'case.forms.publish': [LEAD],
       'member.mute': [STAFF, LEAD], 'member.unmute': [STAFF, LEAD], ...(answers ? { 'answers.publish': [STAFF] } : {}), ...(automation ? { 'automation.publish': [STAFF] } : {}) } });
     const clock = () => f.clock.now, identities = syntheticInteractions({ clock }), oauth = simulatedOAuth(), replies = [], faults = [];
@@ -42,7 +42,10 @@ export async function runStagingRuntimeSuite(cluster, run) {
       if (url.includes('/webhooks/')) { replies.push(JSON.parse(options.body)); return new Response(null, { status: 200 }); }
       return f.discord.fetch(url, options);
     };
-    const createHost = () => createStagingRuntime({ configuration: config, pool: f.pool, token: SYNTHETIC_GATEWAY_TOKEN,
+    const ai = unavailableAi ? { aiControlPool: { query: async () => { throw Error('synthetic control outage'); }, connect: async () => { throw Error('synthetic control outage'); } },
+      aiWorker: { current: async () => assert.fail('unavailable control store must prevent worker qualification'), generate: async () => assert.fail('no AI ingestion') },
+      aiKnowledge: { lookup: async () => assert.fail('no knowledge ingestion'), current: async () => assert.fail('no knowledge ingestion') } } : {};
+    const createHost = () => createStagingRuntime({ configuration: config, pool: f.pool, ...ai, token: SYNTHETIC_GATEWAY_TOKEN,
       clientSecret: syntheticClientSecret, fetch, connect: peer.connect, clock, random: () => 0.25, onFault: value => faults.push(value) });
     let runtime = await createHost();
     assert.equal(peer.connections.length, 0);
@@ -66,7 +69,7 @@ export async function runStagingRuntimeSuite(cluster, run) {
   await run('RT01 runtime database privileges reject the owner and accept the restricted core identity', async () => {
     await cluster.adminPool.query('GRANT USAGE ON SCHEMA sophie_migrations TO sophie_test_core');
     await cluster.adminPool.query('GRANT SELECT ON sophie_migrations.applied TO sophie_test_core');
-    const result = await checkRuntimeDatabase(cluster.corePool); assert.ok(result.checkedTables > 0); assert.equal(result.migrations, 56);
+    const result = await checkRuntimeDatabase(cluster.corePool); assert.ok(result.checkedTables > 0); assert.equal(result.migrations, 57);
     await assert.rejects(checkRuntimeDatabase(cluster.adminPool), /RUNTIME_DATABASE_PRIVILEGES_INVALID/);
     const client = await cluster.adminPool.connect(); await client.query('BEGIN');
     try {
@@ -440,5 +443,17 @@ export async function runStagingRuntimeSuite(cluster, run) {
     await f.runtime.runOnce(); assert.equal(f.discord.state.channels.has(screen.channel_id), false);
     assert.deepEqual(f.faults, []);
   });
+
+  await scenario('RT17 an unavailable optional AI control lane cannot stop signed administration or leak message content', async f => {
+    assert.ok(f.faults.includes('AI_CONTROL_UNAVAILABLE'));
+    f.peer.connections[0].send(gatewayEvent(3, 'MESSAGE_CREATE', { guild_id: GUILD, channel_id: PUBLIC_CHANNEL, id: '732',
+      author: { id: USER }, content: 'Synthetic excluded AI sentinel', type: 0, timestamp: new Date(f.clock.now).toISOString() }));
+    await waitForGateway(() => f.faults.includes('AI_TURN_UNAVAILABLE'));
+    assert.equal((await f.runtime.status()).current,true);
+    assert.equal((await f.send(f.identities.payload())).body.type,5);
+    for (let index = 0; index < 4; index++) await f.runtime.runOnce();
+    assert.ok(f.discord.state.members.get(USER).includes(MUZZLED));
+    assert.ok(f.faults.every(code => ['AI_CONTROL_UNAVAILABLE','AI_TURN_UNAVAILABLE'].includes(code)));
+  }, { unavailableAi: true, dashboard: false });
 
 }

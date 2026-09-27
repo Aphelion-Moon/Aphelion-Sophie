@@ -47,7 +47,7 @@ function channels() {
       field(box, title, channel.profile[key] / scale, value => { channel.profile[key] = value * scale; }, { type: 'number', min, max, step: 1 });
     }
     field(box, 'Allow approved social reactions', channel.profile.reactions, value => { channel.profile.reactions = value; }, { type: 'checkbox' });
-    field(box, 'Show typing for addressed requests', channel.profile.typing, value => { channel.profile.typing = value; }, { type: 'checkbox' });
+    field(box, 'Show brief typing when an addressed request starts', channel.profile.typing, value => { channel.profile.typing = value; }, { type: 'checkbox' });
     field(box, 'Quiet hours: wait to be addressed', channel.profile.quietHours !== null, value => { channel.profile.quietHours = value ? { startMinute: 1320, endMinute: 480, utcOffsetMinutes: 0 } : null; channels(); }, { type: 'checkbox' });
     if (channel.profile.quietHours) {
       const quiet = channel.profile.quietHours, time = minute => `${String(Math.floor(minute / 60)).padStart(2, '0')}:${String(minute % 60).padStart(2, '0')}`;

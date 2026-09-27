@@ -14,7 +14,7 @@ export async function runRecoveryControlsSuite(cluster, run) {
     const member = await f.rows('members'), cases = await f.rows('case_reservations');
     await admin.query('DROP SCHEMA sophie_control CASCADE');
     await admin.query("DELETE FROM sophie_migrations.applied WHERE id = '033-recovery-controls.sql'");
-    assert.deepEqual(await migrateCore(admin), { migrations: 56 });
+    assert.deepEqual(await migrateCore(admin), { migrations: 57 });
     const recorded = await count(); assert.ok(recorded > 0);
     assert.equal((await history('members')).every(row => row.operation === 'baseline'), true);
     assert.deepEqual(await f.rows('members'), member); assert.deepEqual(await f.rows('case_reservations'), cases);

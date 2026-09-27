@@ -1,10 +1,10 @@
 {
   "schema_version": 2,
-  "revision": "2026-09-27-sophie-ai-foundation",
+  "revision": "2026-09-27-sophie-ai-runtime-knowledge",
   "reference_plan_version": "1.1",
   "source": "Sophie-Implementation-Plans-v1.1/backlog.json",
   "owner_decisions": "docs/decisions/0001-owner-policy.md",
-  "schedule": "AI workstream in local implementation: five participation presets, consent, authored personality, bounded inference and dashboard controls. Staging is unchanged. Worker qualification and production release remain open.",
+  "schedule": "Local AI runtime and public knowledge candidate on schema057. Trial artifacts are approved and verified; Hyper-V installed with restart required. No restart, model inference or live AI activation has occurred. Full AI readiness remains in progress.",
   "release_status": "All production release gates remain open; pure and isolated database checks are not full application acceptance.",
   "tasks": [
     {
@@ -776,8 +776,14 @@
       ],
       "suggested_owner": "Repository maintainer; separate human review where required",
       "guardrail": "No semantic model dependency for basic lookup.",
-      "status": "planned_not_started",
-      "implementation_note": "Not implemented. Reference-pack acceptance requirements still apply."
+      "status": "in_progress",
+      "implementation_note": "Approved public lexical/alias retrieval, authority labels, revision/hash/expiry checks and attributed citations implemented. MediaWiki ingestion/synchronization, direct member-facing lookup, actual source rights/collection decisions and the 40-question release evaluation remain open.",
+      "completed_scope": [
+        "Approved public lexical/alias retrieval, authority labels, revision/hash/expiry checks and attributed citations implemented."
+      ],
+      "remaining_scope": [
+        "MediaWiki ingestion/synchronization, direct member-facing lookup, actual source rights/collection decisions and the 40-question release evaluation remain open."
+      ]
     },
     {
       "id": "P22",
@@ -800,8 +806,14 @@
       ],
       "suggested_owner": "Repository maintainer; separate human review where required",
       "guardrail": "Preview has no case-context or transcript import path.",
-      "status": "planned_not_started",
-      "implementation_note": "Not implemented. Reference-pack acceptance requirements still apply."
+      "status": "in_progress",
+      "implementation_note": "Separate knowledge identity, reviewed public publication, catalogue/editor, source invalidation and removal of all stored plaintext revisions on withdrawal. Source synchronization/health, production service/identity wiring, external restore watermark, permitted source collection and live acceptance remain open.",
+      "completed_scope": [
+        "Separate knowledge identity, reviewed public publication, catalogue/editor, source invalidation and removal of all stored plaintext revisions on withdrawal."
+      ],
+      "remaining_scope": [
+        "Source synchronization/health, production service/identity wiring, external restore watermark, permitted source collection and live acceptance remain open."
+      ]
     },
     {
       "id": "P23",
@@ -826,12 +838,12 @@
       "suggested_owner": "Repository maintainer; separate human review where required",
       "guardrail": "No cloud fallback, auto-download or claimed unmeasured throughput.",
       "status": "in_progress",
-      "implementation_note": "Fixed local llama.cpp adapter, exact-template token accounting, one-worker fair queue and 15-second total-turn expiry; pinned runtime/model proposal and read-only host prerequisites. Approve runtime/image scope; enable and qualify Hyper-V isolation; verify model hashes/template, actual latency, memory and representative host load. No model has run.",
+      "implementation_note": "Approved runtime/model/base-image pins verified; Hyper-V install succeeded with restart required. Network-none Hyper-V ContainerUser trial context is prepared; scripts parsed, no worker executable run. Operator-controlled restart, actual isolation/negative-access qualification, template/tokenizer compatibility, cancellation and 15-second full-turn/load measurements remain required.",
       "completed_scope": [
-        "Fixed local llama.cpp adapter, exact-template token accounting, one-worker fair queue and 15-second total-turn expiry; pinned runtime/model proposal and read-only host prerequisites."
+        "Approved runtime/model/base-image pins verified; Hyper-V install succeeded with restart required. Network-none Hyper-V ContainerUser trial context is prepared; scripts parsed, no worker executable run."
       ],
       "remaining_scope": [
-        "Approve runtime/image scope; enable and qualify Hyper-V isolation; verify model hashes/template, actual latency, memory and representative host load. No model has run."
+        "Operator-controlled restart, actual isolation/negative-access qualification, template/tokenizer compatibility, cancellation and 15-second full-turn/load measurements remain required."
       ]
     },
     {
@@ -863,12 +875,12 @@
       "suggested_owner": "Repository maintainer; separate human review where required",
       "guardrail": "No ticket data/tools, case advice automation or arbitrary browsing.",
       "status": "in_progress",
-      "implementation_note": "Five channel presets; per-member channel consent; metadata-first exclusion; transient scoped context; durable admission/pacing/replay receipts; current-source and delivery revalidation; strict reply/react/silent rendering with fixed core targets. Connect actual Discord observations and event lifecycle, qualified worker composition, public knowledge retrieval, durable effect recovery and applicable release evaluation. No live AI activation.",
+      "implementation_note": "Core Gateway handoff now composes metadata observations, current audience/presence gates, consent, short-lived context, public retrieval, inference queue and fixed output. Stable AI continuity ignores ordinary traffic but invalidates audience changes. Input trimming retains policy/current question; brief typing is limited to admitted addressed turns. Qualified worker broker and service/restore wiring, durable effect recovery and reaction ownership, private worker domains, explicit-memory implementation/scope, source sync and full enabled-feature acceptance remain open.",
       "completed_scope": [
-        "Five channel presets; per-member channel consent; metadata-first exclusion; transient scoped context; durable admission/pacing/replay receipts; current-source and delivery revalidation; strict reply/react/silent rendering with fixed core targets."
+        "Core Gateway handoff now composes metadata observations, current audience/presence gates, consent, short-lived context, public retrieval, inference queue and fixed output. Stable AI continuity ignores ordinary traffic but invalidates audience changes. Input trimming retains policy/current question; brief typing is limited to admitted addressed turns."
       ],
       "remaining_scope": [
-        "Connect actual Discord observations and event lifecycle, qualified worker composition, public knowledge retrieval, durable effect recovery and applicable release evaluation. No live AI activation."
+        "Qualified worker broker and service/restore wiring, durable effect recovery and reaction ownership, private worker domains, explicit-memory implementation/scope, source sync and full enabled-feature acceptance remain open."
       ]
     },
     {
@@ -895,12 +907,12 @@
       "suggested_owner": "Repository maintainer; separate human review where required",
       "guardrail": "No persistent member profiling or case-content feedback.",
       "status": "in_progress",
-      "implementation_note": "Versioned exact-review configuration/personality publications; independent AI disable; authenticated control routes; participation, quiet hours, pacing, reactions and own-consent dashboard. Synthetic browser publication and opt-in/opt-out verified. Applied-worker acknowledgement, scoped runtime status/resources, knowledge administration, operator release controls and real model/personality evaluation.",
+      "implementation_note": "Participation/personality/own-consent dashboard plus authenticated reviewed public knowledge editor. Synthetic editor publication and withdrawal verified; unavailable AI controls do not block composed administration. Applied-worker acknowledgement, operational release/resources controls, source sync, personal-memory controls, actual model dialogue evaluation and explicit activation remain open.",
       "completed_scope": [
-        "Versioned exact-review configuration/personality publications; independent AI disable; authenticated control routes; participation, quiet hours, pacing, reactions and own-consent dashboard. Synthetic browser publication and opt-in/opt-out verified."
+        "Participation/personality/own-consent dashboard plus authenticated reviewed public knowledge editor. Synthetic editor publication and withdrawal verified; unavailable AI controls do not block composed administration."
       ],
       "remaining_scope": [
-        "Applied-worker acknowledgement, scoped runtime status/resources, knowledge administration, operator release controls and real model/personality evaluation."
+        "Applied-worker acknowledgement, operational release/resources controls, source sync, personal-memory controls, actual model dialogue evaluation and explicit activation remain open."
       ]
     },
     {
@@ -2151,9 +2163,34 @@
       "implemented": "Schema056 candidate, five preset policies, isolated AI control state, versioned publications/consent, deadline-aware scheduler/client, metadata-only receipts, transient context and core-owned output. Authenticated dashboard participation/personality/member controls. No live deployment, model inference or added package dependency.",
       "evidence": "37 focused unit/adapter checks and 12 isolated PostgreSQL scenarios passed; synthetic dashboard review/publication and opt-in/opt-out passed with no browser console errors. Logs and source-bound evidence under GitHub/.agent_docs/aphelion-sophie. These are offline foundation results, not feature completion.",
       "remaining": "Actual runtime composition, knowledge, recovery, worker isolation and model qualification, dialogue evaluation and explicit live activation. Personal memory and restricted lanes remain gated; full AI readiness has not been reached."
+    },
+    {
+      "title": "Local AI runtime boundaries and approved public knowledge",
+      "tasks": [
+        "P21",
+        "P22",
+        "P23",
+        "P24",
+        "P25"
+      ],
+      "implemented": "Schema057 stable AI Gateway boundary, optional isolated runtime composition and strict metadata observations; reviewed public knowledge library/editor, source hash checks/withdrawal, attribution, deliberate context trimming and bounded typing. Named local trial approvals recorded. No new npm dependency, deployment or model execution.",
+      "evidence": "47 focused unit/adapter/auth checks, 35 isolated AI/Gateway/knowledge scenarios including schema056 upgrade, and 17 composed staging scenarios passed. Both clusters stopped. Synthetic knowledge browser review/confirmation/publication/withdrawal passed with no console warnings/errors. Source-bound logs and worker preparation are outside the repository.",
+      "remaining": "Operator restart before the approved synthetic worker trial; actual containment, 15-second end-to-end load evidence, model dialogue/knowledge evaluation, source sync, qualified broker/restore and effect recovery, explicit memory/named restricted domains and live acceptance. This milestone is not full AI readiness."
     }
   ],
   "next_steps": [
+    {
+      "title": "Qualify the approved local AI worker after operator restart",
+      "tasks": [
+        "P21",
+        "P22",
+        "P23",
+        "P24",
+        "P25"
+      ],
+      "work": "After the operator-controlled restart, verify Hyper-V readiness and run the prepared network-disabled synthetic worker probe. Preserve the 15-second total-turn ceiling. Complete remaining broker/recovery, source-sync and selected-feature implementation, then qualify actual behavior and obtain scoped live activation approval.",
+      "exit_evidence": "Pinned source/model/runtime evidence for isolation, full-turn latency/load, dialogue/source quality and enabled feature acceptance. No benchmark or completed-AI claim from script preparation."
+    },
     {
       "title": "Privately verify deployed configuration and apply workflow",
       "tasks": [
@@ -2229,8 +2266,8 @@
       "independent_work": "Static approved-asset previews and developer keyboard/reflow checks."
     },
     {
-      "input": "Wiki collection/rights approvals; separately, exact model/runtime approval and measured host-load budget",
-      "affected_work": "Live knowledge ingestion (G3) and optional local AI (G4).",
+      "input": "Wiki collection/rights approvals; approved pinned local trial artifacts verified, Hyper-V installed and operator restart required before worker qualification",
+      "affected_work": "Live knowledge ingestion (G3), model/host qualification (G4), private-worker and selected persistent-memory gates.",
       "independent_work": "Public-source fixtures, lookup contracts and exclusion tests; administration remains independent."
     }
   ]

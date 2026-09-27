@@ -167,6 +167,8 @@ export function createGatewayJournal({ pool, mapping, clock, caseCapture = null,
         const row = await locked(client, lease);
         requireCondition(row.session_id === sessionId && ['synchronizing', 'resuming', 'current'].includes(row.status), 'GATEWAY_STATE_CONFLICT');
         if (sequence <= Number(row.sequence)) return { duplicate: true };
+        if (['member', 'authority', 'role', 'channel', 'guild'].includes(normalized.kind)) await client.query(
+          'UPDATE sophie_core.gateway_lifecycle SET ai_boundary_epoch=ai_boundary_epoch+1 WHERE guild_id=$1', [fixed.guildId]);
         const observedAt = clock(); requireInteger(observedAt);
         if (sequence > Number(row.sequence) + 1) await recordCaseCaptureGap(client, { guildId: fixed.guildId,
           from: row.capture_observed_at_ms === null ? null : Math.min(Number(row.capture_observed_at_ms), observedAt), to: observedAt,
@@ -251,6 +253,13 @@ export function createGatewayJournal({ pool, mapping, clock, caseCapture = null,
           AND status = 'current' AND lease_until > clock_timestamp()`,
       [lease.guildId, lease.owner, lease.fence, mappingHash])).rows[0];
       return row ? `${lease.owner}.${lease.fence}.${row.continuity_epoch}.${row.sequence}` : null;
+    },
+    async readAiContinuity(lease) {
+      validateGatewayLease(lease); requireCondition(lease.guildId === fixed.guildId, 'FOREIGN_GUILD');
+      const row = (await pool.query(`SELECT continuity_epoch,ai_boundary_epoch FROM sophie_core.gateway_lifecycle
+        WHERE guild_id=$1 AND lease_owner=$2 AND fence=$3 AND mapping_hash=$4 AND guild_available
+          AND status='current' AND lease_until>clock_timestamp()`, [lease.guildId,lease.owner,lease.fence,mappingHash])).rows[0];
+      return row ? `${lease.owner}.${lease.fence}.${row.continuity_epoch}.${row.ai_boundary_epoch}` : null;
     },
   });
 }

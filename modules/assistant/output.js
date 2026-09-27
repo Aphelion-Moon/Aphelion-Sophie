@@ -31,7 +31,10 @@ export function renderAiReply(output, sources) {
   const links = output.citations.map(id => {
     const source = sources.find(item => item.id === id);
     requireCondition(source && typeof source.url === 'string' && /^https:\/\/[^\s<>]+$/u.test(source.url), 'AI_CITATION_INVALID');
-    return `<${source.url}>`;
+    requireCondition(typeof source.attribution === 'string' && source.attribution.length > 0 && source.attribution.length <= 500 &&
+      typeof source.rights === 'string' && source.rights.length > 0 && source.rights.length <= 300, 'AI_CITATION_INVALID');
+    const plain = value => value.replace(/@/gu, '@\u200b').replace(/https?:\/\/\S+/giu, '[link omitted]').replace(/[<>\r\n*_`~|\\]/gu, '');
+    return `${plain(source.attribution)} · ${plain(source.rights)}\n<${source.url}>`;
   });
   const content = [text, ...links].join('\n');
   requireCondition(content.length <= 2000, 'AI_OUTPUT_TOO_LONG');

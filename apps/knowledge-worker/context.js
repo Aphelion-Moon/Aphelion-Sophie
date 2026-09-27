@@ -4,7 +4,7 @@ import { requireCondition, requireInteger } from '../../contracts/validation.js'
 export function createAiContext({ clock = Date.now, maxLanes = 100 }) {
   requireInteger(maxLanes, 1, 100);
   const lanes = new Map();
-  const key = request => `${request.guildId}:${request.channelId}:${request.binding.boundaryEpoch}:${request.binding.workerDomain}`;
+  const key = request => `${request.guildId}:${request.channelId}:${request.binding.boundaryEpoch}:${request.binding.workerDomain}:${request.binding.continuity}`;
   function prune() {
     const now = clock();
     for (const [id, lane] of lanes) { lane.messages = lane.messages.filter(item => item.expiresAt > now); if (!lane.messages.length) lanes.delete(id); }

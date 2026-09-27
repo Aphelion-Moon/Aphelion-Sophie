@@ -45,8 +45,26 @@ member opt-in/opt-out; the browser reported no console errors. No production dat
 or actual model was used. Source-bound results and the continuation are in
 `GitHub/.agent_docs/aphelion-sophie`.
 
-AI is not production-ready or live. Actual Discord/worker composition, knowledge,
-recovery and enabled-feature acceptance remain in progress. Hyper-V is not installed;
-the pinned Windows runtime includes LLVM OpenMP and needs a named licence-scope
-decision. No host role, service, permission, deployment or model trial was changed.
-The 15-second ceiling is implemented but has not been measured with a local model.
+The schema057 runtime/knowledge milestone has 47 focused unit/adapter/auth checks,
+35 isolated AI/Gateway/knowledge scenarios and 17 composed staging scenarios passing.
+The AI scenarios include retained schema056 Gateway/control preservation during
+upgrade. Both database clusters stopped. Synthetic browser checks covered knowledge
+review, required public-source confirmation, publication, withdrawal and cleared
+withdrawn text; no console warnings/errors were observed. Repository validation
+checked 469 modules, 40 tasks, 60 specifications, 31 reference checksums and eight
+asset copies. These checks used synthetic data and no inference.
+
+The owner approved the pinned llama.cpp b10977/LLVM OpenMP, Bartowski Phi-4-mini
+Q4_K_M and Windows Server Core trial artifacts. Runtime and model SHA-256 values
+were verified, and the exact base image was pulled. The owner separately approved
+Hyper-V installation without automatic reboot. Installation returned success with
+restart required. No reboot was issued. The network-disabled synthetic trial
+package is prepared outside the repository; PowerShell scripts parse, but its
+image build, runtime flags and model behavior have not been executed/qualified.
+
+AI is not production-ready or live. Operator restart is needed before the first
+worker trial. The 15-second total-turn ceiling has not been measured with a model.
+Qualified worker/service/restore wiring, durable effect recovery, source sync,
+explicit-memory and named restricted-domain work, source/dialogue evaluation and
+applicable enabled-feature acceptance remain open. No live schema migration,
+service/ACL/network change or AI activation occurred in this milestone.

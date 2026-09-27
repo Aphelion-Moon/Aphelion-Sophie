@@ -191,7 +191,7 @@ export async function runPermissionEditorSuite(cluster,run,configurationOnly=fal
   });
   await scenario('PC11 migration replay restricted grants and encrypted restore preserve candidates drafts and audit',async f=>{
     const request=await f.prepare(), saved=await f.editor.publish(request);await f.editor.withdraw({actor:request.actor,requestId:f.id(),version:1,expectedHash:saved.sha256,confirm:true});
-    assert.deepEqual(await migrateCore(f.admin),{migrations: 56});
+    assert.deepEqual(await migrateCore(f.admin),{migrations: 57});
     for(const table of ['permission_drafts','permission_candidates','permission_editor_actions']) {
       await assert.rejects(f.pool.query(`DELETE FROM sophie_core.${table}`),error=>error.code==='42501');
       await assert.rejects(f.pool.query(`TRUNCATE sophie_core.${table}`),error=>error.code==='42501');

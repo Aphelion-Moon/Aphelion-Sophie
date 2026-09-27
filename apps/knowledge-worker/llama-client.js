@@ -1,7 +1,7 @@
 import { requireCondition, requireInteger } from '../../contracts/validation.js';
 import { isIP } from 'node:net';
 
-const schema = {
+export const AI_OUTPUT_SCHEMA = {
   oneOf: [
     { type: 'object', additionalProperties: false, properties: { kind: { const: 'silent' } }, required: ['kind'] },
     { type: 'object', additionalProperties: false, properties: { kind: { const: 'react' }, emojiKey: { type: 'string', maxLength: 96 } }, required: ['kind', 'emojiKey'] },
@@ -43,18 +43,32 @@ export function createLlamaClient({ endpoint, apiKey, modelId, contextTokens = 4
     catch { throw new Error(signal.aborted || clock() >= deadline ? 'AI_DEADLINE_EXPIRED' : 'AI_WORKER_UNAVAILABLE'); }
   }
   return Object.freeze({
-    async generate({ messages }, { signal, deadline }) {
-      requireCondition(Array.isArray(messages) && messages.length > 0 && messages.length <= 40 &&
+    async generate({ messages, trimGroups = [] }, { signal, deadline }) {
+      requireCondition(Array.isArray(messages) && messages.length >= 2 && messages.length <= 54 &&
         messages.every(item => ['system', 'user', 'assistant'].includes(item.role) && typeof item.content === 'string' && item.content.length <= 32768) &&
-        messages.reduce((count, item) => count + item.content.length, 0) <= 65536, 'AI_PROMPT_INVALID');
+        messages.reduce((count, item) => count + item.content.length, 0) <= 196608, 'AI_PROMPT_INVALID');
+      requireCondition(Array.isArray(trimGroups) && trimGroups.length <= 44 && trimGroups.every(group => Array.isArray(group) &&
+        group.length > 0 && group.length <= 2 && group.every(index => Number.isSafeInteger(index) && index > 0 && index < messages.length - 1 && messages[index].role !== 'system')) &&
+        new Set(trimGroups.flat()).size === trimGroups.flat().length, 'AI_PROMPT_INVALID');
+      const removed = new Set(); let groupIndex = 0, selected;
       // Count the exact runtime chat template, including generation prefix, instead of estimating from characters.
-      const template = await post('/apply-template', { messages, add_generation_prompt: true }, signal, deadline);
-      requireCondition(typeof template.prompt === 'string' && template.prompt.length <= 131072, 'AI_TEMPLATE_INVALID');
-      const tokenized = await post('/tokenize', { content: template.prompt, add_special: true }, signal, deadline);
-      requireCondition(Array.isArray(tokenized.tokens) && tokenized.tokens.every(Number.isInteger), 'AI_TOKENIZER_INVALID');
-      requireCondition(tokenized.tokens.length + outputTokens <= contextTokens, 'AI_CONTEXT_LIMIT');
-      const response = await post('/v1/chat/completions', { model: modelId, messages, stream: false, max_tokens: outputTokens,
-        temperature: 0.6, cache_prompt: false, response_format: { type: 'json_schema', json_schema: { name: 'sophie', strict: true, schema } } }, signal, deadline, 65536);
+      for (;;) {
+        selected = messages.filter((_message, index) => !removed.has(index));
+        const template = await post('/apply-template', { messages: selected, add_generation_prompt: true }, signal, deadline, 1048576);
+        requireCondition(typeof template.prompt === 'string' && template.prompt.length <= 262144, 'AI_TEMPLATE_INVALID');
+        const tokenized = await post('/tokenize', { content: template.prompt, add_special: true }, signal, deadline, 2097152);
+        requireCondition(Array.isArray(tokenized.tokens) && tokenized.tokens.every(Number.isInteger), 'AI_TOKENIZER_INVALID');
+        if (tokenized.tokens.length + outputTokens <= contextTokens) break;
+        requireCondition(groupIndex < trimGroups.length, 'AI_CONTEXT_LIMIT');
+        // Batch removals to avoid one tokenizer round trip per message, then recount exactly.
+        const target = template.prompt.length * (tokenized.tokens.length + outputTokens - contextTokens) / tokenized.tokens.length + 256;
+        let characters = 0;
+        while (groupIndex < trimGroups.length && characters < target) {
+          for (const index of trimGroups[groupIndex++]) { removed.add(index); characters += messages[index].content.length; }
+        }
+      }
+      const response = await post('/v1/chat/completions', { model: modelId, messages: selected, stream: false, max_tokens: outputTokens,
+        temperature: 0.6, cache_prompt: false, response_format: { type: 'json_schema', json_schema: { name: 'sophie', strict: true, schema: AI_OUTPUT_SCHEMA } } }, signal, deadline, 65536);
       requireCondition(response.choices?.length === 1 && response.choices[0].finish_reason === 'stop', 'AI_FINAL_OUTPUT_REQUIRED');
       const message = response.choices[0].message;
       requireCondition(message?.role === 'assistant' && typeof message.content === 'string' && message.content.length <= 8192 &&

@@ -76,7 +76,7 @@ export async function runAiControlsSuite(cluster, run) {
   const ingress = createAiIngress({ guildId: actor.guildId, botUserId: '505', clock: Date.now });
   let contextEligible = true, sourceRevision = 'original', presenceEpoch = 1;
   const admission = createAiAdmission({ pool, guildId: actor.guildId, ingress, clock: Date.now,
-    inspectContext: async () => ({ eligible: contextEligible, audienceHash: 'e'.repeat(64), messageRevision: sourceRevision, continuity: 'synthetic-current', checkedAt: Date.now() }),
+    inspectContext: async () => ({ eligible: contextEligible, audienceHash: 'e'.repeat(64), restricted: false, canReply: true, canReact: true, messageRevision: sourceRevision, continuity: 'synthetic-current', checkedAt: Date.now() }),
     inspectMember: async () => ({ eligible: true, presenceEpoch, accessEpoch: 1, checkedAt: Date.now() }) });
   let bodyReads = 0;
   const event = (id, text = 'Synthetic hello', extras = {}) => {

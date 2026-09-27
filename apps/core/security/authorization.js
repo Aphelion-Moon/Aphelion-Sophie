@@ -84,7 +84,7 @@ export function createCoreAuthorization({ principals, discord, authorityStore, p
       const { observation, version } = await current(principal.userId);
       requireCondition(observation.present && !observation.bot, 'OPERATION_DENIED');
       const capabilities = {};
-      for (const capability of ['shuttle.publish', 'case.forms.publish', 'answers.publish', 'automation.publish', 'permissions.publish', 'ai.control', 'ai.personality.publish']) {
+      for (const capability of ['shuttle.publish', 'case.forms.publish', 'answers.publish', 'automation.publish', 'permissions.publish', 'ai.control', 'ai.personality.publish', 'ai.knowledge.publish']) {
         capabilities[capability] = await allowed(async () => { requireConfiguredCapability(fixed, capability, observation, clock()); return true; });
       }
       const manageable = [];

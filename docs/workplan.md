@@ -1,6 +1,6 @@
 # Current implementation workplan
 
-Revision: 2026-09-27-sophie-ai-foundation. AI workstream in local implementation: five participation presets, consent, authored personality, bounded inference and dashboard controls. Staging is unchanged. Worker qualification and production release remain open.
+Revision: 2026-09-27-sophie-ai-runtime-knowledge. Local AI runtime and public knowledge candidate on schema057. Trial artifacts are approved and verified; Hyper-V installed with restart required. No restart, model inference or live AI activation has occurred. Full AI readiness remains in progress.
 
 All production release gates remain open; pure and isolated database checks are not full application acceptance.
 
@@ -91,13 +91,15 @@ Current work: Complete the owner-requested AI workstream; external SAI continuat
 | Website role configuration and durable apply workflow (P03, P05, P08, P11, P15) | Website role/feature configuration and apply workflow implemented locally on schema055. Crew/base, Whitelist, Muzzled, Staff/lead ops, capability grants, responder groups and category routing are editable. Durable apply/status/retry, owner maintenance, role/case reconciliation, restart selection, lockout protection and restore quarantine are verified. 14 focused unit checks and 123 isolated scenarios pass (87 permissions/authorization, 16 runtime, 20 recovery/upgrade). Lead ops only is the owner-selected initial editor grant. Staging remains036c3db/schema054; deploying the new host and schema requires scoped authorization. | docs/permission-configuration.md; docs/evidence/website-configuration-verification.json. Synthetic desktop save/review/approve/apply/status/retry and mobile comparison checked. No dependencies added. | Scoped staging deployment authorization; live private role, Muzzled, Whitelist revocation and case ACL acceptance. Production gates remain open. |
 | Authorized schema055 configuration deployment (P03, P05, P08, P11, P15) | Owner-authorized a5e0232/schema055 deployment completed with the configurable host and Lead ops-only permissions.publish at capability version2. 779 Git file hashes verified; encrypted preservation restored in quarantine; migration preserved all 70 existing tables. Current Gateway, process/loopback-port ownership, 32 public HTTPS checks and 55 migration/71 restricted runtime table checks pass. Next: owner private Roles and permissions/apply/ACL acceptance. No production approval. | docs/evidence/website-configuration-live.json; docs/permission-configuration.md. Current encrypted backup completed; independent off-host recovery remains unverified. | Owner private live configuration/apply and role/ACL acceptance; production gates remain open. |
 | Local AI participation and control foundation (P23, P24, P25) | Schema056 candidate, five preset policies, isolated AI control state, versioned publications/consent, deadline-aware scheduler/client, metadata-only receipts, transient context and core-owned output. Authenticated dashboard participation/personality/member controls. No live deployment, model inference or added package dependency. | 37 focused unit/adapter checks and 12 isolated PostgreSQL scenarios passed; synthetic dashboard review/publication and opt-in/opt-out passed with no browser console errors. Logs and source-bound evidence under GitHub/.agent_docs/aphelion-sophie. These are offline foundation results, not feature completion. | Actual runtime composition, knowledge, recovery, worker isolation and model qualification, dialogue evaluation and explicit live activation. Personal memory and restricted lanes remain gated; full AI readiness has not been reached. |
+| Local AI runtime boundaries and approved public knowledge (P21, P22, P23, P24, P25) | Schema057 stable AI Gateway boundary, optional isolated runtime composition and strict metadata observations; reviewed public knowledge library/editor, source hash checks/withdrawal, attribution, deliberate context trimming and bounded typing. Named local trial approvals recorded. No new npm dependency, deployment or model execution. | 47 focused unit/adapter/auth checks, 35 isolated AI/Gateway/knowledge scenarios including schema056 upgrade, and 17 composed staging scenarios passed. Both clusters stopped. Synthetic knowledge browser review/confirmation/publication/withdrawal passed with no console warnings/errors. Source-bound logs and worker preparation are outside the repository. | Operator restart before the approved synthetic worker trial; actual containment, 15-second end-to-end load evidence, model dialogue/knowledge evaluation, source sync, qualified broker/restore and effect recovery, explicit memory/named restricted domains and live acceptance. This milestone is not full AI readiness. |
 
 ## Next implementation sequence
 
 These are bounded next steps within the task dependencies below. An unresolved live or operational input stops only work that needs that input.
 
-1. **Privately verify deployed configuration and apply workflow** (P03, P05, P08, P11, P15). Sign in with the existing Lead ops role at /permissions. Verify Crew/base, Whitelist, Muzzled, Staff/lead ops, feature grants, responders and category; review/apply an intentional change and verify progress, preserved restrictions and case access. Do not inspect private data through agent tools or repeat bootstrap/deployment. Exit evidence: Owner pass/fail with client/time and no private content. Keep the held recovery path and fresh Whitelist-run rule; no old-policy or schema054 rollback.
-2. **After feedback: qualify Onboarding production gates** (P01, P02, P05, P06, P07, P09, P13, P14, P26, P27, P29, P30, P31). Address the reported Onboarding failures first. Then qualify final guidance/mappings, existing-role ownership, Muzzled and fresh-run revocation, no-AI/privacy, restart/uncertain-effect recovery, independent latest-history recovery, Windows identity/service packaging and approved production handoff. Preserve the broader feature backlog without making unrelated functionality a prerequisite for the next Onboarding test. Exit evidence: Build-specific applicable release evidence and explicit operator approval; no production-ready claim from this human-test checkpoint.
+1. **Qualify the approved local AI worker after operator restart** (P21, P22, P23, P24, P25). After the operator-controlled restart, verify Hyper-V readiness and run the prepared network-disabled synthetic worker probe. Preserve the 15-second total-turn ceiling. Complete remaining broker/recovery, source-sync and selected-feature implementation, then qualify actual behavior and obtain scoped live activation approval. Exit evidence: Pinned source/model/runtime evidence for isolation, full-turn latency/load, dialogue/source quality and enabled feature acceptance. No benchmark or completed-AI claim from script preparation.
+2. **Privately verify deployed configuration and apply workflow** (P03, P05, P08, P11, P15). Sign in with the existing Lead ops role at /permissions. Verify Crew/base, Whitelist, Muzzled, Staff/lead ops, feature grants, responders and category; review/apply an intentional change and verify progress, preserved restrictions and case access. Do not inspect private data through agent tools or repeat bootstrap/deployment. Exit evidence: Owner pass/fail with client/time and no private content. Keep the held recovery path and fresh Whitelist-run rule; no old-policy or schema054 rollback.
+3. **After feedback: qualify Onboarding production gates** (P01, P02, P05, P06, P07, P09, P13, P14, P26, P27, P29, P30, P31). Address the reported Onboarding failures first. Then qualify final guidance/mappings, existing-role ownership, Muzzled and fresh-run revocation, no-AI/privacy, restart/uncertain-effect recovery, independent latest-history recovery, Windows identity/service packaging and approved production handoff. Preserve the broader feature backlog without making unrelated functionality a prerequisite for the next Onboarding test. Exit evidence: Build-specific applicable release evidence and explicit operator approval; no production-ready claim from this human-test checkpoint.
 
 ## Inputs and release gates still open
 
@@ -111,11 +113,11 @@ These are bounded next steps within the task dependencies below. An unresolved l
 | Reviewed runtime distributions, native service identities, ACLs, data root and ports | Service installation, OS isolation, resource baseline and host reboot tests. | Packaging, explicit composition and installation/preflight scripts. |
 | D:\Backups selected locally; independent recovery copy, key custody, RPO/RTO, backup retention and latest recovery watermark remain open | Verified independent restore and production cutover; a local destination is not an off-host recovery pass. | Backup/restore interfaces, local synthetic drills, retained-artifact design and operator runbooks. |
 | Human brand/accessibility review and administration pilot approval | G2 presentation acceptance and live cutover. | Static approved-asset previews and developer keyboard/reflow checks. |
-| Wiki collection/rights approvals; separately, exact model/runtime approval and measured host-load budget | Live knowledge ingestion (G3) and optional local AI (G4). | Public-source fixtures, lookup contracts and exclusion tests; administration remains independent. |
+| Wiki collection/rights approvals; approved pinned local trial artifacts verified, Hyper-V installed and operator restart required before worker qualification | Live knowledge ingestion (G3), model/host qualification (G4), private-worker and selected persistent-memory gates. | Public-source fixtures, lookup contracts and exclusion tests; administration remains independent. |
 
 ## Task status
 
-Status counts: 1 complete; 26 in progress; 13 planned, not started. These are full-task statuses, not a percentage of code or release readiness.
+Status counts: 1 complete; 28 in progress; 11 planned, not started. These are full-task statuses, not a percentage of code or release readiness.
 
 An in-progress task can contain several verified milestones and still have unfinished implementation or acceptance. Acceptance IDs below link requirements to tasks; they do not assert that those specifications have passed.
 
@@ -142,8 +144,8 @@ An in-progress task can contain several verified milestones and still have unfin
 | P18 — Implement simple automation and curated answers | in_progress | P08, P09 |
 | P19 — Enforce AI exclusion at every boundary | in_progress | P05, P06, P07, P10 |
 | P20 — Implement MediaWiki ingestion and sync | planned_not_started | P03, P06, P19 |
-| P21 — Implement direct lookup and source authority | planned_not_started | P20 |
-| P22 — Implement knowledge administration | planned_not_started | P08, P20, P21 |
+| P21 — Implement direct lookup and source authority | in_progress | P20 |
+| P22 — Implement knowledge administration | in_progress | P08, P20, P21 |
 | P23 — Provision and benchmark local model | in_progress | P01, P02, P07 |
 | P24 — Implement non-ticket knowledge assistant | in_progress | P19, P21, P23 |
 | P25 — Implement AI controls and evaluation tooling | in_progress | P08, P24 |
@@ -778,11 +780,19 @@ Boundary: No guessed endpoint, broad Discord scrape or case archive source.
 
 ## P21 — Implement direct lookup and source authority
 
-Status: **planned_not_started**. Phase: Knowledge. Priority: P0.
+Status: **in_progress**. Phase: Knowledge. Priority: P0.
 
 Depends on: P20. Acceptance: T27, T28, T29, T34.
 
-Not implemented. Reference-pack acceptance requirements still apply.
+Approved public lexical/alias retrieval, authority labels, revision/hash/expiry checks and attributed citations implemented. MediaWiki ingestion/synchronization, direct member-facing lookup, actual source rights/collection decisions and the 40-question release evaluation remain open.
+
+Implemented scope:
+
+- Approved public lexical/alias retrieval, authority labels, revision/hash/expiry checks and attributed citations implemented.
+
+Remaining scope:
+
+- MediaWiki ingestion/synchronization, direct member-facing lookup, actual source rights/collection decisions and the 40-question release evaluation remain open.
 
 Full task deliverables:
 
@@ -794,11 +804,19 @@ Boundary: No semantic model dependency for basic lookup.
 
 ## P22 — Implement knowledge administration
 
-Status: **planned_not_started**. Phase: Knowledge. Priority: P1.
+Status: **in_progress**. Phase: Knowledge. Priority: P1.
 
 Depends on: P08, P20, P21. Acceptance: T28, T29, T42.
 
-Not implemented. Reference-pack acceptance requirements still apply.
+Separate knowledge identity, reviewed public publication, catalogue/editor, source invalidation and removal of all stored plaintext revisions on withdrawal. Source synchronization/health, production service/identity wiring, external restore watermark, permitted source collection and live acceptance remain open.
+
+Implemented scope:
+
+- Separate knowledge identity, reviewed public publication, catalogue/editor, source invalidation and removal of all stored plaintext revisions on withdrawal.
+
+Remaining scope:
+
+- Source synchronization/health, production service/identity wiring, external restore watermark, permitted source collection and live acceptance remain open.
 
 Full task deliverables:
 
@@ -813,15 +831,15 @@ Status: **in_progress**. Phase: Local AI. Priority: P0.
 
 Depends on: P01, P02, P07. Acceptance: T31, T32, T33.
 
-Fixed local llama.cpp adapter, exact-template token accounting, one-worker fair queue and 15-second total-turn expiry; pinned runtime/model proposal and read-only host prerequisites. Approve runtime/image scope; enable and qualify Hyper-V isolation; verify model hashes/template, actual latency, memory and representative host load. No model has run.
+Approved runtime/model/base-image pins verified; Hyper-V install succeeded with restart required. Network-none Hyper-V ContainerUser trial context is prepared; scripts parsed, no worker executable run. Operator-controlled restart, actual isolation/negative-access qualification, template/tokenizer compatibility, cancellation and 15-second full-turn/load measurements remain required.
 
 Implemented scope:
 
-- Fixed local llama.cpp adapter, exact-template token accounting, one-worker fair queue and 15-second total-turn expiry; pinned runtime/model proposal and read-only host prerequisites.
+- Approved runtime/model/base-image pins verified; Hyper-V install succeeded with restart required. Network-none Hyper-V ContainerUser trial context is prepared; scripts parsed, no worker executable run.
 
 Remaining scope:
 
-- Approve runtime/image scope; enable and qualify Hyper-V isolation; verify model hashes/template, actual latency, memory and representative host load. No model has run.
+- Operator-controlled restart, actual isolation/negative-access qualification, template/tokenizer compatibility, cancellation and 15-second full-turn/load measurements remain required.
 
 Full task deliverables:
 
@@ -837,15 +855,15 @@ Status: **in_progress**. Phase: Local AI. Priority: P0.
 
 Depends on: P19, P21, P23. Acceptance: T22, T25, T26, T29, T30, T34, T48, T52.
 
-Five channel presets; per-member channel consent; metadata-first exclusion; transient scoped context; durable admission/pacing/replay receipts; current-source and delivery revalidation; strict reply/react/silent rendering with fixed core targets. Connect actual Discord observations and event lifecycle, qualified worker composition, public knowledge retrieval, durable effect recovery and applicable release evaluation. No live AI activation.
+Core Gateway handoff now composes metadata observations, current audience/presence gates, consent, short-lived context, public retrieval, inference queue and fixed output. Stable AI continuity ignores ordinary traffic but invalidates audience changes. Input trimming retains policy/current question; brief typing is limited to admitted addressed turns. Qualified worker broker and service/restore wiring, durable effect recovery and reaction ownership, private worker domains, explicit-memory implementation/scope, source sync and full enabled-feature acceptance remain open.
 
 Implemented scope:
 
-- Five channel presets; per-member channel consent; metadata-first exclusion; transient scoped context; durable admission/pacing/replay receipts; current-source and delivery revalidation; strict reply/react/silent rendering with fixed core targets.
+- Core Gateway handoff now composes metadata observations, current audience/presence gates, consent, short-lived context, public retrieval, inference queue and fixed output. Stable AI continuity ignores ordinary traffic but invalidates audience changes. Input trimming retains policy/current question; brief typing is limited to admitted addressed turns.
 
 Remaining scope:
 
-- Connect actual Discord observations and event lifecycle, qualified worker composition, public knowledge retrieval, durable effect recovery and applicable release evaluation. No live AI activation.
+- Qualified worker broker and service/restore wiring, durable effect recovery and reaction ownership, private worker domains, explicit-memory implementation/scope, source sync and full enabled-feature acceptance remain open.
 
 Full task deliverables:
 
@@ -862,15 +880,15 @@ Status: **in_progress**. Phase: Local AI. Priority: P1.
 
 Depends on: P08, P24. Acceptance: T26, T31, T33, T42, T48.
 
-Versioned exact-review configuration/personality publications; independent AI disable; authenticated control routes; participation, quiet hours, pacing, reactions and own-consent dashboard. Synthetic browser publication and opt-in/opt-out verified. Applied-worker acknowledgement, scoped runtime status/resources, knowledge administration, operator release controls and real model/personality evaluation.
+Participation/personality/own-consent dashboard plus authenticated reviewed public knowledge editor. Synthetic editor publication and withdrawal verified; unavailable AI controls do not block composed administration. Applied-worker acknowledgement, operational release/resources controls, source sync, personal-memory controls, actual model dialogue evaluation and explicit activation remain open.
 
 Implemented scope:
 
-- Versioned exact-review configuration/personality publications; independent AI disable; authenticated control routes; participation, quiet hours, pacing, reactions and own-consent dashboard. Synthetic browser publication and opt-in/opt-out verified.
+- Participation/personality/own-consent dashboard plus authenticated reviewed public knowledge editor. Synthetic editor publication and withdrawal verified; unavailable AI controls do not block composed administration.
 
 Remaining scope:
 
-- Applied-worker acknowledgement, scoped runtime status/resources, knowledge administration, operator release controls and real model/personality evaluation.
+- Applied-worker acknowledgement, operational release/resources controls, source sync, personal-memory controls, actual model dialogue evaluation and explicit activation remain open.
 
 Full task deliverables:
 
