@@ -285,3 +285,43 @@ Per the owner's new storage instruction, new generated plans, evidence, service
 templates and agent tooling belong in `GitHub/.agent_docs/aphelion-sophie`.
 Existing in-repository evidence is retained as historical; the current continuation
 is [the external workplan](../../../.agent_docs/aphelion-sophie/workplan.md).
+
+## Full AI workstream and configurable participation — 27 September 2026
+
+After reviewing `sophie-ai-workplan-v0.3.md`, the owner requested Sophie's AI side
+fully ready, rather than treating a public-only pilot as completion. Implement the
+plan's character, knowledge, operating controls, explicit-memory and named
+restricted-context work, with each capability's actual activation gates preserved.
+Optional semantic retrieval and file publication still require their stated need
+and separate scope decisions; they are not silently enabled by "fully ready."
+
+The owner selected five configurable channel behaviors: conversational participation;
+answer sufficiently supported questions; mentions/replies only; read/react with
+speech only when asked; and ignore. This supersedes the plan's exclusion of ambient
+participation only within explicitly configured channels and individually opted-in
+sources. It does not authorize server-wide listening, historical imports, tickets,
+onboarding content, unconsented sources, or cross-boundary conversation sharing.
+Unknown channels default to ignore. Participation, consent, audience, retention and
+worker authority remain separate settings.
+
+The first local-model trial has a maximum 15-second end-to-end response lifetime,
+including queueing, retrieval, generation and delivery. Expired work is discarded;
+an acknowledgement is not a substitute for a timely answer. The owner's possible
+future provider API key is a contingency, not approval to transmit Discord content
+to a cloud model now. Keep local-only execution and no automatic cloud fallback.
+
+Local implementation, focused synthetic checks, commits and regeneration of
+protected generated artifacts are authorized. The original source artwork and
+hardware addendum remain preserved. Up to two GPT-5.6 Luna Max sub-agents may assist
+with bounded independent work in this workstream. New generated plans, research,
+evidence and tooling belong in the external agent-documents directory. Existing
+knowledge-release requirements (including the 40 reviewed questions and stated
+quality thresholds) remain applicable to generated knowledge answers; social-only
+tests need not invent knowledge questions. New AI activation gates use `SAI-G*`
+names and do not replace the original release gates.
+
+No live deployment, service/identity/ACL/hypervisor changes, new dependency exception,
+platform-policy clearance or release pass is inferred. Production recovery remains
+deferred as previously requested. The missing external continuation is reconstructed
+from retained source/evidence with uncertainties identified, not historical work
+marked unperformed.

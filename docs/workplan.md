@@ -4,7 +4,7 @@ Revision: 2026-09-27-sophie-staging. Isolated Sophie staging is online with a cu
 
 All production release gates remain open; pure and isolated database checks are not full application acceptance.
 
-Source requirements remain in the preserved v1.1 pack. Current owner decisions override conflicting source recommendations. No sub-agent delegation is authorised.
+Source requirements remain in the preserved v1.1 pack. Current owner decisions override conflicting source recommendations; delegation follows the current owner-authorized scope in AGENTS.md.
 
 ## Implementation checkpoint
 

@@ -7,7 +7,7 @@ export function renderWorkplan(plan) {
     '# Current implementation workplan', '',
     `Revision: ${plan.revision}. ${plan.schedule}`, '',
     plan.release_status, '',
-    'Source requirements remain in the preserved v1.1 pack. Current owner decisions override conflicting source recommendations. No sub-agent delegation is authorised.', '',
+    'Source requirements remain in the preserved v1.1 pack. Current owner decisions override conflicting source recommendations; delegation follows the current owner-authorized scope in AGENTS.md.', '',
     '## Implementation checkpoint', '',
     plan.checkpoint.summary, '',
     `Recorded baseline: ${plan.checkpoint.recorded_baseline}`, '',
