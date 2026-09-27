@@ -1,6 +1,6 @@
 # Current implementation workplan
 
-Revision: 2026-09-27-sophie-ai-runtime-knowledge. Local AI runtime and public knowledge candidate on schema057. Trial artifacts are approved and verified; Hyper-V installed with restart required. No restart, model inference or live AI activation has occurred. Full AI readiness remains in progress.
+Revision: 2026-09-27-sophie-ai-worker-startup. Operator restart verified; the approved Hyper-V worker image builds with the selected limits. Server startup is blocked by missing Microsoft Visual C++ DLLs; a pinned container-only runtime proposal awaits approval. No model inference or live AI activation has completed.
 
 All production release gates remain open; pure and isolated database checks are not full application acceptance.
 
@@ -12,7 +12,7 @@ Deterministic administration, Whitelist onboarding, protected editors, role/perm
 
 Recorded baseline: Pinned executable d4ca16ab6286a4ef186733d6829828e74d3fc176, schema 055; current results are listed in docs/verification.md.
 
-Current work: Complete the owner-requested AI workstream; external SAI continuation at GitHub/.agent_docs/aphelion-sophie/workplan.md. Preserve administration acceptance and open production gates.
+Current work: Resolve the named container runtime dependency, then measure actual local inference. The adapter uses identical generation/token-count requests with nine focused checks passing. Remaining full-AI implementation and activation gates are open.
 
 418 unit tests, 13 isolated configuration scenarios, 16 isolated staging scenarios, 28 public HTTPS checks, 55 live migration checks and 71 live restricted-table checks pass. The Gateway is current. These results do not establish production readiness.
 
@@ -92,12 +92,13 @@ Current work: Complete the owner-requested AI workstream; external SAI continuat
 | Authorized schema055 configuration deployment (P03, P05, P08, P11, P15) | Owner-authorized a5e0232/schema055 deployment completed with the configurable host and Lead ops-only permissions.publish at capability version2. 779 Git file hashes verified; encrypted preservation restored in quarantine; migration preserved all 70 existing tables. Current Gateway, process/loopback-port ownership, 32 public HTTPS checks and 55 migration/71 restricted runtime table checks pass. Next: owner private Roles and permissions/apply/ACL acceptance. No production approval. | docs/evidence/website-configuration-live.json; docs/permission-configuration.md. Current encrypted backup completed; independent off-host recovery remains unverified. | Owner private live configuration/apply and role/ACL acceptance; production gates remain open. |
 | Local AI participation and control foundation (P23, P24, P25) | Schema056 candidate, five preset policies, isolated AI control state, versioned publications/consent, deadline-aware scheduler/client, metadata-only receipts, transient context and core-owned output. Authenticated dashboard participation/personality/member controls. No live deployment, model inference or added package dependency. | 37 focused unit/adapter checks and 12 isolated PostgreSQL scenarios passed; synthetic dashboard review/publication and opt-in/opt-out passed with no browser console errors. Logs and source-bound evidence under GitHub/.agent_docs/aphelion-sophie. These are offline foundation results, not feature completion. | Actual runtime composition, knowledge, recovery, worker isolation and model qualification, dialogue evaluation and explicit live activation. Personal memory and restricted lanes remain gated; full AI readiness has not been reached. |
 | Local AI runtime boundaries and approved public knowledge (P21, P22, P23, P24, P25) | Schema057 stable AI Gateway boundary, optional isolated runtime composition and strict metadata observations; reviewed public knowledge library/editor, source hash checks/withdrawal, attribution, deliberate context trimming and bounded typing. Named local trial approvals recorded. No new npm dependency, deployment or model execution. | 47 focused unit/adapter/auth checks, 35 isolated AI/Gateway/knowledge scenarios including schema056 upgrade, and 17 composed staging scenarios passed. Both clusters stopped. Synthetic knowledge browser review/confirmation/publication/withdrawal passed with no console warnings/errors. Source-bound logs and worker preparation are outside the repository. | Operator restart before the approved synthetic worker trial; actual containment, 15-second end-to-end load evidence, model dialogue/knowledge evaluation, source sync, qualified broker/restore and effect recovery, explicit memory/named restricted domains and live acceptance. This milestone is not full AI readiness. |
+| Post-restart local worker startup and exact token counting (P23, P24, P25) | Verified operator restart and built/started the contained candidate. Diagnosed absent MSVCP140/VCRUNTIME140/VCRUNTIME140_1 before model load. Adapter now counts the exact generation request through the pinned runtime endpoint. | Docker boundary inspection and contained DLL-presence check; nine focused scheduler/client checks pass. Pinned Microsoft-signed 14.51.36247.0 package downloaded for review only. Source-bound startup evidence outside the repository. | New non-MIT container-runtime decision; actual inference, model/dialogue/source quality, full-turn latency/load and remaining selected-feature implementation/activation. No live AI or performance pass. |
 
 ## Next implementation sequence
 
 These are bounded next steps within the task dependencies below. An unresolved live or operational input stops only work that needs that input.
 
-1. **Qualify the approved local AI worker after operator restart** (P21, P22, P23, P24, P25). After the operator-controlled restart, verify Hyper-V readiness and run the prepared network-disabled synthetic worker probe. Preserve the 15-second total-turn ceiling. Complete remaining broker/recovery, source-sync and selected-feature implementation, then qualify actual behavior and obtain scoped live activation approval. Exit evidence: Pinned source/model/runtime evidence for isolation, full-turn latency/load, dialogue/source quality and enabled feature acceptance. No benchmark or completed-AI claim from script preparation.
+1. **Resolve the isolated worker runtime dependency and qualify inference** (P21, P22, P23, P24, P25). Approve the exact proposed Microsoft Visual C++ runtime scope, install only inside the disposable worker image, then run the bounded synthetic probe. Preserve the 15-second total-turn ceiling and continue remaining broker/recovery, source-sync and selected-feature implementation. Live activation remains separate. Exit evidence: Pinned source/model/runtime evidence for isolation, full-turn latency/load, dialogue/source quality and enabled feature acceptance. No benchmark or completed-AI claim from script preparation.
 2. **Privately verify deployed configuration and apply workflow** (P03, P05, P08, P11, P15). Sign in with the existing Lead ops role at /permissions. Verify Crew/base, Whitelist, Muzzled, Staff/lead ops, feature grants, responders and category; review/apply an intentional change and verify progress, preserved restrictions and case access. Do not inspect private data through agent tools or repeat bootstrap/deployment. Exit evidence: Owner pass/fail with client/time and no private content. Keep the held recovery path and fresh Whitelist-run rule; no old-policy or schema054 rollback.
 3. **After feedback: qualify Onboarding production gates** (P01, P02, P05, P06, P07, P09, P13, P14, P26, P27, P29, P30, P31). Address the reported Onboarding failures first. Then qualify final guidance/mappings, existing-role ownership, Muzzled and fresh-run revocation, no-AI/privacy, restart/uncertain-effect recovery, independent latest-history recovery, Windows identity/service packaging and approved production handoff. Preserve the broader feature backlog without making unrelated functionality a prerequisite for the next Onboarding test. Exit evidence: Build-specific applicable release evidence and explicit operator approval; no production-ready claim from this human-test checkpoint.
 
@@ -113,7 +114,7 @@ These are bounded next steps within the task dependencies below. An unresolved l
 | Reviewed runtime distributions, native service identities, ACLs, data root and ports | Service installation, OS isolation, resource baseline and host reboot tests. | Packaging, explicit composition and installation/preflight scripts. |
 | D:\Backups selected locally; independent recovery copy, key custody, RPO/RTO, backup retention and latest recovery watermark remain open | Verified independent restore and production cutover; a local destination is not an off-host recovery pass. | Backup/restore interfaces, local synthetic drills, retained-artifact design and operator runbooks. |
 | Human brand/accessibility review and administration pilot approval | G2 presentation acceptance and live cutover. | Static approved-asset previews and developer keyboard/reflow checks. |
-| Wiki collection/rights approvals; approved pinned local trial artifacts verified, Hyper-V installed and operator restart required before worker qualification | Live knowledge ingestion (G3), model/host qualification (G4), private-worker and selected persistent-memory gates. | Public-source fixtures, lookup contracts and exclusion tests; administration remains independent. |
+| Wiki collection/rights approvals; pinned worker artifacts and post-restart Hyper-V startup verified, but missing Microsoft Visual C++ runtime requires its own named scope decision before inference | Live knowledge ingestion (G3), model/host qualification (G4), private-worker and selected persistent-memory gates. | Public-source fixtures, lookup contracts and exclusion tests; administration remains independent. |
 
 ## Task status
 
@@ -831,15 +832,16 @@ Status: **in_progress**. Phase: Local AI. Priority: P0.
 
 Depends on: P01, P02, P07. Acceptance: T31, T32, T33.
 
-Approved runtime/model/base-image pins verified; Hyper-V install succeeded with restart required. Network-none Hyper-V ContainerUser trial context is prepared; scripts parsed, no worker executable run. Operator-controlled restart, actual isolation/negative-access qualification, template/tokenizer compatibility, cancellation and 15-second full-turn/load measurements remain required.
+Operator restart verified. Approved COPY-only worker image built; Docker inspection confirmed Hyper-V, network none, four CPUs, 8 GiB, ContainerUser, zero mounts/ports. Server exits 0xC0000135; static imports and a contained check identify absent Microsoft Visual C++ runtime DLLs. Exact container-only runtime proposal awaits approval. No inference or 15-second qualification.
 
 Implemented scope:
 
-- Approved runtime/model/base-image pins verified; Hyper-V install succeeded with restart required. Network-none Hyper-V ContainerUser trial context is prepared; scripts parsed, no worker executable run.
+- Approved runtime/model/image hashes verified; Hyper-V installed with owner authorization and operator restart verified.
+- Contained startup attempted and missing DLLs diagnosed without host model execution. Exact chat-request token counting adapter implemented; nine focused scheduler/client checks pass.
 
 Remaining scope:
 
-- Operator-controlled restart, actual isolation/negative-access qualification, template/tokenizer compatibility, cancellation and 15-second full-turn/load measurements remain required.
+- Approve and prepare the pinned Microsoft runtime inside the worker image; then qualify runtime flags, negative access, cancellation, model quality and full-turn 15-second/load behavior.
 
 Full task deliverables:
 

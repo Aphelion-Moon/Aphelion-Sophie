@@ -55,12 +55,12 @@ test('SAI AT-13 active deadline cancels and discards a late result without start
   assert.equal(scheduler.status().active, true); held.resolve('late private output'); await tick(); assert.equal(scheduler.status().active, false);
 });
 
-function llamaFixture({ tokens = [1, 2, 3], response = { choices: [{ finish_reason: 'stop', message: { role: 'assistant', content: '{"kind":"silent"}', reasoning_content: 'must not deliver' } }] } } = {}) {
+function llamaFixture({ count = { object: 'response.input_tokens', input_tokens: 3 }, response = { choices: [{ finish_reason: 'stop', message: { role: 'assistant', content: '{"kind":"silent"}', reasoning_content: 'must not deliver' } }] } } = {}) {
   const calls = [];
   const client = createLlamaClient({ endpoint: 'http://127.0.0.1:12345', apiKey: 'synthetic'.repeat(8), modelId: 'reviewed-model',
     fetchImpl: async (url, options) => {
       const body = JSON.parse(options.body); calls.push({ path: url.pathname, body, redirect: options.redirect });
-      const value = url.pathname === '/apply-template' ? { prompt: 'exact templated prompt' } : url.pathname === '/tokenize' ? { tokens } : response;
+      const value = url.pathname === '/v1/chat/completions/input_tokens' ? count : response;
       return new Response(JSON.stringify(value), { headers: { 'content-type': 'application/json' } });
     } });
   const generate = () => client.generate({ messages: [{ role: 'system', content: 'Sophie' }, { role: 'user', content: 'Synthetic hello' }] },
@@ -70,14 +70,20 @@ function llamaFixture({ tokens = [1, 2, 3], response = { choices: [{ finish_reas
 
 test('SAI AT-12 local adapter counts the runtime template and parses only final structured output', async () => {
   const f = llamaFixture(); assert.deepEqual(await f.generate(), { kind: 'silent' });
-  assert.deepEqual(f.calls.map(call => call.path), ['/apply-template', '/tokenize', '/v1/chat/completions']);
+  assert.deepEqual(f.calls.map(call => call.path), ['/v1/chat/completions/input_tokens', '/v1/chat/completions']);
+  assert.deepEqual(f.calls[0].body, f.calls[1].body);
   assert.equal(f.calls.at(-1).body.stream, false); assert.equal(f.calls.at(-1).body.cache_prompt, false);
   assert.equal(f.calls.every(call => call.redirect === 'error'), true);
 });
 
 test('SAI AT-12 input over budget is refused before generation; truncation/tools/raw fallback are rejected', async () => {
-  const large = llamaFixture({ tokens: Array(4000).fill(1) }); await assert.rejects(large.generate(), /AI_CONTEXT_LIMIT/);
-  assert.equal(large.calls.length, 2);
+  const large = llamaFixture({ count: { object: 'response.input_tokens', input_tokens: 4000 } }); await assert.rejects(large.generate(), /AI_CONTEXT_LIMIT/);
+  assert.equal(large.calls.length, 1);
+  for (const count of [{}, { input_tokens: 1 }, { object: 'response.input_tokens', input_tokens: '1' },
+    ...[0, -1, 1.5, Number.MAX_SAFE_INTEGER + 1].map(input_tokens => ({ object: 'response.input_tokens', input_tokens }))]) {
+    const invalid = llamaFixture({ count }); await assert.rejects(invalid.generate(), /AI_TOKENIZER_INVALID/);
+    assert.equal(invalid.calls.length, 1);
+  }
   for (const choice of [
     { finish_reason: 'length', message: { role: 'assistant', content: '{"kind":"silent"}' } },
     { finish_reason: 'stop', message: { role: 'assistant', content: '<think>secret</think>hello' } },
@@ -98,9 +104,8 @@ test('SAI AT-12 over-budget context drops whole old messages and retains the pol
   const client = createLlamaClient({ endpoint: 'http://127.0.0.1:12345', apiKey: 'synthetic'.repeat(8), modelId: 'reviewed-model',
     fetchImpl: async (url, options) => {
       const body = JSON.parse(options.body);
-      if (url.pathname === '/apply-template') { attempts++; tooLarge = body.messages.some(item => item.content.includes('Old conversation'));
-        return Response.json({ prompt: body.messages.map(item => item.content).join('\n') }); }
-      if (url.pathname === '/tokenize') return Response.json({ tokens: Array(tooLarge ? 4100 : 1000).fill(1) });
+      if (url.pathname === '/v1/chat/completions/input_tokens') { attempts++; tooLarge = body.messages.some(item => item.content.includes('Old conversation'));
+        return Response.json({ object: 'response.input_tokens', input_tokens: tooLarge ? 4100 : 1000 }); }
       finalMessages = body.messages; return Response.json({ choices: [{ finish_reason: 'stop', message: { role: 'assistant', content: '{"kind":"silent"}' } }] });
     } });
   assert.deepEqual(await client.generate(prompt,{ signal: new AbortController().signal, deadline: Date.now()+14000 }),{ kind: 'silent' });

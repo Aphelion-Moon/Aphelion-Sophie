@@ -1,10 +1,10 @@
 {
   "schema_version": 2,
-  "revision": "2026-09-27-sophie-ai-runtime-knowledge",
+  "revision": "2026-09-27-sophie-ai-worker-startup",
   "reference_plan_version": "1.1",
   "source": "Sophie-Implementation-Plans-v1.1/backlog.json",
   "owner_decisions": "docs/decisions/0001-owner-policy.md",
-  "schedule": "Local AI runtime and public knowledge candidate on schema057. Trial artifacts are approved and verified; Hyper-V installed with restart required. No restart, model inference or live AI activation has occurred. Full AI readiness remains in progress.",
+  "schedule": "Operator restart verified; the approved Hyper-V worker image builds with the selected limits. Server startup is blocked by missing Microsoft Visual C++ DLLs; a pinned container-only runtime proposal awaits approval. No model inference or live AI activation has completed.",
   "release_status": "All production release gates remain open; pure and isolated database checks are not full application acceptance.",
   "tasks": [
     {
@@ -838,12 +838,13 @@
       "suggested_owner": "Repository maintainer; separate human review where required",
       "guardrail": "No cloud fallback, auto-download or claimed unmeasured throughput.",
       "status": "in_progress",
-      "implementation_note": "Approved runtime/model/base-image pins verified; Hyper-V install succeeded with restart required. Network-none Hyper-V ContainerUser trial context is prepared; scripts parsed, no worker executable run. Operator-controlled restart, actual isolation/negative-access qualification, template/tokenizer compatibility, cancellation and 15-second full-turn/load measurements remain required.",
+      "implementation_note": "Operator restart verified. Approved COPY-only worker image built; Docker inspection confirmed Hyper-V, network none, four CPUs, 8 GiB, ContainerUser, zero mounts/ports. Server exits 0xC0000135; static imports and a contained check identify absent Microsoft Visual C++ runtime DLLs. Exact container-only runtime proposal awaits approval. No inference or 15-second qualification.",
       "completed_scope": [
-        "Approved runtime/model/base-image pins verified; Hyper-V install succeeded with restart required. Network-none Hyper-V ContainerUser trial context is prepared; scripts parsed, no worker executable run."
+        "Approved runtime/model/image hashes verified; Hyper-V installed with owner authorization and operator restart verified.",
+        "Contained startup attempted and missing DLLs diagnosed without host model execution. Exact chat-request token counting adapter implemented; nine focused scheduler/client checks pass."
       ],
       "remaining_scope": [
-        "Operator-controlled restart, actual isolation/negative-access qualification, template/tokenizer compatibility, cancellation and 15-second full-turn/load measurements remain required."
+        "Approve and prepare the pinned Microsoft runtime inside the worker image; then qualify runtime flags, negative access, cancellation, model quality and full-turn 15-second/load behavior."
       ]
     },
     {
@@ -1324,7 +1325,7 @@
   "checkpoint": {
     "summary": "Deterministic administration, Whitelist onboarding, protected editors, role/permission configuration and the configurable staging host are implemented.",
     "recorded_baseline": "Pinned executable d4ca16ab6286a4ef186733d6829828e74d3fc176, schema 055; current results are listed in docs/verification.md.",
-    "current_work": "Complete the owner-requested AI workstream; external SAI continuation at GitHub/.agent_docs/aphelion-sophie/workplan.md. Preserve administration acceptance and open production gates.",
+    "current_work": "Resolve the named container runtime dependency, then measure actual local inference. The adapter uses identical generation/token-count requests with nine focused checks passing. Remaining full-AI implementation and activation gates are open.",
     "evidence_note": "418 unit tests, 13 isolated configuration scenarios, 16 isolated staging scenarios, 28 public HTTPS checks, 55 live migration checks and 71 live restricted-table checks pass. The Gateway is current. These results do not establish production readiness."
   },
   "milestones": [
@@ -2176,11 +2177,22 @@
       "implemented": "Schema057 stable AI Gateway boundary, optional isolated runtime composition and strict metadata observations; reviewed public knowledge library/editor, source hash checks/withdrawal, attribution, deliberate context trimming and bounded typing. Named local trial approvals recorded. No new npm dependency, deployment or model execution.",
       "evidence": "47 focused unit/adapter/auth checks, 35 isolated AI/Gateway/knowledge scenarios including schema056 upgrade, and 17 composed staging scenarios passed. Both clusters stopped. Synthetic knowledge browser review/confirmation/publication/withdrawal passed with no console warnings/errors. Source-bound logs and worker preparation are outside the repository.",
       "remaining": "Operator restart before the approved synthetic worker trial; actual containment, 15-second end-to-end load evidence, model dialogue/knowledge evaluation, source sync, qualified broker/restore and effect recovery, explicit memory/named restricted domains and live acceptance. This milestone is not full AI readiness."
+    },
+    {
+      "title": "Post-restart local worker startup and exact token counting",
+      "tasks": [
+        "P23",
+        "P24",
+        "P25"
+      ],
+      "implemented": "Verified operator restart and built/started the contained candidate. Diagnosed absent MSVCP140/VCRUNTIME140/VCRUNTIME140_1 before model load. Adapter now counts the exact generation request through the pinned runtime endpoint.",
+      "evidence": "Docker boundary inspection and contained DLL-presence check; nine focused scheduler/client checks pass. Pinned Microsoft-signed 14.51.36247.0 package downloaded for review only. Source-bound startup evidence outside the repository.",
+      "remaining": "New non-MIT container-runtime decision; actual inference, model/dialogue/source quality, full-turn latency/load and remaining selected-feature implementation/activation. No live AI or performance pass."
     }
   ],
   "next_steps": [
     {
-      "title": "Qualify the approved local AI worker after operator restart",
+      "title": "Resolve the isolated worker runtime dependency and qualify inference",
       "tasks": [
         "P21",
         "P22",
@@ -2188,7 +2200,7 @@
         "P24",
         "P25"
       ],
-      "work": "After the operator-controlled restart, verify Hyper-V readiness and run the prepared network-disabled synthetic worker probe. Preserve the 15-second total-turn ceiling. Complete remaining broker/recovery, source-sync and selected-feature implementation, then qualify actual behavior and obtain scoped live activation approval.",
+      "work": "Approve the exact proposed Microsoft Visual C++ runtime scope, install only inside the disposable worker image, then run the bounded synthetic probe. Preserve the 15-second total-turn ceiling and continue remaining broker/recovery, source-sync and selected-feature implementation. Live activation remains separate.",
       "exit_evidence": "Pinned source/model/runtime evidence for isolation, full-turn latency/load, dialogue/source quality and enabled feature acceptance. No benchmark or completed-AI claim from script preparation."
     },
     {
@@ -2266,7 +2278,7 @@
       "independent_work": "Static approved-asset previews and developer keyboard/reflow checks."
     },
     {
-      "input": "Wiki collection/rights approvals; approved pinned local trial artifacts verified, Hyper-V installed and operator restart required before worker qualification",
+      "input": "Wiki collection/rights approvals; pinned worker artifacts and post-restart Hyper-V startup verified, but missing Microsoft Visual C++ runtime requires its own named scope decision before inference",
       "affected_work": "Live knowledge ingestion (G3), model/host qualification (G4), private-worker and selected persistent-memory gates.",
       "independent_work": "Public-source fixtures, lookup contracts and exclusion tests; administration remains independent."
     }

@@ -50,25 +50,24 @@ export function createLlamaClient({ endpoint, apiKey, modelId, contextTokens = 4
       requireCondition(Array.isArray(trimGroups) && trimGroups.length <= 44 && trimGroups.every(group => Array.isArray(group) &&
         group.length > 0 && group.length <= 2 && group.every(index => Number.isSafeInteger(index) && index > 0 && index < messages.length - 1 && messages[index].role !== 'system')) &&
         new Set(trimGroups.flat()).size === trimGroups.flat().length, 'AI_PROMPT_INVALID');
-      const removed = new Set(); let groupIndex = 0, selected;
-      // Count the exact runtime chat template, including generation prefix, instead of estimating from characters.
+      const removed = new Set(); let groupIndex = 0, body;
+      // b10977 counts the same chat parser/template used by generation, including its assistant prefix.
       for (;;) {
-        selected = messages.filter((_message, index) => !removed.has(index));
-        const template = await post('/apply-template', { messages: selected, add_generation_prompt: true }, signal, deadline, 1048576);
-        requireCondition(typeof template.prompt === 'string' && template.prompt.length <= 262144, 'AI_TEMPLATE_INVALID');
-        const tokenized = await post('/tokenize', { content: template.prompt, add_special: true }, signal, deadline, 2097152);
-        requireCondition(Array.isArray(tokenized.tokens) && tokenized.tokens.every(Number.isInteger), 'AI_TOKENIZER_INVALID');
-        if (tokenized.tokens.length + outputTokens <= contextTokens) break;
+        const selected = messages.filter((_message, index) => !removed.has(index));
+        body = { model: modelId, messages: selected, stream: false, max_tokens: outputTokens,
+          temperature: 0.6, cache_prompt: false, response_format: { type: 'json_schema', json_schema: { name: 'sophie', strict: true, schema: AI_OUTPUT_SCHEMA } } };
+        const counted = await post('/v1/chat/completions/input_tokens', body, signal, deadline, 4096);
+        requireCondition(counted.object === 'response.input_tokens' && Number.isSafeInteger(counted.input_tokens) && counted.input_tokens > 0, 'AI_TOKENIZER_INVALID');
+        if (counted.input_tokens + outputTokens <= contextTokens) break;
         requireCondition(groupIndex < trimGroups.length, 'AI_CONTEXT_LIMIT');
-        // Batch removals to avoid one tokenizer round trip per message, then recount exactly.
-        const target = template.prompt.length * (tokenized.tokens.length + outputTokens - contextTokens) / tokenized.tokens.length + 256;
+        // Estimate only how much optional text to remove; the next exact count still decides admission.
+        const target = selected.reduce((count, item) => count + item.content.length, 0) * (counted.input_tokens + outputTokens - contextTokens) / counted.input_tokens + 256;
         let characters = 0;
         while (groupIndex < trimGroups.length && characters < target) {
           for (const index of trimGroups[groupIndex++]) { removed.add(index); characters += messages[index].content.length; }
         }
       }
-      const response = await post('/v1/chat/completions', { model: modelId, messages: selected, stream: false, max_tokens: outputTokens,
-        temperature: 0.6, cache_prompt: false, response_format: { type: 'json_schema', json_schema: { name: 'sophie', strict: true, schema: AI_OUTPUT_SCHEMA } } }, signal, deadline, 65536);
+      const response = await post('/v1/chat/completions', body, signal, deadline, 65536);
       requireCondition(response.choices?.length === 1 && response.choices[0].finish_reason === 'stop', 'AI_FINAL_OUTPUT_REQUIRED');
       const message = response.choices[0].message;
       requireCondition(message?.role === 'assistant' && typeof message.content === 'string' && message.content.length <= 8192 &&

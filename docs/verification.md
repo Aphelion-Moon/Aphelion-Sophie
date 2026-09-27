@@ -58,12 +58,25 @@ The owner approved the pinned llama.cpp b10977/LLVM OpenMP, Bartowski Phi-4-mini
 Q4_K_M and Windows Server Core trial artifacts. Runtime and model SHA-256 values
 were verified, and the exact base image was pulled. The owner separately approved
 Hyper-V installation without automatic reboot. Installation returned success with
-restart required. No reboot was issued. The network-disabled synthetic trial
-package is prepared outside the repository; PowerShell scripts parse, but its
-image build, runtime flags and model behavior have not been executed/qualified.
+restart required. No reboot was issued by the agent. The operator subsequently
+restarted WUFF and instructed continuation. The serving image built and its Docker
+inspection confirmed Hyper-V, network none, four CPUs, 8 GiB, ContainerUser and zero
+mounts/ports. Startup exited 0xC0000135 before model load. Static PE imports and a
+separate contained check confirmed absent MSVCP140/VCRUNTIME140/VCRUNTIME140_1
+DLLs. All owned trial containers were removed. These observations are not a
+negative-access or confidentiality qualification.
 
-AI is not production-ready or live. Operator restart is needed before the first
-worker trial. The 15-second total-turn ceiling has not been measured with a model.
+Microsoft Visual C++ x64 14.51.36247.0 is downloaded and hash-pinned for a
+container-only proposal, with a valid Microsoft signature. It has not been approved
+or installed. The latest adapter uses the exact generation body with the pinned
+runtime token-count endpoint. Nine focused scheduler/client checks pass, including
+malformed count rejection and optional context trimming. The real endpoint and
+prompt-token agreement remain untested until model startup succeeds. New evidence
+is in `GitHub/.agent_docs/aphelion-sophie/worker-startup-verification.json`; the
+earlier schema057 runtime/knowledge evidence remains historical and unchanged.
+
+AI is not production-ready or live. The runtime dependency is the current model
+trial blocker. The 15-second total-turn ceiling has not been measured with a model.
 Qualified worker/service/restore wiring, durable effect recovery, source sync,
 explicit-memory and named restricted-domain work, source/dialogue evaluation and
 applicable enabled-feature acceptance remain open. No live schema migration,
