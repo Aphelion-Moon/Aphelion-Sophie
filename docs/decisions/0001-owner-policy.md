@@ -379,3 +379,56 @@ within existing authority; preserve failed results and the 15-second total-turn
 ceiling. No cloud/API plan or remote Discord-content processing is selected.
 New non-MIT model derivatives still need their named scope decision. Neither
 completed trial qualifies a model for live use.
+
+### DeepSeek Flash provider selection — 27 September 2026
+
+The owner supplied a local credential-file path and explicitly instructed use of
+DeepSeek Flash after researching and optimizing its integration. This supersedes
+the preceding local-only exploration direction for this provider. It authorizes
+the named remote API integration and bounded synthetic credential/model checks;
+no further confirmation of that key use is required. Preserve local operation as
+an alternative and never add automatic fallback between providers.
+
+Use official `https://api.deepseek.com` with `deepseek-flash`, currently documented
+as DeepSeek-V4.1-Flash. This is a mutable hosted model alias, not an immutable model
+artifact; record observed model identity/fingerprint and requalify provider changes.
+No provider SDK or new package dependency is selected. The secret stays outside
+Git and diagnostic output. Only the inference identity receives the provider key.
+
+The attached Gemini recommendations are review input, not permission to add vector
+stores, automatic summaries, persistent personal memory or broaden eligible content.
+Tickets/onboarding remain excluded. Existing participation, per-member consent,
+current authorization, restricted-domain and release gates remain in force. The
+15-second response ceiling is retained unless the owner changes it. This selection
+does not deploy or activate live AI, approve sensitive/restricted context export,
+waive provider data-handling review, or change service identities/ACLs.
+
+The owner subsequently requested intelligent cache use to reduce cost and permit
+more use. Optimize the authorized public-context request path: stable authored and
+reviewed-source prefixes, one opaque provider cache partition per qualified public
+channel/boundary/release, and measured token accounting. This also scopes the
+provider's user_id safety/scheduling grouping at channel level. It does not merge
+channels or restricted audiences, expand retained context, change participation
+limits, add automatic summaries, pad requests or authorize background cache warming.
+
+### DeepSeek workplan resumption — 28 September 2026
+
+The owner reviewed `sophie-deepseek-workplan-v1.md` and explicitly resumed its
+implementation, including commits and protected artifact rebuilds. The selected
+spending ceiling is **USD 20 per calendar month in Europe/Vienna**. A separate
+USD 1 daily money ceiling was not selected. Attempt/flood limits remain bounded
+technical controls, not permission to increase participation or spend.
+
+The owner selected temporary retention of validated, confirmed-delivered Sophie
+replies inside the existing 12-item total/five-minute conversation ceiling. Each
+derived reply expires no later than its earliest required conversational source;
+edits, deletion, consent loss and source withdrawal invalidate its dependencies.
+This does not enable automatic extraction or persistent personal memory.
+
+Up to two GPT-5.6 Luna Max sub-agents are allowed for bounded independent work,
+with one implementation owner per worktree. Preserve the paused candidate and
+historical evidence; track DS tasks alongside existing P/T/SAI identifiers and
+use `SAI-G*` for AI gates. The external continuation remains authoritative.
+Existing named-provider synthetic authorization remains recorded; no new paid
+comparison allowance, provider/account clearance, live provisioning, service or
+ACL changes, migration deployment or AI activation is inferred from resumption.

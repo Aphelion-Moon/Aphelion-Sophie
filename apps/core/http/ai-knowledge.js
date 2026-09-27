@@ -4,7 +4,7 @@ export const KNOWLEDGE_ROUTES = Object.freeze({ '/api/ai/knowledge': 'GET', '/ap
   '/api/ai/knowledge/review': 'POST', '/api/ai/knowledge/publish': 'POST', '/api/ai/knowledge/withdraw': 'POST' });
 
 /** Authenticated public-source editing through a narrow knowledge-service interface. No core store is passed to it. */
-export function createAiKnowledgeHttp({ auth, authorization, knowledge }) {
+export function createAiKnowledgeHttp({ auth, authorization, knowledge, invalidate = () => {} }) {
   return Object.freeze({ async execute({ path, method, query, body, credentials }) {
     requireCondition(KNOWLEDGE_ROUTES[path] === method, 'KNOWLEDGE_INPUT_INVALID');
     let operation, fields;
@@ -23,7 +23,9 @@ export function createAiKnowledgeHttp({ auth, authorization, knowledge }) {
     }
     const { proof } = await auth.authenticate({ ...credentials, method }), actor = await authorization.resolveActor(proof);
     requireCondition(await authorization.authorize('ai.knowledge.publish',actor,{ guildId: actor.guildId }) === true, 'OPERATION_DENIED');
-    const result = await knowledge[operation]({ ...fields, actor });
+    let result;
+    try { result = await knowledge[operation]({ ...fields, actor }); }
+    finally { if (['publish', 'withdraw'].includes(operation)) invalidate(); }
     requireCondition(await authorization.authorize('ai.knowledge.publish',actor,{ guildId: actor.guildId }) === true, 'OPERATION_DENIED'); await auth.resolvePrincipal(proof);
     return { ...result, actorId: actor.userId, guildId: actor.guildId };
   } });

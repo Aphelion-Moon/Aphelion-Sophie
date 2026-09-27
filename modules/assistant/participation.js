@@ -19,8 +19,8 @@ export function canonicalParticipation(value) {
   requireInteger(value.reactionIntervalMs, 15_000, 3_600_000);
   requireInteger(value.memberIntervalMs, 1_000, 3_600_000);
   requireInteger(value.proactiveRepliesPerHour, 0, 60);
-  requireInteger(value.contextTtlMs, 10_000, 1_800_000);
-  requireInteger(value.contextMessages, 0, 30);
+  requireInteger(value.contextTtlMs, 10_000, 300_000);
+  requireInteger(value.contextMessages, 0, 12);
   for (const key of ['reactions', 'typing']) requireCondition(typeof value[key] === 'boolean', 'AI_PROFILE_INVALID');
   if (value.quietHours !== null) {
     requireKeys(value.quietHours, ['startMinute', 'endMinute', 'utcOffsetMinutes'], 'AI_QUIET_HOURS_INVALID');

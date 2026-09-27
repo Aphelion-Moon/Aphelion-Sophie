@@ -30,18 +30,19 @@ export function createAiScheduler({ clock = Date.now, execute, maxWaiting = 3, d
       // Queued inputs can lose consent or source access while another generation runs.
       if (job.beforeExecute !== null && await job.beforeExecute() !== true) { cancel(job, 'cancelled'); return null; }
       if (job.controller.signal.aborted || clock() >= job.cutoff) return null;
-      return execute(job.payload, { signal: job.controller.signal, deadline: job.cutoff });
+      return execute(job.payload, { signal: job.controller.signal, deadline: job.cutoff, beforeDispatch: job.beforeDispatch ?? (async () => true) });
     }).then(result => {
       if (job.controller.signal.aborted || clock() >= job.cutoff) finish(job, { state: 'expired' });
       else finish(job, { state: 'completed', result });
     }, () => finish(job, { state: clock() >= job.cutoff ? 'expired' : job.controller.signal.aborted ? 'cancelled' : 'unavailable' }))
-      .finally(() => { members.delete(job.member); requests.delete(job.id); job.payload = null; job.beforeExecute = null; active = null; pump(); });
+      .finally(() => { members.delete(job.member); requests.delete(job.id); job.payload = null; job.beforeExecute = null; job.beforeDispatch = null; active = null; pump(); });
   }
   return Object.freeze({
-    submit({ id, member, receivedAt, deadline, proactive, payload, beforeExecute = null }) {
+    submit({ id, member, receivedAt, deadline, proactive, payload, beforeExecute = null, beforeDispatch = null }) {
       requireName(id); requireName(member); requireInteger(receivedAt); requireInteger(deadline);
       requireCondition(typeof proactive === 'boolean' && deadline > receivedAt && deadline - receivedAt <= AI_DEADLINE_MS, 'AI_DEADLINE_INVALID');
       requireCondition(beforeExecute === null || typeof beforeExecute === 'function', 'TRUSTED_ADAPTERS_REQUIRED');
+      requireCondition(beforeDispatch === null || typeof beforeDispatch === 'function', 'TRUSTED_ADAPTERS_REQUIRED');
       const now = clock(); requireInteger(now);
       if (receivedAt > now || now >= deadline - deliveryReserveMs) return Promise.resolve({ state: 'expired' });
       if (disabled) return Promise.resolve({ state: 'disabled' });
@@ -49,7 +50,7 @@ export function createAiScheduler({ clock = Date.now, execute, maxWaiting = 3, d
       if (members.has(member) || (active !== null && queue.length >= maxWaiting)) return Promise.resolve({ state: 'busy' });
       let resolve;
       const result = new Promise(done => { resolve = done; });
-      const job = { id, member, proactive, payload, beforeExecute, cutoff: deadline - deliveryReserveMs, controller: new AbortController(), resolve, settled: false };
+      const job = { id, member, proactive, payload, beforeExecute, beforeDispatch, cutoff: deadline - deliveryReserveMs, controller: new AbortController(), resolve, settled: false };
       job.timer = setTimeout(() => cancel(job, 'expired'), Math.max(1, job.cutoff - now));
       queue.push(job); members.add(member); requests.add(id); pump(); return result;
     },

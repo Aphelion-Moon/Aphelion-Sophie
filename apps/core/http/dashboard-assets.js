@@ -12,6 +12,7 @@ const assets = [
   ['/dashboard/ai-app.js', '../../dashboard/ai-app.js', 'text/javascript; charset=utf-8'],
   ['/modules/assistant/participation.js', '../../../modules/assistant/participation.js', 'text/javascript; charset=utf-8'],
   ['/modules/assistant/personality.js', '../../../modules/assistant/personality.js', 'text/javascript; charset=utf-8'],
+  ['/modules/assistant/budget.js', '../../../modules/assistant/budget.js', 'text/javascript; charset=utf-8'],
   ['/login', '../../dashboard/login.html', 'text/html; charset=utf-8'],
   ['/localizations', '../../dashboard/localizations.html', 'text/html; charset=utf-8'],
   ['/dashboard/localizations-app.js', '../../dashboard/localizations-app.js', 'text/javascript; charset=utf-8'],

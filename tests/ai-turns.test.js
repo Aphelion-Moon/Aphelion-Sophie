@@ -48,6 +48,48 @@ test('SAI AT-03 context is channel/domain-bound, reauthorized per source and rem
   context.remember(first); now = 400000; assert.equal(context.status().messages, 0);
 });
 
+test('DS-08 confirmed assistant history inherits earliest source expiry through repeated replies', async () => {
+  let now = 1000; const context = createAiContext({ clock: () => now }), first = request();
+  context.remember(first);
+  now = 200000;
+  const second = request({ messageId: '304', receivedAt: now, deadline: now + 15000 });
+  const history = await context.history(second, async () => true); context.remember(second);
+  context.rememberReply(second, { id: '605', text: 'Earlier reply' }, history, []);
+  now = 250000;
+  const third = request({ messageId: '305', receivedAt: now, deadline: now + 15000 });
+  const next = await context.history(third, source => context.current(source, async () => true, async () => true));
+  assert.equal(next.find(source => source.kind === 'assistant').expiresAt, 301000);
+  context.remember(third); context.rememberReply(third, { id: '606', text: 'Later paraphrase' }, next, []);
+  now = 301001;
+  const retained = await context.history(request({ messageId: '306' }), async () => true);
+  assert.equal(retained.some(source => source.kind === 'assistant'), false);
+  assert.equal(retained.some(source => source.messageId === '304'), true);
+});
+
+test('DS-08 withdrawal, consent loss and source edits invalidate derived replies without reading excluded content', async () => {
+  const context = createAiContext({ clock: () => 2000 }), first = request(), second = request({ messageId: '304', userId: '405' });
+  context.remember(first);
+  const history = await context.history(second, async () => true);
+  context.rememberReply(second, { id: '605', text: 'A source-backed reply' }, history, [{ id: 'guide.r1.s0', text: 'Synthetic public evidence' }]);
+  const reply = (await context.history(request({ messageId: '306' }), async () => true)).find(item => item.kind === 'assistant');
+  assert.equal(await context.current(reply, async () => true, async () => false), false);
+  assert.equal(await context.current(reply, async item => item.userId !== '404', async () => true), false);
+  context.invalidate({ messageId: '605' });
+  assert.equal(await context.current(reply, async () => true, async () => true), false);
+  context.invalidate({ messageId: '303' }); assert.equal(context.status().messages, 0);
+});
+
+test('DS-08 assistant replies share the twelve-item capacity and zero-context returns no old records', async () => {
+  const context = createAiContext({ clock: () => 2000 });
+  for (let index = 0; index < 12; index++) context.remember(request({ messageId: String(700 + index) }));
+  const last = request({ messageId: '711' });
+  context.rememberReply(last, { id: '800', text: 'Confirmed reply' }, [], []);
+  assert.equal(context.status().messages, 12);
+  assert.equal((await context.history(request({ messageId: '999' }), async () => true)).at(-1).kind, 'assistant');
+  assert.deepEqual(await context.history(request({ profile: { ...last.profile, contextMessages: 0 } }), async () => true), []);
+  context.clear(); assert.equal(context.status().messages, 0);
+});
+
 function turnsFixture() {
   let now = 1000, eligible = true; const sent = [], states = [], modelCalls = [];
   const value = request(), output = { kind: 'reply', text: 'Hello!', purpose: 'conversation', support: 'current_conversation', citations: [] };
@@ -81,6 +123,46 @@ test('SAI AT-13 uncertain sends are parked and never retried; late effects recei
   assert.deepEqual(await uncertain.turns.handle({}), { state: 'uncertain' }); assert.equal(attempts, 1);
   const late = turnsFixture(); late.messages.reply = async () => { late.time(16001); return { id: '606' }; };
   assert.deepEqual(await late.turns.handle({}), { state: 'cancelled' }); assert.deepEqual(late.sent, ['removed']);
+});
+
+test('DS-08/09 source invalidation cancels dependent active work and settlement races compensate known effects', async () => {
+  const f = turnsFixture(), cancelled = [];
+  f.scheduler.cancel = id => cancelled.push(id);
+  let finish;
+  f.scheduler.submit = () => new Promise(resolve => { finish = resolve; });
+  const task = f.turns.handle({});
+  while (!finish) await new Promise(resolve => setImmediate(resolve));
+  f.turns.invalidate({ channelId: '202', messageId: '999' });
+  assert.deepEqual(cancelled, ['303']);
+  finish({ state: 'cancelled' }); await task;
+  const race = turnsFixture();
+  race.admission.settle = async () => { race.revoke(); };
+  assert.deepEqual(await race.turns.handle({}), { state: 'cancelled' });
+  assert.equal(race.sent.at(-1), 'removed');
+  const unavailable = turnsFixture();
+  unavailable.admission.settle = async () => { unavailable.knowledge.current = async () => { throw Error('authority unavailable'); }; };
+  assert.deepEqual(await unavailable.turns.handle({}), { state: 'cancelled' });
+  assert.equal(unavailable.sent.at(-1), 'removed');
+});
+
+test('DS-08 a delivered derivative expires with its knowledge source', async () => {
+  let now = 1000; const context = createAiContext({ clock: () => now }), source = request();
+  context.remember(source);
+  context.rememberReply(source, { id: '606', text: 'Confirmed answer' }, [], [{ id: 'guide.r1.s0', validUntil: 1500 }]);
+  now = 1500;
+  assert.equal((await context.history(request({ messageId: '307' }), async () => true)).some(item => item.kind === 'assistant'), false);
+});
+
+test('DS-08 idle context schedules eviction at its earliest expiry and clears its timer on stop', () => {
+  let now = 1000, next, cleared = 0;
+  const context = createAiContext({ clock: () => now, setTimer: (callback, delay) => { next = { callback, delay }; return next; }, clearTimer: value => { if (value) cleared++; } });
+  const source = request(); context.remember(source);
+  assert.equal(next.delay, 300000);
+  context.rememberReply(source, { id: '606', text: 'Confirmed' }, [], [{ id: 'guide.r1.s0', validUntil: 2000 }]);
+  assert.equal(next.delay, 1000);
+  now = 2000; next.callback(); assert.equal(next.delay, 299000);
+  now = 301000; next.callback(); assert.equal(context.status().messages, 0);
+  context.clear(); assert.ok(cleared >= 3);
 });
 
 test('SAI AT-12/13 transport fixes destination/nonce, refuses unsafe mentions and stops expired sends', async () => {

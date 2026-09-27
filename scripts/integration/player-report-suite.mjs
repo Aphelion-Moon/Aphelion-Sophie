@@ -146,7 +146,7 @@ export async function runPlayerReportSuite(cluster, run) {
     for (const table of ['case_forms', 'case_form_drafts', 'case_form_editor_actions']) await f.admin.query(`ALTER TABLE sophie_core.${table} DROP CONSTRAINT ${table}_case_type_check;
       ALTER TABLE sophie_core.${table} ADD CONSTRAINT ${table}_case_type_check CHECK (case_type IN ('admin-help', 'staff-report', 'tech-support', 'database-support', 'head-admin-contact'))`);
     await f.admin.query("ALTER TABLE sophie_core.case_form_slots DROP COLUMN subject_id; ALTER TABLE sophie_core.case_intakes DROP COLUMN subject_id; DELETE FROM sophie_migrations.applied WHERE id = '025-player-reports.sql'");
-    assert.deepEqual(await migrateCore(f.admin), { migrations: 57 }); assert.deepEqual(await f.rows('case_forms'), forms);
+    assert.deepEqual(await migrateCore(f.admin), { migrations: 58 }); assert.deepEqual(await f.rows('case_forms'), forms);
     assert.deepEqual(await f.rows('case_intakes'), intakes); assert.deepEqual(await f.rows('case_intake_messages'), messages);
     await f.drain(f.intakeWorker); assert.equal(posts(f).length, 3); assert.equal((await f.rows('case_intakes'))[0].subject_id, null);
   });

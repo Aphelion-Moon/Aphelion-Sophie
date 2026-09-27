@@ -106,7 +106,7 @@ export async function createStagingRuntime({ configuration, pool, aiControlPool 
   if (auth !== null) {
     const browser = lane(), { authorization, roles } = browser;
     const aiChannels = createAutomationChannels({ transport: browser.transport });
-    const knowledge = aiKnowledgeAdmin === null ? null : createAiKnowledgeHttp({ auth, authorization, knowledge: aiKnowledgeAdmin });
+    const knowledge = aiKnowledgeAdmin === null ? null : createAiKnowledgeHttp({ auth, authorization, knowledge: aiKnowledgeAdmin, invalidate: () => aiRuntime?.invalidate() });
     const ai = aiControlPool === null ? null : createAiControlsHttp({ auth, authorization, controls: createAiControls({
       pool: aiControlPool, guildId: fixed.mapping.guildId, authorize: authorization.authorize,
       memberPresence: actor => authorization.aiMemberPresence(actor),

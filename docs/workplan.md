@@ -1,6 +1,6 @@
 # Current implementation workplan
 
-Revision: 2026-09-27-sophie-ai-model-trials. Approved container-only Microsoft runtime installed; actual synthetic inference completed. Phi-4-mini missed the response budget; Qwen2.5-1.5B was fast but failed truthfulness/conduct. Continue local-only exploration; no model is qualified or live.
+Revision: 2026-09-28-deepseek-foundation. Official DeepSeek Flash is the selected provider. Local models are historical, explicitly selected alternatives only; no automatic fallback. Continue the DS workstream with synthetic data; full readiness and activation remain open.
 
 All production release gates remain open; pure and isolated database checks are not full application acceptance.
 
@@ -10,11 +10,42 @@ Source requirements remain in the preserved v1.1 pack. Current owner decisions o
 
 Deterministic administration, Whitelist onboarding, protected editors, role/permission configuration and the configurable staging host are implemented.
 
-Recorded baseline: Pinned executable d4ca16ab6286a4ef186733d6829828e74d3fc176, schema 055; current results are listed in docs/verification.md.
+Recorded baseline: AI handoff 0fa7a5ed538ff791e3def2c1f6ac7683531e15a1 plus preserved uncommitted Flash candidate; synthetic schema058 candidate. No live schema change.
 
-Current work: Recorded failed local model screens and per-turn output constraints. Twenty-two focused runtime/turn checks pass. Next pinned local candidates need named model decisions; full-AI implementation and activation gates remain open.
+Current work: Prepared immutable Flash requests, durable conservative accounting and operator controls, revised external-processing consent gate and dependency-bound assistant history. Worker IPC, durable effects, importer, explicit memory, gathering and selected-feature acceptance remain incomplete.
 
-418 unit tests, 13 isolated configuration scenarios, 16 isolated staging scenarios, 28 public HTTPS checks, 55 live migration checks and 71 live restricted-table checks pass. The Gateway is current. These results do not establish production readiness.
+Current source-bound offline results are in docs/verification.md and the external deepseek-verification.json index. Earlier administration, local model and Flash trial results remain historical; none grants present deployment approval.
+
+## Selected AI workstream
+
+Owner resumed implementation, commits and generated rebuilds. USD 20 per Europe/Vienna calendar month; no separate daily currency cap; 2,000 daily attempts. Confirmed replies share the 12-item, five-minute local context and inherit earliest source expiry. All original P/T/SAI requirements remain; current provider decisions supersede historical local-only directions.
+
+| Task | Implementation | Qualification | SAI mapping | Remaining work |
+|---|---|---|---|---|
+| DS-00 — Reconcile preserved handoff | complete | Original eight source and five evidence hashes matched; historical files preserved | SAI-00, SAI-14 | Keep this tracker current at each milestone. |
+| DS-01 — Provider and data-use clearance | partial | No account-specific processing evidence supplied | SAI-00, SAI-12, SAI-14 | Public message processing, explicit memory and every restricted scope remain blocked; notice revision 2 cannot be opted into without clearance. |
+| DS-02 — Prepared-turn contract | implemented foundation | Focused offline checks; no new provider qualification | SAI-01, SAI-03, SAI-05, SAI-08 | Wire ephemeral first-changed-block diagnostics into the qualified worker; current layout remains control. |
+| DS-03 — Durable spending and dispatch | implemented foundation | Synthetic PostgreSQL race/fence/expiry/settlement checks | SAI-01, SAI-02, SAI-05 | Bound ledger retention, qualify actual framing/prices and transport crash/rollover behavior. Estimates are conservative, not guaranteed invoice caps. |
+| DS-04 — Windows worker and transport | incomplete | No current Windows provider identity/IPC/egress qualification | SAI-04, SAI-05, SAI-14 | Build authenticated bounded broker and qualification wrapper; propose exact service identities/ACLs and qualify Node maintenance separately. Raw provider adapter is not a deployable worker. |
+| DS-05 — Optional Responses comparison | deferred; Chat retained | No demonstrated gain; no paired paid trial | SAI-05, SAI-14, SAI-15 | Chat remains selected. Optional alternate protocol is not a release prerequisite. |
+| DS-06 — Gathering and fair concurrency | not started | Current scheduler stays at one active request | SAI-02, SAI-05 | After DS-03/04: gathering lease, compatible three-fragment admission, fair channels and one-versus-two qualification. |
+| DS-07 — Wiki synchronization and direct lookup | partial inherited library | Synthetic publication/withdrawal/lexical evidence only | SAI-08, SAI-11 | Approved actual MediaWiki endpoint, collection/rights and extractor decisions; importer/sync, dependencies and member-facing direct lookup. |
+| DS-08 — Assistant context and explicit memory | assistant context implemented; memory not started | Synthetic capacity, dependency, expiry and withdrawal checks | SAI-02, SAI-10, SAI-11 | Persistent memory still needs permitted typed categories, separate data-use authorization, controls and restore/deletion watermark. |
+| DS-09 — Effects and operating controls | partial | Synthetic budget/publication/consent UI and delivery checks | SAI-06, SAI-07, SAI-14 | Replace WeakMap effect ownership with durable receipts/arbitration; restart cleanup, active worker revisions and AI-only apply. |
+| DS-10 — Selected-release qualification | partial offline | Historical 20 quality calls and 12 cache calls are not current-release acceptance | SAI-15 | Reviewed 40-question launch set, independent factual/character review, authorized paid/cache comparison and actual receipt-to-Discord timing. |
+| DS-11 — Full selected capability readiness | matrix recorded; incomplete | No selected capability has full operational qualification | SAI-10, SAI-11, SAI-12, SAI-14, SAI-15 | Complete implemented/qualified/cleared/activated axes; explicit memory and named restricted domains remain visible. |
+
+| Capability gate | Implementation | Qualification | Data clearance | Activation |
+|---|---|---|---|---|
+| SAI-G0 — Scope and contracts | foundation recorded | local evidence only | account terms unresolved | off |
+| SAI-G1 — All five public social modes | partial | worker/effects/full-turn gates open | blocked | off |
+| SAI-G2 — Knowledge and direct lookup | partial | importer/current-source/40-question gates open | source rights/collection unresolved | off |
+| SAI-G3 — Explicit personal memory | not started | lifecycle/restore gates open | categories and separate permission unresolved | off |
+| SAI-G4 — Staff, Head/Project Lead and named project contexts | not qualified for remote | audiences, worker and provider separation unqualified | blocked per named domain | off |
+| SAI-G5 — Registered file profiles | unselected | not applicable until selected | no exact resources approved | off |
+| SAI-G6 — Operational release | incomplete | actual identity/network/Discord/recovery evidence open | capability-specific gates open | no deployment authorization |
+
+These SAI-G gates are separate from the original G gates. Partial implementation and blocked activation do not establish full readiness.
 
 ## Implemented milestones and remaining scope
 
@@ -93,13 +124,14 @@ Current work: Recorded failed local model screens and per-turn output constraint
 | Local AI participation and control foundation (P23, P24, P25) | Schema056 candidate, five preset policies, isolated AI control state, versioned publications/consent, deadline-aware scheduler/client, metadata-only receipts, transient context and core-owned output. Authenticated dashboard participation/personality/member controls. No live deployment, model inference or added package dependency. | 37 focused unit/adapter checks and 12 isolated PostgreSQL scenarios passed; synthetic dashboard review/publication and opt-in/opt-out passed with no browser console errors. Logs and source-bound evidence under GitHub/.agent_docs/aphelion-sophie. These are offline foundation results, not feature completion. | Actual runtime composition, knowledge, recovery, worker isolation and model qualification, dialogue evaluation and explicit live activation. Personal memory and restricted lanes remain gated; full AI readiness has not been reached. |
 | Local AI runtime boundaries and approved public knowledge (P21, P22, P23, P24, P25) | Schema057 stable AI Gateway boundary, optional isolated runtime composition and strict metadata observations; reviewed public knowledge library/editor, source hash checks/withdrawal, attribution, deliberate context trimming and bounded typing. Named local trial approvals recorded. No new npm dependency, deployment or model execution. | 47 focused unit/adapter/auth checks, 35 isolated AI/Gateway/knowledge scenarios including schema056 upgrade, and 17 composed staging scenarios passed. Both clusters stopped. Synthetic knowledge browser review/confirmation/publication/withdrawal passed with no console warnings/errors. Source-bound logs and worker preparation are outside the repository. | Operator restart before the approved synthetic worker trial; actual containment, 15-second end-to-end load evidence, model dialogue/knowledge evaluation, source sync, qualified broker/restore and effect recovery, explicit memory/named restricted domains and live acceptance. This milestone is not full AI readiness. |
 | Post-restart local worker startup and exact token counting (P23, P24, P25) | Verified operator restart and built/started the contained candidate. Diagnosed absent MSVCP140/VCRUNTIME140/VCRUNTIME140_1 before model load. Adapter now counts the exact generation request through the pinned runtime endpoint. | Docker boundary inspection and contained DLL-presence check; nine focused scheduler/client checks pass. Pinned Microsoft-signed 14.51.36247.0 package downloaded for review only. Source-bound startup evidence outside the repository. | New non-MIT container-runtime decision; actual inference, model/dialogue/source quality, full-turn latency/load and remaining selected-feature implementation/activation. No live AI or performance pass. |
-| Contained local model screens and per-turn output constraints (P23, P24, P25) | Approved container-only Microsoft runtime and Qwen model pins recorded. Actual Phi/Qwen probes completed. Output grammar restricts actions, emoji and citations per turn, removes trimmed evidence IDs and disables thinking; core validation remains independent. | 22 focused runtime/turn checks pass. Network-none Hyper-V probes used synthetic content only; Phi failed timing and Qwen failed truthfulness/conduct despite fast valid JSON. Source-bound logs and prepared-file snapshots are outside the repository. | Owner selected continued local-only exploration; next named artifacts await decision. Model quality, actual 15-second full-turn/load qualification, broker/service/restore and effect recovery, source sync, explicit memory/restricted domains and activation remain open. |
+| Contained local model screens and per-turn output constraints (P23, P24, P25) | Approved container-only Microsoft runtime and Qwen model pins recorded. Actual Phi/Qwen probes completed. Output grammar restricts actions, emoji and citations per turn, removes trimmed evidence IDs and disables thinking; core validation remains independent. | 22 focused runtime/turn checks pass. Network-none Hyper-V probes used synthetic content only; Phi failed timing and Qwen failed truthfulness/conduct despite fast valid JSON. Source-bound logs and prepared-file snapshots are outside the repository. | Historical local-model milestone, superseded by the later Flash selection. Neither local candidate is qualified or a fallback. Current remaining work is in DS-00–11. |
+| DeepSeek preparation, accounting and bounded assistant context (P21, P24, P25) | Immutable final-body preparation, exact outbound byte cap, local block diagnostics, usage-before-output accounting, fenced reservations and uncertainty, reviewed USD 20/Vienna spending controls, notice revision gate, confirmed assistant context with dependency expiry and cancellation. | Focused unit and isolated AI storage results, synthetic browser observations and exact source hashes in docs/verification.md and external deepseek-verification.json. No new provider or Discord call. | DS-03 retention and actual transport/rollover qualification; DS-04 worker; DS-06 gathering; DS-07 importer/direct lookup; DS-08 explicit memory; DS-09 durable effects; all real-data/release gates. |
 
 ## Next implementation sequence
 
 These are bounded next steps within the task dependencies below. An unresolved live or operational input stops only work that needs that input.
 
-1. **Explore the next pinned local-only models** (P21, P22, P23, P24, P25). Review the named Qwen3.5-2B and Qwen3-4B-Instruct-2507 Q4_K_M conversions, then screen approved candidates sequentially under the existing limits. Preserve failed results and the 15-second total-turn ceiling. Continue remaining broker/recovery, source-sync and selected-feature implementation; no cloud path or live activation is selected. Exit evidence: Pinned source/model/runtime evidence for isolation, full-turn latency/load, dialogue/source quality and enabled feature acceptance. No benchmark or completed-AI claim from script preparation.
+1. **Complete the selected Flash foundations** (P21, P22, P23, P24, P25). Follow DS-04 worker/broker and DS-09 durable effects next, then dependency-ordered gathering, approved wiki sync/direct lookup and selected memory controls. Prepare exact native identity/runtime proposals before any live provisioning. Preserve the 15-second first-receipt deadline and default one active call. Exit evidence: Scoped local source/transaction/transport evidence first; actual OS/egress and Discord tests need their explicit operational scope. Paid comparisons remain separately authorized.
 2. **Privately verify deployed configuration and apply workflow** (P03, P05, P08, P11, P15). Sign in with the existing Lead ops role at /permissions. Verify Crew/base, Whitelist, Muzzled, Staff/lead ops, feature grants, responders and category; review/apply an intentional change and verify progress, preserved restrictions and case access. Do not inspect private data through agent tools or repeat bootstrap/deployment. Exit evidence: Owner pass/fail with client/time and no private content. Keep the held recovery path and fresh Whitelist-run rule; no old-policy or schema054 rollback.
 3. **After feedback: qualify Onboarding production gates** (P01, P02, P05, P06, P07, P09, P13, P14, P26, P27, P29, P30, P31). Address the reported Onboarding failures first. Then qualify final guidance/mappings, existing-role ownership, Muzzled and fresh-run revocation, no-AI/privacy, restart/uncertain-effect recovery, independent latest-history recovery, Windows identity/service packaging and approved production handoff. Preserve the broader feature backlog without making unrelated functionality a prerequisite for the next Onboarding test. Exit evidence: Build-specific applicable release evidence and explicit operator approval; no production-ready claim from this human-test checkpoint.
 
@@ -115,7 +147,7 @@ These are bounded next steps within the task dependencies below. An unresolved l
 | Reviewed runtime distributions, native service identities, ACLs, data root and ports | Service installation, OS isolation, resource baseline and host reboot tests. | Packaging, explicit composition and installation/preflight scripts. |
 | D:\Backups selected locally; independent recovery copy, key custody, RPO/RTO, backup retention and latest recovery watermark remain open | Verified independent restore and production cutover; a local destination is not an off-host recovery pass. | Backup/restore interfaces, local synthetic drills, retained-artifact design and operator runbooks. |
 | Human brand/accessibility review and administration pilot approval | G2 presentation acceptance and live cutover. | Static approved-asset previews and developer keyboard/reflow checks. |
-| Wiki collection/rights approvals; no qualified model after Phi timing and Qwen truthfulness failures. Next local candidate derivatives need named decisions; runtime startup is no longer blocked. | Live knowledge ingestion (G3), model/host qualification (G4), private-worker and selected persistent-memory gates. | Public-source fixtures, lookup contracts and exclusion tests; administration remains independent. |
+| Approved wiki endpoint/collections/rights, exact DeepSeek account processing terms and notices, explicit-memory categories and named restricted audiences remain unresolved. | Real member processing, source synchronization, selected persistent memory and each restricted context. | Synthetic source/worker/effect/control implementation; administration stays independent. |
 
 ## Task status
 
@@ -148,12 +180,12 @@ An in-progress task can contain several verified milestones and still have unfin
 | P20 — Implement MediaWiki ingestion and sync | planned_not_started | P03, P06, P19 |
 | P21 — Implement direct lookup and source authority | in_progress | P20 |
 | P22 — Implement knowledge administration | in_progress | P08, P20, P21 |
-| P23 — Provision and benchmark local model | in_progress | P01, P02, P07 |
+| P23 — Qualify the selected inference provider and runtime | in_progress | P01, P02, P07 |
 | P24 — Implement non-ticket knowledge assistant | in_progress | P19, P21, P23 |
 | P25 — Implement AI controls and evaluation tooling | in_progress | P08, P24 |
 | P26 — Implement backups, deletion and operator runbooks | in_progress | P06, P07, P12 |
 | P27 — Run administration failure and permission suite | in_progress | P16, P17, P18, P26 |
-| P28 — Run local AI isolation, quality and host-load suite | planned_not_started | P25, P26, P39 |
+| P28 — Run selected AI isolation, quality and host-load qualification | planned_not_started | P25, P26, P39 |
 | P29 — Approve brand implementation and accessibility | planned_not_started | P03, P13, P17, P18, P38 |
 | P30 — Approve administration pilot and cutover ledger | planned_not_started | P27, P29 |
 | P31 — Cut over administrative responsibilities | planned_not_started | P30 |
@@ -827,13 +859,13 @@ Full task deliverables:
 
 Boundary: Preview has no case-context or transcript import path.
 
-## P23 — Provision and benchmark local model
+## P23 — Qualify the selected inference provider and runtime
 
-Status: **in_progress**. Phase: Local AI. Priority: P0.
+Status: **in_progress**. Phase: Non-ticket AI. Priority: P0.
 
 Depends on: P01, P02, P07. Acceptance: T31, T32, T33.
 
-Approved runtime installed inside Hyper-V only; both pinned models ran under four CPUs/8 GiB, ContainerUser, network none, no mounts/ports. Phi failed timing; Qwen2.5 completed small screens in 3.824–5.920 seconds but invented policy/authority. Exact count and prompt usage agreed. No full-turn, host-load, quality or live qualification.
+Approved runtime installed inside Hyper-V only; both pinned models ran under four CPUs/8 GiB, ContainerUser, network none, no mounts/ports. Phi failed timing; Qwen2.5 completed small screens in 3.824–5.920 seconds but invented policy/authority. Exact count and prompt usage agreed. No full-turn, host-load, quality or live qualification. Later owner selection: official DeepSeek Flash supersedes active local-only exploration. The preserved local screens remain historical; Flash worker identity, transport and operational qualification are open.
 
 Implemented scope:
 
@@ -842,7 +874,7 @@ Implemented scope:
 
 Remaining scope:
 
-- Review the next named local model candidates; qualify semantic conduct, source answers, cancellation/privacy and full-turn 15-second behavior under representative host load. Neither tested model is selected for live use.
+- Qualify selected Flash worker/provider identity, processing basis, bounded HTTP and 15-second full-turn behavior. A local alternative requires explicit selection; no automatic fallback.
 
 Full task deliverables:
 
@@ -854,7 +886,7 @@ Boundary: No cloud fallback, auto-download or claimed unmeasured throughput.
 
 ## P24 — Implement non-ticket knowledge assistant
 
-Status: **in_progress**. Phase: Local AI. Priority: P0.
+Status: **in_progress**. Phase: Non-ticket AI. Priority: P0.
 
 Depends on: P19, P21, P23. Acceptance: T22, T25, T26, T29, T30, T34, T48, T52.
 
@@ -879,7 +911,7 @@ Boundary: No ticket data/tools, case advice automation or arbitrary browsing.
 
 ## P25 — Implement AI controls and evaluation tooling
 
-Status: **in_progress**. Phase: Local AI. Priority: P1.
+Status: **in_progress**. Phase: Non-ticket AI. Priority: P1.
 
 Depends on: P08, P24. Acceptance: T26, T31, T33, T42, T48.
 
@@ -957,9 +989,9 @@ Full task deliverables:
 
 Boundary: Tests use synthetic cases; findings block release until resolved.
 
-## P28 — Run local AI isolation, quality and host-load suite
+## P28 — Run selected AI isolation, quality and host-load qualification
 
-Status: **planned_not_started**. Phase: Local AI. Priority: P0.
+Status: **planned_not_started**. Phase: Non-ticket AI. Priority: P0.
 
 Depends on: P25, P26, P39. Acceptance: T22, T23, T24, T25, T28, T29, T30, T31, T32, T33, T34, T35, T48, T52.
 

@@ -36,7 +36,7 @@ host error log is empty. Existing records and authored configuration are retaine
 No private content was inspected. Authenticated browser and interactive Discord
 acceptance remain separate from these public and operational checks.
 
-## Local AI candidate
+## Historical local AI candidate
 
 The schema056 foundation has 37 focused unit/adapter checks and 12 isolated
 PostgreSQL scenarios passing. The database fixture stopped cleanly. Synthetic browser
@@ -99,9 +99,91 @@ Twenty-two focused runtime/turn checks pass. Source-bound reports and raw trial
 logs are in `GitHub/.agent_docs/aphelion-sophie/worker-model-verification.json` and
 `worker-model-trials.md`. The owner selected continued local-only exploration.
 
-AI is not production-ready or live. No model has passed both timing and conduct
-screening. The 15-second receipt-to-delivery ceiling remains unqualified.
+## Historical DeepSeek Flash screen
+
+The owner subsequently selected the official DeepSeek Flash API and supplied a
+local credential file, superseding the local-only direction. Research and 29
+offline adapter/runtime/turn checks preceded the first key use. The credential was
+read in-process and never printed or copied into Git. No live deployment occurred.
+
+The official models endpoint identified DeepSeek-V4.1-Flash behind `deepseek-flash`.
+Twenty synthetic cases through the real JavaScript adapter completed in
+0.469–1.185 seconds. Effective outputs passed agent review for supported/absent/
+conflicting evidence, fabricated authority, reaction-only behavior, disabled memory,
+quiet requests and hostile source instructions. This is not owner character
+acceptance, the 40 reviewed knowledge questions or a full Discord timing pass.
+
+After the owner's cache optimization request, the client uses a stable authored
+prefix, canonical reviewed-source ordering before history, late per-turn JSON
+instructions, and opaque cache partitions shared within each qualified public
+channel. Other channels/boundaries/releases remain separate; restricted contexts
+are refused. Relevance still controls evidence trimming. Silence-only requests
+skip the API. Non-thinking mode, bounded input/output, independent output checks,
+request deadlines, cooldowns and no automatic retries/fallback remain enforced.
+
+An interleaved twelve-call comparison used six matching synthetic questions per
+configuration across three members. Cache hits increased from 41.7% to 63.6% of
+input tokens; input fell from 5,528 to 5,030 tokens and cache misses from 3,224 to
+1,830. Estimated combined cost at the checked peak prices fell about 32.2%. This
+small comparison measures the combined layout/partition change, not guaranteed
+production savings. The handoff reported 31 focused checks for its original hashes.
+The combined verification index named in the earlier handoff did not yet exist;
+the original raw quality/cache reports and `deepseek-research/setup.md` did exist.
+The 28 September resumption preserves those hashes and indexes them separately
+from current offline evidence in
+`GitHub/.agent_docs/aphelion-sophie/deepseek-verification.json`.
+
+AI is not production-ready or live. Flash passed the initial synthetic screen;
+the 15-second receipt-to-delivery ceiling remains unqualified. Provider cache may
+persist beyond local context TTL. Account-specific data handling, member disclosure
+and hosted-model changes remain activation inputs; no zero-retention claim is made.
 Qualified worker/service/restore wiring, durable effect recovery, source sync,
 explicit-memory and named restricted-domain work, source/dialogue evaluation and
 applicable enabled-feature acceptance remain open. No live schema migration,
 service/ACL/network change or AI activation occurred in this milestone.
+
+## DeepSeek foundation — 28 September 2026
+
+The owner resumed implementation with a USD 20 monthly ceiling, Europe/Vienna
+calendar, no separate daily money cap, and confirmed assistant replies within the
+same 12-item/five-minute temporary context. The eight source and five evidence
+hashes in the handoff matched before editing; copies remain outside the repository.
+
+The schema058 candidate adds durable fenced reservations, dispatch intent,
+reported-usage settlement and conservative unresolved charges. Invalid output is
+accounted for before acceptance. Operator review can resolve unknown charges at
+their full reservation and clear an accounting hold with a current evidence-bound
+review; neither action activates AI or replays generation. Estimates use peak rates
+and a byte-based input allowance, not a proven hard invoice ceiling. New opt-ins
+require a separately approved external-processing notice; local-model consent does
+not authorize Flash. The price-validity default is empty, keeping paid calls paused.
+
+Prepared turns are immutable and bounded by the complete serialized provider body.
+Confirmed replies inherit conversation and knowledge expiry/dependencies. Source
+events cancel active work in the affected lane; delivery races compensate known
+effects. Durable post-restart Discord effect ownership remains unfinished.
+
+Current offline evidence: 51 focused preparation/runtime/turn/participation checks
+and 44 isolated AI/Gateway/knowledge/accounting scenarios pass, with zero failures
+or skips. The disposable PostgreSQL cluster stopped. Repository validation checks
+475 JavaScript modules, 40 original tasks, 60 specifications, 31 reference checksums
+and eight asset copies. Synthetic browser checks covered budget review/publication,
+uncertain-charge resolution, reviewed hold clearance and unavailable remote opt-in;
+no console warnings/errors appeared in the final hold-control check. Browser data
+was an in-memory fixture, not a live service or database acceptance test.
+
+The source-bound index records actual commands, logs, hashes and historical evidence
+separately. No paid calls, credential reads, package/runtime installation, live
+schema/service/ACL changes, Discord effects or deployment occurred in this
+resumption. Node remains 24.19.0; pg remains 8.23.0. Other database suites were not
+rerun merely for their current-migration count update. The full application suite,
+OS identity/egress/reboot tests, paid comparisons and actual Discord timing were
+not run.
+
+This is a foundation milestone, not full selected-feature readiness. The raw Flash
+client is not a qualified worker: authenticated IPC, a trusted qualification adapter,
+native identity and lifecycle integration remain open. Gathering/fair concurrency,
+wiki import/sync and member lookup, durable effects, explicit-memory controls,
+restricted audiences, reviewed source/character acceptance and live qualification
+remain in the DS/SAI tracker. Real-member processing is blocked on the exact provider
+agreement/settings and approved notice. No model or release was activated.

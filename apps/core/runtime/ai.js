@@ -10,9 +10,12 @@ import { createDiscordTransport } from '../discord/transport.js';
 import { createActorAuthorityStore } from '../storage/actor-authority.js';
 import { createAiAdmission } from '../storage/ai-admission.js';
 import { aiDigest } from '../storage/ai-controls.js';
+import { createAiAccounting } from '../storage/ai-accounting.js';
+import { createMeteredAiWorker } from './ai-provider.js';
 
 /** Core composition only. Inference receives a fixed turn payload, never this pool or Discord transport. */
-export function createAiRuntime({ configuration, corePool, controlPool, worker, knowledge, observer, token, fetch, clock, enabled, onFault }) {
+export function createAiRuntime({ configuration, corePool, controlPool, worker, knowledge, observer, token, fetch, clock, enabled, onFault,
+  remoteProcessingApproved = async () => false }) {
   requireCondition(worker && typeof worker.generate === 'function' && typeof worker.current === 'function' && knowledge &&
     typeof knowledge.lookup === 'function' && typeof knowledge.current === 'function', 'AI_ADAPTERS_REQUIRED');
   const { mapping, casePolicy, capabilityPolicy } = configuration;
@@ -20,10 +23,15 @@ export function createAiRuntime({ configuration, corePool, controlPool, worker, 
   const observations = createAiObservations({ pool: corePool, transport, authorityStore: createActorAuthorityStore({ pool: corePool, clock }),
     capabilityPolicy, mapping, protectedCategoryId: casePolicy.categoryId, observer, clock });
   const ingress = createAiIngress({ guildId: mapping.guildId, botUserId: mapping.botUserId, clock });
-  const admission = createAiAdmission({ pool: controlPool, guildId: mapping.guildId, ingress, ...observations, clock });
+  requireCondition(typeof remoteProcessingApproved === 'function', 'TRUSTED_ADAPTERS_REQUIRED');
+  const admission = createAiAdmission({ pool: controlPool, guildId: mapping.guildId, ingress, ...observations, clock,
+    noticeRevision: worker.provider === 'deepseek' ? 2 : 1,
+    inspectContext: async event => worker.provider === 'deepseek' && await remoteProcessingApproved() !== true ? null : observations.inspectContext(event) });
+  const accounting = createAiAccounting({ pool: controlPool, guildId: mapping.guildId });
+  const inference = worker.provider === 'deepseek' ? createMeteredAiWorker({ worker, accounting }) : worker;
   const scheduler = createAiScheduler({ clock, execute: async (payload, context) => {
     requireCondition(await worker.current(payload) === true, 'AI_WORKER_NOT_QUALIFIED');
-    return worker.generate(payload, context);
+    return inference.generate(payload, context);
   } });
   const messages = createAiMessages({ transport, botUserId: mapping.botUserId, revalidate: admission.revalidate, canReact: observations.canReact, clock });
   const turns = createAiTurns({ admission, scheduler, context: createAiContext({ clock }), knowledge, messages, clock });
@@ -36,7 +44,7 @@ export function createAiRuntime({ configuration, corePool, controlPool, worker, 
       const qualifications = (await controlPool.query('SELECT channel_id,boundary_epoch,active,restore_ready,release_sha256,evidence_sha256 FROM sophie_ai.qualifications WHERE guild_id=$1 ORDER BY channel_id', [mapping.guildId])).rows;
       const next = aiDigest({ state: state ?? null, qualifications });
       if (state?.disabled !== false || next !== fingerprint || !await enabled()) invalidate();
-      fingerprint = next; await admission.expire();
+      fingerprint = next; await admission.expire(); await accounting.expire();
     } catch { invalidate(); onFault('AI_CONTROL_UNAVAILABLE'); }
   }
   function schedule() {

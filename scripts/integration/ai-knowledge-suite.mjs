@@ -66,10 +66,10 @@ export async function runAiKnowledgeSuite(cluster, run) {
     await db.query("INSERT INTO sophie_ai.state(guild_id) VALUES('101')");
     const gateway = (await db.query('SELECT to_jsonb(g) AS value FROM sophie_core.gateway_lifecycle g')).rows[0].value;
     const controls = (await db.query('SELECT * FROM sophie_ai.state')).rows;
-    assert.deepEqual(await migrateCore(db),{ migrations: 57 });
+    assert.deepEqual(await migrateCore(db),{ migrations: 58 });
     assert.deepEqual((await db.query('SELECT to_jsonb(g) AS value FROM sophie_core.gateway_lifecycle g')).rows[0].value,{ ...gateway, ai_boundary_epoch: 0 });
     assert.deepEqual((await db.query('SELECT * FROM sophie_ai.state')).rows,controls); assert.equal(controls[0].disabled,true);
     assert.equal((await db.query('SELECT count(*)::int AS count FROM sophie_knowledge.documents')).rows[0].count,0);
-    assert.deepEqual(await migrateCore(db),{ migrations: 57 });
+    assert.deepEqual(await migrateCore(db),{ migrations: 58 });
   });
 }

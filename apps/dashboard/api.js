@@ -48,12 +48,16 @@ export function createDashboardApi({ fetch, navigate = path => globalThis.locati
     knowledgePublish: body => request('/api/ai/knowledge/publish', body),
     knowledgeWithdraw: body => request('/api/ai/knowledge/withdraw', body),
     aiPublication: kind => {
-      if (!['configuration', 'personality'].includes(kind)) throw new DashboardFailure('invalid', 400);
+      if (!['configuration', 'personality', 'budget'].includes(kind)) throw new DashboardFailure('invalid', 400);
       return request(`/api/ai/publication?kind=${kind}`);
     },
     aiReview: body => request('/api/ai/review', body),
     aiPublish: body => request('/api/ai/publish', body),
     aiDisable: () => request('/api/ai/disable', {}),
+    aiBudget: () => request('/api/ai/budget'),
+    aiResolveSpending: body => request('/api/ai/resolve-spending', body),
+    aiReviewSpendingHold: body => request('/api/ai/review-spending-hold', body),
+    aiClearSpendingHold: body => request('/api/ai/clear-spending-hold', body),
     aiConsents: () => request('/api/ai/consents'),
     aiConsent: body => request('/api/ai/consent', body),
     async session() {

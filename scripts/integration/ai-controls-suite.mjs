@@ -5,6 +5,8 @@ import { DRAFT_PERSONALITY } from '../../modules/assistant/personality.js';
 import { aiDigest } from '../../apps/core/storage/ai-controls.js';
 import { createAiAdmission } from '../../apps/core/storage/ai-admission.js';
 import { createAiIngress } from '../../apps/core/discord/ai-ingress.js';
+import { createAiAccounting } from '../../apps/core/storage/ai-accounting.js';
+import { DEFAULT_AI_BUDGET, aiReservationNanos } from '../../modules/assistant/budget.js';
 
 /** Existing isolated PostgreSQL runner, synthetic metadata and authored text only. */
 export async function runAiControlsSuite(cluster, run) {
@@ -12,9 +14,10 @@ export async function runAiControlsSuite(cluster, run) {
   await admin.query('GRANT USAGE ON SCHEMA sophie_ai TO sophie_test_core');
   await admin.query('GRANT SELECT,INSERT,UPDATE ON sophie_ai.state,sophie_ai.publications,sophie_ai.consents,sophie_ai.request_receipts TO sophie_test_core');
   await admin.query('GRANT SELECT ON sophie_ai.qualifications TO sophie_test_core');
+  await admin.query('GRANT SELECT,INSERT,UPDATE ON sophie_ai.budget_policies,sophie_ai.budget_periods,sophie_ai.provider_attempts,sophie_ai.budget_hold_receipts TO sophie_test_core');
   const actor = Object.freeze({ guildId: '101', userId: '202', capabilityEpoch: 1, policyVersion: 1 });
   let permitted = true, channelAvailable = true, checks = 0;
-  const store = createAiControls({ pool, guildId: actor.guildId,
+  const store = createAiControls({ pool, guildId: actor.guildId, noticeRevision: 1, noticeApproved: async () => true,
     authorize: async (_action, candidate) => { checks++; return candidate === actor && permitted; },
     inspectChannel: async (_client, id) => channelAvailable && id === '303' ? { id } : null, memberPresence: async () => 1 });
   const document = { schemaVersion: 1, enabled: true, deadlineMs: 15000, channels: [{ channelId: '303', profile: defaultParticipation('conversational') }], emojis: [] };
@@ -104,6 +107,21 @@ export async function runAiControlsSuite(cluster, run) {
     const rows = (await admin.query('SELECT * FROM sophie_ai.request_receipts WHERE guild_id=$1', [actor.guildId])).rows;
     assert.equal(rows.length, 1); assert.equal(JSON.stringify(rows).includes('Synthetic hello'), false);
     assert.equal(admitted.inputRevision, aiDigest(['602', 'original']));
+    await admission.settle(admitted, 'delivered', '700');
+    await admission.settle(admitted, 'cancelled', '701');
+    assert.equal((await pool.query('SELECT state FROM sophie_ai.request_receipts WHERE message_id=$1', ['602'])).rows[0].state, 'delivered');
+    await admission.settle(admitted, 'cancelled', '700');
+    assert.equal((await pool.query('SELECT state FROM sophie_ai.request_receipts WHERE message_id=$1', ['602'])).rows[0].state, 'cancelled');
+  });
+  await run('DS01-01 local notice consent cannot admit remote processing or enable an unapproved notice', async () => {
+    const controls = createAiControls({ pool, guildId: actor.guildId, authorize: async () => true,
+      inspectChannel: async () => ({ id: '303' }), memberPresence: async () => 1 });
+    assert.equal((await controls.ownConsents({ actor })).optInAvailable, false);
+    await assert.rejects(controls.consent({ actor, channelId: '303', enabled: true, expectedEpoch: 3, acceptedNoticeRevision: 1 }), /AI_NOTICE_STALE/);
+    await assert.rejects(controls.consent({ actor, channelId: '303', enabled: true, expectedEpoch: 3, acceptedNoticeRevision: 2 }), /AI_NOTICE_UNAPPROVED/);
+    const remote = createAiAdmission({ pool, guildId: actor.guildId, ingress, clock: Date.now, noticeRevision: 2,
+      inspectContext: async () => assert.fail('old consent must stop before content authority'), inspectMember: async () => assert.fail('old consent') });
+    bodyReads = 0; assert.equal(await remote.admit(event('699')), null); assert.equal(bodyReads, 0);
   });
   await run('AI10 edited or deleted source and withdrawn consent invalidate delivery and historical context', async () => {
     sourceRevision = 'edited'; assert.equal(await admission.revalidate(admitted), false); assert.equal(await admission.revalidateSource(admitted), false); sourceRevision = 'original';
@@ -123,5 +141,107 @@ export async function runAiControlsSuite(cluster, run) {
     presenceEpoch = 2; bodyReads = 0; assert.equal(await admission.admit(event('606')), null); assert.equal(bodyReads, 0); presenceEpoch = 1;
     await admin.query('UPDATE sophie_ai.qualifications SET active=false WHERE guild_id=$1', [actor.guildId]);
     bodyReads = 0; assert.equal(await admission.admit(event('607')), null); assert.equal(bodyReads, 0);
+  });
+  const accounting = createAiAccounting({ pool, guildId: actor.guildId });
+  let budgetRevision = 0, nextId = 800;
+  const budget = { ...DEFAULT_AI_BUDGET, priceValidUntil: Date.now() + 3600000 };
+  async function publishBudget(changes = {}) {
+    const document = { ...budget, ...changes };
+    const reviewed = await store.review({ actor, kind: 'budget', expectedRevision: budgetRevision, document });
+    const result = await store.publish({ actor, kind: 'budget', expectedRevision: budgetRevision, document,
+      reviewSha256: reviewed.reviewSha256, confirmed: true, requestId: aiDigest(['synthetic-budget', budgetRevision]) });
+    budgetRevision = result.revision; return result;
+  }
+  async function generation() {
+    const messageId = String(++nextId), deadline = Date.now() + 14000, inputRevision = aiDigest([messageId, 'original']);
+    const controlEpoch = Number((await pool.query('SELECT epoch FROM sophie_ai.state WHERE guild_id=$1', [actor.guildId])).rows[0].epoch);
+    await admin.query(`INSERT INTO sophie_ai.request_receipts(guild_id,message_id,channel_id,user_id,input_revision,state,deadline,proactive)
+      VALUES($1,$2,'303',$3,$4,'admitted',to_timestamp($5/1000.0),false)`, [actor.guildId,messageId,actor.userId,inputRevision,deadline]);
+    return { local: { messageId,inputRevision,controlEpoch,proactive:false }, bytes:4096,outputTokens:384,deadline };
+  }
+  const reported = { prompt_tokens:100,completion_tokens:25,total_tokens:125,prompt_cache_hit_tokens:64,prompt_cache_miss_tokens:36 };
+  await run('DS03-01 budget publication is reviewed, stale-safe and scoped to AI control authority', async () => {
+    assert.equal((await publishBudget()).revision, 1);
+    await assert.rejects(store.budgetStatus({ actor:{...actor} }), /OPERATION_DENIED/);
+    await assert.rejects(store.review({ actor,kind:'budget',expectedRevision:0,document:budget }), /AI_PUBLICATION_STALE/);
+    assert.equal((await store.budgetStatus({actor})).policy.document.dailyLimitNanos, null);
+    await assert.rejects(knowledge.query('SELECT * FROM sophie_ai.provider_attempts'), error => error.code === '42501');
+  });
+  await run('DS03-02 two workers compete for the last allowance without overspending or duplicate dispatch', async () => {
+    const amount = aiReservationNanos({bytes:4096,outputTokens:384},budget);
+    await publishBudget({monthlyLimitNanos:amount.toString()});
+    const inputs = await Promise.all([generation(),generation()]);
+    const results = await Promise.all(inputs.map(input => accounting.reserve(input)));
+    assert.equal(results.filter(Boolean).length,1);
+    const token = results.find(Boolean), input = inputs.find(value=>value.local.messageId===token.messageId);
+    assert.equal(await accounting.reserve(input),null);
+    assert.equal(await accounting.dispatch({...token,fence:'00000000-0000-0000-0000-000000000000'}),false);
+    assert.equal(await accounting.dispatch(token),true); assert.equal(await accounting.dispatch(token),false);
+    assert.equal(await accounting.settle(token,reported,{model:'synthetic-model',fingerprint:'synthetic-build'}),true);
+    assert.equal(await accounting.settle(token,reported),false);
+    const balance=(await accounting.status()).balances.find(row=>row.period.length===7);
+    assert.equal(balance.reserved_nanos,'0'); assert.equal(balance.settled_nanos,'41184');
+  });
+  await run('DS03-03 crashes and missing usage retain reservations and cannot replay after expiry', async () => {
+    await publishBudget();
+    const input = await generation(), token=await accounting.reserve(input);
+    assert.equal(await accounting.dispatch(token),true);
+    assert.equal(await accounting.settle(token,{...reported,total_tokens:1}),false);
+    await admin.query("UPDATE sophie_ai.provider_attempts SET deadline=clock_timestamp()-interval '1 second' WHERE guild_id=$1 AND message_id=$2",[actor.guildId,token.messageId]);
+    const recovered=createAiAccounting({pool,guildId:actor.guildId}); await recovered.expire();
+    assert.equal(await recovered.settle(token,reported),false); assert.equal(await recovered.reserve(input),null);
+    const status=await recovered.status(); assert.equal(status.unresolved.attempts,1); assert.ok(BigInt(status.unresolved.nanos)>0n);
+  });
+  await run('DS03-04 known non-dispatch releases funds but never permits the same turn to be replayed', async () => {
+    const input=await generation(),token=await accounting.reserve(input);
+    await accounting.finish(token,false); await accounting.finish(token,false);
+    assert.equal(await accounting.reserve(input),null);
+    const dispatched=await accounting.reserve(await generation()); assert.equal(await accounting.dispatch(dispatched),true);
+    await accounting.finish(dispatched,false);
+    assert.equal((await pool.query('SELECT state FROM sophie_ai.provider_attempts WHERE guild_id=$1 AND message_id=$2',[actor.guildId,dispatched.messageId])).rows[0].state,'released');
+  });
+  await run('DS03-05 policy changes, disable and unresolved capacity fence dispatch and admission', async () => {
+    const token=await accounting.reserve(await generation()); await publishBudget({maxUnresolved:1});
+    assert.equal(await accounting.dispatch(token),false); await accounting.finish(token,false);
+    assert.equal(await accounting.reserve(await generation()),null);
+    await publishBudget({priceValidUntil:Date.now()-1000}); assert.equal(await accounting.reserve(await generation()),null);
+    await publishBudget(); const pending=await accounting.reserve(await generation());
+    await store.disable({actor}); assert.equal(await accounting.dispatch(pending),false); await accounting.finish(pending,false);
+    assert.equal(await accounting.reserve(await generation()),null);
+    await admin.query('UPDATE sophie_ai.state SET disabled=false WHERE guild_id=$1',[actor.guildId]);
+  });
+  await run('DS03-06 actual usage above the estimate holds future admission and is never rounded down', async () => {
+    const token=await accounting.reserve(await generation()); assert.equal(await accounting.dispatch(token),true);
+    const large={prompt_tokens:10000,completion_tokens:500,total_tokens:10500,prompt_cache_hit_tokens:0,prompt_cache_miss_tokens:10000};
+    assert.equal(await accounting.settle(token,large),true);
+    assert.equal((await accounting.status()).policy.held,true);
+    assert.equal(await accounting.reserve(await generation()),null);
+    await assert.rejects(store.reviewSpendingHold({ actor, expectedRevision: budgetRevision, evidenceHash: 'a'.repeat(64) }), /AI_ACCOUNTING_UNRESOLVED/);
+  });
+  await run('DS03-07 explicit uncertain-charge resolution remains charged and is idempotent and authorized', async () => {
+    const before=await accounting.status(),pending=before.pending[0];
+    const input={actor,messageId:pending.messageId,fence:pending.fence,requestId:aiDigest(['resolve',pending.messageId]),confirmed:true};
+    await assert.rejects(store.resolveSpending({...input,actor:{...actor}}),/OPERATION_DENIED/);
+    await assert.rejects(store.resolveSpending({...input,confirmed:false}),/AI_CONFIRMATION_REQUIRED/);
+    assert.deepEqual(await store.resolveSpending(input),{resolved:true,duplicate:false});
+    assert.deepEqual(await store.resolveSpending(input),{resolved:true,duplicate:true});
+    const after=await accounting.status(); assert.equal(after.unresolved.attempts,0);
+    for(const original of before.balances){const updated=after.balances.find(row=>row.period===original.period);
+      assert.equal(BigInt(updated.reserved_nanos)+BigInt(updated.settled_nanos),BigInt(original.reserved_nanos)+BigInt(original.settled_nanos));}
+    assert.equal(after.policy.held,true);
+  });
+  await run('DS03-08 operator hold clearance requires current review and evidence, preserves balances and does not activate AI', async () => {
+    const before = await accounting.status(), evidenceHash = 'a'.repeat(64);
+    await assert.rejects(store.reviewSpendingHold({ actor: { ...actor }, expectedRevision: budgetRevision, evidenceHash }), /OPERATION_DENIED/);
+    const reviewed = await store.reviewSpendingHold({ actor, expectedRevision: budgetRevision, evidenceHash });
+    const input = { actor, expectedRevision: budgetRevision, evidenceHash, reviewSha256: reviewed.reviewSha256, requestId: 'f'.repeat(64), confirmed: true };
+    await store.disable({ actor });
+    await assert.rejects(store.clearSpendingHold(input), /AI_REVIEW_STALE/);
+    input.reviewSha256 = (await store.reviewSpendingHold({ actor, expectedRevision: budgetRevision, evidenceHash })).reviewSha256;
+    assert.deepEqual(await store.clearSpendingHold(input), { cleared: true, duplicate: false });
+    assert.deepEqual(await store.clearSpendingHold(input), { cleared: true, duplicate: true });
+    const after = await accounting.status(); assert.equal(after.policy.held, false); assert.deepEqual(after.balances, before.balances);
+    assert.equal(await accounting.reserve(await generation()), null);
+    assert.equal((await store.current({ actor, kind: 'budget' })).disabled, true);
   });
 }

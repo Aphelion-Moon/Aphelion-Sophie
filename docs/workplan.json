@@ -1,10 +1,10 @@
 {
   "schema_version": 2,
-  "revision": "2026-09-27-sophie-ai-model-trials",
+  "revision": "2026-09-28-deepseek-foundation",
   "reference_plan_version": "1.1",
   "source": "Sophie-Implementation-Plans-v1.1/backlog.json",
   "owner_decisions": "docs/decisions/0001-owner-policy.md",
-  "schedule": "Approved container-only Microsoft runtime installed; actual synthetic inference completed. Phi-4-mini missed the response budget; Qwen2.5-1.5B was fast but failed truthfulness/conduct. Continue local-only exploration; no model is qualified or live.",
+  "schedule": "Official DeepSeek Flash is the selected provider. Local models are historical, explicitly selected alternatives only; no automatic fallback. Continue the DS workstream with synthetic data; full readiness and activation remain open.",
   "release_status": "All production release gates remain open; pure and isolated database checks are not full application acceptance.",
   "tasks": [
     {
@@ -817,8 +817,8 @@
     },
     {
       "id": "P23",
-      "title": "Provision and benchmark local model",
-      "phase": "Local AI",
+      "title": "Qualify the selected inference provider and runtime",
+      "phase": "Non-ticket AI",
       "priority": "P0",
       "depends_on": [
         "P01",
@@ -838,19 +838,19 @@
       "suggested_owner": "Repository maintainer; separate human review where required",
       "guardrail": "No cloud fallback, auto-download or claimed unmeasured throughput.",
       "status": "in_progress",
-      "implementation_note": "Approved runtime installed inside Hyper-V only; both pinned models ran under four CPUs/8 GiB, ContainerUser, network none, no mounts/ports. Phi failed timing; Qwen2.5 completed small screens in 3.824–5.920 seconds but invented policy/authority. Exact count and prompt usage agreed. No full-turn, host-load, quality or live qualification.",
+      "implementation_note": "Approved runtime installed inside Hyper-V only; both pinned models ran under four CPUs/8 GiB, ContainerUser, network none, no mounts/ports. Phi failed timing; Qwen2.5 completed small screens in 3.824–5.920 seconds but invented policy/authority. Exact count and prompt usage agreed. No full-turn, host-load, quality or live qualification. Later owner selection: official DeepSeek Flash supersedes active local-only exploration. The preserved local screens remain historical; Flash worker identity, transport and operational qualification are open.",
       "completed_scope": [
         "Pinned Microsoft C++ runtime installed only inside the approved temporary worker; version/hash and containment evidence recorded.",
         "Actual Phi/Qwen synthetic screens, bounded negative-access checks and Zen 4 backend observation completed. Per-turn output grammar and evidence-trimming constraints implemented; 22 focused checks pass."
       ],
       "remaining_scope": [
-        "Review the next named local model candidates; qualify semantic conduct, source answers, cancellation/privacy and full-turn 15-second behavior under representative host load. Neither tested model is selected for live use."
+        "Qualify selected Flash worker/provider identity, processing basis, bounded HTTP and 15-second full-turn behavior. A local alternative requires explicit selection; no automatic fallback."
       ]
     },
     {
       "id": "P24",
       "title": "Implement non-ticket knowledge assistant",
-      "phase": "Local AI",
+      "phase": "Non-ticket AI",
       "priority": "P0",
       "depends_on": [
         "P19",
@@ -887,7 +887,7 @@
     {
       "id": "P25",
       "title": "Implement AI controls and evaluation tooling",
-      "phase": "Local AI",
+      "phase": "Non-ticket AI",
       "priority": "P1",
       "depends_on": [
         "P08",
@@ -999,8 +999,8 @@
     },
     {
       "id": "P28",
-      "title": "Run local AI isolation, quality and host-load suite",
-      "phase": "Local AI",
+      "title": "Run selected AI isolation, quality and host-load qualification",
+      "phase": "Non-ticket AI",
       "priority": "P0",
       "depends_on": [
         "P25",
@@ -1324,9 +1324,9 @@
   ],
   "checkpoint": {
     "summary": "Deterministic administration, Whitelist onboarding, protected editors, role/permission configuration and the configurable staging host are implemented.",
-    "recorded_baseline": "Pinned executable d4ca16ab6286a4ef186733d6829828e74d3fc176, schema 055; current results are listed in docs/verification.md.",
-    "current_work": "Recorded failed local model screens and per-turn output constraints. Twenty-two focused runtime/turn checks pass. Next pinned local candidates need named model decisions; full-AI implementation and activation gates remain open.",
-    "evidence_note": "418 unit tests, 13 isolated configuration scenarios, 16 isolated staging scenarios, 28 public HTTPS checks, 55 live migration checks and 71 live restricted-table checks pass. The Gateway is current. These results do not establish production readiness."
+    "recorded_baseline": "AI handoff 0fa7a5ed538ff791e3def2c1f6ac7683531e15a1 plus preserved uncommitted Flash candidate; synthetic schema058 candidate. No live schema change.",
+    "current_work": "Prepared immutable Flash requests, durable conservative accounting and operator controls, revised external-processing consent gate and dependency-bound assistant history. Worker IPC, durable effects, importer, explicit memory, gathering and selected-feature acceptance remain incomplete.",
+    "evidence_note": "Current source-bound offline results are in docs/verification.md and the external deepseek-verification.json index. Earlier administration, local model and Flash trial results remain historical; none grants present deployment approval."
   },
   "milestones": [
     {
@@ -2198,12 +2198,23 @@
       ],
       "implemented": "Approved container-only Microsoft runtime and Qwen model pins recorded. Actual Phi/Qwen probes completed. Output grammar restricts actions, emoji and citations per turn, removes trimmed evidence IDs and disables thinking; core validation remains independent.",
       "evidence": "22 focused runtime/turn checks pass. Network-none Hyper-V probes used synthetic content only; Phi failed timing and Qwen failed truthfulness/conduct despite fast valid JSON. Source-bound logs and prepared-file snapshots are outside the repository.",
-      "remaining": "Owner selected continued local-only exploration; next named artifacts await decision. Model quality, actual 15-second full-turn/load qualification, broker/service/restore and effect recovery, source sync, explicit memory/restricted domains and activation remain open."
+      "remaining": "Historical local-model milestone, superseded by the later Flash selection. Neither local candidate is qualified or a fallback. Current remaining work is in DS-00–11."
+    },
+    {
+      "title": "DeepSeek preparation, accounting and bounded assistant context",
+      "tasks": [
+        "P21",
+        "P24",
+        "P25"
+      ],
+      "implemented": "Immutable final-body preparation, exact outbound byte cap, local block diagnostics, usage-before-output accounting, fenced reservations and uncertainty, reviewed USD 20/Vienna spending controls, notice revision gate, confirmed assistant context with dependency expiry and cancellation.",
+      "evidence": "Focused unit and isolated AI storage results, synthetic browser observations and exact source hashes in docs/verification.md and external deepseek-verification.json. No new provider or Discord call.",
+      "remaining": "DS-03 retention and actual transport/rollover qualification; DS-04 worker; DS-06 gathering; DS-07 importer/direct lookup; DS-08 explicit memory; DS-09 durable effects; all real-data/release gates."
     }
   ],
   "next_steps": [
     {
-      "title": "Explore the next pinned local-only models",
+      "title": "Complete the selected Flash foundations",
       "tasks": [
         "P21",
         "P22",
@@ -2211,8 +2222,8 @@
         "P24",
         "P25"
       ],
-      "work": "Review the named Qwen3.5-2B and Qwen3-4B-Instruct-2507 Q4_K_M conversions, then screen approved candidates sequentially under the existing limits. Preserve failed results and the 15-second total-turn ceiling. Continue remaining broker/recovery, source-sync and selected-feature implementation; no cloud path or live activation is selected.",
-      "exit_evidence": "Pinned source/model/runtime evidence for isolation, full-turn latency/load, dialogue/source quality and enabled feature acceptance. No benchmark or completed-AI claim from script preparation."
+      "work": "Follow DS-04 worker/broker and DS-09 durable effects next, then dependency-ordered gathering, approved wiki sync/direct lookup and selected memory controls. Prepare exact native identity/runtime proposals before any live provisioning. Preserve the 15-second first-receipt deadline and default one active call.",
+      "exit_evidence": "Scoped local source/transaction/transport evidence first; actual OS/egress and Discord tests need their explicit operational scope. Paid comparisons remain separately authorized."
     },
     {
       "title": "Privately verify deployed configuration and apply workflow",
@@ -2289,9 +2300,215 @@
       "independent_work": "Static approved-asset previews and developer keyboard/reflow checks."
     },
     {
-      "input": "Wiki collection/rights approvals; no qualified model after Phi timing and Qwen truthfulness failures. Next local candidate derivatives need named decisions; runtime startup is no longer blocked.",
-      "affected_work": "Live knowledge ingestion (G3), model/host qualification (G4), private-worker and selected persistent-memory gates.",
-      "independent_work": "Public-source fixtures, lookup contracts and exclusion tests; administration remains independent."
+      "input": "Approved wiki endpoint/collections/rights, exact DeepSeek account processing terms and notices, explicit-memory categories and named restricted audiences remain unresolved.",
+      "affected_work": "Real member processing, source synchronization, selected persistent memory and each restricted context.",
+      "independent_work": "Synthetic source/worker/effect/control implementation; administration stays independent."
     }
-  ]
+  ],
+  "ai_workstream": {
+    "source": "GitHub/.agent_docs/aphelion-sophie/resume-baseline-2026-09-28/sophie-deepseek-workplan-v1.md",
+    "summary": "Owner resumed implementation, commits and generated rebuilds. USD 20 per Europe/Vienna calendar month; no separate daily currency cap; 2,000 daily attempts. Confirmed replies share the 12-item, five-minute local context and inherit earliest source expiry. All original P/T/SAI requirements remain; current provider decisions supersede historical local-only directions.",
+    "tasks": [
+      {
+        "id": "DS-00",
+        "title": "Reconcile preserved handoff",
+        "implementation": "complete",
+        "qualification": "Original eight source and five evidence hashes matched; historical files preserved",
+        "sai": [
+          "SAI-00",
+          "SAI-14"
+        ],
+        "remaining": "Keep this tracker current at each milestone."
+      },
+      {
+        "id": "DS-01",
+        "title": "Provider and data-use clearance",
+        "implementation": "partial",
+        "qualification": "No account-specific processing evidence supplied",
+        "sai": [
+          "SAI-00",
+          "SAI-12",
+          "SAI-14"
+        ],
+        "remaining": "Public message processing, explicit memory and every restricted scope remain blocked; notice revision 2 cannot be opted into without clearance."
+      },
+      {
+        "id": "DS-02",
+        "title": "Prepared-turn contract",
+        "implementation": "implemented foundation",
+        "qualification": "Focused offline checks; no new provider qualification",
+        "sai": [
+          "SAI-01",
+          "SAI-03",
+          "SAI-05",
+          "SAI-08"
+        ],
+        "remaining": "Wire ephemeral first-changed-block diagnostics into the qualified worker; current layout remains control."
+      },
+      {
+        "id": "DS-03",
+        "title": "Durable spending and dispatch",
+        "implementation": "implemented foundation",
+        "qualification": "Synthetic PostgreSQL race/fence/expiry/settlement checks",
+        "sai": [
+          "SAI-01",
+          "SAI-02",
+          "SAI-05"
+        ],
+        "remaining": "Bound ledger retention, qualify actual framing/prices and transport crash/rollover behavior. Estimates are conservative, not guaranteed invoice caps."
+      },
+      {
+        "id": "DS-04",
+        "title": "Windows worker and transport",
+        "implementation": "incomplete",
+        "qualification": "No current Windows provider identity/IPC/egress qualification",
+        "sai": [
+          "SAI-04",
+          "SAI-05",
+          "SAI-14"
+        ],
+        "remaining": "Build authenticated bounded broker and qualification wrapper; propose exact service identities/ACLs and qualify Node maintenance separately. Raw provider adapter is not a deployable worker."
+      },
+      {
+        "id": "DS-05",
+        "title": "Optional Responses comparison",
+        "implementation": "deferred; Chat retained",
+        "qualification": "No demonstrated gain; no paired paid trial",
+        "sai": [
+          "SAI-05",
+          "SAI-14",
+          "SAI-15"
+        ],
+        "remaining": "Chat remains selected. Optional alternate protocol is not a release prerequisite."
+      },
+      {
+        "id": "DS-06",
+        "title": "Gathering and fair concurrency",
+        "implementation": "not started",
+        "qualification": "Current scheduler stays at one active request",
+        "sai": [
+          "SAI-02",
+          "SAI-05"
+        ],
+        "remaining": "After DS-03/04: gathering lease, compatible three-fragment admission, fair channels and one-versus-two qualification."
+      },
+      {
+        "id": "DS-07",
+        "title": "Wiki synchronization and direct lookup",
+        "implementation": "partial inherited library",
+        "qualification": "Synthetic publication/withdrawal/lexical evidence only",
+        "sai": [
+          "SAI-08",
+          "SAI-11"
+        ],
+        "remaining": "Approved actual MediaWiki endpoint, collection/rights and extractor decisions; importer/sync, dependencies and member-facing direct lookup."
+      },
+      {
+        "id": "DS-08",
+        "title": "Assistant context and explicit memory",
+        "implementation": "assistant context implemented; memory not started",
+        "qualification": "Synthetic capacity, dependency, expiry and withdrawal checks",
+        "sai": [
+          "SAI-02",
+          "SAI-10",
+          "SAI-11"
+        ],
+        "remaining": "Persistent memory still needs permitted typed categories, separate data-use authorization, controls and restore/deletion watermark."
+      },
+      {
+        "id": "DS-09",
+        "title": "Effects and operating controls",
+        "implementation": "partial",
+        "qualification": "Synthetic budget/publication/consent UI and delivery checks",
+        "sai": [
+          "SAI-06",
+          "SAI-07",
+          "SAI-14"
+        ],
+        "remaining": "Replace WeakMap effect ownership with durable receipts/arbitration; restart cleanup, active worker revisions and AI-only apply."
+      },
+      {
+        "id": "DS-10",
+        "title": "Selected-release qualification",
+        "implementation": "partial offline",
+        "qualification": "Historical 20 quality calls and 12 cache calls are not current-release acceptance",
+        "sai": [
+          "SAI-15"
+        ],
+        "remaining": "Reviewed 40-question launch set, independent factual/character review, authorized paid/cache comparison and actual receipt-to-Discord timing."
+      },
+      {
+        "id": "DS-11",
+        "title": "Full selected capability readiness",
+        "implementation": "matrix recorded; incomplete",
+        "qualification": "No selected capability has full operational qualification",
+        "sai": [
+          "SAI-10",
+          "SAI-11",
+          "SAI-12",
+          "SAI-14",
+          "SAI-15"
+        ],
+        "remaining": "Complete implemented/qualified/cleared/activated axes; explicit memory and named restricted domains remain visible."
+      }
+    ],
+    "capabilities": [
+      {
+        "id": "SAI-G0",
+        "title": "Scope and contracts",
+        "implementation": "foundation recorded",
+        "qualification": "local evidence only",
+        "data_clearance": "account terms unresolved",
+        "activation": "off"
+      },
+      {
+        "id": "SAI-G1",
+        "title": "All five public social modes",
+        "implementation": "partial",
+        "qualification": "worker/effects/full-turn gates open",
+        "data_clearance": "blocked",
+        "activation": "off"
+      },
+      {
+        "id": "SAI-G2",
+        "title": "Knowledge and direct lookup",
+        "implementation": "partial",
+        "qualification": "importer/current-source/40-question gates open",
+        "data_clearance": "source rights/collection unresolved",
+        "activation": "off"
+      },
+      {
+        "id": "SAI-G3",
+        "title": "Explicit personal memory",
+        "implementation": "not started",
+        "qualification": "lifecycle/restore gates open",
+        "data_clearance": "categories and separate permission unresolved",
+        "activation": "off"
+      },
+      {
+        "id": "SAI-G4",
+        "title": "Staff, Head/Project Lead and named project contexts",
+        "implementation": "not qualified for remote",
+        "qualification": "audiences, worker and provider separation unqualified",
+        "data_clearance": "blocked per named domain",
+        "activation": "off"
+      },
+      {
+        "id": "SAI-G5",
+        "title": "Registered file profiles",
+        "implementation": "unselected",
+        "qualification": "not applicable until selected",
+        "data_clearance": "no exact resources approved",
+        "activation": "off"
+      },
+      {
+        "id": "SAI-G6",
+        "title": "Operational release",
+        "implementation": "incomplete",
+        "qualification": "actual identity/network/Discord/recovery evidence open",
+        "data_clearance": "capability-specific gates open",
+        "activation": "no deployment authorization"
+      }
+    ]
+  }
 }

@@ -44,7 +44,7 @@ export function createKnowledgeLibrary({ pool, guildId, authorize, restoreCurren
       const document = canonicalKnowledgeDocument(row.document), section = document.sections[Number(source.id.split('.s').at(-1))];
       if (digest(document) !== row.sha256 || !section || row.text !== section.text || row.heading !== section.heading || row.title !== document.title || row.url !== document.url || row.authority !== document.authority ||
         source.text !== row.text || source.url !== row.url || source.authority !== row.authority || source.title !== document.title ||
-        source.rights !== document.rights || source.attribution !== document.attribution || source.sourceRevision !== document.sourceRevision) return false;
+        source.rights !== document.rights || source.attribution !== document.attribution || source.sourceRevision !== document.sourceRevision || source.validUntil !== document.validUntil) return false;
     }
     return clock() < request.deadline && await restoreCurrent() === true;
   }
@@ -113,7 +113,7 @@ export function createKnowledgeLibrary({ pool, guildId, authorize, restoreCurren
     async lookup(query, request) {
       requireCondition(typeof query === 'string' && query.trim().length > 0 && query.length <= 4000 && request.guildId === guildId && clock() < request.deadline, 'KNOWLEDGE_QUERY_INVALID');
       await ready();
-      const rows = (await pool.query(`SELECT c.source_id AS id,c.title,c.heading,c.text,c.url,c.authority,c.publication_sha256 AS "publicationHash",d.epoch,
+      const rows = (await pool.query(`SELECT c.source_id AS id,c.title,c.heading,c.text,c.url,c.authority,c.publication_sha256 AS "publicationHash",d.epoch,d.valid_until AS "validUntil",
         p.document->>'rights' AS rights,p.document->>'attribution' AS attribution,p.document->>'sourceRevision' AS "sourceRevision",
         (lower(c.title)=lower($2) OR EXISTS(SELECT 1 FROM unnest(c.aliases) alias WHERE lower(alias)=lower($2))) AS exact
         FROM sophie_knowledge.chunks c JOIN sophie_knowledge.documents d ON d.guild_id=c.guild_id AND d.id=c.document_id
@@ -121,7 +121,7 @@ export function createKnowledgeLibrary({ pool, guildId, authorize, restoreCurren
         WHERE c.guild_id=$1 AND c.revision=d.revision AND c.text IS NOT NULL AND NOT d.withdrawn AND d.source_current
           AND (d.valid_until IS NULL OR d.valid_until>clock_timestamp()) AND
           (lower(c.title)=lower($2) OR EXISTS(SELECT 1 FROM unnest(c.aliases) alias WHERE lower(alias)=lower($2)) OR c.search @@ plainto_tsquery('english',$2))
-        ORDER BY exact DESC,ts_rank(c.search,plainto_tsquery('english',$2)) DESC,c.source_id LIMIT 4`, [guildId,query])).rows.map(row => ({ ...row, epoch: Number(row.epoch) }));
+        ORDER BY exact DESC,ts_rank(c.search,plainto_tsquery('english',$2)) DESC,c.source_id LIMIT 4`, [guildId,query])).rows.map(row => ({ ...row, epoch: Number(row.epoch), validUntil: row.validUntil?.getTime() ?? null }));
       return await available(rows,request) ? rows : [];
     },
     current: available,

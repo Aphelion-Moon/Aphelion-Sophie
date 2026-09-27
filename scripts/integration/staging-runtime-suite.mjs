@@ -69,7 +69,7 @@ export async function runStagingRuntimeSuite(cluster, run) {
   await run('RT01 runtime database privileges reject the owner and accept the restricted core identity', async () => {
     await cluster.adminPool.query('GRANT USAGE ON SCHEMA sophie_migrations TO sophie_test_core');
     await cluster.adminPool.query('GRANT SELECT ON sophie_migrations.applied TO sophie_test_core');
-    const result = await checkRuntimeDatabase(cluster.corePool); assert.ok(result.checkedTables > 0); assert.equal(result.migrations, 57);
+    const result = await checkRuntimeDatabase(cluster.corePool); assert.ok(result.checkedTables > 0); assert.equal(result.migrations, 58);
     await assert.rejects(checkRuntimeDatabase(cluster.adminPool), /RUNTIME_DATABASE_PRIVILEGES_INVALID/);
     const client = await cluster.adminPool.connect(); await client.query('BEGIN');
     try {

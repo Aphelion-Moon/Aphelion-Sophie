@@ -13,8 +13,19 @@
 <h3>Approved social reactions</h3><p>Choose up to 16 reactions Sophie may use. Operational status symbols are reserved. Custom emojis must belong to this server and be available when she reacts.</p><div id="emojis"></div><button id="add-emoji">Add reaction</button>
 <div class="actions"><button id="review-configuration" class="primary">Review participation changes</button></div>
 </section>
+<section id="budget" class="panel case-panel" hidden><h2>Spending</h2><p id="budget-state"></p><div id="unresolved-spending"></div>
+<label for="monthly-budget">Monthly ceiling, USD</label><input id="monthly-budget" type="number" min="1" max="9999" step="1" value="20">
+<p>Calendar months use Europe/Vienna. There is no separate daily money cap. The technical limit is 2,000 attempts per day. At 80% of the money ceiling, optional proactive calls stop first.</p>
+<p>Reservations use conservative estimates. Unknown charges remain reserved. These figures are not a reconciled provider invoice or an exact currency guarantee.</p>
+<label for="price-valid-until">Reviewed price valid until (ISO date and time with timezone)</label><input id="price-valid-until" type="text" placeholder="2026-10-01T00:00:00Z" maxlength="40">
+<p>Current candidate rates per million tokens: $0.006 cached input, $0.30 uncached input and $1.20 output. Leave the review date empty to keep paid calls paused.</p>
+<button id="review-budget" class="primary">Review budget publication</button>
+<fieldset id="spending-hold" hidden><legend>Clear an accounting hold</legend>
+<p>First reconcile every pending attempt and record review of the price and reservation estimate that caused the overrun. Clearing this hold keeps all charges and budget limits.</p>
+<label for="hold-evidence">SHA-256 of the operator’s qualification evidence</label><input id="hold-evidence" maxlength="64" pattern="[a-f0-9]{64}">
+<button id="review-spending-hold">Review hold clearance</button></fieldset></section>
 <section id="personality" class="panel case-panel" hidden><h2>Personality</h2><p>Authored identity persists across restarts. Conversations do not rewrite it. Use synthetic examples only.</p>
 <label for="character-core">Character and conversational style</label><textarea id="character-core" rows="10" maxlength="4000"></textarea><div id="examples"></div><button id="add-example">Add dialogue example</button><div class="actions"><button id="review-personality" class="primary">Review personality publication</button></div></section>
-<section id="review" class="panel case-panel" hidden><h2>Review publication</h2><p id="review-summary"></p><pre id="review-content" class="ai-review"></pre><p>Publication updates the saved revision. The active release must acknowledge and qualify the change before using it.</p><button id="publish" class="primary">Publish this version</button><button id="cancel-review">Return to editing</button></section>
+<section id="review" class="panel case-panel" hidden><h2>Review change</h2><p id="review-summary"></p><pre id="review-content" class="ai-review"></pre><p>This action does not activate AI. Current release, audience and processing approvals still apply.</p><button id="publish" class="primary">Publish this version</button><button id="cancel-review">Return to editing</button></section>
 <section class="panel case-panel"><h2>Learning and privacy</h2><p>Personal chat memory, automatic learning and feedback collection are off. Temporary conversation context is limited to its approved channel and opted-in sources. Sophie’s authored identity and approved knowledge are separate from personal memory.</p><p>Restricted conversations need their own audience and worker qualification. No cloud provider or file tools are enabled by these settings.</p><a href="/ai-preferences">Manage your own processing consent</a></section>
 </div></main></body></html>
