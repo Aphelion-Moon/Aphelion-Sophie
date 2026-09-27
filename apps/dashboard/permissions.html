@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="color-scheme" content="dark">
+  <title>Permissions · Sophie</title><link rel="stylesheet" href="/dashboard/styles.css"><script type="module" src="/dashboard/permissions-app.js"></script>
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to content</a>
+  <header class="topbar"><div class="identity"><img id="avatar" src="/dashboard/sophie-avatar.png" alt="" width="52" height="52"><div><strong>Sophie</strong><span>Community Services</span></div></div>
+    <div class="header-actions"><label class="quiet"><input id="quiet" type="checkbox"> Quiet mode</label><button id="logout" class="subtle" hidden>Sign out</button></div></header>
+  <main id="main" tabindex="-1">
+    <nav class="service-nav" aria-label="Community Services"><!-- service-navigation --></nav>
+    <div class="page-heading"><div><p class="eyebrow">APHELION / COMMUNITY SERVICES</p><h1>Roles and permissions</h1><p class="intro">Choose membership roles, feature access and case routing. Review the changes before applying them.</p></div></div>
+    <p id="notice" class="notice" role="status" hidden></p><p id="error" class="error-box" role="alert" hidden></p>
+    <section id="gate" class="gate panel"><h2 id="gate-title">Loading your workspace…</h2><p>A separately configured permissions-editor grant is required. This grant alone provides no case access.</p><a id="signin" class="button primary" href="/auth/start" hidden>Sign in with Discord</a><button id="gate-retry">Try again</button></section>
+    <noscript><p class="error-box">This page needs JavaScript.</p></noscript>
+    <div id="workspace" hidden>
+      <p class="notice">Save and approve your selections, then review and apply them. Applying pauses normal bot work while role and case access changes are verified.</p>
+      <section class="panel case-panel" aria-labelledby="apply-heading"><h2 id="apply-heading">Running configuration</h2>
+        <p id="application-status" role="status"></p><p id="application-error" class="error-box" role="alert" hidden></p>
+        <button id="review-apply">Review and apply approved settings</button><button id="refresh-application" class="subtle">Check status</button>
+        <div id="application-review" hidden><div id="application-impact" class="permission-comparison"></div><p>Changing the base role reconciles eligible members. Existing Muzzled restrictions are transferred before the old role is removed. Whitelist is never copied from old completion records. Existing case channels retain their intended access.</p>
+          <label><input id="confirm-apply" type="checkbox"> Apply these reviewed changes to the running bot.</label>
+          <div class="actions"><button id="apply-configuration" class="primary" disabled>Apply settings</button><button id="close-apply">Cancel</button></div>
+        </div><button id="resume-application" hidden>Retry after resolving the problem</button><button id="retry-application" hidden>Retry the same apply request</button>
+      </section>
+      <p id="owned-roles" class="muted"></p><p id="dirty" role="status"></p>
+      <div class="actions"><button id="editor-button">Edit selections</button><button id="history-button">Candidate history</button><button id="draft-history">Draft history</button><button id="reload">Reload and compare</button><button id="retry-change" hidden>Retry the same request</button></div>
+      <section id="editor" class="panel case-panel"><h2>Role and channel selections</h2><div id="mapping-fields"></div>
+        <h2>Administrative capabilities</h2><p>Select zero or more roles for each capability. An empty selection denies access. Use Ctrl or Command to select multiple roles.</p><div id="grant-fields"></div>
+        <h2>Case responders</h2><p>Select 1–20 roles per case type. These roles can read and manage that case type. Head Admin contact is restricted to lead ops. Closed cases remain read-only.</p><div id="responder-fields"></div>
+        <div class="actions"><button id="save">Save draft</button><button id="review-button" class="primary">Review saved draft</button><button id="rebase" hidden>Review rebase onto running policy</button></div></section>
+      <section id="pending-edit" class="panel" hidden><p id="pending-edit-text"></p><button id="confirm-edit">Confirm rebase</button><button id="cancel-edit">Cancel</button></section>
+      <section id="conflict" class="panel"></section>
+      <section id="review" class="panel case-panel" hidden><h2 id="review-heading" tabindex="-1">Review deployment candidate</h2><p id="review-versions"></p><div id="comparison" class="permission-comparison"></div>
+        <div id="deployment-review"></div>
+        <p>Approval saves this settings version. The separate Apply step reconciles affected members and case channels. Roles owned by the game integration remain protected.</p>
+        <label><input id="confirm" type="checkbox"> I reviewed these selections and approve this settings version.</label><div class="actions"><button id="approve" class="primary" disabled>Approve settings</button><button id="close-review">Return to draft</button></div></section>
+      <section id="history-panel" class="panel case-panel" hidden><h2>Retained changes</h2><div id="history" class="question-nav"></div><div id="selected"></div></section>
+    </div>
+  </main>
+</body>
+</html>

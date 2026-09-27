@@ -1,0 +1,142 @@
+{
+  "plan_version": "1.1",
+  "status": "candidate register, not a completed software bill of materials",
+  "policy": "Direct reused FOSS projects must be MIT. Unknown/non-MIT indirect, tooling and platform scope remains unapproved until a recorded decision.",
+  "original_code_licence": "Owner publication decision not yet recorded.",
+  "entries": [
+    {
+      "project": "oceanic.js",
+      "purpose": "Discord library",
+      "observed_project_licence": "MIT",
+      "status": "candidate_pending_full_tree_review",
+      "source_id": "S01",
+      "exact_version": null,
+      "artifact_sha256": null,
+      "full_dependency_review_complete": false,
+      "approval_record": null,
+      "note": "Omit optional voice; validate supported interactions and released documentation."
+    },
+    {
+      "project": "fastify",
+      "purpose": "HTTP backend",
+      "observed_project_licence": "MIT",
+      "status": "candidate_pending_full_tree_review",
+      "source_id": "S02",
+      "exact_version": null,
+      "artifact_sha256": null,
+      "full_dependency_review_complete": false,
+      "approval_record": null,
+      "note": "Review chosen plugins and transitive packages; no untrusted executable schemas."
+    },
+    {
+      "project": "react",
+      "purpose": "Dashboard",
+      "observed_project_licence": "MIT",
+      "status": "candidate_pending_full_tree_review",
+      "source_id": "S03",
+      "exact_version": null,
+      "artifact_sha256": null,
+      "full_dependency_review_complete": false,
+      "approval_record": null,
+      "note": "Build tools and bundled assets require separate checks."
+    },
+    {
+      "project": "llama.cpp",
+      "purpose": "Local inference engine",
+      "observed_project_licence": "MIT",
+      "status": "candidate_pending_binary_review",
+      "source_id": "S04",
+      "exact_version": null,
+      "artifact_sha256": null,
+      "full_dependency_review_complete": false,
+      "approval_record": null,
+      "note": "Inventory native optional components and disable tools/UI."
+    },
+    {
+      "project": "microsoft/Phi-4-mini-instruct",
+      "purpose": "Initial model weights",
+      "observed_project_licence": "MIT",
+      "status": "candidate_pending_artifact_pin",
+      "source_id": "S05",
+      "exact_version": null,
+      "artifact_sha256": null,
+      "full_dependency_review_complete": false,
+      "approval_record": null,
+      "note": "Model licence separate from runtime; no performance result yet."
+    },
+    {
+      "project": "unsloth/Phi-4-mini-instruct-GGUF",
+      "purpose": "Q4_K_M model artifact candidate",
+      "observed_project_licence": "MIT-labelled",
+      "status": "candidate_pending_artifact_review",
+      "source_id": "S06",
+      "exact_version": null,
+      "artifact_sha256": null,
+      "full_dependency_review_complete": false,
+      "approval_record": null,
+      "note": "Pin exact revision/file/hash and review modifications/chat template."
+    },
+    {
+      "project": "WinSW",
+      "purpose": "Native service wrapper",
+      "observed_project_licence": "MIT",
+      "status": "candidate_pending_version_review",
+      "source_id": "S13",
+      "exact_version": null,
+      "artifact_sha256": null,
+      "full_dependency_review_complete": false,
+      "approval_record": null,
+      "note": "Use version-matched documentation and review runtime requirements."
+    },
+    {
+      "project": "Node.js distribution",
+      "purpose": "JavaScript runtime",
+      "observed_project_licence": "MIT project plus bundled third-party notices",
+      "status": "scope_decision_required",
+      "source_id": "S14",
+      "exact_version": null,
+      "artifact_sha256": null,
+      "full_dependency_review_complete": false,
+      "approval_record": null,
+      "note": "Not certified all-MIT; exact platform distribution must be approved."
+    },
+    {
+      "project": "PostgreSQL",
+      "purpose": "Proposed transactional database",
+      "observed_project_licence": "PostgreSQL License",
+      "status": "not_approved_under_MIT_rule",
+      "source_id": "S16",
+      "exact_version": null,
+      "artifact_sha256": null,
+      "full_dependency_review_complete": false,
+      "approval_record": null,
+      "note": "No installation unless scope/exception explicitly approved; alternative not selected."
+    },
+    {
+      "project": "pg-boss",
+      "purpose": "Conditional job library",
+      "observed_project_licence": "MIT",
+      "status": "conditional_on_approved_PostgreSQL",
+      "source_id": "S17",
+      "exact_version": null,
+      "artifact_sha256": null,
+      "full_dependency_review_complete": false,
+      "approval_record": null,
+      "note": "Driver/transitives and database remain separate review items."
+    },
+    {
+      "project": "TypeScript",
+      "purpose": "Optional compiler/toolchain",
+      "observed_project_licence": "Apache-2.0",
+      "status": "not_in_baseline",
+      "source_id": "S15",
+      "exact_version": null,
+      "artifact_sha256": null,
+      "full_dependency_review_complete": false,
+      "approval_record": null,
+      "note": "JavaScript ESM/JSDoc baseline; no implicit tooling exception."
+    }
+  ],
+  "artwork_register": "asset-manifest.json",
+  "artwork_note": "The conversation-generated Sophie PNGs are not FOSS packages; no MIT artwork licence is inferred. No software component was newly approved in this revision."
+}

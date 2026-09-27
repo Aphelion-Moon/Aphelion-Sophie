@@ -1,0 +1,78 @@
+{
+  "plan_version": "1.1",
+  "note": "Hashes identify the prior planning inputs; raw source diagnostics are intentionally excluded. Source images have their own manifest.",
+  "files": [
+    {
+      "path": "00-START-HERE.md",
+      "sha256": "46903ea8a855906f2343dcf01deeeb2f029670030820c0516ea54d7b7668abdd"
+    },
+    {
+      "path": "01-REQUIREMENTS-AND-DECISIONS.md",
+      "sha256": "e8b748fcc65305f3380a2ffb4715b08f3a6254a11716b1bbaf561701f7747890"
+    },
+    {
+      "path": "02-ARCHITECTURE-AND-DATA.md",
+      "sha256": "8afb5f42feab10a861339f0ba9d112cf0e52784d54c6833977b7b05c5c7a8ffb"
+    },
+    {
+      "path": "03-TICKETS-SHUTTLE-AND-ROLES.md",
+      "sha256": "e5a835ff04b6944899492d6fc99c5bd9e60504c260135e80ab152df140e1965b"
+    },
+    {
+      "path": "04-KNOWLEDGE-AND-LOCAL-AI.md",
+      "sha256": "624f4bd8b33d426f40afb1c82fc277dc5ae6d57764a09b7f357582f2f0ec0c7b"
+    },
+    {
+      "path": "05-DASHBOARD-AND-DESIGN.md",
+      "sha256": "81818f034931fbfcbb148849fedfcb2a932bc56d9ff6bbd9244bd3c736b9233d"
+    },
+    {
+      "path": "06-SECURITY-PRIVACY-AND-LICENSING.md",
+      "sha256": "e672c68d1b7a09d31fd6bae44ace7ea8616be8dc89cf76d84797ecb9c38dd488"
+    },
+    {
+      "path": "07-WINDOWS-OPERATIONS-AND-CUTOVER.md",
+      "sha256": "461a74b12dfe8a19e836252f67679242510cf294433b4ff79afaa6c4ae4f237e"
+    },
+    {
+      "path": "08-IMPLEMENTATION-WORKPLAN.md",
+      "sha256": "e52d2a4d1ef90b043efe46998cc43283fba5b90f42d7508bd60ca5ba415e4306"
+    },
+    {
+      "path": "09-ACCEPTANCE-AND-TESTS.md",
+      "sha256": "f64288ebf4e57bc69956b3b558afcb9b44cf230fac2ef854af5a63003f05ee5d"
+    },
+    {
+      "path": "10-AGENT-HANDOFF.md",
+      "sha256": "31d043c1187f24d23b73a2f5c69a8d41385e308140f01871feb50c607de78271"
+    },
+    {
+      "path": "11-SOURCES.md",
+      "sha256": "3ae795ea5e5814ea94d292c25c7b76dced9663d9df9a6b1a97f75175599d9e9b"
+    },
+    {
+      "path": "AGENTS.md",
+      "sha256": "e4ab795e0d635889c06edeac61cd42e5af793f27c39bc550d18e60fe13cba8ad"
+    },
+    {
+      "path": "backlog.json",
+      "sha256": "05c8378e21cc0cc46429f7255597236793d8be8fa12ec0d8f39b89530a5fd463"
+    },
+    {
+      "path": "config.example.json",
+      "sha256": "e0f853c269b3a27bee71d264d826a6c540d05f32717fb586e01d401b11cf3e2c"
+    },
+    {
+      "path": "dependency-register.json",
+      "sha256": "b22ae90481d3c4d4974039472355fe47d85e686a278b1f18bc7de837f78bf2cc"
+    },
+    {
+      "path": "test-cases.json",
+      "sha256": "efc50f57bc5b4878ca1bcecdf4de07a5d248ad3bb9a0b5e12e0f39311b6ae675"
+    },
+    {
+      "path": "Aphelion-Bot-WUFF-Hardware-Addendum.md",
+      "sha256": "472c56f22f453b9fb2a3a450d1fbb479eccb0957775f61522d05941573c8f698"
+    }
+  ]
+}

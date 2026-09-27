@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="color-scheme" content="dark">
+  <title>Ticket forms · Sophie</title>
+  <link rel="stylesheet" href="/dashboard/styles.css"><script type="module" src="/dashboard/form-app.js"></script>
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to content</a>
+  <header class="topbar">
+    <div class="identity"><img id="avatar" src="/dashboard/sophie-avatar.png" alt="" width="52" height="52"><div><strong>Sophie</strong><span>Community Services</span></div></div>
+    <div class="header-actions"><label class="quiet"><input id="quiet" type="checkbox"> Quiet mode</label><button id="logout" class="subtle" hidden>Sign out</button></div>
+  </header>
+  <main id="main" tabindex="-1">
+    <nav class="service-nav" aria-label="Community Services"><!-- service-navigation --></nav>
+    <div class="page-heading"><div><p class="eyebrow">APHELION / SERVICE DESK</p><h1>Ticket forms</h1><p class="intro">Clear questions, considered support.</p></div><span class="label">AUTHORED CONFIGURATION</span></div>
+    <div id="notice" class="notice" role="status" hidden></div>
+    <div id="error-box" class="error-box" hidden><p id="error" role="alert"></p><div class="actions"><button id="retry" hidden>Retry same request</button><button id="reload-error">Reload &amp; compare</button></div></div>
+    <section id="gate" class="gate panel" aria-labelledby="gate-title"><p class="eyebrow">COMMUNITY SERVICES</p><h2 id="gate-title">Opening the workspace…</h2><p id="gate-description">Loading your workspace.</p><a id="signin" class="button primary" href="/auth/start" hidden>Sign in with Discord</a><button id="gate-retry" hidden>Try again</button></section>
+    <noscript><p class="error-box">This editor needs JavaScript. Forms are never published automatically.</p></noscript>
+    <div id="workspace" hidden>
+      <section class="form-category panel" aria-label="Form category"><div><label for="category">Support category</label><select id="category"></select></div><p id="category-note" class="muted"></p></section>
+      <div class="workspace-tabs"><button id="editor-tab" aria-current="page">Edit form</button><button id="history-tab">History</button><span id="account" class="account"></span></div>
+      <div class="status-line"><span id="draft-status"></span><span id="publication-status"></span><button id="reload" class="text-button">Reload &amp; compare</button></div>
+      <section id="editor">
+        <div class="form-title panel"><label for="form-title">Form title</label><input id="form-title" type="text" maxlength="45" autocomplete="off" aria-describedby="form-title-hint"><div class="field-hints" id="form-title-hint"><span>Shown when a member opens this form.</span><span id="form-title-count"></span></div></div>
+        <div class="editor-layout">
+          <aside class="journey panel"><p class="eyebrow">FORM STRUCTURE</p><h2>Questions</h2><p class="muted">One to five questions, in the order members will see them.</p><nav id="questions" class="question-nav" aria-label="Form questions"></nav><button id="add-question">Add question</button><p class="journey-note">Quick Help opens directly, without a form. This workspace never displays submitted answers.</p></aside>
+          <section class="writing panel" aria-labelledby="field-heading">
+            <div id="empty-fields"><h2>No questions yet</h2><p class="muted">Add a question to begin. You can save incomplete work as a draft.</p></div>
+            <div id="field-editor" hidden>
+              <div class="writing-heading"><div><p id="field-number" class="eyebrow"></p><h2 id="field-heading">Question</h2></div><div class="actions"><button id="move-up" aria-label="Move question up">↑</button><button id="move-down" aria-label="Move question down">↓</button><button id="remove-question" class="danger">Remove</button></div></div>
+              <label for="field-label">Question label</label><input id="field-label" type="text" maxlength="45" autocomplete="off">
+              <label for="field-description">Guidance <span class="muted">(optional)</span></label><input id="field-description" type="text" maxlength="100" autocomplete="off">
+              <div class="field-grid"><div><label for="field-kind">Answer type</label><select id="field-kind"><option value="short">Short text</option><option value="paragraph">Paragraph</option><option value="select">Single choice</option></select></div><div id="text-limit"><label for="field-limit">Character limit</label><input id="field-limit" type="number" min="1" max="4000" step="1" aria-describedby="limit-hint"><span id="limit-hint" class="muted">1–4,000 characters</span></div></div>
+              <label class="check-field"><input id="field-required" type="checkbox"> An answer is required</label>
+              <section id="choices-section" hidden aria-labelledby="choices-heading"><h3 id="choices-heading">Choices</h3><p class="muted">Members may choose one. Add up to 25 choices.</p><div id="options"></div><button id="add-option">Add choice</button></section>
+            </div>
+            <footer class="editor-footer"><span id="save-hint" class="muted"></span><div class="actions"><button id="save">Save draft</button><button id="review" class="primary">Review saved form <span aria-hidden="true">↗</span></button></div></footer>
+          </section>
+        </div>
+      </section>
+      <section id="history" class="panel history-panel" aria-labelledby="history-heading" hidden><div class="section-heading"><div><p class="eyebrow">RETAINED RECORD</p><h2 id="history-heading">Form history</h2><p class="muted">Inspect earlier questions or use them to begin a new draft.</p></div><div class="actions"><button id="publications-filter" aria-pressed="true">Publications</button><button id="drafts-filter" aria-pressed="false">Draft revisions</button></div></div><div id="history-list"></div><div class="pagination"><button id="newer">Newer</button><span>Up to 10 records per page</span><button id="older">Older</button></div></section>
+      <p class="workspace-footnote">Draft changes stay in this tab until saved. Published forms and submitted answers are retained.</p>
+    </div>
+  </main>
+  <dialog id="review-dialog" aria-labelledby="review-title"><div class="dialog-heading"><div><p class="eyebrow">REVIEW BEFORE PUBLISHING</p><h2 id="review-title">Review the saved form</h2></div><button id="review-close" class="subtle" autofocus>Close review</button></div><div id="review-content"></div><div id="publish-confirmation" class="confirmation"><label><input id="confirm-publish" type="checkbox"> I have reviewed the questions, choices and answer requirements.</label><button id="publish" class="primary" disabled>Publish version</button></div></dialog>
+  <dialog id="history-dialog" aria-labelledby="selected-title"><div class="dialog-heading"><div><p class="eyebrow">RETAINED FORM</p><h2 id="selected-title"></h2></div><button id="selected-close" class="subtle" autofocus>Close record</button></div><div id="selected-content"></div><div id="selected-actions" class="actions dialog-actions"><button id="use-selected">Use as a draft</button><button id="withdraw-review" class="danger" hidden>Review withdrawal</button></div><div id="withdraw-confirmation" class="confirmation" hidden><label><input id="confirm-withdraw" type="checkbox"> I understand how this affects new requests and open forms.</label><button id="withdraw" class="danger" disabled>Withdraw version</button></div></dialog>
+  <dialog id="conflict-dialog" aria-labelledby="conflict-title"><div class="dialog-heading"><h2 id="conflict-title" tabindex="-1">Your changes are still here</h2></div><p>Compare the latest saved form with your copy. Keeping your copy prepares a new save; it does not merge or save automatically.</p><div id="conflict-content"></div><div class="actions dialog-actions"><button id="keep-remote">Use latest saved copy</button><button id="keep-local" class="primary" autofocus>Keep my copy</button></div></dialog>
+  <dialog id="change-dialog" aria-labelledby="change-title"><div class="dialog-heading"><h2 id="change-title">Review this change</h2></div><p id="change-message"></p><div class="actions dialog-actions"><button id="cancel-change" autofocus>Keep editing</button><button id="confirm-change" class="danger">Confirm change</button></div></dialog>
+</body>
+</html>

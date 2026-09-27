@@ -1,0 +1,21 @@
+# Auto detect text files and perform LF normalization
+* text=auto
+.gitattributes text eol=lf
+.gitignore text eol=lf
+.npmrc text eol=lf
+.node-version text eol=lf
+LICENSE text eol=lf
+*.js text eol=lf
+*.mjs text eol=lf
+*.html text eol=lf
+*.css text eol=lf
+*.json text eol=lf
+*.sql text eol=lf
+legal/notices/*.txt text eol=lf
+legal/THIRD-PARTY-NOTICES text eol=lf
+*.md text eol=lf
+*.ps1 text eol=lf
+*.png binary
+# Preserve the supplied reference pack's byte-level checksums and provenance.
+Sophie-Implementation-Plans-v1.1/** -text
+Sophie-Visual-Assets-v1/** -text

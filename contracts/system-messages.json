@@ -1,0 +1,1650 @@
+[
+  {
+    "id": "reply.public_answer",
+    "group": "General",
+    "source": "Public answers are currently unavailable.",
+    "max": 1800
+  },
+  {
+    "id": "reply.case_answer_review",
+    "group": "Tickets",
+    "source": "The answer review is currently unavailable. No reply is sent during review preparation.",
+    "max": 1800
+  },
+  {
+    "id": "reply.case_answer_unavailable",
+    "group": "Tickets",
+    "source": "The answer review could not be prepared. No reply is sent during review preparation. Use /ticket answer to try again.",
+    "max": 1800
+  },
+  {
+    "id": "reply.case_answer_cancelled",
+    "group": "Tickets",
+    "source": "Review cancelled. No reply was submitted from this review.",
+    "max": 1800
+  },
+  {
+    "id": "reply.case_answer_submitted",
+    "group": "Tickets",
+    "source": "This review already has a recorded reply request. Check Case replies for its delivery status.",
+    "max": 1800
+  },
+  {
+    "id": "reply.case_answer_cancel_uncertain",
+    "group": "Tickets",
+    "source": "Cancellation could not be confirmed. Check Case replies before taking another action on this review.",
+    "max": 1800
+  },
+  {
+    "id": "reply.case_answer_stale",
+    "group": "Tickets",
+    "source": "This review or its case or publication has changed, expired or been cancelled. No new reply was recorded by this attempt. Check any earlier uncertain submission in Case replies, then use /ticket answer for a new review.",
+    "max": 1800
+  },
+  {
+    "id": "reply.case_answer_limit",
+    "group": "Tickets",
+    "source": "You have five active answer reviews. Cancel an unused review or wait for its ten-minute review window to end.",
+    "max": 1800
+  },
+  {
+    "id": "reply.recorded",
+    "group": "General",
+    "source": "Request recorded. Role delivery will check current permissions and confirm the resulting roles.",
+    "max": 1800
+  },
+  {
+    "id": "reply.denied",
+    "group": "General",
+    "source": "You don’t have access to this action. Please ask Staff if you need help.",
+    "max": 1800
+  },
+  {
+    "id": "reply.disabled",
+    "group": "General",
+    "source": "Sophie commands are currently disabled.",
+    "max": 1800
+  },
+  {
+    "id": "reply.unavailable",
+    "group": "General",
+    "source": "We couldn’t confirm that request. Please ask Staff to check before trying again.",
+    "max": 1800
+  },
+  {
+    "id": "reply.ticket_recorded",
+    "group": "Tickets",
+    "source": "We’ve received your request and are getting your private ticket ready.",
+    "max": 1800
+  },
+  {
+    "id": "reply.case_contact",
+    "group": "Tickets",
+    "source": "Staff contact is currently unavailable.",
+    "max": 1800
+  },
+  {
+    "id": "reply.case_contact_cancelled",
+    "group": "Tickets",
+    "source": "Contact selection cancelled. No case was created.",
+    "max": 1800
+  },
+  {
+    "id": "reply.ticket_busy",
+    "group": "Tickets",
+    "source": "A ticket or form cannot be reserved within the current limits. Please try again shortly or ask Staff about an existing case.",
+    "max": 1800
+  },
+  {
+    "id": "reply.ticket_form_unavailable",
+    "group": "Tickets",
+    "source": "This form is no longer available to submit. Open the current form from Ticket Nexus, /ticket open, /ticket report or /ticket contact. Existing submitted records are retained.",
+    "max": 1800
+  },
+  {
+    "id": "reply.ticket_form_invalid",
+    "group": "Tickets",
+    "source": "The form could not be accepted. Check the required fields and allowed choices using the current form.",
+    "max": 1800
+  },
+  {
+    "id": "reply.case_status",
+    "group": "Tickets",
+    "source": "The case status is currently unavailable.",
+    "max": 1800
+  },
+  {
+    "id": "reply.case_change_recorded",
+    "group": "Tickets",
+    "source": "The case request is recorded. The worker must verify its permissions before confirming the change.",
+    "max": 1800
+  },
+  {
+    "id": "reply.case_stale",
+    "group": "Tickets",
+    "source": "The case has changed or cannot perform that action. Use /ticket status for its current version.",
+    "max": 1800
+  },
+  {
+    "id": "reply.case_capacity",
+    "group": "Tickets",
+    "source": "The case cannot reopen within the current limits. Keep its records and retry after capacity is available.",
+    "max": 1800
+  },
+  {
+    "id": "reply.case_queue",
+    "group": "Tickets",
+    "source": "The case queue is currently unavailable.",
+    "max": 1800
+  },
+  {
+    "id": "reply.case_queue_stale",
+    "group": "Tickets",
+    "source": "This queue position is no longer available. Use /ticket queue to refresh.",
+    "max": 1800
+  },
+  {
+    "id": "reply.case_participant_recorded",
+    "group": "Tickets",
+    "source": "Participant change recorded. Channel permissions still need verification. Removing a participant does not remove their independent responder access.",
+    "max": 1800
+  },
+  {
+    "id": "reply.case_participant_denied",
+    "group": "Tickets",
+    "source": "That member cannot be added as a current participant. Check current membership and the case audience.",
+    "max": 1800
+  },
+  {
+    "id": "reply.case_staff_recorded",
+    "group": "Tickets",
+    "source": "Case assignment recorded. Use /ticket status or /ticket queue to review it.",
+    "max": 1800
+  },
+  {
+    "id": "reply.case_labels_recorded",
+    "group": "Tickets",
+    "source": "Manual case labels recorded. Use /ticket status to review them.",
+    "max": 1800
+  },
+  {
+    "id": "reply.case_reply_confirmation",
+    "group": "Tickets",
+    "source": "No reply was submitted. Review your text and the current case reference, then choose confirm: True to send to all current readers. Use Staff notes for restricted notes.",
+    "max": 1800
+  },
+  {
+    "id": "reply.case_reply_recorded",
+    "group": "Tickets",
+    "source": "Reply request recorded. Delivery is pending. Check Case replies in the dashboard before submitting another copy.",
+    "max": 1800
+  },
+  {
+    "id": "reply.case_reply_confirmed",
+    "group": "Tickets",
+    "source": "This reply request already has confirmed delivery. Check Case replies in the dashboard for its retained record.",
+    "max": 1800
+  },
+  {
+    "id": "reply.case_reply_cancelled",
+    "group": "Tickets",
+    "source": "This reply request was cancelled before sending. Its record remains in Case replies in the dashboard.",
+    "max": 1800
+  },
+  {
+    "id": "reply.case_reply_withdrawn",
+    "group": "Tickets",
+    "source": "This reply was withdrawn from Discord. Its request and audit remain in Case replies in the dashboard.",
+    "max": 1800
+  },
+  {
+    "id": "reply.case_reply_limit",
+    "group": "Tickets",
+    "source": "The reply queue or cooldown limit was reached. No new reply was recorded. Check Case replies in the dashboard before trying again.",
+    "max": 1800
+  },
+  {
+    "id": "reply.case_reply_uncertain",
+    "group": "Tickets",
+    "source": "The reply request could not be confirmed. It may still complete. Check Case replies in the dashboard before submitting another copy.",
+    "max": 1800
+  },
+  {
+    "id": "reply.case_assignee_denied",
+    "group": "Tickets",
+    "source": "The selected member does not currently have responder authority for this case. No assignment was changed.",
+    "max": 1800
+  },
+  {
+    "id": "reply.case_issue_queue",
+    "group": "Tickets",
+    "source": "Ticket delivery issues are currently unavailable.",
+    "max": 1800
+  },
+  {
+    "id": "reply.case_issue_queue_stale",
+    "group": "Tickets",
+    "source": "This queue position is unavailable. Use /ticket issues to refresh.",
+    "max": 1800
+  },
+  {
+    "id": "reply.case_issue_recorded",
+    "group": "Tickets",
+    "source": "Ticket delivery recheck recorded. The worker must verify current permissions and state before confirming delivery.",
+    "max": 1800
+  },
+  {
+    "id": "reply.case_issue_stale",
+    "group": "Tickets",
+    "source": "This ticket delivery issue has changed or is no longer parked. Use /ticket issues to refresh.",
+    "max": 1800
+  },
+  {
+    "id": "reply.case_issue_review",
+    "group": "Tickets",
+    "source": "The private case or its policy needs review before delivery can be rechecked.",
+    "max": 1800
+  },
+  {
+    "id": "reply.case_issue_message_needed",
+    "group": "Tickets",
+    "source": "A message may have reached Discord. Use /ticket issues to identify the matching Sophie message before rechecking.",
+    "max": 1800
+  },
+  {
+    "id": "reply.case_recovery_recorded",
+    "group": "Tickets",
+    "source": "The verified message reference is recorded. The worker must inspect current state before confirming delivery.",
+    "max": 1800
+  },
+  {
+    "id": "reply.case_recovery_rejected",
+    "group": "Tickets",
+    "source": "That message could not be verified as the expected Sophie delivery. Use /ticket issues to review the current reference.",
+    "max": 1800
+  },
+  {
+    "id": "reply.case_channel_recorded",
+    "group": "Tickets",
+    "source": "The channel choice is recorded. The worker must seal other candidates and verify current permissions before confirming access.",
+    "max": 1800
+  },
+  {
+    "id": "reply.case_channel_rejected",
+    "group": "Tickets",
+    "source": "Choose a retained candidate from /ticket issues. A previously opened case must keep its original channel.",
+    "max": 1800
+  },
+  {
+    "id": "reply.onboarding_recorded",
+    "group": "Onboarding",
+    "source": "Your Shuttle is getting ready. Use /whitelist start to return at any time.",
+    "max": 1800
+  },
+  {
+    "id": "reply.onboarding_progress_recorded",
+    "group": "Onboarding",
+    "source": "Ready for the next page.",
+    "max": 1800
+  },
+  {
+    "id": "reply.onboarding_help_recorded",
+    "group": "Onboarding",
+    "source": "Staff have been asked to help. You can talk to them here and keep reading while you wait.",
+    "max": 1800
+  },
+  {
+    "id": "reply.onboarding_help_paused",
+    "group": "Onboarding",
+    "source": "Staff have been asked to help. You can talk to them here; they’ll let you know when you can continue.",
+    "max": 1800
+  },
+  {
+    "id": "reply.onboarding_paused",
+    "group": "Onboarding",
+    "source": "You’re waiting for Staff assistance. They’ll let you know when you can continue.",
+    "max": 1800
+  },
+  {
+    "id": "reply.onboarding_help_resumed",
+    "group": "Onboarding",
+    "source": "Staff resumption recorded. The member must use the current Shuttle controls to continue. Use /whitelist queue to return to outstanding requests.",
+    "max": 1800
+  },
+  {
+    "id": "reply.onboarding_help_waiting",
+    "group": "Onboarding",
+    "source": "This Shuttle cannot resume under the current membership restrictions. The assistance request remains open.",
+    "max": 1800
+  },
+  {
+    "id": "reply.onboarding_help_queue",
+    "group": "Onboarding",
+    "source": "The Shuttle assistance queue is currently unavailable.",
+    "max": 1800
+  },
+  {
+    "id": "reply.onboarding_help_resolved",
+    "group": "Onboarding",
+    "source": "Assistance marked as resolved. Use /whitelist queue to view outstanding requests.",
+    "max": 1800
+  },
+  {
+    "id": "reply.onboarding_help_stale",
+    "group": "Onboarding",
+    "source": "This assistance request is no longer available to resolve. Use /whitelist queue to refresh the list.",
+    "max": 1800
+  },
+  {
+    "id": "reply.onboarding_issue_queue",
+    "group": "Onboarding",
+    "source": "The Shuttle delivery review queue is currently unavailable.",
+    "max": 1800
+  },
+  {
+    "id": "reply.onboarding_issue_recorded",
+    "group": "Onboarding",
+    "source": "Delivery recheck recorded. Current eligibility and permissions will be checked by the worker; no delivery is confirmed yet. Use /whitelist issues to refresh.",
+    "max": 1800
+  },
+  {
+    "id": "reply.onboarding_issue_stale",
+    "group": "Onboarding",
+    "source": "This delivery issue has changed or is no longer parked. Use /whitelist issues to refresh the list.",
+    "max": 1800
+  },
+  {
+    "id": "reply.onboarding_issue_review",
+    "group": "Onboarding",
+    "source": "The private case or its policy needs review before this delivery can be rechecked.",
+    "max": 1800
+  },
+  {
+    "id": "reply.onboarding_issue_message_needed",
+    "group": "Onboarding",
+    "source": "A previous message may have reached Discord. Use /whitelist issues for instructions to identify that message before rechecking.",
+    "max": 1800
+  },
+  {
+    "id": "reply.onboarding_recovery_recorded",
+    "group": "Onboarding",
+    "source": "The verified message reference is recorded. The worker will inspect current state before confirming delivery or updating controls.",
+    "max": 1800
+  },
+  {
+    "id": "reply.onboarding_recovery_rejected",
+    "group": "Onboarding",
+    "source": "That message could not be verified as the expected Sophie delivery for this issue. Use /whitelist issues to review the current reference.",
+    "max": 1800
+  },
+  {
+    "id": "reply.onboarding_channel_recorded",
+    "group": "Onboarding",
+    "source": "The channel choice is recorded. The worker must seal every other retained candidate and verify current access before confirming the case.",
+    "max": 1800
+  },
+  {
+    "id": "reply.onboarding_channel_rejected",
+    "group": "Onboarding",
+    "source": "Choose a retained candidate for this Shuttle issue. A previously opened case must keep its original channel. Use /whitelist issues to review the current reference.",
+    "max": 1800
+  },
+  {
+    "id": "reply.onboarding_stale",
+    "group": "Onboarding",
+    "source": "This page has changed. Use the buttons on the updated page, or /whitelist start to return.",
+    "max": 1800
+  },
+  {
+    "id": "reply.onboarding_busy",
+    "group": "Onboarding",
+    "source": "We can’t open your Shuttle just now. Try again in a moment, or ask Staff for help.",
+    "max": 1800
+  },
+  {
+    "id": "reply.onboarding_review",
+    "group": "Onboarding",
+    "source": "We need a hand from Staff before you can continue. Please ask them for help.",
+    "max": 1800
+  },
+  {
+    "id": "onboarding.ended.title",
+    "group": "Onboarding",
+    "source": "The Shuttle",
+    "max": 80
+  },
+  {
+    "id": "onboarding.ended.body",
+    "group": "Onboarding",
+    "source": "This journey has ended. Use /whitelist start when you’re ready to begin again.",
+    "max": 1500
+  },
+  {
+    "id": "onboarding.ended.button",
+    "group": "Onboarding",
+    "source": "Journey ended",
+    "max": 40,
+    "format": "plain"
+  },
+  {
+    "id": "onboarding.complete.title",
+    "group": "Onboarding",
+    "source": "Shuttle complete",
+    "max": 80
+  },
+  {
+    "id": "onboarding.complete.body",
+    "group": "Onboarding",
+    "source": "You’re all set. Welcome aboard! This channel will close automatically after one hour, once any outstanding Staff help is resolved. Use /whitelist start whenever you want to review the guidance again.",
+    "max": 1500
+  },
+  {
+    "id": "onboarding.complete.button",
+    "group": "Onboarding",
+    "source": "Finished",
+    "max": 40,
+    "format": "plain"
+  },
+  {
+    "id": "onboarding.pending.title",
+    "group": "Onboarding",
+    "source": "Nearly there",
+    "max": 80
+  },
+  {
+    "id": "onboarding.pending.body",
+    "group": "Onboarding",
+    "source": "You’ve finished the guidance. We’re getting your access ready. If it takes a while, choose Check completion or ask Staff for help.",
+    "max": 1500
+  },
+  {
+    "id": "onboarding.check",
+    "group": "Onboarding",
+    "source": "Check completion",
+    "max": 40,
+    "format": "plain"
+  },
+  {
+    "id": "onboarding.help",
+    "group": "Onboarding",
+    "source": "Ask Staff",
+    "max": 40,
+    "format": "plain"
+  },
+  {
+    "id": "onboarding.next",
+    "group": "Onboarding",
+    "source": "Next screen",
+    "max": 40,
+    "format": "plain"
+  },
+  {
+    "id": "onboarding.finish",
+    "group": "Onboarding",
+    "source": "Complete Shuttle",
+    "max": 40,
+    "format": "plain"
+  },
+  {
+    "id": "onboarding.acknowledge",
+    "group": "Onboarding",
+    "source": "Acknowledge & continue",
+    "max": 40,
+    "format": "plain"
+  },
+  {
+    "id": "onboarding.continue",
+    "group": "Onboarding",
+    "source": "Continue",
+    "max": 40,
+    "format": "plain"
+  },
+  {
+    "id": "onboarding.previous",
+    "group": "Onboarding",
+    "source": "Back screen",
+    "max": 40,
+    "format": "plain"
+  },
+  {
+    "id": "onboarding.back",
+    "group": "Onboarding",
+    "source": "Back",
+    "max": 40,
+    "format": "plain"
+  },
+  {
+    "id": "onboarding.help.paused",
+    "group": "Onboarding",
+    "source": "Staff have been asked to help. You can talk to them here; they’ll let you know when you can continue.",
+    "max": 400
+  },
+  {
+    "id": "onboarding.help.waiting",
+    "group": "Onboarding",
+    "source": "Staff have been asked to help. You can talk to them here and continue reading while you wait.",
+    "max": 400
+  },
+  {
+    "id": "onboarding.step",
+    "group": "Onboarding",
+    "source": "Step {step} of {total} · {title}",
+    "max": 96
+  },
+  {
+    "id": "onboarding.page",
+    "group": "Onboarding",
+    "source": "Page {step} of {total} · {title}",
+    "max": 96
+  },
+  {
+    "id": "onboarding.screen",
+    "group": "Onboarding",
+    "source": " · {screen}/{screens}",
+    "max": 24
+  },
+  {
+    "id": "onboarding.navigation.ready",
+    "group": "Onboarding",
+    "source": "Your shuttle has arrived. Click Begin Whitelist to proceed.",
+    "max": 1800
+  },
+  {
+    "id": "onboarding.navigation.preparing",
+    "group": "Onboarding",
+    "source": "Your shuttle is being prepared. The destination will appear here when it is ready.",
+    "max": 1800
+  },
+  {
+    "id": "onboarding.navigation.unavailable",
+    "group": "Onboarding",
+    "source": "We couldn’t open your Shuttle just now. Try /whitelist start again, or ask Staff for help.",
+    "max": 1800
+  },
+  {
+    "id": "onboarding.open",
+    "group": "Onboarding",
+    "source": "Begin Whitelist",
+    "max": 40,
+    "format": "plain"
+  },
+  {
+    "id": "onboarding.assistance.no_outstanding_shuttle_assistance_requests_on_9ce264",
+    "group": "Onboarding",
+    "source": "No outstanding Shuttle assistance requests on this page. Use Refresh to check the queue from the beginning.",
+    "max": 187
+  },
+  {
+    "id": "onboarding.assistance.shuttle_assistance_oldest_requests_first_sele_991cf7",
+    "group": "Onboarding",
+    "source": "Shuttle assistance · oldest requests first. Select Resolve after helping the member. Use Refresh to update this list.",
+    "max": 197
+  },
+  {
+    "id": "onboarding.assistance.next_page_c08ac7",
+    "group": "Onboarding",
+    "source": "Next page",
+    "max": 80,
+    "format": "plain"
+  },
+  {
+    "id": "onboarding.assistance.refresh_0e9161",
+    "group": "Onboarding",
+    "source": "Refresh",
+    "max": 80,
+    "format": "plain"
+  },
+  {
+    "id": "onboarding.assistance.resolve_c8f193",
+    "group": "Onboarding",
+    "source": "Resolve",
+    "max": 78,
+    "format": "plain"
+  },
+  {
+    "id": "onboarding.assistance.resolve_resume_08f7ac",
+    "group": "Onboarding",
+    "source": "Resolve / resume",
+    "max": 78,
+    "format": "plain"
+  },
+  {
+    "id": "onboarding.assistance.this_run_was_paused_for_assistance_86f137",
+    "group": "Onboarding",
+    "source": "\nThis run was paused for assistance.",
+    "max": 120
+  },
+  {
+    "id": "onboarding.assistance.member_case_3af1bf",
+    "group": "Onboarding",
+    "source": "Member: <@{userId}>\nCase {caseState}{value}{value4}",
+    "max": 131
+  },
+  {
+    "id": "onboarding.assistance.request_595e03",
+    "group": "Onboarding",
+    "source": "Request {value}",
+    "max": 120
+  },
+  {
+    "id": "onboarding.assistance.the_shuttle_assistance_queue_could_not_be_con_6881e4",
+    "group": "Onboarding",
+    "source": "The Shuttle assistance queue could not be confirmed. Please try again shortly.",
+    "max": 158
+  },
+  {
+    "id": "onboarding.assistance.the_shuttle_assistance_queue_requires_current_49567b",
+    "group": "Onboarding",
+    "source": "The Shuttle assistance queue requires current Staff permissions.",
+    "max": 144
+  },
+  {
+    "id": "onboarding.assistance.sophie_commands_are_currently_disabled_4b861d",
+    "group": "Onboarding",
+    "source": "Sophie commands are currently disabled.",
+    "max": 120
+  },
+  {
+    "id": "onboarding.delivery_issues.no_parked_shuttle_deliveries_on_this_page_use_bde598",
+    "group": "Onboarding",
+    "source": "No parked Shuttle deliveries on this page. Use Refresh to check from the beginning.",
+    "max": 163
+  },
+  {
+    "id": "onboarding.delivery_issues.parked_shuttle_deliveries_oldest_issues_first_e9b934",
+    "group": "Onboarding",
+    "source": "Parked Shuttle deliveries · oldest issues first. After reviewing the cause, Recheck requests current-policy inspection. It does not grant access or confirm delivery.",
+    "max": 245
+  },
+  {
+    "id": "onboarding.delivery_issues.next_page_c08ac7",
+    "group": "Onboarding",
+    "source": "Next page",
+    "max": 80,
+    "format": "plain"
+  },
+  {
+    "id": "onboarding.delivery_issues.refresh_0e9161",
+    "group": "Onboarding",
+    "source": "Refresh",
+    "max": 80,
+    "format": "plain"
+  },
+  {
+    "id": "onboarding.delivery_issues.recheck_7ff5c2",
+    "group": "Onboarding",
+    "source": "Recheck {value}",
+    "max": 80,
+    "format": "plain"
+  },
+  {
+    "id": "onboarding.delivery_issues.an_earlier_change_may_have_reached_discord_d76b59",
+    "group": "Onboarding",
+    "source": "\nAn earlier change may have reached Discord.",
+    "max": 124
+  },
+  {
+    "id": "onboarding.delivery_issues.member_case_357b34",
+    "group": "Onboarding",
+    "source": "Member: <@{userId}>\nCase {caseState}{value}\n{value4}{value5}{guidance}{choiceGuidance}",
+    "max": 166
+  },
+  {
+    "id": "onboarding.delivery_issues.this_item_needs_configuration_or_case_review__344da9",
+    "group": "Onboarding",
+    "source": "\nThis item needs configuration or case review before rechecking.",
+    "max": 144
+  },
+  {
+    "id": "onboarding.delivery_issues.identify_the_matching_sophie_message_in_this__65739f",
+    "group": "Onboarding",
+    "source": "\nIdentify the matching Sophie message in this case, copy its message ID, then use `/whitelist recover issue:{issueId}.{revision} message:<message ID>`. Do not repost an uncertain message.",
+    "max": 265
+  },
+  {
+    "id": "onboarding.delivery_issues.choose_the_intended_channel_with_shuttle_choo_0753fa",
+    "group": "Onboarding",
+    "source": "\nChoose the intended channel with `/whitelist choose issue:{issueId}.{revision} channel:<channel ID>`. Every other candidate will be sealed and retained. Previously opened cases keep their original channel.",
+    "max": 284
+  },
+  {
+    "id": "onboarding.delivery_issues.this_case_exceeds_the_channel_selection_limit_8df042",
+    "group": "Onboarding",
+    "source": "\nThis case exceeds the channel-selection limit and needs operator review.",
+    "max": 153
+  },
+  {
+    "id": "onboarding.delivery_issues.first_five_shown_26e030",
+    "group": "Onboarding",
+    "source": " (first five shown)",
+    "max": 120
+  },
+  {
+    "id": "onboarding.delivery_issues.retained_candidates_b0f696",
+    "group": "Onboarding",
+    "source": "\nRetained candidates ({total}): {value}{value3}.",
+    "max": 128
+  },
+  {
+    "id": "onboarding.delivery_issues.shuttle_delivery_issues_could_not_be_confirme_506892",
+    "group": "Onboarding",
+    "source": "Shuttle delivery issues could not be confirmed. Please try again shortly.",
+    "max": 153
+  },
+  {
+    "id": "onboarding.delivery_issues.shuttle_delivery_review_requires_current_staf_7ee5dc",
+    "group": "Onboarding",
+    "source": "Shuttle delivery review requires current Staff permissions.",
+    "max": 139
+  },
+  {
+    "id": "onboarding.delivery_issues.sophie_commands_are_currently_disabled_4b861d",
+    "group": "Onboarding",
+    "source": "Sophie commands are currently disabled.",
+    "max": 120
+  },
+  {
+    "id": "onboarding.delivery_issues.staff_notice_delivery_8becae",
+    "group": "Onboarding",
+    "source": "Staff notice delivery",
+    "max": 120
+  },
+  {
+    "id": "onboarding.delivery_issues.shuttle_screen_delivery_c74de0",
+    "group": "Onboarding",
+    "source": "Shuttle screen delivery",
+    "max": 120
+  },
+  {
+    "id": "onboarding.delivery_issues.private_case_provisioning_febdd1",
+    "group": "Onboarding",
+    "source": "Private case provisioning",
+    "max": 120
+  },
+  {
+    "id": "onboarding.delivery_issues.whitelist_reconciliation_0de098",
+    "group": "Onboarding",
+    "source": "Whitelist reconciliation",
+    "max": 120
+  },
+  {
+    "id": "onboarding.delivery_issues.whitelist_delivery_0252b3",
+    "group": "Onboarding",
+    "source": "Whitelist delivery",
+    "max": 120
+  },
+  {
+    "id": "onboarding.delivery_issues.delivery_requires_review_e6c0dc",
+    "group": "Onboarding",
+    "source": "Delivery requires review.",
+    "max": 120
+  },
+  {
+    "id": "onboarding.delivery_issues.the_delivery_service_requires_operator_review_243c18",
+    "group": "Onboarding",
+    "source": "The delivery service requires operator review.",
+    "max": 126
+  },
+  {
+    "id": "onboarding.delivery_issues.automatic_attempts_reached_their_limit_1246d3",
+    "group": "Onboarding",
+    "source": "Automatic attempts reached their limit.",
+    "max": 120
+  },
+  {
+    "id": "onboarding.delivery_issues.the_configured_roles_or_their_hierarchy_need__7196d4",
+    "group": "Onboarding",
+    "source": "The configured roles or their hierarchy need review.",
+    "max": 132
+  },
+  {
+    "id": "onboarding.delivery_issues.discord_permissions_or_current_authority_need_3be2b0",
+    "group": "Onboarding",
+    "source": "Discord permissions or current authority need review.",
+    "max": 133
+  },
+  {
+    "id": "tickets.lifecycle.channel_9874d9",
+    "group": "Tickets",
+    "source": "\nChannel: <#{channelId}>",
+    "max": 120
+  },
+  {
+    "id": "tickets.lifecycle.the_last_reopening_request_was_not_authorised_2c6e42",
+    "group": "Tickets",
+    "source": "\nThe last reopening request was not authorised for delivery.",
+    "max": 140
+  },
+  {
+    "id": "tickets.lifecycle.state_member_assigned_reference_2baad5",
+    "group": "Tickets",
+    "source": "State: {value}\nMember: <@{userId}>\nAssigned: {value3}{labels}{participants}{value6}\nReference: `{reference}`{value8}\n{controls}",
+    "max": 207
+  },
+  {
+    "id": "tickets.lifecycle.case_management_retained_records_7ed923",
+    "group": "Tickets",
+    "source": "Case management · retained records",
+    "max": 120
+  },
+  {
+    "id": "tickets.lifecycle.to_close_use_ticket_close_case_reason_resolve_f2abd0",
+    "group": "Tickets",
+    "source": "To close, use `/ticket close case:{reference} reason:resolved` (or `duplicate` / `withdrawn`).",
+    "max": 174
+  },
+  {
+    "id": "tickets.lifecycle.to_reopen_use_ticket_reopen_case_reason_follo_ee01e5",
+    "group": "Tickets",
+    "source": "To reopen, use `/ticket reopen case:{reference} reason:follow-up` (or `closed-in-error`).",
+    "max": 169
+  },
+  {
+    "id": "tickets.lifecycle.this_case_needs_operator_review_8f494e",
+    "group": "Tickets",
+    "source": "This case needs operator review.",
+    "max": 120
+  },
+  {
+    "id": "tickets.lifecycle.channel_provisioning_must_be_reviewed_before__73c1dc",
+    "group": "Tickets",
+    "source": "Channel provisioning must be reviewed before managing this case.",
+    "max": 144
+  },
+  {
+    "id": "tickets.lifecycle.none_dc937b",
+    "group": "Tickets",
+    "source": "None",
+    "max": 120
+  },
+  {
+    "id": "tickets.lifecycle.selected_additional_participants_a2d0d0",
+    "group": "Tickets",
+    "source": "\nSelected additional participants: {value}",
+    "max": 122
+  },
+  {
+    "id": "tickets.lifecycle.manual_priority_tags_8d67aa",
+    "group": "Tickets",
+    "source": "\nManual priority: {priority}\nTags: {value}",
+    "max": 122
+  },
+  {
+    "id": "tickets.lifecycle.access_unavailable_58b151",
+    "group": "Tickets",
+    "source": "Access unavailable",
+    "max": 120
+  },
+  {
+    "id": "tickets.lifecycle.closed_c21ead",
+    "group": "Tickets",
+    "source": "Closed",
+    "max": 120
+  },
+  {
+    "id": "tickets.lifecycle.closing_permissions_not_yet_confirmed_897cba",
+    "group": "Tickets",
+    "source": "Closing · permissions not yet confirmed",
+    "max": 120
+  },
+  {
+    "id": "tickets.lifecycle.open_ed077f",
+    "group": "Tickets",
+    "source": "Open",
+    "max": 120
+  },
+  {
+    "id": "tickets.lifecycle.preparing_or_awaiting_review_2a83e1",
+    "group": "Tickets",
+    "source": "Preparing or awaiting review",
+    "max": 120
+  },
+  {
+    "id": "tickets.lifecycle.the_case_status_could_not_be_confirmed_staff__c511b4",
+    "group": "Tickets",
+    "source": "The case status could not be confirmed. Staff should review it before retrying.",
+    "max": 159
+  },
+  {
+    "id": "tickets.lifecycle.current_responder_permissions_are_required_fo_5ebf09",
+    "group": "Tickets",
+    "source": "Current responder permissions are required for this case.",
+    "max": 137
+  },
+  {
+    "id": "tickets.lifecycle.sophie_commands_are_currently_disabled_4b861d",
+    "group": "Tickets",
+    "source": "Sophie commands are currently disabled.",
+    "max": 120
+  },
+  {
+    "id": "tickets.staff.current_responder_authority_needs_review_313dc6",
+    "group": "Tickets",
+    "source": " · current responder authority needs review",
+    "max": 123
+  },
+  {
+    "id": "tickets.staff.unassigned_14d33b",
+    "group": "Tickets",
+    "source": "Unassigned",
+    "max": 120
+  },
+  {
+    "id": "tickets.staff.no_cases_on_this_page_use_refresh_to_check_fr_7a674c",
+    "group": "Tickets",
+    "source": "No {filter} cases on this page. Use Refresh to check from the beginning.",
+    "max": 152
+  },
+  {
+    "id": "tickets.staff.cases_oldest_first_use_ticket_status_for_deta_5155b6",
+    "group": "Tickets",
+    "source": "Cases · {filter} · oldest first. Use /ticket status for details or /ticket assign to hand off a case.",
+    "max": 181
+  },
+  {
+    "id": "tickets.staff.next_page_c08ac7",
+    "group": "Tickets",
+    "source": "Next page",
+    "max": 80,
+    "format": "plain"
+  },
+  {
+    "id": "tickets.staff.refresh_0e9161",
+    "group": "Tickets",
+    "source": "Refresh",
+    "max": 80,
+    "format": "plain"
+  },
+  {
+    "id": "tickets.staff.channel_9874d9",
+    "group": "Tickets",
+    "source": "\nChannel: <#{channelId}>",
+    "max": 120
+  },
+  {
+    "id": "tickets.staff.reference_2ed3c5",
+    "group": "Tickets",
+    "source": "{value}\nReference: `{id}@{version}`",
+    "max": 120
+  },
+  {
+    "id": "tickets.staff.manual_priority_c6af0e",
+    "group": "Tickets",
+    "source": "\nManual priority: {priority}",
+    "max": 120
+  },
+  {
+    "id": "tickets.staff.state_member_assigned_6531ac",
+    "group": "Tickets",
+    "source": "State: {caseState}{value}\nMember: <@{userId}>\nAssigned: {assignment}",
+    "max": 148
+  },
+  {
+    "id": "tickets.staff.unclaim_d366e1",
+    "group": "Tickets",
+    "source": "Unclaim",
+    "max": 78,
+    "format": "plain"
+  },
+  {
+    "id": "tickets.staff.claim_4ca41d",
+    "group": "Tickets",
+    "source": "Claim",
+    "max": 78,
+    "format": "plain"
+  },
+  {
+    "id": "tickets.staff.this_queue_position_is_no_longer_available_us_8f0706",
+    "group": "Tickets",
+    "source": "This queue position is no longer available. Use /ticket queue to refresh.",
+    "max": 153
+  },
+  {
+    "id": "tickets.staff.the_case_queue_could_not_be_confirmed_please__1a6950",
+    "group": "Tickets",
+    "source": "The case queue could not be confirmed. Please try again shortly.",
+    "max": 144
+  },
+  {
+    "id": "tickets.staff.the_case_queue_requires_current_responder_per_d23751",
+    "group": "Tickets",
+    "source": "The case queue requires current responder permissions.",
+    "max": 134
+  },
+  {
+    "id": "tickets.staff.sophie_commands_are_currently_disabled_4b861d",
+    "group": "Tickets",
+    "source": "Sophie commands are currently disabled.",
+    "max": 120
+  },
+  {
+    "id": "tickets.delivery_issues.no_parked_ticket_deliveries_you_can_manage_on_1987b4",
+    "group": "Tickets",
+    "source": "No parked ticket deliveries you can manage on this page. Use Refresh to check from the beginning.",
+    "max": 177
+  },
+  {
+    "id": "tickets.delivery_issues.parked_ticket_deliveries_you_can_manage_reche_4aee0e",
+    "group": "Tickets",
+    "source": "Parked ticket deliveries you can manage. Recheck requests worker inspection; it does not confirm delivery or grant access.",
+    "max": 202
+  },
+  {
+    "id": "tickets.delivery_issues.next_page_c08ac7",
+    "group": "Tickets",
+    "source": "Next page",
+    "max": 80,
+    "format": "plain"
+  },
+  {
+    "id": "tickets.delivery_issues.refresh_0e9161",
+    "group": "Tickets",
+    "source": "Refresh",
+    "max": 80,
+    "format": "plain"
+  },
+  {
+    "id": "tickets.delivery_issues.recheck_7ff5c2",
+    "group": "Tickets",
+    "source": "Recheck {value}",
+    "max": 80,
+    "format": "plain"
+  },
+  {
+    "id": "tickets.delivery_issues.an_earlier_change_may_have_reached_discord_d76b59",
+    "group": "Tickets",
+    "source": "\nAn earlier change may have reached Discord.",
+    "max": 124
+  },
+  {
+    "id": "tickets.delivery_issues.member_case_c5d312",
+    "group": "Tickets",
+    "source": "{label}\nMember: <@{userId}>\nCase {caseState}{value}\n{value5}{value6}{guidance}",
+    "max": 158
+  },
+  {
+    "id": "tickets.delivery_issues.ticket_answer_delivery_40b9df",
+    "group": "Tickets",
+    "source": "Ticket answer delivery",
+    "max": 120
+  },
+  {
+    "id": "tickets.delivery_issues.human_staff_reply_delivery_5041ac",
+    "group": "Tickets",
+    "source": "Human Staff reply delivery",
+    "max": 120
+  },
+  {
+    "id": "tickets.delivery_issues.private_case_provisioning_febdd1",
+    "group": "Tickets",
+    "source": "Private case provisioning",
+    "max": 120
+  },
+  {
+    "id": "tickets.delivery_issues.review_the_case_and_configuration_before_rech_6ec36b",
+    "group": "Tickets",
+    "source": "\nReview the case and configuration before rechecking.",
+    "max": 133
+  },
+  {
+    "id": "tickets.delivery_issues.identify_the_matching_sophie_message_in_this__a2cb01",
+    "group": "Tickets",
+    "source": "\nIdentify the matching Sophie message in this case and use /ticket recover issue:{issueId}.{revision} message:<message ID>. Do not repost an uncertain delivery.",
+    "max": 240
+  },
+  {
+    "id": "tickets.delivery_issues.choose_the_intended_channel_with_ticket_choos_125f64",
+    "group": "Tickets",
+    "source": "\nChoose the intended channel with /ticket choose issue:{issueId}.{revision} channel:<channel ID>. Other candidates remain sealed and retained.",
+    "max": 222
+  },
+  {
+    "id": "tickets.delivery_issues.the_channel_selection_limit_requires_operator_a87d8b",
+    "group": "Tickets",
+    "source": "\nThe channel-selection limit requires operator review.",
+    "max": 134
+  },
+  {
+    "id": "tickets.delivery_issues.first_five_shown_26e030",
+    "group": "Tickets",
+    "source": " (first five shown)",
+    "max": 120
+  },
+  {
+    "id": "tickets.delivery_issues.retained_candidates_b0f696",
+    "group": "Tickets",
+    "source": "\nRetained candidates ({total}): {value}{value3}.",
+    "max": 128
+  },
+  {
+    "id": "tickets.delivery_issues.reply_marker_sophie_staff_reply_v_bdb390",
+    "group": "Tickets",
+    "source": "\nReply marker: sophie:staff-reply:v1:{replyId}.",
+    "max": 127
+  },
+  {
+    "id": "tickets.delivery_issues.ticket_delivery_issues_could_not_be_confirmed_a34b98",
+    "group": "Tickets",
+    "source": "Ticket delivery issues could not be confirmed. Please try again shortly.",
+    "max": 152
+  },
+  {
+    "id": "tickets.delivery_issues.this_queue_position_is_unavailable_use_ticket_3a109f",
+    "group": "Tickets",
+    "source": "This queue position is unavailable. Use /ticket issues to refresh.",
+    "max": 146
+  },
+  {
+    "id": "tickets.delivery_issues.ticket_delivery_review_requires_current_respo_c50cba",
+    "group": "Tickets",
+    "source": "Ticket delivery review requires current responder permissions.",
+    "max": 142
+  },
+  {
+    "id": "tickets.delivery_issues.sophie_commands_are_currently_disabled_4b861d",
+    "group": "Tickets",
+    "source": "Sophie commands are currently disabled.",
+    "max": 120
+  },
+  {
+    "id": "tickets.delivery_issues.delivery_needs_review_5c8aad",
+    "group": "Tickets",
+    "source": "Delivery needs review.",
+    "max": 120
+  },
+  {
+    "id": "tickets.delivery_issues.an_earlier_delivery_has_an_uncertain_result_f4906c",
+    "group": "Tickets",
+    "source": "An earlier delivery has an uncertain result.",
+    "max": 124
+  },
+  {
+    "id": "tickets.delivery_issues.automatic_attempts_reached_their_limit_1246d3",
+    "group": "Tickets",
+    "source": "Automatic attempts reached their limit.",
+    "max": 120
+  },
+  {
+    "id": "tickets.delivery_issues.current_discord_permissions_or_authority_need_251ab3",
+    "group": "Tickets",
+    "source": "Current Discord permissions or authority need review.",
+    "max": 133
+  },
+  {
+    "id": "tickets.contacts.this_staff_contact_is_currently_unavailable_u_7413a7",
+    "group": "Tickets",
+    "source": "This Staff contact is currently unavailable. Use /ticket contacts to refresh, or ask Staff for help.",
+    "max": 180
+  },
+  {
+    "id": "tickets.contacts.this_staff_contact_is_not_available_under_you_5d6527",
+    "group": "Tickets",
+    "source": "This Staff contact is not available under your current access.",
+    "max": 142
+  },
+  {
+    "id": "tickets.contacts.contact_selection_cancelled_no_case_was_creat_62ff9c",
+    "group": "Tickets",
+    "source": "Contact selection cancelled. No case was created.",
+    "max": 129
+  },
+  {
+    "id": "tickets.contacts.check_contact_597227",
+    "group": "Tickets",
+    "source": "Check contact",
+    "max": 80,
+    "format": "plain"
+  },
+  {
+    "id": "tickets.contacts.this_staff_contact_is_waiting_for_its_current_062683",
+    "group": "Tickets",
+    "source": "This Staff contact is waiting for its current permissions to be verified.",
+    "max": 153
+  },
+  {
+    "id": "tickets.contacts.open_staff_contact_2465b0",
+    "group": "Tickets",
+    "source": "Open Staff contact",
+    "max": 80,
+    "format": "plain"
+  },
+  {
+    "id": "tickets.contacts.your_staff_contact_is_ready_6a0626",
+    "group": "Tickets",
+    "source": "Your Staff contact is ready.",
+    "max": 120
+  },
+  {
+    "id": "tickets.contacts.this_staff_contact_is_closed_and_available_to_a364e6",
+    "group": "Tickets",
+    "source": "This Staff contact is closed and available to read.",
+    "max": 131
+  },
+  {
+    "id": "tickets.contacts.next_1ff57a",
+    "group": "Tickets",
+    "source": "Next",
+    "max": 80,
+    "format": "plain"
+  },
+  {
+    "id": "tickets.contacts.refresh_0e9161",
+    "group": "Tickets",
+    "source": "Refresh",
+    "max": 80,
+    "format": "plain"
+  },
+  {
+    "id": "tickets.contacts.no_available_staff_contacts_on_this_page_08acfc",
+    "group": "Tickets",
+    "source": "No available Staff contacts on this page.",
+    "max": 121
+  },
+  {
+    "id": "tickets.contacts.your_staff_contacts_each_destination_is_check_a00e47",
+    "group": "Tickets",
+    "source": "Your Staff contacts\n{value}\nEach destination is checked again when opened.",
+    "max": 154
+  },
+  {
+    "id": "tickets.contacts.open_contact_07e561",
+    "group": "Tickets",
+    "source": "Open contact {value}",
+    "max": 80,
+    "format": "plain"
+  },
+  {
+    "id": "tickets.contacts.preparing_cf1aa6",
+    "group": "Tickets",
+    "source": "Preparing",
+    "max": 120
+  },
+  {
+    "id": "tickets.contacts.open_ed077f",
+    "group": "Tickets",
+    "source": "Open",
+    "max": 120
+  },
+  {
+    "id": "tickets.contacts.read_only_72bb90",
+    "group": "Tickets",
+    "source": "Read-only",
+    "max": 120
+  },
+  {
+    "id": "tickets.contacts.created_by_utc_8169f3",
+    "group": "Tickets",
+    "source": "{value}. Created by <@{openerId}> · {value3} UTC · {value4}",
+    "max": 139
+  },
+  {
+    "id": "tickets.contacts.cancel_19766e",
+    "group": "Tickets",
+    "source": "Cancel",
+    "max": 80,
+    "format": "plain"
+  },
+  {
+    "id": "tickets.contacts.confirm_audience_and_open_form_4eac1d",
+    "group": "Tickets",
+    "source": "Confirm audience and open form",
+    "max": 80,
+    "format": "plain"
+  },
+  {
+    "id": "tickets.contacts.staff_contact_audience_creator_selected_recip_6bd64b",
+    "group": "Tickets",
+    "source": "Staff contact audience\nCreator: {openerId}\nSelected recipients: {value}\nResponders: Staff and lead ops.\nThese people can see the submitted form and retained case history. Continue to confirm this audience and open a blank form.",
+    "max": 307
+  },
+  {
+    "id": "tickets.contacts.select_contact_recipients_e5f48b",
+    "group": "Tickets",
+    "source": "Select contact recipients",
+    "max": 80
+  },
+  {
+    "id": "tickets.contacts.choose_the_people_for_this_staff_contact_you__a9b2c8",
+    "group": "Tickets",
+    "source": "Choose the people for this Staff contact. You will review the audience before completing a blank form.",
+    "max": 182
+  },
+  {
+    "id": "tickets.intake.ticket_nexus_choose_the_help_you_need_quick_h_4fea6a",
+    "group": "Tickets",
+    "source": "Ticket Nexus\nChoose the help you need. Quick Help opens a request without a form. Head Admin contact is handled by lead ops.",
+    "max": 204
+  },
+  {
+    "id": "tickets.intake.sophie_commands_are_currently_disabled_4b861d",
+    "group": "Tickets",
+    "source": "Sophie commands are currently disabled.",
+    "max": 120
+  },
+  {
+    "id": "tickets.intake.this_ticket_is_closed_or_requires_staff_revie_5d5f69",
+    "group": "Tickets",
+    "source": "This ticket is closed or requires Staff review. Its records are retained.",
+    "max": 153
+  },
+  {
+    "id": "tickets.intake.this_ticket_destination_could_not_be_verified_be3d3d",
+    "group": "Tickets",
+    "source": "This ticket destination could not be verified. Please ask Staff to check the recorded request.",
+    "max": 174
+  },
+  {
+    "id": "tickets.intake.this_ticket_is_not_available_under_your_curre_f445a0",
+    "group": "Tickets",
+    "source": "This ticket is not available under your current membership.",
+    "max": 139
+  },
+  {
+    "id": "tickets.intake.check_ticket_0e2d88",
+    "group": "Tickets",
+    "source": "Check ticket",
+    "max": 80,
+    "format": "plain"
+  },
+  {
+    "id": "tickets.intake.your_ticket_request_is_recorded_its_channel_a_dc9321",
+    "group": "Tickets",
+    "source": "Your ticket request is recorded. Its channel and permissions are still being prepared. I will try to DM you a saved link when it is ready. You can also check here.",
+    "max": 243
+  },
+  {
+    "id": "tickets.intake.open_ticket_d7e039",
+    "group": "Tickets",
+    "source": "Open ticket",
+    "max": 80,
+    "format": "plain"
+  },
+  {
+    "id": "tickets.intake.your_private_ticket_channel_is_ready_7a0c67",
+    "group": "Tickets",
+    "source": "Your private ticket channel is ready.",
+    "max": 120
+  },
+  {
+    "id": "answers.discord.no_published_answers_on_this_page_70f527",
+    "group": "Answers",
+    "source": "No published answers on this page.",
+    "max": 120
+  },
+  {
+    "id": "answers.discord.next_page_answer_list_after_400e91",
+    "group": "Answers",
+    "source": "Next page: /answer list after:{next}",
+    "max": 120
+  },
+  {
+    "id": "answers.discord.end_of_current_publications_c566a7",
+    "group": "Answers",
+    "source": "End of current publications.",
+    "max": 120
+  },
+  {
+    "id": "answers.discord.use_answer_show_name_name_to_read_an_answer_a1a94e",
+    "group": "Answers",
+    "source": "Use /answer show name:<name> to read an answer.\n{value}\n\n{value2}",
+    "max": 145
+  },
+  {
+    "id": "answers.discord.approved_public_answer_revision_7365b1",
+    "group": "Answers",
+    "source": "Approved public answer: {name} · revision {revision}",
+    "max": 132
+  },
+  {
+    "id": "answers.discord.this_public_answer_is_unavailable_use_answer__a4f121",
+    "group": "Answers",
+    "source": "This public answer is unavailable. Use /answer list for the current publications.",
+    "max": 161
+  },
+  {
+    "id": "answers.discord.sophie_commands_are_currently_disabled_4b861d",
+    "group": "Answers",
+    "source": "Sophie commands are currently disabled.",
+    "max": 120
+  },
+  {
+    "id": "answers.discord.this_lookup_requires_current_guild_membership_f22249",
+    "group": "Answers",
+    "source": "This lookup requires current guild membership.",
+    "max": 126
+  },
+  {
+    "id": "answers.answer_reply_message.cancel_review_87a8ca",
+    "group": "Answers",
+    "source": "Cancel review",
+    "max": 80,
+    "format": "plain"
+  },
+  {
+    "id": "answers.answer_reply_message.confirm_reply_f44258",
+    "group": "Answers",
+    "source": "Confirm reply",
+    "max": 80,
+    "format": "plain"
+  },
+  {
+    "id": "answers.answer_reply_message.review_reply_to_case_channel_case_version_app_992bac",
+    "group": "Answers",
+    "source": "Review reply to case channel <#{channelId}> · case version {version}.\nApproved answer: {name} · revision {revision}.\nConfirm to send this exact text to all current case readers. This review expires after ten minutes.",
+    "max": 296
+  },
+  {
+    "id": "answers.answer_reply_message.this_review_is_unavailable_cancelled_expired__758570",
+    "group": "Answers",
+    "source": "This review is unavailable, cancelled, expired or changed. Use /ticket answer to review a current answer again.",
+    "max": 191
+  },
+  {
+    "id": "answers.answer_reply_message.this_review_already_has_a_recorded_reply_requ_024665",
+    "group": "Answers",
+    "source": "This review already has a recorded reply request. Check Case replies before submitting another copy.",
+    "max": 180
+  },
+  {
+    "id": "answers.answer_reply_message.current_staff_access_to_this_case_is_required_d5a019",
+    "group": "Answers",
+    "source": "Current Staff access to this case is required.",
+    "max": 126
+  },
+  {
+    "id": "initial.disabled",
+    "source": "Sophie commands are currently disabled.",
+    "max": 1800,
+    "group": "General"
+  },
+  {
+    "id": "initial.busy",
+    "source": "Sophie is busy. Please try again shortly.",
+    "max": 1800,
+    "group": "General"
+  },
+  {
+    "id": "initial.denied",
+    "source": "This form is not available under your current membership.",
+    "max": 1800,
+    "group": "General"
+  },
+  {
+    "id": "initial.unavailable",
+    "source": "The form could not be opened in time. Please try again.",
+    "max": 1800,
+    "group": "General"
+  },
+  {
+    "id": "initial.ticket_busy",
+    "source": "A form cannot be reserved within the current limits. Please try again shortly.",
+    "max": 1800,
+    "group": "General"
+  },
+  {
+    "id": "initial.ticket_form_unavailable",
+    "source": "This ticket form is currently unavailable. Please ask Staff for help.",
+    "max": 1800,
+    "group": "General"
+  },
+  {
+    "id": "onboarding.alert.help.title",
+    "source": "Shuttle assistance requested",
+    "max": 80,
+    "group": "Onboarding"
+  },
+  {
+    "id": "onboarding.alert.help.body",
+    "source": "Help was requested in this case. Staff can use /whitelist queue to review the request and record its resolution.",
+    "max": 1500,
+    "group": "Onboarding"
+  },
+  {
+    "id": "onboarding.alert.delivery.title",
+    "source": "Shuttle delivery problem recorded",
+    "max": 80,
+    "group": "Onboarding"
+  },
+  {
+    "id": "onboarding.alert.delivery.body",
+    "source": "A problem was recorded during Whitelist delivery or reconciliation. Completion requires current role confirmation. Staff should review the current Shuttle state and role configuration.",
+    "max": 1500,
+    "group": "Onboarding"
+  },
+  {
+    "id": "tickets.dm",
+    "source": "Your private ticket channel is ready.\n{link}\nPlease continue in the ticket channel. This DM is only a saved link.",
+    "max": 1800,
+    "group": "Tickets"
+  },
+  {
+    "id": "tickets.intake.empty",
+    "source": "(No answer supplied.)",
+    "max": 120,
+    "group": "Tickets"
+  },
+  {
+    "id": "tickets.intake.response",
+    "source": "Submitted response:\n{answer}\n\nEnd of response part.",
+    "max": 3800,
+    "group": "Tickets"
+  },
+  {
+    "id": "tickets.intake.title",
+    "source": "{type} request",
+    "max": 256,
+    "group": "Tickets"
+  },
+  {
+    "id": "tickets.intake.quick",
+    "source": "Quick Help was requested without a form. Staff can use /ticket status to review and manage this case.",
+    "max": 1500,
+    "group": "Tickets"
+  },
+  {
+    "id": "tickets.intake.submitted",
+    "source": "The submitted answers for form version {version} are shown above. Staff can use /ticket status to review and manage this case.",
+    "max": 1500,
+    "group": "Tickets"
+  },
+  {
+    "id": "tickets.intake.no_subject",
+    "source": "\nNo Discord subject was selected. A subject named in an answer is not a participant.",
+    "max": 500,
+    "group": "Tickets"
+  },
+  {
+    "id": "tickets.intake.subject",
+    "source": "\nReported Discord user ID: {userId}. Selecting a subject does not invite or notify them.",
+    "max": 500,
+    "group": "Tickets"
+  },
+  {
+    "id": "tickets.type.quick-help",
+    "source": "Quick Help",
+    "group": "Tickets",
+    "max": 60,
+    "format": "plain"
+  },
+  {
+    "id": "tickets.type.admin-help",
+    "source": "Admin Help",
+    "group": "Tickets",
+    "max": 60,
+    "format": "plain"
+  },
+  {
+    "id": "tickets.type.staff-report",
+    "source": "Report a Staffer",
+    "group": "Tickets",
+    "max": 60,
+    "format": "plain"
+  },
+  {
+    "id": "tickets.type.tech-support",
+    "source": "Tech Support",
+    "group": "Tickets",
+    "max": 60,
+    "format": "plain"
+  },
+  {
+    "id": "tickets.type.database-support",
+    "source": "Database Support",
+    "group": "Tickets",
+    "max": 60,
+    "format": "plain"
+  },
+  {
+    "id": "tickets.type.head-admin-contact",
+    "source": "Speak with the Head Admins",
+    "group": "Tickets",
+    "max": 60,
+    "format": "plain"
+  },
+  {
+    "id": "tickets.type.shuttle",
+    "source": "Shuttle assistance",
+    "group": "Tickets",
+    "max": 60,
+    "format": "plain"
+  },
+  {
+    "id": "tickets.type.staff-contact",
+    "source": "Staff contact",
+    "group": "Tickets",
+    "max": 60,
+    "format": "plain"
+  },
+  {
+    "id": "tickets.type.player-report",
+    "source": "Player report",
+    "group": "Tickets",
+    "max": 60,
+    "format": "plain"
+  },
+  {
+    "id": "onboarding.entry",
+    "source": "Board the Shuttle",
+    "group": "Onboarding entry panel",
+    "max": 80,
+    "format": "plain"
+  },
+  {
+    "id": "onboarding.panel.title",
+    "group": "Onboarding entry panel",
+    "source": "Begin The Shuttle",
+    "max": 256
+  },
+  {
+    "id": "onboarding.panel.body",
+    "group": "Onboarding entry panel",
+    "source": "Ready to get Whitelisted? Begin your private Onboarding journey below. You can also use /whitelist start to return to your run.",
+    "max": 1800
+  },
+  {
+    "id": "reply.shuttle_closed",
+    "group": "Onboarding",
+    "source": "Channel closure requested. Retained records stay saved. Use /whitelist start after closure to begin again.",
+    "max": 1800
+  }
+]

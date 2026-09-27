@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="color-scheme" content="dark">
+  <title>Static automation · Sophie</title><link rel="stylesheet" href="/dashboard/styles.css"><script type="module" src="/dashboard/automation-app.js"></script>
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to content</a>
+  <header class="topbar"><div class="identity"><img id="avatar" src="/dashboard/sophie-avatar.png" alt="" width="52" height="52"><div><strong>Sophie</strong><span>Community Services</span></div></div>
+    <div class="header-actions"><label class="quiet"><input id="quiet" type="checkbox"> Quiet mode</label><button id="logout" class="subtle" hidden>Sign out</button></div></header>
+  <main id="main" tabindex="-1">
+    <nav class="service-nav" aria-label="Community Services"><!-- service-navigation --></nav>
+    <div class="page-heading"><div><p class="eyebrow">APHELION / COMMUNITY SERVICES</p><h1>Static automation</h1><p class="intro">Human-authored public rules, synthetic dry-runs and delivery recovery.</p></div></div>
+    <p id="notice" class="notice" role="status" hidden></p><p id="error" class="error-box" role="alert" hidden></p>
+    <section id="gate" class="gate panel"><h2 id="gate-title">Loading your workspace…</h2><p>Current automation-editor permission is required.</p><a id="signin" class="button primary" href="/auth/start" hidden>Sign in with Discord</a><button id="gate-retry">Try again</button></section>
+    <noscript><p class="error-box">This page needs JavaScript.</p></noscript>
+    <div id="workspace" class="automation-workspace" hidden>
+      <p class="notice">Publishing rules does not activate automation. Live activation requires separate operator approval and acceptance checks. Tickets, onboarding sessions and their child channels are always excluded.</p>
+      <p id="policy-state"></p><p id="dirty" role="status" hidden></p><div class="actions"><button id="refresh">Refresh access and history</button><button id="retry-change" hidden>Retry the same request</button></div>
+      <section class="panel case-panel"><h2>Public policy draft</h2><p>Drafts and samples stay in memory and are cleared when this page is hidden. Never paste ticket extracts, staff notes or onboarding content.</p>
+        <label for="source">Approved public source</label><input id="source" type="text" maxlength="300" autocomplete="off">
+        <p>Up to 25 rules. Higher priority runs first; ties use rule ID. Changing an ID creates a different cooldown identity.</p><div id="rule-list" class="question-nav"></div><div class="actions"><button id="add-rule">Add rule</button><button id="remove-rule">Remove selected rule</button></div>
+        <div class="automation-fields">
+          <label for="rule-id">Rule ID</label><input id="rule-id" type="text" maxlength="40" pattern="[a-z][a-z0-9-]{0,39}" autocomplete="off">
+          <label for="rule-channels">Channel IDs (comma or space separated, up to 20)</label><input id="rule-channels" type="text" maxlength="420" autocomplete="off">
+          <label for="rule-matchKind">Literal matching</label><select id="rule-matchKind"><option value="contains">Contains</option><option value="exact">Exact</option></select>
+          <label for="rule-matchText">Literal match text (no regular expressions)</label><textarea id="rule-matchText" rows="2" maxlength="100"></textarea>
+          <label><input id="rule-caseSensitive" type="checkbox"> Case sensitive</label>
+          <label for="rule-actionKind">Action</label><select id="rule-actionKind"><option value="message">Static message</option><option value="reaction">Reaction</option></select>
+          <div id="message-fields"><label for="rule-response">Static response</label><textarea id="rule-response" rows="5" maxlength="2000"></textarea><p class="muted">Mentions and link previews are suppressed. No template substitution, file attachments or source-message quotes.</p></div>
+          <div id="emoji-fields" hidden><label for="rule-emojiName">Unicode emoji or custom emoji name</label><input id="rule-emojiName" type="text" maxlength="32"><label for="rule-emojiId">Custom guild emoji ID (leave empty for Unicode)</label><input id="rule-emojiId" type="text" maxlength="20"></div>
+          <label for="rule-priority">Priority (0–1000)</label><input id="rule-priority" type="number" min="0" max="1000" step="1">
+          <label><input id="rule-stop" type="checkbox"> Stop lower rules after this rule matches, including during cooldown</label>
+          <label for="rule-userCooldownMs">Per-user cooldown, milliseconds (1000–86400000)</label><input id="rule-userCooldownMs" type="number" min="1000" max="86400000" step="1">
+          <label for="rule-channelCooldownMs">Per-channel cooldown, milliseconds (1000–86400000)</label><input id="rule-channelCooldownMs" type="number" min="1000" max="86400000" step="1">
+        </div><div class="actions"><button id="review-button" class="primary">Review publication</button><button id="withdraw">Review withdrawal</button><button id="discard">Discard unsaved changes</button></div>
+      </section>
+      <section id="removal" class="panel" hidden><h2>Confirm draft removal</h2><p id="removal-text"></p><button id="confirm-removal">Confirm removal</button><button id="cancel-removal">Cancel removal</button></section>
+      <section id="review" class="panel case-panel" hidden><h2 id="review-heading" tabindex="-1">Review publication</h2><p id="review-state"></p><h3>Previous policy</h3><div id="previous"></div><h3>Proposed policy</h3><div id="proposed"></div>
+        <p>Withdrawal retains policy history and invalidates pending work from that revision. Workers may still need to withdraw a previously sent effect. This screen does not enable delivery.</p>
+        <label><input id="confirm-policy" type="checkbox"><span id="confirm-label"></span></label><div class="actions"><button id="send-change" class="primary" disabled>Confirm publication</button><button id="cancel-review">Return to draft</button></div></section>
+      <section class="panel case-panel"><h2>Synthetic dry-run</h2><p>Use invented messages only. Up to 20 events, ordered by time within one hypothetical day. Samples are not stored or sent.</p><div id="samples"></div><button id="add-sample">Add synthetic event</button>
+        <label><input id="synthetic" type="checkbox"> These events are synthetic and contain no real ticket, onboarding or private conversation content.</label><button id="preview-button" class="primary" disabled>Run synthetic preview</button><div id="preview-output" role="status"></div></section>
+      <section class="panel case-panel"><h2>Retained policy history</h2><div id="history"></div><button id="older-history" hidden>Older revisions</button><button id="latest-history" hidden>Latest revisions</button></section>
+      <section class="panel case-panel"><h2>Parked deliveries</h2><p>Metadata only. Unknown possible sends stay parked until an existing effect can be verified; absence is not permission to resend.</p><p id="no-issues" hidden></p><div id="issues"></div><button id="older-issues" hidden>Older deliveries</button><button id="latest-issues" hidden>Latest deliveries</button></section>
+      <section id="issue-detail" class="panel case-panel" hidden><h2>Delivery inspection</h2><p id="issue-reason"></p><dl id="detail-metadata"></dl><h3>Retained delivery events</h3><div id="events"></div><button id="older-events" hidden>Older events</button><button id="latest-events" hidden>Latest events</button>
+        <div id="message-id-field" hidden><label for="message-id">Existing Sophie output message ID</label><input id="message-id" type="text" maxlength="20" autocomplete="off"><p>The backend verifies the exact marked bot output in the retained destination. Do not paste message content.</p></div>
+        <div class="actions"><button id="recheck">Review job recheck</button><button id="recover">Review existing effect</button></div></section>
+      <section id="repair-review" class="panel case-panel" hidden><h2 id="repair-heading" tabindex="-1">Confirm recovery request</h2><div id="repair-summary"></div><p>This records a recovery request, not completed delivery. Current policy, exclusions, deadlines and restore quarantine still apply. No new send is performed by this request.</p>
+        <label><input id="confirm-repair" type="checkbox"> I reviewed this exact delivery and recovery action.</label><div class="actions"><button id="send-repair" class="primary" disabled>Confirm recovery request</button><button id="cancel-repair">Cancel recovery review</button></div></section>
+    </div>
+  </main>
+</body>
+</html>

@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="color-scheme" content="dark">
+  <title>System wording · Sophie</title><link rel="stylesheet" href="/dashboard/styles.css"><script type="module" src="/dashboard/localizations-app.js"></script>
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to content</a>
+  <header class="topbar"><div class="identity"><img id="avatar" src="/dashboard/sophie-avatar.png" alt="" width="52" height="52"><div><strong>Sophie</strong><span>Community Services</span></div></div>
+    <div class="header-actions"><label class="quiet"><input id="quiet" type="checkbox"> Quiet mode</label><button id="logout" class="subtle" hidden>Sign out</button></div></header>
+  <main id="main" tabindex="-1">
+    <nav class="service-nav" aria-label="Community Services"><!-- service-navigation --></nav>
+    <div class="page-heading"><div><p class="eyebrow">APHELION / COMMUNITY SERVICES</p><h1>System wording</h1><p class="intro">Make Sophie’s messages sound right for your community. Changes apply to future messages and page turns.</p></div></div>
+    <p id="notice" class="notice" role="status"></p><p id="error" class="error-box" role="alert" hidden></p>
+    <section id="gate" class="gate panel"><h2 id="gate-title">Loading your workspace…</h2><p>Guidance publishers can edit the server’s system wording.</p><a id="signin" class="button primary" href="/auth/start" hidden>Sign in with Discord</a><button id="gate-retry">Try again</button></section>
+    <noscript><p class="error-box">This page needs JavaScript.</p></noscript>
+    <div id="workspace" class="wording-workspace" hidden>
+      <section class="panel"><label for="search">Find a message</label><input id="search" type="search" placeholder="Search wording or message name">
+        <label for="group">Category</label><select id="group"><option value="">All categories</option></select>
+        <label for="message">Message</label><select id="message" size="8"></select></section>
+      <section id="wording-editor" class="panel"><h2 id="message-title"></h2><p id="parameters" class="muted"></p>
+        <label for="wording">Wording</label><textarea id="wording" rows="6" aria-describedby="parameters limit wording-validation"></textarea><p id="limit" class="muted"></p><p id="wording-validation" role="status"></p>
+        <button id="restore">Use default wording</button><details><summary>Original wording</summary><p id="original"></p></details>
+        <h3>Preview</h3><div id="preview" class="discord-preview"></div></section>
+      <div class="actions"><button id="save" class="primary">Apply wording</button><button id="reload">Reload saved wording</button></div>
+    </div>
+  </main>
+</body>
+</html>

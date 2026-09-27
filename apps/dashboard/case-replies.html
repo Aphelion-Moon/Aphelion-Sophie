@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="color-scheme" content="dark">
+  <title>Case replies · Sophie</title>
+  <link rel="stylesheet" href="/dashboard/styles.css"><script type="module" src="/dashboard/replies-app.js"></script>
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to content</a>
+  <header class="topbar">
+    <div class="identity"><img id="avatar" src="/dashboard/sophie-avatar.png" alt="" width="52" height="52"><div><strong>Sophie</strong><span>Community Services</span></div></div>
+    <div class="header-actions"><label class="quiet"><input id="quiet" type="checkbox"> Quiet mode</label><button id="logout" class="subtle" hidden>Sign out</button></div>
+  </header>
+  <main id="main" tabindex="-1">
+    <nav class="service-nav" aria-label="Community Services"><!-- service-navigation --></nav>
+    <div class="page-heading"><div><p class="eyebrow">APHELION / SERVICE DESK</p><h1>Case replies</h1><p class="intro">Write a Staff reply for the private ticket channel.</p></div></div>
+    <p id="notice" class="notice" role="status" hidden></p><p id="error" class="error-box" role="alert" hidden></p>
+    <section id="gate" class="gate panel"><h2 id="gate-title">Loading your workspace…</h2><p>Replies require Staff authority for the selected case. Head Admin contacts require Head Admin access.</p><a id="signin" class="button primary" href="/auth/start" hidden>Sign in with Discord</a><button id="gate-retry">Try again</button></section>
+    <noscript><p class="error-box">This page needs JavaScript.</p></noscript>
+    <div id="workspace" hidden>
+      <form id="open-channel" class="panel case-panel" autocomplete="off">
+        <label for="channel-id">Case channel ID</label><p class="muted">Use the main private ticket channel’s ID.</p>
+        <div class="actions"><input id="channel-id" type="text" inputmode="numeric" pattern="[1-9][0-9]{0,19}" maxlength="20" required><button id="open" class="primary">Open replies</button><button id="refresh" type="button">Refresh access and status</button></div>
+      </form>
+      <button id="retry-reply" hidden>Retry the same reply request</button>
+      <form id="reply-form" class="panel case-panel" autocomplete="off" hidden>
+        <h2>Write a reply</h2><p>This message will appear in the ticket channel for all current readers, with your Discord user ID. Use <a href="/staff-notes">Staff notes</a> for restricted notes.</p>
+        <label for="answer-name">Approved answer name (optional)</label><p class="muted">Find a name in <a href="/answers">Public answers</a>. Clear your draft before selecting an answer.</p>
+        <div class="actions"><input id="answer-name" type="text" maxlength="40"><button id="select-answer" type="button">Use approved answer</button><button id="clear-answer" type="button" hidden>Clear selected answer</button></div>
+        <p id="selected-answer" class="muted" hidden></p>
+        <label for="reply-text">Your reply</label><textarea id="reply-text" rows="7" maxlength="4000" required aria-describedby="reply-hint"></textarea>
+        <p id="reply-hint" class="muted">Up to 4,000 characters. Discord will render your Markdown; mentions will not notify anyone. Hidden pages and failed access checks clear private text.</p>
+        <button id="review-reply" class="primary" disabled>Review reply</button>
+      </form>
+      <section id="review" class="panel case-panel" hidden>
+        <h2 id="review-heading" tabindex="-1">Review before sending</h2><p id="review-channel"></p><p id="review-changed" class="notice" hidden></p>
+        <p id="review-answer" class="muted" hidden></p><p id="review-text" class="case-text"></p>
+        <label><input id="confirm-reply" type="checkbox"> I reviewed this reply and its case. Send it to all current ticket readers.</label>
+        <div class="actions"><button id="send-reply" class="primary" disabled>Confirm and send reply</button><button id="edit-reply">Return to draft</button></div>
+      </section>
+      <section id="record" class="panel case-panel" hidden>
+        <h2>Reply requests and delivery</h2><p id="channel-label" class="muted"></p><p id="closed-case" class="notice" hidden></p>
+        <p>These records retain the author and exact text. Only confirmed delivery means the message was verified in Discord. Uncertain or blocked delivery needs Staff follow-up.</p>
+        <p id="empty-replies" hidden></p><div id="replies"></div><div class="actions"><button id="older-replies" hidden>Older replies</button><button id="latest-replies" hidden>Latest replies</button></div>
+      </section>
+    </div>
+  </main>
+</body>
+</html>

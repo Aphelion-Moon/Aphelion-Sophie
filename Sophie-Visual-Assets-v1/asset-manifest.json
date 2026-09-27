@@ -1,0 +1,120 @@
+{
+  "schema_version": 1,
+  "plan_version": "1.1",
+  "asset_set": "sophie-neon-chibi-v1",
+  "path_base": "The planning-pack root (the directory containing asset-manifest.json).",
+  "source_basis": "Sophie Community Services: four coordinated static neon chibi protogen illustrations.",
+  "selection": "The active Sophie identity asset set.",
+  "software_licence_policy": "The MIT rule for directly reused FOSS software is unchanged. No artwork licence, exclusive rights, copyright holder or public distribution permission is inferred from that rule.",
+  "verification": "PNG dimensions, color type, byte counts and SHA-256 measured from packaged files; visual consistency inspected. Platform upload and final application placement remain separate checks.",
+  "assets": [
+    {
+      "id": "sophie.avatar.neon-chibi-v1",
+      "role": "avatar",
+      "title": "Square portrait / Discord avatar",
+      "path": "assets/sophie/neon-chibi-v1/sophie-avatar.png",
+      "format": "PNG",
+      "width": 1254,
+      "height": 1254,
+      "colour_mode": "RGB",
+      "has_transparency": false,
+      "bytes": 2328246,
+      "sha256": "3d79dde5215683c2ba6183e98d06b21a66523318a3a20e20c20ca9b579f12a65",
+      "source": {
+        "kind": "generated_static_artwork",
+        "tool": "built-in image generation"
+      },
+      "transformation": "Original generated PNG.",
+      "alt_text": "Sophie, a neon chibi protogen with a glowing cyan-and-magenta visor, magenta scarf and orbital backdrop.",
+      "decorative_alt_text": "",
+      "intended_uses": [
+        "Discord bot avatar",
+        "Dashboard identity mark",
+        "About/help identity"
+      ],
+      "placement_notes": "Keep the expressive visor central. Review the circular crop: the existing portrait already reaches the top edge at the ears. Do not stretch, mirror, or claim every ear tip survives a circle crop.",
+      "status": "active_static_identity"
+    },
+    {
+      "id": "sophie.banner.neon-chibi-v1",
+      "role": "banner",
+      "title": "Wide station service-desk scene",
+      "path": "assets/sophie/neon-chibi-v1/sophie-banner.png",
+      "format": "PNG",
+      "width": 1672,
+      "height": 941,
+      "colour_mode": "RGB",
+      "has_transparency": false,
+      "bytes": 2595452,
+      "sha256": "84a86f2c8847e05446db361367545021b14eee37e561fc64aae4e1b4869bf4aa",
+      "source": {
+        "kind": "generated_static_artwork",
+        "tool": "built-in image generation"
+      },
+      "transformation": "Original generated PNG.",
+      "alt_text": "Sophie at a worn, neon-lit orbital service desk, with a ring station and planet visible through the window.",
+      "decorative_alt_text": "",
+      "intended_uses": [
+        "Dashboard welcome/about hero",
+        "Public introduction panel",
+        "Wide community artwork"
+      ],
+      "placement_notes": "Preserve Sophie on the left. The right-hand space scene is detailed, not a blank text canvas. Put controls and text on an opaque panel; use a separate mobile layout rather than a destructive centre crop.",
+      "status": "active_static_identity"
+    },
+    {
+      "id": "sophie.character.neon-chibi-v1",
+      "role": "character",
+      "title": "Transparent welcoming character cutout",
+      "path": "assets/sophie/neon-chibi-v1/sophie-character.png",
+      "format": "PNG",
+      "width": 1254,
+      "height": 1254,
+      "colour_mode": "RGBA",
+      "has_transparency": true,
+      "bytes": 1585100,
+      "sha256": "fe5234160e5b5934671743cfa2dde1d7f690a34ad2e82bf07c80d21d0930e805",
+      "source": {
+        "kind": "generated_static_artwork",
+        "tool": "built-in image generation"
+      },
+      "transformation": "Original generated PNG.",
+      "alt_text": "Sophie waves with glowing magenta paw pads, wearing a scarf and weathered armour with cyan-and-magenta lights.",
+      "decorative_alt_text": "",
+      "intended_uses": [
+        "Welcome/help illustration",
+        "Non-sensitive empty state",
+        "Source artwork for a later validated sticker export"
+      ],
+      "placement_notes": "Preserve alpha, ears, paws and tail. This is source artwork, not a claim of Discord sticker-upload compliance. Do not tile it behind cases or logs.",
+      "status": "active_static_identity"
+    },
+    {
+      "id": "sophie.wordmark.neon-chibi-v1",
+      "role": "wordmark",
+      "title": "Transparent wordmark / badge",
+      "path": "assets/sophie/neon-chibi-v1/sophie-wordmark.png",
+      "format": "PNG",
+      "width": 2172,
+      "height": 724,
+      "colour_mode": "RGBA",
+      "has_transparency": true,
+      "bytes": 1326399,
+      "sha256": "301f77676be0a3c722becc0d44cb3ee6f6c330f50f0edaa9492704235f3b65d2",
+      "source": {
+        "kind": "generated_static_artwork",
+        "tool": "built-in image generation"
+      },
+      "transformation": "Original generated PNG.",
+      "alt_text": "Sophie — Community Services.",
+      "decorative_alt_text": "",
+      "intended_uses": [
+        "Wide brand header",
+        "About/help page",
+        "Public announcement header"
+      ],
+      "placement_notes": "Use with contain sizing and preserve the 3:1 aspect ratio. The subtitle is raster text: below a readable size, replace the badge with the avatar and live text, not an unreadably small logo.",
+      "status": "active_static_identity"
+    }
+  ]
+}

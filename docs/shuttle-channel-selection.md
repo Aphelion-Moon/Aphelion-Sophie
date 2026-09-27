@@ -1,0 +1,31 @@
+# Selecting a retained Shuttle channel
+
+Scope: P06, P09–P11, P14, P16 and P17; partial T04, T05, T07, T13–T16, T22, T36 and T59. This extends [case/message recovery](shuttle-artifact-recovery.md) with a Staff choice among retained channel candidates. No dependency, licence, token ownership or production activation changes are introduced.
+
+## Review and choice
+
+`/shuttle issues` identifies an ambiguous bound Shuttle case and shows up to five retained channel references, with the total count. Staff can choose an intended candidate using `/shuttle choose issue:<reference> channel:<channel ID>`. The reference carries the issue revision; both inputs have closed formats. The channel must already belong to that case's retained candidate set. Core obtains fresh channel metadata and checks the original operation marker, guild, type, ownership, current policy and current Staff authority. Neither a supplied ID nor the marker grants access. Other case types, message adoption and role delivery cannot be selected through this command.
+
+The transaction stores the chosen ID, exact sorted candidate set, operator grant, signed interaction, issue revision, previous delivery evidence, receipt and fenced requeue together. A duplicate request returns its retained outcome; a competing stale choice cannot replace it. New candidates invalidate previously displayed issue revisions and the earlier set selection. The choice remains in audit history, but is no longer sufficient to open the case.
+
+A case that has previously opened must retain its original channel, including its existing messages and Shuttle controls. Selection cannot relocate a live or historical conversation. Before first opening, any verified retained candidate may be chosen. The command does not advance a session, deliver a role, send a message, open a channel or confirm delivery.
+
+## Worker behaviour
+
+The case worker retains and permanently excludes every discovered candidate. Finding a new duplicate puts an open case back into pending review, which blocks its Shuttle controls and private navigation. If no inspection job remains, the late-result recorder durably requests one. Records, exclusions and original channel identity are preserved.
+
+The worker seals noncanonical candidates before opening the selected one. Without a current selection, it seals the entire known set before parking for review. Each invocation performs at most one Discord mutation. Before opening and again before confirming the selected channel, the store requires fresh opaque proofs that every other retained candidate has the exact bot-only policy. It independently checks those permissions even if a misconfigured verifier accepts a broader audience. Current membership, presence epoch, lease, delivery pause, cooldown and continuity checks still apply.
+
+A missing, moved or unrecognisable candidate is never silently removed from the inventory. A known ID omitted by guild discovery is inspected directly; inability to verify it blocks opening. Choosing a channel cannot declare a missing duplicate deleted. The choice workflow supports up to 500 retained candidates; larger or uninspectable sets need further operator tooling. Current Discord documentation for [guild channel discovery](https://docs.discord.com/developers/resources/guild#get-guild-channels) documents upcoming omission of inaccessible channels; absence from a list is not evidence of deletion. The worker continues to use the fixed [channel modification route](https://docs.discord.com/developers/resources/channel#modify-channel) for category and exact overwrite changes. API documentation was checked on 19 September 2026; live compatibility remains untested.
+
+Departure makes the selected channel bot-only too and settles the request as failed. A closed case is not reopened. A lost response or expired lease retains uncertainty and requests another inspection. In particular, if an older write opens a discarded channel after the selected case was confirmed, the retained inspection seals it again. This is compensation, not a transaction across Discord and PostgreSQL: transient external exposure and changes made after observation cannot be ruled out. [Periodic case inspection](case-inspections.md) now schedules eligible reconciliation work; live Gateway/service composition remains required.
+
+## Schema, evidence and rollback
+
+Migration `015-case-channel-selection.sql` adds the optional current selection to provisioning state and extends the existing recovery audit with the `select_channel` action and candidate IDs. Earlier recheck/message audits remain unchanged. Existing ambiguous open cases are held pending; those without unfinished inspection work receive a durable inspection job. Migration never invents a choice, removes candidates or clears possible-create markers. Previous numbered migrations remain unchanged.
+
+Q01–Q18 exercise selection without immediate access; seal-before-open ordering; missing duplicates; duplicate/stale/colliding requests; current authority; forged/expired proofs; new candidates; preservation of an established destination; departure; lost replies; independent store ACL checks; audit rollback; delivery pause; migration; late writes and case-type isolation. S23 restarts the isolated database after selection, retains the full inventory/audit and delivery pause, then verifies the chosen channel and all seals with a new adapter without another channel POST. Contract tests cover the signed route and bounded queue guidance. Executed counts and hashes are recorded in [verification](verification.md).
+
+Rollback requires stopping commands/workers and restoring compatible code while retaining migration 015, choices, candidate inventories, audits, receipts and unfinished effects. Do not delete duplicates, erase a choice, downgrade to an incompatible migrator or restore access from an old permission snapshot.
+
+[Ordinary ticket recovery](case-delivery-issues.md) now shares the constrained candidate-selection operation. Exceptional handling of uninspectable candidates and remaining case workflows, reconciliation service wiring, dashboard parity, live Discord tests and independent recovery remain open. The owner's Shuttle copy remains unpublished. All exercised cases and remote responses are synthetic; no production service or Discord state was changed.

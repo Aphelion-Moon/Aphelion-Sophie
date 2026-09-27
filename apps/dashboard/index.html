@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <title>Onboarding guidance · Sophie</title>
+  <link rel="stylesheet" href="/dashboard/styles.css">
+  <script type="module" src="/dashboard/app.js"></script>
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to content</a>
+  <header class="topbar">
+    <div class="identity"><img id="avatar" src="/dashboard/sophie-avatar.png" alt="" width="52" height="52"><div><strong>Sophie</strong><span>Community Services</span></div></div>
+    <div class="header-actions"><label class="quiet"><input id="quiet" type="checkbox"> Quiet mode</label><button id="logout" class="subtle" hidden>Sign out</button></div>
+  </header>
+  <main id="main" tabindex="-1">
+    <nav class="service-nav" aria-label="Community Services"><!-- service-navigation --></nav>
+    <div class="page-heading"><div><p class="eyebrow">APHELION / GUIDANCE</p><h1>Onboarding guidance</h1><p class="intro">A considered welcome, one page at a time.</p></div><span class="label">ONBOARDING</span></div>
+    <div id="notice" class="notice" role="status" hidden></div>
+    <div id="error-box" class="error-box" hidden><p id="error" role="alert"></p><div class="actions"><button id="retry" hidden>Retry same request</button><button id="reload-error">Reload &amp; compare</button></div></div>
+    <section id="gate" class="gate panel" aria-labelledby="gate-title"><p class="eyebrow">COMMUNITY SERVICES</p><h2 id="gate-title">Opening the workspace…</h2><p id="gate-description">Loading your workspace.</p><a id="signin" class="button primary" href="/auth/start" hidden>Sign in with Discord</a><button id="gate-retry" hidden>Try again</button></section>
+    <noscript><p class="error-box">This editor needs JavaScript. Drafts are never published automatically.</p></noscript>
+    <div id="workspace" hidden>
+      <nav class="workspace-tabs" aria-label="Guidance workspace"><button id="editor-tab" aria-current="page">Edit guidance</button><button id="history-tab">History</button><span id="account" class="account"></span></nav>
+      <section id="editor" aria-label="Edit Onboarding guidance">
+        <div class="status-line"><span id="draft-status"></span><span id="publication-status"></span><button id="reload" class="text-button">Reload &amp; compare</button></div>
+        <div class="editor-layout">
+          <aside class="journey panel"><p class="eyebrow">THE JOURNEY</p><h2 id="journey-count">Your journey</h2><p class="muted">Choose a page to shape the guidance members will read.</p><nav id="pages" aria-label="Onboarding steps"></nav><div class="journey-note"><span class="small-label">PUBLISHING</span><p>New runs use the published version. Runs already in progress keep their version.</p></div></aside>
+          <section class="writing panel" aria-labelledby="page-heading"><div class="writing-heading"><div><p id="page-number" class="eyebrow"></p><h2 id="page-heading"></h2></div><span id="page-completion" class="badge"></span></div>
+            <div class="actions" role="group" aria-label="Arrange Onboarding steps"><button id="add-page">Add step after this</button><button id="move-up">Move earlier</button><button id="move-down">Move later</button><button id="remove-page" class="danger">Remove step</button></div><p class="field-hint">Keep 1–20 steps. Changes apply to new runs after you save, review and publish.</p>
+            <label for="page-title">Step title</label><input id="page-title" type="text" maxlength="80" autocomplete="off" aria-describedby="title-count"><span id="title-count" class="field-hint"></span>
+            <div class="screen-editor"><h3>Screens in this step</h3><p class="field-hint">Members use Next/Back between screens, then acknowledge the step on its final screen.</p>
+              <div id="screens" class="actions" role="group" aria-label="Choose screen"></div>
+              <div class="actions screen-tools"><button id="add-screen">Add screen</button><button id="screen-earlier">Earlier</button><button id="screen-later">Later</button><button id="remove-screen" class="subtle">Remove screen</button></div>
+              <p id="legacy-screens" class="field-hint">This saved copy uses the older layout. Editing screen text or arranging screens enables Next/Back for this step in the next publication.</p>
+              <div class="label-row"><label for="page-body">Screen text</label><span>Discord Markdown</span></div><textarea id="page-body" maxlength="1800" rows="8" spellcheck="true" aria-describedby="body-hint body-count"></textarea><div class="field-hints"><span id="body-hint">Use **bold**, *italics*, __underline__, lists, links and code. Up to 5 screens.</span><span id="body-count"></span></div>
+              <div class="preview-heading"><h3>Discord preview</h3><span id="screen-status" class="badge"></span></div><div id="screen-preview" class="screen-text"></div>
+              <div class="actions"><button id="preview-back">Back preview</button><button id="preview-next">Next preview</button><span id="screen-acknowledgement" class="field-hint"></span></div>
+              <p class="field-hint">Local formatting preview. Discord fonts and some formatting may differ; mentions and remote media are not resolved.</p>
+            </div>
+            <div class="help-setting"><input id="help-pauses" type="checkbox" aria-describedby="help-hint"><div><label for="help-pauses">Pause progress when a member asks staff for help</label><p id="help-hint">Staff must resolve the request before the member can continue. This applies to every step in this version.</p></div></div>
+            <footer class="editor-footer"><span id="save-hint"></span><div class="actions"><button id="save">Save draft</button><button id="review" class="primary">Review publication <span aria-hidden="true">↗</span></button></div></footer>
+          </section>
+        </div>
+      </section>
+      <section id="history" class="panel history-panel" aria-labelledby="history-heading" hidden><div class="section-heading"><div><p class="eyebrow">RETAINED RECORD</p><h2 id="history-heading">Guidance history</h2><p class="muted">Inspect earlier copy or use it as the starting point for a new draft.</p></div><div class="actions"><button id="publications-filter" aria-pressed="true">Publications</button><button id="drafts-filter" aria-pressed="false">Draft revisions</button></div></div><div id="history-list"></div><div class="pagination"><button id="newer">Newer</button><span>Up to 10 records per page</span><button id="older">Older</button></div></section>
+      <p class="workspace-footnote">Draft changes stay in this tab until saved. Saved revisions and publication history are retained.</p>
+    </div>
+  </main>
+  <dialog id="review-dialog" aria-labelledby="review-title"><div class="dialog-heading"><div><p class="eyebrow">REVIEW BEFORE PUBLISHING</p><h2 id="review-title">A new version of the journey</h2></div><button id="review-close" class="subtle" autofocus>Close review</button></div><div id="review-content"></div><div id="publish-confirmation" class="confirmation"><label><input id="confirm-publish" type="checkbox"> I have reviewed every step, their order and the help setting.</label><button id="publish" class="primary" disabled>Publish version</button></div></dialog>
+  <dialog id="history-dialog" aria-labelledby="selected-title"><div class="dialog-heading"><div><p class="eyebrow">RETAINED GUIDANCE</p><h2 id="selected-title"></h2></div><button id="selected-close" class="subtle" autofocus>Close record</button></div><div id="selected-content"></div><div id="selected-actions" class="actions dialog-actions"><button id="use-selected">Use as a draft</button><button id="withdraw-review" class="danger" hidden>Review withdrawal</button></div><div id="withdraw-confirmation" class="confirmation" hidden><label><input id="confirm-withdraw" type="checkbox"> I understand that runs pinned to this version will be blocked.</label><button id="withdraw" class="danger" disabled>Withdraw version</button></div></dialog>
+  <dialog id="conflict-dialog" aria-labelledby="conflict-title"><div class="dialog-heading"><div><p class="eyebrow">CHOOSE THE COPY TO KEEP</p><h2 id="conflict-title" tabindex="-1">Your changes are still here</h2></div></div><p>The latest saved draft is shown alongside your copy. Keeping your copy prepares it for a new save; it does not save or merge automatically.</p><div id="conflict-content"></div><div class="actions dialog-actions"><button id="keep-remote">Use latest saved copy</button><button id="keep-local" class="primary" autofocus>Keep my copy</button></div></dialog>
+<dialog id="change-dialog" aria-labelledby="change-title"><h2 id="change-title">Remove from this draft?</h2><p id="change-message"></p><div class="actions dialog-actions"><button id="cancel-change" autofocus>Keep it</button><button id="confirm-change" class="danger">Remove from draft</button></div></dialog>
+</body>
+</html>

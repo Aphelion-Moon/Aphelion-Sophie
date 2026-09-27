@@ -1,0 +1,10 @@
+import { createDashboardApi } from './api.js';
+import { createContactsController } from './contacts-controller.js';
+import { createContactsView } from './contacts-view.js';
+import { mountDashboardShell } from './shell.js';
+const api = createDashboardApi({ fetch: window.fetch.bind(window) });
+const controller = createContactsController({ api, onChange: state => view.render(state) });
+const view = createContactsView({ document, controller });
+window.addEventListener('pagehide', () => controller.suspend());
+document.addEventListener('visibilitychange', () => { if (document.visibilityState !== 'visible') controller.suspend(); });
+mountDashboardShell({ window, document, controller });

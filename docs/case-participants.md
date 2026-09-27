@@ -1,0 +1,33 @@
+# Explicit case participants
+
+Scope: P05/P06/P09–P11/P17/P19; partial R02/R04/R07/R12/R16 and T01/T04–T09/T16/T22/T36/T57. Staff can explicitly add or remove participants from an existing case through a signed command and a shared core service. [Staff-contact intake](case-contacts.md) now shares its invitation/action helpers for the initial selected audience. No subject is automatically invited and no case content enters an AI path.
+
+## Selection and retained intent
+
+`/ticket participant` requires the actual `case@version`, add/remove action, selected member, bounded reason and explicit confirmation. The confirmation describes access to retained case history when adding someone. Discord's documented [User and Boolean command options](https://docs.discord.com/developers/interactions/application-commands#application-command-option-type) are used; actual command registration and live client checks remain open.
+
+The selected member is separate from the signed Staff actor and original opener. Current `case.manage` authority is checked for the actual case before and after the change. Only lead ops can manage Head Admin contact. An opener or participant without responder authority cannot add others, manage the case or access restricted notes. No role list, serialized membership grant, resolved member object or component identifier establishes authority.
+
+Adds require an open, currently eligible case, a present human member, and a new [membership binding](case-participant-authority.md). The binding is checked again before it is retained. The service rejects the opener, bot identity, role IDs, duplicate current invitations and more than twenty additional participants. Removal can proceed while a case is pending, closing or closed. It removes only the explicit invitation; current Staff/lead ops permissions remain independent.
+
+Migration 027 adds a version to the provisioned audience and retained `case_participants` / `case_participant_actions` tables. Existing cases start at audience version zero with no invitation. Each accepted action records actor, selected member, invitation version, reason and interaction identity. Invitation, audit, shared case version, audience version, receipt and reconciliation intent commit together. Duplicate requests return the retained result; changed requests or stale versions cannot repeat or overwrite it. Removed and revoked invitations are retained without expiry. Core needs SELECT/INSERT/UPDATE on these new tables, no DELETE; knowledge has no access.
+
+The case becomes pending while changed permissions are being verified. A successful command response says the change was recorded, not that Discord already applied it. Staff status shows the selected additional member IDs without membership epochs, audit data or case excerpts. Assignment and closure use the same case version, so concurrent operations must reload after a conflict.
+
+## Audience delivery and revocation
+
+Provisioning, lifecycle, ordinary navigation, answer delivery/recovery and Shuttle use a shared case-plan loader. Audience versions and membership bindings are included in prepared-write and message-proof keys. Open channels add only current selected members alongside the existing opener/responders; closed channels retain the selected audience with write permissions denied; sealed channels remain bot-only.
+
+The worker checks membership and the inviting actor's retained authority before a pending invitation first becomes active. Loss of inviting authority before confirmation revokes that invitation. Once confirmed, unrelated later role changes to the inviter do not withdraw the completed action. Every non-sealed channel verification and audience write checks participant membership afresh. This also protects Shuttle screen/alert and ordinary answer delivery through their shared private-channel proofs.
+
+Departure, loss of human eligibility or a continuity epoch change permanently invalidates an invitation's membership binding. Rejoining needs a new explicit action. Revoked rows keep their reason and timestamp; the audience/case versions advance and a repair intent is retained. Gateway removal schedules cases in which the member is an invited participant, including first-seen removal when only the authority journal knew the identity. Periodic inspection provides the independent fallback. No second recipient member-row lock is nested inside the opener's operation.
+
+Late channel/message identities can still be retained under their original case identity. An old audience proof or prepared write cannot confirm the newer plan. A conflicting or late Discord mutation queues reconciliation and requires new verification; a database transaction does not make the Discord write atomic. This is eventual repair, not an assertion of zero exposure during an external race. Unknown/uninspectable external effects still require the existing operator path.
+
+## Verification and remaining work
+
+Four additional contract tests cover bounded selection/confirmation, exact audience modes, stale proofs and metadata rendering. CP01–CP19 cover the actual PostgreSQL services, signed commands, competing assignment, ownership separation, absent/bot denial, Head Admin permissions, closed-case removal, retained history, departure/rejoin, inviting-authority loss, late-write compensation, Gateway scheduling, audit rollback, ordinary navigation/answer delivery, Shuttle controls, real loopback signed HTTP and database privileges/migration. S35 recreates authorization, core services and the worker across an isolated database restart, delivers a retained pending invitation under fresh authority, removes it and checks retained removal across another restart. Actual execution results and source hashes are in [verification](verification.md).
+
+[Initial Staff-contact selection/forms and private recipient navigation](case-contacts.md) are now implemented separately. Dashboard parity, live role/ACL checks, command registration, runtime composition and independent recovery remain unfinished. The provisional closed-audience policy remains an owner release input. Neither participant milestone completes a live acceptance gate. No production database, service, identity or Discord channel was changed.
+
+Rollback: pause participant-changing commands and delivery before reverting. Retain migration 027, all invitation/action records, case/audience versions and reconciliation jobs. Earlier code does not understand these audiences and must not run against participant-bearing cases. Restore compatible participant-aware code or reconcile their audiences through a reviewed maintenance procedure before resuming; do not drop the new records or silently remove access as a rollback shortcut.

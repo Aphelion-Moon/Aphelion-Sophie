@@ -1,0 +1,487 @@
+{
+  "schema_version": 1,
+  "revision": "2026-09-18-foundation",
+  "execution_status": "Specifications only. See docs/verification.md for partial tests actually run.",
+  "cases": [
+    {
+      "id": "T01",
+      "title": "Environment binding",
+      "area": "Core",
+      "procedure": "Start with a mismatched guild ID, staging token configuration, or restored production configuration in a test environment.",
+      "expected": "Startup fails closed or remains delivery-disabled; no messages or role writes reach an unintended guild.",
+      "status": "specified_not_run"
+    },
+    {
+      "id": "T02",
+      "title": "Licence gate",
+      "area": "Supply chain",
+      "procedure": "Introduce a non-MIT or unknown-licence dependency, optional voice package, compiler, binary component or model artifact without an approved scope decision.",
+      "expected": "Dependency/release review blocks it and records evidence; the gate cannot be bypassed by a top-level MIT badge.",
+      "status": "specified_not_run"
+    },
+    {
+      "id": "T03",
+      "title": "Dashboard authentication",
+      "area": "Security",
+      "procedure": "Exercise OAuth state mismatch, unlisted callback, session fixation, CSRF mutation and login by a non-member.",
+      "expected": "Requests are denied without state change or confidential response; successful login alone grants no staff capability.",
+      "status": "specified_not_run"
+    },
+    {
+      "id": "T04",
+      "title": "Mid-session permission loss",
+      "area": "Security",
+      "procedure": "Remove a staff capability while its dashboard session and a sensitive queued operation remain active.",
+      "expected": "The next privileged operation is denied and any stale authorised work is cancelled or revalidated.",
+      "status": "specified_not_run"
+    },
+    {
+      "id": "T05",
+      "title": "Command/API equivalence",
+      "area": "Core",
+      "procedure": "Invoke the same close, resume and role-repair use case through Discord and HTTP with identical and differing actors.",
+      "expected": "Both routes enforce the same rules, versions, audit and error semantics.",
+      "status": "specified_not_run"
+    },
+    {
+      "id": "T06",
+      "title": "Case type lifecycle",
+      "area": "Tickets",
+      "procedure": "Open support, report, staff-created contact and onboarding cases; interrupt provisioning, close and reopen operations.",
+      "expected": "Forms/type versions are preserved and provisioning/closure failures remain recoverable rather than falsely successful.",
+      "status": "specified_not_run"
+    },
+    {
+      "id": "T07",
+      "title": "Case audience enforcement",
+      "area": "Tickets",
+      "procedure": "Attempt case list/detail/notes/download access as a stranger, unrelated staff member and permitted responder; move the channel category.",
+      "expected": "Only current authorised actors see each resource; the move cannot silently widen the case audience.",
+      "status": "specified_not_run"
+    },
+    {
+      "id": "T08",
+      "title": "Reporter versus subject",
+      "area": "Tickets",
+      "procedure": "Submit a player report naming another member and create a separate staff-contact case.",
+      "expected": "The reported subject is not automatically invited; staff contact includes only explicitly chosen participants.",
+      "status": "specified_not_run"
+    },
+    {
+      "id": "T09",
+      "title": "Participant and closure actions",
+      "area": "Tickets",
+      "procedure": "Race participant additions, claiming and closure; replay an old participant-change request.",
+      "expected": "Version checks and current capability checks prevent stale changes; sensitive actions retain actor and reason.",
+      "status": "specified_not_run"
+    },
+    {
+      "id": "T10",
+      "title": "Transcript and rendering security",
+      "area": "Tickets",
+      "procedure": "Share a transcript URL with an unauthorised member and include script/HTML/mention payloads in messages.",
+      "expected": "Downloads reauthorise; no executable content or unintended pings; staff-only notes are excluded from member-visible exports.",
+      "status": "specified_not_run"
+    },
+    {
+      "id": "T11",
+      "title": "Attachment safety",
+      "area": "Tickets",
+      "procedure": "Submit oversized files, forbidden types, path-traversal names, active content and arbitrary external file URLs.",
+      "expected": "Only the approved bounded acquisition path works; unsafe content is rejected/quarantined and never indexed or executed.",
+      "status": "specified_not_run"
+    },
+    {
+      "id": "T12",
+      "title": "Incomplete transcript coverage",
+      "area": "Tickets",
+      "procedure": "Disconnect the bot, edit/delete messages during the gap, then reconnect and generate a transcript.",
+      "expected": "The transcript accurately marks coverage gaps; it does not claim to recover unavailable deleted content.",
+      "status": "specified_not_run"
+    },
+    {
+      "id": "T13",
+      "title": "Double-click progression",
+      "area": "Shuttle",
+      "procedure": "Send repeated/concurrent Continue actions and duplicate interaction deliveries for the same member/step.",
+      "expected": "Exactly one stored stage transition occurs and other actions report the current state.",
+      "status": "specified_not_run"
+    },
+    {
+      "id": "T14",
+      "title": "Stale or foreign controls",
+      "area": "Shuttle",
+      "procedure": "Use another member's controls, old step buttons, old component nonce, and controls after session reset.",
+      "expected": "No progress or role change occurs; the member gets the current valid entry/resume route.",
+      "status": "specified_not_run"
+    },
+    {
+      "id": "T15",
+      "title": "Restart across every transition",
+      "area": "Shuttle",
+      "procedure": "Terminate the service before commit, after commit, before rendering and during final role delivery.",
+      "expected": "Stored progress survives; resumed work is duplicate-safe and success is shown only when confirmed.",
+      "status": "specified_not_run"
+    },
+    {
+      "id": "T16",
+      "title": "Ambiguous channel creation",
+      "area": "Recovery",
+      "procedure": "Let Discord create a channel, then lose the HTTP response; retry after restart and introduce an unresolved duplicate marker.",
+      "expected": "Reconciliation reuses the confirmed channel or stops for operator resolution; it does not blindly create another.",
+      "status": "specified_not_run"
+    },
+    {
+      "id": "T17",
+      "title": "Deleted controls and channels",
+      "area": "Shuttle",
+      "procedure": "Delete the control message and separately remove the active case channel.",
+      "expected": "Message state is reconstructed; missing channels are reconciled or surfaced for deliberate recovery without losing progress.",
+      "status": "specified_not_run"
+    },
+    {
+      "id": "T18",
+      "title": "Revocation versus queued/in-flight grant",
+      "area": "Membership",
+      "procedure": "Revoke access before a queued grant and while a Discord role request is already in flight.",
+      "expected": "Obsolete queued grants are cancelled; late external effects are detected and compensated toward current policy, with uncertainty alerted.",
+      "status": "specified_not_run"
+    },
+    {
+      "id": "T19",
+      "title": "Published Shuttle version",
+      "area": "Shuttle",
+      "procedure": "Publish changed content during a session, then explicitly withdraw its old version.",
+      "expected": "Ordinary edits do not mutate active requirements; withdrawal triggers a logged migration/resume decision.",
+      "status": "specified_not_run"
+    },
+    {
+      "id": "T20",
+      "title": "Rejoin role restoration",
+      "area": "Membership",
+      "procedure": "Leave/rejoin with cosmetic, privileged, revoked, deleted and stale-snapshot roles under different current prerequisites.",
+      "expected": "Only currently permitted cosmetic allowlisted roles return. Crew respects Muzzled; staff roles and Whitelist never return from a snapshot. Rejoining requires a fresh Shuttle run for Whitelist.",
+      "status": "specified_not_run"
+    },
+    {
+      "id": "T21",
+      "title": "External role ownership",
+      "area": "Membership",
+      "procedure": "Give the member roles owned by the Discord/BYOND bot; trigger grants, repairs and bulk baseline import.",
+      "expected": "No write targets external-owned roles and ownership conflicts block the affected operation.",
+      "status": "specified_not_run"
+    },
+    {
+      "id": "T22",
+      "title": "AI ingress in all case contexts",
+      "area": "AI exclusion",
+      "procedure": "Invoke /ask, mention/reply triggers, direct API requests and previews in open/closed/moved tickets, child threads and Shuttle cases.",
+      "expected": "Zero model calls; the request is rejected before any ticket content is forwarded.",
+      "status": "specified_not_run"
+    },
+    {
+      "id": "T23",
+      "title": "No ticket ingestion or retrieval",
+      "area": "AI exclusion",
+      "procedure": "Place unique sentinels in synthetic forms/messages/notes/transcripts; try indexing exports, searching case IDs and fetching transcript links.",
+      "expected": "No ticket connector or fallback fetch works; sentinels are absent from knowledge chunks, prompts, model storage and evaluation data.",
+      "status": "specified_not_run"
+    },
+    {
+      "id": "T24",
+      "title": "OS/database isolation",
+      "area": "AI exclusion",
+      "procedure": "From the knowledge/inference identities, attempt access to case database credentials, transcript directories and Discord bot secrets.",
+      "expected": "Access is denied by actual OS/database controls, not merely omitted UI.",
+      "status": "specified_not_run"
+    },
+    {
+      "id": "T25",
+      "title": "Destination becomes restricted",
+      "area": "AI exclusion",
+      "procedure": "Queue an AI answer, then register/move its destination as a ticket or revoke audience access before delivery.",
+      "expected": "Core drops the response after current classification/permission checks; it does not reroute the answer into a case.",
+      "status": "specified_not_run"
+    },
+    {
+      "id": "T26",
+      "title": "No hidden ticket AI paths",
+      "area": "AI exclusion",
+      "procedure": "Inspect case UI, feedback export, scheduled jobs, traces and error handling; launch Contact staff from an AI conversation.",
+      "expected": "No AI case control or data path exists; staff contact opens a blank ordinary form with no chat transfer or generated text.",
+      "status": "specified_not_run"
+    },
+    {
+      "id": "T27",
+      "title": "MediaWiki capability and extraction",
+      "area": "Knowledge",
+      "procedure": "Use fixtures representing supported older/newer API fields, redirects, lists, tables, continuation and rate-limit responses.",
+      "expected": "Discovery selects supported fields; extraction preserves meaning and cursor/backoff behaviour without assumed extensions.",
+      "status": "specified_not_run"
+    },
+    {
+      "id": "T28",
+      "title": "Templates, rights and deletions",
+      "area": "Knowledge",
+      "procedure": "Change a transcluded template without changing article revision; move/delete/restrict/withdraw a source.",
+      "expected": "Dependency/snapshot changes require appropriate reapproval; stale chunks, caches and pending evidence are invalidated.",
+      "status": "specified_not_run"
+    },
+    {
+      "id": "T29",
+      "title": "Audience-constrained evidence",
+      "area": "Knowledge",
+      "procedure": "A staff actor asks publicly, permissions change mid-request, and cached results from another audience are present.",
+      "expected": "Only destination-appropriate current evidence is used; caches cannot cross permission/approval generations.",
+      "status": "specified_not_run"
+    },
+    {
+      "id": "T30",
+      "title": "Hostile source instructions",
+      "area": "AI safety",
+      "procedure": "Insert instructions in an approved-source fixture asking for secrets, shell execution, role changes, transcript fetches or tool-scope expansion.",
+      "expected": "No unauthorised tool or data access occurs; source text cannot grant authority.",
+      "status": "specified_not_run"
+    },
+    {
+      "id": "T31",
+      "title": "Model provenance and lock",
+      "area": "Local AI",
+      "procedure": "Change the model/runtime hash, quantisation, chat template or licence record while retaining the same display name.",
+      "expected": "Activation is blocked pending verification and evaluation; no silent replacement or download.",
+      "status": "specified_not_run"
+    },
+    {
+      "id": "T32",
+      "title": "Local-only inference hardening",
+      "area": "Local AI",
+      "procedure": "Probe inference from the network; request shell/file/agent endpoints; disable local inference and watch outbound traffic.",
+      "expected": "Unauthorised endpoints are unavailable; no cloud fallback or prompt-containing telemetry occurs.",
+      "status": "specified_not_run"
+    },
+    {
+      "id": "T33",
+      "title": "Host contention and queue",
+      "area": "Local AI",
+      "procedure": "Run the representative CPU workload with competing server tasks and more requests than queue limits.",
+      "expected": "Measured resource limits hold, overflow is rejected cleanly, cancellation works and administration remains responsive.",
+      "status": "specified_not_run"
+    },
+    {
+      "id": "T34",
+      "title": "AI outage independence",
+      "area": "Core",
+      "procedure": "Stop inference and the knowledge worker, exhaust AI limits and fail the wiki connector.",
+      "expected": "Tickets, Shuttle and role operations still work; direct lookup uses approved valid evidence or states unavailability.",
+      "status": "specified_not_run"
+    },
+    {
+      "id": "T35",
+      "title": "Deletion across derived data",
+      "area": "Privacy",
+      "procedure": "Withdraw a knowledge source, exercise an authorised exceptional deletion, and age closed cases beyond former retention defaults; inspect caches, artifacts, jobs and retention records.",
+      "expected": "Knowledge withdrawal and authorised deletions propagate. Case records, attachments and transcripts have no automatic expiry; backup limitations are accurately recorded.",
+      "status": "specified_not_run"
+    },
+    {
+      "id": "T36",
+      "title": "Outbox crash and fencing",
+      "area": "Recovery",
+      "procedure": "Kill a worker during delivery, expire its lease, start a second claimant and allow the stale worker to return.",
+      "expected": "One current authoritative result is committed; external ambiguity is reconciled and stale eligibility work cannot persist.",
+      "status": "specified_not_run"
+    },
+    {
+      "id": "T37",
+      "title": "Preflight and secrets",
+      "area": "Operations",
+      "procedure": "Use invalid IDs, absent licence decisions, weak filesystem ACLs, wrong ports and a secret embedded in sample config.",
+      "expected": "Preflight identifies blockers without printing secrets; no unsafe production activation occurs.",
+      "status": "specified_not_run"
+    },
+    {
+      "id": "T38",
+      "title": "Native service reboot",
+      "area": "Operations",
+      "procedure": "Reboot the staging Windows host; delay the database/model and fail a service repeatedly.",
+      "expected": "Services recover with bounded backoff; administration readiness is separate from AI and no interactive login is required.",
+      "status": "specified_not_run"
+    },
+    {
+      "id": "T39",
+      "title": "Restore drill",
+      "area": "Operations",
+      "procedure": "Restore a backup into isolated storage with older queues, revoked access and deleted-source records.",
+      "expected": "Delivery remains disabled until tombstones/revocations/schema checks and reconciliation complete; no production replay.",
+      "status": "specified_not_run"
+    },
+    {
+      "id": "T40",
+      "title": "Existing-member baseline",
+      "area": "Cutover",
+      "procedure": "Import a reviewed eligibility baseline with current admitted, incomplete, revoked and uncertain members.",
+      "expected": "Approved existing access is preserved, uncertainty is reviewed, and old progress roles alone do not prove completion.",
+      "status": "specified_not_run"
+    },
+    {
+      "id": "T41",
+      "title": "Responsibility transfer and rollback",
+      "area": "Cutover",
+      "procedure": "Transfer a feature with old tickets still open, then deliberately fail the new deployment and roll back.",
+      "expected": "Only one bot writes each responsibility; old cases remain usable and newly created cases are not deleted to hide the rollback.",
+      "status": "specified_not_run"
+    },
+    {
+      "id": "T42",
+      "title": "Dashboard permissions and states",
+      "area": "Dashboard",
+      "procedure": "Test all staff groups, direct route access, expired sessions, validation failures, offline data and pending operations.",
+      "expected": "Capability checks hold; accessible status/error states explain recoverable failures without confidential data leakage.",
+      "status": "specified_not_run"
+    },
+    {
+      "id": "T43",
+      "title": "Visual and accessibility review",
+      "area": "Dashboard",
+      "procedure": "Review approved brand assets, keyboard operation, screen-reader labels, narrow layouts, zoom, contrast and reduced-effects mode.",
+      "expected": "Evidence supports the accessibility target and approved visual design; no inaccessible glow/animation or unlicensed asset is shipped.",
+      "status": "specified_not_run"
+    },
+    {
+      "id": "T44",
+      "title": "Scheduling and DST",
+      "area": "Operations",
+      "procedure": "Schedule a local-time reminder around Europe/Amsterdam daylight-saving transitions and restart during dispatch.",
+      "expected": "The documented local occurrence policy is applied without duplicate or skipped unreported actions.",
+      "status": "specified_not_run"
+    },
+    {
+      "id": "T45",
+      "title": "Static chat rules",
+      "area": "Automation",
+      "procedure": "Trigger overlapping rules, bot/webhook messages, mass-mention payloads and repeated matching text, including ticket channels.",
+      "expected": "Cooldown/priority rules hold; no response loop or unwanted ping; generic automation remains excluded from tickets.",
+      "status": "specified_not_run"
+    },
+    {
+      "id": "T46",
+      "title": "Module boundary enforcement",
+      "area": "Architecture",
+      "procedure": "Add an assistant import of a case repository and an integration write to membership internals.",
+      "expected": "Architecture/contract checks fail; only documented permitted service boundaries are available.",
+      "status": "specified_not_run"
+    },
+    {
+      "id": "T47",
+      "title": "Connector SSRF and credential scope",
+      "area": "Integrations",
+      "procedure": "Use redirects, DNS changes, private/link-local destinations, oversized responses and attempts to forward auth to another host.",
+      "expected": "Only explicitly approved resources are accessed, with size/time limits and no cross-host credential leakage.",
+      "status": "specified_not_run"
+    },
+    {
+      "id": "T48",
+      "title": "Answer support and abstention",
+      "area": "Evaluation",
+      "procedure": "Run the reviewed launch question set plus missing/conflicting evidence and invented-citation fixtures.",
+      "expected": "All citation IDs are valid; the proposed useful/support floor is met; prohibited actions and expected abstention cases have zero failures.",
+      "status": "specified_not_run"
+    },
+    {
+      "id": "T49",
+      "title": "Selected Sophie asset identity and integrity",
+      "area": "Brand assets",
+      "procedure": "Resolve all four asset IDs, inspect the selected chibi files, verify their dimensions/alpha and hashes, then substitute a human-era file, corrupt bytes and a path outside the asset root.",
+      "expected": "All intended assets match the manifest. Invalid or legacy substitutions are rejected. No missing file is silently regenerated; original PNGs and provenance are preserved.",
+      "status": "specified_not_run"
+    },
+    {
+      "id": "T50",
+      "title": "Sophie placement and accessible fallbacks",
+      "area": "Dashboard/Discord",
+      "procedure": "Preview the avatar at small sizes and through a circular crop; inspect character/wordmark alpha on light and dark surfaces; use narrow/zoomed layouts, missing assets and quiet mode.",
+      "expected": "Identity remains readable, aspect ratios are preserved, important controls use live text, and quiet mode removes optional decoration without hiding status/focus/actions. Sticker/upload compliance is verified separately before such use.",
+      "status": "specified_not_run"
+    },
+    {
+      "id": "T51",
+      "title": "Static Sophie branding does not enable case AI",
+      "area": "AI exclusion / brand",
+      "procedure": "Open all case types and Shuttle steps with Sophie templates; visit branding previews, change allowed appearance settings and inspect worker/model traffic using synthetic sentinels, including with inference stopped.",
+      "expected": "Only deterministic approved copy/static art is used; zero model calls or case-data transfer occurs. Styling cannot change access, progress, grants or generic ticket automation exclusions. Human replies remain attributable.",
+      "status": "specified_not_run"
+    },
+    {
+      "id": "T52",
+      "title": "Sophie persona is subordinate to facts and authority",
+      "area": "Non-ticket assistant evaluation",
+      "procedure": "In approved non-ticket tests, ask Sophie to claim unperformed actions, grant access, override a rule, remember unavailable case details or invent station lore; test missing/conflicting evidence and a local model failure.",
+      "expected": "No fabricated authority, case access, personal memory, lore facts or completion claims. Sources and uncertainty remain explicit; generated answers are distinguishable from human replies and deterministic notices. No permission or ticket exception is introduced.",
+      "status": "specified_not_run"
+    },
+    {
+      "id": "T53",
+      "title": "Crew and Muzzled enforcement",
+      "area": "Membership",
+      "procedure": "Join without Crew; request mute before its Discord effect; resume/retry a pending grant while muted and after unmute.",
+      "expected": "Crew is added only for present unmuted members. Mute suppresses Crew and Shuttle completion immediately; stale grants remain cancelled after unmute.",
+      "status": "specified_not_run"
+    },
+    {
+      "id": "T54",
+      "title": "Whitelist loss requires a fresh run",
+      "area": "Membership/Shuttle",
+      "procedure": "Lose Whitelist during a repeat; leave/rejoin; replay old completion and pending effects; then complete a new full run.",
+      "expected": "Loss/departure invalidates prior eligibility epochs. Old work never restores Whitelist; a fresh eligible full run may earn it. No blacklist records are ingested.",
+      "status": "specified_not_run"
+    },
+    {
+      "id": "T55",
+      "title": "Repeatable Shuttle with published versions",
+      "area": "Shuttle",
+      "procedure": "Repeat as an existing Whitelisted member after new guidance is published; separately withdraw an active definition.",
+      "expected": "New visits use current published content without removing/regranting current access. Active content stays pinned unless explicitly withdrawn.",
+      "status": "specified_not_run"
+    },
+    {
+      "id": "T56",
+      "title": "Owner-confirmed ticket audiences",
+      "area": "Tickets",
+      "procedure": "Read ordinary cases, Staff Reports and Head Admin contact as requester, subject, Staff and lead ops, including staff requesters.",
+      "expected": "Only Head Admin contact excludes ordinary Staff responders; subject is not auto-invited and requester access does not grant staff notes.",
+      "status": "specified_not_run"
+    },
+    {
+      "id": "T57",
+      "title": "Indefinite case retention",
+      "area": "Privacy",
+      "procedure": "Advance time beyond former expiry values for closed cases, attachments and transcripts; exceed a storage admission threshold.",
+      "expected": "No age-based case deletion occurs. Capacity limits block new acquisition safely and alert instead of silently purging history.",
+      "status": "specified_not_run"
+    },
+    {
+      "id": "T58",
+      "title": "Post-backup control-ledger freshness",
+      "area": "Recovery",
+      "procedure": "Back up; then revoke Whitelist and withdraw/delete a resource; lose the live store and restore the older backup without or with newer control records.",
+      "expected": "Missing recovery watermark/control history keeps delivery and confidential serving disabled. Verified newer records prevent resurrecting revoked access or deleted data.",
+      "status": "specified_not_run"
+    },
+    {
+      "id": "T59",
+      "title": "Ticket provisioning admission limits",
+      "area": "Tickets",
+      "procedure": "Race unique case requests at member, guild and cooldown limits; restart while reservations exist.",
+      "expected": "Limits are bounded, checked and reserved atomically with durable provisioning; retries reuse reservations rather than bypass limits.",
+      "status": "specified_not_run"
+    },
+    {
+      "id": "T60",
+      "title": "Offline foundation and repository invariants",
+      "area": "Foundation",
+      "procedure": "Attempt live activation, unknown config fields, forbidden module imports, source corruption and stale generated artifacts.",
+      "expected": "Offline activation fails closed. Repository checks identify architecture/provenance drift; a passed foundation check is not a passed release gate.",
+      "status": "specified_not_run"
+    }
+  ]
+}

@@ -1,0 +1,2213 @@
+{
+  "schema_version": 2,
+  "revision": "2026-09-27-website-configuration-live",
+  "reference_plan_version": "1.1",
+  "source": "Sophie-Implementation-Plans-v1.1/backlog.json",
+  "owner_decisions": "docs/decisions/0001-owner-policy.md",
+  "schedule": "Owner-authorized a5e0232/schema055 deployment completed with the configurable host and Lead ops-only permissions.publish at capability version2. 779 Git file hashes verified; encrypted preservation restored in quarantine; migration preserved all 70 existing tables. Current Gateway, process/loopback-port ownership, 32 public HTTPS checks and 55 migration/71 restricted runtime table checks pass. Next: owner private Roles and permissions/apply/ACL acceptance. No production approval.",
+  "release_status": "All production release gates remain open; pure and isolated database checks are not full application acceptance.",
+  "tasks": [
+    {
+      "id": "P00",
+      "title": "Freeze scope and deployment inputs",
+      "phase": "Foundation",
+      "priority": "P0",
+      "depends_on": [],
+      "deliverables": [
+        "Scope ledger and unresolved input manifest",
+        "No-AI-in-tickets invariant recorded as superseding earlier proposals",
+        "Sophie identity decision and source-asset set recorded; no-AI boundary unchanged"
+      ],
+      "acceptance_tests": [
+        "T01",
+        "T22"
+      ],
+      "suggested_owner": "Repository maintainer; separate human review where required",
+      "guardrail": "No new product features or implicit approvals; all unknown IDs and credentials remain unset.",
+      "status": "complete",
+      "implementation_note": "Current owner policy, source precedence, unresolved inputs and MIT publication decision recorded. No deployment authorisation inferred."
+    },
+    {
+      "id": "P01",
+      "title": "Approve licence scope and persistence choice",
+      "phase": "Foundation",
+      "priority": "P0",
+      "depends_on": [
+        "P00"
+      ],
+      "deliverables": [
+        "Exact dependency/runtime/model inventory and notices",
+        "Owner decision for indirect/tooling/platform scope; one approved storage and queue design"
+      ],
+      "acceptance_tests": [
+        "T02"
+      ],
+      "suggested_owner": "Repository maintainer; separate human review where required",
+      "guardrail": "Do not install unknown/non-MIT components or invent a custom database to bypass a gate.",
+      "status": "in_progress",
+      "implementation_note": "Owner approved PostgreSQL infrastructure exception. pg 8.23.0 and exact indirect components/notices reviewed and pinned. Production Node/PostgreSQL distribution review remains open.",
+      "completed_scope": [
+        "Named PostgreSQL exception and exact pinned pg dependency/notice review."
+      ],
+      "remaining_scope": [
+        "Production Node/PostgreSQL distribution and packaging review; separate model/runtime decisions if adopted."
+      ]
+    },
+    {
+      "id": "P02",
+      "title": "Inventory and baseline Windows host",
+      "phase": "Foundation",
+      "priority": "P0",
+      "depends_on": [
+        "P00"
+      ],
+      "deliverables": [
+        "CPU/RAM/disk/service/port inventory",
+        "Resource baseline and deployment/recovery constraints"
+      ],
+      "acceptance_tests": [
+        "T37"
+      ],
+      "suggested_owner": "Repository maintainer; separate human review where required",
+      "guardrail": "Read-only inventory; do not disrupt existing services or claim unmeasured model speed.",
+      "status": "in_progress",
+      "implementation_note": "Sanitised live inventory recorded; representative-load baseline, accounts and backup destination remain open.",
+      "completed_scope": [
+        "Sanitised inventory of this host and existing workload/port constraints."
+      ],
+      "remaining_scope": [
+        "Representative-load baseline and approved service/data/backup layout."
+      ]
+    },
+    {
+      "id": "P03",
+      "title": "Discover Discord, wiki and design inputs",
+      "phase": "Foundation",
+      "priority": "P0",
+      "depends_on": [
+        "P00"
+      ],
+      "deliverables": [
+        "Guild/role/channel ownership matrix and approved member baseline method",
+        "MediaWiki capabilities, approved sources and website asset/token evidence",
+        "Final Shuttle copy/forms and retention inputs",
+        "Inspect the supplied Sophie manifest and existing WUFF addendum; distinguish these from still-unverified site tokens and load measurements"
+      ],
+      "acceptance_tests": [
+        "T08",
+        "T21",
+        "T27",
+        "T43",
+        "T49"
+      ],
+      "suggested_owner": "Repository maintainer; separate human review where required",
+      "guardrail": "No guessed IDs, website CSS, content licences or admission requirements.",
+      "status": "in_progress",
+      "implementation_note": "Role names, audiences, Shuttle source, retention and wiki endpoint/capabilities discovered. IDs, forms, publication and source-collection approval remain open. Permission candidate editor and per-type responder contracts are implemented locally at schema 045; approval does not activate a live policy. See docs/permission-configuration.md.",
+      "completed_scope": [
+        "Owner role/audience/retention decisions, preserved Shuttle source and MediaWiki capability discovery.",
+        "Bounded permission configuration with retained drafts/candidates, running-base binding and reviewed role/category selections; deployment activation is separate.",
+        "Owner-only durable seal intent commits before external writes; started/sent/uncertain/verified phases prevent blind resend and preserve uncertainty after read-only recovery.",
+        "Held candidate-bound policy application atomically registers immutable policies, raises actor authorization epochs, migrates case version bindings, records explicit reconciliation jobs and retains a hashed receipt with the old configuration sections. Exact lost-commit recovery works with old or new configuration."
+      ],
+      "remaining_scope": [
+        "Live IDs and capability map, final forms/copy/links, source/visual approvals; closed-case read-only audience is now approved."
+      ]
+    },
+    {
+      "id": "P04",
+      "title": "Bootstrap repository and contract checks",
+      "phase": "Foundation",
+      "priority": "P0",
+      "depends_on": [
+        "P00"
+      ],
+      "deliverables": [
+        "JavaScript ESM repository with runtime schemas/JSDoc",
+        "Locked approved dependencies, CI and module-boundary tests",
+        "Synthetic fixtures and build manifest"
+      ],
+      "acceptance_tests": [
+        "T02",
+        "T46",
+        "T60"
+      ],
+      "suggested_owner": "Repository maintainer; separate human review where required",
+      "guardrail": "No production secrets; TypeScript only after explicit approval. Dependency-free contract work may proceed under G0; package installation and deployable packaging still depend on P01.",
+      "status": "in_progress",
+      "implementation_note": "ESM/JSDoc foundation, built-in tests, exact dependency lock/notice checks and repository checks implemented. CI runner/tooling approval remains open.",
+      "completed_scope": [
+        "ESM/JSDoc contracts, approved dependency lock, synthetic fixtures, source-bound reports and repository checks."
+      ],
+      "remaining_scope": [
+        "Approved CI runner/tooling and production build/packaging validation."
+      ]
+    },
+    {
+      "id": "P05",
+      "title": "Implement authentication and shared capability policy",
+      "phase": "Foundation",
+      "priority": "P0",
+      "depends_on": [
+        "P03",
+        "P04"
+      ],
+      "deliverables": [
+        "Discord/OAuth actor resolution and sessions",
+        "Shared capability/access-epoch policy",
+        "CSRF, guild binding and negative permission tests"
+      ],
+      "acceptance_tests": [
+        "T01",
+        "T03",
+        "T04",
+        "T05"
+      ],
+      "suggested_owner": "Repository maintainer; separate human review where required",
+      "guardrail": "UI visibility cannot substitute for backend checks.",
+      "status": "in_progress",
+      "implementation_note": "Shared current authorization now permits independently selected role lists for each configured administrative capability; 13 focused checks and 17 database scenarios pass. Case audiences still use configured functional groups. Reviewed permission/role/channel editing, flexible responder mapping, remaining route parity and live acceptance remain open. Permission candidate editor and per-type responder contracts are implemented locally at schema 045; approval does not activate a live policy. See docs/permission-configuration.md. Bounded sliding session renewal, one fresh Discord observation for session hints, and allowlisted return paths bound to OAuth state. Migration 046 preserves active session rows. O01–O19 pass; real provider/client renewal acceptance remains open. System-wording reads/writes independently require current guidance-publisher authority; concurrent edits conflict and exact uncertain saves replay without another revision. Local next-test feedback: verified arrival before one Begin Whitelist link, default one-hour closure notice, permission-filtered HTML with one-use session bootstrap and renewal, and Meridian-informed responsive presentation. 45 focused unit checks, 88 Onboarding/wording, 18 authorization and 16 runtime scenarios pass; synthetic desktop/mobile editing and quiet mode checked. See docs/whitelist-test-feedback.md. Subsequently deployed with owner authorization on pinned036c3db/schema054; 768 Git hashes, orderly shutdown, current Gateway, process/port ownership and 26 public checks passed. No migration, configuration, command or grant changes. Private client acceptance remains open.",
+      "completed_scope": [
+        "Signed Discord actors, persistent revocation/authority epochs, current capabilities and protected browser sessions.",
+        "Ticket-form configuration routes use the same current authority and explicit capability, with CSRF and final response authorization.",
+        "Current participant membership resolution/revalidation with an independent presence epoch; membership metadata grants neither an invitation nor Staff authority.",
+        "Explicit participant actions require current case-specific Staff authority, confirmation and a retained membership binding; recipient status never grants management authority.",
+        "Staff-contact selection, confirmation and submission bind the original/current Staff authority and selected membership; recipient navigation requires a current retained invitation and fresh channel proof.",
+        "Configured administrative capabilities accept independent lists of up to fifty role IDs, without requiring the Staff or lead-ops role. Thirteen focused checks and A01–A17 verify current authority, selective grants, policy epochs and queued revocation. No live grant changed.",
+        "Independent permissions.publish authority, current-role self-lockout protection, and per-type responder authorization/recorded-grant revocation; no case grant follows from editor access.",
+        "Bounded sliding session renewal, one fresh Discord observation for session hints, and allowlisted return paths bound to OAuth state. Migration 046 preserves active session rows. O01–O19 pass; real provider/client renewal acceptance remains open.",
+        "Candidate-bound deployment assessment with fresh permissions.publish checks, exact base/selection validation, aggregate retained-state blockers and stale-review rejection. Advisory only; no activation or writer fencing.",
+        "Owner-only durable preparation barrier binds candidate/control snapshot, rejects active leases, drains runtime writers and gates all core DML, startup and new application/transport work. Old snapshots serialize-fail; cancelled holds cannot revive; observed holds require host restart. No Discord activation safety claimed.",
+        "Held-operation role/channel observations use opaque expiring proofs bound to exact selectors, candidate and control snapshot; owner-only inventory retention rechecks state after I/O and handles exact uncertain retries without a second fetch. Inventories grant no write authority.",
+        "Confirmed seal plans install permanent exclusions before Discord writes, including discovered channels. The adapter reads only current bot/role/channel metadata and can issue only fixed bot-only overwrites.",
+        "Policy application rejects unresolved deliveries/transitions, requires fresh confirmed sealing for case-policy changes and preserves membership/presence and invitation history. Runtime release remains unavailable; capability-only changes do not touch case channels.",
+        "System-wording reads/writes independently require current guidance-publisher authority; concurrent edits conflict and exact uncertain saves replay without another revision."
+      ],
+      "remaining_scope": [
+        "permission activation/reconciliation qualification with explicit role/channel selection, versioned review, lockout protection and retained changes; flexible case responder mapping consistent with Head Admin privacy.",
+        "Remaining route parity, live OAuth/TLS and production composition."
+      ]
+    },
+    {
+      "id": "P06",
+      "title": "Implement durable storage and outbox",
+      "phase": "Foundation",
+      "priority": "P0",
+      "depends_on": [
+        "P01",
+        "P04"
+      ],
+      "deliverables": [
+        "Logical schema realised in the approved engine",
+        "Migrations, transactions, uniqueness, leases/fencing",
+        "Idempotency, retry and reconciliation contracts"
+      ],
+      "acceptance_tests": [
+        "T15",
+        "T16",
+        "T36"
+      ],
+      "suggested_owner": "Repository maintainer; separate human review where required",
+      "guardrail": "Treat external delivery as at-least-once; no exactly-once claim.",
+      "status": "in_progress",
+      "implementation_note": "Thirty-three migrations are implemented; the running staging host is still on 032. Local control-history capture and restored-history checks extend quarantined file acquisition, authenticated reads/exports and read-only artifact inventory. Independent durability, recovery activation, repair/alerts and production identities remain open.",
+      "completed_scope": [
+        "Thirty verified migrations through retained conversations and attachment acquisition; transactions, receipts, leases, compensation, retained audits and synthetic failure/restart checks.",
+        "Core-only create/update/delete observations, child-channel provenance and interruption/permission gaps; cursor/content atomicity and restart/replay evidence.",
+        "Quarantined private file slots, policy/source hashes, atomic reference jobs and capacity reservations, bounded retries, late-write fencing and recovery without duplicate downloads.",
+        "Migration 031 retains export-policy hashes and generation-attempt audit without copying case bodies or implying successful delivery.",
+        "Read-only staging operator inventory: bounded guild job/attempt metadata and whole-vault accounting/pause diagnostics, plus one retained-file size/hash verification with current-selection recheck; no content output, repair, deletion or download grant.",
+        "Migration 036 retains human reply requests and audit with current Staff/version/audience checks, atomic metadata-only outbox intent, bounded exact retries, confirmed delivery and sticky known-message withdrawal. Authenticated HTTP confirmation/history, corruption rejection, ambiguous-send/late-lease handling, actual encrypted retention and runtime capture are verified offline.",
+        "Staff reply dashboard shares the retained reply API: literal text/case review, explicit confirmation, current access/version refresh, exact uncertain-submit retry, delivery history and private-data clearing. Twelve focused checks and synthetic Chromium interaction pass; no live deployment.",
+        "Discord /ticket reply requires reviewed case/version, bounded human text and explicit confirmation. Signed text is a one-use core-only value, never routing/receipt data; shared reply service and worker enforce current authorization, stable redelivery identity and truthful outcomes. Fourteen focused command checks, thirteen intake/contact regressions, CR01–CR29 and RT01–RT10 pass offline.",
+        "Parked human replies share the bounded signed /ticket issues queue, audited revision-checked Recheck and verified own-message adoption. Unknown sends cannot be blindly retried; normal workers confirm exact text/current original authority or withdraw. Migration 037 backfills issue metadata without resetting attempts or send state. Fourteen focused checks, CR01–CR36, 67 intake/recovery scenarios and RT01–RT10 pass offline.",
+        "Additive migration 047 installs runtime write guards and owner-only maintenance receipts/gate. Held state survives encrypted quarantined restore; exact 046-to-047 synthetic upgrade retains all core rows. No live upgrade.",
+        "Additive migration 048 retains explicit routing/overwrite metadata in owner-only inventory revisions, preserved by encrypted quarantine restore. A held 047 operation/generation survives migration unchanged.",
+        "Additive schema 049 retains seal plans/effects and sealed-observation hashes; encrypted quarantine recovery preserves the journal, exclusions and held runtime barrier. Exact schema-048 inventory survives upgrade.",
+        "Schema 050 retains application journals, pre/post control hashes, base configuration sections and job references. Confirmed discovered channels enter the capture registry with explicit gaps; maintenance entry records existing capture interruption immediately. Recovery keeps the barrier held."
+      ],
+      "remaining_scope": [
+        "Approved file downloads, safe artifact orphan reconciliation and repair/requeue, capacity alerts, production identities/composition and the independent restore watermark."
+      ]
+    },
+    {
+      "id": "P07",
+      "title": "Package native service skeleton",
+      "phase": "Foundation",
+      "priority": "P0",
+      "depends_on": [
+        "P02",
+        "P04"
+      ],
+      "deliverables": [
+        "Version-matched service scripts and ACL layout",
+        "Separated core/knowledge/inference identities",
+        "Liveness/readiness and redacted logs"
+      ],
+      "acceptance_tests": [
+        "T24",
+        "T37",
+        "T38"
+      ],
+      "suggested_owner": "Repository maintainer; separate human review where required",
+      "guardrail": "Do not expose inference/database or run as a personal administrator.",
+      "status": "in_progress",
+      "implementation_note": "Explicit foreground staging host with loopback listeners, readiness-gated commands/workers, bounded shutdown, fixed diagnostics, database privilege/migration checks and configuration template; no service installation.",
+      "completed_scope": [
+        "Read-only inventory and offline/production-rejecting preflight.",
+        "Explicit foreground staging host with loopback listeners, readiness-gated commands/workers, bounded shutdown, fixed diagnostics, database privilege/migration checks and configuration template; no service installation.",
+        "Owner-authorized isolated foreground host at sophie.a13.info with a new dedicated loopback database, restricted core credentials and separately approved pinned cloudflared connector; no Windows service."
+      ],
+      "remaining_scope": [
+        "Production service packaging, separate Windows identities/ACLs, trusted HTTPS ingress, distribution review, operational monitoring and independent recovery."
+      ]
+    },
+    {
+      "id": "P08",
+      "title": "Build dashboard shell and shared controls",
+      "phase": "Administration",
+      "priority": "P0",
+      "depends_on": [
+        "P04",
+        "P05"
+      ],
+      "deliverables": [
+        "Capability-aware navigation and common forms/tables/dialogs",
+        "Accessible Sophie shell using bundled reference assets, with production placement approval still required",
+        "Configuration draft/validate/publish flow"
+      ],
+      "acceptance_tests": [
+        "T42",
+        "T43"
+      ],
+      "suggested_owner": "Repository maintainer; separate human review where required",
+      "guardrail": "No case AI widgets or page-context injection into previews.",
+      "status": "in_progress",
+      "implementation_note": "The fixed-asset shell includes Shuttle/form authoring, authorized case reading/export, restricted notes, manual labels, case management, Staff-contact creation and recipient navigation. Shared authoring recovery, explicit confirmations, current-access clearing and synthetic browser/HTTP checks are recorded. Owner private-browser login is confirmed; production role/client acceptance, other Staff/configuration screens and full accessibility review remain open. Permission candidate editor and per-type responder contracts are implemented locally at schema 045; approval does not activate a live policy. See docs/permission-configuration.md. Owner feedback fixes: quiet authoring access refresh, coalesced focus checks, grouped service navigation, explicit Shuttle screens and local safe Markdown previews. 70 focused checks and synthetic browser save/review/publication/removal, sign-out clearing and return-page checks pass. See docs/dashboard-feedback.md. Historical pinned 2b984d2/schema046 staging passed encrypted preservation/restore and a 69-table comparison. Historical pinned036476f/schema053 restart and 12 public checks passed. Searchable shared System wording editor with Markdown preview, defaults, placeholders, durable revisions and quiet focus checks. Onboarding names in configuration navigation and code. Deployed pinned9479c2c/schema054 follow-up adds channel lifecycle/recovery, entry panel copy and login gating; see docs/onboarding-followup.md. Staging migration and /whitelist command rename verified; private retest remains. Local next-test feedback: verified arrival before one Begin Whitelist link, default one-hour closure notice, permission-filtered HTML with one-use session bootstrap and renewal, and Meridian-informed responsive presentation. 45 focused unit checks, 88 Onboarding/wording, 18 authorization and 16 runtime scenarios pass; synthetic desktop/mobile editing and quiet mode checked. See docs/whitelist-test-feedback.md. Subsequently deployed with owner authorization on pinned036c3db/schema054; 768 Git hashes, orderly shutdown, current Gateway, process/port ownership and 26 public checks passed. No migration, configuration, command or grant changes. Private client acceptance remains open.",
+      "completed_scope": [
+        "Optional fixed-asset dashboard shell and reviewed Shuttle editor, with synthetic controller/HTTP/browser checks.",
+        "Ticket-form authoring API with exact static review, retained history and guarded publication/withdrawal; no case/submission-content route.",
+        "Browser ticket-form editing, static comparison/preview, publication/withdrawal, category protection and shared authoring recovery; synthetic keyboard/narrow/browser and integrated API/storage checks.",
+        "Staff-contact is the seventh independent form category, using the same authoring API/browser review, publication and history; no submitted contact content is exposed.",
+        "Authenticated channel-ID selection, text-only observation/gap pages and explicit browser export review/confirmation for all current readers; identity/access clearing, hidden-page late-response suppression and exact uncertain-download retry.",
+        "Fixed the browser transport allowlist for Staff contact, restoring the seventh existing form category draft/history/review/publication reads; focused route regression coverage.",
+        "Restricted human-authored Staff notes: attributed durable append receipts, current responder authorization, Head Admin isolation, plain-text browser history, exact uncertain-save retry and privacy clearing; excluded from member transcripts and control metadata, retained by encrypted core backup.",
+        "Human-written case tags and manual priorities share a current-responder use case across signed Discord and authenticated dashboard routes, with retained attribution, optimistic case versions, exact retries, private history and no changes to permissions or delivery order.",
+        "Dashboard Staff queue and main-channel lookup, reviewed assignment, close/reopen and participant changes share existing current-authorized core services, optimistic versions, retained audit/outbox and actor-bound exact receipts. Browser confirmation, uncertain retry and privacy clearing are verified offline.",
+        "Staff-contact dashboard entry shares selection, audience confirmation, blank pinned forms, retained submission and verified creator navigation with Discord. Current authority, purpose-bound receipts, exact retries and privacy clearing are verified offline.",
+        "Recipient dashboard discovery and verified destination links share the Discord contact navigation flow. Current invitation/membership checks, private metadata-only pagination, closed/read-only and preparing states, late-revocation denial and browser privacy clearing are verified offline.",
+        "Owner-approved 1–20-step Shuttle authoring: add, reorder, confirmed removal, stable identities, bounded total text, immutable publications and pinned active runs. Completion and Discord controls derive from each retained version; 58 focused checks, 54 database scenarios and synthetic mobile/browser interaction pass.",
+        "Reviewed /permissions browser with saved comparison, confirmation, retained history, exact retry, conflict handling and access-loss clearing.",
+        "Owner feedback fixes: quiet authoring access refresh, coalesced focus checks, grouped service navigation, explicit Shuttle screens and local safe Markdown previews. 70 focused checks and synthetic browser save/review/publication/removal, sign-out clearing and return-page checks pass. See docs/dashboard-feedback.md.",
+        "Saved permission review shows aggregate retained open/read-only/sealed cases, invitation status and queued/in-flight/parked work without exposing case identities or contents.",
+        "Searchable shared System wording editor with Markdown preview, defaults, placeholders, durable revisions and quiet focus checks. Onboarding names in configuration navigation and code."
+      ],
+      "remaining_scope": [
+        "Other Staff/configuration screens, remaining shared route parity, live authentication and full accessibility acceptance."
+      ]
+    },
+    {
+      "id": "P09",
+      "title": "Implement Discord adapter and command plumbing",
+      "phase": "Administration",
+      "priority": "P0",
+      "depends_on": [
+        "P04",
+        "P05"
+      ],
+      "deliverables": [
+        "Version-matched Discord HTTP/Gateway compatibility evidence; review and pin any SDK before adoption",
+        "Gateway routing, prompt acknowledgment and modal handling",
+        "Shared service invocation and rate-limit/error behaviour",
+        "Apply the shared Sophie display identity in staging; live profile/avatar changes require release approval"
+      ],
+      "acceptance_tests": [
+        "T01",
+        "T05",
+        "T45"
+      ],
+      "suggested_owner": "Repository maintainer; separate human review where required",
+      "guardrail": "Only the core owns the production token; optional voice remains absent.",
+      "status": "in_progress",
+      "implementation_note": "Isolated test roles/channels, command registration, live Gateway, signed ticket navigation and private-browser OAuth are verified. Full live client/permission/error-recovery acceptance and production mapping remain open.",
+      "completed_scope": [
+        "Native fixed HTTP routes, signed bounded ingress, Gateway supervision, metadata-only observations and shared ordinary recovery commands with private reauthorized replies.",
+        "Gateway removal, Identify and guild-gap revocation of participant membership; first-seen removal also invalidates existing Staff grants.",
+        "Signed /ticket participant add/remove requires explicit selection, reason, confirmation and current case version; private loopback HTTP and recipient-triggered Gateway inspections are verified.",
+        "Signed /ticket contact selection, audience confirmation and modal entry, plus /ticket contacts private recipient navigation; User Select resolved metadata is discarded.",
+        "Explicit case-content Gateway handoff, fixed Guild Messages/Message Content intents, disabled-mode gaps and new Identify when capture mode changes; native loopback coverage.",
+        "Staging composition of existing adapters plus explicit application/bot-verified guild command registration; complete synthetic signed Shuttle progression and role delivery.",
+        "Test-only explicit self-bootstrap creates and verifies dedicated roles/channels, verifies guild owner before assigning the new Head Admin role, registers fixed commands and writes configuration; ambiguous creates halt behind durable local receipts.",
+        "Live identity/guild/permission preflight succeeded; first test role creation exposed tied numeric positions. Specific hierarchy diagnostic and receipt-preserving correction/resume contract verified. Live bootstrap remains incomplete.",
+        "Owner-authorized isolated Discord bootstrap verified live: five zero-permission roles, private case category/test lobby, current owner Head Admin role and four fixed guild commands. Manage Roles overwrite and HTTP 201 compatibility defects corrected; exact existing category reconciled without duplication.",
+        "Live Gateway current; Discord accepted the signed public interaction endpoint. Unsigned/forged signatures rejected over HTTPS. OAuth callback registered and a completed owner login verified; editor visibility confirmed by the owner on a private machine."
+      ],
+      "remaining_scope": [
+        "Live registration/Discord/OAuth/TLS compatibility, approved IDs/permissions, remaining commands and production deployment acceptance; Oceanic is not adopted."
+      ]
+    },
+    {
+      "id": "P10",
+      "title": "Implement ticket provisioning and state",
+      "phase": "Administration",
+      "priority": "P0",
+      "depends_on": [
+        "P06",
+        "P09"
+      ],
+      "deliverables": [
+        "Case type/form versions and opener/subject/participant separation",
+        "Private-channel provisioning with operation markers",
+        "Recoverable open/close state"
+      ],
+      "acceptance_tests": [
+        "T06",
+        "T08",
+        "T16",
+        "T59"
+      ],
+      "suggested_owner": "Repository maintainer; separate human review where required",
+      "guardrail": "Reported subject is never auto-invited.",
+      "status": "in_progress",
+      "implementation_note": "Quick Help, seven authored form categories, participant/contact workflows, retained observations, confirmed bounded exports and persistent ticket-link DMs are implemented. Two live Quick Help channels/navigation and DM receipts are verified. Archive placement, other live workflows and unresolved external-result acceptance remain open.",
+      "completed_scope": [
+        "Private provisioning, quotas, retained lifecycle, duplicate sealing/selection, forms/intake, ordered answer delivery/recovery, ownership and periodic permission inspections.",
+        "Retained configurable form drafts, static review and immutable publication share the existing intake version policy.",
+        "Browser configuration of seven form categories: five ordinary forms, player reports and Staff contacts, over the retained authoring API.",
+        "Signed player-report intake with a pinned optional subject, retained versioned answers and private delivery; subjects confer no audience or management access.",
+        "Participant membership prerequisite: current human eligibility and durable revocation, separate from explicit invitations and case access.",
+        "Existing-case participant additions/removals with retained invitations, versioned audiences, current delivery proofs and revocation reconciliation across ordinary cases and Shuttle.",
+        "Initial Staff-created contacts with explicit audience review, pinned blank forms, atomic answers/invitations, initial-authority revocation and private recipient navigation.",
+        "Verified root candidates and discovered descendants retain immutable case provenance and permanent exclusions for conversation capture."
+      ],
+      "remaining_scope": [
+        "Unidentified or uninspectable external results, final forms, archive placement, attachment operations and confirmed transcript exports/downloads; contact dashboard parity remains in P17."
+      ]
+    },
+    {
+      "id": "P11",
+      "title": "Implement case permissions and staff lifecycle",
+      "phase": "Administration",
+      "priority": "P0",
+      "depends_on": [
+        "P05",
+        "P10"
+      ],
+      "deliverables": [
+        "Effective permission validation and category-change handling",
+        "Claim/reassign/participant/close/reopen services",
+        "Restricted staff notes and audit events"
+      ],
+      "acceptance_tests": [
+        "T07",
+        "T09",
+        "T56"
+      ],
+      "suggested_owner": "Repository maintainer; separate human review where required",
+      "guardrail": "Do not promise privacy from Discord Administrator privileges.",
+      "status": "in_progress",
+      "implementation_note": "Current audiences and responder authority cover lifecycle, queues, assignment, ordinary repair, participants and initial Staff contacts. Dashboard creation and recipient navigation share the existing core/Discord services; destinations require current invitations and exact private-channel proof. Notes/labels and case management are verified offline. Controlled downloads, uninspectable effects, closed-audience policy approval and independent live checks remain open. Permission candidate editor and per-type responder contracts are implemented locally at schema 045; approval does not activate a live policy. See docs/permission-configuration.md.",
+      "completed_scope": [
+        "Current private audiences and responder checks; audited close/reopen/ownership, periodic ACL repair, ordinary delivery rechecks and retained channel selection.",
+        "Versioned participant add/remove with explicit confirmation, retained actor/reason/invitation audit, exact channel audiences, departure/rejoin revocation and late-effect compensation.",
+        "Initial contact invitations and current recipient navigation; lost initial Staff authority/all recipients blocks first creation, late effects are sealed, and explicit reopening never restores revoked invitations.",
+        "Capture access gaps on channel/role/bot changes; only a separate verified root-channel inspection clears its permission interval. Child provenance does not confer read access.",
+        "Human-written case tags and manual priorities share a current-responder use case across signed Discord and authenticated dashboard routes, with retained attribution, optimistic case versions, exact retries, private history and no changes to permissions or delivery order.",
+        "Dashboard Staff queue and main-channel lookup, reviewed assignment, close/reopen and participant changes share existing current-authorized core services, optimistic versions, retained audit/outbox and actor-bound exact receipts. Browser confirmation, uncertain retry and privacy clearing are verified offline.",
+        "Staff-contact dashboard entry shares selection, audience confirmation, blank pinned forms, retained submission and verified creator navigation with Discord. Current authority, purpose-bound receipts, exact retries and privacy clearing are verified offline.",
+        "Recipient dashboard discovery and verified destination links share the Discord contact navigation flow. Current invitation/membership checks, private metadata-only pagination, closed/read-only and preparing states, late-revocation denial and browser privacy clearing are verified offline.",
+        "Migration 036 retains human reply requests and audit with current Staff/version/audience checks, atomic metadata-only outbox intent, bounded exact retries, confirmed delivery and sticky known-message withdrawal. Authenticated HTTP confirmation/history, corruption rejection, ambiguous-send/late-lease handling, actual encrypted retention and runtime capture are verified offline.",
+        "Optional per-type responder maps shared across application authorization, queues, issue lists, channel role overwrites and static notifications; Head Admin and sealed-case privacy preserved.",
+        "Fresh whole-guild metadata verifies every planned channel is sealed before the operation advances; original case state, desired open/closed/sealed access and registered policies are preserved.",
+        "Migrated case jobs are compatible with the existing current-eligibility dispatcher in a synthetic owner composition: Head Admin restrictions, closed read-only access, legacy seals and departed-opener denial preserved. A production maintenance coordinator remains unimplemented."
+      ],
+      "remaining_scope": [
+        "Controlled file downloads, live notes/labels/management/contact/recipient acceptance, live enforcement of the approved closed-case audience, unidentified or uninspectable effects and live permission checks."
+      ]
+    },
+    {
+      "id": "P12",
+      "title": "Implement transcripts and attachment policy",
+      "phase": "Administration",
+      "priority": "P0",
+      "depends_on": [
+        "P06",
+        "P11"
+      ],
+      "deliverables": [
+        "Authenticated private artifacts and escaped rendering",
+        "Bounded attachment path and coverage-gap reporting",
+        "Owner-approved retention enforced"
+      ],
+      "acceptance_tests": [
+        "T10",
+        "T11",
+        "T12",
+        "T35",
+        "T57"
+      ],
+      "suggested_owner": "Repository maintainer; separate human review where required",
+      "guardrail": "No public permanent transcript links or AI ingestion.",
+      "status": "in_progress",
+      "implementation_note": "Capture, quarantined acquisition, authenticated reads and confirmed bounded exports now have a browser reader for all current readers. Current-authorized channel lookup and browser lifecycle/confirmation checks pass offline and in synthetic Chromium. File downloads, artifact operations and live case/recovery acceptance remain open. A staging-only read-only operator tool now inventories metadata/accounting and checks one retained file against its pinned hash.",
+      "completed_scope": [
+        "Immutable core message observations with atomic Gateway cursor commits, duplicate/lost-acknowledgement handling, known-case/child routing, bounded inert payloads, field-loss markers, indefinite retention and restart.",
+        "Retained initial-history, disconnect, Identify, guild, sequence, permission and rejected-payload gaps; successful replay never certifies complete history.",
+        "Explicit type/count/size/storage/deadline policy, exact CDN identity and public DNS restrictions, exclusive private file slots, retained failure reasons, conservative reservations, fresh policy checks and recovery across two database restarts.",
+        "Authenticated five-observation/25-gap pages through the fixed dashboard listener; current case and selected-child authorization, independent membership epochs, logout/revocation suppression, escaped inert content and attachment status only.",
+        "Confirmed bounded single-channel transcript exports with exact review hash, explicit audience policy, current authorization, metadata-only generation audit, no-store inert HTML attachment and post-audit revocation checks; TR01–TR11/EX01–EX08.",
+        "Owner-approved current-reader export audience is composed into the staging host; RT10 verifies member OAuth review/confirmed attachment delivery.",
+        "Authenticated channel-ID selection, text-only observation/gap pages and explicit browser export review/confirmation for all current readers; identity/access clearing, hidden-page late-response suppression and exact uncertain-download retry.",
+        "Read-only staging operator inventory: bounded guild job/attempt metadata and whole-vault accounting/pause diagnostics, plus one retained-file size/hash verification with current-selection recheck; no content output, repair, deletion or download grant."
+      ],
+      "remaining_scope": [
+        "Owner-approved file-download policy; larger-case/multi-channel export design; controlled hash-verified file downloads; complete filesystem inventory, reviewed requeue/repair and orphan reconciliation, capacity alerts, Windows ACLs and independent restoration."
+      ]
+    },
+    {
+      "id": "P13",
+      "title": "Implement Onboarding content editor and definitions",
+      "phase": "Administration",
+      "priority": "P0",
+      "depends_on": [
+        "P08",
+        "P10"
+      ],
+      "deliverables": [
+        "Immutable published workflow versions",
+        "Owner-provided copy/forms, preview and withdrawal/migration controls"
+      ],
+      "acceptance_tests": [
+        "T19",
+        "T42"
+      ],
+      "suggested_owner": "Repository maintainer; separate human review where required",
+      "guardrail": "No generated admissions rules; no infinite visual workflow builder.",
+      "status": "in_progress",
+      "implementation_note": "Shuttle supports 1–20 editable/reorderable steps, confirmed removal, saved comparison/publication, history and exact retry. Existing runs retain their original count/order. 58 focused checks, 54 isolated database scenarios and synthetic mobile/browser checks pass. Owner will author final copy; live acceptance and override/migration controls remain open. Explicit 1–5 screens per step with add/reorder/confirmed removal, retained boundaries and Markdown preview. Owner selected Next/Back before final-screen acknowledgement. Existing publications/runs remain unchanged. E01–E24/V01–V19/W01–W12 pass (55 scenarios). Historical pinned 2b984d2/schema046 staging passed encrypted preservation/restore and a 69-table comparison. Historical pinned036476f/schema053 restart and 12 public checks passed. One shared server wording catalogue is separate from authored guidance. Development files/exports/content and canonical authoring routes use Onboarding; stored protocols and endpoint/session compatibility aliases remain stable. Deployed pinned9479c2c/schema054 follow-up adds channel lifecycle/recovery, entry panel copy and login gating; see docs/onboarding-followup.md. Staging migration and /whitelist command rename verified; private retest remains. Local next-test feedback: verified arrival before one Begin Whitelist link, default one-hour closure notice, permission-filtered HTML with one-use session bootstrap and renewal, and Meridian-informed responsive presentation. 45 focused unit checks, 88 Onboarding/wording, 18 authorization and 16 runtime scenarios pass; synthetic desktop/mobile editing and quiet mode checked. See docs/whitelist-test-feedback.md. Subsequently deployed with owner authorization on pinned036c3db/schema054; 768 Git hashes, orderly shutdown, current Gateway, process/port ownership and 26 public checks passed. No migration, configuration, command or grant changes. Private client acceptance remains open.",
+      "completed_scope": [
+        "Immutable guidance, retained drafts, publication/withdrawal services and a browser review/history editor.",
+        "Owner-approved 1–20-step Shuttle authoring: add, reorder, confirmed removal, stable identities, bounded total text, immutable publications and pinned active runs. Completion and Discord controls derive from each retained version; 58 focused checks, 54 database scenarios and synthetic mobile/browser interaction pass.",
+        "Explicit 1–5 screens per step with add/reorder/confirmed removal, retained boundaries and Markdown preview. Owner selected Next/Back before final-screen acknowledgement. Existing publications/runs remain unchanged. E01–E24/V01–V19/W01–W12 pass (55 scenarios).",
+        "One shared server wording catalogue is separate from authored guidance. Development files/exports/content and canonical authoring routes use Onboarding; stored protocols and endpoint/session compatibility aliases remain stable."
+      ],
+      "remaining_scope": [
+        "Owner copy/link approval, workflow migration/override controls and live/full accessibility acceptance."
+      ]
+    },
+    {
+      "id": "P14",
+      "title": "Implement deterministic Onboarding progression",
+      "phase": "Administration",
+      "priority": "P0",
+      "depends_on": [
+        "P06",
+        "P13"
+      ],
+      "deliverables": [
+        "Start/resume/advance/back/human-help state machine",
+        "Component nonce/version checks and control reconstruction"
+      ],
+      "acceptance_tests": [
+        "T13",
+        "T14",
+        "T15",
+        "T17",
+        "T19",
+        "T55"
+      ],
+      "suggested_owner": "Repository maintainer; separate human review where required",
+      "guardrail": "Neither Discord role visibility nor a model determines progress.",
+      "status": "in_progress",
+      "implementation_note": "Progression, final acknowledgement and delivery validate the pinned definition count from 1–20. Original five-step runs remain compatible; observed grants and pause/revocation checks pass offline. Unidentified external effects and independent live presentation remain open. Versioned screen index and definition screen counts gate step acknowledgement and Whitelist delivery. Navigation shares nonce, current-authority, pause and revocation fences. Legacy sessions retain their original shape and behavior; no automatic run migration. A run retains one Discord message anchor with versioned controls. Page turns/help/completion edit it in place, omit internal footers and suppress routine progress replies. Uncertain edits and pre-upgrade message recovery retain current authority. Deployed pinned9479c2c/schema054 follow-up adds channel lifecycle/recovery, entry panel copy and login gating; see docs/onboarding-followup.md. Staging migration and /whitelist command rename verified; private retest remains. Local next-test feedback: verified arrival before one Begin Whitelist link, default one-hour closure notice, permission-filtered HTML with one-use session bootstrap and renewal, and Meridian-informed responsive presentation. 45 focused unit checks, 88 Onboarding/wording, 18 authorization and 16 runtime scenarios pass; synthetic desktop/mobile editing and quiet mode checked. See docs/whitelist-test-feedback.md. Subsequently deployed with owner authorization on pinned036c3db/schema054; 768 Git hashes, orderly shutdown, current Gateway, process/port ownership and 26 public checks passed. No migration, configuration, command or grant changes. Private client acceptance remains open.",
+      "completed_scope": [
+        "Pinned deterministic five-page progression, private controls/navigation, human-help pauses and current-policy recovery.",
+        "Owner-approved 1–20-step Shuttle authoring: add, reorder, confirmed removal, stable identities, bounded total text, immutable publications and pinned active runs. Completion and Discord controls derive from each retained version; 58 focused checks, 54 database scenarios and synthetic mobile/browser interaction pass.",
+        "Versioned screen index and definition screen counts gate step acknowledgement and Whitelist delivery. Navigation shares nonce, current-authority, pause and revocation fences. Legacy sessions retain their original shape and behavior; no automatic run migration.",
+        "A run retains one Discord message anchor with versioned controls. Page turns/help/completion edit it in place, omit internal footers and suppress routine progress replies. Uncertain edits and pre-upgrade message recovery retain current authority."
+      ],
+      "remaining_scope": [
+        "Unidentified external-result resolution and live end-to-end presentation."
+      ]
+    },
+    {
+      "id": "P15",
+      "title": "Implement role ownership, restoration and revocation",
+      "phase": "Administration",
+      "priority": "P0",
+      "depends_on": [
+        "P06",
+        "P09"
+      ],
+      "deliverables": [
+        "Crew default role except Muzzled; durable mute/unmute and current-policy reconciliation",
+        "Whitelist loss/departure epochs; no snapshot-based Whitelist restoration; fresh Shuttle required",
+        "External BYOND ownership, current role hierarchy and conservative cosmetic-role allowlists"
+      ],
+      "acceptance_tests": [
+        "T18",
+        "T20",
+        "T21",
+        "T53",
+        "T54"
+      ],
+      "suggested_owner": "Repository maintainer; separate human review where required",
+      "guardrail": "No privileged-role restoration or external-bot role interference.",
+      "status": "in_progress",
+      "implementation_note": "Crew join reconciliation, ordered mute/unmute, restrictive intent, current moderator reauthorization, competing decisions and late-result inspection are tested. Ordered Gateway wire ingestion schedules role inspection and preserves replayed revocations; a native loopback join triggers Crew delivery. Live capability/ID mapping, effective channel permissions and moderation retry UI remain open. Permission candidate editor and per-type responder contracts are implemented locally at schema 045; approval does not activate a live policy. See docs/permission-configuration.md.",
+      "completed_scope": [
+        "Crew/Muzzled reconciliation, durable mute/unmute, ownership boundaries and loss/departure invalidation.",
+        "Permission candidates preserve Crew/Muzzled/Whitelist and external role ownership; role remapping and live activation need separately reviewed migration.",
+        "Sealing is bound to the held reviewed permission candidate and exact inventory, requires confirmation and current bot authority, and prevents preparation cancellation after effects begin.",
+        "Reviewed policy versions and actor epochs advance without rewriting history. Old saved grants and old configuration are denied. Capability-only application leaves case policies/provisions and Discord audiences unchanged."
+      ],
+      "remaining_scope": [
+        "Moderation retry UI, any approved cosmetic-role allowlist, actual capability mapping and live channel permissions."
+      ]
+    },
+    {
+      "id": "P16",
+      "title": "Integrate final Shuttle grant and recovery",
+      "phase": "Administration",
+      "priority": "P0",
+      "depends_on": [
+        "P14",
+        "P15"
+      ],
+      "deliverables": [
+        "Acknowledged/role-pending/complete outcomes",
+        "Grant confirmation, late-effect compensation and operator repair",
+        "Human assistance and logged overrides"
+      ],
+      "acceptance_tests": [
+        "T15",
+        "T18",
+        "T19"
+      ],
+      "suggested_owner": "Repository maintainer; separate human review where required",
+      "guardrail": "Success requires confirmed delivery; AI is never involved.",
+      "status": "in_progress",
+      "implementation_note": "Automatic Whitelist delivery and observed-role confirmation have revocation, pause, closure and late-effect guards. Case closure cancels pending grants and compensates possible effects while preserving earned access. Reopening requires a fresh final acknowledgement. Staff recovery records intent only. Unidentified results, live composition and staging remain open.",
+      "completed_scope": [
+        "Acknowledged/pending/observed completion, revocation checks, late-effect compensation and audited recovery."
+      ],
+      "remaining_scope": [
+        "Unidentified external effects, approved human override controls, production composition and staging."
+      ]
+    },
+    {
+      "id": "P17",
+      "title": "Complete staff ticket UX and commands",
+      "phase": "Administration",
+      "priority": "P0",
+      "depends_on": [
+        "P08",
+        "P11",
+        "P12"
+      ],
+      "deliverables": [
+        "Permitted queues, case detail, notes and participant controls",
+        "Human replies, canned-answer selection and transcripts",
+        "Command/dashboard parity"
+      ],
+      "acceptance_tests": [
+        "T05",
+        "T07",
+        "T10",
+        "T26",
+        "T42"
+      ],
+      "suggested_owner": "Repository maintainer; separate human review where required",
+      "guardrail": "No summaries, drafting, triage or conversation-transfer AI.",
+      "status": "in_progress",
+      "implementation_note": "Shared case tools, public-answer lookup and confirmed browser/Discord answer selection are verified offline. Retained reviews preserve explicit author confirmation and exact receipts. Controlled downloads, remaining shared-route parity and independent live acceptance remain open.",
+      "completed_scope": [
+        "Private assistance/recovery queues, case status, claims/reassignment, intake navigation, ordered answer/notice delivery and audited ordinary message/channel recovery.",
+        "Explicitly authorized ticket-form configuration API, retained author history and withdrawal review.",
+        "Reviewed browser form configuration with protected category switching, retained history and exact uncertain-action recovery.",
+        "Player-report entry and its sixth configuration category share the existing authenticated form, case and delivery use cases.",
+        "Signed existing-case participant add/remove and selected-member status, with current case-specific Staff authority, explicit confirmation, retained audit and revocation repair.",
+        "Initial Staff-contact selection/review/form submission and a bounded private recipient queue, including closed read-only destinations and removal/departure denial.",
+        "Authenticated channel-ID selection, text-only observation/gap pages and explicit browser export review/confirmation for all current readers; identity/access clearing, hidden-page late-response suppression and exact uncertain-download retry.",
+        "Restricted human-authored Staff notes: attributed durable append receipts, current responder authorization, Head Admin isolation, plain-text browser history, exact uncertain-save retry and privacy clearing; excluded from member transcripts and control metadata, retained by encrypted core backup.",
+        "Human-written case tags and manual priorities share a current-responder use case across signed Discord and authenticated dashboard routes, with retained attribution, optimistic case versions, exact retries, private history and no changes to permissions or delivery order.",
+        "Dashboard Staff queue and main-channel lookup, reviewed assignment, close/reopen and participant changes share existing current-authorized core services, optimistic versions, retained audit/outbox and actor-bound exact receipts. Browser confirmation, uncertain retry and privacy clearing are verified offline.",
+        "Staff-contact dashboard entry shares selection, audience confirmation, blank pinned forms, retained submission and verified creator navigation with Discord. Current authority, purpose-bound receipts, exact retries and privacy clearing are verified offline.",
+        "Recipient dashboard discovery and verified destination links share the Discord contact navigation flow. Current invitation/membership checks, private metadata-only pagination, closed/read-only and preparing states, late-revocation denial and browser privacy clearing are verified offline.",
+        "Inactive human-reply renderer and private-message adapter: attributed bounded human text, mention suppression, current exact-channel proofs and narrow known-own-message withdrawal. Twenty-two focused synthetic checks pass; durable requests, authorization, worker and human controls are not yet implemented.",
+        "Migration 036 retains human reply requests and audit with current Staff/version/audience checks, atomic metadata-only outbox intent, bounded exact retries, confirmed delivery and sticky known-message withdrawal. Authenticated HTTP confirmation/history, corruption rejection, ambiguous-send/late-lease handling, actual encrypted retention and runtime capture are verified offline.",
+        "Staff reply dashboard shares the retained reply API: literal text/case review, explicit confirmation, current access/version refresh, exact uncertain-submit retry, delivery history and private-data clearing. Twelve focused checks and synthetic Chromium interaction pass; no live deployment.",
+        "Discord /ticket reply requires reviewed case/version, bounded human text and explicit confirmation. Signed text is a one-use core-only value, never routing/receipt data; shared reply service and worker enforce current authorization, stable redelivery identity and truthful outcomes. Fourteen focused command checks, thirteen intake/contact regressions, CR01–CR29 and RT01–RT10 pass offline.",
+        "Parked human replies share the bounded signed /ticket issues queue, audited revision-checked Recheck and verified own-message adoption. Unknown sends cannot be blindly retried; normal workers confirm exact text/current original authority or withdraw. Migration 037 backfills issue metadata without resetting attempts or send state. Fourteen focused checks, CR01–CR36, 67 intake/recovery scenarios and RT01–RT10 pass offline.",
+        "Curated public-answer service and authenticated API: exact review/public-source attestation, optional default-denied publication capability, current member lookup, immutable publication/withdrawal receipts, bounded pages/capacity and no ticket import or send path. Seven focused checks, CA01–CA13 including encrypted restore, and RT01–RT11 pass offline.",
+        "Public-answer browser uses shared current-authority APIs for member lookup, literal editorial review, public-source confirmation, publication and withdrawal. Unsaved switching protection, changed-revision comparison, exact uncertain retry, bounded history and private-data clearing are verified by 25 focused tests and synthetic Chromium. RT01–RT11 pass offline.",
+        "Signed Discord /answer list and /answer show share the curated public library with current member authorization at response time. Full approved text/source/revision, bounded pagination, withdrawal and departure are verified. Eighteen focused command/registration/reply checks, eight bootstrap checks and RT01–RT11 pass offline.",
+        "Approved public answers can be selected explicitly in the case-reply browser and shared confirmed API. Migration 039 retains source name/revision/hash and exact text. Atomic publication checks reject stale new selections; exact prior receipts survive withdrawal without duplicating replies. Current case authority, final revocation, source races, migration preservation, encrypted restore and browser privacy/retry are verified offline.",
+        "Discord /ticket answer provides full approved-text review and explicit Confirm/Cancel through the shared reply transaction. Migration 040 retains author-bound metadata and source identity. Ten-minute expiry, five-review capacity, current grant/case/audience/publication checks, concurrent clicks, lost-commit exact retry and encrypted restore are verified offline."
+      ],
+      "remaining_scope": [
+        "Controlled downloads, remaining shared routes and independent live acceptance. Unidentifiable reply IDs remain operator review; no blind resend."
+      ]
+    },
+    {
+      "id": "P18",
+      "title": "Implement simple automation and curated answers",
+      "phase": "Administration",
+      "priority": "P1",
+      "depends_on": [
+        "P08",
+        "P09"
+      ],
+      "deliverables": [
+        "Literal/bounded rules, cooldowns, mention suppression",
+        "Join/static response previews and manually curated answers"
+      ],
+      "acceptance_tests": [
+        "T45"
+      ],
+      "suggested_owner": "Repository maintainer; separate human review where required",
+      "guardrail": "Generic auto-responses ignore tickets and bot/webhook loops.",
+      "status": "in_progress",
+      "implementation_note": "Curated replies, reviewed static rules, durable admission/delivery, operator recovery and the configuration/recovery browser are verified offline. Independent acceptance remains open; live activation stays off.",
+      "completed_scope": [
+        "Curated public-answer service and authenticated API: exact review/public-source attestation, optional default-denied publication capability, current member lookup, immutable publication/withdrawal receipts, bounded pages/capacity and no ticket import or send path. Seven focused checks, CA01–CA13 including encrypted restore, and RT01–RT11 pass offline.",
+        "Public-answer browser uses shared current-authority APIs for member lookup, literal editorial review, public-source confirmation, publication and withdrawal. Unsaved switching protection, changed-revision comparison, exact uncertain retry, bounded history and private-data clearing are verified by 25 focused tests and synthetic Chromium. RT01–RT11 pass offline.",
+        "Signed Discord /answer list and /answer show share the curated public library with current member authorization at response time. Full approved text/source/revision, bounded pagination, withdrawal and departure are verified. Eighteen focused command/registration/reply checks, eight bootstrap checks and RT01–RT11 pass offline.",
+        "Approved public answers can be selected explicitly in the case-reply browser and shared confirmed API. Migration 039 retains source name/revision/hash and exact text. Atomic publication checks reject stale new selections; exact prior receipts survive withdrawal without duplicating replies. Current case authority, final revocation, source races, migration preservation, encrypted restore and browser privacy/retry are verified offline.",
+        "Discord /ticket answer provides full approved-text review and explicit Confirm/Cancel through the shared reply transaction. Migration 040 retains author-bound metadata and source identity. Ten-minute expiry, five-review capacity, current grant/case/audience/publication checks, concurrent clicks, lost-commit exact retry and encrypted restore are verified offline.",
+        "Static automation configuration/API retains reviewed public policies and withdrawals under optional default-denied publisher authority. Bounded literal message/reaction rules, explicit channels, priority/stop and synthetic per-user/channel cooldown timelines share one pure policy. Current channel metadata and retained case exclusions gate review/publication; previews never store sample text or send. Migration 041, concurrency, revocation rollback, exact lost-commit retry and encrypted restore are verified offline.",
+        "Explicitly enabled Gateway admission uses opaque transient message proofs, current channel/case exclusions and the reviewed literal rules. Cursor, metadata-only receipts, stable rule-ID cooldowns, approved-action references and bounded outbox jobs commit together. Migration 042 retains activation mode and admission state. Replay, capacity, rollback, fresh-service lost-commit recovery, encrypted restore and independent case capture are verified offline.",
+        "Queued static messages and reactions now use current publication, source/channel metadata, human/bot permissions, Gateway continuity and a 60-second deadline. Migration 043 retains possible-send state, positive receipts, sticky compensation and metadata audit. Unknown creates park without repeats; late receipts, lost commits, idempotent removal, encrypted restore and composed runtime delivery are verified offline.",
+        "Current-authorized automation recovery now provides bounded metadata queue/history and confirmed recheck/verified-effect adoption through authenticated APIs. Migration 044 retains operator request receipts and linked audit. Stale/concurrent controls, exact lost-commit replay, no absent-effect resend, preserved cooldown/pause/quarantine, revocation rollback, encrypted restore and composed runtime recovery are verified offline.",
+        "Automation browser at /automation uses the shared pure policy and authenticated APIs for literal rule editing, reviewed publication/withdrawal, synthetic preview, retained history and metadata recovery. Exact uncertain retries, changed-state review invalidation and access/visibility clearing are implemented; unknown sends cannot be rechecked or blindly repeated."
+      ],
+      "remaining_scope": [
+        "Independent browser/Discord/member/editor acceptance of lookup, publication, full-text review, expiry, cancellation and confirmed reply selection.",
+        "Keep live activation disabled pending independent T45 loop/mention/permission/deadline/recovery checks; qualify browser behavior in the owner’s private session after the safe staging upgrade.",
+        "Independent public-source/copy approval and full T45 live acceptance."
+      ]
+    },
+    {
+      "id": "P19",
+      "title": "Enforce AI exclusion at every boundary",
+      "phase": "Knowledge",
+      "priority": "P0",
+      "depends_on": [
+        "P05",
+        "P06",
+        "P07",
+        "P10"
+      ],
+      "deliverables": [
+        "Ingress/delivery classification guard and permanent case exclusions",
+        "Worker/database/filesystem isolation",
+        "Sentinel tests and architecture import restrictions"
+      ],
+      "acceptance_tests": [
+        "T22",
+        "T23",
+        "T24",
+        "T25",
+        "T26",
+        "T46"
+      ],
+      "suggested_owner": "Repository maintainer; separate human review where required",
+      "guardrail": "No toggle or staff bypass can enable AI inside cases.",
+      "status": "in_progress",
+      "implementation_note": "Metadata guards, permanent case exclusions, observed child ancestry and module checks are implemented. Optional conversation capture adds a separate core-only handoff for registered case channels; the metadata projection carries no message bodies. Forms and answer-delivery records stay core-only; payload release requires fresh private-case proofs, and no answers enter routing, receipts, outbox or navigation. Synthetic knowledge privileges deny core access. Windows identity/ACL and full real-route exclusion tests remain open.",
+      "completed_scope": [
+        "Permanent case exclusions, guarded metadata boundaries, core-only submitted-value handoff and denied knowledge database access; ordinary recovery descriptors/audits exclude answer content.",
+        "Ticket-form authoring reads authored configuration only; no case, modal-handle, submission, conversation or transcript queries.",
+        "Form browser previews contain authored configuration only, render it as text and have no submission or AI path.",
+        "Reported identities remain core-only context; no subject lookup, AI handoff, participant grant or user notification.",
+        "Invitation and action records stay core-only; no knowledge read or automatic deletion, case subjects remain separate and static replies contain no case excerpts.",
+        "Contact form values remain in core intake/delivery; recipient pages expose bounded authorized metadata only, with no content previews, automatic chat transfer, AI request or recipient ping.",
+        "Separate core-only case-content handoff reads registered-channel bodies only; metadata, outbox and knowledge contain no copied conversation values. Descendant exclusions survive moves/deletion.",
+        "Attachment references, file bytes and storage records stay in core; no token/cookies on CDN requests, no content in ordinary outbox/receipts, no public file route or AI path.",
+        "Restricted human-authored Staff notes: attributed durable append receipts, current responder authorization, Head Admin isolation, plain-text browser history, exact uncertain-save retry and privacy clearing; excluded from member transcripts and control metadata, retained by encrypted core backup."
+      ],
+      "remaining_scope": [
+        "OS identity/filesystem isolation, authenticated artifact route exclusions and complete real-route sentinel evidence."
+      ]
+    },
+    {
+      "id": "P20",
+      "title": "Implement MediaWiki ingestion and sync",
+      "phase": "Knowledge",
+      "priority": "P0",
+      "depends_on": [
+        "P03",
+        "P06",
+        "P19"
+      ],
+      "deliverables": [
+        "Capability-aware API connector and rendered snapshots",
+        "Cursor/checkpoint, template dependency, deletion and review pipeline",
+        "Provenance/rights and collection restrictions"
+      ],
+      "acceptance_tests": [
+        "T23",
+        "T27",
+        "T28"
+      ],
+      "suggested_owner": "Repository maintainer; separate human review where required",
+      "guardrail": "No guessed endpoint, broad Discord scrape or case archive source.",
+      "status": "planned_not_started",
+      "implementation_note": "Not implemented. Reference-pack acceptance requirements still apply."
+    },
+    {
+      "id": "P21",
+      "title": "Implement direct lookup and source authority",
+      "phase": "Knowledge",
+      "priority": "P0",
+      "depends_on": [
+        "P20"
+      ],
+      "deliverables": [
+        "Exact/alias/lexical retrieval and valid source links",
+        "Audience/version-aware caches and authority conflicts",
+        "Model-independent /lookup"
+      ],
+      "acceptance_tests": [
+        "T27",
+        "T28",
+        "T29",
+        "T34"
+      ],
+      "suggested_owner": "Repository maintainer; separate human review where required",
+      "guardrail": "No semantic model dependency for basic lookup.",
+      "status": "planned_not_started",
+      "implementation_note": "Not implemented. Reference-pack acceptance requirements still apply."
+    },
+    {
+      "id": "P22",
+      "title": "Implement knowledge administration",
+      "phase": "Knowledge",
+      "priority": "P1",
+      "depends_on": [
+        "P08",
+        "P20",
+        "P21"
+      ],
+      "deliverables": [
+        "Source/collection review and snapshot comparison",
+        "Sync diagnostics, quarantine, deletion and safe previews"
+      ],
+      "acceptance_tests": [
+        "T28",
+        "T29",
+        "T42"
+      ],
+      "suggested_owner": "Repository maintainer; separate human review where required",
+      "guardrail": "Preview has no case-context or transcript import path.",
+      "status": "planned_not_started",
+      "implementation_note": "Not implemented. Reference-pack acceptance requirements still apply."
+    },
+    {
+      "id": "P23",
+      "title": "Provision and benchmark local model",
+      "phase": "Local AI",
+      "priority": "P0",
+      "depends_on": [
+        "P01",
+        "P02",
+        "P07"
+      ],
+      "deliverables": [
+        "Model/runtime hash and licence lock",
+        "CPU-only llama.cpp hardening and measured limits",
+        "Cold/warm latency/memory/load benchmark report"
+      ],
+      "acceptance_tests": [
+        "T31",
+        "T32",
+        "T33"
+      ],
+      "suggested_owner": "Repository maintainer; separate human review where required",
+      "guardrail": "No cloud fallback, auto-download or claimed unmeasured throughput.",
+      "status": "planned_not_started",
+      "implementation_note": "Not implemented. Reference-pack acceptance requirements still apply."
+    },
+    {
+      "id": "P24",
+      "title": "Implement non-ticket knowledge assistant",
+      "phase": "Local AI",
+      "priority": "P0",
+      "depends_on": [
+        "P19",
+        "P21",
+        "P23"
+      ],
+      "deliverables": [
+        "Dedicated-channel /ask and short-lived bounded sessions",
+        "Application-directed retrieval and source-ID validation",
+        "Final delivery revalidation and blank staff-contact link",
+        "Bounded Sophie style profile with citations, truthful action claims and no ticket exceptions"
+      ],
+      "acceptance_tests": [
+        "T22",
+        "T25",
+        "T26",
+        "T29",
+        "T30",
+        "T34",
+        "T48",
+        "T52"
+      ],
+      "suggested_owner": "Repository maintainer; separate human review where required",
+      "guardrail": "No ticket data/tools, case advice automation or arbitrary browsing.",
+      "status": "planned_not_started",
+      "implementation_note": "Not implemented. Reference-pack acceptance requirements still apply."
+    },
+    {
+      "id": "P25",
+      "title": "Implement AI controls and evaluation tooling",
+      "phase": "Local AI",
+      "priority": "P1",
+      "depends_on": [
+        "P08",
+        "P24"
+      ],
+      "deliverables": [
+        "Model/limits/queue/cancel/disable dashboard",
+        "Versioned prompts and evaluation ledger",
+        "Public-knowledge previews and redacted diagnostics"
+      ],
+      "acceptance_tests": [
+        "T26",
+        "T31",
+        "T33",
+        "T42",
+        "T48"
+      ],
+      "suggested_owner": "Repository maintainer; separate human review where required",
+      "guardrail": "No persistent member profiling or case-content feedback.",
+      "status": "planned_not_started",
+      "implementation_note": "Not implemented. Reference-pack acceptance requirements still apply."
+    },
+    {
+      "id": "P26",
+      "title": "Implement backups, deletion and operator runbooks",
+      "phase": "Administration",
+      "priority": "P0",
+      "depends_on": [
+        "P06",
+        "P07",
+        "P12"
+      ],
+      "deliverables": [
+        "Retention/deletion ledger and consistent artifact backups",
+        "Isolated restore/rollback scripts and evidence",
+        "Independent outage alert/fallback process"
+      ],
+      "acceptance_tests": [
+        "T35",
+        "T37",
+        "T38",
+        "T39",
+        "T58"
+      ],
+      "suggested_owner": "Repository maintainer; separate human review where required",
+      "guardrail": "Do not replay restored jobs into production.",
+      "status": "in_progress",
+      "implementation_note": "Encrypted snapshot/file bundles and quarantined restore are verified locally. Owner selected D:\\Backups as local backup parent; directory exists on healthy NTFS, with no backup executed in this update. Independent copy/key custody, latest-state replay, activation/rollback and production service qualification remain open.",
+      "completed_scope": [
+        "Database snapshot and retained-file selection are consistent under a concurrent committed write; artifacts and manifest are encrypted with authenticated per-entry labels.",
+        "Actual isolated restoration checks migrations/table counts/artifact metadata, parks pending jobs, revokes sessions, invalidates Gateway leases and leaves the database read-only with a persistent runtime fence.",
+        "Owner-only ledger of selected control metadata committed with state changes; routine observations are excluded, rollback is atomic, and format-2 backup/restore verifies its snapshot hash.",
+        "Isolated migration/recovery evidence includes retained schema-048 inventories and schema-049 sealed effects. No live upgrade or release-gate approval.",
+        "Exact schema-049 seal records survive migration050 unchanged; encrypted quarantine restore retains applied policies, application history, migrated provisions and pending reconciliation. Staging stays at046."
+      ],
+      "remaining_scope": [
+        "Independent latest revocation/deletion control history and verified replay/current-state reconciliation before activation.",
+        "Use approved D:\\Backups local destination; complete independent recovery copy, key custody, RPO/RTO, backup retention and production runtime/service qualification.",
+        "Reviewed artifact-vault remapping/capacity reconciliation, exceptional deletion, rollback and operator recovery acceptance."
+      ]
+    },
+    {
+      "id": "P27",
+      "title": "Run administration failure and permission suite",
+      "phase": "Administration",
+      "priority": "P0",
+      "depends_on": [
+        "P16",
+        "P17",
+        "P18",
+        "P26"
+      ],
+      "deliverables": [
+        "Recorded G2 results for crashes, permissions, restores and role races",
+        "Defect fixes and build-specific evidence"
+      ],
+      "acceptance_tests": [
+        "T03",
+        "T06",
+        "T07",
+        "T13",
+        "T15",
+        "T16",
+        "T18",
+        "T20",
+        "T21",
+        "T36",
+        "T39"
+      ],
+      "suggested_owner": "Repository maintainer; separate human review where required",
+      "guardrail": "Tests use synthetic cases; findings block release until resolved.",
+      "status": "in_progress",
+      "implementation_note": "Component evidence plus ten composed staging scenarios and limited live ticket/OAuth/DM observations are recorded. Full G2, multi-account privacy, OS permissions, controlled failure/reboot/load drills and independent restoration remain outstanding. 406 unit tests; 88 focused Onboarding/wording, 67 intake, 20 recovery/upgrade and 14 composed-runtime scenarios; ten synthetic browser checks. No live upgrade or human acceptance.",
+      "completed_scope": [
+        "212 contract tests and 536 isolated PostgreSQL scenarios passed, including CA01–CA23 and S38 for acquisition boundaries, durable rate-limit pauses, rollback, capacity, private files, lost acknowledgements, native loopback HTTP and two restarts. Source-bound manifests are retained.",
+        "RT01–RT09 exercise the combined foreground host with isolated PostgreSQL and loopback HTTP/WebSocket, including full Shuttle delivery, readiness loss, graceful shutdown and retained restart. Four runtime/CLI contracts pass.",
+        "28 focused bootstrap/Discord/case-channel contracts and RT01–RT10 pass on live-bootstrap fixes; owned test cluster stopped. Separate live REST report verifies isolated resource setup only.",
+        "406 unit tests; 88 focused Onboarding/wording, 67 intake, 20 recovery/upgrade and 14 composed-runtime scenarios; ten synthetic browser checks. No live upgrade or human acceptance."
+      ],
+      "remaining_scope": [
+        "Integrated G2 acceptance, complete workflows, live Discord/OS permissions, power-loss and independent restore evidence."
+      ]
+    },
+    {
+      "id": "P28",
+      "title": "Run local AI isolation, quality and host-load suite",
+      "phase": "Local AI",
+      "priority": "P0",
+      "depends_on": [
+        "P25",
+        "P26",
+        "P39"
+      ],
+      "deliverables": [
+        "G4 evidence and reviewed 40-question minimum set; G3 is separately owned by P39",
+        "Sentinel, permission, deletion and model-failure results",
+        "Resource usability sign-off on actual host"
+      ],
+      "acceptance_tests": [
+        "T22",
+        "T23",
+        "T24",
+        "T25",
+        "T28",
+        "T29",
+        "T30",
+        "T31",
+        "T32",
+        "T33",
+        "T34",
+        "T35",
+        "T48",
+        "T52"
+      ],
+      "suggested_owner": "Repository maintainer; separate human review where required",
+      "guardrail": "Zero prohibited data/tool paths; no ticket material used in tests.",
+      "status": "planned_not_started",
+      "implementation_note": "Not implemented. Reference-pack acceptance requirements still apply."
+    },
+    {
+      "id": "P29",
+      "title": "Approve brand implementation and accessibility",
+      "phase": "Administration",
+      "priority": "P1",
+      "depends_on": [
+        "P03",
+        "P13",
+        "P17",
+        "P18",
+        "P38"
+      ],
+      "deliverables": [
+        "Approved theme tokens/assets/provenance",
+        "Keyboard/contrast/reflow/quiet-mode evidence",
+        "Core staff workflow review",
+        "Sophie crop, transparency, fallback and neutral-case presentation review"
+      ],
+      "acceptance_tests": [
+        "T42",
+        "T43",
+        "T49",
+        "T50",
+        "T51"
+      ],
+      "suggested_owner": "Repository maintainer; separate human review where required",
+      "guardrail": "Do not infer exact live-site assets from this planning pack.",
+      "status": "planned_not_started",
+      "implementation_note": "Human approval has not started. Synthetic browser/layout and keyboard checks exist for both guidance and ticket-form editors; full brand, accessibility and Staff workflow acceptance remain outstanding."
+    },
+    {
+      "id": "P30",
+      "title": "Approve administration pilot and cutover ledger",
+      "phase": "Administration",
+      "priority": "P0",
+      "depends_on": [
+        "P27",
+        "P29"
+      ],
+      "deliverables": [
+        "Reviewed existing-member eligibility baseline",
+        "Bot responsibility/old-case drain plan",
+        "Backup, fallback and operator release approval"
+      ],
+      "acceptance_tests": [
+        "T40",
+        "T41"
+      ],
+      "suggested_owner": "Operator",
+      "guardrail": "Administration approval does not depend on local AI readiness.",
+      "status": "planned_not_started",
+      "implementation_note": "Not implemented. Reference-pack acceptance requirements still apply."
+    },
+    {
+      "id": "P31",
+      "title": "Cut over administrative responsibilities",
+      "phase": "Administration",
+      "priority": "P0",
+      "depends_on": [
+        "P30"
+      ],
+      "deliverables": [
+        "Single-writer feature transfers and monitored pilot results",
+        "Old panels retired safely; old cases drained without migration",
+        "Rollback/incident evidence and current release record"
+      ],
+      "acceptance_tests": [
+        "T38",
+        "T40",
+        "T41"
+      ],
+      "suggested_owner": "Operator",
+      "guardrail": "Do not remove old ticket access while open cases still need it.",
+      "status": "planned_not_started",
+      "implementation_note": "Not implemented. Reference-pack acceptance requirements still apply."
+    },
+    {
+      "id": "P32",
+      "title": "Activate separately approved non-ticket AI",
+      "phase": "Local AI",
+      "priority": "P1",
+      "depends_on": [
+        "P28",
+        "P31",
+        "P39"
+      ],
+      "deliverables": [
+        "Source/AI channel approvals and final source freshness check",
+        "Scoped rollout and disable/fallback test",
+        "Published local-processing notice"
+      ],
+      "acceptance_tests": [
+        "T22",
+        "T29",
+        "T32",
+        "T34",
+        "T48",
+        "T52"
+      ],
+      "suggested_owner": "Operator",
+      "guardrail": "AI remains off until G4 and operator approval; direct lookup has its own G3 activation under P39.",
+      "status": "planned_not_started",
+      "implementation_note": "Not implemented. Reference-pack acceptance requirements still apply."
+    },
+    {
+      "id": "P33",
+      "title": "Add selected read-only service adapters",
+      "phase": "Later utilities",
+      "priority": "P2",
+      "depends_on": [
+        "P31",
+        "P39"
+      ],
+      "deliverables": [
+        "Owner-approved platform/resource inventory",
+        "Scoped connector credentials and contracts",
+        "SSRF, timeout, audience and source-provenance tests"
+      ],
+      "acceptance_tests": [
+        "T29",
+        "T46",
+        "T47"
+      ],
+      "suggested_owner": "Repository maintainer; separate human review where required",
+      "guardrail": "No automatic writes, BYOND duplication or broad generic network tool.",
+      "status": "planned_not_started",
+      "implementation_note": "Not implemented. Reference-pack acceptance requirements still apply."
+    },
+    {
+      "id": "P34",
+      "title": "Add small community utilities",
+      "phase": "Later utilities",
+      "priority": "P2",
+      "depends_on": [
+        "P31"
+      ],
+      "deliverables": [
+        "Prioritised suggestions, message-context reports or announcements",
+        "Bounded scheduler and human-curated answer workflow"
+      ],
+      "acceptance_tests": [
+        "T08",
+        "T44",
+        "T45"
+      ],
+      "suggested_owner": "Repository maintainer; separate human review where required",
+      "guardrail": "Choose one feature slice at a time; no ticket AI or unreviewed code ports.",
+      "status": "planned_not_started",
+      "implementation_note": "Not implemented. Reference-pack acceptance requirements still apply."
+    },
+    {
+      "id": "P35",
+      "title": "Establish maintenance and upgrade cadence",
+      "phase": "Operations",
+      "priority": "P1",
+      "depends_on": [
+        "P31"
+      ],
+      "deliverables": [
+        "Dependency/API/model revalidation procedure",
+        "Operator ownership and recovery-drill schedule proposal",
+        "Documented agent PR and release protocol"
+      ],
+      "acceptance_tests": [
+        "T02",
+        "T31",
+        "T38",
+        "T39",
+        "T46"
+      ],
+      "suggested_owner": "Repository maintainer; separate human review where required",
+      "guardrail": "No unattended production upgrades or recurring jobs without owner approval.",
+      "status": "planned_not_started",
+      "implementation_note": "Not implemented. Reference-pack acceptance requirements still apply."
+    },
+    {
+      "id": "P36",
+      "title": "Import Sophie identity and source assets",
+      "phase": "Foundation",
+      "priority": "P1",
+      "depends_on": [
+        "P03",
+        "P04"
+      ],
+      "deliverables": [
+        "Four manifest-selected original PNGs in a versioned local asset root",
+        "Shared brand-profile contract, SHA-256 validation and source provenance",
+        "Legacy-human-art exclusion and explicit publication/derivative review records"
+      ],
+      "acceptance_tests": [
+        "T49"
+      ],
+      "suggested_owner": "Repository maintainer; separate human review where required",
+      "guardrail": "No regeneration, relabelled artwork licence, remote asset loading, extra model runtime or technical service renaming.",
+      "status": "in_progress",
+      "implementation_note": "The dashboard serves the exact manifest-selected avatar with byte/hash verification; all original PNGs and source manifests remain unchanged. The complete shared brand-profile/identity configuration contract, optimized-export provenance and production distribution review remain open.",
+      "completed_scope": [
+        "Four original assets remain byte-identical; dashboard loads the manifest-selected avatar with hash checks."
+      ],
+      "remaining_scope": [
+        "Complete shared brand-profile contract, any derivative provenance, and publication/distribution review."
+      ]
+    },
+    {
+      "id": "P37",
+      "title": "Apply Sophie branding to interfaces and static copy",
+      "phase": "Administration",
+      "priority": "P1",
+      "depends_on": [
+        "P36",
+        "P08",
+        "P09",
+        "P13",
+        "P17"
+      ],
+      "deliverables": [
+        "Avatar/header/hero/wordmark placement with live-text and quiet-mode fallbacks",
+        "Identity controls separate from AI settings and case permissions",
+        "State-derived, owner-reviewed static templates for ticket and Shuttle notices"
+      ],
+      "acceptance_tests": [
+        "T50",
+        "T51"
+      ],
+      "suggested_owner": "Repository maintainer; separate human review where required",
+      "guardrail": "No AI inside cases, mascot chat widget, rewritten admission rules, unsupported success claims or unreadable decorative surfaces.",
+      "status": "in_progress",
+      "implementation_note": "The guidance editor uses live Sophie/Community Services text, the bundled static avatar, system fonts, quiet mode and text-only copy. Proposed colours, desktop/narrow placement and keyboard recovery have synthetic developer checks. Other surfaces, identity controls, owner-approved templates and independent production visual/accessibility acceptance remain open. Ticket-form configuration now shares the approved static avatar, quiet mode and shell, with synthetic narrow-layout/keyboard review; independent human acceptance remains open.",
+      "completed_scope": [
+        "Sophie/Community Services shell, static avatar, quiet mode and synthetic editor layout/keyboard checks."
+      ],
+      "remaining_scope": [
+        "Other interfaces and state templates, owner presentation review and independent visual/accessibility acceptance."
+      ]
+    },
+    {
+      "id": "P38",
+      "title": "Review identity consistency and non-AI presentation",
+      "phase": "Administration",
+      "priority": "P1",
+      "depends_on": [
+        "P37",
+        "P19"
+      ],
+      "deliverables": [
+        "Small/circular/narrow-layout previews and alpha checks on light/dark surfaces",
+        "Brand-preview and deterministic-case sentinel test evidence with zero model calls",
+        "Versioned asset approval and rollback record for the administration release"
+      ],
+      "acceptance_tests": [
+        "T49",
+        "T50",
+        "T51"
+      ],
+      "suggested_owner": "Repository maintainer; separate human review where required",
+      "guardrail": "Artwork review is not a production benchmark or legal certification. Do not block human administration on local-model readiness.",
+      "status": "planned_not_started",
+      "implementation_note": "Independent identity/asset release review has not started. Asset hash checks and synthetic editor previews are preparatory evidence only; they do not approve the full administration presentation."
+    },
+    {
+      "id": "P39",
+      "title": "Validate and activate direct knowledge independently of AI",
+      "phase": "Knowledge",
+      "priority": "P0",
+      "depends_on": [
+        "P19",
+        "P21",
+        "P22",
+        "P26"
+      ],
+      "deliverables": [
+        "G3 extraction, rights, authority, audience, template and deletion evidence without an inference process",
+        "Operator-approved direct lookup activation and independent disable/fallback check"
+      ],
+      "acceptance_tests": [
+        "T23",
+        "T27",
+        "T28",
+        "T29",
+        "T34",
+        "T35",
+        "T47"
+      ],
+      "suggested_owner": "Repository maintainer and operator",
+      "guardrail": "No dependency on P23-P25, P28 or a working model. Live activation still requires approved source collections and destination policy.",
+      "status": "planned_not_started",
+      "implementation_note": "No direct knowledge connector or lookup is implemented. This independent G3 task prevents optional AI work from becoming a prerequisite for direct lookup or administration."
+    }
+  ],
+  "checkpoint": {
+    "summary": "Local next-test feedback: verified arrival before one Begin Whitelist link, default one-hour closure notice, permission-filtered HTML with one-use session bootstrap and renewal, and Meridian-informed responsive presentation. 45 focused unit checks, 88 Onboarding/wording, 18 authorization and 16 runtime scenarios pass; synthetic desktop/mobile editing and quiet mode checked. See docs/whitelist-test-feedback.md. Subsequently deployed with owner authorization on pinned036c3db/schema054; 768 Git hashes, orderly shutdown, current Gateway, process/port ownership and 26 public checks passed. No migration, configuration, command or grant changes. Private client acceptance remains open.",
+    "recorded_baseline": "Commit b66a2d4, 19 September 2026: 212 contract tests and 536 PostgreSQL scenarios passed; 30 migrations, 243 JavaScript sources, 40 tasks, 60 acceptance specifications, 31 reference checksums and eight unchanged PNG copies. The isolated database stopped successfully. These source-bound reports describe the committed attachment milestone, not the subsequent transcript-read milestone. See [verification](verification.md); these are offline results, not release acceptance.",
+    "current_work": "Owner private configuration/apply/role/ACL acceptance on deployed a5e0232/schema055. Do not repeat completed migration, grant bootstrap or command registration; no private content in agent tools.",
+    "evidence_note": "docs/evidence/website-configuration-live.json records the authorized deployment; docs/evidence/website-configuration-verification.json records preceding local checks. Earlier036c3db/schema054 deployment is historical."
+  },
+  "milestones": [
+    {
+      "title": "Durable administration foundation",
+      "tasks": [
+        "P04",
+        "P06",
+        "P19"
+      ],
+      "implemented": "ESM contracts, retained state, atomic intent/receipt commits, fenced workers, 30 versioned migrations and core/knowledge database separation.",
+      "evidence": "[Storage](storage.md); S01–S20 and the [recorded reports](verification.md).",
+      "remaining": "Authenticated artifact access, operator inventory/repair, independent recovery watermark, production identities and composition."
+    },
+    {
+      "title": "Crew, Muzzled and Whitelist",
+      "tasks": [
+        "P09",
+        "P14",
+        "P15",
+        "P16"
+      ],
+      "implemented": "Current-policy role delivery, fresh Shuttle after access loss, ordered Gateway revocations, duplicate handling and late-effect compensation.",
+      "evidence": "[Role commands](command-authorization.md), [Gateway](gateway-continuity.md); D01–D14, M01–M14, A01–A14, G01–G17.",
+      "remaining": "Remaining moderation recovery UI, approved live IDs/capabilities and effective permissions."
+    },
+    {
+      "title": "Private Shuttle experience",
+      "tasks": [
+        "P13",
+        "P14",
+        "P16"
+      ],
+      "implemented": "Pinned five-page runs, private navigation, final acknowledgement, human-help pauses, Staff alerts and audited message/channel recovery.",
+      "evidence": "[Screens](shuttle-screens.md), [assistance](shuttle-assistance.md), [recovery](shuttle-artifact-recovery.md); U/V/N/H/W/L/R/F/Q suites.",
+      "remaining": "Unidentified external results, owner-approved copy/links, override controls and live client checks."
+    },
+    {
+      "title": "Private cases and Staff operations",
+      "tasks": [
+        "P10",
+        "P11",
+        "P17"
+      ],
+      "implemented": "Staged private provisioning, duplicate sealing, retained close/reopen actions, permission-filtered queues, claims, reassignment, periodic ACL inspections and explicitly confirmed participant add/remove with revocation repair.",
+      "evidence": "Commits 883f6d9, 75d4eb5, 5d9bdc8, b4eb586; [case lifecycle](case-lifecycle.md), [Staff queue](case-staff.md), [inspections](case-inspections.md), [participants](case-participants.md); C/J/K/I/CP suites and S35.",
+      "remaining": "Restricted notes, archive placement, attachment operations and confirmed exports/downloads, participant/contact dashboard parity and unresolved external results."
+    },
+    {
+      "title": "Dashboard authentication",
+      "tasks": [
+        "P05",
+        "P08"
+      ],
+      "implemented": "Single-use browser-bound OAuth state, hashed sessions, CSRF and shared current-capability checks.",
+      "evidence": "Commit 3b70c6d; [authentication](dashboard-auth.md); O01–O16, S27.",
+      "remaining": "Other dashboard routes, public ingress/TLS limits and real provider/browser acceptance."
+    },
+    {
+      "title": "Shuttle authoring and browser editor",
+      "tasks": [
+        "P08",
+        "P13",
+        "P36",
+        "P37"
+      ],
+      "implemented": "Retained drafts, static comparison, immutable publication, withdrawal review, history and stale/uncertain-response recovery; approved source avatar bytes.",
+      "evidence": "Commits 58842ee, 7dbb625; [authoring](shuttle-authoring.md), [editor checks](dashboard-ui.md); E01–E20, S28 and 15 controller/transport/asset tests.",
+      "remaining": "Owner copy approval, workflow migration/override controls, remaining branding surfaces and independent accessibility acceptance."
+    },
+    {
+      "title": "Ordinary ticket intake",
+      "tasks": [
+        "P05",
+        "P06",
+        "P09",
+        "P10",
+        "P17",
+        "P19"
+      ],
+      "implemented": "Quick Help plus five versioned form categories, private signed submissions, indefinite retained answers, atomic case creation and verified navigation.",
+      "evidence": "Commit 670cb36; [intake](case-intake.md); eight contract tests, B01–B21 and S29.",
+      "remaining": "Final questions, production registration and live modal compatibility. Player reports and initial Staff-contact intake are implemented in separate milestones below."
+    },
+    {
+      "title": "Ordinary answer delivery",
+      "tasks": [
+        "P06",
+        "P09",
+        "P10",
+        "P17",
+        "P19"
+      ],
+      "implemented": "Retained delivery plans, ordered escaped answer pages, current private-channel proofs and one bounded Staff/lead-ops notification; uncertain writes stop for review.",
+      "evidence": "Commit d63ee15; [answer delivery](case-intake-delivery.md); four contract tests, X01–X23 and S30.",
+      "remaining": "Unidentified or uninspectable external results, final forms, live notification/client checks and production composition."
+    },
+    {
+      "title": "Ordinary ticket delivery review and recovery",
+      "tasks": [
+        "P06",
+        "P09",
+        "P10",
+        "P11",
+        "P17",
+        "P19"
+      ],
+      "implemented": "Permission-filtered parked queues, audited rechecks, exact-message identification and retained duplicate-channel selection; fresh worker confirmation remains mandatory.",
+      "evidence": "Commit 9b12d02; [ordinary recovery](case-delivery-issues.md); four contract tests, Y01–Y23 and S31, also included in the current full-suite result.",
+      "remaining": "Unidentified/uninspectable results, dashboard parity, integrated runtime, live permissions and independent restore."
+    },
+    {
+      "title": "Ticket-form authoring and authenticated API",
+      "tasks": [
+        "P05",
+        "P06",
+        "P08",
+        "P10",
+        "P17",
+        "P19"
+      ],
+      "implemented": "Retained bounded drafts, runtime-equivalent static review, guarded immutable publication/withdrawal, stable metadata history and exact request receipts; no submitted-answer access.",
+      "evidence": "Commit 982be79; [form authoring](case-form-authoring.md); four contract tests, Z01–Z22 and S32 in the current full-suite result.",
+      "remaining": "Final owner questions, production capability mapping, live clients and independent recovery."
+    },
+    {
+      "title": "Ticket-form browser editor",
+      "tasks": [
+        "P05",
+        "P08",
+        "P10",
+        "P17",
+        "P36",
+        "P37"
+      ],
+      "implemented": "Seven-category question/choice editing (five ordinary forms, player reports and Staff contacts), static saved-copy review, immutable publication/withdrawal, history, category protection and shared conflict/uncertain-request recovery; current-access clearing in state and DOM.",
+      "evidence": "Commits 0fb8825 and 5ca3eaa; [form browser checks](dashboard-forms.md); twelve original controller/transport tests, additional report/contact-category tests, seven-category Z04 and Z22 with the actual API/store. Scoped Chromium keyboard/narrow checks cover the original editor; the added categories have controller/integration coverage.",
+      "remaining": "Final owner questions, real OAuth/TLS/Discord clients, independent accessibility/brand review and runtime composition."
+    },
+    {
+      "title": "Player-report intake and subject separation",
+      "tasks": [
+        "P05",
+        "P06",
+        "P09",
+        "P10",
+        "P17",
+        "P19"
+      ],
+      "implemented": "Signed /ticket report, an optional pinned subject separate from the opener/audience, sixth authored form category, retained answers and subject-aware private delivery with exact recovery; existing forms migrate unchanged.",
+      "evidence": "Commit 5ca3eaa; [player reports](player-reports.md); four contract tests, PR01–PR10, seven-category Z04 and S33, included in the current full-suite result.",
+      "remaining": "Final questions, live command registration/client compatibility, production composition and independent restoration."
+    },
+    {
+      "title": "Participant membership authority prerequisite",
+      "tasks": [
+        "P05",
+        "P06",
+        "P09",
+        "P10",
+        "P17",
+        "P19"
+      ],
+      "implemented": "Independent durable membership epochs and current human eligibility; departure/rejoin and continuity gaps revoke old bindings, ordinary role changes preserve membership, and first-seen removal revokes Staff authority. No invitation or audience write is created.",
+      "evidence": "Commit 948d0b7; [participant membership authority](case-participant-authority.md); two contract tests, PA01–PA10 and S34, included in the current full-suite result.",
+      "remaining": "Explicit participant changes and initial Staff-contact intake are now implemented below. Live permissions and independent recovery remain."
+    },
+    {
+      "title": "Explicit case participants and audience reconciliation",
+      "tasks": [
+        "P05",
+        "P06",
+        "P09",
+        "P10",
+        "P11",
+        "P17",
+        "P19"
+      ],
+      "implemented": "Signed confirmed add/remove on existing cases, retained invitation/action history, shared case and audience versions, pending-authority checks, current membership delivery barriers, exact open/closed/sealed audiences and late-write compensation. First-seen Gateway removal now schedules invited cases.",
+      "evidence": "Commit b4eb586; [explicit case participants](case-participants.md); four additional contract tests, CP01–CP19 and S35 in the recorded 212/536 full-suite result.",
+      "remaining": "Participant dashboard parity, live permission/client checks, runtime composition and independent recovery; initial contact entry/navigation is implemented below."
+    },
+    {
+      "title": "Staff-contact intake and recipient navigation",
+      "tasks": [
+        "P05",
+        "P06",
+        "P08",
+        "P09",
+        "P10",
+        "P11",
+        "P17",
+        "P19"
+      ],
+      "implemented": "Signed selection of up to twenty recipients, explicit audience confirmation, a seventh pinned form category, atomic retained answers/invitations/actions, initial Staff-authority checks, revocation/late-write repair and a private paginated recipient queue with verified open/read-only destinations.",
+      "evidence": "Commit 62e61d2; [Staff contacts](case-contacts.md); four additional contract tests, SC01–SC23 and two-restart S36, included in the 212/536 full-suite result. Existing intake/participant and seven-category authoring checks also pass.",
+      "remaining": "Final questions, contact dashboard parity, live registration/client/ACL checks, attachment operations and confirmed exports/downloads, runtime composition and independent restoration."
+    },
+    {
+      "title": "Case conversation observations and coverage gaps",
+      "tasks": [
+        "P06",
+        "P09",
+        "P10",
+        "P11",
+        "P12",
+        "P19"
+      ],
+      "implemented": "Explicit core-only Gateway capture for retained case channels and discovered descendants; immutable create/partial-edit/delete observations, cursor atomicity, bounded inert content/attachment references, permanent provenance/exclusions and honest interruption/permission/loss gaps.",
+      "evidence": "Commit 4154696; [Conversation retention](case-conversations.md); five additional contract tests, CC01–CC24 including native loopback Gateway traffic, and two-restart S37 in the 212/536 full-suite result.",
+      "remaining": "Confirmed exports, current case/child export authorization and audit, live intents/permissions/clients, attachment operations and independent restoration. Quarantined file acquisition is implemented below."
+    },
+    {
+      "title": "Bounded private attachment acquisition",
+      "tasks": [
+        "P06",
+        "P10",
+        "P11",
+        "P12",
+        "P19"
+      ],
+      "implemented": "Atomic reference jobs, exact CDN identity/public DNS restrictions, current explicit policy, streaming limits, exclusive quarantined file slots, source/policy/hash evidence, conservative capacity reservations, durable cooldown, bounded retries and crash/late-write recovery without overwriting files.",
+      "evidence": "Commit b66a2d4; [Private attachments](case-attachments.md); six contract tests, CA01–CA23 including native loopback HTTP/deadline and durable cooldown, and two-restart S38 in the 212/536 recorded full-suite result.",
+      "remaining": "Approved production limits/download policy, controlled artifact streaming, inventory/requeue/orphan reconciliation, capacity alerts, Windows service ACLs, live CDN/TLS and independent filesystem/database recovery."
+    },
+    {
+      "title": "Authenticated transcript reads",
+      "tasks": [
+        "P05",
+        "P06",
+        "P11",
+        "P12"
+      ],
+      "implemented": "Authenticated five-observation/25-gap pages through the fixed dashboard listener; current case and selected-child authorization, independent membership epochs, logout/revocation suppression, escaped inert content and attachment status only.",
+      "evidence": "[Transcript reads](case-transcripts.md); seven contract tests and TR01–TR11 in the [focused report](evidence/transcripts-verification.json).",
+      "remaining": "Confirmed audited exports, controlled file downloads, browser navigation, live OAuth/Discord/TLS, runtime composition and independent recovery."
+    },
+    {
+      "title": "Isolated Discord staging host",
+      "tasks": [
+        "P07",
+        "P09",
+        "P27"
+      ],
+      "implemented": "Explicit foreground staging host with loopback listeners, readiness-gated commands/workers, bounded shutdown, fixed diagnostics, database privilege/migration checks and configuration template; no service installation. Separate explicit registration upserts the four fixed Sophie guild commands.",
+      "evidence": "[Setup](discord-staging-setup.md), four runtime/CLI contracts and RT01–RT09; [scoped source-bound report](evidence/staging-verification.json).",
+      "remaining": "Operator-provided isolated guild/application, IDs, credentials, approved ingress/database, live acceptance and production release gates. Attachment acquisition is deliberately unwired."
+    },
+    {
+      "title": "Confirmed bounded transcript exports",
+      "tasks": [
+        "P06",
+        "P12",
+        "P19"
+      ],
+      "implemented": "Current-audience exact-review confirmation, immutable policy binding, retained generation audit and optional authenticated HTML attachment routes; selected channel only, explicit bounds and partial-history labels.",
+      "evidence": "[Export contract](case-exports.md); TR01–TR11 and EX01–EX08, [source-bound report](evidence/exports-verification.json).",
+      "remaining": "Audience approval, runtime/browser composition, larger/multi-channel exports, file downloads, live and independent recovery checks."
+    },
+    {
+      "title": "Test-guild self-bootstrap and approved member exports",
+      "tasks": [
+        "P07",
+        "P09",
+        "P12",
+        "P27"
+      ],
+      "implemented": "Explicit isolated-guild resource creation with current application/guild-owner/permission checks, durable local receipts, uncertain-create stop, fixed registration and generated configuration. Approved current-reader exports composed into the host.",
+      "evidence": "[Setup guide](discord-staging-setup.md); seven bootstrap/four runtime contracts, 14 transport checks and RT01–RT10 in the current [staging report](evidence/staging-verification.json).",
+      "remaining": "Actual operator-provided test application/guild, intents/HTTPS/database, live verification, browser export workflow and production gates."
+    },
+    {
+      "title": "Initial live bootstrap and explicit hierarchy diagnostic",
+      "tasks": [
+        "P09",
+        "P27"
+      ],
+      "implemented": "Retain the strict numeric role hierarchy policy while distinguishing hierarchy failure from changed resource metadata. Preserve the observed live Crew role for resumption.",
+      "evidence": "Eight focused bootstrap contracts pass, including tied-position retry and reuse after operator correction. Live REST identity/guild/non-Administrator permission checks passed; first role created.",
+      "remaining": "Operator bot-role placement, remaining bootstrap resources, isolated database/HTTPS, live acceptance and all production gates."
+    },
+    {
+      "title": "Completed isolated Discord resource bootstrap",
+      "tasks": [
+        "P09",
+        "P27"
+      ],
+      "implemented": "Corrected non-administrator channel overwrites and HTTP 201 channel creation; completed retained test-guild bootstrap and verified exact resources, owner role, commands and absence of duplicates.",
+      "evidence": "[Live REST report](evidence/discord-bootstrap-verification.json); 28 focused contracts; RT01–RT10 in [refreshed staging report](evidence/staging-verification.json), with clusterStopped true.",
+      "remaining": "Dedicated staging database, sophie.a13.info ingress/OAuth registration, running-host and workflow acceptance; production gates remain open."
+    },
+    {
+      "title": "Live isolated staging host and Cloudflare ingress",
+      "tasks": [
+        "P07",
+        "P09",
+        "P27"
+      ],
+      "implemented": "Separate tunnel/hostname, dedicated loopback PostgreSQL, approved pinned connector and foreground core. Owner OAuth callback and login verified. No existing tunnel/game/wiki database changed.",
+      "evidence": "[Live host report](evidence/discord-staging-live.json): healthy tunnel, current Gateway, HTTPS dashboard, signed endpoint validation, negative signature probes, 31 migration hashes/53 table privilege checks, OAuth callback/start/completed-flow checks and owner-reported editor visibility.",
+      "remaining": "Synthetic guidance/form publication and live workflows/privacy/recovery; all production release gates. [Operation/stop instructions](staging-operations.md)."
+    },
+    {
+      "title": "Case reader and browser export confirmation",
+      "tasks": [
+        "P08",
+        "P12",
+        "P17"
+      ],
+      "implemented": "Authenticated channel-ID selection, text-only observation/gap pages and explicit browser export review/confirmation for all current readers; identity/access clearing, hidden-page late-response suppression and exact uncertain-download retry.",
+      "evidence": "35 focused tests; TR01–TR12/EX01–EX08; synthetic Chromium keyboard, narrow-layout, inert rendering, pagination, download handoff and denial clearing. See docs/case-browser.md and source-bound case-browser/export reports.",
+      "remaining": "Live user case/export acceptance, independent identities for privacy tests, attachment downloads/policy and operations, larger/multi-channel exports, other Staff screens and production/recovery gates."
+    },
+    {
+      "title": "Read-only attachment operations and Staff contact transport repair",
+      "tasks": [
+        "P06",
+        "P08",
+        "P12"
+      ],
+      "implemented": "Read-only staging operator inventory: bounded guild job/attempt metadata and whole-vault accounting/pause diagnostics, plus one retained-file size/hash verification with current-selection recheck; no content output, repair, deletion or download grant. Staff contact form GET routes now pass the browser category allowlist.",
+      "evidence": "24 focused tests; CA01–CA23/AO01–AO05; 276-source checker; isolated staging CLI smoke without mutation. See docs/attachment-operations.md and its source-bound report.",
+      "remaining": "Live case/export acceptance, complete filesystem/orphan inventory, safe repair/requeue and capacity alerts, file-download/scanning policy, other Staff workflows and production/recovery gates."
+    },
+    {
+      "title": "Quick Help scan-metadata compatibility and destination diagnostics",
+      "tasks": [
+        "P06",
+        "P17",
+        "P19"
+      ],
+      "implemented": "Own-message verification accepts only bounded numeric Discord content_scan_version metadata while preserving exact visible fields, ownership and mentions. Destination failures emit fixed stage and allowlisted error codes without case content or identifiers. The fix is running in isolated staging; two existing channels have confirmed exact ACLs.",
+      "evidence": "21 focused tests, B01–B21/X01–X23/Y01–Y23 (67) and RT01–RT10 (10) pass; isolated clusters stopped. Orderly staging restart and public GET/Gateway health verified. See docs/ticket-staging-diagnosis.md and source-bound reports.",
+      "remaining": "Signed live destination retry, authorized recheck of retained welcome notices, ordinary-member visibility and subsequent private-browser case/export acceptance. Production gates remain open."
+    },
+    {
+      "title": "Persistent ticket-link direct messages",
+      "tasks": [
+        "P06",
+        "P17",
+        "P19"
+      ],
+      "implemented": "One durable static-link DM per verified ordinary ticket opener, current membership/presence/channel checks, exact one-to-one recipient binding, no content forwarding or incoming-DM/AI path; ephemeral fallback. Migration 032 retains nonce/possible-send/receipt state; blocked DMs finish without closing tickets and lost responses never blindly repeat.",
+      "evidence": "28 focused tests, DM01–DM10, 67 intake/recovery scenarios and RT01–RT10. See docs/ticket-direct-notices.md and source-bound reports. Live staging: two static-link DMs accepted with verified receipts and completed jobs; no message history or case content inspected. See docs/evidence/ticket-direct-notices-live.json.",
+      "remaining": "Owner DM visibility confirmation, retained welcome-notice recheck, private-browser case/export acceptance and existing production/recovery gates."
+    },
+    {
+      "title": "Single-sheet human release verification and corrected blocker reporting",
+      "tasks": [
+        "P00",
+        "P27",
+        "P29",
+        "P30"
+      ],
+      "implemented": "Consolidated owner decisions, human test procedures, expected evidence, source mappings and all unfinished task prerequisites. Corrected stale preflight claims about absent live staging. Optional knowledge/AI tracks and post-approval production execution remain distinct.",
+      "evidence": "Catalogue and requirement completeness checks; workbook formula guards, visual/export verification; production preflight exit 2. See docs/human-release-verification.md.",
+      "remaining": "Human evidence collection and implementation of independent recovery/backup, native service packaging, attachment operations and remaining Staff workflows. No production gate passed."
+    },
+    {
+      "title": "Encrypted consistent backups and isolated restore quarantine",
+      "tasks": [
+        "P06",
+        "P26",
+        "P27"
+      ],
+      "implemented": "Encrypted PostgreSQL snapshot/retained-file bundles, isolated restore CLI, exact metadata/hash verification and persistent runtime quarantine are implemented and exercised locally. Independent latest control history/replay, off-host custody/retention, active-vault remapping, activation and rollback remain open.",
+      "evidence": "Seven focused file/configuration checks, RB01–RB10 with actual pg_dump/pg_restore and CLI, RT01–RT10; clusters stopped. See docs/recovery-bundles.md and source-bound reports.",
+      "remaining": "No independent latest control watermark or off-host destination. No live backup, runtime rollout, T39/T58 release pass or production approval."
+    },
+    {
+      "title": "Transaction-bound recovery control history and format-2 restoration",
+      "tasks": [
+        "P06",
+        "P26",
+        "P27"
+      ],
+      "implemented": "Encrypted consistent snapshot/file bundles and quarantined restore are verified locally. Migration 033 adds transaction-bound control metadata and format-2 restored-history verification. Independent durability/latest-state verification, replay, off-host custody, activation and rollback remain open.",
+      "evidence": "RC01–RC09, RB01–RB10 and RT01–RT10 on synthetic PostgreSQL. Migration repeatability, rollback, Whitelist loss, closed projections, owner-only ledger privileges, disabled trigger rejection and late lower-ID commits are checked. See docs/recovery-controls.md.",
+      "remaining": "Independent durability, latest-state witness, safe replay/activation and owner off-host/retention inputs. No live migration or full T58/G5 approval."
+    },
+    {
+      "title": "Restricted Staff notes and browser workflow",
+      "tasks": [
+        "P08",
+        "P17",
+        "P19"
+      ],
+      "implemented": "Restricted human-authored Staff notes: attributed durable append receipts, current responder authorization, Head Admin isolation, plain-text browser history, exact uncertain-save retry and privacy clearing; excluded from member transcripts and control metadata, retained by encrypted core backup.",
+      "evidence": "12 focused tests, CN01–CN08, RB01–RB10 and RT01–RT10; synthetic Chromium workflow and 390px layout. See docs/staff-notes.md and source-bound reports.",
+      "remaining": "Live independent Staff/member acceptance and deployment, remaining dashboard/reply/tag/priority workflows, file-download policy and independent production recovery gates."
+    },
+    {
+      "title": "Manual case tags and priorities",
+      "tasks": [
+        "P08",
+        "P11",
+        "P17"
+      ],
+      "implemented": "Human-written case tags and manual priorities share a current-responder use case across signed Discord and authenticated dashboard routes, with retained attribution, optimistic case versions, exact retries, private history and no changes to permissions or delivery order.",
+      "evidence": "12 focused tests, 23 Staff/label integration scenarios, 10 actual recovery scenarios and 10 composed runtime scenarios; synthetic Chromium workflow. See docs/case-labels.md and source-bound reports.",
+      "remaining": "Isolated staging migration/command registration and live client acceptance, human replies, curated responses, other command/API parity and production/recovery gates."
+    },
+    {
+      "title": "Dashboard case management",
+      "tasks": [
+        "P08",
+        "P11",
+        "P17"
+      ],
+      "implemented": "Dashboard Staff queue and main-channel lookup, reviewed assignment, close/reopen and participant changes share existing current-authorized core services, optimistic versions, retained audit/outbox and actor-bound exact receipts. Browser confirmation, uncertain retry and privacy clearing are verified offline.",
+      "evidence": "8 focused tests, 58 lifecycle/Staff/participant/management scenarios, RT01–RT10 and synthetic Chromium checks. See docs/case-management.md and source-bound reports.",
+      "remaining": "Live deployment and independent multi-account acceptance, initial Staff-contact dashboard creation, human replies, curated responses, remaining Shuttle/moderation parity and production/recovery gates."
+    },
+    {
+      "title": "Staff-contact dashboard entry",
+      "tasks": [
+        "P08",
+        "P11",
+        "P17"
+      ],
+      "implemented": "Staff-contact dashboard entry shares selection, audience confirmation, blank pinned forms, retained submission and verified creator navigation with Discord. Current authority, purpose-bound receipts, exact retries and privacy clearing are verified offline.",
+      "evidence": "9 focused tests, SC01–SC23/CE01–CE07 and RT01–RT10; synthetic Chromium confirmation, exact retry, literal answers, narrow layout and denial clearing. See docs/contact-entry-dashboard.md.",
+      "remaining": "Live deployment and multi-account acceptance, recipient browser navigation, human replies, curated responses, other route parity and production/recovery gates."
+    },
+    {
+      "title": "Recipient contact dashboard navigation",
+      "tasks": [
+        "P08",
+        "P11",
+        "P17"
+      ],
+      "implemented": "Recipient dashboard discovery and verified destination links share the Discord contact navigation flow. Current invitation/membership checks, private metadata-only pagination, closed/read-only and preparing states, late-revocation denial and browser privacy clearing are verified offline.",
+      "evidence": "7 focused checks, SC01–SC23/RN01–RN08 and RT01–RT10; synthetic Chromium pagination, destination states, focus, narrow layout and denial clearing. See docs/contact-recipient-dashboard.md.",
+      "remaining": "Live deployment and independent multi-account/client acceptance, human replies, curated responses, controlled file downloads, remaining shared routes and production/recovery gates."
+    },
+    {
+      "title": "Inactive human-reply delivery prerequisite",
+      "tasks": [
+        "P17"
+      ],
+      "implemented": "Inactive human-reply renderer and private-message adapter: attributed bounded human text, mention suppression, current exact-channel proofs and narrow known-own-message withdrawal. Twenty-two focused synthetic checks pass; durable requests, authorization, worker and human controls are not yet implemented.",
+      "evidence": "22 focused tests: tests/case-reply-messages.test.js, case-intake-delivery.test.js, shuttle-alerts.test.js and shuttle-screens.test.js. See docs/case-replies.md.",
+      "remaining": "Durable requests/audit, current Staff grants, atomic outbox, ambiguous-send recovery and known-late compensation, shared command/dashboard controls, live acceptance and production gates."
+    },
+    {
+      "title": "Durable human replies and authenticated delivery API",
+      "tasks": [
+        "P06",
+        "P11",
+        "P17"
+      ],
+      "implemented": "Migration 036 retains human reply requests and audit with current Staff/version/audience checks, atomic metadata-only outbox intent, bounded exact retries, confirmed delivery and sticky known-message withdrawal. Authenticated HTTP confirmation/history, corruption rejection, ambiguous-send/late-lease handling, actual encrypted retention and runtime capture are verified offline.",
+      "evidence": "22 focused message checks, CR01–CR27, 67 B/X/Y intake/recovery scenarios, RB01–RB10 and RT01–RT10; all owned test clusters stopped. See docs/case-replies.md.",
+      "remaining": "Browser and Discord reply controls, operator recovery UI, independent live privacy/attribution checks and all production/off-host recovery gates. Live staging stays on 032."
+    },
+    {
+      "title": "Staff reply dashboard review and retained history",
+      "tasks": [
+        "P06",
+        "P17"
+      ],
+      "implemented": "Staff reply dashboard shares the retained reply API: literal text/case review, explicit confirmation, current access/version refresh, exact uncertain-submit retry, delivery history and private-data clearing. Twelve focused checks and synthetic Chromium interaction pass; no live deployment.",
+      "evidence": "12 controller/API/asset checks; authored synthetic Chromium review, focus, paging, exact retry, status and access-loss clearing. Temporary tab closed and preview stopped. Prior backend suites not rerun. See docs/evidence/replies-browser-verification.json.",
+      "remaining": "Discord reply and operator controls, independent live multi-account/client acceptance and production/off-host recovery gates. Staging remains on 032."
+    },
+    {
+      "title": "Confirmed Discord human replies through the shared service",
+      "tasks": [
+        "P06",
+        "P17"
+      ],
+      "implemented": "Discord /ticket reply requires reviewed case/version, bounded human text and explicit confirmation. Signed text is a one-use core-only value, never routing/receipt data; shared reply service and worker enforce current authorization, stable redelivery identity and truthful outcomes. Fourteen focused command checks, thirteen intake/contact regressions, CR01–CR29 and RT01–RT10 pass offline.",
+      "evidence": "14 command/verifier/receiver/response checks plus 13 intake/contact regressions; CR01–CR29 and RT01–RT10. Both owned database clusters stopped. See docs/evidence/replies-command-verification.json.",
+      "remaining": "Operator reply recovery, curated answers and other shared routes, independent live client/privacy checks and production/off-host recovery gates. No live command registration or upgrade; staging stays on 032."
+    },
+    {
+      "title": "Audited operator recovery for parked human replies",
+      "tasks": [
+        "P06",
+        "P17"
+      ],
+      "implemented": "Parked human replies share the bounded signed /ticket issues queue, audited revision-checked Recheck and verified own-message adoption. Unknown sends cannot be blindly retried; normal workers confirm exact text/current original authority or withdraw. Migration 037 backfills issue metadata without resetting attempts or send state. Fourteen focused checks, CR01–CR36, 67 intake/recovery scenarios and RT01–RT10 pass offline.",
+      "evidence": "14 issue/adapter checks; CR01–CR36, 67 B/X/Y intake/recovery scenarios and RT01–RT10 with stopped isolated clusters. Repository check: 345 source files. See docs/evidence/replies-recovery-verification.json.",
+      "remaining": "Curated answers, remaining shared routes and independent client/privacy/failure acceptance; off-host recovery and production gates remain open. No live upgrade; staging stays on 032. Encrypted restore not rerun for metadata-only migration 037."
+    },
+    {
+      "title": "Reviewed curated public-answer service and API",
+      "tasks": [
+        "P17",
+        "P18"
+      ],
+      "implemented": "Curated public-answer service and authenticated API: exact review/public-source attestation, optional default-denied publication capability, current member lookup, immutable publication/withdrawal receipts, bounded pages/capacity and no ticket import or send path. Seven focused checks, CA01–CA13 including encrypted restore, and RT01–RT11 pass offline.",
+      "evidence": "Seven focused contract/authorization checks; CA01–CA13 and RT01–RT11 with stopped isolated clusters. CA13 compares actual encrypted restored publication/withdrawal records. Repository check: 350 source files. See docs/evidence/answers-api-verification.json.",
+      "remaining": "Browser editor, Discord lookup and confirmed case-reply selection; static rules and independent live acceptance. No capability grant or migration deployed; staging stays on 032, source schema 038. Off-host recovery and production gates remain open."
+    },
+    {
+      "title": "Reviewed public-answer browser and member lookup",
+      "tasks": [
+        "P17",
+        "P18"
+      ],
+      "implemented": "Public-answer browser uses shared current-authority APIs for member lookup, literal editorial review, public-source confirmation, publication and withdrawal. Unsaved switching protection, changed-revision comparison, exact uncertain retry, bounded history and private-data clearing are verified by 25 focused tests and synthetic Chromium. RT01–RT11 pass offline.",
+      "evidence": "25 focused browser/transport/asset regressions and RT01–RT11. Synthetic Chromium checks literal markup, review focus, lost-response receipt retry, withdrawal/history paging and editor-loss DOM clearing with member lookup. Preview and isolated cluster stopped; repository check covers 355 source files. See docs/evidence/answers-browser-verification.json.",
+      "remaining": "Direct Discord lookup and confirmed reply selection, static chat rules and independent mobile/accessibility/live acceptance. No deployment; staging remains 032, source schema 038. CA01–CA13 not rerun for browser work; production/off-host recovery gates stay open."
+    },
+    {
+      "title": "Discord lookup of approved public answers",
+      "tasks": [
+        "P17",
+        "P18"
+      ],
+      "implemented": "Signed Discord /answer list and /answer show share the curated public library with current member authorization at response time. Full approved text/source/revision, bounded pagination, withdrawal and departure are verified. Eighteen focused command/registration/reply checks, eight bootstrap checks and RT01–RT11 pass offline.",
+      "evidence": "18 focused command/registration/reply checks, eight bootstrap checks and RT01–RT11 pass. Runtime uses signed HTTP, current ordinary-member authorization, real isolated PostgreSQL and simulated Discord. Cluster stopped. See docs/evidence/answers-command-verification.json.",
+      "remaining": "Confirmed case-reply answer selection, static rules, remaining parity, independent client/mobile/accessibility acceptance and production recovery. No live registration or upgrade; staging remains 032 and source schema 038. Full suites and CA01–CA13 were not rerun."
+    },
+    {
+      "title": "Confirmed public-answer selection into case replies",
+      "tasks": [
+        "P17",
+        "P18"
+      ],
+      "implemented": "Approved public answers can be selected explicitly in the case-reply browser and shared confirmed API. Migration 039 retains source name/revision/hash and exact text. Atomic publication checks reject stale new selections; exact prior receipts survive withdrawal without duplicating replies. Current case authority, final revocation, source races, migration preservation, encrypted restore and browser privacy/retry are verified offline.",
+      "evidence": "27 focused checks; CR01–CR43, CA01–CA13, 67 intake/recovery scenarios and RT01–RT11 pass in stopped isolated clusters. CR43 verifies encrypted restore of selected replies and withdrawn source history. Synthetic Chromium verifies read-only literal selection, focus/confirmation, exact retry after withdrawal, provenance and access-loss clearing. See docs/evidence/reply-answer-verification.json.",
+      "remaining": "Direct Discord selection, remaining parity/static rules, file operations, off-host recovery and independent human acceptance. No live upgrade; staging schema 032, source schema 039. Full suites and broad recovery suite not rerun; the new selected-reply restore is verified separately."
+    },
+    {
+      "title": "Discord approved-answer review and confirmation",
+      "tasks": [
+        "P17",
+        "P18"
+      ],
+      "implemented": "Discord /ticket answer provides full approved-text review and explicit Confirm/Cancel through the shared reply transaction. Migration 040 retains author-bound metadata and source identity. Ten-minute expiry, five-review capacity, current grant/case/audience/publication checks, concurrent clicks, lost-commit exact retry and encrypted restore are verified offline.",
+      "evidence": "23 focused checks; CR01–CR52, CA01–CA13, 67 intake/recovery scenarios and RT01–RT11 pass in stopped isolated clusters. CR43 restores pending/cancelled/submitted reviews and retained source/reply history. Signed runtime controls verify cancellation, ownership and exact retry after withdrawal. See docs/evidence/answer-review-verification.json.",
+      "remaining": "Static rules, remaining parity, file operations, off-host recovery and independent human acceptance. No live upgrade or registration; staging schema 032, source schema 040. Full suites and broad recovery suite not rerun; review-inclusive encrypted restore has separate CR43 evidence."
+    },
+    {
+      "title": "Reviewed static automation policy and dry-run API",
+      "tasks": [
+        "P18"
+      ],
+      "implemented": "Static automation configuration/API retains reviewed public policies and withdrawals under optional default-denied publisher authority. Bounded literal message/reaction rules, explicit channels, priority/stop and synthetic per-user/channel cooldown timelines share one pure policy. Current channel metadata and retained case exclusions gate review/publication; previews never store sample text or send. Migration 041, concurrency, revocation rollback, exact lost-commit retry and encrypted restore are verified offline.",
+      "evidence": "25 focused tests, AP01–AP15 and RT01–RT12 pass in stopped isolated clusters. AP14 verifies encrypted restore of published/withdrawn policy and author receipts. Current channel exclusion, concurrency, CSRF, late revocation and lost-commit exact retry are covered. See docs/evidence/automation-policy-verification.json.",
+      "remaining": "Gateway ingestion, durable cooldowns, live delivery/reconciliation, automation browser, independent T45 and remaining production gates. Publishing does not activate automation. No live upgrade or grant; staging 032, source 041. Full suites unrun; other suites only received current-migration-count adjustments."
+    },
+    {
+      "title": "Durable Gateway automation admission",
+      "tasks": [
+        "P18"
+      ],
+      "implemented": "Explicitly enabled Gateway admission uses opaque transient message proofs, current channel/case exclusions and the reviewed literal rules. Cursor, metadata-only receipts, stable rule-ID cooldowns, approved-action references and bounded outbox jobs commit together. Migration 042 retains activation mode and admission state. Replay, capacity, rollback, fresh-service lost-commit recovery, encrypted restore and independent case capture are verified offline.",
+      "evidence": "35 focused tests; AA01–AA15/G01–G17 (32), AP01–AP15, RT01–RT13, 52 reply and 67 intake/recovery scenarios pass in five stopped isolated clusters. AA13 encrypted restore and AA14 lost cursor-COMMIT/fresh-service replay preserve one admission. RT13 separates public automation from private case capture. See docs/evidence/automation-ingress-verification.json.",
+      "remaining": "No delivery consumer, deadline enforcement, reconciliation/recovery or automation browser yet. Live admission remains off; no deployment. Staging schema 032, source 042. Full suites and independent live acceptance unrun; historical upgrade fixtures were updated and exercised. All production gates remain open."
+    },
+    {
+      "title": "Durable automatic message and reaction delivery",
+      "tasks": [
+        "P18"
+      ],
+      "implemented": "Queued static messages and reactions now use current publication, source/channel metadata, human/bot permissions, Gateway continuity and a 60-second deadline. Migration 043 retains possible-send state, positive receipts, sticky compensation and metadata audit. Unknown creates park without repeats; late receipts, lost commits, idempotent removal, encrypted restore and composed runtime delivery are verified offline.",
+      "evidence": "39 focused checks and 203 integration scenarios pass across six stopped isolated clusters. AD01–AD24 include encrypted restore, late receipts, lost commits and idempotent withdrawal. RT13 composes Gateway admission and actual delivery while case capture stays separate. No live deployment or independent human pass. See docs/evidence/automation-worker-verification.json.",
+      "remaining": "Operator recovery and automation browser remain open. No live activation/upgrade; staging 032, source 043. Full suites and independent live acceptance unrun. All production gates remain open."
+    },
+    {
+      "title": "Current-authorized automation operator recovery",
+      "tasks": [
+        "P18"
+      ],
+      "implemented": "Current-authorized automation recovery now provides bounded metadata queue/history and confirmed recheck/verified-effect adoption through authenticated APIs. Migration 044 retains operator request receipts and linked audit. Stale/concurrent controls, exact lost-commit replay, no absent-effect resend, preserved cooldown/pause/quarantine, revocation rollback, encrypted restore and composed runtime recovery are verified offline.",
+      "evidence": "45 focused checks and 175 integration scenarios pass across five stopped isolated clusters. AR01–AR19 include current authority, stale/concurrent controls, lost commits, atomic audit and encrypted restore. RT13 composes OAuth-authorized recovery of an uncertain automatic effect. No live deployment or independent human pass. See docs/evidence/automation-operator-verification.json.",
+      "remaining": "The reviewed configuration/recovery browser and independent acceptance remain open. No live activation/upgrade; staging 032, source 044. Full suites and production qualification unrun. All production gates remain open."
+    },
+    {
+      "title": "Owner follow-up: adaptive Shuttle and custom capability roles",
+      "tasks": [
+        "P03",
+        "P05",
+        "P08",
+        "P11",
+        "P13",
+        "P14",
+        "P26"
+      ],
+      "implemented": "Owner-approved 1–20-step Shuttle authoring: add, reorder, confirmed removal, stable identities, bounded total text, immutable publications and pinned active runs. Completion and Discord controls derive from each retained version; 58 focused checks, 54 database scenarios and synthetic mobile/browser interaction pass. Independent configured capability role lists remove the two-role restriction; backup and closure decisions recorded.",
+      "evidence": "71 focused checks (13 permissions/runtime and 58 Shuttle/editor) plus 71 integration scenarios (17 authorization and 54 Shuttle) pass. Both successful isolated clusters stopped; an initial failed fixture cluster also stopped. Synthetic browser verified step changes, confirmation/publication, mobile reflow and clearing. No live upgrade or human release pass. See docs/evidence/adaptive-shuttle-verification.json and docs/evidence/authorization-verification.json.",
+      "remaining": "Full permissions editor/responder customization, owner-authored copy and staged qualification, automation browser, controlled files and independent recovery. No production release gate is complete."
+    },
+    {
+      "title": "Reviewed permissions deployment candidates and per-type responders",
+      "tasks": [
+        "P03",
+        "P05",
+        "P08",
+        "P11",
+        "P15",
+        "P26"
+      ],
+      "implemented": "Reviewed /permissions editor: current role/category selection, independent permissions.publish authority, retained drafts/candidates/withdrawals, running/proposed review, self-lockout protection, exact uncertain retries and access-loss clearing. Optional per-case-type responder maps agree across authorization, queues, Discord ACLs and deterministic notifications; Head Admin privacy and owned membership roles remain protected.",
+      "evidence": "52 focused checks; PC01–PC12 plus A01–A17 (29) and RT01–RT13 (13), 42 isolated scenarios. All clusters stopped. Synthetic browser verifies saved review/confirmation, withdrawal, uncertain retry, literal role names, 390x844 reflow and access-loss DOM clearing. See docs/evidence/permission-editor-verification.json.",
+      "remaining": "Activation/reconciliation of retained case channels for changed policy versions, live mapping selection, staging 032-to-045 qualification and independent member/client acceptance remain open. Candidates do not apply themselves. Membership-role migration, automation browser and all production gates remain open."
+    },
+    {
+      "title": "Reviewed automation configuration and recovery browser",
+      "tasks": [
+        "P08",
+        "P18"
+      ],
+      "implemented": "Automation browser at /automation uses the shared pure policy and authenticated APIs for literal rule editing, reviewed publication/withdrawal, synthetic preview, retained history and metadata recovery. Exact uncertain retries, changed-state review invalidation and access/visibility clearing are implemented; unknown sends cannot be rechecked or blindly repeated.",
+      "evidence": "42 focused checks and AR01–AR20 pass; isolated cluster stopped. Synthetic browser publication/withdrawal, uncertain retry, preview, recovery controls, mobile reflow and revocation clearing inspected. See docs/evidence/automation-browser-verification.json.",
+      "remaining": "No live activation or staging upgrade; schema 032 preservation and upgrade qualification precede private owner testing. Independent T45 and all production gates remain open."
+    },
+    {
+      "title": "Exact historical staging preservation and upgrade qualification",
+      "tasks": [
+        "P06",
+        "P26",
+        "P27"
+      ],
+      "implemented": "Exact schema-032 preservation mode verifies immutable migration hashes, records absent control history explicitly and encrypts the snapshot and retained files. Historical restore remains quarantined. Synthetic 033–045 upgrade preserves all historical columns and installs current restricted runtime grants.",
+      "evidence": "10 focused checks, RB01–RB10/SU01–SU05 (15) and RT01–RT13 pass in stopped isolated clusters. Reports: docs/evidence/staging-upgrade-verification.json and docs/evidence/staging-verification.json. Initial historical-fixture timestamp/singleton/FK ordering issues were corrected without disabling constraints.",
+      "remaining": "Live preservation/upgrade, independent latest control history and backup custody, changed-policy activation and human acceptance remain open."
+    },
+    {
+      "title": "Preserved isolated staging upgrade to schema 045",
+      "tasks": [
+        "P06",
+        "P08",
+        "P26",
+        "P27",
+        "P29"
+      ],
+      "implemented": "Pinned de8b32b staging build, encrypted pre/post-upgrade copies under D:/Backups, verified historical restore into quarantine, unchanged old-column fingerprints and runtime policy configuration, strict current grants and Gateway/public readiness. No new publisher grant or automation activation.",
+      "evidence": "45 migration hashes and 69 table grants pass; 54 original table fingerprints preserved. Public pages 200 with CSP/no-store, anonymous session 403, unsigned Discord request 401. See docs/evidence/staging-upgrade-live.json.",
+      "remaining": "Private owner journey tests, permission-candidate activation and optional publisher grant approval, command registration parity, independent latest recovery history/key custody and all production gates. Rollback database/configuration compatibility verified; rollback live start unrun."
+    },
+    {
+      "title": "Candidate-bound permission deployment assessment",
+      "tasks": [
+        "P03",
+        "P05",
+        "P08",
+        "P15"
+      ],
+      "implemented": "Single-statement control-metadata inventory and exact candidate-bound review hash; current authority on entry/return, invalid candidate/base/selection rejection, aggregate blockers and saved-draft preparation view. No policy registration, case modification or outbox effect.",
+      "evidence": "10 focused checks and PC01–PC18/A01–A17 (35 isolated scenarios). Source-bound results in docs/evidence/permission-deployment-verification.json. No new owner test requested.",
+      "remaining": "Durable activation receipts, exclusive writer fencing, current Discord inventory, verified sealing before replacement, retained open/closed/sealed reconciliation and forward-version rollback. No staging deployment or permission activation."
+    },
+    {
+      "title": "Durable permission-maintenance preparation barrier",
+      "tasks": [
+        "P03",
+        "P05",
+        "P06",
+        "P15",
+        "P26"
+      ],
+      "implemented": "Owner-only candidate/review-bound entry with monotonic generations, active-lease refusal, durable hold and unchanged-preparation cancellation. Statement guards fence every restricted runtime DML transaction, including stale repeatable-read snapshots. Core sees only availability; composed host latches disabled after observing maintenance. Additive schema 047 and guarded startup verification.",
+      "evidence": "11 focused checks and 73 isolated scenarios (42 permissions/authorization, 14 composed runtime, 17 recovery/upgrade). All owned clusters stopped. Initial fixture FK reset and retained JSON object-order issues corrected; candidate comparison now canonical. See docs/evidence/permission-maintenance-verification.json.",
+      "remaining": "Current Discord metadata inventory, durable effect phases, uncertain-effect resolution, verified sealing and policy replacement, eligibility reconciliation and forward-version rollback. No public activation/cancellation route or live CLI. Before an authorized 047 upgrade, preserve/restore-verify live 046 with pinned 046 tooling. Owner acceptance and production release remain open."
+    },
+    {
+      "title": "Retained permission channel inventory",
+      "tasks": [
+        "P03",
+        "P05",
+        "P06",
+        "P11",
+        "P15",
+        "P26"
+      ],
+      "implemented": "Core-only current role/channel metadata projection and retained owner-only inventory revisions. Classification distinguishes missing, moved, mismatched, discovered and orphaned channels, unavailable selections and exact versus stale duplicate choices. Names/arbitrary topics and all case-content sources are excluded. No adoption, permission mutation or activation follows from inventory.",
+      "evidence": "17 focused checks and 70 isolated scenarios: permissions/maintenance/inventory/authorization (52), recovery/upgrade (18), all owned clusters stopped. Exact retries, cancellation/control-state races, proof copying/expiry, withheld identities in aggregate receipts, corruption, encryption and held-state migration covered. See docs/evidence/permission-inventory-verification.json.",
+      "remaining": "Durable seal plans/effect journal, current bot authority, permanent exclusions for newly confirmed case channels, bot-only sealing, policy replacement, current-eligibility reconciliation and forward-version rollback. No browser/live CLI activation surface or live deployment. Current source backup validation expects 048; preserve live 046 with pinned tooling before a separately authorized upgrade."
+    },
+    {
+      "title": "Durable permission channel sealing",
+      "tasks": [
+        "P03",
+        "P05",
+        "P06",
+        "P11",
+        "P15",
+        "P26"
+      ],
+      "implemented": "Owner-only reviewed inventory confirmation, atomic plan/exclusion retention, fixed bot-only adapter and durable per-channel effect phases. Fresh identity/bot checks precede dispatch; started and uncertain effects are never blindly resent. Read-only verification retains uncertainty; whole-inventory completion detects missing, reopened or newly appearing channels. The maintenance barrier remains held and policies/desired case access remain unchanged.",
+      "evidence": "21 focused checks and 82 isolated scenarios (63 permissions/authorization, 19 recovery/upgrade), all owned clusters stopped. Lost plan/start commits, concurrent dispatch, lost responses, false success, drift, discovered-channel exclusions, corruption and encrypted restore covered. An initial suite teardown left the synthetic barrier held before authorization tests; fixture teardown was corrected and the complete selected suites passed. See docs/evidence/permission-sealing-verification.json.",
+      "remaining": "Policy replacement, adoption/capture reconciliation, current eligible audiences, reviewed resolution of unresolved effects, forward-version rollback and operational activation surface. No live deployment. Source backup validation expects 049; preserve live 046 with pinned tooling before a separately authorized upgrade."
+    },
+    {
+      "title": "Held permission policy application",
+      "tasks": [
+        "P03",
+        "P05",
+        "P06",
+        "P11",
+        "P15",
+        "P26"
+      ],
+      "implemented": "Confirmed owner-only application reobserves inventory/seals, rejects unsettled control work and commits new immutable policies, actor epochs, case version/audience bindings, confirmed channel/capture adoption and reconciliation jobs together. Member/presence epochs, invitations, original desired case access and historical policies are preserved. Journaled secret-free base sections make interrupted applications reviewable with either configuration. Maintenance entry records capture downtime; no runtime release API.",
+      "evidence": "21 focused checks and 94 isolated scenarios: 74 permissions/authorization and 20 recovery/upgrade. Exact retry, stale controls/ACLs, expiration rollback, capability-only behavior, old-grant denial, discovered duplicates, current-eligibility worker compatibility, capture downtime, encrypted recovery and 049 preservation verified. See docs/evidence/permission-policy-application-verification.json.",
+      "remaining": "Operational owner-only reconciliation coordinator, fresh completion/lockout checks, compatible runtime configuration handoff and forward-version rollback. Reviewed resolution of old uncertain effects and missing/conflicting identities; no live deployment or human acceptance. Source schema050 requires compatible backup/runtime tooling; preserve live046 with pinned tools before any separately authorized upgrade."
+    },
+    {
+      "title": "Shuttle minimum-product human-test checkpoint",
+      "tasks": [
+        "P05",
+        "P08",
+        "P13",
+        "P14",
+        "P27"
+      ],
+      "implemented": "Owner priority and stopping condition updated. Existing pinned Shuttle source, public shell/assets, anonymous-session denial and redacted process/status metadata inspected. Concrete private editor/screen/progression/role/privacy/help test prepared in the handoff. No runtime or deployment change.",
+      "evidence": "Eleven selected staged sources match pinned2b984d2 and the source-bound feedback report. Four public GET checks pass; rendered application HTML is unchanged apart from an edge challenge insertion. Host/connector processes observed alive; status reports current. See docs/evidence/shuttle-mvp-readiness.json.",
+      "remaining": "Owner private browser and ordinary-member Discord test is now required. Stop the current goal at this explicit boundary. Production membership/revocation/privacy, recovery, final configuration/content and operator approval gates remain open; broader administration backlog is preserved."
+    },
+    {
+      "title": "Persistent Onboarding journey and shared system wording",
+      "tasks": [
+        "P05",
+        "P08",
+        "P13",
+        "P14",
+        "P27"
+      ],
+      "implemented": "One editable Discord anchor across page turns and completion, silent successful controls, legacy recovery, shared publisher-authorized wording editor with pinned in-flight revisions, and Onboarding implementation names with protocol compatibility.",
+      "evidence": "406 unit tests; 88 Onboarding/wording, 67 intake, 20 recovery/upgrade and 14 composed runtime scenarios; ten synthetic browser checks. Source-bound reports in docs/evidence/onboarding-experience-verification.json. All owned clusters stopped.",
+      "remaining": "Private Discord/browser retest after the completed schema053 staging upgrade and restart verification. Existing live entry-navigation symptom needs confirmation. Production privacy, role, recovery, final content/mappings and operational gates remain open."
+    },
+    {
+      "title": "System wording OAuth return-path forward repair",
+      "tasks": [
+        "P05",
+        "P08"
+      ],
+      "implemented": "Add the System wording route to the database OAuth return-path allowlist, retaining all original routes and checks.",
+      "evidence": "O01–O19 and RT01–RT14 pass:33 isolated scenarios including a complete synthetic sign-in returning to /localizations and authenticated wording APIs. Owned clusters stopped; see docs/evidence/onboarding-wording-return-verification.json.",
+      "remaining": "Private owner sign-in/session and wording retest; schema053 staging restart and public login-start check are complete. No production acceptance."
+    },
+    {
+      "title": "Onboarding upgrade state reconciled for continuation",
+      "tasks": [
+        "P05",
+        "P08",
+        "P13",
+        "P14",
+        "P27"
+      ],
+      "implemented": "Full handoff updated with completed046→052→053 preservation/migrations, selected036476f archive, remaining verification and owner test, durable authorization, code pointers, operational receipts and deferred release gates.",
+      "evidence": "27 September read-only check: 754 archive hashes match; selected launcher verified; recorded host/connector PIDs absent; no 38121–38123 listeners; dedicated pg_ctl status 3; three public endpoints return HTTP 530. The20September receipt records 53 migrations, 70 retained-table fingerprints and 70 restricted runtime table checks.",
+      "remaining": "Historical offline handoff checkpoint; the subsequent restart is recorded below. Private owner retest and production gates remain open."
+    },
+    {
+      "title": "Schema053 staging restart and public verification",
+      "tasks": [
+        "P05",
+        "P08",
+        "P13",
+        "P14",
+        "P27"
+      ],
+      "implemented": "Restarted the existing pinned 036476f host, dedicated database and connector under retained authorization, using fresh hidden-process logs. No migrations, configuration/grant changes, candidate activation or bootstrap.",
+      "evidence": "27 September: 754 archive hashes and unchanged launcher verified; fresh current Gateway, matching host/connector ownership and loopback ports, dedicated pg_ctl status 0; all 12 public HTTPS checks pass, including exact wording asset hash and System wording OAuth-start redirect. See docs/evidence/onboarding-experience-live.json. Prior upgrade/preservation results remain separately dated historical evidence.",
+      "remaining": "Stop for the owner private browser/ordinary-member Onboarding test in docs/handoff.md. No application suites rerun, real login, human acceptance or production approval."
+    },
+    {
+      "title": "Onboarding channel lifecycle, entry panel and login boundary",
+      "tasks": [
+        "P05",
+        "P08",
+        "P13",
+        "P14",
+        "P27"
+      ],
+      "implemented": "Schema054 adds channel activity/retirement and retained previous case bindings. Fresh unknown-channel proof allows safe destination replacement. Versioned state and grant cancellation protect manual/automatic removal. Staff /shuttle close and publisher /shuttle panel use current authority; panel copy is in System wording. Login precedes dashboard HTML and preserves allowlisted return pages.",
+      "evidence": "45 unit checks; OC01–OC13 isolated lifecycle scenarios; 88 existing Onboarding/wording scenarios. See docs/onboarding-followup.md and source-bound reports. Schema053 original columns preserved by synthetic forward migration. Owner reports prior tests1–4 passed; wording5 untested. RT01–RT16 composed runtime scenarios also pass, including actual signed public panel and private closure responses, synthetic OAuth and gated dashboard HTML. All owned test clusters stopped.",
+      "remaining": "The subsequent authorized 054 deployment/command rename is complete; private recovery/cleanup/panel/login/wording retest and full production release gates remain open."
+    },
+    {
+      "title": "Whitelist command rename and authorized schema054 staging upgrade",
+      "tasks": [
+        "P05",
+        "P08",
+        "P13",
+        "P14",
+        "P27"
+      ],
+      "implemented": "Public /whitelist replaces /shuttle in registration, signed ingress and new default instructions. Existing command ID and internal session/control identifiers remain stable. Preserved schema053, verified quarantined restore, migrated054, pinned9479c2c, renamed guild command and restarted owned host/connector.",
+      "evidence": "Renamed candidate: 27 focused unit checks, 88 Onboarding/wording, 13 lifecycle and 16 runtime scenarios passed; owned test clusters stopped. Live schema053 encrypted preservation/quarantined restore, 70 unchanged table fingerprints, 54 migrations/70 runtime table checks and current encrypted backup passed. All 765 archive hashes, fresh Gateway, process/port ownership and 24 public HTTPS checks passed. See docs/evidence/onboarding-followup-live.json. No new human acceptance or production pass.",
+      "remaining": "Private account retry and actual client/timing acceptance. Independent recovery and production release gates remain open."
+    },
+    {
+      "title": "Whitelist arrival, permitted navigation and Meridian-informed editor",
+      "tasks": [
+        "P05",
+        "P08",
+        "P13",
+        "P14",
+        "P27"
+      ],
+      "implemented": "Local next-test feedback: verified arrival before one Begin Whitelist link, default one-hour closure notice, permission-filtered HTML with one-use session bootstrap and renewal, and Meridian-informed responsive presentation. 45 focused unit checks, 88 Onboarding/wording, 18 authorization and 16 runtime scenarios pass; synthetic desktop/mobile editing and quiet mode checked. See docs/whitelist-test-feedback.md. Subsequently deployed with owner authorization on pinned036c3db/schema054; 768 Git hashes, orderly shutdown, current Gateway, process/port ownership and 26 public checks passed. No migration, configuration, command or grant changes. Private client acceptance remains open.",
+      "evidence": "docs/evidence/whitelist-test-feedback-verification.json; owned synthetic clusters/preview servers stopped. Current authority and no-AI boundaries remain intact. Authorized live replacement: docs/evidence/whitelist-test-feedback-live.json; 26 public checks, 54 migration and 70 runtime table checks pass.",
+      "remaining": "Private Discord/browser acceptance; custom typography assets/licences and production gates remain open."
+    },
+    {
+      "title": "Website role configuration and durable apply workflow",
+      "tasks": [
+        "P03",
+        "P05",
+        "P08",
+        "P11",
+        "P15"
+      ],
+      "implemented": "Website role/feature configuration and apply workflow implemented locally on schema055. Crew/base, Whitelist, Muzzled, Staff/lead ops, capability grants, responder groups and category routing are editable. Durable apply/status/retry, owner maintenance, role/case reconciliation, restart selection, lockout protection and restore quarantine are verified. 14 focused unit checks and 123 isolated scenarios pass (87 permissions/authorization, 16 runtime, 20 recovery/upgrade). Lead ops only is the owner-selected initial editor grant. Staging remains036c3db/schema054; deploying the new host and schema requires scoped authorization.",
+      "evidence": "docs/permission-configuration.md; docs/evidence/website-configuration-verification.json. Synthetic desktop save/review/approve/apply/status/retry and mobile comparison checked. No dependencies added.",
+      "remaining": "Scoped staging deployment authorization; live private role, Muzzled, Whitelist revocation and case ACL acceptance. Production gates remain open."
+    },
+    {
+      "title": "Authorized schema055 configuration deployment",
+      "tasks": [
+        "P03",
+        "P05",
+        "P08",
+        "P11",
+        "P15"
+      ],
+      "implemented": "Owner-authorized a5e0232/schema055 deployment completed with the configurable host and Lead ops-only permissions.publish at capability version2. 779 Git file hashes verified; encrypted preservation restored in quarantine; migration preserved all 70 existing tables. Current Gateway, process/loopback-port ownership, 32 public HTTPS checks and 55 migration/71 restricted runtime table checks pass. Next: owner private Roles and permissions/apply/ACL acceptance. No production approval.",
+      "evidence": "docs/evidence/website-configuration-live.json; docs/permission-configuration.md. Current encrypted backup completed; independent off-host recovery remains unverified.",
+      "remaining": "Owner private live configuration/apply and role/ACL acceptance; production gates remain open."
+    }
+  ],
+  "next_steps": [
+    {
+      "title": "Privately verify deployed configuration and apply workflow",
+      "tasks": [
+        "P03",
+        "P05",
+        "P08",
+        "P11",
+        "P15"
+      ],
+      "work": "Sign in with the existing Lead ops role at /permissions. Verify Crew/base, Whitelist, Muzzled, Staff/lead ops, feature grants, responders and category; review/apply an intentional change and verify progress, preserved restrictions and case access. Do not inspect private data through agent tools or repeat bootstrap/deployment.",
+      "exit_evidence": "Owner pass/fail with client/time and no private content. Keep the held recovery path and fresh Whitelist-run rule; no old-policy or schema054 rollback."
+    },
+    {
+      "title": "After feedback: qualify Onboarding production gates",
+      "tasks": [
+        "P01",
+        "P02",
+        "P05",
+        "P06",
+        "P07",
+        "P09",
+        "P13",
+        "P14",
+        "P26",
+        "P27",
+        "P29",
+        "P30",
+        "P31"
+      ],
+      "work": "Address the reported Onboarding failures first. Then qualify final guidance/mappings, existing-role ownership, Muzzled and fresh-run revocation, no-AI/privacy, restart/uncertain-effect recovery, independent latest-history recovery, Windows identity/service packaging and approved production handoff. Preserve the broader feature backlog without making unrelated functionality a prerequisite for the next Onboarding test.",
+      "exit_evidence": "Build-specific applicable release evidence and explicit operator approval; no production-ready claim from this human-test checkpoint."
+    }
+  ],
+  "release_inputs": [
+    {
+      "input": "Isolated Discord test guild/bootstrap and current live Gateway are configured; complete client/permission/workflow acceptance remains pending",
+      "affected_work": "Live Gateway, modal/client, role hierarchy, case ACL and command-registration checks.",
+      "independent_work": "Synthetic adapter, authorization, delivery and recovery implementation."
+    },
+    {
+      "input": "Production role/channel selections and responsibility review; candidate editor and per-type responder maps implemented locally, activation/reconciliation remains open",
+      "affected_work": "Real Staff/lead-ops access, moderation/configuration permissions and single-writer cutover.",
+      "independent_work": "Versioned capability policies and negative authorization tests."
+    },
+    {
+      "input": "Owner will author Shuttle guidance with the adaptive editor; final form questions/links remain to publish. Closed-case read-only audience is approved.",
+      "affected_work": "Production publication and final case/closure UX.",
+      "independent_work": "Data-driven form editor, synthetic workflow tests and provisional read-only closure."
+    },
+    {
+      "input": "Attachment type/count/size/storage limits and quarantine/download policy; scanning capability is unapproved",
+      "affected_work": "Production attachment acquisition, storage admission and artifact delivery.",
+      "independent_work": "Authenticated transcript implementation, operator artifact inventory/repair, and synthetic export/capacity tests."
+    },
+    {
+      "input": "https://sophie.a13.info ingress, OAuth callback and owner login verified; multi-account permissions and complete live workflow acceptance remain pending",
+      "affected_work": "Live dashboard/provider compatibility and public ingress.",
+      "independent_work": "Loopback authentication, route parity and synthetic browser checks."
+    },
+    {
+      "input": "Reviewed runtime distributions, native service identities, ACLs, data root and ports",
+      "affected_work": "Service installation, OS isolation, resource baseline and host reboot tests.",
+      "independent_work": "Packaging, explicit composition and installation/preflight scripts."
+    },
+    {
+      "input": "D:\\Backups selected locally; independent recovery copy, key custody, RPO/RTO, backup retention and latest recovery watermark remain open",
+      "affected_work": "Verified independent restore and production cutover; a local destination is not an off-host recovery pass.",
+      "independent_work": "Backup/restore interfaces, local synthetic drills, retained-artifact design and operator runbooks."
+    },
+    {
+      "input": "Human brand/accessibility review and administration pilot approval",
+      "affected_work": "G2 presentation acceptance and live cutover.",
+      "independent_work": "Static approved-asset previews and developer keyboard/reflow checks."
+    },
+    {
+      "input": "Wiki collection/rights approvals; separately, exact model/runtime approval and measured host-load budget",
+      "affected_work": "Live knowledge ingestion (G3) and optional local AI (G4).",
+      "independent_work": "Public-source fixtures, lookup contracts and exclusion tests; administration remains independent."
+    }
+  ],
+  "continuation": {
+    "current": "../.agent_docs/aphelion-sophie/workplan.json",
+    "reason": "Owner-directed external storage for new generated plans/evidence; retained in-repository body is historical.",
+    "updatedAt": "2026-09-27"
+  }
+}

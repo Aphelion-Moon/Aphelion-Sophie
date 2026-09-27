@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="color-scheme" content="dark">
+  <title>Staff notes · Sophie</title>
+  <link rel="stylesheet" href="/dashboard/styles.css"><script type="module" src="/dashboard/notes-app.js"></script>
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to content</a>
+  <header class="topbar">
+    <div class="identity"><img id="avatar" src="/dashboard/sophie-avatar.png" alt="" width="52" height="52"><div><strong>Sophie</strong><span>Community Services</span></div></div>
+    <div class="header-actions"><label class="quiet"><input id="quiet" type="checkbox"> Quiet mode</label><button id="logout" class="subtle" hidden>Sign out</button></div>
+  </header>
+  <main id="main" tabindex="-1">
+    <nav class="service-nav" aria-label="Community Services"><!-- service-navigation --></nav>
+    <div class="page-heading"><div><p class="eyebrow">APHELION / SERVICE DESK</p><h1>Staff notes</h1><p class="intro">Private notes for the case’s permitted responders.</p></div></div>
+    <p id="notice" class="notice" role="status" hidden></p><p id="error" class="error-box" role="alert" hidden></p>
+    <section id="gate" class="gate panel"><h2 id="gate-title">Loading your workspace…</h2><p>Notes require Staff authority for this case. Only Head Admins can access Head Admin contact notes.</p><a id="signin" class="button primary" href="/auth/start" hidden>Sign in with Discord</a><button id="gate-retry">Try again</button></section>
+    <noscript><p class="error-box">This page needs JavaScript.</p></noscript>
+    <div id="workspace" hidden>
+      <form id="open-channel" class="panel case-panel" autocomplete="off">
+        <label for="channel-id">Case channel ID</label><p class="muted">Use the main private ticket channel’s ID. Notes belong to the case, not to a child thread.</p>
+        <div class="actions"><input id="channel-id" type="text" inputmode="numeric" pattern="[1-9][0-9]{0,19}" maxlength="20" required><button id="open" class="primary">Open notes</button><button id="refresh" type="button">Refresh access</button></div>
+      </form>
+      <button id="retry-save" hidden>Retry the same note</button>
+      <section id="record" class="panel case-panel" hidden>
+        <h2>Restricted case notes</h2><p id="channel-label" class="muted"></p>
+        <p>These notes are kept separately from Discord messages and transcript exports. They are retained with the case. Add a new note to correct an earlier entry.</p>
+        <p id="empty-notes" hidden></p><div id="notes"></div><button id="older-notes" hidden>Older notes</button>
+      </section>
+      <form id="note-form" class="panel case-panel" autocomplete="off" hidden>
+        <h2>Add a Staff note</h2><label for="note-text">Note text</label>
+        <textarea id="note-text" rows="7" maxlength="4000" required aria-describedby="note-hint"></textarea>
+        <p id="note-hint" class="muted">Plain text, up to 4,000 characters. Unsaved text is cleared when this page is hidden or Staff access is denied.</p>
+        <button id="save-note" class="primary" disabled>Save Staff note</button>
+      </form>
+    </div>
+  </main>
+</body>
+</html>

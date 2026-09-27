@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="color-scheme" content="dark">
+  <title>Case labels · Sophie</title>
+  <link rel="stylesheet" href="/dashboard/styles.css"><script type="module" src="/dashboard/labels-app.js"></script>
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to content</a>
+  <header class="topbar">
+    <div class="identity"><img id="avatar" src="/dashboard/sophie-avatar.png" alt="" width="52" height="52"><div><strong>Sophie</strong><span>Community Services</span></div></div>
+    <div class="header-actions"><label class="quiet"><input id="quiet" type="checkbox"> Quiet mode</label><button id="logout" class="subtle" hidden>Sign out</button></div>
+  </header>
+  <main id="main" tabindex="-1">
+    <nav class="service-nav" aria-label="Community Services"><!-- service-navigation --></nav>
+    <div class="page-heading"><div><p class="eyebrow">APHELION / SERVICE DESK</p><h1>Case labels</h1><p class="intro">Human-written tags and manual priorities for Staff coordination.</p></div></div>
+    <p id="notice" class="notice" role="status" hidden></p><p id="error" class="error-box" role="alert" hidden></p>
+    <section id="gate" class="gate panel"><h2 id="gate-title">Loading your workspace…</h2><p>Current responder authority is required. Head Admin contact labels remain restricted to Head Admins.</p><a id="signin" class="button primary" href="/auth/start" hidden>Sign in with Discord</a><button id="gate-retry">Try again</button></section>
+    <noscript><p class="error-box">This page needs JavaScript.</p></noscript>
+    <div id="workspace" hidden>
+      <form id="open-channel" class="panel case-panel" autocomplete="off">
+        <label for="channel-id">Case channel ID</label><p class="muted">Use the main private ticket channel’s ID.</p>
+        <div class="actions"><input id="channel-id" type="text" inputmode="numeric" pattern="[1-9][0-9]{0,19}" maxlength="20" required><button id="open" class="primary">Open labels</button><button id="refresh" type="button">Refresh access</button></div>
+      </form>
+      <button id="retry-save" hidden>Retry the same change</button>
+      <section id="record" class="panel case-panel" hidden><h2>Current labels</h2><p id="current-labels" class="case-text"></p><p>Labels do not change case access, assignments or delivery order.</p></section>
+      <form id="label-form" class="panel case-panel" autocomplete="off" hidden>
+        <h2>Edit labels</h2><p id="stale-draft" class="error-box" role="alert" hidden></p>
+        <label for="priority">Manual priority</label><select id="priority"><option value="low">Low</option><option value="normal">Normal</option><option value="high">High</option><option value="urgent">Urgent</option></select>
+        <label for="tags">Tags</label><input id="tags" type="text" maxlength="263" aria-describedby="tags-hint">
+        <p id="tags-hint" class="muted">Up to eight comma-separated labels, 32 characters each. Use letters, numbers, spaces, dots, underscores or hyphens. Leave blank to clear. Unsaved changes are cleared when this page is hidden.</p>
+        <div class="actions"><button id="save-labels" class="primary" disabled>Save labels</button><button id="discard-draft" type="button">Discard draft and reload</button></div>
+      </form>
+      <section class="panel case-panel"><h2>Retained change history</h2><p id="empty-history" hidden></p><div id="label-history"></div><button id="older-labels" hidden>Older changes</button></section>
+    </div>
+  </main>
+</body>
+</html>

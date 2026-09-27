@@ -1,0 +1,935 @@
+{
+  "plan_version": "1.1",
+  "schedule": "Dependency order only; no time estimates or dates are commitments.",
+  "tasks": [
+    {
+      "id": "P00",
+      "title": "Freeze scope and deployment inputs",
+      "phase": "Foundation",
+      "priority": "P0",
+      "depends_on": [],
+      "deliverables": [
+        "Scope ledger and unresolved input manifest",
+        "No-AI-in-tickets invariant recorded as superseding earlier proposals",
+        "Sophie identity decision and source-asset set recorded; no-AI boundary unchanged"
+      ],
+      "acceptance_tests": [
+        "T01",
+        "T22"
+      ],
+      "suggested_owner": "Lead agent",
+      "guardrail": "No new product features or implicit approvals; all unknown IDs and credentials remain unset.",
+      "status": "planned_not_started"
+    },
+    {
+      "id": "P01",
+      "title": "Approve licence scope and persistence choice",
+      "phase": "Foundation",
+      "priority": "P0",
+      "depends_on": [
+        "P00"
+      ],
+      "deliverables": [
+        "Exact dependency/runtime/model inventory and notices",
+        "Owner decision for indirect/tooling/platform scope; one approved storage and queue design"
+      ],
+      "acceptance_tests": [
+        "T02"
+      ],
+      "suggested_owner": "Supply-chain agent",
+      "guardrail": "Do not install unknown/non-MIT components or invent a custom database to bypass a gate.",
+      "status": "planned_not_started"
+    },
+    {
+      "id": "P02",
+      "title": "Inventory and baseline Windows host",
+      "phase": "Foundation",
+      "priority": "P0",
+      "depends_on": [
+        "P00"
+      ],
+      "deliverables": [
+        "CPU/RAM/disk/service/port inventory",
+        "Resource baseline and deployment/recovery constraints"
+      ],
+      "acceptance_tests": [
+        "T37"
+      ],
+      "suggested_owner": "Operations agent",
+      "guardrail": "Read-only inventory; do not disrupt existing services or claim unmeasured model speed.",
+      "status": "planned_not_started"
+    },
+    {
+      "id": "P03",
+      "title": "Discover Discord, wiki and design inputs",
+      "phase": "Foundation",
+      "priority": "P0",
+      "depends_on": [
+        "P00"
+      ],
+      "deliverables": [
+        "Guild/role/channel ownership matrix and approved member baseline method",
+        "MediaWiki capabilities, approved sources and website asset/token evidence",
+        "Final Shuttle copy/forms and retention inputs",
+        "Inspect the supplied Sophie manifest and existing WUFF addendum; distinguish these from still-unverified site tokens and load measurements"
+      ],
+      "acceptance_tests": [
+        "T08",
+        "T21",
+        "T27",
+        "T43",
+        "T49"
+      ],
+      "suggested_owner": "Integration/design agent",
+      "guardrail": "No guessed IDs, website CSS, content licences or admission requirements.",
+      "status": "planned_not_started"
+    },
+    {
+      "id": "P04",
+      "title": "Bootstrap repository and contract checks",
+      "phase": "Foundation",
+      "priority": "P0",
+      "depends_on": [
+        "P01"
+      ],
+      "deliverables": [
+        "JavaScript ESM repository with runtime schemas/JSDoc",
+        "Locked approved dependencies, CI and module-boundary tests",
+        "Synthetic fixtures and build manifest"
+      ],
+      "acceptance_tests": [
+        "T02",
+        "T46"
+      ],
+      "suggested_owner": "Platform agent",
+      "guardrail": "No production secrets; TypeScript only after explicit approval.",
+      "status": "planned_not_started"
+    },
+    {
+      "id": "P05",
+      "title": "Implement authentication and shared capability policy",
+      "phase": "Foundation",
+      "priority": "P0",
+      "depends_on": [
+        "P03",
+        "P04"
+      ],
+      "deliverables": [
+        "Discord/OAuth actor resolution and sessions",
+        "Shared capability/access-epoch policy",
+        "CSRF, guild binding and negative permission tests"
+      ],
+      "acceptance_tests": [
+        "T01",
+        "T03",
+        "T04",
+        "T05"
+      ],
+      "suggested_owner": "Security/platform agent",
+      "guardrail": "UI visibility cannot substitute for backend checks.",
+      "status": "planned_not_started"
+    },
+    {
+      "id": "P06",
+      "title": "Implement durable storage and outbox",
+      "phase": "Foundation",
+      "priority": "P0",
+      "depends_on": [
+        "P01",
+        "P04"
+      ],
+      "deliverables": [
+        "Logical schema realised in the approved engine",
+        "Migrations, transactions, uniqueness, leases/fencing",
+        "Idempotency, retry and reconciliation contracts"
+      ],
+      "acceptance_tests": [
+        "T15",
+        "T16",
+        "T36"
+      ],
+      "suggested_owner": "Data agent",
+      "guardrail": "Treat external delivery as at-least-once; no exactly-once claim.",
+      "status": "planned_not_started"
+    },
+    {
+      "id": "P07",
+      "title": "Package native service skeleton",
+      "phase": "Foundation",
+      "priority": "P0",
+      "depends_on": [
+        "P02",
+        "P04"
+      ],
+      "deliverables": [
+        "Version-matched service scripts and ACL layout",
+        "Separated core/knowledge/inference identities",
+        "Liveness/readiness and redacted logs"
+      ],
+      "acceptance_tests": [
+        "T24",
+        "T37",
+        "T38"
+      ],
+      "suggested_owner": "Operations agent",
+      "guardrail": "Do not expose inference/database or run as a personal administrator.",
+      "status": "planned_not_started"
+    },
+    {
+      "id": "P08",
+      "title": "Build dashboard shell and shared controls",
+      "phase": "Administration",
+      "priority": "P0",
+      "depends_on": [
+        "P04",
+        "P05"
+      ],
+      "deliverables": [
+        "Capability-aware navigation and common forms/tables/dialogs",
+        "Accessible Sophie shell using bundled reference assets, with production placement approval still required",
+        "Configuration draft/validate/publish flow"
+      ],
+      "acceptance_tests": [
+        "T42",
+        "T43"
+      ],
+      "suggested_owner": "Dashboard agent",
+      "guardrail": "No case AI widgets or page-context injection into previews.",
+      "status": "planned_not_started"
+    },
+    {
+      "id": "P09",
+      "title": "Implement Discord adapter and command plumbing",
+      "phase": "Administration",
+      "priority": "P0",
+      "depends_on": [
+        "P04",
+        "P05"
+      ],
+      "deliverables": [
+        "Pinned Oceanic compatibility evidence",
+        "Gateway routing, prompt acknowledgment and modal handling",
+        "Shared service invocation and rate-limit/error behaviour",
+        "Apply the shared Sophie display identity in staging; live profile/avatar changes require release approval"
+      ],
+      "acceptance_tests": [
+        "T01",
+        "T05",
+        "T45"
+      ],
+      "suggested_owner": "Discord agent",
+      "guardrail": "Only the core owns the production token; optional voice remains absent.",
+      "status": "planned_not_started"
+    },
+    {
+      "id": "P10",
+      "title": "Implement ticket provisioning and state",
+      "phase": "Administration",
+      "priority": "P0",
+      "depends_on": [
+        "P06",
+        "P09"
+      ],
+      "deliverables": [
+        "Case type/form versions and opener/subject/participant separation",
+        "Private-channel provisioning with operation markers",
+        "Recoverable open/close state"
+      ],
+      "acceptance_tests": [
+        "T06",
+        "T08",
+        "T16"
+      ],
+      "suggested_owner": "Tickets agent",
+      "guardrail": "Reported subject is never auto-invited.",
+      "status": "planned_not_started"
+    },
+    {
+      "id": "P11",
+      "title": "Implement case permissions and staff lifecycle",
+      "phase": "Administration",
+      "priority": "P0",
+      "depends_on": [
+        "P05",
+        "P10"
+      ],
+      "deliverables": [
+        "Effective permission validation and category-change handling",
+        "Claim/reassign/participant/close/reopen services",
+        "Restricted staff notes and audit events"
+      ],
+      "acceptance_tests": [
+        "T07",
+        "T09"
+      ],
+      "suggested_owner": "Tickets/security agent",
+      "guardrail": "Do not promise privacy from Discord Administrator privileges.",
+      "status": "planned_not_started"
+    },
+    {
+      "id": "P12",
+      "title": "Implement transcripts and attachment policy",
+      "phase": "Administration",
+      "priority": "P0",
+      "depends_on": [
+        "P06",
+        "P11"
+      ],
+      "deliverables": [
+        "Authenticated private artifacts and escaped rendering",
+        "Bounded attachment path and coverage-gap reporting",
+        "Owner-approved retention enforced"
+      ],
+      "acceptance_tests": [
+        "T10",
+        "T11",
+        "T12",
+        "T35"
+      ],
+      "suggested_owner": "Tickets agent",
+      "guardrail": "No public permanent transcript links or AI ingestion.",
+      "status": "planned_not_started"
+    },
+    {
+      "id": "P13",
+      "title": "Implement Shuttle content editor and definitions",
+      "phase": "Administration",
+      "priority": "P0",
+      "depends_on": [
+        "P08",
+        "P10"
+      ],
+      "deliverables": [
+        "Immutable published workflow versions",
+        "Owner-provided copy/forms, preview and withdrawal/migration controls"
+      ],
+      "acceptance_tests": [
+        "T19",
+        "T42"
+      ],
+      "suggested_owner": "Onboarding/dashboard agent",
+      "guardrail": "No generated admissions rules; no infinite visual workflow builder.",
+      "status": "planned_not_started"
+    },
+    {
+      "id": "P14",
+      "title": "Implement deterministic Shuttle progression",
+      "phase": "Administration",
+      "priority": "P0",
+      "depends_on": [
+        "P06",
+        "P13"
+      ],
+      "deliverables": [
+        "Start/resume/advance/back/human-help state machine",
+        "Component nonce/version checks and control reconstruction"
+      ],
+      "acceptance_tests": [
+        "T13",
+        "T14",
+        "T15",
+        "T17",
+        "T19"
+      ],
+      "suggested_owner": "Onboarding agent",
+      "guardrail": "Neither Discord role visibility nor a model determines progress.",
+      "status": "planned_not_started"
+    },
+    {
+      "id": "P15",
+      "title": "Implement role ownership, restoration and revocation",
+      "phase": "Administration",
+      "priority": "P0",
+      "depends_on": [
+        "P06",
+        "P09"
+      ],
+      "deliverables": [
+        "Role ownership/restoration allowlists",
+        "Eligibility epochs and revocation-safe reconciliation",
+        "Stale/offline snapshot handling"
+      ],
+      "acceptance_tests": [
+        "T18",
+        "T20",
+        "T21"
+      ],
+      "suggested_owner": "Membership agent",
+      "guardrail": "No privileged-role restoration or external-bot role interference.",
+      "status": "planned_not_started"
+    },
+    {
+      "id": "P16",
+      "title": "Integrate final Shuttle grant and recovery",
+      "phase": "Administration",
+      "priority": "P0",
+      "depends_on": [
+        "P14",
+        "P15"
+      ],
+      "deliverables": [
+        "Acknowledged/role-pending/complete outcomes",
+        "Grant confirmation, late-effect compensation and operator repair",
+        "Human assistance and logged overrides"
+      ],
+      "acceptance_tests": [
+        "T15",
+        "T18",
+        "T19"
+      ],
+      "suggested_owner": "Onboarding/membership agent",
+      "guardrail": "Success requires confirmed delivery; AI is never involved.",
+      "status": "planned_not_started"
+    },
+    {
+      "id": "P17",
+      "title": "Complete staff ticket UX and commands",
+      "phase": "Administration",
+      "priority": "P0",
+      "depends_on": [
+        "P08",
+        "P11",
+        "P12"
+      ],
+      "deliverables": [
+        "Permitted queues, case detail, notes and participant controls",
+        "Human replies, canned-answer selection and transcripts",
+        "Command/dashboard parity"
+      ],
+      "acceptance_tests": [
+        "T05",
+        "T07",
+        "T10",
+        "T26",
+        "T42"
+      ],
+      "suggested_owner": "Dashboard/tickets agent",
+      "guardrail": "No summaries, drafting, triage or conversation-transfer AI.",
+      "status": "planned_not_started"
+    },
+    {
+      "id": "P18",
+      "title": "Implement simple automation and curated answers",
+      "phase": "Administration",
+      "priority": "P1",
+      "depends_on": [
+        "P08",
+        "P09"
+      ],
+      "deliverables": [
+        "Literal/bounded rules, cooldowns, mention suppression",
+        "Join/static response previews and manually curated answers"
+      ],
+      "acceptance_tests": [
+        "T45"
+      ],
+      "suggested_owner": "Automation agent",
+      "guardrail": "Generic auto-responses ignore tickets and bot/webhook loops.",
+      "status": "planned_not_started"
+    },
+    {
+      "id": "P19",
+      "title": "Enforce AI exclusion at every boundary",
+      "phase": "Knowledge",
+      "priority": "P0",
+      "depends_on": [
+        "P05",
+        "P06",
+        "P07",
+        "P10"
+      ],
+      "deliverables": [
+        "Ingress/delivery classification guard and permanent case exclusions",
+        "Worker/database/filesystem isolation",
+        "Sentinel tests and architecture import restrictions"
+      ],
+      "acceptance_tests": [
+        "T22",
+        "T23",
+        "T24",
+        "T25",
+        "T26",
+        "T46"
+      ],
+      "suggested_owner": "Security/knowledge agent",
+      "guardrail": "No toggle or staff bypass can enable AI inside cases.",
+      "status": "planned_not_started"
+    },
+    {
+      "id": "P20",
+      "title": "Implement MediaWiki ingestion and sync",
+      "phase": "Knowledge",
+      "priority": "P0",
+      "depends_on": [
+        "P03",
+        "P06",
+        "P19"
+      ],
+      "deliverables": [
+        "Capability-aware API connector and rendered snapshots",
+        "Cursor/checkpoint, template dependency, deletion and review pipeline",
+        "Provenance/rights and collection restrictions"
+      ],
+      "acceptance_tests": [
+        "T23",
+        "T27",
+        "T28"
+      ],
+      "suggested_owner": "Knowledge agent",
+      "guardrail": "No guessed endpoint, broad Discord scrape or case archive source.",
+      "status": "planned_not_started"
+    },
+    {
+      "id": "P21",
+      "title": "Implement direct lookup and source authority",
+      "phase": "Knowledge",
+      "priority": "P0",
+      "depends_on": [
+        "P20"
+      ],
+      "deliverables": [
+        "Exact/alias/lexical retrieval and valid source links",
+        "Audience/version-aware caches and authority conflicts",
+        "Model-independent /lookup"
+      ],
+      "acceptance_tests": [
+        "T27",
+        "T28",
+        "T29",
+        "T34"
+      ],
+      "suggested_owner": "Knowledge agent",
+      "guardrail": "No semantic model dependency for basic lookup.",
+      "status": "planned_not_started"
+    },
+    {
+      "id": "P22",
+      "title": "Implement knowledge administration",
+      "phase": "Knowledge",
+      "priority": "P1",
+      "depends_on": [
+        "P08",
+        "P20",
+        "P21"
+      ],
+      "deliverables": [
+        "Source/collection review and snapshot comparison",
+        "Sync diagnostics, quarantine, deletion and safe previews"
+      ],
+      "acceptance_tests": [
+        "T28",
+        "T29",
+        "T42"
+      ],
+      "suggested_owner": "Dashboard/knowledge agent",
+      "guardrail": "Preview has no case-context or transcript import path.",
+      "status": "planned_not_started"
+    },
+    {
+      "id": "P23",
+      "title": "Provision and benchmark local model",
+      "phase": "Local AI",
+      "priority": "P0",
+      "depends_on": [
+        "P01",
+        "P02",
+        "P07"
+      ],
+      "deliverables": [
+        "Model/runtime hash and licence lock",
+        "CPU-only llama.cpp hardening and measured limits",
+        "Cold/warm latency/memory/load benchmark report"
+      ],
+      "acceptance_tests": [
+        "T31",
+        "T32",
+        "T33"
+      ],
+      "suggested_owner": "Local inference agent",
+      "guardrail": "No cloud fallback, auto-download or claimed unmeasured throughput.",
+      "status": "planned_not_started"
+    },
+    {
+      "id": "P24",
+      "title": "Implement non-ticket knowledge assistant",
+      "phase": "Local AI",
+      "priority": "P0",
+      "depends_on": [
+        "P19",
+        "P21",
+        "P23"
+      ],
+      "deliverables": [
+        "Dedicated-channel /ask and short-lived bounded sessions",
+        "Application-directed retrieval and source-ID validation",
+        "Final delivery revalidation and blank staff-contact link",
+        "Bounded Sophie style profile with citations, truthful action claims and no ticket exceptions"
+      ],
+      "acceptance_tests": [
+        "T22",
+        "T25",
+        "T26",
+        "T29",
+        "T30",
+        "T34",
+        "T48",
+        "T52"
+      ],
+      "suggested_owner": "Assistant agent",
+      "guardrail": "No ticket data/tools, case advice automation or arbitrary browsing.",
+      "status": "planned_not_started"
+    },
+    {
+      "id": "P25",
+      "title": "Implement AI controls and evaluation tooling",
+      "phase": "Local AI",
+      "priority": "P1",
+      "depends_on": [
+        "P08",
+        "P24"
+      ],
+      "deliverables": [
+        "Model/limits/queue/cancel/disable dashboard",
+        "Versioned prompts and evaluation ledger",
+        "Public-knowledge previews and redacted diagnostics"
+      ],
+      "acceptance_tests": [
+        "T26",
+        "T31",
+        "T33",
+        "T42",
+        "T48"
+      ],
+      "suggested_owner": "Dashboard/AI evaluation agent",
+      "guardrail": "No persistent member profiling or case-content feedback.",
+      "status": "planned_not_started"
+    },
+    {
+      "id": "P26",
+      "title": "Implement backups, deletion and operator runbooks",
+      "phase": "Administration",
+      "priority": "P0",
+      "depends_on": [
+        "P06",
+        "P07",
+        "P12"
+      ],
+      "deliverables": [
+        "Retention/deletion ledger and consistent artifact backups",
+        "Isolated restore/rollback scripts and evidence",
+        "Independent outage alert/fallback process"
+      ],
+      "acceptance_tests": [
+        "T35",
+        "T37",
+        "T38",
+        "T39"
+      ],
+      "suggested_owner": "Operations agent",
+      "guardrail": "Do not replay restored jobs into production.",
+      "status": "planned_not_started"
+    },
+    {
+      "id": "P27",
+      "title": "Run administration failure and permission suite",
+      "phase": "Administration",
+      "priority": "P0",
+      "depends_on": [
+        "P16",
+        "P17",
+        "P18",
+        "P26"
+      ],
+      "deliverables": [
+        "Recorded G2 results for crashes, permissions, restores and role races",
+        "Defect fixes and build-specific evidence"
+      ],
+      "acceptance_tests": [
+        "T03",
+        "T06",
+        "T07",
+        "T13",
+        "T15",
+        "T16",
+        "T18",
+        "T20",
+        "T21",
+        "T36",
+        "T39"
+      ],
+      "suggested_owner": "Independent test agent",
+      "guardrail": "Tests use synthetic cases; findings block release until resolved.",
+      "status": "planned_not_started"
+    },
+    {
+      "id": "P28",
+      "title": "Run knowledge/AI isolation, quality and load suite",
+      "phase": "Local AI",
+      "priority": "P0",
+      "depends_on": [
+        "P22",
+        "P25",
+        "P26"
+      ],
+      "deliverables": [
+        "G3/G4 evidence and reviewed 40-question minimum set",
+        "Sentinel, permission, deletion and model-failure results",
+        "Resource usability sign-off on actual host"
+      ],
+      "acceptance_tests": [
+        "T22",
+        "T23",
+        "T24",
+        "T25",
+        "T28",
+        "T29",
+        "T30",
+        "T31",
+        "T32",
+        "T33",
+        "T34",
+        "T35",
+        "T48",
+        "T52"
+      ],
+      "suggested_owner": "Independent test/evaluation agent",
+      "guardrail": "Zero prohibited data/tool paths; no ticket material used in tests.",
+      "status": "planned_not_started"
+    },
+    {
+      "id": "P29",
+      "title": "Approve brand implementation and accessibility",
+      "phase": "Administration",
+      "priority": "P1",
+      "depends_on": [
+        "P03",
+        "P13",
+        "P17",
+        "P18",
+        "P38"
+      ],
+      "deliverables": [
+        "Approved theme tokens/assets/provenance",
+        "Keyboard/contrast/reflow/quiet-mode evidence",
+        "Core staff workflow review",
+        "Sophie crop, transparency, fallback and neutral-case presentation review"
+      ],
+      "acceptance_tests": [
+        "T42",
+        "T43",
+        "T49",
+        "T50",
+        "T51"
+      ],
+      "suggested_owner": "Design/accessibility reviewer",
+      "guardrail": "Do not infer exact live-site assets from this planning pack.",
+      "status": "planned_not_started"
+    },
+    {
+      "id": "P30",
+      "title": "Approve administration pilot and cutover ledger",
+      "phase": "Administration",
+      "priority": "P0",
+      "depends_on": [
+        "P27",
+        "P29"
+      ],
+      "deliverables": [
+        "Reviewed existing-member eligibility baseline",
+        "Bot responsibility/old-case drain plan",
+        "Backup, fallback and operator release approval"
+      ],
+      "acceptance_tests": [
+        "T40",
+        "T41"
+      ],
+      "suggested_owner": "Lead/operator",
+      "guardrail": "Administration approval does not depend on local AI readiness.",
+      "status": "planned_not_started"
+    },
+    {
+      "id": "P31",
+      "title": "Cut over administrative responsibilities",
+      "phase": "Administration",
+      "priority": "P0",
+      "depends_on": [
+        "P30"
+      ],
+      "deliverables": [
+        "Single-writer feature transfers and monitored pilot results",
+        "Old panels retired safely; old cases drained without migration",
+        "Rollback/incident evidence and current release record"
+      ],
+      "acceptance_tests": [
+        "T38",
+        "T40",
+        "T41"
+      ],
+      "suggested_owner": "Operator/release agent",
+      "guardrail": "Do not remove old ticket access while open cases still need it.",
+      "status": "planned_not_started"
+    },
+    {
+      "id": "P32",
+      "title": "Activate direct knowledge then approved AI",
+      "phase": "Local AI",
+      "priority": "P1",
+      "depends_on": [
+        "P28",
+        "P31"
+      ],
+      "deliverables": [
+        "Source/AI channel approvals and final source freshness check",
+        "Scoped rollout and disable/fallback test",
+        "Published local-processing notice"
+      ],
+      "acceptance_tests": [
+        "T22",
+        "T29",
+        "T32",
+        "T34",
+        "T48",
+        "T52"
+      ],
+      "suggested_owner": "Operator/knowledge lead",
+      "guardrail": "Direct lookup can go live earlier under G3; AI remains separately gated.",
+      "status": "planned_not_started"
+    },
+    {
+      "id": "P33",
+      "title": "Add selected read-only service adapters",
+      "phase": "Later utilities",
+      "priority": "P2",
+      "depends_on": [
+        "P32"
+      ],
+      "deliverables": [
+        "Owner-approved platform/resource inventory",
+        "Scoped connector credentials and contracts",
+        "SSRF, timeout, audience and source-provenance tests"
+      ],
+      "acceptance_tests": [
+        "T29",
+        "T46",
+        "T47"
+      ],
+      "suggested_owner": "Integration agent",
+      "guardrail": "No automatic writes, BYOND duplication or broad generic network tool.",
+      "status": "planned_not_started"
+    },
+    {
+      "id": "P34",
+      "title": "Add small community utilities",
+      "phase": "Later utilities",
+      "priority": "P2",
+      "depends_on": [
+        "P31"
+      ],
+      "deliverables": [
+        "Prioritised suggestions, message-context reports or announcements",
+        "Bounded scheduler and human-curated answer workflow"
+      ],
+      "acceptance_tests": [
+        "T08",
+        "T44",
+        "T45"
+      ],
+      "suggested_owner": "Community utilities agent",
+      "guardrail": "Choose one feature slice at a time; no ticket AI or unreviewed code ports.",
+      "status": "planned_not_started"
+    },
+    {
+      "id": "P35",
+      "title": "Establish maintenance and upgrade cadence",
+      "phase": "Operations",
+      "priority": "P1",
+      "depends_on": [
+        "P31"
+      ],
+      "deliverables": [
+        "Dependency/API/model revalidation procedure",
+        "Operator ownership and recovery-drill schedule proposal",
+        "Documented agent PR and release protocol"
+      ],
+      "acceptance_tests": [
+        "T02",
+        "T31",
+        "T38",
+        "T39",
+        "T46"
+      ],
+      "suggested_owner": "Lead/operations agent",
+      "guardrail": "No unattended production upgrades or recurring jobs without owner approval.",
+      "status": "planned_not_started"
+    },
+    {
+      "id": "P36",
+      "title": "Import Sophie identity and source assets",
+      "phase": "Foundation",
+      "priority": "P1",
+      "depends_on": [
+        "P03",
+        "P04"
+      ],
+      "deliverables": [
+        "Four manifest-selected original PNGs in a versioned local asset root",
+        "Shared brand-profile contract, SHA-256 validation and source provenance",
+        "Legacy-human-art exclusion and explicit publication/derivative review records"
+      ],
+      "acceptance_tests": [
+        "T49"
+      ],
+      "suggested_owner": "Brand/integration agent",
+      "guardrail": "No regeneration, relabelled artwork licence, remote asset loading, extra model runtime or technical service renaming.",
+      "status": "planned_not_started"
+    },
+    {
+      "id": "P37",
+      "title": "Apply Sophie branding to interfaces and static copy",
+      "phase": "Administration",
+      "priority": "P1",
+      "depends_on": [
+        "P36",
+        "P08",
+        "P09",
+        "P13",
+        "P17"
+      ],
+      "deliverables": [
+        "Avatar/header/hero/wordmark placement with live-text and quiet-mode fallbacks",
+        "Identity controls separate from AI settings and case permissions",
+        "State-derived, owner-reviewed static templates for ticket and Shuttle notices"
+      ],
+      "acceptance_tests": [
+        "T50",
+        "T51"
+      ],
+      "suggested_owner": "Dashboard/Discord agent",
+      "guardrail": "No AI inside cases, mascot chat widget, rewritten admission rules, unsupported success claims or unreadable decorative surfaces.",
+      "status": "planned_not_started"
+    },
+    {
+      "id": "P38",
+      "title": "Review identity consistency and non-AI presentation",
+      "phase": "Administration",
+      "priority": "P1",
+      "depends_on": [
+        "P37",
+        "P19"
+      ],
+      "deliverables": [
+        "Small/circular/narrow-layout previews and alpha checks on light/dark surfaces",
+        "Brand-preview and deterministic-case sentinel test evidence with zero model calls",
+        "Versioned asset approval and rollback record for the administration release"
+      ],
+      "acceptance_tests": [
+        "T49",
+        "T50",
+        "T51"
+      ],
+      "suggested_owner": "Independent design/security reviewer",
+      "guardrail": "Artwork review is not a production benchmark or legal certification. Do not block human administration on local-model readiness.",
+      "status": "planned_not_started"
+    }
+  ]
+}

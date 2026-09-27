@@ -1,0 +1,24 @@
+Sophie development implementation
+
+Original code uses the existing MIT LICENSE. The pinned pg driver and its
+indirect packages retain their separate notices under legal/notices/.
+See legal/storage-packages.json and ADR 0003 for exact versions, archive
+integrity and the two named ISC indirect components. Optional pg-cloudflare
+is inventoried but omitted from the native Windows installation.
+
+The already installed Node.js runtime is used for development. Its distribution
+contains third-party components with their own notices; review the exact release
+before bundling or production deployment. See legal/DEPENDENCIES.json.
+
+The four supplied Sophie PNGs retain their existing asset-manifest provenance.
+The MIT software licence is not an assignment of an artwork licence. The supplied
+reference documents contain links/citations, not approval to copy upstream code.
+
+MediaWiki site metadata reports CC BY-NC-SA 4.0 for content. No article corpus or
+third-party website asset/font has been copied into this foundation. Source and
+asset rights must be recorded separately before ingestion or republication.
+
+Existing PostgreSQL executables and supporting DLLs are used read-only for
+isolated synthetic tests. They are not redistributed in this repository.
+The PostgreSQL and installed command-line bundle notices remain with that
+distribution; recorded hashes are in legal/postgresql-test-runtime.json.

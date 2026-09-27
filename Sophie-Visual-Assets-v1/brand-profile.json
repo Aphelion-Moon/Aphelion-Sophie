@@ -1,0 +1,63 @@
+{
+  "schema_version": 1,
+  "plan_version": "1.1",
+  "identity": {
+    "display_name": "Sophie",
+    "pronouns": [
+      "she",
+      "her"
+    ],
+    "designation": "Community Services",
+    "accessible_full_name": "Sophie — Aphelion Community Services",
+    "community": "Aphelion / Meridian Rift",
+    "character_form": "neon chibi protogen",
+    "visual_generation": "neon-chibi-v1",
+    "product_id": "aphelion-bot",
+    "force_acronym": false,
+    "lore_status": "Visual/persona identity only; no age, origin story, species canon or staff authority is established by the artwork."
+  },
+  "assets": {
+    "avatar": "sophie.avatar.neon-chibi-v1",
+    "banner": "sophie.banner.neon-chibi-v1",
+    "character": "sophie.character.neon-chibi-v1",
+    "wordmark": "sophie.wordmark.neon-chibi-v1"
+  },
+  "manifest": "asset-manifest.json",
+  "proposed_editorial_guidance": {
+    "tone": [
+      "warm",
+      "composed",
+      "capable",
+      "lightly playful in casual contexts"
+    ],
+    "official_messages": "Plain, precise, state-derived; no roleplay obscuring actions, errors, permissions or human responsibility.",
+    "avoid": [
+      "baby-talk by default",
+      "forced mascot catchphrases",
+      "flirtation in administrative copy",
+      "invented moderation authority",
+      "unverified success or staff-notification claims"
+    ],
+    "approval": "Owner review of production message templates remains required."
+  },
+  "boundaries": {
+    "brand_is_not_ai": true,
+    "tickets": "Static branding and human-approved deterministic templates only. No model assistance, generation, retrieval or ingestion.",
+    "shuttle": "Static artwork and approved finite workflow text only. No AI explanations or assessment.",
+    "knowledge": "Only approved non-ticket requests; sources and current permissions outrank persona.",
+    "truthful_actions": "Confirm application state before describing any operation as complete.",
+    "generated_output_label": "AI-generated output is distinguishable from deterministic notices; do not claim human authorship."
+  },
+  "rendering": {
+    "static_assets_only_at_launch": true,
+    "runtime_image_generation": false,
+    "runtime_animation": false,
+    "dynamic_avatar_status": false,
+    "quiet_mode": true,
+    "respect_reduced_motion": true,
+    "neutral_case_surfaces": true,
+    "system_fonts_only_until_approved": true,
+    "live_meridian_css_verified": false,
+    "note": "Named cyan/magenta accents come from the supplied artwork. No exact live-site palette, font or official insignia has been verified."
+  }
+}

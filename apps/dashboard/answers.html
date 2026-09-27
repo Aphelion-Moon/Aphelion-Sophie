@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="color-scheme" content="dark">
+  <title>Public answers · Sophie</title><link rel="stylesheet" href="/dashboard/styles.css"><script type="module" src="/dashboard/answers-app.js"></script>
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to content</a>
+  <header class="topbar"><div class="identity"><img id="avatar" src="/dashboard/sophie-avatar.png" alt="" width="52" height="52"><div><strong>Sophie</strong><span>Community Services</span></div></div>
+    <div class="header-actions"><label class="quiet"><input id="quiet" type="checkbox"> Quiet mode</label><button id="logout" class="subtle" hidden>Sign out</button></div></header>
+  <main id="main" tabindex="-1">
+    <nav class="service-nav" aria-label="Community Services"><!-- service-navigation --></nav>
+    <div class="page-heading"><div><p class="eyebrow">APHELION / COMMUNITY SERVICES</p><h1>Public answers</h1><p class="intro">Human-approved answers for community members.</p></div></div>
+    <p id="notice" class="notice" role="status" hidden></p><p id="error" class="error-box" role="alert" hidden></p>
+    <section id="gate" class="gate panel"><h2 id="gate-title">Loading your workspace…</h2><p>Current community members can read published answers. Only configured editors may publish or view editorial history.</p><a id="signin" class="button primary" href="/auth/start" hidden>Sign in with Discord</a><button id="gate-retry">Try again</button></section>
+    <noscript><p class="error-box">This page needs JavaScript.</p></noscript>
+    <div id="workspace" hidden>
+      <section class="panel case-panel"><div class="actions"><h2>Published library</h2><button id="refresh">Refresh access and history</button></div><p id="member-hint" class="muted">Select an answer to read it. Publishing requires a separately configured editor permission.</p>
+        <div id="answers" class="question-nav"></div><p id="empty-answers" hidden></p><div class="actions"><button id="first-answers" hidden>First page</button><button id="next-answers" hidden>Next answers</button></div></section>
+      <form id="open-answer" class="panel case-panel" autocomplete="off" hidden><label for="answer-name">Open or create an answer by name</label><p id="name-hint" class="muted">Use a lowercase name beginning with a letter, up to 40 letters, digits or hyphens. The library retains up to 100 names, including withdrawn answers; existing names can be revised.</p>
+        <div class="actions"><input id="answer-name" type="text" pattern="[a-z][a-z0-9-]{0,39}" maxlength="40" required aria-describedby="name-hint"><button id="open">Open answer</button></div></form>
+      <button id="retry-change" hidden>Retry the same change</button>
+      <section id="selection" class="panel case-panel" hidden><h2 id="selection-title"></h2><p id="selection-status" class="muted"></p><h3 id="current-title"></h3><p id="current-text" class="case-text"></p><p id="current-source" class="case-text"></p></section>
+      <section id="editor" class="panel case-panel" hidden><h2>Edit public copy</h2><p>Write public guidance manually and identify its approved source. Never paste ticket extracts or private reports here. Unpublished drafts stay only in this page and are cleared when it is hidden.</p>
+        <p id="dirty-hint" class="notice" hidden></p><form id="answer-form" autocomplete="off">
+          <label for="answer-title">Title</label><input id="answer-title" type="text" maxlength="80" required>
+          <label for="answer-text">Public answer</label><textarea id="answer-text" rows="8" maxlength="4000" required></textarea>
+          <label for="answer-source">Approved public source</label><input id="answer-source" type="text" maxlength="300" required>
+          <p class="muted">Preview displays literal text. Publication updates the library; it does not send a Discord message.</p><div class="actions"><button id="review-answer" class="primary">Review publication</button><button id="discard" type="button" hidden>Discard unsaved edits</button><button id="withdraw" type="button" hidden>Review withdrawal</button></div>
+        </form></section>
+      <section id="review" class="panel case-panel" hidden><h2 id="review-heading" tabindex="-1">Review public answer</h2><p id="review-target"></p><p id="review-changed" class="notice" hidden></p>
+        <h3>Previous published copy</h3><p id="previous-title"></p><p id="previous-text" class="case-text"></p><p id="previous-source" class="case-text"></p>
+        <div id="proposed-copy"><h3>Proposed public copy</h3><p id="proposed-title"></p><p id="proposed-text" class="case-text"></p><p id="proposed-source" class="case-text"></p></div>
+        <p id="withdrawal-hint" hidden></p><label><input id="confirm-answer" type="checkbox"><span id="confirm-label"></span></label>
+        <div class="actions"><button id="send-change" class="primary" disabled>Confirm publication</button><button id="edit-answer">Return to draft</button></div></section>
+      <section id="history-panel" class="panel case-panel" hidden><h2>Retained editorial history</h2><p>Publication and withdrawal preserve earlier text and editor attribution.</p><p id="empty-history" hidden></p><div id="history"></div><div class="actions"><button id="older-history" hidden>Older revisions</button><button id="latest-history" hidden>Latest history</button></div></section>
+    </div>
+  </main>
+</body>
+</html>

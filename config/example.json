@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 1,
+  "environment": "offline",
+  "guildId": null,
+  "deliveryEnabled": false,
+  "assistantEnabled": false,
+  "roles": { "crew": null, "muzzled": null, "whitelist": null, "staff": null, "leadOps": null },
+  "retention": { "caseRecords": "indefinite", "attachments": "indefinite", "transcripts": "indefinite" },
+  "onboarding": {
+    "source": "content/onboarding/definition.json",
+    "definitionStatus": "draft",
+    "blacklistOwner": "human_discord_removal",
+    "repeatable": true,
+    "restoreWhitelistFromSnapshot": false
+  },
+  "hostEvaluation": {
+    "approved": false,
+    "maxActiveGenerations": 1,
+    "maxWaitingRequests": 3,
+    "generationThreads": 4,
+    "promptThreads": 4,
+    "requestLifetimeFromEnqueueSeconds": 120
+  }
+}

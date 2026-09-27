@@ -1,0 +1,123 @@
+{
+  "schemaVersion": 1,
+  "version": "17.11",
+  "platform": "Windows x64",
+  "reviewedAt": "2026-09-18",
+  "scope": "Existing installed binaries read-only for an isolated synthetic cluster; not a redistribution or production distribution approval",
+  "decision": "docs/decisions/0003-storage-dependencies.md",
+  "productionApproved": false,
+  "files": [
+    {
+      "path": "bin/postgres.exe",
+      "sha256": "4125c1e963072d929f6468a449ad184b26d3be7d97cae3181c3d613dace49c8d"
+    },
+    {
+      "path": "bin/initdb.exe",
+      "sha256": "6978bdb96e1e515285eb7bbf8915c4a254644107b1fcb44917e52f707dbe798a"
+    },
+    {
+      "path": "bin/pg_ctl.exe",
+      "sha256": "5afdea4f4860b52cd03cee4c51be5d034a51f7ed63312acc3b6abee9006fa0ba"
+    },
+    {
+      "path": "bin/psql.exe",
+      "sha256": "5bb3fad8a7ff555abff37921a24ee3d9e377c15408b5e7267aa9245596965ca0"
+    },
+    {
+      "path": "server_license.txt",
+      "sha256": "39294f3f5b41533b307e118ee37c356f32cbc7746fc97e8b91f1b49a9068a24e"
+    },
+    {
+      "path": "commandlinetools_3rd_party_licenses.txt",
+      "sha256": "72aee4dccdecefede32f1268e1ba638a7424a30f8e6de1b10bc22ba27426f177"
+    },
+    {
+      "path": "bin/icudt67.dll",
+      "sha256": "5ff9c8026344e886f280ddfa235a1e16e1bcd396e90f9ed600b6f71d9d881ae8"
+    },
+    {
+      "path": "bin/icuin67.dll",
+      "sha256": "23d5914acf071f566df19aaf404373e5c73c9910c370e728976f6202c04cf6c3"
+    },
+    {
+      "path": "bin/icuio67.dll",
+      "sha256": "1ca5221753f930de19041d546ce0f24102455621c71033d4d5cb8151762c9694"
+    },
+    {
+      "path": "bin/icutu67.dll",
+      "sha256": "371c4784b5510b8e80a6b5896567b17bc70e231ea47ee8f614a7ebd3d510960f"
+    },
+    {
+      "path": "bin/icuuc67.dll",
+      "sha256": "2fb4007a1f1089a0807cc1abde5443f5c3b0865ecfd80344b6ad165f1fe53ade"
+    },
+    {
+      "path": "bin/libcrypto-3-x64.dll",
+      "sha256": "e864c2b31452d84892e885adfc07f151964bc9065134f7254b47194db253eaf7"
+    },
+    {
+      "path": "bin/libcurl.dll",
+      "sha256": "004509675fbf796d92f5c860de158df67f32545334c59cc3efbd327c6b7c6d11"
+    },
+    {
+      "path": "bin/libecpg.dll",
+      "sha256": "d2e26d852ff34520617954833975bc20f79803d1b07d50c52305d3e29ccf882f"
+    },
+    {
+      "path": "bin/libecpg_compat.dll",
+      "sha256": "0a29046c60a96ad86b68bbbb00fde7487dcb538067b3bcdfa6b2d85cc0989bbf"
+    },
+    {
+      "path": "bin/libiconv-2.dll",
+      "sha256": "3ee9786ab3eb8dfd791bdbd17c7e791dbe025734befcded0ee4170e1089f79df"
+    },
+    {
+      "path": "bin/libintl-9.dll",
+      "sha256": "1125ac8dc0c4f5c3ed4712e0d8ad29474099fcb55bb0e563a352ce9d03ef1d78"
+    },
+    {
+      "path": "bin/liblz4.dll",
+      "sha256": "096af775241b3bd4b1c3d79c83b103bb8f02da54ec4cd76c5d49eef61a68ad01"
+    },
+    {
+      "path": "bin/libpgtypes.dll",
+      "sha256": "1b0489ec37b81cdfc8880b47f50d534e9609d107d544eec39e4ca81149fcfe22"
+    },
+    {
+      "path": "bin/libpq.dll",
+      "sha256": "468ddfa39acedb484affcbe7207f62970d2ea021b4e7d23eb1b2e0af990cded9"
+    },
+    {
+      "path": "bin/libssl-3-x64.dll",
+      "sha256": "45041ed336e6658ac796424431eb8b22c08e5a51982155bf94d727a5442dfba7"
+    },
+    {
+      "path": "bin/libwinpthread-1.dll",
+      "sha256": "ffe2d56375bb4e8bdee9037df6befc5016ddd8871d0d85027314dd5792f8fdc9"
+    },
+    {
+      "path": "bin/libxml2.dll",
+      "sha256": "fa13b5d8bdc8254a6a7f0bc9b26331fa6badf096334bb912e7dc6928206a74a0"
+    },
+    {
+      "path": "bin/libxslt.dll",
+      "sha256": "8226fad0fc6e9b79b14203d4f5263ddec5764c0108aa7c17622dd77f311669a6"
+    },
+    {
+      "path": "bin/libzstd.dll",
+      "sha256": "287e7e474961e8886a3d961e2c07da647a7ac8d60d97023545f3a3ecf604daba"
+    },
+    {
+      "path": "bin/zlib1.dll",
+      "sha256": "890afa7a17fb66308e0026631070409138b157ef2773c0a41d22a76943f7aedf"
+    },
+    {
+      "path": "bin/pg_dump.exe",
+      "sha256": "ff766351cc88b0ea2bc7b6e365777cb51f792b16000688a378f64124810ffa88"
+    },
+    {
+      "path": "bin/pg_restore.exe",
+      "sha256": "ae002028451e79240eaad9838d9eb0b644436a05decb3888468a529bf881ac6c"
+    }
+  ]
+}

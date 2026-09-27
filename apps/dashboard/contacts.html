@@ -1,0 +1,19 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="color-scheme" content="dark"><title>My Staff contacts · Sophie</title><link rel="stylesheet" href="/dashboard/styles.css"><script type="module" src="/dashboard/contacts-app.js"></script></head>
+<body>
+  <a class="skip-link" href="#main">Skip to content</a>
+  <header class="topbar"><div class="identity"><img id="avatar" src="/dashboard/sophie-avatar.png" alt="" width="52" height="52"><div><strong>Sophie</strong><span>Community Services</span></div></div><div class="header-actions"><label class="quiet"><input id="quiet" type="checkbox"> Quiet mode</label><button id="logout" class="subtle" hidden>Sign out</button></div></header>
+  <main id="main" tabindex="-1">
+    <nav class="service-nav" aria-label="Community Services"><!-- service-navigation --></nav>
+    <div class="page-heading"><div><p class="eyebrow">APHELION / SERVICE DESK</p><h1>My Staff contacts</h1><p class="intro">Find contacts where you have a current invitation.</p></div></div>
+    <p id="notice" class="notice" role="status" hidden></p><p id="error" class="error-box" role="alert" hidden></p>
+    <section id="gate" class="gate panel"><h2 id="gate-title">Loading your workspace…</h2><p>Current membership and an active invitation are required. Refresh to check your available contacts.</p><a id="signin" class="button primary" href="/auth/start" hidden>Sign in with Discord</a><button id="gate-retry" class="subtle">Try again</button></section>
+    <div id="workspace" hidden>
+      <p>Five contacts per page, newest first. Each destination is verified before a link is shown. Staff can use Manage cases for their separate responder queue.</p>
+      <button id="refresh" class="subtle">Refresh contacts</button><p id="empty" class="notice" hidden></p>
+      <div id="contact-list"></div><button id="next" class="subtle" hidden>Older contacts</button>
+      <section id="destination-panel" class="panel case-panel" aria-live="polite" tabindex="-1" hidden><h2>Contact destination</h2><p id="destination-status"></p><div class="actions"><a id="destination" class="button primary" target="_blank" rel="noopener noreferrer" hidden>Open contact in Discord</a><button id="recheck" class="subtle">Check access again</button></div></section>
+    </div>
+  </main>
+</body></html>

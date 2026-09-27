@@ -1,0 +1,160 @@
+{
+  "_meta": {
+    "kind": "non-executable configuration sketch",
+    "plan_version": "1.1",
+    "warning": "Illustrates required settings, not an implemented application schema. Null required values and unresolved approvals block production activation.",
+    "hardware_overlay": "Aphelion-Bot-WUFF-Hardware-Addendum.md",
+    "hardware_overlay_note": "The generic v1.0 runtime numbers remain below. WUFF overlay proposals (including queue 3 and 4/4 threads) take precedence during host evaluation; this branding revision does not merge or approve them."
+  },
+  "environment": {
+    "name": "staging",
+    "guild_id": null,
+    "dashboard_origin": null,
+    "timezone": "Europe/Amsterdam",
+    "delivery_enabled": false
+  },
+  "invariants": {
+    "ticket_ai": "forbidden_not_configurable",
+    "ticket_content_ingestion": "forbidden_not_configurable",
+    "byond_role_ownership": "external",
+    "cloud_inference_fallback": "absent"
+  },
+  "release_gates": {
+    "licence_scope_approved": false,
+    "runtime_approved": false,
+    "storage_approved": false,
+    "retention_approved": false,
+    "actual_host_benchmark_passed": false
+  },
+  "runtime": {
+    "candidate_node_line": "24 LTS",
+    "exact_version": null,
+    "binary_sha256": null
+  },
+  "storage": {
+    "engine": null,
+    "exact_version": null,
+    "core_secret_reference": null,
+    "knowledge_secret_reference": null,
+    "queue_implementation": null
+  },
+  "discord": {
+    "token_secret_reference": null,
+    "application_id": null,
+    "staging_only": true,
+    "allowed_guild_ids": [],
+    "ticket_category_ids": [],
+    "ai_channel_ids": [],
+    "external_owned_role_ids": [],
+    "restorable_role_ids": [],
+    "join_role_id": null,
+    "admission_role_ids": [],
+    "membership_role_id": null
+  },
+  "tickets": {
+    "enabled": false,
+    "case_types": [],
+    "attachment_policy": null,
+    "retention_policy_reference": null,
+    "ai_controls": "not_present"
+  },
+  "shuttle": {
+    "enabled": false,
+    "published_definition_id": null,
+    "existing_member_baseline_reference": null,
+    "ai_controls": "not_present"
+  },
+  "knowledge": {
+    "enabled": false,
+    "sources": [
+      {
+        "id": "meridian-mediawiki",
+        "adapter": "mediawiki",
+        "enabled": false,
+        "homepage": "https://meridian-wiki.a13.info/wiki/Main_Page",
+        "api_endpoint": null,
+        "capabilities_verified": false,
+        "approved_namespaces": [],
+        "approved_collections": [],
+        "require_policy_snapshot_approval": true
+      }
+    ],
+    "case_exports_allowed": false,
+    "semantic_index_enabled": false
+  },
+  "assistant": {
+    "enabled": false,
+    "allowed_profiles": [
+      "knowledge"
+    ],
+    "explicit_invocation_only": true,
+    "direct_messages_enabled": false,
+    "attachments_enabled": false,
+    "cross_channel_memory_enabled": false,
+    "local_only": true,
+    "max_active_generations": 1,
+    "max_waiting_requests": 8,
+    "max_waiting_per_member": 1,
+    "context_tokens": 4096,
+    "max_output_tokens": 512,
+    "proposed_request_timeout_seconds": 120,
+    "proposed_session_idle_minutes": 30,
+    "raw_prompt_logging": false,
+    "model": {
+      "publisher": "microsoft",
+      "name": "Phi-4-mini-instruct",
+      "quantisation": "Q4_K_M",
+      "source_revision": null,
+      "quantisation_revision": null,
+      "artifact_filename": null,
+      "artifact_sha256": null,
+      "runtime": "llama.cpp",
+      "runtime_build": null,
+      "runtime_sha256": null,
+      "local_endpoint": null,
+      "auth_secret_reference": null,
+      "thread_limit": null,
+      "measured_memory_limit_mb": null
+    }
+  },
+  "design": {
+    "reference_url": "https://meridian.a13.info/about/",
+    "brand_tokens_verified": false,
+    "approved_asset_manifest": null,
+    "quiet_mode_available": true,
+    "reduced_motion_respected": true,
+    "asset_manifest": "asset-manifest.json",
+    "reference_assets_supplied": true,
+    "production_asset_review_complete": false,
+    "asset_ids": {
+      "avatar": "sophie.avatar.neon-chibi-v1",
+      "banner": "sophie.banner.neon-chibi-v1",
+      "character": "sophie.character.neon-chibi-v1",
+      "wordmark": "sophie.wordmark.neon-chibi-v1"
+    },
+    "ticket_presentation": "neutral_workspace_static_branding_only",
+    "brand_controls_independent_of_ai": true,
+    "external_asset_urls_enabled": false,
+    "live_text_identity_fallback": "Sophie — Community Services",
+    "static_asset_animation_enabled": false
+  },
+  "operations": {
+    "backup_policy_reference": null,
+    "retention_policy_reference": null,
+    "fallback_staff_contact": null,
+    "delivery_dry_run": true
+  },
+  "identity": {
+    "display_name": "Sophie",
+    "pronouns": [
+      "she",
+      "her"
+    ],
+    "designation": "Community Services",
+    "product_id": "aphelion-bot",
+    "brand_profile": "brand-profile.json",
+    "asset_set": "sophie-neon-chibi-v1",
+    "technical_identifier_renames": "not_authorised_by_brand_change",
+    "runtime_image_generation": false
+  }
+}

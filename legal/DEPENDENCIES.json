@@ -1,0 +1,54 @@
+{
+  "schemaVersion": 1,
+  "originalCode": {
+    "license": "MIT",
+    "licenseFile": "LICENSE",
+    "ownerDecision": "docs/decisions/0001-owner-policy.md"
+  },
+  "directRuntimePackages": [
+    {
+      "name": "pg",
+      "version": "8.23.0",
+      "license": "MIT",
+      "review": "legal/storage-packages.json"
+    }
+  ],
+  "directDevelopmentPackages": [],
+  "policy": "Directly reused FOSS projects must be MIT. Every named artifact and its bundled/transitive notices must be reviewed before adoption. No infrastructure exception is inferred.",
+  "runtime": {
+    "name": "Node.js",
+    "version": "24.19.0",
+    "sha256": "3602f2bb1a10f2cbab4c36886218a33c1ab3db87290e73b033c46c77147d0237",
+    "purpose": "Existing host executable used for local synthetic development",
+    "installedByThisWork": false,
+    "deploymentApproved": false,
+    "bundledNoticesReview": "pending",
+    "licenseEvidence": "https://github.com/nodejs/node/blob/v24.19.0/LICENSE"
+  },
+  "storage": {
+    "selected": "PostgreSQL",
+    "infrastructureExceptionApproved": true,
+    "productionDeploymentApproved": false,
+    "decision": "docs/decisions/0002-storage-candidate.md",
+    "componentScope": "docs/decisions/0003-storage-dependencies.md"
+  },
+  "stagingIngress": {
+    "name": "cloudflared",
+    "version": "2026.7.3",
+    "platform": "Windows amd64",
+    "license": "Apache-2.0 with bundled components under their original terms",
+    "sha256": "8635da433b6df8194746e88ed9d2589566c20e38bfc2a80e431a348b7c765841",
+    "installedByThisWork": false,
+    "isolatedStagingApproved": true,
+    "productionDeploymentApproved": false,
+    "redistributionApproved": false,
+    "automaticUpdates": false,
+    "decision": "docs/decisions/0004-staging-cloudflare.md",
+    "notice": "legal/notices/cloudflared-2026.7.3.txt",
+    "officialAssetDigestVerified": true
+  },
+  "models": [],
+  "candidateRegister": "Sophie-Implementation-Plans-v1.1/dependency-register.json",
+  "artworkManifest": "Sophie-Implementation-Plans-v1.1/asset-manifest.json",
+  "scope": "Development source and pinned PostgreSQL driver; production runtime distribution remains gated"
+}

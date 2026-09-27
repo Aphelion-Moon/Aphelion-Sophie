@@ -1,0 +1,53 @@
+{
+  "schemaVersion": 1,
+  "environment": "staging",
+  "isolatedGuild": true,
+  "applicationId": "<APPLICATION_ID>",
+  "publicKeyHex": "<APPLICATION_PUBLIC_KEY_64_HEX_CHARACTERS>",
+  "mapping": {
+    "guildId": "<GUILD_ID>",
+    "botUserId": "<BOT_USER_ID>",
+    "crew": "<CREW_ROLE_ID>",
+    "muzzled": "<MUZZLED_ROLE_ID>",
+    "whitelist": "<WHITELIST_ROLE_ID>",
+    "staff": "<STAFF_ROLE_ID>",
+    "leadOps": "<HEAD_ADMIN_ROLE_ID>",
+    "externallyOwnedRoleIds": []
+  },
+  "capabilityPolicy": {
+    "guildId": "<GUILD_ID>",
+    "version": 1,
+    "staff": "<STAFF_ROLE_ID>",
+    "leadOps": "<HEAD_ADMIN_ROLE_ID>",
+    "muzzled": "<MUZZLED_ROLE_ID>",
+    "grants": {
+      "member.mute": ["<STAFF_ROLE_ID>", "<HEAD_ADMIN_ROLE_ID>"],
+      "member.unmute": ["<STAFF_ROLE_ID>", "<HEAD_ADMIN_ROLE_ID>"],
+      "shuttle.publish": ["<HEAD_ADMIN_ROLE_ID>"],
+      "case.registry": ["<HEAD_ADMIN_ROLE_ID>"],
+      "case.forms.publish": ["<HEAD_ADMIN_ROLE_ID>"]
+    }
+  },
+  "casePolicy": {
+    "guildId": "<GUILD_ID>",
+    "botUserId": "<BOT_USER_ID>",
+    "staff": "<STAFF_ROLE_ID>",
+    "leadOps": "<HEAD_ADMIN_ROLE_ID>",
+    "categoryId": "<PRIVATE_CASE_CATEGORY_ID>",
+    "version": 1,
+    "attachmentsAllowed": false
+  },
+  "limits": { "memberOpen": 2, "guildPending": 20, "cooldownMs": 10000 },
+  "definitionId": "shuttle-v1",
+  "captureEnabled": true,
+  "interactionPort": 38121,
+  "dashboardPort": 38122,
+  "dashboard": {
+    "guildId": "<GUILD_ID>",
+    "applicationId": "<APPLICATION_ID>",
+    "version": 1,
+    "origin": "https://<STAGING_DASHBOARD_HOST>"
+  },
+  "workerIntervalMs": 1000,
+  "exportPolicy": { "version": 1, "enabled": true, "audience": "current-readers", "maxObservations": 100, "maxGaps": 200, "maxBytes": 2097152 }
+}

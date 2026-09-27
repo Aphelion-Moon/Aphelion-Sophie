@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="color-scheme" content="dark"><title>New Staff contact · Sophie</title><link rel="stylesheet" href="/dashboard/styles.css"><script type="module" src="/dashboard/contact-app.js"></script></head>
+<body>
+  <a class="skip-link" href="#main">Skip to content</a>
+  <header class="topbar"><div class="identity"><img id="avatar" src="/dashboard/sophie-avatar.png" alt="" width="52" height="52"><div><strong>Sophie</strong><span>Community Services</span></div></div><div class="header-actions"><label class="quiet"><input id="quiet" type="checkbox"> Quiet mode</label><button id="logout" class="subtle" hidden>Sign out</button></div></header>
+  <main id="main" tabindex="-1">
+    <nav class="service-nav" aria-label="Community Services"><!-- service-navigation --></nav>
+    <div class="page-heading"><div><p class="eyebrow">APHELION / SERVICE DESK</p><h1>New Staff contact</h1><p class="intro">Choose recipients, review their access, then complete a blank published form.</p></div></div>
+    <p id="notice" class="notice" role="status" hidden></p><p id="error" class="error-box" role="alert" hidden></p>
+    <section id="gate" class="gate panel"><h2 id="gate-title">Loading your workspace…</h2><p>Current Staff authority and a published Staff-contact form are required.</p><a id="signin" class="button primary" href="/auth/start" hidden>Sign in with Discord</a><button id="gate-retry" class="subtle">Try again</button></section>
+    <div id="workspace" hidden>
+      <p>Selections expire after ten minutes. Keep this page visible while completing the form. Leaving or hiding it clears private values.</p>
+      <button id="refresh" class="subtle">Refresh access</button>
+      <form id="select-form" class="panel case-panel"><h2>Select recipients</h2><label for="recipients">Discord member IDs</label><p id="recipient-help">One to twenty current human members, separated by spaces or commas. Do not include yourself.</p><textarea id="recipients" rows="3" maxlength="440" aria-describedby="recipient-help" required></textarea><button id="select" class="primary" type="submit">Review audience</button></form>
+      <section id="audience" class="panel case-panel" tabindex="-1" hidden><h2>Review contact audience</h2><p id="audience-details" class="case-text"></p><p>Selected recipients, the creator, Staff and Head Admins can read the submitted form and retained case history. Verify every member ID.</p><label><input id="confirm-audience" type="checkbox"> I confirm these recipients and their access.</label><div class="actions"><button id="open-form" class="primary">Open blank form</button><button id="cancel-audience" class="subtle">Cancel selection</button></div></section>
+      <form id="answers-form" class="panel case-panel" hidden><h2 id="form-title"></h2><p id="form-version"></p><div id="fields"></div><div class="actions"><button id="review-submit" class="primary" type="submit">Review contact</button><button id="cancel-form" class="subtle" type="button">Cancel selection</button></div></form>
+      <section id="submission-review" class="panel case-panel" tabindex="-1" hidden><h2>Review before creating contact</h2><p id="submit-audience" class="case-text"></p><div id="answer-review"></div><p>The form and case history will be retained. Access is prepared only after this request is recorded.</p><label><input id="confirm-submit" type="checkbox"> I confirm the recipients and submitted answers.</label><div class="actions"><button id="submit-contact" class="primary">Create contact</button><button id="back" class="subtle">Back to form</button></div></section>
+      <section id="submitted" class="panel case-panel" hidden><h2>Contact recorded</h2><p id="destination-status"></p><a id="destination" class="button primary" target="_blank" rel="noopener noreferrer" hidden>Open contact in Discord</a><p>Recipients can find verified invitations with /ticket contacts. Staff can also use Manage cases.</p><button id="new-contact" class="subtle">Start another contact</button></section>
+      <button id="retry" class="primary" hidden>Retry same request</button>
+    </div>
+  </main>
+</body></html>

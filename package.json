@@ -1,0 +1,24 @@
+{
+  "name": "aphelion-bot",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Sophie community services: deterministic domain and PostgreSQL storage, no live delivery",
+  "type": "module",
+  "license": "MIT",
+  "engines": {
+    "node": "24.19.0"
+  },
+  "scripts": {
+    "test": "node --test --test-concurrency=1 tests/*.test.js",
+    "check": "node scripts/check-repository.mjs",
+    "verify": "node scripts/verify-foundation.mjs",
+    "preflight": "node apps/core/preflight.mjs",
+    "demo": "node scripts/demo-onboarding.mjs",
+    "docs:build": "node scripts/build-workplan.mjs",
+    "content:build": "node scripts/build-onboarding-content.mjs",
+    "test:storage": "node scripts/test-storage.mjs"
+  },
+  "dependencies": {
+    "pg": "8.23.0"
+  }
+}

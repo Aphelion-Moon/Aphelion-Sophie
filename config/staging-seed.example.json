@@ -1,0 +1,12 @@
+{
+  "schemaVersion": 1,
+  "environment": "staging",
+  "isolatedGuild": true,
+  "guildId": "<TEST_GUILD_ID>",
+  "applicationId": "<TEST_APPLICATION_ID>",
+  "publicKeyHex": "<APPLICATION_PUBLIC_KEY_64_HEX_CHARACTERS>",
+  "ownerUserId": "<TEST_GUILD_OWNER_USER_ID>",
+  "dashboardOrigin": "https://<STAGING_DASHBOARD_HOST>",
+  "interactionPort": 38121,
+  "dashboardPort": 38122
+}

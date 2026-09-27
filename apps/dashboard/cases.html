@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="color-scheme" content="dark">
+  <title>Case records · Sophie</title>
+  <link rel="stylesheet" href="/dashboard/styles.css"><script type="module" src="/dashboard/case-app.js"></script>
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to content</a>
+  <header class="topbar">
+    <div class="identity"><img id="avatar" src="/dashboard/sophie-avatar.png" alt="" width="52" height="52"><div><strong>Sophie</strong><span>Community Services</span></div></div>
+    <div class="header-actions"><label class="quiet"><input id="quiet" type="checkbox"> Quiet mode</label><button id="logout" class="subtle" hidden>Sign out</button></div>
+  </header>
+  <main id="main" tabindex="-1">
+    <nav class="service-nav" aria-label="Community Services"><!-- service-navigation --></nav>
+    <div class="page-heading"><div><p class="eyebrow">APHELION / SERVICE DESK</p><h1>Case records</h1><p class="intro">Read retained observations and review a transcript export.</p></div></div>
+    <p id="notice" class="notice" role="status" hidden></p>
+    <p id="error" class="error-box" role="alert" hidden></p>
+    <section id="gate" class="gate panel"><h2 id="gate-title">Loading your workspace…</h2><p>Your current case access is checked whenever you open a record or request an export.</p><a id="signin" class="button primary" href="/auth/start" hidden>Sign in with Discord</a><button id="gate-retry">Try again</button></section>
+    <noscript><p class="error-box">This reader needs JavaScript.</p></noscript>
+    <div id="workspace" hidden>
+      <form id="open-channel" class="panel case-panel" autocomplete="off">
+        <label for="channel-id">Discord channel ID</label>
+        <p id="channel-hint" class="muted">Enable Developer Mode in Discord, then use Copy Channel ID on the case channel or thread. Each channel has its own record.</p>
+        <div class="actions"><input id="channel-id" type="text" inputmode="numeric" pattern="[1-9][0-9]{0,19}" maxlength="20" required aria-describedby="channel-hint"><button id="open" class="primary" type="submit">Open record</button><button id="refresh" type="button">Refresh access</button></div>
+      </form>
+      <button id="retry-download" hidden>Retry confirmed download</button>
+      <section id="record" class="panel case-panel" hidden>
+        <div class="section-heading"><div><h2>Retained observations</h2><p id="channel-label" class="muted"></p></div><button id="review-export">Review export</button></div>
+        <p>Partial record only. History before capture is unavailable. Edits contain only observed fields; deletions do not erase earlier observations.</p>
+        <p id="capture" class="muted"></p>
+        <p class="muted">Attachments show status only. Retained files are quarantined and unscanned; file downloads are unavailable.</p>
+        <h3>Observations on this page</h3><div id="observations"></div><button id="next-observations">Next observations</button>
+        <h3>Capture gaps on this page</h3><div id="gaps"></div><button id="next-gaps">Next gaps</button>
+      </section>
+      <section id="export-review" class="panel case-panel" aria-labelledby="export-heading" hidden>
+        <h2 id="export-heading" tabindex="-1">Review transcript export</h2>
+        <p>This exports all retained observations and gaps for the selected channel, within the supported size limit. It does not claim complete history.</p>
+        <p>Includes attachment status. Excludes other channels, Staff notes, form answers and file bytes.</p>
+        <p id="export-counts"></p><p id="export-hash" class="muted case-hash"></p>
+        <p>Anyone you share the downloaded file with can read it. Later access changes cannot recall a saved copy.</p>
+        <label><input id="export-confirmed" type="checkbox"> I have reviewed this scope and want to download the file.</label>
+        <div class="actions"><button id="download" class="primary" disabled>Confirm and download</button><button id="cancel-export">Cancel</button></div>
+      </section>
+    </div>
+  </main>
+</body>
+</html>
