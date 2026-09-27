@@ -11,6 +11,7 @@ import { createAiControlsHttp } from '../apps/core/http/ai-controls.js';
 import { createAiKnowledgeHttp } from '../apps/core/http/ai-knowledge.js';
 import { createAiMessages } from '../apps/core/discord/ai-messages.js';
 import { createDashboardApi } from '../apps/dashboard/api.js';
+import { createKnowledgeLookupHttp } from '../apps/core/http/knowledge-lookup.js';
 
 function packet(change = {}) { return { t: 'MESSAGE_CREATE', d: { guild_id: '101', channel_id: '202', id: '303', author: { id: '404', bot: false }, type: 0, content: 'Synthetic hello', mentions: [], ...change } }; }
 test('SAI AT-02 ingress metadata never touches message content before trusted admission', () => {
@@ -223,4 +224,20 @@ test('SAI AT-06/08 knowledge HTTP requires current publication authority and exp
   await assert.rejects(http.execute({ ...req, body: { ...req.body, actor: {} } }),/KNOWLEDGE_INPUT_INVALID/);
   allowed = false; await assert.rejects(http.execute(req),/OPERATION_DENIED/); assert.equal(writes,0);
   allowed = true; assert.equal((await http.execute(req)).revision,1); assert.equal(writes,1);
+});
+
+test('DS-07 direct lookup requires current membership and source authority without an inference dependency', async () => {
+  const actor = { guildId: '101', userId: '202' }, proof = {}; let allowed = true, sourceCurrent = true, calls = 0, revoke = false;
+  const source = { id: 'guide.r1.s0', title: 'Public guide', heading: 'Arrival', text: 'Blue lights.', url: 'https://example.test/guide',
+    authority: 'reference', rights: 'Synthetic', attribution: 'Synthetic author', sourceRevision: '1', validUntil: null, publicationHash: 'private implementation field' };
+  const http = createKnowledgeLookupHttp({ clock: () => 1000,
+    auth: { authenticate: async () => ({ proof }), resolvePrincipal: async p => assert.equal(p, proof) },
+    authorization: { resolveActor: async () => actor, authorize: async (capability, candidate) => { assert.equal(capability, 'answers.read'); assert.equal(candidate, actor); return allowed; } },
+    knowledge: { lookup: async (query, request) => { assert.equal(query, 'arrival'); assert.equal(request.guildId, '101'); calls++; if (revoke) allowed = false; return [source]; }, current: async () => sourceCurrent } });
+  const input = { path: '/api/knowledge/lookup', method: 'POST', query: new URLSearchParams(), body: { query: 'arrival' }, credentials: {} };
+  const result = await http.execute(input); assert.equal(result.sources[0].text, source.text); assert.equal('publicationHash' in result.sources[0], false);
+  await assert.rejects(http.execute({ ...input, body: { ...input.body, guildId: '999' } }), /KNOWLEDGE_INPUT_INVALID/);
+  allowed = false; await assert.rejects(http.execute(input), /OPERATION_DENIED/); assert.equal(calls, 1);
+  allowed = true; sourceCurrent = false; await assert.rejects(http.execute(input), /KNOWLEDGE_SOURCE_STALE/);
+  sourceCurrent = true; revoke = true; await assert.rejects(http.execute(input), /OPERATION_DENIED/);
 });

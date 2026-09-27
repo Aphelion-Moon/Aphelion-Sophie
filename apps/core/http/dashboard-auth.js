@@ -1,4 +1,5 @@
 import { KNOWLEDGE_ROUTES } from './ai-knowledge.js';
+import { KNOWLEDGE_LOOKUP_ROUTES } from './knowledge-lookup.js';
 import { AI_ROUTES } from './ai-controls.js';
 import { SYSTEM_WORDING_ROUTES } from './system-wording.js';
 import { createServer } from 'node:http';
@@ -21,11 +22,11 @@ import { sendDashboardAsset } from './dashboard-assets.js';
 import { dashboardReturnPath, dashboardPageAllowed, dashboardSessionView } from '../../../contracts/dashboard-navigation.js';
 
 /** Fixed authenticated routes and presentation. Case reads stay inside core; TLS remains separate. */
-export function createDashboardAuthHttpServer({ configuration, auth, authorization, ai = null, knowledge = null, wording = null, authoring = null, formAuthoring = null, transcripts = null, caseExports = null, notes = null, replies = null, answers = null, automation = null, permissions = null, labels = null, management = null, contactEntry = null, contactNavigation = null, presentation = null, enabled, onFault }) {
+export function createDashboardAuthHttpServer({ configuration, auth, authorization, ai = null, knowledge = null, knowledgeLookup = null, wording = null, authoring = null, formAuthoring = null, transcripts = null, caseExports = null, notes = null, replies = null, answers = null, automation = null, permissions = null, labels = null, management = null, contactEntry = null, contactNavigation = null, presentation = null, enabled, onFault }) {
   validateDashboardAuth(configuration);
   requireCondition(typeof enabled === 'function' && typeof onFault === 'function', 'TRUSTED_ADAPTERS_REQUIRED');
   const fixed = structuredClone(configuration), host = new URL(fixed.origin).host, running = new Set();
-  const available = { 'ai.knowledge.publish': knowledge !== null, ai: ai !== null, 'ai.control': ai !== null, 'ai.personality.publish': ai !== null, 'shuttle.publish': authoring !== null, 'case.forms.publish': formAuthoring !== null,
+  const available = { knowledgeLookup: knowledgeLookup !== null, 'ai.knowledge.publish': knowledge !== null, ai: ai !== null, 'ai.control': ai !== null, 'ai.personality.publish': ai !== null, 'shuttle.publish': authoring !== null, 'case.forms.publish': formAuthoring !== null,
     'answers.publish': answers !== null, 'automation.publish': automation !== null, 'permissions.publish': permissions !== null };
   let reserved = false, stopping = false;
   const fault = () => { try { onFault('DASHBOARD_AUTH_UNAVAILABLE'); } catch { /* Never expose request material through logging. */ } };
@@ -74,11 +75,11 @@ export function createDashboardAuthHttpServer({ configuration, auth, authorizati
       sendDashboardAsset(response, asset); return;
     }
     const methods = { '/auth/start': 'GET', '/auth/callback': 'GET', '/auth/session': 'GET', '/auth/logout': 'POST',
-      ...(knowledge ? KNOWLEDGE_ROUTES : {}), ...(ai ? AI_ROUTES : {}), ...(wording ? SYSTEM_WORDING_ROUTES : {}), ...(authoring ? ONBOARDING_AUTHORING_ROUTES : {}), ...(formAuthoring ? CASE_FORM_AUTHORING_ROUTES : {}), ...(transcripts ? CASE_TRANSCRIPT_ROUTES : {}),
+      ...(knowledgeLookup ? KNOWLEDGE_LOOKUP_ROUTES : {}), ...(knowledge ? KNOWLEDGE_ROUTES : {}), ...(ai ? AI_ROUTES : {}), ...(wording ? SYSTEM_WORDING_ROUTES : {}), ...(authoring ? ONBOARDING_AUTHORING_ROUTES : {}), ...(formAuthoring ? CASE_FORM_AUTHORING_ROUTES : {}), ...(transcripts ? CASE_TRANSCRIPT_ROUTES : {}),
       ...(caseExports ? CASE_EXPORT_ROUTES : {}), ...(notes ? CASE_NOTE_ROUTES : {}), ...(replies ? CASE_REPLY_ROUTES : {}), ...(answers ? CURATED_ANSWER_ROUTES : {}), ...(automation ? AUTOMATION_ROUTES : {}), ...(permissions ? PERMISSION_EDITOR_ROUTES : {}), ...(labels ? CASE_LABEL_ROUTES : {}), ...(management ? CASE_MANAGEMENT_ROUTES : {}), ...(contactEntry ? CONTACT_ENTRY_ROUTES : {}), ...(contactNavigation ? CONTACT_NAVIGATION_ROUTES : {}) };
     if (!Object.hasOwn(methods, path)) { send(response, 404, { error: 'Not found.' }); return; }
     requireCondition(request.method === methods[path] && request.headers['content-encoding'] === undefined, 'DASHBOARD_REQUEST_INVALID');
-    const editor = Object.hasOwn(KNOWLEDGE_ROUTES, path) ? knowledge : Object.hasOwn(AI_ROUTES, path) ? ai : Object.hasOwn(SYSTEM_WORDING_ROUTES, path) ? wording : Object.hasOwn(PERMISSION_EDITOR_ROUTES, path) ? permissions : Object.hasOwn(AUTOMATION_ROUTES, path) ? automation : Object.hasOwn(CURATED_ANSWER_ROUTES, path) ? answers : Object.hasOwn(CASE_REPLY_ROUTES, path) ? replies : Object.hasOwn(CONTACT_NAVIGATION_ROUTES, path) ? contactNavigation : Object.hasOwn(CONTACT_ENTRY_ROUTES, path) ? contactEntry : Object.hasOwn(CASE_MANAGEMENT_ROUTES, path) ? management : Object.hasOwn(CASE_LABEL_ROUTES, path) ? labels : Object.hasOwn(CASE_NOTE_ROUTES, path) ? notes : Object.hasOwn(CASE_EXPORT_ROUTES, path) ? caseExports : Object.hasOwn(CASE_TRANSCRIPT_ROUTES, path) ? transcripts : Object.hasOwn(CASE_FORM_AUTHORING_ROUTES, path) ? formAuthoring : Object.hasOwn(ONBOARDING_AUTHORING_ROUTES, path) ? authoring : null;
+    const editor = Object.hasOwn(KNOWLEDGE_LOOKUP_ROUTES, path) ? knowledgeLookup : Object.hasOwn(KNOWLEDGE_ROUTES, path) ? knowledge : Object.hasOwn(AI_ROUTES, path) ? ai : Object.hasOwn(SYSTEM_WORDING_ROUTES, path) ? wording : Object.hasOwn(PERMISSION_EDITOR_ROUTES, path) ? permissions : Object.hasOwn(AUTOMATION_ROUTES, path) ? automation : Object.hasOwn(CURATED_ANSWER_ROUTES, path) ? answers : Object.hasOwn(CASE_REPLY_ROUTES, path) ? replies : Object.hasOwn(CONTACT_NAVIGATION_ROUTES, path) ? contactNavigation : Object.hasOwn(CONTACT_ENTRY_ROUTES, path) ? contactEntry : Object.hasOwn(CASE_MANAGEMENT_ROUTES, path) ? management : Object.hasOwn(CASE_LABEL_ROUTES, path) ? labels : Object.hasOwn(CASE_NOTE_ROUTES, path) ? notes : Object.hasOwn(CASE_EXPORT_ROUTES, path) ? caseExports : Object.hasOwn(CASE_TRANSCRIPT_ROUTES, path) ? transcripts : Object.hasOwn(CASE_FORM_AUTHORING_ROUTES, path) ? formAuthoring : Object.hasOwn(ONBOARDING_AUTHORING_ROUTES, path) ? authoring : null;
     const editing = editor !== null, json = editing && request.method === 'POST';
     if (json) requireCondition(['application/json', 'application/json; charset=utf-8'].includes(request.headers['content-type']), 'AUTHORING_INPUT_INVALID');
     const timeout = setTimeout(() => request.destroy(), 1_500); timeout.unref(); const chunks = []; let bytes = 0;

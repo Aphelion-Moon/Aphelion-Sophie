@@ -2,6 +2,7 @@ import { createAiControls } from '../storage/ai-controls.js';
 import { createAiRuntime } from './ai.js';
 import { createAiControlsHttp } from '../http/ai-controls.js';
 import { createAiKnowledgeHttp } from '../http/ai-knowledge.js';
+import { createKnowledgeLookupHttp } from '../http/knowledge-lookup.js';
 import { inspectAutomationChannel } from '../storage/automation-channel-policy.js';
 import { createSystemWordingHttp } from '../http/system-wording.js';
 import { createOnboardingEntryPanel } from '../discord/onboarding-entry-panel.js';
@@ -73,7 +74,7 @@ export async function createStagingRuntime({ configuration, pool, aiControlPool 
     maintenanceObserved = true; fault('RUNTIME_MAINTENANCE_ACTIVE'); return false;
   };
   const transport = createDiscordTransport({ guildId: fixed.mapping.guildId, token, fetch, clock, enabled: databaseActive });
-  requireCondition((aiWorker === null && aiKnowledge === null) || (aiWorker !== null && aiKnowledge !== null && aiControlPool !== null), 'AI_ADAPTERS_REQUIRED');
+  requireCondition(aiWorker === null || (aiKnowledge !== null && aiControlPool !== null), 'AI_ADAPTERS_REQUIRED');
   let aiRuntime = null;
   const aiGateway = aiWorker === null ? null : { prepare: payload => aiRuntime?.prepare(payload) ?? null,
     committed: (proof, accepted) => aiRuntime?.committed(proof, accepted), invalidate: () => aiRuntime?.invalidate() };
@@ -107,6 +108,7 @@ export async function createStagingRuntime({ configuration, pool, aiControlPool 
     const browser = lane(), { authorization, roles } = browser;
     const aiChannels = createAutomationChannels({ transport: browser.transport });
     const knowledge = aiKnowledgeAdmin === null ? null : createAiKnowledgeHttp({ auth, authorization, knowledge: aiKnowledgeAdmin, invalidate: () => aiRuntime?.invalidate() });
+    const knowledgeLookup = aiKnowledge === null ? null : createKnowledgeLookupHttp({ auth, authorization, knowledge: aiKnowledge, clock });
     const ai = aiControlPool === null ? null : createAiControlsHttp({ auth, authorization, controls: createAiControls({
       pool: aiControlPool, guildId: fixed.mapping.guildId, authorize: authorization.authorize,
       memberPresence: actor => authorization.aiMemberPresence(actor),
@@ -134,7 +136,7 @@ export async function createStagingRuntime({ configuration, pool, aiControlPool 
     const management = createCaseManagementHttp({ auth, authorization, store: browser.store, discord: roles, limits: fixed.limits, enabled });
     const contactNavigation = createContactNavigationHttp({ auth, authorization, store: browser.intakeStore, discord: roles, channels: browser.channels, enabled });
     const contactEntry = createContactEntryHttp({ auth, authorization, store: browser.intakeStore, discord: roles, channels: browser.channels, enabled });
-    dashboard = createDashboardAuthHttpServer({ configuration: fixed.dashboard, auth, authorization, ai, knowledge, enabled, onFault: fault, transcripts, caseExports, notes, replies, answers, automation, permissions, labels, management, contactEntry, contactNavigation,
+    dashboard = createDashboardAuthHttpServer({ configuration: fixed.dashboard, auth, authorization, ai, knowledge, knowledgeLookup, enabled, onFault: fault, transcripts, caseExports, notes, replies, answers, automation, permissions, labels, management, contactEntry, contactNavigation,
       wording: createSystemWordingHttp({ auth, authorization, store: createSystemWordingStore({ pool, authorize: authorization.authorize, guildId: fixed.mapping.guildId, definitionId: fixed.definitionId }) }),
       authoring: createOnboardingAuthoringHttp({ auth, authorization, store: createOnboardingAuthoringStore({ pool, authorize: authorization.authorize,
         guildId: fixed.mapping.guildId, definitionId: fixed.definitionId }) }),

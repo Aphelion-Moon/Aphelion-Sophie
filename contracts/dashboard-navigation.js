@@ -23,7 +23,7 @@ export function dashboardSessionView(actor, csrfToken, available = {}) {
     canEditOnboarding: can('shuttle.publish'), canEditForms: can('case.forms.publish'),
     canEditAnswers: can('answers.publish'), canEditAutomation: can('automation.publish'),
     canEditPermissions: can('permissions.publish'), canControlAi: can('ai.control'), canEditPersonality: can('ai.personality.publish'), canEditKnowledge: can('ai.knowledge.publish'),
-    aiAvailable: available.ai === true, canManageCases: actor.canManageCases === true,
+    aiAvailable: available.ai === true, knowledgeAvailable: available.knowledgeLookup === true, canManageCases: actor.canManageCases === true,
     canCreateContacts: actor.canCreateContacts === true };
 }
 export function dashboardReturnPath(value) {

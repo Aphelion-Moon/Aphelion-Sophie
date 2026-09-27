@@ -14,6 +14,28 @@ async function draft(f) { await f.c.start(); await f.c.open('sample-00'); f.c.ed
 async function reviewed(f) { await draft(f); await f.c.review(); f.c.confirm(true); }
 const cleared = c => { const s = c.snapshot(); assert.equal(s.name,null); assert.deepEqual(s.draft,{ title:'',text:'',source:'' }); assert.equal(s.history,null); assert.equal(s.review,null); assert.equal(s.pending,null); };
 
+test('DS-07 public knowledge lookup works for a non-editor with AI off and clears on suspension or identity loss', async () => {
+  const f = fixture(); f.identity.knowledgeAvailable = true; f.identity.aiAvailable = false; f.state.canEditAnswers = false;
+  const source = { id:'guide.r1.s0',title:'Public guide',heading:'Arrival',text:'Literal <script>data</script>',url:'https://example.test/guide',
+    authority:'reference',attribution:'Synthetic author',rights:'Synthetic permission',sourceRevision:'1',validUntil:null };
+  f.api.knowledgeLookup = async () => ({ actorId:f.identity.userId,guildId:f.identity.guildId,sources:[source] });
+  await f.c.start(); await f.c.lookup('arrival'); assert.deepEqual(f.c.snapshot().knowledgeSources,[source]);
+  f.c.suspend(); assert.equal(f.c.snapshot().knowledgeSources,null); assert.equal(f.c.snapshot().knowledgeQuery,'');
+  await f.c.lookup('arrival'); f.identity.userId='999'; await f.c.checkAccess(); assert.equal(f.c.snapshot().knowledgeSources,null);
+});
+
+test('DS-07 stale results and executable links cannot populate direct lookup', async () => {
+  const f = fixture(); f.identity.knowledgeAvailable = true;
+  let finish; f.api.knowledgeLookup = () => new Promise(resolve => { finish=resolve; });
+  await f.c.start(); const pending=f.c.lookup('arrival');
+  while(!finish) await new Promise(resolve=>setImmediate(resolve));
+  f.c.suspend(); finish({actorId:'123',guildId:'456',sources:[]}); await pending;
+  assert.equal(f.c.snapshot().knowledgeSources,null);
+  f.api.knowledgeLookup = async () => ({ actorId:'123',guildId:'456',sources:[{id:'guide.r1.s0',title:'Title',heading:'Heading',text:'Text',
+    url:'javascript:alert(1)',authority:'reference',attribution:'Author',rights:'Synthetic',sourceRevision:'1',validUntil:null}] });
+  await f.c.lookup('arrival'); assert.equal(f.c.snapshot().phase,'unavailable'); assert.equal(f.c.snapshot().knowledgeSources,null);
+});
+
 test('public answer changes require exact review and explicit public-source confirmation; edits invalidate both', async () => {
   const f = fixture(); await draft(f); await f.c.send(); await f.c.review(); await f.c.send(); assert.equal(changes(f).length,0);
   f.c.confirm(true); f.c.edit('source','Changed synthetic public source'); await f.c.send(); assert.equal(changes(f).length,0);

@@ -2,6 +2,7 @@
 export function createAnswersView({ document, controller }) {
   const el = id => document.getElementById(id), text = (id,value) => { el(id).textContent = value ?? ''; el(id).hidden = !value; };
   let reviewShown = false;
+  el('knowledge-search').addEventListener('submit', event => { event.preventDefault(); controller.lookup(el('knowledge-query').value); });
   el('open-answer').addEventListener('submit', event => { event.preventDefault(); controller.open(el('answer-name').value); });
   el('answer-form').addEventListener('submit', event => { event.preventDefault(); controller.review('publish'); });
   for (const field of ['title','text','source']) el(`answer-${field}`).addEventListener('input', event => controller.edit(field,event.target.value));
@@ -16,6 +17,21 @@ export function createAnswersView({ document, controller }) {
   return { render(state) {
     const ready = state.phase === 'ready', editor = ready && state.identity?.canEditAnswers, pending = state.pending !== null;
     el('workspace').hidden = !ready; el('gate').hidden = ready; el('signin').hidden = state.phase === 'loading';
+    const lookup = ready && state.identity?.knowledgeAvailable;
+    el('knowledge-lookup').hidden = !lookup;
+    el('search-knowledge').disabled = state.busy || pending || state.dirty;
+    el('knowledge-query').disabled = state.busy || pending || state.dirty;
+    el('knowledge-query').value = lookup ? state.knowledgeQuery : '';
+    el('knowledge-results').replaceChildren();
+    text('knowledge-status', state.knowledgeSources ? state.knowledgeSources.length ? `Published sources matching “${state.knowledgeQuery}”. Check their authority and revision before relying on them.` : 'No current approved source matched. Try its title, an alias or different words.' : null);
+    for (const source of state.knowledgeSources ?? []) {
+      const article = document.createElement('article'), heading = document.createElement('h3'), link = document.createElement('a');
+      link.href = source.url; link.rel = 'noopener noreferrer'; link.textContent = `${source.title} — ${source.heading}`; heading.append(link); article.append(heading);
+      for (const content of [source.text, `Authority: ${source.authority} · Source revision: ${source.sourceRevision}`, `${source.attribution} · ${source.rights}`]) {
+        const p = document.createElement('p'); p.className = 'case-text'; p.textContent = content; article.append(p);
+      }
+      el('knowledge-results').append(article);
+    }
     el('gate-title').textContent = state.phase === 'loading' ? 'Loading your workspace…' : state.phase === 'unavailable' ? 'Access could not be verified' : 'Sign in with your community account';
     el('logout').hidden = state.identity === null; text('error',state.error); text('notice',state.notice);
     el('open-answer').hidden = !editor; el('member-hint').hidden = editor;

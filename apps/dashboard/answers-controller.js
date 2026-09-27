@@ -7,6 +7,15 @@ const revision = value => Number.isSafeInteger(value) && value > 0 && value <= 2
 const text = (value, size, multiline = false) => typeof value === 'string' && value.length > 0 && value.length <= size && value.trim().length > 0 &&
   value.isWellFormed() && !(multiline ? /[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]/ : /[\x00-\x1f\x7f]/).test(value);
 const documentValid = value => value && text(value.title,80) && text(value.text,4000,true) && text(value.source,300);
+function knowledgeSourceValid(row) {
+  if (!row || !/^[a-z][a-z0-9-]{0,47}\.r[1-9][0-9]{0,9}\.s[0-9]{1,2}$/.test(row.id) ||
+    !text(row.title,200) || !text(row.heading,160) || !text(row.text,4000,true) || !text(row.attribution,500,true) ||
+    !text(row.rights,300,true) || !text(row.sourceRevision,160) || !text(row.url,1000) ||
+    !['policy','lore','reference','community-event'].includes(row.authority) ||
+    !(row.validUntil === null || Number.isSafeInteger(row.validUntil) && row.validUntil > Date.now())) return false;
+  try { const url = new URL(row.url); return url.protocol === 'https:' && !url.username && !url.password && !url.port && !url.hash; }
+  catch { return false; }
+}
 const empty = () => ({ title: '', text: '', source: '' });
 const sameDocument = (a,b) => a === null || b === null ? a === b : a?.title === b?.title && a?.text === b?.text && a?.source === b?.source;
 const recordValid = (row, name) => row && row.name === name && revision(row.revision) && id(row.authorId) &&
@@ -16,11 +25,12 @@ const recordValid = (row, name) => row && row.name === name && revision(row.revi
 /** Authored drafts/history and exact uncertain requests are memory-only, actor-bound state. */
 export function createAnswersController({ api, onChange, newRequestId }) {
   const state = { phase: 'loading', identity: null, busy: false, list: null, after: null, name: null, current: null,
-    history: null, before: null, draft: empty(), baseRevision: 0, dirty: false, review: null, checked: false, pending: null, error: null, notice: null };
+    history: null, before: null, draft: empty(), baseRevision: 0, dirty: false, review: null, checked: false, pending: null, error: null, notice: null,
+    knowledgeQuery: '', knowledgeSources: null };
   let generation = 0;
   const snapshot = () => structuredClone(state), emit = () => onChange(snapshot());
   function clearSelection() { Object.assign(state, { name: null, current: null, history: null, before: null, draft: empty(), baseRevision: 0, dirty: false, review: null, checked: false, pending: null }); }
-  function clear() { const uncertain = state.pending !== null; clearSelection(); state.list = null; state.after = null;
+  function clear() { const uncertain = state.pending !== null; clearSelection(); state.list = null; state.after = null; state.knowledgeQuery = ''; state.knowledgeSources = null;
     if (uncertain) state.notice = 'A submitted change may still complete. Check this answer’s history before making another change.';
   }
   function bound(value) { if (value.actorId !== state.identity?.userId || value.guildId !== state.identity?.guildId) throw new DashboardFailure('denied'); }
@@ -34,6 +44,7 @@ export function createAnswersController({ api, onChange, newRequestId }) {
         clear(); state.identity = identity; state.phase = 'ready'; state.notice = 'Your account changed. Drafts and editorial history were cleared. Check any prior submission before editing again.'; return;
       }
       if (state.identity?.canEditAnswers && !identity.canEditAnswers) { clear(); state.notice = 'Editing access ended. Drafts and editorial history were cleared; any submitted change may still complete.'; }
+      if (!identity.knowledgeAvailable) { state.knowledgeQuery = ''; state.knowledgeSources = null; }
       state.identity = identity; state.phase = 'ready'; context.stage = 'read'; await work(context);
     } catch (error) {
       if (!context.active()) return;
@@ -82,6 +93,16 @@ export function createAnswersController({ api, onChange, newRequestId }) {
   }
   return Object.freeze({ snapshot,
     start: () => run(context => list(context,null)),
+    lookup(query) {
+      if (state.pending || state.dirty || !text(query,200)) return;
+      return run(async context => {
+        state.knowledgeSources = null; state.knowledgeQuery = ''; emit();
+        if (!state.identity.knowledgeAvailable) return;
+        const result = await api.knowledgeLookup(query); if (!context.active()) return; bound(result);
+        if (!Array.isArray(result.sources) || result.sources.length > 4 || !result.sources.every(knowledgeSourceValid)) throw new DashboardFailure('unavailable');
+        state.knowledgeQuery = query; state.knowledgeSources = result.sources;
+      });
+    },
     open(name) {
       if (state.pending || state.dirty || !nameValid(name)) return;
       return run(async context => { clearSelection(); state.name = name; state.notice = null; emit(); await selection(context); });
@@ -119,7 +140,7 @@ export function createAnswersController({ api, onChange, newRequestId }) {
     next() { if (state.list?.next && !state.pending) { const after = state.list.next; return run(context => list(context,after)); } },
     first() { if (!state.pending) return run(context => list(context,null)); },
     older() { if (state.history?.nextBefore && !state.pending) { const before = state.history.nextBefore; return run(async context => { state.review = null; state.checked = false; await selection(context,before); }); } },
-    checkAccess: () => run(async context => { state.review = null; state.checked = false; state.history = null; state.current = null; state.list = null; emit();
+    checkAccess: () => run(async context => { state.review = null; state.checked = false; state.history = null; state.current = null; state.list = null; state.knowledgeQuery = ''; state.knowledgeSources = null; emit();
       await list(context); if (context.active()) await selection(context); }),
     suspend() { ++generation; clear(); state.busy = false; state.notice ??= 'Unsaved text and editorial history were cleared while this page was hidden.'; emit(); },
     async logout() { ++generation; clear(); state.identity = null; state.phase = 'signed-out'; state.busy = true; emit(); const token = generation;

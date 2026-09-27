@@ -15,6 +15,9 @@
     <section id="gate" class="gate panel"><h2 id="gate-title">Loading your workspace…</h2><p>Current community members can read published answers. Only configured editors may publish or view editorial history.</p><a id="signin" class="button primary" href="/auth/start" hidden>Sign in with Discord</a><button id="gate-retry">Try again</button></section>
     <noscript><p class="error-box">This page needs JavaScript.</p></noscript>
     <div id="workspace" hidden>
+      <section id="knowledge-lookup" class="panel case-panel" hidden><h2>Search approved reference sources</h2><p>Find exact names, aliases or matching words in the reviewed public library. Results are published source extracts; this search does not use AI.</p>
+        <form id="knowledge-search" autocomplete="off"><label for="knowledge-query">Topic or source name</label><div class="actions"><input id="knowledge-query" maxlength="200" required><button id="search-knowledge" type="submit">Search sources</button></div></form>
+        <p id="knowledge-status" role="status"></p><div id="knowledge-results"></div></section>
       <section class="panel case-panel"><div class="actions"><h2>Published library</h2><button id="refresh">Refresh access and history</button></div><p id="member-hint" class="muted">Select an answer to read it. Publishing requires a separately configured editor permission.</p>
         <div id="answers" class="question-nav"></div><p id="empty-answers" hidden></p><div class="actions"><button id="first-answers" hidden>First page</button><button id="next-answers" hidden>Next answers</button></div></section>
       <form id="open-answer" class="panel case-panel" autocomplete="off" hidden><label for="answer-name">Open or create an answer by name</label><p id="name-hint" class="muted">Use a lowercase name beginning with a letter, up to 40 letters, digits or hyphens. The library retains up to 100 names, including withdrawn answers; existing names can be revised.</p>

@@ -24,7 +24,7 @@ async function signedHttp(address, signed) {
   });
 }
 export async function runStagingRuntimeSuite(cluster, run) {
-  async function fixture({ dashboard = true, automaticWorkers = false, ready = true, answers = false, automation = false, automationIngress = false, unavailableAi = false } = {}) {
+  async function fixture({ dashboard = true, automaticWorkers = false, ready = true, answers = false, automation = false, automationIngress = false, unavailableAi = false, knowledgeOnly = false } = {}) {
     const f = await onboardingWorkflow(cluster, { extraCapabilities: { 'case.forms.publish': [LEAD],
       'member.mute': [STAFF, LEAD], 'member.unmute': [STAFF, LEAD], ...(answers ? { 'answers.publish': [STAFF] } : {}), ...(automation ? { 'automation.publish': [STAFF] } : {}) } });
     const clock = () => f.clock.now, identities = syntheticInteractions({ clock }), oauth = simulatedOAuth(), replies = [], faults = [];
@@ -44,7 +44,8 @@ export async function runStagingRuntimeSuite(cluster, run) {
     };
     const ai = unavailableAi ? { aiControlPool: { query: async () => { throw Error('synthetic control outage'); }, connect: async () => { throw Error('synthetic control outage'); } },
       aiWorker: { current: async () => assert.fail('unavailable control store must prevent worker qualification'), generate: async () => assert.fail('no AI ingestion') },
-      aiKnowledge: { lookup: async () => assert.fail('no knowledge ingestion'), current: async () => assert.fail('no knowledge ingestion') } } : {};
+      aiKnowledge: { lookup: async () => assert.fail('no knowledge ingestion'), current: async () => assert.fail('no knowledge ingestion') } } :
+      knowledgeOnly ? { aiKnowledge: { lookup: async query => { assert.equal(query, 'synthetic topic'); return []; }, current: async () => true } } : {};
     const createHost = () => createStagingRuntime({ configuration: config, pool: f.pool, ...ai, token: SYNTHETIC_GATEWAY_TOKEN,
       clientSecret: syntheticClientSecret, fetch, connect: peer.connect, clock, random: () => 0.25, onFault: value => faults.push(value) });
     let runtime = await createHost();
@@ -455,5 +456,18 @@ export async function runStagingRuntimeSuite(cluster, run) {
     assert.ok(f.discord.state.members.get(USER).includes(MUZZLED));
     assert.ok(f.faults.every(code => ['AI_CONTROL_UNAVAILABLE','AI_TURN_UNAVAILABLE'].includes(code)));
   }, { unavailableAi: true, dashboard: false });
+
+  await scenario('DS07-RT18 a member can use public knowledge lookup without any AI worker or control store', async f => {
+    const start = await dashboardHttp(f.addresses.dashboard, '/auth/start');
+    const state = new URL(start.headers.location).searchParams.get('state'), cookie = start.headers['set-cookie'][0].split(';')[0];
+    const done = await dashboardHttp(f.addresses.dashboard, `/auth/callback?state=${state}&code=${f.oauth.issueCode(USER)}`, { headers: { Cookie: cookie } });
+    const session = done.headers['set-cookie'].find(value => value.startsWith(`${DASHBOARD_COOKIES.session}=`)).split(';')[0];
+    const status = await dashboardHttp(f.addresses.dashboard, '/auth/session', { headers: { Cookie: session } });
+    assert.equal(status.body.aiAvailable, false); assert.equal(status.body.knowledgeAvailable, true); assert.equal(status.body.canEditKnowledge, false);
+    const headers = { Cookie: session, Origin: f.config.dashboard.origin, 'Content-Type': 'application/json', 'X-CSRF-Token': status.body.csrfToken };
+    const response = await dashboardHttp(f.addresses.dashboard, '/api/knowledge/lookup', { method:'POST',headers,body:JSON.stringify({query:'synthetic topic'}) });
+    assert.equal(response.status,200); assert.deepEqual(response.body.sources,[]); assert.equal(response.body.actorId,USER);
+    assert.deepEqual(f.faults,[]);
+  }, { knowledgeOnly: true });
 
 }

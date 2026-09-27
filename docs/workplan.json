@@ -1,6 +1,6 @@
 {
   "schema_version": 2,
-  "revision": "2026-09-28-deepseek-foundation",
+  "revision": "2026-09-28-deepseek-lookup",
   "reference_plan_version": "1.1",
   "source": "Sophie-Implementation-Plans-v1.1/backlog.json",
   "owner_decisions": "docs/decisions/0001-owner-policy.md",
@@ -777,12 +777,13 @@
       "suggested_owner": "Repository maintainer; separate human review where required",
       "guardrail": "No semantic model dependency for basic lookup.",
       "status": "in_progress",
-      "implementation_note": "Approved public lexical/alias retrieval, authority labels, revision/hash/expiry checks and attributed citations implemented. MediaWiki ingestion/synchronization, direct member-facing lookup, actual source rights/collection decisions and the 40-question release evaluation remain open.",
+      "implementation_note": "Approved public lexical/alias retrieval, source revision/hash/expiry checks and attributed member dashboard lookup are implemented. Source withdrawal and fresh member authorization are rechecked before returning results. MediaWiki import/sync, Discord /lookup, source rights/collection approvals and the 40-question launch gate remain open.",
       "completed_scope": [
-        "Approved public lexical/alias retrieval, authority labels, revision/hash/expiry checks and attributed citations implemented."
+        "Approved public lexical/alias retrieval, authority labels, revision/hash/expiry checks and attributed citations implemented.",
+        "Member dashboard direct lookup on Public answers, independent of inference and AI opt-in."
       ],
       "remaining_scope": [
-        "MediaWiki ingestion/synchronization, direct member-facing lookup, actual source rights/collection decisions and the 40-question release evaluation remain open."
+        "Approved actual MediaWiki import/sync and collection/rights, Discord /lookup command and reviewed source/answer launch qualification."
       ]
     },
     {
@@ -1325,7 +1326,7 @@
   "checkpoint": {
     "summary": "Deterministic administration, Whitelist onboarding, protected editors, role/permission configuration and the configurable staging host are implemented.",
     "recorded_baseline": "AI handoff 0fa7a5ed538ff791e3def2c1f6ac7683531e15a1 plus preserved uncommitted Flash candidate; synthetic schema058 candidate. No live schema change.",
-    "current_work": "Prepared immutable Flash requests, durable conservative accounting and operator controls, revised external-processing consent gate and dependency-bound assistant history. Worker IPC, durable effects, importer, explicit memory, gathering and selected-feature acceptance remain incomplete.",
+    "current_work": "Prepared immutable Flash requests, durable conservative accounting and operator controls, revised external-processing consent gate and dependency-bound assistant history. Worker IPC, durable effects, importer, explicit memory, gathering and selected-feature acceptance remain incomplete. Direct approved-source lookup is now on Public answers and composes without any inference worker or AI control store.",
     "evidence_note": "Current source-bound offline results are in docs/verification.md and the external deepseek-verification.json index. Earlier administration, local model and Flash trial results remain historical; none grants present deployment approval."
   },
   "milestones": [
@@ -2210,6 +2211,16 @@
       "implemented": "Immutable final-body preparation, exact outbound byte cap, local block diagnostics, usage-before-output accounting, fenced reservations and uncertainty, reviewed USD 20/Vienna spending controls, notice revision gate, confirmed assistant context with dependency expiry and cancellation.",
       "evidence": "Focused unit and isolated AI storage results, synthetic browser observations and exact source hashes in docs/verification.md and external deepseek-verification.json. No new provider or Discord call.",
       "remaining": "DS-03 retention and actual transport/rollover qualification; DS-04 worker; DS-06 gathering; DS-07 importer/direct lookup; DS-08 explicit memory; DS-09 durable effects; all real-data/release gates."
+    },
+    {
+      "title": "Member direct lookup independent of inference",
+      "tasks": [
+        "P21",
+        "P22"
+      ],
+      "implemented": "Authenticated Public answers search returns up to four current published extracts with source links, authority, revision and attribution. No model, conversational consent, editorial authority or AI control store is required.",
+      "evidence": "34 focused turn/lookup/dashboard checks, 18 isolated composed staging scenarios and synthetic browser search/empty-state checks; exact source-bound report outside the repository.",
+      "remaining": "Approve actual wiki endpoint, collection/rights and extractor; importer/sync/template invalidation, Discord /lookup and actual reviewed-source qualification remain."
     }
   ],
   "next_steps": [
@@ -2395,13 +2406,13 @@
       {
         "id": "DS-07",
         "title": "Wiki synchronization and direct lookup",
-        "implementation": "partial inherited library",
-        "qualification": "Synthetic publication/withdrawal/lexical evidence only",
+        "implementation": "public library and member dashboard lookup implemented; importer incomplete",
+        "qualification": "Synthetic publication/withdrawal/lexical, member lookup and composed-runtime checks",
         "sai": [
           "SAI-08",
           "SAI-11"
         ],
-        "remaining": "Approved actual MediaWiki endpoint, collection/rights and extractor decisions; importer/sync, dependencies and member-facing direct lookup."
+        "remaining": "Approve actual wiki endpoint, collection/rights and extractor; importer/sync/template invalidation, Discord /lookup and actual reviewed-source qualification remain."
       },
       {
         "id": "DS-08",
@@ -2472,7 +2483,7 @@
       {
         "id": "SAI-G2",
         "title": "Knowledge and direct lookup",
-        "implementation": "partial",
+        "implementation": "publications, lexical retrieval and member dashboard lookup; sync incomplete",
         "qualification": "importer/current-source/40-question gates open",
         "data_clearance": "source rights/collection unresolved",
         "activation": "off"

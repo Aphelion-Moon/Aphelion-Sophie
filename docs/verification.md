@@ -163,7 +163,7 @@ Confirmed replies inherit conversation and knowledge expiry/dependencies. Source
 events cancel active work in the affected lane; delivery races compensate known
 effects. Durable post-restart Discord effect ownership remains unfinished.
 
-Current offline evidence: 51 focused preparation/runtime/turn/participation checks
+Foundation evidence at `6921df9`: 51 focused preparation/runtime/turn/participation checks
 and 44 isolated AI/Gateway/knowledge/accounting scenarios pass, with zero failures
 or skips. The disposable PostgreSQL cluster stopped. Repository validation checks
 475 JavaScript modules, 40 original tasks, 60 specifications, 31 reference checksums
@@ -187,3 +187,28 @@ wiki import/sync and member lookup, durable effects, explicit-memory controls,
 restricted audiences, reviewed source/character acceptance and live qualification
 remain in the DS/SAI tracker. Real-member processing is blocked on the exact provider
 agreement/settings and approved notice. No model or release was activated.
+
+## Member direct knowledge lookup — 28 September 2026
+
+Public answers now includes authenticated search over the existing reviewed public
+knowledge library, with exact source extracts, links, authority, revision and
+attribution. It operates without an inference worker, AI control store, model opt-in
+or editorial permission. Current membership and source validity are checked again
+before return; queries use POST and are not added to URLs or an application archive.
+The page clears results on suspension, access refresh and account changes, and
+rejects malformed results or executable links.
+
+34 focused turn/lookup/dashboard checks and 18 isolated composed staging scenarios
+pass, including member lookup with AI unavailable. The test database stopped.
+Repository validation checks 476 modules with the original 40 tasks, 60 specifications,
+31 reference checksums and eight asset copies. Synthetic browser search displayed
+literal source text and attribution, cleared prior results on an empty search, and
+reported no console warnings/errors. No actual wiki data or live service was used.
+
+The exact source/command/log record is
+`GitHub/.agent_docs/aphelion-sophie/deepseek-lookup-verification.json`; the combined
+index links both milestones without attributing foundation checks to later code.
+No schema, dependency or live deployment changed in this lookup milestone. Actual
+MediaWiki discovery/import/synchronization, approved collection/rights, Discord
+`/lookup` and reviewed-source release acceptance remain open. The owner was asked
+for the unresolved wiki URL, source collections and reuse permission.
