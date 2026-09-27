@@ -1,6 +1,6 @@
 # Current implementation workplan
 
-Revision: 2026-09-27-website-configuration-live. Owner-authorized a5e0232/schema055 deployment completed with the configurable host and Lead ops-only permissions.publish at capability version2. 779 Git file hashes verified; encrypted preservation restored in quarantine; migration preserved all 70 existing tables. Current Gateway, process/loopback-port ownership, 32 public HTTPS checks and 55 migration/71 restricted runtime table checks pass. Next: owner private Roles and permissions/apply/ACL acceptance. No production approval.
+Revision: 2026-09-27-sophie-staging. Complete isolated staging qualification while retaining authored configuration and case history. Native Windows service qualification remains open; production recovery is deferred.
 
 All production release gates remain open; pure and isolated database checks are not full application acceptance.
 
@@ -8,13 +8,13 @@ Source requirements remain in the preserved v1.1 pack. Current owner decisions o
 
 ## Implementation checkpoint
 
-Local next-test feedback: verified arrival before one Begin Whitelist link, default one-hour closure notice, permission-filtered HTML with one-use session bootstrap and renewal, and Meridian-informed responsive presentation. 45 focused unit checks, 88 Onboarding/wording, 18 authorization and 16 runtime scenarios pass; synthetic desktop/mobile editing and quiet mode checked. See docs/whitelist-test-feedback.md. Subsequently deployed with owner authorization on pinned036c3db/schema054; 768 Git hashes, orderly shutdown, current Gateway, process/port ownership and 26 public checks passed. No migration, configuration, command or grant changes. Private client acceptance remains open.
+Deterministic administration, Whitelist onboarding, protected editors, role/permission configuration and the configurable staging host are implemented.
 
-Recorded baseline: Commit b66a2d4, 19 September 2026: 212 contract tests and 536 PostgreSQL scenarios passed; 30 migrations, 243 JavaScript sources, 40 tasks, 60 acceptance specifications, 31 reference checksums and eight unchanged PNG copies. The isolated database stopped successfully. These source-bound reports describe the committed attachment milestone, not the subsequent transcript-read milestone. See [verification](verification.md); these are offline results, not release acceptance.
+Recorded baseline: Schema 055; current source checks are listed in docs/verification.md.
 
-Current work: Owner private configuration/apply/role/ACL acceptance on deployed a5e0232/schema055. Do not repeat completed migration, grant bootstrap or command registration; no private content in agent tools.
+Current work: Qualify the isolated Sophie runtime and continue remaining administration work after staging acceptance.
 
-docs/evidence/website-configuration-live.json records the authorized deployment; docs/evidence/website-configuration-verification.json records preceding local checks. Earlier036c3db/schema054 deployment is historical.
+418 unit tests, 13 isolated configuration scenarios and 16 isolated staging scenarios pass. Historical scenario descriptions below do not establish current live acceptance.
 
 ## Implemented milestones and remaining scope
 
