@@ -343,3 +343,39 @@ installation, host reboot, cloud processing or production deployment.
 The owner subsequently authorized enabling Hyper-V with management tools **without
 automatic reboot**. This is a scoped host-role installation approval; reboot and
 live AI activation remain separate operations.
+
+### Container-only Microsoft C++ runtime — 27 September 2026
+
+After the operator restart and contained startup diagnosed missing Microsoft C++
+DLLs, the owner approved the reviewed container-only runtime proposal. This names
+Microsoft Visual C++ v14 Redistributable x64 14.51.36247.0 under its Microsoft
+licence, SHA-256
+`843068991daaa1f73ad9f6239bce4d0f6a07a51f18c37ea2a867e9beca71295c`.
+Installation as ContainerAdministrator is permitted only inside a disposable,
+network-disabled Hyper-V worker container with the proposed resource limits;
+inference returns to ContainerUser. This authorizes synthetic qualification with
+the existing approved model/runtime/image pins. It does not authorize host runtime
+installation, image redistribution, service/ACL/network changes or live AI activation.
+
+### Smaller local model trial — 27 September 2026
+
+After the Phi-4-mini trial failed to reliably finish within the response budget,
+the owner selected the smaller local trial. This approves official
+Qwen/Qwen2.5-1.5B-Instruct-GGUF at revision
+`91cad51170dc346986eccefdc2dd33a9da36ead9`, file
+`qwen2.5-1.5b-instruct-q4_k_m.gguf`, SHA-256
+`6a1a2eb6d15622bf3c96857206351ba97e1af16c30d7a74ee38970e434e9407e`, under Apache 2.0.
+Reuse the approved llama.cpp/Windows/Microsoft runtime pins and the four-CPU,
+8-GiB Hyper-V envelope for synthetic preparation and qualification only. This is
+a named model exception, not a general licence exception or approval for cloud
+processing, live AI activation, larger host resource limits or image redistribution.
+
+### Continue local-only exploration — 27 September 2026
+
+After Phi-4-mini failed the response budget and Qwen2.5-1.5B met the small synthetic
+timing screen but failed truthfulness/conduct checks, the owner selected
+"Continue exploring local-only models." Continue local research and preparation
+within existing authority; preserve failed results and the 15-second total-turn
+ceiling. No cloud/API plan or remote Discord-content processing is selected.
+New non-MIT model derivatives still need their named scope decision. Neither
+completed trial qualifies a model for live use.

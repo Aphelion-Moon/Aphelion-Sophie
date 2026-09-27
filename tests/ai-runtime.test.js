@@ -1,13 +1,16 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createAiScheduler } from '../apps/knowledge-worker/scheduler.js';
-import { createLlamaClient } from '../apps/knowledge-worker/llama-client.js';
+import { createLlamaClient, createAiOutputSchema } from '../apps/knowledge-worker/llama-client.js';
 import { buildAiPrompt } from '../apps/knowledge-worker/prompt.js';
 import { DRAFT_PERSONALITY } from '../modules/assistant/personality.js';
 
 const tick = () => new Promise(resolve => setImmediate(resolve));
 function pending() { let resolve; const promise = new Promise(done => { resolve = done; }); return { promise, resolve }; }
-const request = (id, fields = {}) => ({ id, member: id, receivedAt: Date.now(), deadline: Date.now() + 15000, proactive: false, payload: id, ...fields });
+const request = (id, fields = {}) => {
+  const receivedAt = Date.now();
+  return { id, member: id, receivedAt, deadline: receivedAt + 15000, proactive: false, payload: id, ...fields };
+};
 
 test('SAI AT-13 bounded scheduler rejects duplicate/member flooding and never overlaps inference', async () => {
   const first = pending(), started = [];
@@ -63,7 +66,7 @@ function llamaFixture({ count = { object: 'response.input_tokens', input_tokens:
       const value = url.pathname === '/v1/chat/completions/input_tokens' ? count : response;
       return new Response(JSON.stringify(value), { headers: { 'content-type': 'application/json' } });
     } });
-  const generate = () => client.generate({ messages: [{ role: 'system', content: 'Sophie' }, { role: 'user', content: 'Synthetic hello' }] },
+  const generate = () => client.generate({ outputContract: { outcomes: ['reply','silent'], answerOnly: false, sourceIds: [], emojiKeys: [] }, messages: [{ role: 'system', content: 'Sophie' }, { role: 'user', content: 'Synthetic hello' }] },
     { signal: new AbortController().signal, deadline: Date.now() + 14000 });
   return { calls, generate };
 }
@@ -73,6 +76,8 @@ test('SAI AT-12 local adapter counts the runtime template and parses only final 
   assert.deepEqual(f.calls.map(call => call.path), ['/v1/chat/completions/input_tokens', '/v1/chat/completions']);
   assert.deepEqual(f.calls[0].body, f.calls[1].body);
   assert.equal(f.calls.at(-1).body.stream, false); assert.equal(f.calls.at(-1).body.cache_prompt, false);
+  assert.equal(f.calls.at(-1).body.reasoning_effort, 'none');
+  assert.deepEqual(f.calls.at(-1).body.chat_template_kwargs, { enable_thinking: false });
   assert.equal(f.calls.every(call => call.redirect === 'error'), true);
 });
 
@@ -97,6 +102,20 @@ test('SAI AT-04 local runtime endpoint cannot become arbitrary egress or credent
   }
 });
 
+test('SAI AT-12 output grammar cannot offer speech, unknown citations or emoji outside the admitted turn', () => {
+  const contract = { outcomes: ['react','silent'], answerOnly: false, sourceIds: [], emojiKeys: ['celebrate'] };
+  const reaction = createAiOutputSchema(contract);
+  assert.deepEqual(reaction.oneOf.map(branch => branch.properties.kind.const), ['silent','react']);
+  assert.deepEqual(reaction.oneOf[1].properties.emojiKey.enum, ['celebrate']);
+  const answer = createAiOutputSchema({ ...contract, outcomes: ['reply','silent'], answerOnly: true, sourceIds: ['guide.r1.s0'] });
+  assert.deepEqual(answer.oneOf[1].properties.citations.items.enum, ['guide.r1.s0']);
+  assert.equal(answer.oneOf[1].properties.citations.minItems, 1);
+  assert.deepEqual(createAiOutputSchema({ ...contract, outcomes: ['reply','silent'], answerOnly: true }).oneOf.map(branch => branch.properties.kind.const), ['silent']);
+  for (const change of [{ sourceIds: ['invented id'] }, { emojiKeys: ['x','x'] }, { outcomes: ['tool','silent'] }, { arbitrarySchema: {} }]) {
+    assert.throws(() => createAiOutputSchema({ ...contract, ...change }), /AI_OUTPUT_CONTRACT_INVALID/);
+  }
+});
+
 test('SAI AT-12 over-budget context drops whole old messages and retains the policy and current question', async () => {
   const prompt = buildAiPrompt({ request: { character: DRAFT_PERSONALITY, decision: { outcomes: ['reply','silent'], answerOnly: false }, config: { emojis: [] },
     userId: '1', text: 'Current question must remain complete' }, history: [{ userId: '2', text: 'Old conversation '.repeat(300) }], sources: [] });
@@ -113,4 +132,21 @@ test('SAI AT-12 over-budget context drops whole old messages and retains the pol
   assert.deepEqual(finalMessages[0],original.messages[0]); assert.deepEqual(finalMessages.at(-1),original.messages.at(-1));
   assert.equal(finalMessages.some(item => item.content.includes('Old conversation')),false);
   await assert.rejects(client.generate({ ...prompt, trimGroups: [[0]] },{ signal: new AbortController().signal, deadline: Date.now()+14000 }),/AI_PROMPT_INVALID/);
+});
+
+test('SAI AT-12 evidence removed to fit the prompt cannot remain an allowed citation', async () => {
+  const prompt = buildAiPrompt({ request: { character: { ...DRAFT_PERSONALITY, examples: [] }, decision: { outcomes: ['reply','silent'], answerOnly: true },
+    config: { emojis: [] }, userId: '1', text: 'Which door?' }, history: [], sources: [{ id: 'guide.r1.s0', text: 'Synthetic source evidence' }] });
+  let generated;
+  const client = createLlamaClient({ endpoint: 'http://127.0.0.1:12345', apiKey: 'synthetic'.repeat(8), modelId: 'reviewed-model', contextTokens: 512,
+    fetchImpl: async (url, options) => {
+      const body = JSON.parse(options.body);
+      if (url.pathname.endsWith('/input_tokens')) return Response.json({ object: 'response.input_tokens',
+        input_tokens: body.messages.some(message => message.content.includes('Synthetic source evidence')) ? 600 : 100 });
+      generated = body; return Response.json({ choices: [{ finish_reason: 'stop', message: { role: 'assistant', content: '{"kind":"silent"}' } }] });
+    } });
+  assert.deepEqual(await client.generate(prompt, { signal: new AbortController().signal, deadline: Date.now() + 14000 }), { kind: 'silent' });
+  assert.equal(generated.messages.some(message => message.content.includes('Synthetic source evidence')), false);
+  assert.deepEqual(generated.response_format.json_schema.schema.oneOf.map(branch => branch.properties.kind.const), ['silent']);
+  await assert.rejects(client.generate({ ...prompt, sourceMessages: [] }, { signal: new AbortController().signal, deadline: Date.now() + 14000 }), /AI_PROMPT_INVALID/);
 });

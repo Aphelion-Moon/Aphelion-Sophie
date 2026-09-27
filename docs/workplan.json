@@ -1,10 +1,10 @@
 {
   "schema_version": 2,
-  "revision": "2026-09-27-sophie-ai-worker-startup",
+  "revision": "2026-09-27-sophie-ai-model-trials",
   "reference_plan_version": "1.1",
   "source": "Sophie-Implementation-Plans-v1.1/backlog.json",
   "owner_decisions": "docs/decisions/0001-owner-policy.md",
-  "schedule": "Operator restart verified; the approved Hyper-V worker image builds with the selected limits. Server startup is blocked by missing Microsoft Visual C++ DLLs; a pinned container-only runtime proposal awaits approval. No model inference or live AI activation has completed.",
+  "schedule": "Approved container-only Microsoft runtime installed; actual synthetic inference completed. Phi-4-mini missed the response budget; Qwen2.5-1.5B was fast but failed truthfulness/conduct. Continue local-only exploration; no model is qualified or live.",
   "release_status": "All production release gates remain open; pure and isolated database checks are not full application acceptance.",
   "tasks": [
     {
@@ -838,13 +838,13 @@
       "suggested_owner": "Repository maintainer; separate human review where required",
       "guardrail": "No cloud fallback, auto-download or claimed unmeasured throughput.",
       "status": "in_progress",
-      "implementation_note": "Operator restart verified. Approved COPY-only worker image built; Docker inspection confirmed Hyper-V, network none, four CPUs, 8 GiB, ContainerUser, zero mounts/ports. Server exits 0xC0000135; static imports and a contained check identify absent Microsoft Visual C++ runtime DLLs. Exact container-only runtime proposal awaits approval. No inference or 15-second qualification.",
+      "implementation_note": "Approved runtime installed inside Hyper-V only; both pinned models ran under four CPUs/8 GiB, ContainerUser, network none, no mounts/ports. Phi failed timing; Qwen2.5 completed small screens in 3.824–5.920 seconds but invented policy/authority. Exact count and prompt usage agreed. No full-turn, host-load, quality or live qualification.",
       "completed_scope": [
-        "Approved runtime/model/image hashes verified; Hyper-V installed with owner authorization and operator restart verified.",
-        "Contained startup attempted and missing DLLs diagnosed without host model execution. Exact chat-request token counting adapter implemented; nine focused scheduler/client checks pass."
+        "Pinned Microsoft C++ runtime installed only inside the approved temporary worker; version/hash and containment evidence recorded.",
+        "Actual Phi/Qwen synthetic screens, bounded negative-access checks and Zen 4 backend observation completed. Per-turn output grammar and evidence-trimming constraints implemented; 22 focused checks pass."
       ],
       "remaining_scope": [
-        "Approve and prepare the pinned Microsoft runtime inside the worker image; then qualify runtime flags, negative access, cancellation, model quality and full-turn 15-second/load behavior."
+        "Review the next named local model candidates; qualify semantic conduct, source answers, cancellation/privacy and full-turn 15-second behavior under representative host load. Neither tested model is selected for live use."
       ]
     },
     {
@@ -1325,7 +1325,7 @@
   "checkpoint": {
     "summary": "Deterministic administration, Whitelist onboarding, protected editors, role/permission configuration and the configurable staging host are implemented.",
     "recorded_baseline": "Pinned executable d4ca16ab6286a4ef186733d6829828e74d3fc176, schema 055; current results are listed in docs/verification.md.",
-    "current_work": "Resolve the named container runtime dependency, then measure actual local inference. The adapter uses identical generation/token-count requests with nine focused checks passing. Remaining full-AI implementation and activation gates are open.",
+    "current_work": "Recorded failed local model screens and per-turn output constraints. Twenty-two focused runtime/turn checks pass. Next pinned local candidates need named model decisions; full-AI implementation and activation gates remain open.",
     "evidence_note": "418 unit tests, 13 isolated configuration scenarios, 16 isolated staging scenarios, 28 public HTTPS checks, 55 live migration checks and 71 live restricted-table checks pass. The Gateway is current. These results do not establish production readiness."
   },
   "milestones": [
@@ -2188,11 +2188,22 @@
       "implemented": "Verified operator restart and built/started the contained candidate. Diagnosed absent MSVCP140/VCRUNTIME140/VCRUNTIME140_1 before model load. Adapter now counts the exact generation request through the pinned runtime endpoint.",
       "evidence": "Docker boundary inspection and contained DLL-presence check; nine focused scheduler/client checks pass. Pinned Microsoft-signed 14.51.36247.0 package downloaded for review only. Source-bound startup evidence outside the repository.",
       "remaining": "New non-MIT container-runtime decision; actual inference, model/dialogue/source quality, full-turn latency/load and remaining selected-feature implementation/activation. No live AI or performance pass."
+    },
+    {
+      "title": "Contained local model screens and per-turn output constraints",
+      "tasks": [
+        "P23",
+        "P24",
+        "P25"
+      ],
+      "implemented": "Approved container-only Microsoft runtime and Qwen model pins recorded. Actual Phi/Qwen probes completed. Output grammar restricts actions, emoji and citations per turn, removes trimmed evidence IDs and disables thinking; core validation remains independent.",
+      "evidence": "22 focused runtime/turn checks pass. Network-none Hyper-V probes used synthetic content only; Phi failed timing and Qwen failed truthfulness/conduct despite fast valid JSON. Source-bound logs and prepared-file snapshots are outside the repository.",
+      "remaining": "Owner selected continued local-only exploration; next named artifacts await decision. Model quality, actual 15-second full-turn/load qualification, broker/service/restore and effect recovery, source sync, explicit memory/restricted domains and activation remain open."
     }
   ],
   "next_steps": [
     {
-      "title": "Resolve the isolated worker runtime dependency and qualify inference",
+      "title": "Explore the next pinned local-only models",
       "tasks": [
         "P21",
         "P22",
@@ -2200,7 +2211,7 @@
         "P24",
         "P25"
       ],
-      "work": "Approve the exact proposed Microsoft Visual C++ runtime scope, install only inside the disposable worker image, then run the bounded synthetic probe. Preserve the 15-second total-turn ceiling and continue remaining broker/recovery, source-sync and selected-feature implementation. Live activation remains separate.",
+      "work": "Review the named Qwen3.5-2B and Qwen3-4B-Instruct-2507 Q4_K_M conversions, then screen approved candidates sequentially under the existing limits. Preserve failed results and the 15-second total-turn ceiling. Continue remaining broker/recovery, source-sync and selected-feature implementation; no cloud path or live activation is selected.",
       "exit_evidence": "Pinned source/model/runtime evidence for isolation, full-turn latency/load, dialogue/source quality and enabled feature acceptance. No benchmark or completed-AI claim from script preparation."
     },
     {
@@ -2278,7 +2289,7 @@
       "independent_work": "Static approved-asset previews and developer keyboard/reflow checks."
     },
     {
-      "input": "Wiki collection/rights approvals; pinned worker artifacts and post-restart Hyper-V startup verified, but missing Microsoft Visual C++ runtime requires its own named scope decision before inference",
+      "input": "Wiki collection/rights approvals; no qualified model after Phi timing and Qwen truthfulness failures. Next local candidate derivatives need named decisions; runtime startup is no longer blocked.",
       "affected_work": "Live knowledge ingestion (G3), model/host qualification (G4), private-worker and selected persistent-memory gates.",
       "independent_work": "Public-source fixtures, lookup contracts and exclusion tests; administration remains independent."
     }

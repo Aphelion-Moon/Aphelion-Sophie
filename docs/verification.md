@@ -66,17 +66,41 @@ separate contained check confirmed absent MSVCP140/VCRUNTIME140/VCRUNTIME140_1
 DLLs. All owned trial containers were removed. These observations are not a
 negative-access or confidentiality qualification.
 
-Microsoft Visual C++ x64 14.51.36247.0 is downloaded and hash-pinned for a
-container-only proposal, with a valid Microsoft signature. It has not been approved
-or installed. The latest adapter uses the exact generation body with the pinned
-runtime token-count endpoint. Nine focused scheduler/client checks pass, including
-malformed count rejection and optional context trimming. The real endpoint and
-prompt-token agreement remain untested until model startup succeeds. New evidence
-is in `GitHub/.agent_docs/aphelion-sophie/worker-startup-verification.json`; the
-earlier schema057 runtime/knowledge evidence remains historical and unchanged.
+The owner subsequently approved Microsoft Visual C++ x64 14.51.36247.0 inside
+the disposable worker. Installation returned zero and the three required DLL
+versions/hashes were recorded. Inference then started as ContainerUser. No host
+runtime installation occurred. Earlier startup evidence is historical.
 
-AI is not production-ready or live. The runtime dependency is the current model
-trial blocker. The 15-second total-turn ceiling has not been measured with a model.
+Phi-4-mini Q4_K_M produced one full greeting in 12.674 seconds but did not reliably
+finish the synthetic screen; two later greetings hit the 14-second cutoff.
+Shortening the diagnostic prompt and increasing internal batching did not establish
+a pass. Official Qwen2.5-1.5B Q4_K_M, separately approved, completed the first five
+cases in 4.424–4.986 seconds but produced invalid citations and spoke in a
+reaction-only turn. Per-turn output constraints fixed those structural failures.
+Five subsequent cases took 3.824–5.487 seconds, but one still invented community
+policy. An eight-case grounding-example experiment took 4.099–5.920 seconds and
+included a false claim to grant administrator roles; that prompt experiment was
+reverted. Both models are unqualified. Valid JSON does not establish truthfulness.
+
+These were network-disabled Hyper-V model probes with four CPUs, 8 GiB, no host
+mounts/ports, and synthetic prompts only. The Zen 4 CPU backend loaded. Bounded
+negative-access checks found no administrator identity, host checkout, protected
+System32 write, Docker pipe or TEST-NET connection. This is not comprehensive
+confidentiality or representative host-load qualification. Exact token counts
+matched reported prompt usage in completed probes. No real application adapter,
+queue/retrieval/delivery timing or live Discord behavior was exercised by these
+PowerShell probes. All owned trial containers were removed; local images remain.
+
+The current client limits outcomes, emoji and citations to the admitted turn,
+removes citation choices when their evidence is trimmed, and explicitly disables
+thinking in both count and generation requests. The latter option is covered by
+adapter checks and pinned runtime documentation, not by the historical model runs.
+Twenty-two focused runtime/turn checks pass. Source-bound reports and raw trial
+logs are in `GitHub/.agent_docs/aphelion-sophie/worker-model-verification.json` and
+`worker-model-trials.md`. The owner selected continued local-only exploration.
+
+AI is not production-ready or live. No model has passed both timing and conduct
+screening. The 15-second receipt-to-delivery ceiling remains unqualified.
 Qualified worker/service/restore wiring, durable effect recovery, source sync,
 explicit-memory and named restricted-domain work, source/dialogue evaluation and
 applicable enabled-feature acceptance remain open. No live schema migration,
