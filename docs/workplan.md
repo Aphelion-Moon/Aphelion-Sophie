@@ -1,6 +1,6 @@
 # Current implementation workplan
 
-Revision: 2026-09-27-sophie-staging. Complete isolated staging qualification while retaining authored configuration and case history. Native Windows service qualification remains open; production recovery is deferred.
+Revision: 2026-09-27-sophie-staging. Isolated Sophie staging is online with a current Gateway and verified signed interactions endpoint. Public login and authorization checks pass. Native Windows service qualification remains open; production recovery is deferred.
 
 All production release gates remain open; pure and isolated database checks are not full application acceptance.
 
@@ -10,11 +10,11 @@ Source requirements remain in the preserved v1.1 pack. Current owner decisions o
 
 Deterministic administration, Whitelist onboarding, protected editors, role/permission configuration and the configurable staging host are implemented.
 
-Recorded baseline: Schema 055; current source checks are listed in docs/verification.md.
+Recorded baseline: Pinned executable d4ca16ab6286a4ef186733d6829828e74d3fc176, schema 055; current results are listed in docs/verification.md.
 
-Current work: Qualify the isolated Sophie runtime and continue remaining administration work after staging acceptance.
+Current work: Owner private Discord and authenticated website acceptance; then remaining administration and native service qualification.
 
-418 unit tests, 13 isolated configuration scenarios and 16 isolated staging scenarios pass. Historical scenario descriptions below do not establish current live acceptance.
+418 unit tests, 13 isolated configuration scenarios, 16 isolated staging scenarios, 28 public HTTPS checks, 55 live migration checks and 71 live restricted-table checks pass. The Gateway is current. These results do not establish production readiness.
 
 ## Implemented milestones and remaining scope
 

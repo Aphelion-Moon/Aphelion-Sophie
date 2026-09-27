@@ -21,3 +21,17 @@ agent-documents directory, not the published repository.
 Production recovery is deferred. Windows service identities, SCM startup/shutdown,
 host reboot qualification, and remaining production release gates are open.
 No private ticket, form, attachment, transcript, or onboarding content was inspected.
+
+## Live staging checks
+
+On 27 September 2026, pinned build `d4ca16ab6286a4ef186733d6829828e74d3fc176`
+passed 28 public HTTPS checks: protected-page redirects, login isolation, OAuth
+application/callback selection, asset hashes, anonymous API rejection, and
+unsigned interaction rejection. Discord accepted the signed endpoint verification.
+The public avatar matches the approved PNG byte-for-byte.
+
+The runtime passed all 55 migration and 71 restricted-table checks. The Gateway
+is current; the host and connector own their expected loopback listeners; the
+host error log is empty. Existing records and authored configuration are retained.
+No private content was inspected. Authenticated browser and interactive Discord
+acceptance remain separate from these public and operational checks.

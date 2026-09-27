@@ -4,7 +4,7 @@
   "reference_plan_version": "1.1",
   "source": "Sophie-Implementation-Plans-v1.1/backlog.json",
   "owner_decisions": "docs/decisions/0001-owner-policy.md",
-  "schedule": "Complete isolated staging qualification while retaining authored configuration and case history. Native Windows service qualification remains open; production recovery is deferred.",
+  "schedule": "Isolated Sophie staging is online with a current Gateway and verified signed interactions endpoint. Public login and authorization checks pass. Native Windows service qualification remains open; production recovery is deferred.",
   "release_status": "All production release gates remain open; pure and isolated database checks are not full application acceptance.",
   "tasks": [
     {
@@ -1293,9 +1293,9 @@
   ],
   "checkpoint": {
     "summary": "Deterministic administration, Whitelist onboarding, protected editors, role/permission configuration and the configurable staging host are implemented.",
-    "recorded_baseline": "Schema 055; current source checks are listed in docs/verification.md.",
-    "current_work": "Qualify the isolated Sophie runtime and continue remaining administration work after staging acceptance.",
-    "evidence_note": "418 unit tests, 13 isolated configuration scenarios and 16 isolated staging scenarios pass. Historical scenario descriptions below do not establish current live acceptance."
+    "recorded_baseline": "Pinned executable d4ca16ab6286a4ef186733d6829828e74d3fc176, schema 055; current results are listed in docs/verification.md.",
+    "current_work": "Owner private Discord and authenticated website acceptance; then remaining administration and native service qualification.",
+    "evidence_note": "418 unit tests, 13 isolated configuration scenarios, 16 isolated staging scenarios, 28 public HTTPS checks, 55 live migration checks and 71 live restricted-table checks pass. The Gateway is current. These results do not establish production readiness."
   },
   "milestones": [
     {
