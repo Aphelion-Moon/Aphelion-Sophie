@@ -5,7 +5,7 @@ import { createAiIpcChannel } from '../knowledge-worker/ipc-channel.js';
 import { aiControlHash, aiControlPipe, aiControlScope, aiControlRequest, aiControlResult } from './contract.js';
 
 /** Session is learned by inspect once. A new supervisor requires a new client and fresh lifecycle recovery. */
-export function createAiControlClient({installationId,role,key,revocationSignal}) {
+export function createAiControlClient({installationId,role,key,revocationSignal,connectPipe=connect}) {
   const scope=aiControlScope(installationId,role),path=aiControlPipe(installationId,role);
   requireCondition(Buffer.isBuffer(key) && key.length===32 && revocationSignal instanceof AbortSignal,'AI_CONTROL_CONFIGURATION_INVALID');
   const secret=Buffer.from(key),lifetime=new AbortController(),signal=AbortSignal.any([lifetime.signal,revocationSignal]),active=new Set();let session=null,closing=null;
@@ -17,7 +17,7 @@ export function createAiControlClient({installationId,role,key,revocationSignal}
       requireCondition(!signal.aborted && active.size<2 && (command==='inspect' || session!==null),'AI_CONTROL_UNAVAILABLE');
       const request=aiControlRequest({session:session??'0'.repeat(64),command,body},role);
       requireCondition(options.signal===undefined || options.signal instanceof AbortSignal,'AI_CONTROL_INVALID');
-      const socket=connect(path);socket.on('error',()=>{});
+      const socket=connectPipe(path);socket.on('error',()=>{});
       const channel=createAiIpcChannel({stream:socket,key:secret,side:'worker',profile:'control'}),combined=AbortSignal.any([signal,channel.signal,...(options.signal?[options.signal]:[])]);
       const item={channel,done:new Promise(resolve=>socket.once('close',resolve))};active.add(item);
       const cancel=()=>channel.close();combined.addEventListener('abort',cancel,{once:true});if(combined.aborted)cancel();

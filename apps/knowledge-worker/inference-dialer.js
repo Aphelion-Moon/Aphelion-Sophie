@@ -14,7 +14,7 @@ function waitForTurn(socket,signal) {
 }
 
 /** Guest initiates each physical connection. Reconnection starts a new IPC channel, never replays a turn. */
-export function createAiInferenceDialer({identity,key,worker,qualified,onFault}) {
+export function createAiInferenceDialer({identity,key,worker,qualified,onFault,connectPipe=connect}) {
   const fixed=canonicalAiWorkerIdentity(identity),path=aiBootPipe(fixed,'inference');
   requireCondition(Buffer.isBuffer(key) && key.length===32 && typeof worker?.accept==='function' &&
     typeof qualified==='function' && typeof onFault==='function','AI_IPC_CONFIGURATION_INVALID');
@@ -33,7 +33,7 @@ export function createAiInferenceDialer({identity,key,worker,qualified,onFault})
         try {
           while(!lifetime.signal.aborted){
             requireCondition(await qualification.current(lifetime.signal) && !lifetime.signal.aborted,'AI_WORKER_NOT_QUALIFIED');
-            socket=connect(path);socket.on('error',()=>{});
+            socket=connectPipe(path);socket.on('error',()=>{});
             await authenticateAiBootPipe({stream:socket,identity:fixed,key:secret,side:'worker',signal:lifetime.signal,purpose:'inference'});
             phase='waiting';firstReady();
             await waitForTurn(socket,lifetime.signal);

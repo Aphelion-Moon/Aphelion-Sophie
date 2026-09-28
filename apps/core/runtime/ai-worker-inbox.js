@@ -5,7 +5,7 @@ import { aiBootPipe, authenticateAiBootPipe } from '../../knowledge-worker/boot-
 import { createAiWorkerQualification } from '../../knowledge-worker/windows-pipe.js';
 
 /** Host-owned pipe mapped into a container. Only authenticated connections become available to the broker. */
-export function createAiWorkerInbox({identity,key,qualified,revocationSignal}) {
+export function createAiWorkerInbox({identity,key,qualified,revocationSignal,createPipeServer=createServer}) {
   const fixed=canonicalAiWorkerIdentity(identity),path=aiBootPipe(fixed,'inference');
   requireCondition(Buffer.isBuffer(key) && key.length===32 && typeof qualified==='function' && revocationSignal instanceof AbortSignal,
     'AI_IPC_CONFIGURATION_INVALID');
@@ -17,7 +17,7 @@ export function createAiWorkerInbox({identity,key,qualified,revocationSignal}) {
     requireCondition(!signal.aborted && phase==='listening' && !socket.destroyed && !available,'AI_WORKER_UNAVAILABLE');
     available=socket;waiting?.resolve();
   }
-  const server=createServer(socket=>{
+  const server=createPipeServer(socket=>{
     socket.on('error',()=>{});
     if(phase!=='listening' || signal.aborted || sockets.size>=2){socket.destroy();return;}
     sockets.add(socket);

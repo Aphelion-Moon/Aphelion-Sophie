@@ -1,6 +1,6 @@
 {
   "schema_version": 2,
-  "revision": "2026-09-28-native-capacity",
+  "revision": "2026-09-28-pipe-companion",
   "reference_plan_version": "1.1",
   "source": "Sophie-Implementation-Plans-v1.1/backlog.json",
   "owner_decisions": "docs/decisions/0001-owner-policy.md",
@@ -2446,6 +2446,17 @@
       "implemented": "Recorded owner C#/.NET approval, implemented protected Windows pipe and explicit-rights client primitives with owned overlapped cancellation; qualified the existing accounting capacity boundary",
       "evidence": "10 native checks pass with the actual approved installed compiler/runtime. One isolated PostgreSQL run reaches 200,000 attempts: exactly one of two final-slot reservations succeeds, holds preserve balances, and 500-row retention keeps replay receipts. Cluster stopped. No provider calls or live service/permission changes.",
       "remaining": "Complete parent/stdio verification, registered role/boot companion protocol, bounded multiplex/credit flow and JavaScript Duplex integration. Qualify final-byte drain, cross-service access denials and the full encrypted transport. Then complete fixed service entrypoints and trusted installation checks. Actual service identities/ACLs, mounts/credentials, Hyper-V mapping, worker-image runtime compatibility, physical termination, unresolved-create disposition and Discord/installed-core acceptance remain open. Provider framing, approved prices, actual transport crash/rollover and installed-service capacity/latency remain unqualified. The single synthetic host capacity run is not an end-to-end timing or production load guarantee."
+    },
+    {
+      "title": "Synthetic Windows companion and encrypted transport",
+      "tasks": [
+        "P22",
+        "P23",
+        "P24"
+      ],
+      "implemented": "Original MIT C# companion verifies pinned parent/runtime and protected overlapped stdio, enforces role/boot endpoint registration, bounds multiplexed credit streams, and confirms native closure. A bounded JavaScript Duplex/server adapter is injected at control, inference and egress seams. Synthetic profiles derive only unique test namespaces; installed profiles remain unavailable.",
+      "evidence": "Pinned csc build and three loaded Framework hashes verified. Ten native primitive checks, restricted-token generic-write/instance denial plus explicit-data acceptance, interrupted-frame poisoning, 1 MiB duplex/final-byte flow, stalled-reader cancellation, parent/helper exit, malformed/oversized commands and namespace cleanup passed. Existing encrypted control/inference and worker TLS carried two metered synthetic provider turns; wrong control key rejected. No real provider, database, Discord, container or installed-service changes.",
+      "remaining": "Complete installed role profiles and protected-installation verification, fixed service entrypoints, and the helper/package manifest. The current companion explicitly accepts synthetic profiles only. Actual service identities/ACLs, HCS/Hyper-V proxy mapping, worker-image Framework compatibility, mounts/credentials, operational termination and unresolved-create disposition still require their separate operational trial. Installed-core/database and actual Discord acceptance remain open."
     }
   ],
   "next_steps": [
@@ -2458,7 +2469,7 @@
         "P24",
         "P25"
       ],
-      "work": "Complete the approved fixed pipe companion and JavaScript bridge using the verified native primitives. C#/.NET scope is approved; preserve provider clearance, preference-journal isolation, source/answer approval and operational activation gates.",
+      "work": "Implement trusted installed profiles, service entrypoints and source-bound helper packaging, preserving synthetic/operational separation. C#/.NET and Node scope approvals are already recorded. Provider data clearance, preference journal isolation and source/answer acceptance remain open.",
       "exit_evidence": "Scoped local source/transaction/transport evidence first; actual OS/egress and Discord tests need their explicit operational scope. Paid comparisons remain separately authorized."
     },
     {
@@ -2596,14 +2607,14 @@
       {
         "id": "DS-04",
         "title": "Windows worker and transport",
-        "implementation": "Authenticated Windows lifecycle, role readiness and signed worker leases composed locally; Mandatory encrypted v2 inference/control frames protect prompt/reply content and purpose-key handoff while preserving fresh peer challenges, bounded accounting and lifecycle control; exact Node 24.19.0 runtime bundle approved for private packaging and synthetic qualification; owner-approved C#/.NET boundary and native protected-pipe/overlapped-I/O primitives implemented, companion integration unfinished",
-        "qualification": "66 focused IPC, control, native, worker-package and egress checks pass. Actual host-local Windows pipes and synthetic TLS cover a metered turn; captured traffic excludes plaintext content and grants. Tampering, reflection, cross-profile traffic, replay and valid legacy HMAC frames are rejected. No actual Docker/Hyper-V or live provider qualification.; 10 focused native checks pass after compilation with pinned csc and verification of three loaded runtime hashes; same-identity synthetic pipes only",
+        "implementation": "Original MIT C# companion verifies pinned parent/runtime and protected overlapped stdio, enforces role/boot endpoint registration, bounds multiplexed credit streams, and confirms native closure. A bounded JavaScript Duplex/server adapter is injected at control, inference and egress seams. Synthetic profiles derive only unique test namespaces; installed profiles remain unavailable.",
+        "qualification": "Pinned csc build and three loaded Framework hashes verified. Ten native primitive checks, restricted-token generic-write/instance denial plus explicit-data acceptance, interrupted-frame poisoning, 1 MiB duplex/final-byte flow, stalled-reader cancellation, parent/helper exit, malformed/oversized commands and namespace cleanup passed. Existing encrypted control/inference and worker TLS carried two metered synthetic provider turns; wrong control key rejected. No real provider, database, Discord, container or installed-service changes.",
         "sai": [
           "SAI-04",
           "SAI-05",
           "SAI-14"
         ],
-        "remaining": "Complete parent/stdio verification, registered role/boot companion protocol, bounded multiplex/credit flow and JavaScript Duplex integration. Qualify final-byte drain, cross-service access denials and the full encrypted transport. Then complete fixed service entrypoints and trusted installation checks. Actual service identities/ACLs, mounts/credentials, Hyper-V mapping, worker-image runtime compatibility, physical termination, unresolved-create disposition and Discord/installed-core acceptance remain open."
+        "remaining": "Complete installed role profiles and protected-installation verification, fixed service entrypoints, and the helper/package manifest. The current companion explicitly accepts synthetic profiles only. Actual service identities/ACLs, HCS/Hyper-V proxy mapping, worker-image Framework compatibility, mounts/credentials, operational termination and unresolved-create disposition still require their separate operational trial. Installed-core/database and actual Discord acceptance remain open."
       },
       {
         "id": "DS-05",
@@ -2661,7 +2672,7 @@
           "SAI-07",
           "SAI-14"
         ],
-        "remaining": "Complete parent/stdio verification, registered role/boot companion protocol, bounded multiplex/credit flow and JavaScript Duplex integration. Qualify final-byte drain, cross-service access denials and the full encrypted transport. Then complete fixed service entrypoints and trusted installation checks. Actual service identities/ACLs, mounts/credentials, Hyper-V mapping, worker-image runtime compatibility, physical termination, unresolved-create disposition and Discord/installed-core acceptance remain open. Apply keeps processing disabled."
+        "remaining": "Complete installed role profiles and protected-installation verification, fixed service entrypoints, and the helper/package manifest. The current companion explicitly accepts synthetic profiles only. Actual service identities/ACLs, HCS/Hyper-V proxy mapping, worker-image Framework compatibility, mounts/credentials, operational termination and unresolved-create disposition still require their separate operational trial. Installed-core/database and actual Discord acceptance remain open. Apply keeps processing disabled."
       },
       {
         "id": "DS-10",

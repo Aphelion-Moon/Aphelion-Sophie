@@ -46,11 +46,11 @@ export function createAiSupervisorControlApi({slot,beforeStart}) {
 }
 
 /** Service lifetime owns both RPC admission and the registered slot. Startup recovery never launches a worker. */
-export function createAiSupervisorControlService({installationId,keys,qualified,slot,beforeStart,revocationSignal,onFault}) {
+export function createAiSupervisorControlService({installationId,keys,qualified,slot,beforeStart,revocationSignal,onFault,createPipeServer}) {
   requireCondition(revocationSignal instanceof AbortSignal && typeof onFault==='function','AI_CONTROL_CONFIGURATION_INVALID');
   const api=createAiSupervisorControlApi({slot,beforeStart});let closing=null,failed=false;
   const fault=code=>{failed=true;try{onFault(code);}catch{}};
-  const server=createAiControlServer({installationId,keys,qualified,handle:api.handle,revocationSignal,
+  const server=createAiControlServer({installationId,keys,qualified,handle:api.handle,revocationSignal,createPipeServer,
     onFault:code=>{fault(code);void stop().catch(()=>{});}});
   function stop(){
     if(closing)return closing;revocationSignal.removeEventListener('abort',revoke);

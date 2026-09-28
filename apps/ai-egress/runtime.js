@@ -19,7 +19,7 @@ function boundedBytes(limit) {
 
 /** One boot, one fixed destination, one opaque TLS stream. This identity has no provider key or Docker authority. */
 export function createAiEgressBridge({ identity, key, qualified, revocationSignal,
-  createResolver = () => new Resolver({timeout:2000,tries:1}), connectTcp = connect }) {
+  createResolver = () => new Resolver({timeout:2000,tries:1}), connectTcp = connect, createPipeServer = createServer }) {
   const fixed = canonicalAiWorkerIdentity(identity), path = aiEgressPipe(fixed);
   requireCondition(Buffer.isBuffer(key) && key.length === 32 && typeof qualified === 'function' &&
     revocationSignal instanceof AbortSignal && typeof createResolver === 'function' && typeof connectTcp === 'function',
@@ -28,7 +28,7 @@ export function createAiEgressBridge({ identity, key, qualified, revocationSigna
   const qualification = createAiWorkerQualification({identity:fixed,qualified});
   const signal = AbortSignal.any([lifetime.signal,revocationSignal]);
   const sessions = new Set(); let phase = 'idle', starting, closing;
-  const server = createServer(peer => {
+  const server = createPipeServer(peer => {
     peer.on('error',()=>{});
     if (phase !== 'listening' || signal.aborted || sessions.size !== 0) { peer.destroy(); return; }
     const session = { peer, upstream:null, resolver:null, task:null };

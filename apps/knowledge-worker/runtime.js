@@ -8,7 +8,7 @@ import { createAiInferenceDialer } from './inference-dialer.js';
 
 /** Launched under the independently provisioned inference identity. No core token, database or service manager access. */
 export function createAiWorkerRuntime({ identity, key, apiKey, acceptedFingerprints, qualified, revocationSignal, clock = Date.now,
-  transport = createDeepSeekTransport(), connectionMode = 'listen', onFault = ()=>{} }) {
+  transport = createDeepSeekTransport(), connectionMode = 'listen', onFault = ()=>{}, connectPipe }) {
   const fixed = canonicalAiWorkerIdentity(identity);
   requireCondition(typeof qualified === 'function' && revocationSignal instanceof AbortSignal && typeof onFault==='function' &&
     ['listen','dial-host'].includes(connectionMode), 'TRUSTED_ADAPTERS_REQUIRED');
@@ -28,7 +28,7 @@ export function createAiWorkerRuntime({ identity, key, apiKey, acceptedFingerpri
     },
   }});
   const listener = connectionMode==='dial-host'
-    ? createAiInferenceDialer({identity:fixed,key,worker,qualified:ready,onFault:code=>{
+    ? createAiInferenceDialer({identity:fixed,key,worker,qualified:ready,connectPipe,onFault:code=>{
       try{onFault(code);}finally{void stop().catch(()=>{});}
     }})
     : createAiPipeListener({identity:fixed,worker,qualified:ready});

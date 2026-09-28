@@ -6,7 +6,7 @@ import { aiControlHash, aiControlPipe, aiControlScope, aiControlRequest, aiContr
 import { createAiControlQualification } from './qualification.js';
 
 /** Two fixed role endpoints with encrypted frames; actual named-pipe identity and ACLs require separate qualification. */
-export function createAiControlServer({installationId,keys,qualified,handle,revocationSignal,onFault}) {
+export function createAiControlServer({installationId,keys,qualified,handle,revocationSignal,onFault,createPipeServer=createServer}) {
   requireKeys(keys,['core','egress'],'AI_CONTROL_CONFIGURATION_INVALID');
   requireCondition(['core','egress'].every(role=>Buffer.isBuffer(keys[role]) && keys[role].length===32) && !keys.core.equals(keys.egress) &&
     typeof handle==='function' && typeof onFault==='function' && revocationSignal instanceof AbortSignal,'AI_CONTROL_CONFIGURATION_INVALID');
@@ -15,7 +15,7 @@ export function createAiControlServer({installationId,keys,qualified,handle,revo
   let phase='idle',starting=null,closing=null;const peers=new Set(),tasks=new Set(),handlers=new Set();
   const servers=['core','egress'].map(role=>{
     const scope=Object.freeze({...aiControlScope(installationId,role),session});
-    const server=createServer(socket=>{
+    const server=createPipeServer(socket=>{
       socket.on('error',()=>{});
       if(phase!=='listening' || signal.aborted || [...peers].filter(peer=>peer.role===role).length>=2){socket.destroy();return;}
       const channel=createAiIpcChannel({stream:socket,key:secret[role],side:'broker',profile:'control'}),peer={role,socket,channel};peers.add(peer);
