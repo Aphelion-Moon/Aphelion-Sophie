@@ -1,0 +1,13 @@
+{
+  "name": "Bounded HCS owner and access diagnostic",
+  "approvedOn": "2026-09-28",
+  "authorization": "Owner replied Approved, proceed.",
+  "proposal": "GitHub/.agent_docs/aphelion-sophie/windows-hcs-trial/diagnostic-amendment.md",
+  "proposalSha256": "304f06e4af5d192ba475daab043bec99f83d0cd8bf08d33409424e7212105bda",
+  "maximumContainers": 2,
+  "scope": "Actual existing core/egress virtual accounts create disposable owner-full/VM-group-data pipes; independent trusted observer and restricted-token controls. Exact guest owner/DACL, data and forbidden-access checks. One identical-DACL reapply only if WRITE_DAC open is accepted, then stop. Second container only after all first-container checks pass.",
+  "applicationOrSharedPermissionChangeApproved": false,
+  "candidateGroupApprovedForProduction": false,
+  "productionReady": false,
+  "fieldTestReady": false
+}

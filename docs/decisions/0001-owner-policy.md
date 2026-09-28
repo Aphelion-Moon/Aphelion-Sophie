@@ -549,3 +549,24 @@ only the three owned stopped trial wrappers. Keep their identities and service,
 SCM and shared-path permissions unchanged. Qualify clean/nonzero child exit and
 operator stop, then resume the existing synthetic Windows trial. All prior
 exclusions, operational stop conditions and release gates remain in force.
+
+### Actual-owner HCS diagnostic amendment — 28 September 2026
+
+The owner replied “Approved, proceed.” to the bounded HCS diagnostic at
+`GitHub/.agent_docs/aphelion-sophie/windows-hcs-trial/diagnostic-amendment.md`
+(SHA-256 `304f06e4af5d192ba475daab043bec99f83d0cd8bf08d33409424e7212105bda`).
+`legal/windows-hcs-diagnostic.json` records its exact scope: existing core/egress
+virtual accounts create disposable test pipes with actual role ownership and
+owner-full/VM-group-data DACLs; a separate supervisor observes the associated
+proxy process and runs restricted-token controls. At most two pinned synthetic
+containers were permitted, with the second conditional on a complete first pass.
+Only one identical-DACL reapply on a disposable pipe was permitted after an
+accepted WRITE_DAC open, followed by unchanged host owner/DACL verification and
+a stop. No production descriptor, profile, permissions or membership change was
+authorized; the observed VM group is not an approved production identity.
+
+The first run reached that stop condition: WRITE_DAC open accepted, identical
+DACL reapply denied with Win32 5, host owner/DACL unchanged. Later guest checks
+and the second container did not run. This approval does not waive the failed
+forbidden-open gate or authorize further operational variations. HCS remains
+unqualified; resolve the transport contract through a concrete recorded decision.
