@@ -1,6 +1,6 @@
 {
   "schema_version": 2,
-  "revision": "2026-09-28-hcs-owner-diagnostic-stop",
+  "revision": "2026-09-28-test-server-ai-preparation",
   "reference_plan_version": "1.1",
   "source": "Sophie-Implementation-Plans-v1.1/backlog.json",
   "owner_decisions": "docs/decisions/0001-owner-policy.md",
@@ -1339,7 +1339,7 @@
   "checkpoint": {
     "summary": "Deterministic administration, Whitelist onboarding, protected editors, role/permission configuration and the configurable staging host are implemented.",
     "recorded_baseline": "AI handoff 0fa7a5ed538ff791e3def2c1f6ac7683531e15a1 plus preserved uncommitted Flash candidate; synthetic schema058 candidate. No live schema change.",
-    "current_work": "Prepared application and installed profiles remain implemented; prior service-wrapper and host custody checks pass. Executed the approved external HCS diagnostic with actual core/egress virtual-account pipe creators and a protected role-owner-full/VM-group-data descriptor. Application source, installed profiles and permissions are unchanged. Source and host/guest executable hashes recorded before probe execution. HCS isolation remains unqualified because the existing guest forbidden-open gate still fails, despite the separately measured descriptor-write denial. Resolve the Windows/HCS transport contract before proposing further operational diagnostics or application changes; do not weaken assertions, broaden grants, substitute authentication or create an owner receipt. The approved stop condition has been reached and the conditional second-container gate was not met. Installed composition, guest mounts/credentials, worker physical termination/uncertain-create, provider/account, publication/actual-answer, preference-journal and Discord gates remain open.",
+    "current_work": "Owner selected the Test Discord Server with AI included. Prepared an original external read-only NtQueryObject handle-rights probe and a bounded one-container observation package; no application or deployment change. Review GitHub/.agent_docs/aphelion-sophie/windows-hcs-trial/access-review/proposal.md for one additional observational container and permission to collect the remaining mask observations while recording all failed open checks. The prior amendment stop condition is not waived. Resolve the transport contract from evidence; no production proxy identity or qualification receipt yet. Provider/account evidence, protected mounts, termination/recovery, installed composition, approved publication/actual answers, preference/restricted-context gates and the exact Test Discord Server deployment remain open.",
     "evidence_note": "Current source-bound offline results are in docs/verification.md and the external deepseek-verification.json index. Earlier administration, local model and Flash trial results remain historical; none grants present deployment approval."
   },
   "milestones": [
@@ -2534,11 +2534,22 @@
       "implemented": "Executed the approved external HCS diagnostic with actual core/egress virtual-account pipe creators and a protected role-owner-full/VM-group-data descriptor. Application source, installed profiles and permissions are unchanged. Source and host/guest executable hashes recorded before probe execution.",
       "evidence": "Both host role owners/DACLs, Node/native service identities and first-instance guards pass. Separate supervisor restricted-token outsider checks deny data, all forbidden masks and extra server creation. Guest core owner/DACL projection and eight-byte echo pass. A subsequent WRITE_DAC open returns a valid handle on a fresh connection; the one permitted identical-DACL reapply returns Access Denied (5). Host owner/DACL bytes remain unchanged. The trial stops; later guest masks, guest egress/extra-instance checks and the conditional second container are not run. Container/proxy removed; all services exit zero and remain Manual/stopped; XML and permission snapshots restored/unchanged.",
       "remaining": "HCS isolation remains unqualified because the existing guest forbidden-open gate still fails, despite the separately measured descriptor-write denial. Resolve the Windows/HCS transport contract before proposing further operational diagnostics or application changes; do not weaken assertions, broaden grants, substitute authentication or create an owner receipt. The approved stop condition has been reached and the conditional second-container gate was not met. Installed composition, guest mounts/credentials, worker physical termination/uncertain-create, provider/account, publication/actual-answer, preference-journal and Discord gates remain open."
+    },
+    {
+      "title": "Test-server AI target and handle-rights probe preparation",
+      "tasks": [
+        "P22",
+        "P23",
+        "P24"
+      ],
+      "implemented": "Owner selected the Test Discord Server with AI included. Prepared an original external read-only NtQueryObject handle-rights probe and a bounded one-container observation package; no application or deployment change.",
+      "evidence": "Pinned host compilation with warnings as errors passes. Local fresh-pipe controls report data access 0x00120183 and owner-authorized WRITE_DAC access 0x00140080. Initial exact-mask assumption failure is retained; corrected control permits only synchronization/read-attributes additions and still distinguishes management rights. New guest/container run is unexecuted; prior HCS forbidden-open failure remains unchanged. Current public provider terms do not establish actual account clearance.",
+      "remaining": "Review GitHub/.agent_docs/aphelion-sophie/windows-hcs-trial/access-review/proposal.md for one additional observational container and permission to collect the remaining mask observations while recording all failed open checks. The prior amendment stop condition is not waived. Resolve the transport contract from evidence; no production proxy identity or qualification receipt yet. Provider/account evidence, protected mounts, termination/recovery, installed composition, approved publication/actual answers, preference/restricted-context gates and the exact Test Discord Server deployment remain open."
     }
   ],
   "next_steps": [
     {
-      "title": "Resolve the unqualified HCS access contract",
+      "title": "Observe guest granted rights and resolve the HCS contract",
       "tasks": [
         "P21",
         "P22",
@@ -2546,8 +2557,8 @@
         "P24",
         "P25"
       ],
-      "work": "HCS isolation remains unqualified because the existing guest forbidden-open gate still fails, despite the separately measured descriptor-write denial. Resolve the Windows/HCS transport contract before proposing further operational diagnostics or application changes; do not weaken assertions, broaden grants, substitute authentication or create an owner receipt. The approved stop condition has been reached and the conditional second-container gate was not met. Installed composition, guest mounts/credentials, worker physical termination/uncertain-create, provider/account, publication/actual-answer, preference-journal and Discord gates remain open.",
-      "exit_evidence": "Recorded transport decision supported by actual OS authority evidence; preserve the failed forbidden-open gate. A future operational variation needs its own concrete scope. Then remaining installed containment/entrypoint acceptance."
+      "work": "Review GitHub/.agent_docs/aphelion-sophie/windows-hcs-trial/access-review/proposal.md for one additional observational container and permission to collect the remaining mask observations while recording all failed open checks. The prior amendment stop condition is not waived. Resolve the transport contract from evidence; no production proxy identity or qualification receipt yet. Provider/account evidence, protected mounts, termination/recovery, installed composition, approved publication/actual answers, preference/restricted-context gates and the exact Test Discord Server deployment remain open.",
+      "exit_evidence": "New scope approval, source-bound requested/granted observations and recorded transport decision. Preserve earlier failures; then remaining installed acceptance and Test Discord Server preparation."
     },
     {
       "title": "Privately verify deployed configuration and apply workflow",
@@ -2691,7 +2702,7 @@
           "SAI-05",
           "SAI-14"
         ],
-        "remaining": "HCS isolation remains unqualified because the existing guest forbidden-open gate still fails, despite the separately measured descriptor-write denial. Resolve the Windows/HCS transport contract before proposing further operational diagnostics or application changes; do not weaken assertions, broaden grants, substitute authentication or create an owner receipt. The approved stop condition has been reached and the conditional second-container gate was not met. Installed composition, guest mounts/credentials, worker physical termination/uncertain-create, provider/account, publication/actual-answer, preference-journal and Discord gates remain open."
+        "remaining": "Review GitHub/.agent_docs/aphelion-sophie/windows-hcs-trial/access-review/proposal.md for one additional observational container and permission to collect the remaining mask observations while recording all failed open checks. The prior amendment stop condition is not waived. Resolve the transport contract from evidence; no production proxy identity or qualification receipt yet. Provider/account evidence, protected mounts, termination/recovery, installed composition, approved publication/actual answers, preference/restricted-context gates and the exact Test Discord Server deployment remain open."
       },
       {
         "id": "DS-05",
@@ -2749,7 +2760,7 @@
           "SAI-07",
           "SAI-14"
         ],
-        "remaining": "HCS isolation remains unqualified because the existing guest forbidden-open gate still fails, despite the separately measured descriptor-write denial. Resolve the Windows/HCS transport contract before proposing further operational diagnostics or application changes; do not weaken assertions, broaden grants, substitute authentication or create an owner receipt. The approved stop condition has been reached and the conditional second-container gate was not met. Installed composition, guest mounts/credentials, worker physical termination/uncertain-create, provider/account, publication/actual-answer, preference-journal and Discord gates remain open."
+        "remaining": "Review GitHub/.agent_docs/aphelion-sophie/windows-hcs-trial/access-review/proposal.md for one additional observational container and permission to collect the remaining mask observations while recording all failed open checks. The prior amendment stop condition is not waived. Resolve the transport contract from evidence; no production proxy identity or qualification receipt yet. Provider/account evidence, protected mounts, termination/recovery, installed composition, approved publication/actual answers, preference/restricted-context gates and the exact Test Discord Server deployment remain open."
       },
       {
         "id": "DS-10",

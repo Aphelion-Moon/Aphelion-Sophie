@@ -570,3 +570,13 @@ DACL reapply denied with Win32 5, host owner/DACL unchanged. Later guest checks
 and the second container did not run. This approval does not waive the failed
 forbidden-open gate or authorize further operational variations. HCS remains
 unqualified; resolve the transport contract through a concrete recorded decision.
+
+### Test Discord Server target with AI — 28 September 2026
+
+The owner requested continued work toward testing Sophie on the Test Discord
+Server and explicitly selected “Include AI; resolve its gates first.” The next
+trial target is that test server, not the main server or an administration-only
+substitute. Continue scoped implementation, research and local synthetic checks.
+Preserve the existing containment, provider/account, publication, consent and
+selected-capability gates. This does not turn the failed HCS diagnostic into a
+pass, approve a proposed new operational variation, or activate real AI processing.

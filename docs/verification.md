@@ -1,5 +1,15 @@
 # Verification and release limits
 
+## Test Discord Server AI preparation — 28 September 2026
+
+Owner selected the Test Discord Server with AI included. Prepared an original external read-only NtQueryObject handle-rights probe and a bounded one-container observation package; no application or deployment change.
+
+Pinned host compilation with warnings as errors passes. Local fresh-pipe controls report data access 0x00120183 and owner-authorized WRITE_DAC access 0x00140080. Initial exact-mask assumption failure is retained; corrected control permits only synchronization/read-attributes additions and still distinguishes management rights. New guest/container run is unexecuted; prior HCS forbidden-open failure remains unchanged. Current public provider terms do not establish actual account clearance.
+
+The application requests explicit data rights and verifies a role/proxy DACL; literal forbidden-open rejection is also a recorded operational gate. The new probe observes granted rights without changing that gate or attempting guest management operations. A guest handle mask would not establish host authority or the effective opener. Public HCS/VSMB documentation supports investigating the separate layers, not asserting their measured behavior. See `GitHub/.agent_docs/aphelion-sophie/windows-hcs-trial/access-review/review.md` and `hcs-handle-preparation-verification.json`. No application/database suite, new service/container run, paid provider call or Discord deployment occurred.
+
+Review GitHub/.agent_docs/aphelion-sophie/windows-hcs-trial/access-review/proposal.md for one additional observational container and permission to collect the remaining mask observations while recording all failed open checks. The prior amendment stop condition is not waived. Resolve the transport contract from evidence; no production proxy identity or qualification receipt yet. Provider/account evidence, protected mounts, termination/recovery, installed composition, approved publication/actual answers, preference/restricted-context gates and the exact Test Discord Server deployment remain open. Test-server AI readiness and production readiness remain false.
+
 ## Actual-owner HCS diagnostic stops at forbidden-open gate — 28 September 2026
 
 Executed the approved external HCS diagnostic with actual core/egress virtual-account pipe creators and a protected role-owner-full/VM-group-data descriptor. Application source, installed profiles and permissions are unchanged. Source and host/guest executable hashes recorded before probe execution.
