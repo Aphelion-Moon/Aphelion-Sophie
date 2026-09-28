@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createServer, connect } from 'node:net';
 import { once } from 'node:events';
-import { randomBytes } from 'node:crypto';
+import { createHmac, randomBytes } from 'node:crypto';
 import { createAiIpcClient } from '../apps/core/runtime/ai-ipc.js';
 import { createMeteredAiWorker } from '../apps/core/runtime/ai-provider.js';
 import { createAiIpcWorker } from '../apps/knowledge-worker/ipc-server.js';
@@ -22,21 +22,25 @@ const response = (content = JSON.stringify(output)) => Response.json({model:'dee
   usage:{prompt_tokens:100,completion_tokens:20,total_tokens:120,prompt_cache_hit_tokens:40,prompt_cache_miss_tokens:60},
   choices:[{finish_reason:'stop',message:{role:'assistant',content}}]});
 
-async function fixture({fetchImpl,generatePrepared,qualified = async()=>true,workerQualified=async()=>true,reserve = async()=>({}),dispatch = async()=>true,clientKey = key,clientIdentity} = {}) {
-  const events = [], inputs = [];
+async function fixture({fetchImpl,generatePrepared,qualified = async()=>true,workerQualified=async()=>true,reserve = async()=>({}),dispatch = async()=>true,clientKey = key,clientIdentity,captureWire=false} = {}) {
+  const events = [], inputs = [], wire = [];
+  const capture = socket => {
+    if(captureWire){const write=socket.write.bind(socket);socket.write=(bytes,...rest)=>{wire.push(Buffer.from(bytes));return write(bytes,...rest);};}
+    return socket;
+  };
   const raw = createDeepSeekClient({apiKey:'synthetic-provider-key-only-in-worker',acceptedFingerprints:['synthetic-build'],
     fetchImpl:async (...args)=>{events.push('network'); return fetchImpl ? fetchImpl(...args) : response();}});
   const actualIdentity = {...identity,profileHash:raw.profileHash};
   const worker = createAiIpcWorker({identity:actualIdentity,key,qualified:workerQualified,adapter:{provider:'deepseek',profileHash:raw.profileHash,prepare(value){inputs.push(value); return raw.prepare(value);},generatePrepared:generatePrepared ?? raw.generatePrepared}});
-  const server = createServer(socket=>{void worker.accept(socket);}); server.listen(0,'127.0.0.1'); await once(server,'listening');
-  const client = createAiIpcClient({identity:clientIdentity ? {...actualIdentity,...clientIdentity} : actualIdentity,key:clientKey,qualified,connect:()=>connect({host:'127.0.0.1',port:server.address().port})});
+  const server = createServer(socket=>{void worker.accept(capture(socket));}); server.listen(0,'127.0.0.1'); await once(server,'listening');
+  const client = createAiIpcClient({identity:clientIdentity ? {...actualIdentity,...clientIdentity} : actualIdentity,key:clientKey,qualified,connect:()=>capture(connect({host:'127.0.0.1',port:server.address().port}))});
   const metered = createMeteredAiWorker({worker:client,accounting:{
     async reserve(value){events.push('reserve'); return reserve(value);},
     async dispatch(){events.push('dispatch'); return dispatch();},
     async settle(_token,usage){events.push('settle'); assert.equal(usage.total_tokens,120); return true;},
     async finish(_token,possible){events.push(`finish:${possible}`);},
   }});
-  return {client,worker,events,inputs,
+  return {client,worker,events,inputs,wire,
     generate(payload=prompt(),context={}) {return metered.generate(payload,{signal:new AbortController().signal,deadline:payload.local.deadline-100,
       beforeDispatch:async()=>true,...context});},
     async close(){client.stop(); await worker.stop(); await new Promise(resolve=>server.close(resolve));},
@@ -207,4 +211,83 @@ test('DS04-I13 a worker cannot release a possible charge after final dispatch au
   }});
   try {await assert.rejects(f.generate(),/AI_IPC_INVALID/);assert.deepEqual(f.events,['reserve','dispatch','finish:true']);}
   finally {await f.close();}
+});
+
+test('DS04-I14 the wire contains neither prompt, reply, preparation metadata nor handshake JSON',async()=>{
+  const f=await fixture({captureWire:true});
+  try {
+    assert.deepEqual(await f.generate(),output);
+    assert.ok(f.wire.length>=10);
+    const wire=Buffer.concat(f.wire);
+    for(const text of ['Synthetic hello','Synthetic reply','Synthetic policy','"version"','"session"','"prepare"','"usage"',identity.workerId])
+      assert.equal(wire.includes(Buffer.from(text)),false,text);
+    assert.deepEqual(f.events,['reserve','dispatch','network','settle','finish:true']);
+  } finally {await f.close();}
+});
+
+test('DS04-I15 modified salt, tag, ciphertext and length, reflection and cross-profile frames fail before delivery',async()=>{
+  for(const mode of ['salt','tag','ciphertext','length','reflection','profile']) {
+    const accepted=deferred();let peer;
+    const server=createServer(socket=>{
+      peer=createAiIpcChannel({stream:socket,key,side:mode==='reflection'?'broker':'worker',profile:mode==='profile'?'control':'inference'});
+      const pending=peer.receive('challenge');pending.catch(()=>{});accepted.resolve(pending);
+    });
+    server.listen(0,'127.0.0.1');await once(server,'listening');
+    const socket=connect({host:'127.0.0.1',port:server.address().port}),write=socket.write.bind(socket);
+    socket.write=(bytes,...rest)=>{
+      const changed=Buffer.from(bytes);
+      if(mode==='salt')changed[4]^=1;
+      if(mode==='tag')changed[36]^=1;
+      if(mode==='ciphertext')changed[changed.length-1]^=1;
+      if(mode==='length')changed.writeUInt32BE(changed.readUInt32BE(0)-1,0);
+      return write(changed,...rest);
+    };
+    const channel=createAiIpcChannel({stream:socket,key,side:'broker'});
+    try {
+      // Attach the rejection handler before sending; the peer may reject synchronously on receipt.
+      const rejected=assert.rejects(accepted.promise,/AI_IPC_CLOSED/);
+      await channel.send('challenge',{synthetic:'not delivered'});await rejected;
+      assert.equal(peer.signal.aborted,true);
+    } finally {channel.close();peer?.close();await new Promise(resolve=>server.close(resolve));}
+  }
+});
+
+test('DS04-I16 valid legacy HMAC frames cannot downgrade an encrypted channel',async()=>{
+  const accepted=deferred();let peer;
+  const server=createServer(socket=>{peer=createAiIpcChannel({stream:socket,key,side:'worker'});accepted.resolve(peer);});
+  server.listen(0,'127.0.0.1');await once(server,'listening');
+  const socket=connect({host:'127.0.0.1',port:server.address().port});socket.on('error',()=>{});
+  try {
+    await accepted.promise;const rejected=assert.rejects(peer.receive('challenge'),/AI_IPC_CLOSED/);
+    const bytes=Buffer.from(JSON.stringify({version:1,session:'a'.repeat(64),sequence:0,kind:'challenge',body:{}}));
+    const tag=createHmac('sha256',key).update('sophie-ai-ipc-v1:broker:').update(bytes).digest();
+    const frame=Buffer.alloc(bytes.length+36);frame.writeUInt32BE(bytes.length+32);tag.copy(frame,4);bytes.copy(frame,36);
+    socket.write(frame);await rejected;
+  } finally {socket.destroy();peer?.close();await new Promise(resolve=>server.close(resolve));}
+});
+
+test('DS04-I17 control key grants are encrypted and each channel gets a fresh directional key salt',async()=>{
+  const serverPeers=[],salts=[];let captured=[];
+  const server=createServer(socket=>{
+    const write=socket.write.bind(socket);socket.write=(bytes,...rest)=>{captured.push(Buffer.from(bytes));return write(bytes,...rest);};
+    const peer=createAiIpcChannel({stream:socket,key,side:'worker',profile:'control'});serverPeers.push(peer);
+    void (async()=>{await peer.receive('challenge');const nonce=randomBytes(32).toString('hex');const sent=peer.send('proof',{nonce});peer.bind(nonce);await sent;
+      await peer.receive('request');await peer.send('result',{key:'synthetic-purpose-key-'+'b'.repeat(64)});})().catch(()=>{});
+  });
+  server.listen(0,'127.0.0.1');await once(server,'listening');
+  try {
+    for(let i=0;i<2;i++) {
+      captured=[];const socket=connect({host:'127.0.0.1',port:server.address().port});
+      const channel=createAiIpcChannel({stream:socket,key,side:'broker',profile:'control'});
+      try {
+        await channel.send('challenge',{});const proof=await channel.receive('proof');channel.bind(proof.nonce);
+        await channel.send('request',{});assert.equal((await channel.receive('result')).key,'synthetic-purpose-key-'+'b'.repeat(64));
+        const wire=Buffer.concat(captured);assert.equal(wire.includes(Buffer.from('synthetic-purpose-key-')),false);
+        assert.equal(wire.includes(Buffer.from('b'.repeat(64))),false);
+        assert.equal(captured.length,2);assert.deepEqual(captured[0].subarray(4,36),captured[1].subarray(4,36));
+        salts.push(captured[0].subarray(4,36));
+      } finally {channel.close();}
+    }
+    assert.notDeepEqual(salts[0],salts[1]);
+  } finally {serverPeers.forEach(peer=>peer.close());await new Promise(resolve=>server.close(resolve));}
 });

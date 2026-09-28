@@ -1,24 +1,29 @@
-import { createHash, createHmac, randomBytes, timingSafeEqual } from 'node:crypto';
+import { createHash, createCipheriv, createDecipheriv, hkdfSync, randomBytes } from 'node:crypto';
 import { ContractError, requireCondition, requireKeys } from '../../contracts/validation.js';
 
 const profiles=Object.freeze({
-  inference:{frame:1048576,total:2097152,messages:24,lifetime:15000,domain:'sophie-ai-ipc-v1'},
-  control:{frame:8192,total:32768,messages:4,lifetime:5000,domain:'sophie-ai-control-v1'},
+  inference:{frame:1048576,total:2097152,messages:24,lifetime:15000,domain:'sophie-ai-ipc-v2'},
+  control:{frame:8192,total:32768,messages:4,lifetime:5000,domain:'sophie-ai-control-v2'},
 });
 
-/** Authenticates bounded frames on an injected private stream. Transport confidentiality/ACLs are separate gates. */
+/** Encrypts bounded frames. Key custody, endpoint identity and OS access remain separate qualification gates. */
 export function createAiIpcChannel({ stream, key, side, clock = Date.now, profile='inference' }) {
   requireCondition(Buffer.isBuffer(key) && key.length === 32 && ['broker','worker'].includes(side) &&
     Object.hasOwn(profiles,profile) && stream && ['on','write','destroy'].every(name => typeof stream[name] === 'function'), 'AI_IPC_CONFIGURATION_INVALID');
   const limits=profiles[profile];
   const secret = Buffer.from(key), controller = new AbortController(), queue = [];
+  const peerSide = side === 'worker' ? 'broker' : 'worker', salt = randomBytes(32);
+  const domain = direction => Buffer.from(`${limits.domain}:${direction}:`,'utf8');
+  const derive = (direction,value) => Buffer.from(hkdfSync('sha256',secret,value,domain(direction),32));
+  const sendKey = derive(side,salt); let receiveKey = null, receiveSalt = null;
+  // A fresh 256-bit salt gives each sender/channel a distinct key. Sequence never resets under that key.
+  const nonce = sequence => { const value=Buffer.alloc(12);value.writeUInt32BE(sequence,8);return value; };
   let session = side === 'broker' ? randomBytes(32).toString('hex') : null, incoming = 0, outgoing = 0, bound = false;
   let received = 0, sent = 0, buffer = Buffer.alloc(0), waiting = null, stopped = false;
   let deadline = clock() + limits.lifetime, timer;
-  const mac = (direction, bytes) => createHmac('sha256',secret).update(`${limits.domain}:${direction}:`).update(bytes).digest();
   function close() {
     if (stopped) return; stopped = true; clearTimeout(timer); controller.abort();
-    buffer = Buffer.alloc(0); queue.length = 0; secret.fill(0);
+    buffer = Buffer.alloc(0); queue.length = 0; secret.fill(0); sendKey.fill(0); receiveKey?.fill(0);
     waiting?.reject(new ContractError('AI_IPC_CLOSED')); waiting = null; stream.destroy();
   }
   function tighten(expiresAt) {
@@ -34,13 +39,21 @@ export function createAiIpcChannel({ stream, key, side, clock = Date.now, profil
       buffer = Buffer.concat([buffer,chunk]);
       while (buffer.length >= 4) {
         const length = buffer.readUInt32BE(0);
-        requireCondition(length > 32 && length <= limits.frame, 'AI_IPC_LIMIT');
+        requireCondition(length > 48 && length <= limits.frame && incoming < limits.messages, 'AI_IPC_LIMIT');
         if (buffer.length < length+4) break;
-        const signature = buffer.subarray(4,36), bytes = buffer.subarray(36,length+4);
-        requireCondition(timingSafeEqual(signature,mac(side === 'worker' ? 'broker' : 'worker',bytes)), 'AI_IPC_UNAUTHENTICATED');
-        const frame = JSON.parse(new TextDecoder('utf-8',{fatal:true}).decode(bytes));
+        const peerSalt = buffer.subarray(4,36);
+        if (receiveSalt === null) { receiveSalt=Buffer.from(peerSalt);receiveKey=derive(peerSide,receiveSalt); }
+        requireCondition(peerSalt.equals(receiveSalt),'AI_IPC_UNAUTHENTICATED');
+        const decipher=createDecipheriv('aes-256-gcm',receiveKey,nonce(incoming),{authTagLength:16});
+        decipher.setAAD(Buffer.concat([domain(peerSide),buffer.subarray(0,36)]));
+        decipher.setAuthTag(buffer.subarray(36,52));
+        // No decoded bytes reach JSON parsing or a caller until the full tag verifies.
+        const pending=decipher.update(buffer.subarray(52,length+4)); let bytes;
+        try { bytes=Buffer.concat([pending,decipher.final()]); } finally { pending.fill(0); }
+        let frame;
+        try { frame=JSON.parse(new TextDecoder('utf-8',{fatal:true}).decode(bytes)); } finally { bytes.fill(0); }
         requireKeys(frame,['version','session','sequence','kind','body'],'AI_IPC_INVALID');
-        requireCondition(frame.version === 1 && /^[a-f0-9]{64}$/u.test(frame.session) && frame.sequence === incoming++ &&
+        requireCondition(frame.version === 2 && /^[a-f0-9]{64}$/u.test(frame.session) && frame.sequence === incoming++ &&
           incoming <= limits.messages && typeof frame.kind === 'string' && /^[a-z-]{1,32}$/u.test(frame.kind), 'AI_IPC_INVALID');
         if (session === null) { requireCondition(frame.kind === 'challenge' && incoming === 1,'AI_IPC_INVALID'); session = frame.session; }
         requireCondition(frame.session === session,'AI_IPC_INVALID');
@@ -61,9 +74,16 @@ export function createAiIpcChannel({ stream, key, side, clock = Date.now, profil
     async send(kind,body) {
       try {
         requireCondition(!stopped && session !== null && outgoing < limits.messages && clock() < deadline,'AI_IPC_CLOSED');
-        const bytes = Buffer.from(JSON.stringify({version:1,session,sequence:outgoing++,kind,body}),'utf8');
-        requireCondition(bytes.length+32 <= limits.frame && sent+bytes.length+36 <= limits.total,'AI_IPC_LIMIT');
-        const frame = Buffer.allocUnsafe(bytes.length+36); frame.writeUInt32BE(bytes.length+32); mac(side,bytes).copy(frame,4); bytes.copy(frame,36); sent += frame.length;
+        const sequence=outgoing++,bytes=Buffer.from(JSON.stringify({version:2,session,sequence,kind,body}),'utf8');
+        let frame;
+        try {
+          requireCondition(bytes.length+48 <= limits.frame && sent+bytes.length+52 <= limits.total,'AI_IPC_LIMIT');
+          frame=Buffer.allocUnsafe(bytes.length+52);frame.writeUInt32BE(bytes.length+48);salt.copy(frame,4);
+          const cipher=createCipheriv('aes-256-gcm',sendKey,nonce(sequence),{authTagLength:16});
+          cipher.setAAD(Buffer.concat([domain(side),frame.subarray(0,36)]));
+          Buffer.concat([cipher.update(bytes),cipher.final()]).copy(frame,52);cipher.getAuthTag().copy(frame,36);
+        } finally { bytes.fill(0); }
+        sent += frame.length;
         await new Promise((resolve,reject) => stream.write(frame,error => error ? reject(new ContractError('AI_IPC_CLOSED')) : resolve()));
       } catch { close(); throw new ContractError('AI_IPC_CLOSED'); }
     },

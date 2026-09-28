@@ -1,6 +1,6 @@
 {
   "schema_version": 2,
-  "revision": "2026-09-28-supervisor-control",
+  "revision": "2026-09-28-ipc-encryption",
   "reference_plan_version": "1.1",
   "source": "Sophie-Implementation-Plans-v1.1/backlog.json",
   "owner_decisions": "docs/decisions/0001-owner-policy.md",
@@ -2402,6 +2402,17 @@
       "implemented": "Authenticated role-scoped control sessions and revisioned jobs compose core launch/stop, a separate egress observer, purpose-specific boot keys, expiring readiness and signed worker-lease renewal with the durable supervisor",
       "evidence": "53 focused checks pass: 21 control/lifecycle scenarios and 32 existing IPC/native/package/architecture checks. Actual host-local Windows pipes and temporary boot files carry one metered synthetic turn through worker-owned TLS to a loopback endpoint. Egress loss revokes authority and confirms synthetic Engine removal; no actual Docker/Hyper-V or live provider qualification.",
       "remaining": "Fixed service entrypoints and trusted installation/qualification inputs remain unfinished. Node/image distribution, actual identities/ACLs/mounts/credentials, Hyper-V communication, physical termination and unresolved-create operator disposition require qualification. Database-coordinator/installed-service and actual Discord acceptance remain open."
+    },
+    {
+      "title": "Encrypted inference and supervisor control frames",
+      "tasks": [
+        "P22",
+        "P23",
+        "P24"
+      ],
+      "implemented": "Mandatory encrypted v2 inference/control frames protect prompt/reply content and purpose-key handoff while preserving fresh peer challenges, bounded accounting and lifecycle control",
+      "evidence": "66 focused IPC, control, native, worker-package and egress checks pass. Actual host-local Windows pipes and synthetic TLS cover a metered turn; captured traffic excludes plaintext content and grants. Tampering, reflection, cross-profile traffic, replay and valid legacy HMAC frames are rejected. No actual Docker/Hyper-V or live provider qualification.",
+      "remaining": "Fixed service entrypoints and trusted installation/qualification inputs remain unfinished. Node/image distribution and bundled-notice scope, actual service identities and pipe/file ACLs, mounts/credentials, Hyper-V communication, physical termination and unresolved-create operator disposition require qualification. Database-coordinator/installed-service and actual Discord acceptance remain open."
     }
   ],
   "next_steps": [
@@ -2414,7 +2425,7 @@
         "P24",
         "P25"
       ],
-      "work": "Complete fixed service entrypoints and trusted qualification/installation inputs, then prepare the concrete Windows installation and image verification for operator approval. Preserve provider-account clearance, preference restore/export, reviewed publication/answers and restricted-context gates.",
+      "work": "Complete the registered Windows installation and qualification design, including exact pipe access across service identities and runtime bundled-notice scope; implement fixed service entrypoints from those inputs. Preserve provider clearance, preference restore/export, publication/answers and restricted-context gates.",
       "exit_evidence": "Scoped local source/transaction/transport evidence first; actual OS/egress and Discord tests need their explicit operational scope. Paid comparisons remain separately authorized."
     },
     {
@@ -2552,14 +2563,14 @@
       {
         "id": "DS-04",
         "title": "Windows worker and transport",
-        "implementation": "Authenticated role-scoped control sessions and revisioned jobs compose core launch/stop, a separate egress observer, purpose-specific boot keys, expiring readiness and signed worker-lease renewal with the durable supervisor",
-        "qualification": "53 focused checks pass: 21 control/lifecycle scenarios and 32 existing IPC/native/package/architecture checks. Actual host-local Windows pipes and temporary boot files carry one metered synthetic turn through worker-owned TLS to a loopback endpoint. Egress loss revokes authority and confirms synthetic Engine removal; no actual Docker/Hyper-V or live provider qualification.",
+        "implementation": "Authenticated Windows lifecycle, role readiness and signed worker leases composed locally; Mandatory encrypted v2 inference/control frames protect prompt/reply content and purpose-key handoff while preserving fresh peer challenges, bounded accounting and lifecycle control",
+        "qualification": "66 focused IPC, control, native, worker-package and egress checks pass. Actual host-local Windows pipes and synthetic TLS cover a metered turn; captured traffic excludes plaintext content and grants. Tampering, reflection, cross-profile traffic, replay and valid legacy HMAC frames are rejected. No actual Docker/Hyper-V or live provider qualification.",
         "sai": [
           "SAI-04",
           "SAI-05",
           "SAI-14"
         ],
-        "remaining": "Fixed service entrypoints and trusted installation/qualification inputs remain unfinished. Node/image distribution, actual identities/ACLs/mounts/credentials, Hyper-V communication, physical termination and unresolved-create operator disposition require qualification. Database-coordinator/installed-service and actual Discord acceptance remain open."
+        "remaining": "Fixed service entrypoints and trusted installation/qualification inputs remain unfinished. Node/image distribution and bundled-notice scope, actual service identities and pipe/file ACLs, mounts/credentials, Hyper-V communication, physical termination and unresolved-create operator disposition require qualification. Database-coordinator/installed-service and actual Discord acceptance remain open."
       },
       {
         "id": "DS-05",
@@ -2617,7 +2628,7 @@
           "SAI-07",
           "SAI-14"
         ],
-        "remaining": "Fixed service entrypoints and trusted installation/qualification inputs remain unfinished. Node/image distribution, actual identities/ACLs/mounts/credentials, Hyper-V communication, physical termination and unresolved-create operator disposition require qualification. Database-coordinator/installed-service and actual Discord acceptance remain open. Apply keeps message processing disabled."
+        "remaining": "Fixed service entrypoints and trusted installation/qualification inputs remain unfinished. Node/image distribution and bundled-notice scope, actual service identities and pipe/file ACLs, mounts/credentials, Hyper-V communication, physical termination and unresolved-create operator disposition require qualification. Database-coordinator/installed-service and actual Discord acceptance remain open. Apply keeps message processing disabled."
       },
       {
         "id": "DS-10",

@@ -5,7 +5,7 @@ import { createAiIpcChannel } from '../knowledge-worker/ipc-channel.js';
 import { aiControlHash, aiControlPipe, aiControlScope, aiControlRequest, aiControlResult } from './contract.js';
 import { createAiControlQualification } from './qualification.js';
 
-/** Two fixed role endpoints. HMAC authenticates frames; actual named-pipe identity/ACL/confidentiality is a separate qualification. */
+/** Two fixed role endpoints with encrypted frames; actual named-pipe identity and ACLs require separate qualification. */
 export function createAiControlServer({installationId,keys,qualified,handle,revocationSignal,onFault}) {
   requireKeys(keys,['core','egress'],'AI_CONTROL_CONFIGURATION_INVALID');
   requireCondition(['core','egress'].every(role=>Buffer.isBuffer(keys[role]) && keys[role].length===32) && !keys.core.equals(keys.egress) &&
