@@ -1,6 +1,6 @@
 {
   "schema_version": 2,
-  "revision": "2026-09-28-test-server-ai-preparation",
+  "revision": "2026-09-28-hcs-observation-prestart-stop",
   "reference_plan_version": "1.1",
   "source": "Sophie-Implementation-Plans-v1.1/backlog.json",
   "owner_decisions": "docs/decisions/0001-owner-policy.md",
@@ -1339,7 +1339,7 @@
   "checkpoint": {
     "summary": "Deterministic administration, Whitelist onboarding, protected editors, role/permission configuration and the configurable staging host are implemented.",
     "recorded_baseline": "AI handoff 0fa7a5ed538ff791e3def2c1f6ac7683531e15a1 plus preserved uncommitted Flash candidate; synthetic schema058 candidate. No live schema change.",
-    "current_work": "Owner selected the Test Discord Server with AI included. Prepared an original external read-only NtQueryObject handle-rights probe and a bounded one-container observation package; no application or deployment change. Review GitHub/.agent_docs/aphelion-sophie/windows-hcs-trial/access-review/proposal.md for one additional observational container and permission to collect the remaining mask observations while recording all failed open checks. The prior amendment stop condition is not waived. Resolve the transport contract from evidence; no production proxy identity or qualification receipt yet. Provider/account evidence, protected mounts, termination/recovery, installed composition, approved publication/actual answers, preference/restricted-context gates and the exact Test Discord Server deployment remain open.",
+    "current_work": "Executed the approved one-container HCS handle-rights attempt. Host service identity/owner/DACL and restricted-outsider controls passed; the runner rejected container configuration before guest start. Preserved the failure and prepared a corrected replacement runner. Authorize one replacement observation using GitHub/.agent_docs/aphelion-sophie/windows-hcs-trial/access-retry-review/proposal.md; the prior one-container limit is consumed and no retry ran. Retain the transport gate until evidence supports an explicit decision. Provider/account clearance, protected mounts, termination/recovery, installed composition, publication/actual-answer review, preference/restricted-context gates and exact Test Discord Server activation remain open.",
     "evidence_note": "Current source-bound offline results are in docs/verification.md and the external deepseek-verification.json index. Earlier administration, local model and Flash trial results remain historical; none grants present deployment approval."
   },
   "milestones": [
@@ -2545,11 +2545,22 @@
       "implemented": "Owner selected the Test Discord Server with AI included. Prepared an original external read-only NtQueryObject handle-rights probe and a bounded one-container observation package; no application or deployment change.",
       "evidence": "Pinned host compilation with warnings as errors passes. Local fresh-pipe controls report data access 0x00120183 and owner-authorized WRITE_DAC access 0x00140080. Initial exact-mask assumption failure is retained; corrected control permits only synchronization/read-attributes additions and still distinguishes management rights. New guest/container run is unexecuted; prior HCS forbidden-open failure remains unchanged. Current public provider terms do not establish actual account clearance.",
       "remaining": "Review GitHub/.agent_docs/aphelion-sophie/windows-hcs-trial/access-review/proposal.md for one additional observational container and permission to collect the remaining mask observations while recording all failed open checks. The prior amendment stop condition is not waived. Resolve the transport contract from evidence; no production proxy identity or qualification receipt yet. Provider/account evidence, protected mounts, termination/recovery, installed composition, approved publication/actual answers, preference/restricted-context gates and the exact Test Discord Server deployment remain open."
+    },
+    {
+      "title": "Approved handle-rights observation stopped before start; runner corrected",
+      "tasks": [
+        "P22",
+        "P23",
+        "P24"
+      ],
+      "implemented": "Executed the approved one-container HCS handle-rights attempt. Host service identity/owner/DACL and restricted-outsider controls passed; the runner rejected container configuration before guest start. Preserved the failure and prepared a corrected replacement runner.",
+      "evidence": "Docker records create/destroy only. All three services are Manual/stopped with zero exit codes, XML and permissions restored, and no owned processes/containers remain. The absent ExposedPorts guard defect reproduces offline; corrected exposure and approval controls pass. The current rejected inspect was not saved. All guest requested/granted measurements are unrun; the earlier forbidden-open failure remains failed.",
+      "remaining": "Authorize one replacement observation using GitHub/.agent_docs/aphelion-sophie/windows-hcs-trial/access-retry-review/proposal.md; the prior one-container limit is consumed and no retry ran. Retain the transport gate until evidence supports an explicit decision. Provider/account clearance, protected mounts, termination/recovery, installed composition, publication/actual-answer review, preference/restricted-context gates and exact Test Discord Server activation remain open."
     }
   ],
   "next_steps": [
     {
-      "title": "Observe guest granted rights and resolve the HCS contract",
+      "title": "Run corrected observation after replacement authorization",
       "tasks": [
         "P21",
         "P22",
@@ -2557,8 +2568,8 @@
         "P24",
         "P25"
       ],
-      "work": "Review GitHub/.agent_docs/aphelion-sophie/windows-hcs-trial/access-review/proposal.md for one additional observational container and permission to collect the remaining mask observations while recording all failed open checks. The prior amendment stop condition is not waived. Resolve the transport contract from evidence; no production proxy identity or qualification receipt yet. Provider/account evidence, protected mounts, termination/recovery, installed composition, approved publication/actual answers, preference/restricted-context gates and the exact Test Discord Server deployment remain open.",
-      "exit_evidence": "New scope approval, source-bound requested/granted observations and recorded transport decision. Preserve earlier failures; then remaining installed acceptance and Test Discord Server preparation."
+      "work": "Authorize one replacement observation using GitHub/.agent_docs/aphelion-sophie/windows-hcs-trial/access-retry-review/proposal.md; the prior one-container limit is consumed and no retry ran. Retain the transport gate until evidence supports an explicit decision. Provider/account clearance, protected mounts, termination/recovery, installed composition, publication/actual-answer review, preference/restricted-context gates and exact Test Discord Server activation remain open.",
+      "exit_evidence": "Approved replacement scope, requested/granted measurements and explicit transport decision; preserve failed/unrun checks and complete remaining AI gates before Test Discord Server activation."
     },
     {
       "title": "Privately verify deployed configuration and apply workflow",
@@ -2702,7 +2713,7 @@
           "SAI-05",
           "SAI-14"
         ],
-        "remaining": "Review GitHub/.agent_docs/aphelion-sophie/windows-hcs-trial/access-review/proposal.md for one additional observational container and permission to collect the remaining mask observations while recording all failed open checks. The prior amendment stop condition is not waived. Resolve the transport contract from evidence; no production proxy identity or qualification receipt yet. Provider/account evidence, protected mounts, termination/recovery, installed composition, approved publication/actual answers, preference/restricted-context gates and the exact Test Discord Server deployment remain open."
+        "remaining": "Authorize one replacement observation using GitHub/.agent_docs/aphelion-sophie/windows-hcs-trial/access-retry-review/proposal.md; the prior one-container limit is consumed and no retry ran. Retain the transport gate until evidence supports an explicit decision. Provider/account clearance, protected mounts, termination/recovery, installed composition, publication/actual-answer review, preference/restricted-context gates and exact Test Discord Server activation remain open."
       },
       {
         "id": "DS-05",
@@ -2760,7 +2771,7 @@
           "SAI-07",
           "SAI-14"
         ],
-        "remaining": "Review GitHub/.agent_docs/aphelion-sophie/windows-hcs-trial/access-review/proposal.md for one additional observational container and permission to collect the remaining mask observations while recording all failed open checks. The prior amendment stop condition is not waived. Resolve the transport contract from evidence; no production proxy identity or qualification receipt yet. Provider/account evidence, protected mounts, termination/recovery, installed composition, approved publication/actual answers, preference/restricted-context gates and the exact Test Discord Server deployment remain open."
+        "remaining": "Authorize one replacement observation using GitHub/.agent_docs/aphelion-sophie/windows-hcs-trial/access-retry-review/proposal.md; the prior one-container limit is consumed and no retry ran. Retain the transport gate until evidence supports an explicit decision. Provider/account clearance, protected mounts, termination/recovery, installed composition, publication/actual-answer review, preference/restricted-context gates and exact Test Discord Server activation remain open."
       },
       {
         "id": "DS-10",

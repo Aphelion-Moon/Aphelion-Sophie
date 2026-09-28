@@ -580,3 +580,13 @@ substitute. Continue scoped implementation, research and local synthetic checks.
 Preserve the existing containment, provider/account, publication, consent and
 selected-capability gates. This does not turn the failed HCS diagnostic into a
 pass, approve a proposed new operational variation, or activate real AI processing.
+
+### Handle-rights observation authorization and consumed limit — 28 September 2026
+
+The owner approved the exact one-container observation proposal recorded in
+`legal/windows-hcs-handle-observation.json`. The attempt created one container
+but stopped before start at a runner configuration guard. Cleanup is verified;
+no guest rights were measured. This approval preserved all earlier failed
+acceptance gates and did not authorize an architecture or permission change.
+The replacement runner is corrected and checked offline; a second container
+requires its own authorization under the explicit consumed limit.

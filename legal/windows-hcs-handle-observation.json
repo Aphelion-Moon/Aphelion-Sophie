@@ -1,0 +1,19 @@
+{
+  "name": "Bounded HCS handle-rights observation",
+  "approved": true,
+  "authorization": "Owner replied Approved. to the one-container handle-rights observation proposal.",
+  "approvedOn": "2026-09-28",
+  "proposalSha256": "82786069fde838246bf8ebf68226a6c529321e85c95276f043e202522b12c802",
+  "inputManifestSha256": "ebb9c2fc0d65d84cc88c707cdf876c38ce3cd87a76a721128b980ebc7af3ce6a",
+  "maximumContainers": 1,
+  "proposal": "GitHub/.agent_docs/aphelion-sophie/windows-hcs-trial/access-observation/proposal.md",
+  "scope": "One disposable observational container; original services/permissions; no guest privileged operation. Continue collecting masks after accepted forbidden opens while retaining their failed status.",
+  "containersCreated": 1,
+  "containersStarted": 0,
+  "outcome": "HCS_UNEXPECTED_EXPOSURE before start; cleanup verified",
+  "applicationOrSharedPermissionChangeApproved": false,
+  "candidateGroupApprovedForProduction": false,
+  "replacementApproved": false,
+  "fieldTestReady": false,
+  "productionReady": false
+}

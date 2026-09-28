@@ -1,5 +1,15 @@
 # Verification and release limits
 
+## HCS observation stopped before start — 28 September 2026
+
+Executed the approved one-container HCS handle-rights attempt. Host service identity/owner/DACL and restricted-outsider controls passed; the runner rejected container configuration before guest start. Preserved the failure and prepared a corrected replacement runner.
+
+Docker records create/destroy only. All three services are Manual/stopped with zero exit codes, XML and permissions restored, and no owned processes/containers remain. The absent ExposedPorts guard defect reproduces offline; corrected exposure and approval controls pass. The current rejected inspect was not saved. All guest requested/granted measurements are unrun; the earlier forbidden-open failure remains failed.
+
+See `GitHub/.agent_docs/aphelion-sophie/windows-hcs-trial/access-observation/result.md` and `hcs-handle-observation-verification.json`. No guest runtime, paid provider call, application/database suite or Discord activation occurred. The corrected runner captures inspect before validation and distinguishes missing/empty port maps from exposed ports. Native probe sources/binaries and production code are unchanged.
+
+Authorize one replacement observation using GitHub/.agent_docs/aphelion-sophie/windows-hcs-trial/access-retry-review/proposal.md; the prior one-container limit is consumed and no retry ran. Retain the transport gate until evidence supports an explicit decision. Provider/account clearance, protected mounts, termination/recovery, installed composition, publication/actual-answer review, preference/restricted-context gates and exact Test Discord Server activation remain open. Test-server AI readiness remains false.
+
 ## Test Discord Server AI preparation — 28 September 2026
 
 Owner selected the Test Discord Server with AI included. Prepared an original external read-only NtQueryObject handle-rights probe and a bounded one-container observation package; no application or deployment change.
