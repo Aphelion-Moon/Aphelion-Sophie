@@ -110,6 +110,28 @@ test('SAI AT-12 one turn delivers one validated reply to the fixed destination',
   assert.deepEqual(f.sent[0].payload.allowed_mentions.parse, []); assert.deepEqual(f.states, ['delivered']);
 });
 
+test('DS-06 three compatible fragments freeze into one request with the first deadline and all dependencies', async () => {
+  const f=turnsFixture(),parts=[0,1,2].map(index=>request({messageId:String(303+index),text:`fragment ${index}`,receivedAt:1000+index,
+    gather:{rootId:'303',owner:'synthetic',until:2500,quietUntil:1000}}));
+  let next=0,freezes=0,dependencies;
+  f.admission.admit=async()=>parts[next++];
+  f.admission.freezeGather=async(root,fragments)=>{freezes++;assert.equal(root.messageId,'303');assert.equal(fragments.length,3);return true;};
+  f.messages.reply=async(_request,_payload,history)=>{dependencies=history;return {id:'606'};};
+  const result=await Promise.all([f.turns.handle({}),f.turns.handle({}),f.turns.handle({})]);
+  assert.equal(result.filter(item=>item.state==='delivered').length,1);assert.equal(result.filter(item=>item.state==='gathered').length,2);
+  assert.equal(freezes,1);assert.equal(f.modelCalls.length,1);assert.equal(f.modelCalls[0].deadline,16000);
+  const content=f.modelCalls[0].payload.messages.at(-1).content;
+  for(let index=0;index<3;index++)assert.equal(content.includes(`fragment ${index}`),true);
+  assert.deepEqual(dependencies.map(item=>item.messageId),['304','305']);await f.turns.stop();
+});
+
+test('DS-06 an edited gathering source cancels before generation without renewing its deadline', async () => {
+  const f=turnsFixture();f.value.gather={rootId:'303',owner:'synthetic',until:2500,quietUntil:1750};
+  f.admission.freezeGather=async()=>assert.fail('cancelled batch must not freeze');
+  const work=f.turns.handle({});await new Promise(resolve=>setImmediate(resolve));
+  f.turns.invalidate({channelId:'202',messageId:'303'});assert.equal((await work).state,'cancelled');assert.equal(f.modelCalls.length,0);
+});
+
 test('SAI AT-03/13 revocation or expired retrieval prevents model admission and late generated replies', async () => {
   const staleRetrieval = turnsFixture(); staleRetrieval.knowledge.lookup = async () => { staleRetrieval.time(16000); return []; };
   await staleRetrieval.turns.handle({}); assert.equal(staleRetrieval.modelCalls.length, 0); assert.equal(staleRetrieval.sent.length, 0);

@@ -1,12 +1,12 @@
 import { requireCondition, requireInteger, requireName } from '../../contracts/validation.js';
 import { AI_DEADLINE_MS } from '../../modules/assistant/participation.js';
 
-/** One physical inference at a time. A timed-out worker retains its slot until it actually stops. */
-export function createAiScheduler({ clock = Date.now, execute, maxWaiting = 3, deliveryReserveMs = 1000 }) {
+/** Bounded physical inference with channel fairness. Aborted workers retain their slots until they actually stop. */
+export function createAiScheduler({ clock = Date.now, execute, maxWaiting = 3, maxActive = 1, deliveryReserveMs = 1000 }) {
   requireCondition(typeof execute === 'function' && typeof clock === 'function', 'TRUSTED_ADAPTERS_REQUIRED');
-  requireInteger(maxWaiting, 0, 3); requireInteger(deliveryReserveMs, 100, 3000);
-  const queue = [], members = new Set(), requests = new Set();
-  let active = null, disabled = false, lastMember = null, explicitStreak = 0;
+  requireInteger(maxWaiting, 0, 3); requireInteger(maxActive, 1, 2); requireInteger(deliveryReserveMs, 100, 3000);
+  const queue = [], members = new Set(), requests = new Set(), active = new Map(), served = new Map();
+  let disabled = false, explicitStreak = 0, sequence = 0;
   function finish(job, result) {
     if (job.settled) return;
     job.settled = true; clearTimeout(job.timer); job.resolve(result);
@@ -17,13 +17,17 @@ export function createAiScheduler({ clock = Date.now, execute, maxWaiting = 3, d
     if (index !== -1) { queue.splice(index, 1); members.delete(job.member); requests.delete(job.id); job.payload = null; }
   }
   function pump() {
-    if (active || disabled) return;
+    if (active.size >= maxActive || disabled) return;
     for (const job of [...queue]) if (clock() >= job.cutoff) cancel(job, 'expired');
     if (!queue.length) return;
-    const addressed = queue.filter(job => !job.proactive), proactive = queue.filter(job => job.proactive);
+    const available = queue.filter(job => ![...active.values()].some(item => item.channel === job.channel));
+    if (!available.length) return;
+    const addressed = available.filter(job => !job.proactive), proactive = available.filter(job => job.proactive);
     const preferred = addressed.length && (explicitStreak < 2 || !proactive.length) ? addressed : proactive;
-    const job = preferred.find(item => item.member !== lastMember) ?? preferred[0];
-    queue.splice(queue.indexOf(job), 1); active = job; lastMember = job.member;
+    const job = preferred.reduce((first,item) => (served.get(item.channel) ?? 0) < (served.get(first.channel) ?? 0) ? item : first);
+    queue.splice(queue.indexOf(job), 1); active.set(job.id,job);
+    served.delete(job.channel); served.set(job.channel,++sequence);
+    if (served.size > 128) served.delete(served.keys().next().value);
     explicitStreak = job.proactive ? 0 : explicitStreak + 1;
     // Do not detach an unfinished worker on abort: overlapping jobs could share its cache or exceed the CPU budget.
     Promise.resolve().then(async () => {
@@ -35,11 +39,12 @@ export function createAiScheduler({ clock = Date.now, execute, maxWaiting = 3, d
       if (job.controller.signal.aborted || clock() >= job.cutoff) finish(job, { state: 'expired' });
       else finish(job, { state: 'completed', result });
     }, () => finish(job, { state: clock() >= job.cutoff ? 'expired' : job.controller.signal.aborted ? 'cancelled' : 'unavailable' }))
-      .finally(() => { members.delete(job.member); requests.delete(job.id); job.payload = null; job.beforeExecute = null; job.beforeDispatch = null; active = null; pump(); });
+      .finally(() => { members.delete(job.member); requests.delete(job.id); job.payload = null; job.beforeExecute = null; job.beforeDispatch = null; active.delete(job.id); pump(); });
+    pump();
   }
   return Object.freeze({
-    submit({ id, member, receivedAt, deadline, proactive, payload, beforeExecute = null, beforeDispatch = null }) {
-      requireName(id); requireName(member); requireInteger(receivedAt); requireInteger(deadline);
+    submit({ id, member, channel = member, receivedAt, deadline, proactive, payload, beforeExecute = null, beforeDispatch = null }) {
+      requireName(id); requireName(member); requireName(channel); requireInteger(receivedAt); requireInteger(deadline);
       requireCondition(typeof proactive === 'boolean' && deadline > receivedAt && deadline - receivedAt <= AI_DEADLINE_MS, 'AI_DEADLINE_INVALID');
       requireCondition(beforeExecute === null || typeof beforeExecute === 'function', 'TRUSTED_ADAPTERS_REQUIRED');
       requireCondition(beforeDispatch === null || typeof beforeDispatch === 'function', 'TRUSTED_ADAPTERS_REQUIRED');
@@ -47,16 +52,16 @@ export function createAiScheduler({ clock = Date.now, execute, maxWaiting = 3, d
       if (receivedAt > now || now >= deadline - deliveryReserveMs) return Promise.resolve({ state: 'expired' });
       if (disabled) return Promise.resolve({ state: 'disabled' });
       if (requests.has(id)) return Promise.resolve({ state: 'duplicate' });
-      if (members.has(member) || (active !== null && queue.length >= maxWaiting)) return Promise.resolve({ state: 'busy' });
+      if (members.has(member) || (active.size >= maxActive || [...active.values()].some(item=>item.channel===channel)) && queue.length >= maxWaiting) return Promise.resolve({ state: 'busy' });
       let resolve;
       const result = new Promise(done => { resolve = done; });
-      const job = { id, member, proactive, payload, beforeExecute, beforeDispatch, cutoff: deadline - deliveryReserveMs, controller: new AbortController(), resolve, settled: false };
+      const job = { id, member, channel, proactive, payload, beforeExecute, beforeDispatch, cutoff: deadline - deliveryReserveMs, controller: new AbortController(), resolve, settled: false };
       job.timer = setTimeout(() => cancel(job, 'expired'), Math.max(1, job.cutoff - now));
       queue.push(job); members.add(member); requests.add(id); pump(); return result;
     },
-    cancel(id) { const job = active?.id === id ? active : queue.find(item => item.id === id); if (job) cancel(job, 'cancelled'); },
-    disable() { disabled = true; for (const job of [...queue]) cancel(job, 'disabled'); if (active) cancel(active, 'disabled'); },
-    resume() { requireCondition(active === null, 'AI_WORKER_NOT_STOPPED'); disabled = false; pump(); },
-    status() { return { disabled, active: active !== null, cancelling: active?.controller.signal.aborted === true, waiting: queue.length }; },
+    cancel(id) { const job = active.get(id) ?? queue.find(item => item.id === id); if (job) cancel(job, 'cancelled'); },
+    disable() { disabled = true; for (const job of [...queue,...active.values()]) cancel(job, 'disabled'); },
+    resume() { requireCondition(active.size === 0, 'AI_WORKER_NOT_STOPPED'); disabled = false; pump(); },
+    status() { return { disabled, active: active.size > 0, activeCount: active.size, cancelling: [...active.values()].some(job=>job.controller.signal.aborted), waiting: queue.length }; },
   });
 }

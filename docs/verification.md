@@ -274,6 +274,24 @@ No listener/service, credentials, dependency/runtime upgrade, live provider call
 migration or Discord effect was installed or performed. Database suites were not
 rerun for this non-storage slice; earlier evidence remains separately source-bound.
 
+## Gathering and channel fairness — 28 September 2026
+
+Schema061 adds fenced gathering receipts without stored content. Three compatible
+conversational fragments may share one paced turn, within 750 ms quiet / 1.5 s
+absolute / 4 KiB bounds. The first receipt fixes the deadline. Every fragment is
+independently authorized; freeze checks the complete receipt set and revisions.
+Larger valid single questions bypass gathering. A separate ingress flood bound
+limits metadata events. The scheduler rotates channels and keeps cancelled physical
+requests in their slots; synthetic two-slot mode still allows one per channel.
+Runtime concurrency remains one. Edited gathering sources currently cancel the turn;
+in-place fragment replacement and actual worker/timing qualification remain open.
+
+40 focused runtime/turn/observation checks and 56 isolated AI/knowledge/Gateway
+scenarios pass; the disposable database stopped. Source-bound evidence is in
+`GitHub/.agent_docs/aphelion-sophie/ai-gathering-verification.json`. No live schema,
+grants, provider requests or Discord effects. Unrelated migration-count assertions
+were updated without rerunning their suites.
+
 ## Durable AI effects — 28 September 2026
 
 Migration060 replaces transient effect ownership with fixed-target, fenced receipts.

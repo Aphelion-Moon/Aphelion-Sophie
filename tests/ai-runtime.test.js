@@ -58,6 +58,23 @@ test('SAI AT-13 active deadline cancels and discards a late result without start
   assert.equal(scheduler.status().active, true); held.resolve('late private output'); await tick(); assert.equal(scheduler.status().active, false);
 });
 
+test('DS-06 two physical slots preserve one per channel and retain cancelled uncertainty', async () => {
+  const a=pending(),b=pending(),started=[];
+  const scheduler=createAiScheduler({maxActive:2,execute:async id=>{started.push(id);if(id==='a')await a.promise;if(id==='b')await b.promise;return id;}});
+  const first=scheduler.submit(request('a',{channel:'one'})),same=scheduler.submit(request('c',{channel:'one'})),second=scheduler.submit(request('b',{channel:'two'}));
+  await tick();assert.deepEqual(started,['a','b']);assert.equal(scheduler.status().activeCount,2);
+  scheduler.cancel('a');assert.equal((await first).state,'cancelled');await tick();assert.deepEqual(started,['a','b']);
+  a.resolve();await same;assert.deepEqual(started,['a','b','c']);b.resolve();await second;await tick();assert.equal(scheduler.status().activeCount,0);
+});
+
+test('DS-06 queued channels receive turns before a previously served channel', async () => {
+  const held=pending(),started=[];
+  const scheduler=createAiScheduler({execute:async id=>{started.push(id);if(id==='a')await held.promise;return id;}});
+  const first=scheduler.submit(request('a',{channel:'one'}));await tick();
+  const repeated=scheduler.submit(request('b',{channel:'one'})),other=scheduler.submit(request('c',{channel:'two'}));
+  held.resolve();await Promise.all([first,repeated,other]);assert.deepEqual(started,['a','c','b']);
+});
+
 function llamaFixture({ count = { object: 'response.input_tokens', input_tokens: 3 }, response = { choices: [{ finish_reason: 'stop', message: { role: 'assistant', content: '{"kind":"silent"}', reasoning_content: 'must not deliver' } }] } } = {}) {
   const calls = [];
   const client = createLlamaClient({ endpoint: 'http://127.0.0.1:12345', apiKey: 'synthetic'.repeat(8), modelId: 'reviewed-model',

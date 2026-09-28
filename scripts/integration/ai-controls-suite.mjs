@@ -78,9 +78,10 @@ export async function runAiControlsSuite(cluster, run) {
   });
   const ingress = createAiIngress({ guildId: actor.guildId, botUserId: '505', clock: Date.now });
   let contextEligible = true, sourceRevision = 'original', presenceEpoch = 1;
-  const admission = createAiAdmission({ pool, guildId: actor.guildId, ingress, clock: Date.now,
+  const admissionFor = ingress => createAiAdmission({ pool, guildId: actor.guildId, ingress, clock: Date.now,
     inspectContext: async () => ({ eligible: contextEligible, audienceHash: 'e'.repeat(64), restricted: false, canReply: true, canReact: true, messageRevision: sourceRevision, continuity: 'synthetic-current', checkedAt: Date.now() }),
     inspectMember: async () => ({ eligible: true, presenceEpoch, accessEpoch: 1, checkedAt: Date.now() }) });
+  const admission = admissionFor(ingress);
   let bodyReads = 0;
   const event = (id, text = 'Synthetic hello', extras = {}) => {
     const d = { guild_id: actor.guildId, channel_id: '303', id, author: { id: actor.userId, bot: false }, type: 0, mentions: [], ...extras };
@@ -135,7 +136,29 @@ export async function runAiControlsSuite(cluster, run) {
     assert.equal(await admission.admit(event('603')), null);
     await admin.query("UPDATE sophie_ai.request_receipts SET state='silent',received_at=clock_timestamp()-interval '2 minutes' WHERE guild_id=$1", [actor.guildId]);
     const results = await Promise.all([admission.admit(event('604')), admission.admit(event('605'))]);
-    assert.equal(results.filter(Boolean).length, 1);
+    assert.equal(results.filter(Boolean).length, 2);
+    const root = results.find(item=>item.messageId===item.gather.rootId), third = await admission.admit(event('708'));
+    assert.equal(third.gather.rootId,root.messageId);assert.equal(await admission.admit(event('709')),null);
+    assert.equal(await admission.freezeGather(root,[...results,third]),true);
+    assert.equal(await admission.freezeGather(root,[...results,third]),false);
+    const rows=(await admin.query('SELECT message_id,state,deadline FROM sophie_ai.request_receipts WHERE gather_root=$1',[root.messageId])).rows;
+    assert.equal(rows.filter(row=>row.state==='admitted').length,1);assert.equal(new Set(rows.map(row=>row.deadline.getTime())).size,1);
+  });
+  await run('DS-06 gathering preserves byte bounds, target and owner fences and independently rejects lost eligibility', async () => {
+    const fresh = createAiIngress({guildId:actor.guildId,botUserId:'505',clock:Date.now}), lane=admissionFor(fresh);
+    const prepare=(id,text='Synthetic fragment',extras={})=>fresh.prepare({t:'MESSAGE_CREATE',d:{guild_id:actor.guildId,channel_id:'303',id,author:{id:actor.userId,bot:false},type:0,mentions:[],content:text,...extras}});
+    const reset=()=>admin.query("UPDATE sophie_ai.request_receipts SET state='silent',received_at=clock_timestamp()-interval '2 minutes' WHERE guild_id=$1",[actor.guildId]);
+    await reset();const full=await lane.admit(prepare('710','😀'.repeat(1024)));assert.ok(full.gather);
+    assert.equal(await lane.admit(prepare('711','x')),null);
+    await reset();const large=await lane.admit(prepare('712','😀'.repeat(1025)));assert.equal(large.gather,null);
+    await reset();const target=id=>({type:19,message_reference:{channel_id:'303',message_id:id},referenced_message:{author:{id:'505'}}});
+    const root=await lane.admit(prepare('713','First question',target('901')));
+    assert.equal(await lane.admit(prepare('714','Different reply',target('902'))),null);
+    const joined=await lane.admit(prepare('715','Same reply',target('901')));assert.equal(joined.gather.rootId,root.messageId);
+    assert.equal(await admissionFor(fresh).freezeGather(root,[root,joined]),false);
+    contextEligible=false;assert.equal(await lane.admit(prepare('716','Now excluded',target('901'))),null);contextEligible=true;
+    await admin.query('UPDATE sophie_ai.request_receipts SET gather_quiet_until=clock_timestamp() WHERE message_id=$1',[root.messageId]);
+    sourceRevision='edited';assert.equal(await lane.freezeGather(root,[root,joined]),false);sourceRevision='original';
   });
   await run('AI12 departure and rejoin cannot revive enrollment; withdrawn qualification blocks before body read', async () => {
     presenceEpoch = 2; bodyReads = 0; assert.equal(await admission.admit(event('606')), null); assert.equal(bodyReads, 0); presenceEpoch = 1;

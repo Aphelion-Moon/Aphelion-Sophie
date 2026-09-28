@@ -59,7 +59,7 @@ export async function runAiKnowledgeSuite(cluster, run) {
     await assert.rejects(pool.query('SELECT * FROM sophie_core.case_exclusions'), error => error.code === '42501');
     await assert.rejects(pool.query('SELECT * FROM sophie_ai.consents'), error => error.code === '42501');
   });
-  await run('AI18 staged schema056-to060 upgrade preserves Gateway, AI controls and prior publication receipts without enabling inference', async () => {
+  await run('AI18 staged schema056-to061 upgrade preserves Gateway, AI controls and prior publication receipts without enabling inference', async () => {
     const previous = await cluster.recovery.createHistoricalSource(), db = previous.pool;
     const directory = new URL('../../apps/core/storage/migrations/',import.meta.url);
     await db.query('CREATE SCHEMA sophie_migrations; REVOKE ALL ON SCHEMA sophie_migrations FROM PUBLIC; CREATE TABLE sophie_migrations.applied(id text PRIMARY KEY,sha256 text NOT NULL)');
@@ -78,13 +78,13 @@ export async function runAiKnowledgeSuite(cluster, run) {
     await db.query("INSERT INTO sophie_knowledge.documents VALUES('101','prior-publication',1,1,true,false,NULL)");
     await db.query("INSERT INTO sophie_knowledge.publications VALUES('101','prior-publication',1,repeat('a',64),NULL)");
     await db.query("INSERT INTO sophie_knowledge.receipts(guild_id,request_id,actor_id,review_sha256,document_id,revision) VALUES('101',repeat('b',64),'202',repeat('c',64),'prior-publication',1)");
-    assert.deepEqual(await migrateCore(db),{ migrations: 60 });
+    assert.deepEqual(await migrateCore(db),{ migrations: 61 });
     assert.deepEqual((await db.query('SELECT to_jsonb(g) AS value FROM sophie_core.gateway_lifecycle g')).rows[0].value,{ ...gateway, ai_boundary_epoch: 0 });
     assert.deepEqual((await db.query('SELECT * FROM sophie_ai.state')).rows,controls); assert.equal(controls[0].disabled,true);
     assert.equal((await db.query('SELECT count(*)::int AS count FROM sophie_knowledge.documents')).rows[0].count,1);
     assert.equal((await db.query('SELECT input_sha256 FROM sophie_knowledge.receipts')).rows[0].input_sha256,'c'.repeat(64));
     assert.equal((await db.query('SELECT count(*)::int AS count FROM sophie_knowledge.import_sources')).rows[0].count,0);
-    assert.deepEqual(await migrateCore(db),{ migrations: 60 });
+    assert.deepEqual(await migrateCore(db),{ migrations: 61 });
   });
 
   let templateVersion = 1, failWiki = false, pauseCollect = null, pauseExtract = null, invalidations = 0, fetched = 0;

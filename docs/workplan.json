@@ -1,6 +1,6 @@
 {
   "schema_version": 2,
-  "revision": "2026-09-28-durable-ai-effects",
+  "revision": "2026-09-28-gathering",
   "reference_plan_version": "1.1",
   "source": "Sophie-Implementation-Plans-v1.1/backlog.json",
   "owner_decisions": "docs/decisions/0001-owner-policy.md",
@@ -2274,6 +2274,16 @@
       "implemented": "Durable bounded own-effect receipts, deterministic automation precedence and known-effect restart/revocation cleanup implemented",
       "evidence": "25 focused turn/observation checks; 55 isolated AI/knowledge/Gateway scenarios; 18 composed staging scenarios. Synthetic effects only. 13 IPC checks pass after accounting correction.",
       "remaining": "Active worker revisions and AI-only apply/replacement; actual Discord effect/recovery and Windows qualification remain open."
+    },
+    {
+      "title": "Bounded gathering and channel fairness",
+      "tasks": [
+        "P23",
+        "P24"
+      ],
+      "implemented": "Fenced three-fragment gathering, first-receipt deadline, ingress flood limit and fair bounded channel scheduler implemented",
+      "evidence": "40 focused runtime/turn/observation checks and 56 isolated AI/knowledge/Gateway scenarios; no actual provider or Discord timing",
+      "remaining": "Gathered edits currently cancel the turn; replacing an edited fragment before freeze remains to implement. Qualify actual one-versus-two workers and end-to-end latency before increasing runtime concurrency from one."
     }
   ],
   "next_steps": [
@@ -2448,13 +2458,13 @@
       {
         "id": "DS-06",
         "title": "Gathering and fair concurrency",
-        "implementation": "not started",
-        "qualification": "Current scheduler stays at one active request",
+        "implementation": "Fenced three-fragment gathering, first-receipt deadline, ingress flood limit and fair bounded channel scheduler implemented",
+        "qualification": "40 focused runtime/turn/observation checks and 56 isolated AI/knowledge/Gateway scenarios; no actual provider or Discord timing",
         "sai": [
           "SAI-02",
           "SAI-05"
         ],
-        "remaining": "After DS-03/04: gathering lease, compatible three-fragment admission, fair channels and one-versus-two qualification."
+        "remaining": "Gathered edits currently cancel the turn; replacing an edited fragment before freeze remains to implement. Qualify actual one-versus-two workers and end-to-end latency before increasing runtime concurrency from one."
       },
       {
         "id": "DS-07",
