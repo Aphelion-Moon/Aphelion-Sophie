@@ -1,5 +1,13 @@
 # Verification and release limits
 
+## Pinned guest Framework helper — 28 September 2026
+
+Separate compile-time host and Server Core worker runtime pins. Guest helper builds with the exact image-bundled compiler and rejects installed host roles. Host Framework 4.8.1 pins remain unchanged; no runtime fallback or Microsoft binary copying.
+
+Exact guest CLR/assembly/compiler/configuration inventory recorded; GAC and Framework64 System hashes match. Guest build and 36 native assertions pass. Actual ContainerUser Node/helper tests pass 11 boundary groups, four stream groups and both cross-profile rejection checks in bounded network-disabled Hyper-V containers. Host build and stream checks pass. Owned trial containers removed. No application-wide or database suite was repeated for this native/runtime packaging change. Current evidence is in `GitHub/.agent_docs/aphelion-sophie/windows-guest-framework-verification.json`.
+
+Continue the already approved service/file/HCS/mount/termination trial with the guest-specific package. Service tokens, installed protected-file acceptance, exact HCS identity/access, mount/credential isolation and uncertain-create disposition remain unqualified. No further approval is needed for the recorded service/WinSW/guest Framework scope. Stop at any new incompatible OS boundary. Provider, publication/actual-answer, preference-journal and Discord gates remain independent. Field-test and production readiness remain false.
+
 ## Authorized Windows trial: guest runtime gate — 28 September 2026
 
 Owner approved the exact synthetic Windows trial and WinSW bundle scope. The pinned worker source/runtime/helper package built into an actual Windows image; one bounded Hyper-V runtime probe executed. No application source changed.

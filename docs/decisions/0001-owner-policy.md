@@ -503,3 +503,18 @@ Framework binary copying, version substitution or host runtime replacement is
 authorized. Paid requests, real Discord/main-guild activity, production databases,
 game-service changes, reboot, firewall weakening and redistribution remain
 excluded. Approval permits the trial; it does not establish operational readiness.
+
+### Pinned guest Framework amendment — 28 September 2026
+
+The owner approved the container Framework amendment (SHA-256
+`ddbbfaf70a491435ee3597aff74129f0cf48c8f9ebabde30b1cefd5cb7ae579c`) at
+`GitHub/.agent_docs/aphelion-sophie/windows-installation-trial-2026-09-28/runtime-amendment.md`.
+This permits the Framework 4.8 runtime and bundled x64 csc 4.8.4161.0 already in
+the exact approved Server Core image to build and qualify the original worker
+helper and focused synthetic drivers. Complete its loaded-assembly/configuration
+inventory first. Keep separate exact host/guest runtime profiles; host 4.8.1 pins
+remain unchanged. Only original MIT outputs and evidence may leave the container,
+not Microsoft runtime/compiler binaries. No installer, image/runtime upgrade,
+NuGet/System.Core dependency or broader language change is approved. After this
+runtime gate passes, continue the already approved Windows trial and its existing
+OS-boundary stop conditions. See `legal/windows-guest-toolchain.json`.

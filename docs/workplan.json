@@ -1,6 +1,6 @@
 {
   "schema_version": 2,
-  "revision": "2026-09-28-windows-runtime-gate",
+  "revision": "2026-09-28-guest-framework",
   "reference_plan_version": "1.1",
   "source": "Sophie-Implementation-Plans-v1.1/backlog.json",
   "owner_decisions": "docs/decisions/0001-owner-policy.md",
@@ -1339,7 +1339,7 @@
   "checkpoint": {
     "summary": "Deterministic administration, Whitelist onboarding, protected editors, role/permission configuration and the configurable staging host are implemented.",
     "recorded_baseline": "AI handoff 0fa7a5ed538ff791e3def2c1f6ac7683531e15a1 plus preserved uncommitted Flash candidate; synthetic schema058 candidate. No live schema change.",
-    "current_work": "Prepared Flash/accounting/effects, public knowledge lookup and member-saved preferences remain locally implemented with operational and data-clearance gates. Fixed installed profiles validate independent protected owner records, retained file handles, source/runtime manifests, parent/service identities and expiring authority. Core, supervisor, egress and worker payloads compose the native adapter; core isolates database readers and replaces lifecycle ownership on configuration Apply. Worker trust uses a separate read-only mount. Control proof binding now tolerates readiness before native write acknowledgement. The authorized installed Windows trial reached the guest Framework mismatch and stopped; no service or ACL provisioning occurred.",
+    "current_work": "Prepared Flash/accounting/effects, public knowledge lookup and member-saved preferences remain locally implemented with operational and data-clearance gates. Fixed installed profiles validate independent protected owner records, retained file handles, source/runtime manifests, parent/service identities and expiring authority. Core, supervisor, egress and worker payloads compose the native adapter; core isolates database readers and replaces lifecycle ownership on configuration Apply. Worker trust uses a separate read-only mount. Control proof binding now tolerates readiness before native write acknowledgement. The authorized installed Windows trial reached the guest Framework mismatch and stopped; no service or ACL provisioning occurred. The owner approved the guest Framework amendment; the image-specific worker helper now passes bounded guest runtime/transport checks.",
     "evidence_note": "Current source-bound offline results are in docs/verification.md and the external deepseek-verification.json index. Earlier administration, local model and Flash trial results remain historical; none grants present deployment approval."
   },
   "milestones": [
@@ -2479,11 +2479,22 @@
       "implemented": "Owner approved the exact synthetic Windows trial and WinSW bundle scope. The pinned worker source/runtime/helper package built into an actual Windows image; one bounded Hyper-V runtime probe executed. No application source changed.",
       "evidence": "Host compiler/Framework/Node and WinSW hashes matched. ContainerUser executed approved Node 24.19.0 in a four-CPU/eight-GiB Hyper-V container with network none, no mounts and no published ports. Guest Framework release 528449 differs from the host-pinned 533325; helper startup correctly rejected with PIPE_START_FAILED_1:PIPE_RUNTIME_CHANGED. Owned container removal and absence confirmed. No services, installation root/ACLs or existing data changed.",
       "remaining": "The approved trial stopped at its first incompatible runtime boundary. Review GitHub/.agent_docs/aphelion-sophie/windows-installation-trial-2026-09-28/runtime-amendment.md for the exact bundled guest Framework 4.8/compiler exception. WinSW and the named service/ACL trial are already approved; do not ask again. After a qualified guest build, resume service tokens, protected files, HCS masks, mount/credential isolation, physical termination and uncertain-create qualification. Provider/account, publication/actual-answer, preference-journal and Discord gates remain open."
+    },
+    {
+      "title": "Pinned guest Framework helper",
+      "tasks": [
+        "P22",
+        "P23",
+        "P24"
+      ],
+      "implemented": "Separate compile-time host and Server Core worker runtime pins. Guest helper builds with the exact image-bundled compiler and rejects installed host roles. Host Framework 4.8.1 pins remain unchanged; no runtime fallback or Microsoft binary copying.",
+      "evidence": "Exact guest CLR/assembly/compiler/configuration inventory recorded; GAC and Framework64 System hashes match. Guest build and 36 native assertions pass. Actual ContainerUser Node/helper tests pass 11 boundary groups, four stream groups and both cross-profile rejection checks in bounded network-disabled Hyper-V containers. Host build and stream checks pass. Owned trial containers removed.",
+      "remaining": "Continue the already approved service/file/HCS/mount/termination trial with the guest-specific package. Service tokens, installed protected-file acceptance, exact HCS identity/access, mount/credential isolation and uncertain-create disposition remain unqualified. No further approval is needed for the recorded service/WinSW/guest Framework scope. Stop at any new incompatible OS boundary. Provider, publication/actual-answer, preference-journal and Discord gates remain independent."
     }
   ],
   "next_steps": [
     {
-      "title": "Resolve the measured guest Framework gate, then resume the approved trial",
+      "title": "Continue the approved installed Windows boundary trial",
       "tasks": [
         "P21",
         "P22",
@@ -2491,8 +2502,8 @@
         "P24",
         "P25"
       ],
-      "work": "The approved trial stopped at its first incompatible runtime boundary. Review GitHub/.agent_docs/aphelion-sophie/windows-installation-trial-2026-09-28/runtime-amendment.md for the exact bundled guest Framework 4.8/compiler exception. WinSW and the named service/ACL trial are already approved; do not ask again. After a qualified guest build, resume service tokens, protected files, HCS masks, mount/credential isolation, physical termination and uncertain-create qualification. Provider/account, publication/actual-answer, preference-journal and Discord gates remain open.",
-      "exit_evidence": "Exact guest runtime/toolchain scope decision and source-bound guest build/loaded-runtime evidence before continuing the already authorized Windows trial. No field-test approval from a runtime probe."
+      "work": "Continue the already approved service/file/HCS/mount/termination trial with the guest-specific package. Service tokens, installed protected-file acceptance, exact HCS identity/access, mount/credential isolation and uncertain-create disposition remain unqualified. No further approval is needed for the recorded service/WinSW/guest Framework scope. Stop at any new incompatible OS boundary. Provider, publication/actual-answer, preference-journal and Discord gates remain independent.",
+      "exit_evidence": "Source-bound measured service/file/HCS/network/termination evidence. Guest runtime checks alone do not establish field-test readiness."
     },
     {
       "title": "Privately verify deployed configuration and apply workflow",
@@ -2629,14 +2640,14 @@
       {
         "id": "DS-04",
         "title": "Windows worker and transport",
-        "implementation": "Fixed installed profiles validate independent protected owner records, retained file handles, source/runtime manifests, parent/service identities and expiring authority. Core, supervisor, egress and worker payloads compose the native adapter; core isolates database readers and replaces lifecycle ownership on configuration Apply. Worker trust uses a separate read-only mount. Control proof binding now tolerates readiness before native write acknowledgement.",
-        "qualification": "Pinned nine-source x64 helper build; 36 native descriptor/path/profile assertions; 11 companion and four stream PASS groups; six installation configuration checks; three composed scenarios with four actual synthetic companions; 15 isolated PostgreSQL privilege checks with owned cluster stopped; 51 focused repository checks (50 control/supervisor/worker plus new trust-mount regression). No installed-service, container, real provider or Discord qualification. Host compiler/Framework/Node and WinSW hashes matched. ContainerUser executed approved Node 24.19.0 in a four-CPU/eight-GiB Hyper-V container with network none, no mounts and no published ports. Guest Framework release 528449 differs from the host-pinned 533325; helper startup correctly rejected with PIPE_START_FAILED_1:PIPE_RUNTIME_CHANGED. Owned container removal and absence confirmed. No services, installation root/ACLs or existing data changed.",
+        "implementation": "Fixed installed profiles validate independent protected owner records, retained file handles, source/runtime manifests, parent/service identities and expiring authority. Core, supervisor, egress and worker payloads compose the native adapter; core isolates database readers and replaces lifecycle ownership on configuration Apply. Worker trust uses a separate read-only mount. Control proof binding now tolerates readiness before native write acknowledgement. Separate compile-time host and Server Core worker runtime pins. Guest helper builds with the exact image-bundled compiler and rejects installed host roles. Host Framework 4.8.1 pins remain unchanged; no runtime fallback or Microsoft binary copying.",
+        "qualification": "Pinned nine-source x64 helper build; 36 native descriptor/path/profile assertions; 11 companion and four stream PASS groups; six installation configuration checks; three composed scenarios with four actual synthetic companions; 15 isolated PostgreSQL privilege checks with owned cluster stopped; 51 focused repository checks (50 control/supervisor/worker plus new trust-mount regression). No installed-service, container, real provider or Discord qualification. Host compiler/Framework/Node and WinSW hashes matched. ContainerUser executed approved Node 24.19.0 in a four-CPU/eight-GiB Hyper-V container with network none, no mounts and no published ports. Guest Framework release 528449 differs from the host-pinned 533325; helper startup correctly rejected with PIPE_START_FAILED_1:PIPE_RUNTIME_CHANGED. Owned container removal and absence confirmed. No services, installation root/ACLs or existing data changed. Exact guest CLR/assembly/compiler/configuration inventory recorded; GAC and Framework64 System hashes match. Guest build and 36 native assertions pass. Actual ContainerUser Node/helper tests pass 11 boundary groups, four stream groups and both cross-profile rejection checks in bounded network-disabled Hyper-V containers. Host build and stream checks pass. Owned trial containers removed.",
         "sai": [
           "SAI-04",
           "SAI-05",
           "SAI-14"
         ],
-        "remaining": "The approved trial stopped at its first incompatible runtime boundary. Review GitHub/.agent_docs/aphelion-sophie/windows-installation-trial-2026-09-28/runtime-amendment.md for the exact bundled guest Framework 4.8/compiler exception. WinSW and the named service/ACL trial are already approved; do not ask again. After a qualified guest build, resume service tokens, protected files, HCS masks, mount/credential isolation, physical termination and uncertain-create qualification. Provider/account, publication/actual-answer, preference-journal and Discord gates remain open."
+        "remaining": "Continue the already approved service/file/HCS/mount/termination trial with the guest-specific package. Service tokens, installed protected-file acceptance, exact HCS identity/access, mount/credential isolation and uncertain-create disposition remain unqualified. No further approval is needed for the recorded service/WinSW/guest Framework scope. Stop at any new incompatible OS boundary. Provider, publication/actual-answer, preference-journal and Discord gates remain independent."
       },
       {
         "id": "DS-05",
@@ -2687,14 +2698,14 @@
       {
         "id": "DS-09",
         "title": "Effects and operating controls",
-        "implementation": "Durable desired/active/acknowledged worker revisions and authenticated AI-only apply/stop/recovery controls now compose fixed native core/supervisor/egress payloads. Configuration Apply closes old lifecycle ownership before replacement.",
-        "qualification": "Pinned nine-source x64 helper build; 36 native descriptor/path/profile assertions; 11 companion and four stream PASS groups; six installation configuration checks; three composed scenarios with four actual synthetic companions; 15 isolated PostgreSQL privilege checks with owned cluster stopped; 51 focused repository checks (50 control/supervisor/worker plus new trust-mount regression). No installed-service, container, real provider or Discord qualification. Host compiler/Framework/Node and WinSW hashes matched. ContainerUser executed approved Node 24.19.0 in a four-CPU/eight-GiB Hyper-V container with network none, no mounts and no published ports. Guest Framework release 528449 differs from the host-pinned 533325; helper startup correctly rejected with PIPE_START_FAILED_1:PIPE_RUNTIME_CHANGED. Owned container removal and absence confirmed. No services, installation root/ACLs or existing data changed.",
+        "implementation": "Durable desired/active/acknowledged worker revisions and authenticated AI-only apply/stop/recovery controls now compose fixed native core/supervisor/egress payloads. Configuration Apply closes old lifecycle ownership before replacement. Separate compile-time host and Server Core worker runtime pins. Guest helper builds with the exact image-bundled compiler and rejects installed host roles. Host Framework 4.8.1 pins remain unchanged; no runtime fallback or Microsoft binary copying.",
+        "qualification": "Pinned nine-source x64 helper build; 36 native descriptor/path/profile assertions; 11 companion and four stream PASS groups; six installation configuration checks; three composed scenarios with four actual synthetic companions; 15 isolated PostgreSQL privilege checks with owned cluster stopped; 51 focused repository checks (50 control/supervisor/worker plus new trust-mount regression). No installed-service, container, real provider or Discord qualification. Host compiler/Framework/Node and WinSW hashes matched. ContainerUser executed approved Node 24.19.0 in a four-CPU/eight-GiB Hyper-V container with network none, no mounts and no published ports. Guest Framework release 528449 differs from the host-pinned 533325; helper startup correctly rejected with PIPE_START_FAILED_1:PIPE_RUNTIME_CHANGED. Owned container removal and absence confirmed. No services, installation root/ACLs or existing data changed. Exact guest CLR/assembly/compiler/configuration inventory recorded; GAC and Framework64 System hashes match. Guest build and 36 native assertions pass. Actual ContainerUser Node/helper tests pass 11 boundary groups, four stream groups and both cross-profile rejection checks in bounded network-disabled Hyper-V containers. Host build and stream checks pass. Owned trial containers removed.",
         "sai": [
           "SAI-06",
           "SAI-07",
           "SAI-14"
         ],
-        "remaining": "The approved trial stopped at its first incompatible runtime boundary. Review GitHub/.agent_docs/aphelion-sophie/windows-installation-trial-2026-09-28/runtime-amendment.md for the exact bundled guest Framework 4.8/compiler exception. WinSW and the named service/ACL trial are already approved; do not ask again. After a qualified guest build, resume service tokens, protected files, HCS masks, mount/credential isolation, physical termination and uncertain-create qualification. Provider/account, publication/actual-answer, preference-journal and Discord gates remain open."
+        "remaining": "Continue the already approved service/file/HCS/mount/termination trial with the guest-specific package. Service tokens, installed protected-file acceptance, exact HCS identity/access, mount/credential isolation and uncertain-create disposition remain unqualified. No further approval is needed for the recorded service/WinSW/guest Framework scope. Stop at any new incompatible OS boundary. Provider, publication/actual-answer, preference-journal and Discord gates remain independent."
       },
       {
         "id": "DS-10",

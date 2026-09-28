@@ -1,0 +1,60 @@
+{
+  "name": "Pinned Server Core guest pipe-helper toolchain",
+  "approvedOn": "2026-09-28",
+  "authorization": "Owner approved the container Framework amendment and instructed proceeding.",
+  "proposal": "GitHub/.agent_docs/aphelion-sophie/windows-installation-trial-2026-09-28/runtime-amendment.md",
+  "proposalSha256": "ddbbfaf70a491435ee3597aff74129f0cf48c8f9ebabde30b1cefd5cb7ae579c",
+  "baseImage": "mcr.microsoft.com/windows/servercore@sha256:e10503b9a4f7faafa30aa0f5d0e8e7f7ca30a4496b3b87d61178b4d7c6815fb5",
+  "runtime": "Bundled Microsoft .NET Framework 4.8, release 528449",
+  "compilerVersion": "4.8.4161.0",
+  "compilerSha256": "adeda78a951529462f9411e016c1a1b87ddfd94c55912cbd2957817f39929af1",
+  "licence": "Original Microsoft Windows/Framework terms, not MIT",
+  "scope": "Compile and qualify the original MIT worker pipe helper and focused boundary drivers solely in this pinned, network-disabled Hyper-V image. Complete exact loaded-assembly/compiler-configuration inventory before compilation.",
+  "guestBuildApproved": true,
+  "syntheticQualificationApproved": true,
+  "hostRuntimeChangeApproved": false,
+  "microsoftBinaryExportApproved": false,
+  "futureImageOrRuntimeVersionsApproved": false,
+  "dependencies": [
+    "Image-bundled mscorlib",
+    "Image-bundled System"
+  ],
+  "excluded": [
+    "NuGet",
+    "System.Core",
+    "Microsoft binary copying",
+    "Framework installers",
+    "base-image upgrades",
+    "broader language migration",
+    "production activation"
+  ],
+  "operationalQualification": "Guest compilation, ContainerUser Node/helper startup, native descriptors and bounded stream/cancellation checks passed; installed service/file/HCS qualification remains open.",
+  "inventory": "GitHub/.agent_docs/aphelion-sophie/windows-guest-framework/guest/runtime-inventory.json",
+  "inventorySha256": "92b36fdaa48f677002cb6a6d1602c86f5bf8273266df4ba4a2aa41b1a934a204",
+  "runtimeFiles": [
+    {
+      "path": "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\mscorlib.dll",
+      "bytes": 5493816,
+      "version": "4.8.4795.0 built by: NET48REL1LAST_B",
+      "sha256": "95c53c3b0b8060d7471e13916d1bc46a51d60db5e613f3658a5cd4616a278394"
+    },
+    {
+      "path": "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.dll",
+      "bytes": 3571376,
+      "version": "4.8.4803.0 built by: NET48REL1LAST_B",
+      "sha256": "1ca1c0608877281208dc12afd576e6040746186b476cc9dc41434682664cb98b"
+    },
+    {
+      "path": "C:\\Windows\\Microsoft.Net\\assembly\\GAC_MSIL\\System\\v4.0_4.0.0.0__b77a5c561934e089\\System.dll",
+      "bytes": 3571376,
+      "version": "4.8.4803.0 built by: NET48REL1LAST_B",
+      "sha256": "1ca1c0608877281208dc12afd576e6040746186b476cc9dc41434682664cb98b"
+    },
+    {
+      "path": "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\clr.dll",
+      "bytes": 11712568,
+      "version": "4.8.4795.0 built by: NET48REL1LAST_B",
+      "sha256": "7c2aa62de41045661a3b2a5df548e51ace7c639d8679b2c2456fdd09b5a81958"
+    }
+  ]
+}
