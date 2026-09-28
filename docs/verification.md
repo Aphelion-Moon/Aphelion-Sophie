@@ -1,5 +1,15 @@
 # Verification and release limits
 
+## Gathering edits — 28 September 2026
+
+Eligible complete edits now replace their own gathering revision after Gateway
+commit and fresh authority checks. Original receipt time, deadline, root owner,
+absolute gathering ceiling and size limits remain fixed. Partial, conflicting,
+changed-scope and late edits cancel. Edits after freeze never start a second call.
+43 focused checks and 63 isolated AI/knowledge/Gateway scenarios pass; the database
+stopped. Actual provider concurrency and Discord timing remain unqualified.
+Source-bound evidence: `GitHub/.agent_docs/aphelion-sophie/ai-edits-verification.json`.
+
 ## Explicit local response preferences — 28 September 2026
 
 Schema062 adds member-saved reply length and language only, authenticated self

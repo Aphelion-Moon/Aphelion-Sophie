@@ -10,25 +10,37 @@ export function createAiTurns({ admission, scheduler, context, knowledge, messag
     clearTimeout(entry.timer); gatherings.delete(entry.rootId);
     entry.resolve?.(entry.cancelled ? null : [...entry.fragments.values()].sort((a,b)=>a.receivedAt-b.receivedAt || a.messageId.localeCompare(b.messageId)));
   }
+  function scheduleGather(entry) {
+    clearTimeout(entry.timer);
+    entry.timer=setTimeout(()=>finishGather(entry),Math.max(1,(entry.editing ? entry.until : entry.quietUntil)-clock()));
+  }
+  function gatheringFor(filter) {
+    return [...gatherings.values()].find(entry=>entry.fragments.has(filter.messageId) && entry.fragments.get(filter.messageId).channelId===filter.channelId);
+  }
+  function invalidateContext(filter) {
+    context.invalidate(filter);onInvalidate(filter);
+    for(const [id,{request}] of outstanding)if(!filter.channelId || request.channelId===filter.channelId)scheduler.cancel(id);
+  }
   async function gather(request) {
     const lease = request.gather;
     if (!lease) return request;
     let entry = gatherings.get(lease.rootId);
     if (!entry) {
       if (gatherings.size >= 4) return null;
-      entry = { rootId:lease.rootId, fragments:new Map(), quietUntil:lease.quietUntil, until:lease.until, timer:null, cancelled:false, resolve:null };
+      entry = { rootId:lease.rootId, fragments:new Map(), quietUntil:lease.quietUntil, until:lease.until, timer:null, cancelled:false, resolve:null, editing:false };
       gatherings.set(lease.rootId,entry);
     }
+    if(entry.editing){entry.cancelled=true;finishGather(entry);return null;}
     entry.fragments.set(request.messageId,request);
     entry.quietUntil = Math.min(entry.until,Math.max(entry.quietUntil,lease.quietUntil));
     if (entry.fragments.size >= 3) entry.quietUntil = clock();
-    clearTimeout(entry.timer);
-    entry.timer = setTimeout(()=>finishGather(entry),Math.max(1,entry.quietUntil-clock()));
+    scheduleGather(entry);
     if (lease.rootId !== request.messageId) return 'joined';
     const fragments = await new Promise(resolve=>{entry.resolve=resolve;});
-    if (!fragments || !await admission.freezeGather(request,fragments)) return null;
-    const combined = [request,...fragments.filter(item=>item.messageId!==request.messageId)];
-    return { ...request, text:combined.map(item=>item.text).join('\n'), fragments:combined };
+    const root=fragments?.find(item=>item.messageId===request.messageId);
+    if (!root || entry.editing || !await admission.freezeGather(root,fragments)) return null;
+    const combined = [root,...fragments.filter(item=>item.messageId!==root.messageId)];
+    return { ...root, text:combined.map(item=>item.text).join('\n'), fragments:combined };
   }
   const historyCurrent = (request, source) => context.current(source, item => admission.revalidateSource(item), items => knowledge.current(items, request));
   async function current(request, sources = [], history = []) {
@@ -96,6 +108,23 @@ export function createAiTurns({ admission, scheduler, context, knowledge, messag
     }
   }
   return Object.freeze({
+    prepareEdit(filter) {
+      invalidateContext(filter);
+      const entry=gatheringFor(filter);
+      if(!entry)return false;
+      if(stopped || entry.editing || clock()>=entry.quietUntil || clock()>=entry.until){entry.cancelled=true;finishGather(entry);return false;}
+      entry.editing=true;scheduleGather(entry);return true;
+    },
+    async edit(proof,filter) {
+      const entry=gatheringFor(filter),previous=entry?.fragments.get(filter.messageId);
+      if(!entry?.editing || stopped)return {state:'cancelled'};
+      try {
+        const replacement=await admission.replaceGather(proof,previous);
+        if(!replacement || gatherings.get(entry.rootId)!==entry || clock()>=entry.until || stopped){entry.cancelled=true;finishGather(entry);return {state:'cancelled'};}
+        entry.fragments.set(filter.messageId,replacement);entry.quietUntil=replacement.gather.quietUntil;entry.editing=false;
+        context.remember(replacement);scheduleGather(entry);return {state:'gathered'};
+      } catch {entry.cancelled=true;finishGather(entry);return {state:'cancelled'};}
+    },
     async handle(proof) {
       if (stopped) return { state: 'disabled' };
       let request = await admission.admit(proof); if (!request) return { state: 'ignored' };
@@ -110,12 +139,9 @@ export function createAiTurns({ admission, scheduler, context, knowledge, messag
       try { return await task; } finally { outstanding.delete(request.messageId); }
     },
     invalidate(filter = {}) {
-      context.invalidate(filter);
-      onInvalidate(filter);
+      invalidateContext(filter);
       for (const entry of [...gatherings.values()]) if ([...entry.fragments.values()].some(item=>(!filter.channelId || item.channelId===filter.channelId) &&
         (!filter.userId || item.userId===filter.userId) && (!filter.messageId || item.messageId===filter.messageId))) { entry.cancelled=true; finishGather(entry); }
-      // Any source in this bounded lane may be a history dependency of an active turn.
-      for (const [id, { request }] of outstanding) if (!filter.channelId || request.channelId === filter.channelId) scheduler.cancel(id);
     },
     async stop() {
       stopped = true; for (const entry of [...gatherings.values()]) { entry.cancelled=true; finishGather(entry); }

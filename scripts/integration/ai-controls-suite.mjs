@@ -160,6 +160,25 @@ export async function runAiControlsSuite(cluster, run) {
     await admin.query('UPDATE sophie_ai.request_receipts SET gather_quiet_until=clock_timestamp() WHERE message_id=$1',[root.messageId]);
     sourceRevision='edited';assert.equal(await lane.freezeGather(root,[root,joined]),false);sourceRevision='original';
   });
+  await run('DS06-E01 edits replace only a matching gathering revision under the original receipt deadline and limits', async()=>{
+    const fresh=createAiIngress({guildId:actor.guildId,botUserId:'505',clock:Date.now}),lane=admissionFor(fresh);
+    const prepare=(id,text,edit=false,extras={})=>fresh.prepare({t:edit?'MESSAGE_UPDATE':'MESSAGE_CREATE',d:{guild_id:actor.guildId,channel_id:'303',id,
+      author:{id:actor.userId,bot:false},type:0,mentions:[],attachments:[],content:text,...(edit?{edited_timestamp:sourceRevision}:{}),...extras}});
+    const reset=()=>admin.query("UPDATE sophie_ai.request_receipts SET state='silent',received_at=clock_timestamp()-interval '2 minutes' WHERE guild_id=$1",[actor.guildId]);
+    await reset();const root=await lane.admit(prepare('720','Before edit'));
+    sourceRevision=new Date().toISOString();const updated=await lane.replaceGather(prepare('720','After edit',true),root);
+    assert.equal(updated.text,'After edit');assert.equal(updated.deadline,root.deadline);assert.equal(updated.receivedAt,root.receivedAt);
+    assert.equal(updated.gather.until,root.gather.until);
+    assert.equal(await lane.replaceGather(prepare('720','Stale writer',true),root),null);
+    sourceRevision=new Date(Date.now()+1).toISOString();assert.equal(await lane.replaceGather(prepare('720','😀'.repeat(1025),true),updated),null);
+    contextEligible=false;assert.equal(await lane.replaceGather(prepare('720','Excluded edit',true),updated),null);contextEligible=true;
+    sourceRevision=new Date(Date.now()+2).toISOString();assert.equal(await lane.replaceGather(prepare('720','Different target',true,{mentions:[{id:'505'}]}),updated),null);
+    sourceRevision=new Date().toISOString();
+    await admin.query('UPDATE sophie_ai.request_receipts SET gather_quiet_until=clock_timestamp() WHERE message_id=$1',[root.messageId]);
+    assert.equal(await lane.replaceGather(prepare('720','Too late',true),updated),null);
+    assert.equal((await admin.query('SELECT input_revision FROM sophie_ai.request_receipts WHERE message_id=$1',[root.messageId])).rows[0].input_revision,updated.inputRevision);
+    sourceRevision='original';
+  });
   await run('AI12 departure and rejoin cannot revive enrollment; withdrawn qualification blocks before body read', async () => {
     presenceEpoch = 2; bodyReads = 0; assert.equal(await admission.admit(event('606')), null); assert.equal(bodyReads, 0); presenceEpoch = 1;
     await admin.query('UPDATE sophie_ai.qualifications SET active=false WHERE guild_id=$1', [actor.guildId]);

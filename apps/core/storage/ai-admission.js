@@ -47,6 +47,7 @@ export function createAiAdmission({ pool, guildId, ingress, inspectContext, insp
       if (proof === null) return null;
       try {
         const event = ingress.inspect(proof);
+        if (event.kind !== 'MESSAGE_CREATE') return null;
         return await inTransaction(pool, async client => {
           await client.query('SELECT pg_advisory_xact_lock(182745,56)');
           const initial = await snapshot(client, event);
@@ -76,7 +77,7 @@ export function createAiAdmission({ pool, guildId, ingress, inspectContext, insp
                 VALUES($1,$2,$3,$4,$5,'gathered',$6,false,$7,$8,$9)`, [guildId,event.messageId,event.channelId,event.userId,inputRevision,open.deadline,new Date(event.receivedAt),open.message_id,gatherOwner]);
               await client.query(`UPDATE sophie_ai.request_receipts SET gather_bytes=gather_bytes+$3+1,gather_chars=gather_chars+$4+1,gather_quiet_until=$5
                 WHERE guild_id=$1 AND message_id=$2`, [guildId,open.message_id,bytes,content.text.length,new Date(quietUntil)]);
-              return { ...event,inputRevision,...initial,decision,text:content.text,
+              return { ...event,inputRevision,...initial,deadline:open.deadline.getTime(),decision,text:content.text,
                 gather:{rootId:open.message_id,owner:gatherOwner,until:open.gather_until.getTime(),quietUntil} };
             }
           }
@@ -108,6 +109,40 @@ export function createAiAdmission({ pool, guildId, ingress, inspectContext, insp
           return { ...event, inputRevision, ...initial, decision, text: content.text, gather };
         });
       } finally { ingress.discard(proof); }
+    },
+    async replaceGather(proof, previous) {
+      try {
+        const edited = ingress.inspect(proof);
+        if (edited.kind !== 'MESSAGE_UPDATE' || !previous.gather || edited.messageId!==previous.messageId ||
+          edited.channelId!==previous.channelId || edited.userId!==previous.userId) return null;
+        const event={...edited,receivedAt:previous.receivedAt};
+        return await inTransaction(pool,async client=>{
+          await client.query('SELECT pg_advisory_xact_lock(182745,56)');
+          const rows=(await client.query('SELECT * FROM sophie_ai.request_receipts WHERE guild_id=$1 AND gather_root=$2',[guildId,previous.gather.rootId])).rows;
+          const root=rows.find(row=>row.message_id===previous.gather.rootId),prior=rows.find(row=>row.message_id===previous.messageId);
+          if (!root || root.state!=='gathering' || root.gather_owner!==gatherOwner || !prior || prior.input_revision!==previous.inputRevision ||
+            clock()>=root.gather_until.getTime() || clock()>=root.gather_quiet_until.getTime()) return null;
+          const initial=await snapshot(client,event);if(!initial || initial.profile.mode!=='conversational')return null;
+          const content=ingress.content(proof);if(!content)return null;
+          const decision=participationDecision(initial.profile,{addressed:content.addressed,question:questionCandidate(content.text),directedToOther:content.directedToOther,now:clock()});
+          decision.outcomes=decision.outcomes.filter(kind=>kind==='silent' || initial.capabilities[kind]);
+          const {inputRevision:_revision,...scope}=initial.binding;
+          if(aiDigest({scope,target:content.conversationTarget,decision})!==root.gather_scope)return null;
+          const inputRevision=aiDigest([event.messageId,content.inputRevision]);
+          if(inputRevision!==initial.binding.inputRevision || inputRevision===previous.inputRevision)return null;
+          const bytes=root.gather_bytes-Buffer.byteLength(previous.text,'utf8')+Buffer.byteLength(content.text,'utf8');
+          const chars=root.gather_chars-previous.text.length+content.text.length;
+          if(bytes>4096 || chars>4000)return null;
+          const latest=await snapshot(client,event);
+          if(!latest || aiDigest(latest.binding)!==aiDigest(initial.binding) || clock()>=root.gather_until.getTime())return null;
+          const quietUntil=Math.min(clock()+750,root.gather_until.getTime());
+          await client.query('UPDATE sophie_ai.request_receipts SET input_revision=$3,updated_at=clock_timestamp() WHERE guild_id=$1 AND message_id=$2',[guildId,event.messageId,inputRevision]);
+          await client.query('UPDATE sophie_ai.request_receipts SET gather_bytes=$3,gather_chars=$4,gather_quiet_until=$5 WHERE guild_id=$1 AND message_id=$2',
+            [guildId,root.message_id,bytes,chars,new Date(quietUntil)]);
+          return {...previous,...initial,inputRevision,text:content.text,deadline:previous.deadline,
+            gather:{...previous.gather,quietUntil}};
+        });
+      } finally {ingress.discard(proof);}
     },
     async revalidate(request) {
       requireInteger(request.deadline);

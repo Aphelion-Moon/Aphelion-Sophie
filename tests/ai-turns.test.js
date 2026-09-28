@@ -132,6 +132,26 @@ test('DS-06 an edited gathering source cancels before generation without renewin
   f.turns.invalidate({channelId:'202',messageId:'303'});assert.equal((await work).state,'cancelled');assert.equal(f.modelCalls.length,0);
 });
 
+test('DS-06 a committed eligible edit replaces its fragment once without moving the root deadline', async () => {
+  const f=turnsFixture();f.value.gather={rootId:'303',owner:'synthetic',until:2500,quietUntil:1750};
+  f.admission.replaceGather=async(_proof,prior)=>({...prior,text:'Corrected fragment',inputRevision:'edited',gather:{...prior.gather,quietUntil:1000}});
+  f.admission.freezeGather=async(root,parts)=>{assert.equal(root.inputRevision,'edited');assert.equal(parts[0].text,'Corrected fragment');return true;};
+  const work=f.turns.handle({});await new Promise(resolve=>setImmediate(resolve));
+  const filter={channelId:'202',messageId:'303'};assert.equal(f.turns.prepareEdit(filter),true);
+  assert.deepEqual(await f.turns.edit({},filter),{state:'gathered'});
+  assert.equal((await work).state,'delivered');assert.equal(f.modelCalls.length,1);assert.equal(f.modelCalls[0].deadline,16000);
+  assert.match(f.modelCalls[0].payload.messages.at(-1).content,/Corrected fragment/);
+  assert.doesNotMatch(f.modelCalls[0].payload.messages.at(-1).content,/Synthetic hello/);await f.turns.stop();
+});
+
+test('DS-06 overlapping edits or an edit after freeze cannot launch replacement inference', async()=>{
+  const f=turnsFixture();f.value.gather={rootId:'303',owner:'synthetic',until:2500,quietUntil:1750};
+  f.admission.freezeGather=async()=>assert.fail('ambiguous revision must not freeze');
+  const work=f.turns.handle({});await new Promise(resolve=>setImmediate(resolve));
+  const filter={channelId:'202',messageId:'303'};assert.equal(f.turns.prepareEdit(filter),true);assert.equal(f.turns.prepareEdit(filter),false);
+  assert.equal((await work).state,'cancelled');assert.equal(f.modelCalls.length,0);assert.equal(f.turns.prepareEdit(filter),false);
+});
+
 test('SAI AT-03/13 revocation or expired retrieval prevents model admission and late generated replies', async () => {
   const staleRetrieval = turnsFixture(); staleRetrieval.knowledge.lookup = async () => { staleRetrieval.time(16000); return []; };
   await staleRetrieval.turns.handle({}); assert.equal(staleRetrieval.modelCalls.length, 0); assert.equal(staleRetrieval.sent.length, 0);

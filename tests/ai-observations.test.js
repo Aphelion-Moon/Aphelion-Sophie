@@ -75,3 +75,16 @@ test('SAI AT-07 Gateway handoff is bounded, commit-dependent and detached from s
   assert.deepEqual(invalidations.at(-1), { channelId: '202', messageId: '301' });
   release(); await bridge.stop(); assert.equal(bridge.prepare(packet('306')), null);
 });
+
+test('DS06-E02 only a complete committed edit reaches replacement; rejected or partial edits cancel',async()=>{
+  const ingress=createAiIngress({guildId:'101',botUserId:'505',clock:()=>1000}),invalidations=[],seen=[];
+  const turns={prepareEdit:()=>true,edit:async proof=>seen.push(ingress.content(proof)),handle:()=>assert.fail('edits cannot become new turns'),
+    invalidate:filter=>invalidations.push(filter),stop:async()=>{}};
+  const bridge=createAiGateway({ingress,turns,onFault:()=>assert.fail('unexpected fault')});
+  const packet={t:'MESSAGE_UPDATE',d:{guild_id:'101',id:'303',channel_id:'202',author:{id:'404'},type:0,
+    attachments:[],mentions:[],edited_timestamp:'2026-09-28T12:00:00Z',content:'Revised fragment'}};
+  const rejected=bridge.prepare(packet);bridge.committed(rejected,false);assert.equal(invalidations.length,1);assert.equal(seen.length,0);
+  const accepted=bridge.prepare(packet);bridge.committed(accepted,true);await new Promise(resolve=>setImmediate(resolve));assert.equal(seen[0].text,'Revised fragment');
+  const partial={...packet,d:{...packet.d}};delete partial.d.attachments;assert.equal(bridge.prepare(partial),null);assert.equal(invalidations.length,2);
+  await bridge.stop();
+});

@@ -10,8 +10,11 @@ export function createAiIngress({ guildId, botUserId, clock }) {
   }
   return Object.freeze({ guildId,
     prepare(payload) {
-      if (payload.t !== 'MESSAGE_CREATE') return null;
+      if (!['MESSAGE_CREATE','MESSAGE_UPDATE'].includes(payload.t)) return null;
       const raw = payload.d;
+      // Partial edits cannot prove that attachments, mentions and reference metadata remain eligible.
+      if (payload.t === 'MESSAGE_UPDATE' && (!Array.isArray(raw?.attachments) || !Array.isArray(raw?.mentions) ||
+        typeof raw.edited_timestamp !== 'string' || !Number.isFinite(Date.parse(raw.edited_timestamp)))) return null;
       if (raw?.guild_id !== guildId || ![0, 19].includes(raw.type) || raw.author?.bot !== false && raw.author?.bot !== undefined ||
         raw.author?.id === botUserId || raw.webhook_id != null || raw.interaction != null || raw.interaction_metadata != null) return null;
       for (const id of [raw.id, raw.channel_id, raw.author?.id]) requireId(id);
@@ -20,9 +23,9 @@ export function createAiIngress({ guildId, botUserId, clock }) {
       const entry = flood.get(raw.author.id) ?? { at:receivedAt, count:0 };
       if (entry.count >= 12 || !flood.has(raw.author.id) && flood.size >= 1000) return null;
       entry.count++; flood.set(raw.author.id,entry);
-      proofs.set(proof, { raw, receivedAt }); return proof;
+      proofs.set(proof, { raw, receivedAt, kind:payload.t }); return proof;
     },
-    inspect(proof) { const { raw, receivedAt } = held(proof); return { guildId, channelId: raw.channel_id, userId: raw.author.id, messageId: raw.id, receivedAt }; },
+    inspect(proof) { const { raw, receivedAt, kind } = held(proof); return { guildId, channelId: raw.channel_id, userId: raw.author.id, messageId: raw.id, receivedAt, kind }; },
     content(proof) {
       const { raw } = held(proof);
       // No embedded snapshot attribution shortcut; no fetching references or URLs to fill missing content.
