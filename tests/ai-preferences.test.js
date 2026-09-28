@@ -14,6 +14,7 @@ test('DS-08 independent journal rejects missing, truncated, changed-identity and
   const f=await fixture();assert.equal(await f.journal.read('101','202'),0);
   await f.journal.advance('101','202',0,1);await f.journal.advance('101','202',1,2);
   assert.equal(await f.journal.read('101','202'),2);
+  await assert.rejects(f.journal.advance('101','202',1,3),/AI_PREFERENCE_STALE/);
   await assert.rejects(createPreferenceJournal({path:resolve(f.path,'missing'),id:f.id,qualified:async()=>true}).read('101','202'),/AI_PREFERENCE_JOURNAL_UNAVAILABLE/);
   await assert.rejects(createPreferenceJournal({path:f.path,id:'b'.repeat(64),qualified:async()=>true}).read('101','202'),/AI_PREFERENCE_JOURNAL_UNAVAILABLE/);
   const text=await readFile(f.path,'utf8');await writeFile(f.path,text.slice(0,-1));await assert.rejects(f.journal.read('101','202'),/AI_PREFERENCE_JOURNAL_UNAVAILABLE/);

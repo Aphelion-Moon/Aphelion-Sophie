@@ -128,6 +128,16 @@ export async function runAiKnowledgeSuite(cluster, run) {
     assert.equal((await pool.query('SELECT count(*)::int AS count FROM sophie_knowledge.import_snapshots')).rows[0].count,1);
     const calls = fetched; await assert.rejects(imports.refreshPolicies({ actor: { userId: '999' } }),/OPERATION_DENIED/); assert.equal(fetched,calls);
   });
+  await run('DS07-K09 qualified service refresh has no publisher authority and cancellation cannot renew freshness',async()=>{
+    let qualified=false;
+    const service=createKnowledgeLibrary({...options,authorize:async()=>false,syncAuthorized:async()=>qualified,collector,extractor});
+    const before=fetched;await assert.rejects(service.synchronizePolicies(),/KNOWLEDGE_SYNC_UNQUALIFIED/);assert.equal(fetched,before);
+    qualified=true;assert.equal((await service.synchronizePolicies()).publishedAutomatically,false);
+    await assert.rejects(service.review({actor,expectedEpoch:1,document:wikiDocument}),/OPERATION_DENIED/);
+    const controller=new AbortController();controller.abort();const calls=fetched;
+    await assert.rejects(service.synchronizePolicies({signal:controller.signal}),/KNOWLEDGE_IMPORT_CANCELLED/);assert.equal(fetched,calls);
+    assert.equal((await pool.query('SELECT count(*)::int AS count FROM sophie_knowledge.publications WHERE document_id=$1',[wikiDocument.id])).rows[0].count,1);
+  });
   await run('DS07-K02 template-only change invalidates current and pending answers before extraction and never automatically republishes', async () => {
     templateVersion = 2; let release, entered;
     const ready = new Promise(resolve => { entered = resolve; });

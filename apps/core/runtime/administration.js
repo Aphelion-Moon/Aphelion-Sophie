@@ -44,9 +44,11 @@ import { createAutomationMessages } from '../discord/automation-messages.js';
 import { createAutomationDelivery } from '../storage/automation-delivery.js';
 import { createAutomationDispatcher } from '../discord/automation-dispatcher.js';
 import { createAutomationRecovery } from '../storage/automation-recovery.js';
+import { createKnowledgeLookupCommands } from '../discord/knowledge-lookup.js';
+import { inspectAutomationChannel } from '../storage/automation-channel-policy.js';
 
 /** One request lane owns its proof issuers and serial transport. Workers use a separate lane. */
-export function createAdministrationLane({ configuration, pool, token, fetch, clock, enabled, observer, principals, verifier, onFault, readSystemText }) {
+export function createAdministrationLane({ configuration, pool, token, fetch, clock, enabled, observer, principals, verifier, onFault, readSystemText, knowledge = null }) {
   const { mapping, casePolicy: policy, limits, definitionId, capabilityPolicy } = configuration;
   const transport = createDiscordTransport({ guildId: mapping.guildId, token, fetch, clock, enabled });
   const roles = createDiscordRoles({ transport, mapping, clock, readContinuity: observer.readContinuity });
@@ -76,9 +78,12 @@ export function createAdministrationLane({ configuration, pool, token, fetch, cl
   const caseAnswers = createCaseAnswerCommands({ ...common, replies: replyStore, guildId: mapping.guildId });
   const publicAnswers = createCuratedAnswerCommands({ authorization, enabled, guildId: mapping.guildId,
     answers: createCuratedAnswers({ pool, authorize, guildId: mapping.guildId }) });
+  const lookupChannels=createAutomationChannels({transport});
+  const knowledgeLookup=knowledge===null ? null:createKnowledgeLookupCommands({authorization,verifier,knowledge,guildId:mapping.guildId,enabled,clock,
+    inspectChannel:channelId=>inspectAutomationChannel(pool,{guildId:mapping.guildId,protectedCategoryId:policy.categoryId,channels:lookupChannels,channelId})});
   const commands = createAdministrationCommands({ onboardingClosure: createOnboardingChannelClosure({ authorization, roles, channels, store, enabled }), moderation: createModerationCommands(common),
     onboarding: createOnboardingCommands({ ...common, channels, definitionId, limits }), assistance, deliveryIssues, caseLifecycle, caseStaff,
-    caseIntake, caseContacts, caseDeliveryIssues, publicAnswers, caseAnswers, caseParticipants: createCaseParticipants(common),
+    caseIntake, caseContacts, caseDeliveryIssues, publicAnswers, caseAnswers, knowledgeLookup, caseParticipants: createCaseParticipants(common),
     caseReplies: createCaseReplyCommands({ ...common, verifier, replies: replyStore, guildId: mapping.guildId }) });
   const outbox = createOutbox({ pool });
   const directMessages = createCaseDirectNotices({ readSystemText, transport, roles, channels, botUserId: mapping.botUserId, clock });
@@ -100,5 +105,5 @@ export function createAdministrationLane({ configuration, pool, token, fetch, cl
     createOnboardingCleanup({ store, roles, enabled, clock })];
   return { transport, roles, channels, authorization, store, intakeStore, replyStore, commands, workers, caseIntake, automationRecovery,
     responseAdapters: { onboardingNavigation: createOnboardingNavigation({ ...common, channels }), onboardingAssistance: assistance,
-      onboardingDeliveryIssues: deliveryIssues, caseLifecycle, caseStaff, caseIntake, caseContacts, caseDeliveryIssues, publicAnswers, caseAnswers } };
+      onboardingDeliveryIssues: deliveryIssues, caseLifecycle, caseStaff, caseIntake, caseContacts, caseDeliveryIssues, publicAnswers, caseAnswers, knowledgeLookup } };
 }

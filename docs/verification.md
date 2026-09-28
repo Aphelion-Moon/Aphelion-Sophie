@@ -1,5 +1,25 @@
 # Verification and release limits
 
+## Discord lookup and unattended refresh — 28 September 2026
+
+Signed `/lookup` shares the dashboard's deterministic reviewed-source use case.
+Queries are bounded one-use core values outside routing metadata. Membership,
+non-case channel/parent and source validity are rechecked before a private exact
+source response. It works without an inference worker. No command was registered
+on Discord. Native-process knowledge composition provides qualified serialized
+Policies refresh and cancellation, with no automatic publication authority.
+
+61 focused checks, 64 isolated AI/knowledge/Gateway scenarios and 18 composed
+staging scenarios pass; both databases stopped. An initial new staging assertion
+used the wrong denial wording; the exact existing wording now passes. Preference
+review fixes constrain inline expiry to the current member and preserve journal
+conflicts. They are covered by the focused and isolated checks above.
+
+Evidence: `GitHub/.agent_docs/aphelion-sophie/knowledge-completion-verification.json`.
+Actual Windows knowledge identity, registration, reviewed source publication and
+the 40-question release gate remain open. All network/Discord checks here used
+synthetic adapters or loopback fixtures; no paid provider or live service changed.
+
 ## Gathering edits — 28 September 2026
 
 Eligible complete edits now replace their own gathering revision after Gateway

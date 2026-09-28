@@ -2,6 +2,7 @@ import { requireCondition, requireId } from '../../../contracts/validation.js';
 import { onboardingCommandDefinition } from '../../../modules/onboarding/entry-controls.js';
 import { ticketCommandDefinition } from '../../../modules/tickets/lifecycle.js';
 import { answerCommandDefinition } from '../../../modules/answers/discord.js';
+import { lookupCommandDefinition } from '../../../modules/assistant/lookup.js';
 
 function recoveryOptions() {
   return [{ type: 1, name: 'issues', description: 'Staff: inspect retained delivery issues.' },
@@ -16,7 +17,7 @@ export function administrationCommandDefinitions() {
   const onboarding = onboardingCommandDefinition(), ticket = ticketCommandDefinition();
   // integration_types/contexts are global-command fields; guild scope is fixed by the HTTP path.
   for (const command of [onboarding, ticket]) { delete command.integration_types; delete command.contexts; command.options.push(...recoveryOptions()); }
-  return [onboarding, ticket, answerCommandDefinition(), ...['mute', 'unmute'].map(name => ({ type: 1, name,
+  return [onboarding, ticket, answerCommandDefinition(), lookupCommandDefinition(), ...['mute', 'unmute'].map(name => ({ type: 1, name,
     description: name === 'mute' ? 'Staff: apply Muzzled and remove Crew.' : 'Staff: remove Muzzled and reconcile Crew.',
     options: [{ type: 6, name: 'member', description: 'Current guild member.', required: true }] }))];
 }

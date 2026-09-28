@@ -97,7 +97,7 @@ export async function createStagingRuntime({ configuration, pool, aiControlPool 
   if (aiWorker !== null) aiRuntime = createAiRuntime({ configuration: fixed, corePool: pool, controlPool: aiControlPool, worker: aiWorker, knowledge: aiKnowledge,
     observer, token, fetch, clock, enabled, onFault: fault });
   const readSystemText = createSystemWordingReader({ pool, guildId: fixed.mapping.guildId });
-  const lane = () => createAdministrationLane({ configuration: fixed, pool, token, fetch, clock, enabled, observer, principals, verifier, onFault: fault, readSystemText });
+  const lane = () => createAdministrationLane({ configuration: fixed, pool, token, fetch, clock, enabled, observer, principals, verifier, onFault: fault, readSystemText, knowledge:aiKnowledge });
   const requests = lane(), delivery = lane();
   const responder = createInteractionResponder({ verifier, applicationId: fixed.applicationId, fetch, clock, enabled, readSystemText, ...requests.responseAdapters });
   const interactions = createInteractionHttpServer({ verifier, commands: requests.commands, respond: responder.respond,

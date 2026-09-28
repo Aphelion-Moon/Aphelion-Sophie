@@ -467,6 +467,11 @@ export async function runStagingRuntimeSuite(cluster, run) {
     const headers = { Cookie: session, Origin: f.config.dashboard.origin, 'Content-Type': 'application/json', 'X-CSRF-Token': status.body.csrfToken };
     const response = await dashboardHttp(f.addresses.dashboard, '/api/knowledge/lookup', { method:'POST',headers,body:JSON.stringify({query:'synthetic topic'}) });
     assert.equal(response.status,200); assert.deepEqual(response.body.sources,[]); assert.equal(response.body.actorId,USER);
+    f.discord.state.channels.set(PUBLIC_CHANNEL,{id:PUBLIC_CHANNEL,guild_id:GUILD,type:0,parent_id:null,permission_overwrites:[]});
+    const command=()=>f.identities.payload({channel_id:PUBLIC_CHANNEL,member:{user:{id:USER}},data:{name:'lookup',type:1,options:[{name:'query',type:3,value:'synthetic topic'}]}});
+    assert.equal((await f.send(command())).body.type,5);assert.match(f.replies.at(-1).content,/No current reviewed source/);
+    f.discord.state.channels.get(PUBLIC_CHANNEL).parent_id=f.config.casePolicy.categoryId;
+    await f.send(command());assert.equal(f.replies.at(-1).content,'You don’t have access to this action. Please ask Staff if you need help.');
     assert.deepEqual(f.faults,[]);
   }, { knowledgeOnly: true });
 

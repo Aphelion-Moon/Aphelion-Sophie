@@ -43,7 +43,10 @@ export async function mediaWikiReviewEpoch(client, guildId, document) {
 }
 
 /** Uses the library's existing authorized transaction/identity guard and lock. No automatic publication. */
-export function createWikiImports({ guildId, transaction, collector, extractor, invalidate, clock }) {
+export function createWikiImports({ guildId, transaction:publisherTransaction, syncTransaction = null, collector, extractor, invalidate, clock }) {
+  // This private principal can refresh the fixed source only; it grants no publication authority.
+  const syncPrincipal=Object.freeze({});
+  const transaction=(actor,work)=>actor===syncPrincipal ? syncTransaction(work):publisherTransaction(actor,work);
   const head = async client => (await client.query('SELECT * FROM sophie_knowledge.import_sources WHERE guild_id=$1 AND collection_id=$2', [guildId,collection])).rows[0];
   async function currentLease(client, fence) {
     const row = await head(client);
@@ -58,7 +61,11 @@ export function createWikiImports({ guildId, transaction, collector, extractor, 
       });
     } finally { invalidate(); }
   }
-  return Object.freeze({
+  const api=Object.freeze({
+    synchronizePolicies({signal=new AbortController().signal}={}) {
+      requireCondition(typeof syncTransaction==='function','KNOWLEDGE_SYNC_UNQUALIFIED');
+      return api.refreshPolicies({actor:syncPrincipal,signal});
+    },
     async policiesStatus({ actor }) {
       return transaction(actor, async client => {
         const row = await head(client);
@@ -80,7 +87,8 @@ export function createWikiImports({ guildId, transaction, collector, extractor, 
         return { collection, snapshotHash, snapshot: row.snapshot, extraction: row.extraction, reviewed: false };
       });
     },
-    async refreshPolicies({ actor }) {
+    async refreshPolicies({ actor, signal=new AbortController().signal }) {
+      requireCondition(!signal.aborted,'KNOWLEDGE_IMPORT_CANCELLED');
       requireCondition(collector && typeof collector.collectPolicies === 'function' && extractor && typeof extractor.extract === 'function', 'KNOWLEDGE_IMPORT_UNAVAILABLE');
       const fence = randomUUID();
       await transaction(actor, async client => {
@@ -90,7 +98,8 @@ export function createWikiImports({ guildId, transaction, collector, extractor, 
         await client.query("UPDATE sophie_knowledge.import_sources SET lease_fence=$3,lease_until=clock_timestamp()+interval '60 seconds' WHERE guild_id=$1 AND collection_id=$2", [guildId,collection,fence]);
       });
       try {
-        const snapshot = verifySnapshot(await collector.collectPolicies({ timeoutMs: 30000 }));
+        const snapshot = verifySnapshot(await collector.collectPolicies({ signal, timeoutMs: 30000 }));
+        requireCondition(!signal.aborted,'KNOWLEDGE_IMPORT_CANCELLED');
         requireCondition(snapshot.fetchedAt <= clock() && clock() - snapshot.fetchedAt < 60000, 'KNOWLEDGE_SOURCE_STALE');
         const collected = await transaction(actor, async client => {
           const previous = await currentLease(client,fence);
@@ -113,7 +122,7 @@ export function createWikiImports({ guildId, transaction, collector, extractor, 
         // Commit the changed source boundary before asynchronous parsing or human publication review.
         if (collected.changed || !collected.ready) invalidate();
         if (!collected.ready) {
-          const extraction = await extractor.extract(snapshot), { htmlHash, extractHash, ...payload } = extraction;
+          const extraction = await extractor.extract({...snapshot,signal}), { htmlHash, extractHash, ...payload } = extraction;
           requireCondition(htmlHash === snapshot.htmlHash && extractHash === hash(payload) && payload.reviewed === false && payload.extractorRevision === MEDIAWIKI_EXTRACTOR_REVISION &&
             Buffer.byteLength(JSON.stringify(extraction)) <= 3145728, 'KNOWLEDGE_IMPORT_INVALID');
           await transaction(actor, async client => {
@@ -122,6 +131,7 @@ export function createWikiImports({ guildId, transaction, collector, extractor, 
           });
         }
         await transaction(actor, async client => {
+          requireCondition(!signal.aborted,'KNOWLEDGE_IMPORT_CANCELLED');
           const row = await currentLease(client,fence); requireCondition(row.snapshot_sha256 === snapshot.snapshotHash, 'KNOWLEDGE_IMPORT_STALE');
           await client.query("UPDATE sophie_knowledge.import_sources SET state='ready',lease_fence=NULL,lease_until=NULL WHERE guild_id=$1 AND collection_id=$2", [guildId,collection]);
         });
@@ -132,4 +142,5 @@ export function createWikiImports({ guildId, transaction, collector, extractor, 
       }
     },
   });
+  return api;
 }

@@ -7,7 +7,7 @@ const digest = value => createHash('sha256').update(JSON.stringify(value)).diges
 const hash = value => requireCondition(typeof value === 'string' && /^[a-f0-9]{64}$/.test(value), 'KNOWLEDGE_HASH_INVALID');
 
 /** Approved public records only; this service must use a principal with no case/AI-consent access. */
-export function createKnowledgeLibrary({ pool, guildId, authorize, restoreCurrent, clock, collector = null, extractor = null, invalidate = () => {} }) {
+export function createKnowledgeLibrary({ pool, guildId, authorize, restoreCurrent, clock, collector = null, extractor = null, invalidate = () => {}, syncAuthorized = async()=>false }) {
   requireId(guildId); requireCondition([authorize, restoreCurrent, clock].every(fn => typeof fn === 'function'), 'TRUSTED_ADAPTERS_REQUIRED');
   async function ready(client = pool) {
     requireCondition(await restoreCurrent() === true, 'KNOWLEDGE_RESTORE_QUARANTINED');
@@ -27,15 +27,17 @@ export function createKnowledgeLibrary({ pool, guildId, authorize, restoreCurren
     const sourceEpoch = await mediaWikiReviewEpoch(client,guildId,document);
     return digest(sourceEpoch === null ? input : { ...input, sourceEpoch });
   }
-  async function transaction(actor, work) {
-    await access(actor); const client = await pool.connect(); let broken = false;
+  async function runTransaction(check,work) {
+    await check(); const client = await pool.connect(); let broken = false;
     try {
       await client.query('BEGIN'); await client.query('SELECT pg_advisory_xact_lock(182745,58)'); await ready(client);
-      const result = await work(client); await access(actor); requireCondition(await restoreCurrent() === true, 'KNOWLEDGE_RESTORE_QUARANTINED');
+      const result = await work(client); await check(); requireCondition(await restoreCurrent() === true, 'KNOWLEDGE_RESTORE_QUARANTINED');
       await client.query('COMMIT'); return result;
     } catch (error) { try { await client.query('ROLLBACK'); } catch { broken = true; } throw error; }
     finally { client.release(broken); }
   }
+  const transaction=(actor,work)=>runTransaction(()=>access(actor),work);
+  const syncTransaction=work=>runTransaction(async()=>requireCondition(await syncAuthorized()===true,'KNOWLEDGE_SYNC_UNQUALIFIED'),work);
   const head = async (client, id) => (await client.query('SELECT * FROM sophie_knowledge.documents WHERE guild_id=$1 AND id=$2', [guildId,id])).rows[0];
   async function available(sources, request, referencesOnly = false) {
     if (request.guildId !== guildId || clock() >= request.deadline) return false;
@@ -57,7 +59,7 @@ export function createKnowledgeLibrary({ pool, guildId, authorize, restoreCurren
     return clock() < request.deadline && await restoreCurrent() === true;
   }
   return Object.freeze({
-    ...createWikiImports({ guildId, transaction, collector, extractor, invalidate, clock }),
+    ...createWikiImports({ guildId, transaction, syncTransaction, collector, extractor, invalidate, clock }),
     async catalogue({ actor }) {
       return transaction(actor, async client => {
         const rows = (await client.query(`SELECT d.id,d.epoch,d.revision,d.withdrawn,d.source_current AS "sourceCurrent",

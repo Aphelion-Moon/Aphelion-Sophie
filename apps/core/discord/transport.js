@@ -199,7 +199,7 @@ export function createDiscordTransport({ guildId, token, fetch, clock, enabled }
     },
     async upsertGuildCommand(applicationId, definition) {
       requireId(applicationId);
-      requireCondition(definition?.type === 1 && ['whitelist', 'ticket', 'answer', 'mute', 'unmute'].includes(definition.name), 'COMMAND_REGISTRATION_INVALID');
+      requireCondition(definition?.type === 1 && ['whitelist', 'ticket', 'answer', 'lookup', 'mute', 'unmute'].includes(definition.name), 'COMMAND_REGISTRATION_INVALID');
       return request('POST', `/applications/${applicationId}/guilds/${guildId}/commands`, 'guild-command', definition, true);
     },
     async getGuild() { return request('GET', `/guilds/${guildId}`, 'guild'); },

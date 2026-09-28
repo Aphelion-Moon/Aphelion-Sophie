@@ -52,8 +52,9 @@ export function createOnboardingCommands({ authorization, discord, channels, sto
 }
 
 /** Explicit command union. No arbitrary operation name or dynamic plugin dispatch. */
-export function createAdministrationCommands({ moderation, onboarding, onboardingClosure = null, assistance = null, deliveryIssues = null, caseLifecycle = null, caseStaff = null, caseIntake = null, caseDeliveryIssues = null, caseParticipants = null, caseContacts = null, caseReplies = null, publicAnswers = null, caseAnswers = null }) {
+export function createAdministrationCommands({ moderation, onboarding, onboardingClosure = null, assistance = null, deliveryIssues = null, caseLifecycle = null, caseStaff = null, caseIntake = null, caseDeliveryIssues = null, caseParticipants = null, caseContacts = null, caseReplies = null, publicAnswers = null, caseAnswers = null, knowledgeLookup = null }) {
   return Object.freeze({ async execute(envelope) {
+    if(envelope.command==='knowledge.lookup')return knowledgeLookup===null ? 'denied':knowledgeLookup.execute(envelope);
     if (['ticket.answer','ticket.answer.confirm','ticket.answer.cancel'].includes(envelope.command)) return caseAnswers === null ? 'denied' : caseAnswers.execute(envelope);
     if (['answer.list', 'answer.show'].includes(envelope.command)) return publicAnswers === null ? 'denied' : publicAnswers.execute(envelope);
     if (envelope.command === 'ticket.reply') return caseReplies === null ? 'denied' : caseReplies.execute(envelope);

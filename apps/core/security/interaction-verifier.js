@@ -1,5 +1,6 @@
 import { createPublicKey, verify } from 'node:crypto';
 import { parseAnswerCommand } from '../../../modules/answers/discord.js';
+import { parseLookupCommand } from '../../../modules/assistant/lookup.js';
 import { requireAnswerName } from '../../../modules/answers/index.js';
 import { parseAnswerReplyControl } from '../../../modules/tickets/answer-replies.js';
 import { parseCaseTags, requireCaseLabels } from '../../../modules/tickets/labels.js';
@@ -43,7 +44,7 @@ export function createInteractionVerifier({ publicKeyHex, applicationId, guildId
       requireId(payload.id); requireId(payload.channel_id); requireId(payload.member?.user?.id);
       requireCondition(payload.member.user.bot !== true, 'BOT_ACTOR_DENIED');
       // Never retain incoming roles, resolved entities or source messages in routing envelopes.
-      let command, targetId, formValues = null, replyText = null, control = {};
+      let command, targetId, formValues = null, replyText = null, lookupQuery = null, control = {};
       if (payload.type === 5) {
         const parsed = parseCaseFormSubmission(payload.data); command = 'ticket.submit'; targetId = payload.member.user.id;
         control = { formToken: parsed.formToken }; formValues = parsed.values;
@@ -79,6 +80,8 @@ export function createInteractionVerifier({ publicKeyHex, applicationId, guildId
           }
           else { command = 'shuttle.control'; control = { ...parseOnboardingControl(payload.data.custom_id), messageId: payload.message.id }; }
         }
+      } else if (payload.data.name === 'lookup') {
+        lookupQuery=parseLookupCommand(payload.data.options);command='knowledge.lookup';targetId=payload.member.user.id;
       } else if (payload.data.name === 'answer') {
         ({ command, ...control } = parseAnswerCommand(payload.data.options)); targetId = payload.member.user.id;
       } else if (payload.data.name === 'ticket') {
@@ -192,7 +195,7 @@ export function createInteractionVerifier({ publicKeyHex, applicationId, guildId
       requireCondition(typeof payload.token === 'string' && /^[A-Za-z0-9._-]{20,2048}$/.test(payload.token), 'INTERACTION_TOKEN_INVALID');
       const envelope = Object.freeze({ kind: 'command', interactionId: payload.id, guildId, channelId: payload.channel_id,
         userId: payload.member.user.id, command, targetId, ...control });
-      verified.set(envelope, { verifiedAt: now, token: payload.token, expiresAt: Math.min(now, signedAt) + 900_000, formValues, replyText });
+      verified.set(envelope, { verifiedAt: now, token: payload.token, expiresAt: Math.min(now, signedAt) + 900_000, formValues, replyText, lookupQuery });
       return envelope;
     },
     resolvePrincipal(envelope) {
@@ -214,6 +217,12 @@ export function createInteractionVerifier({ publicKeyHex, applicationId, guildId
       requireCondition(envelope?.command === 'ticket.reply' && typeof record?.replyText === 'string' &&
         record.verifiedAt <= now && now - record.verifiedAt <= 300_000, 'UNTRUSTED_CASE_REPLY');
       const text = record.replyText; record.replyText = null; return text;
+    },
+    /** Direct lookup adapter only. Query text never enters routing or generic receipts. */
+    takeLookupQuery(envelope) {
+      const record=verified.get(envelope),now=clock();
+      requireCondition(envelope?.command==='knowledge.lookup' && typeof record?.lookupQuery==='string' && record.verifiedAt<=now && now-record.verifiedAt<=300000,'UNTRUSTED_LOOKUP');
+      const query=record.lookupQuery;record.lookupQuery=null;return query;
     },
     /** Core response adapter only. The secret is not stored in the public envelope or database. */
     replyCredentials(envelope) {

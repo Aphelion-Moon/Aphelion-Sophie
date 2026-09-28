@@ -1,6 +1,6 @@
 {
   "schema_version": 2,
-  "revision": "2026-09-28-gathered-edits",
+  "revision": "2026-09-28-knowledge-completion",
   "reference_plan_version": "1.1",
   "source": "Sophie-Implementation-Plans-v1.1/backlog.json",
   "owner_decisions": "docs/decisions/0001-owner-policy.md",
@@ -2304,6 +2304,16 @@
       "implemented": "Fenced three-fragment gathering, first-receipt deadline, ingress flood limit and fair bounded channel scheduler implemented; eligible edited fragments replace their own pre-freeze revision",
       "evidence": "43 focused runtime/turn/observation checks and 63 isolated AI/knowledge/Gateway scenarios; no actual provider or Discord timing",
       "remaining": "Qualify actual one-versus-two workers and end-to-end latency before increasing runtime concurrency from one."
+    },
+    {
+      "title": "Discord direct lookup and unattended Policies refresh",
+      "tasks": [
+        "P21",
+        "P23"
+      ],
+      "implemented": "Shared dashboard and signed Discord direct lookup; fixed Policies importer, human publication review and qualified unattended refresh composition implemented locally",
+      "evidence": "61 focused checks; 64 isolated AI/knowledge/Gateway scenarios; 18 composed staging scenarios, including Discord lookup with AI unavailable",
+      "remaining": "Deploy and qualify the actual knowledge identity and command registration; review/publish the selected wiki extracts and separate Discord rules; run the 40-question source/answer gate. No source publication or live service is activated."
     }
   ],
   "next_steps": [
@@ -2489,13 +2499,13 @@
       {
         "id": "DS-07",
         "title": "Wiki synchronization and direct lookup",
-        "implementation": "Durable Policies snapshots, fenced manual refresh, source-bound review/publication and dashboard structured review implemented; service deployment and unattended synchronization incomplete",
-        "qualification": "38 focused checks, 51 isolated AI/knowledge/accounting scenarios and synthetic browser review; no live publication or deployment",
+        "implementation": "Shared dashboard and signed Discord direct lookup; fixed Policies importer, human publication review and qualified unattended refresh composition implemented locally",
+        "qualification": "61 focused checks; 64 isolated AI/knowledge/Gateway scenarios; 18 composed staging scenarios, including Discord lookup with AI unavailable",
         "sai": [
           "SAI-08",
           "SAI-11"
         ],
-        "remaining": "Qualified knowledge-service composition and unattended refresh; Discord /lookup; reviewed wiki extracts and separate Discord rules publication; 40-question knowledge acceptance and live qualification."
+        "remaining": "Deploy and qualify the actual knowledge identity and command registration; review/publish the selected wiki extracts and separate Discord rules; run the 40-question source/answer gate. No source publication or live service is activated."
       },
       {
         "id": "DS-08",
@@ -2566,8 +2576,8 @@
       {
         "id": "SAI-G2",
         "title": "Knowledge and direct lookup",
-        "implementation": "Public library/member dashboard lookup, durable bounded import and current-source publication review",
-        "qualification": "Offline import/invalidation/rollback/review evidence; service, Discord lookup and 40-question gates open",
+        "implementation": "Shared dashboard and signed Discord direct lookup; fixed Policies importer, human publication review and qualified unattended refresh composition implemented locally",
+        "qualification": "61 focused checks; 64 isolated AI/knowledge/Gateway scenarios; 18 composed staging scenarios, including Discord lookup with AI unavailable; operational/source/40-question gates open",
         "data_clearance": "Policies collection selected; advertised CC BY-NC-SA 4.0 retained; publication-specific review remains required",
         "activation": "off"
       },

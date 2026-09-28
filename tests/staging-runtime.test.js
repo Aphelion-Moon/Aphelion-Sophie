@@ -95,7 +95,7 @@ test('host tolerates reconnect and held configuration, then drains a pending hea
 
 test('registered recovery commands are accepted by the existing signed parser and keep guild-only fields', () => {
   const f = syntheticInteractions(), commands = administrationCommandDefinitions();
-  assert.deepEqual(commands.map(command => command.name), ['whitelist', 'ticket', 'answer', 'mute', 'unmute']);
+  assert.deepEqual(commands.map(command => command.name), ['whitelist', 'ticket', 'answer', 'lookup', 'mute', 'unmute']);
   for (const command of commands) { assert.equal('contexts' in command, false); assert.ok(command.options.length <= 25); }
   for (const name of ['whitelist', 'ticket']) for (const action of ['issues', 'recover', 'choose']) {
     const option = commands.find(command => command.name === name).options.find(item => item.name === action); assert.ok(option);
@@ -122,7 +122,7 @@ test('registration checks the application and exact guild before writes, upserts
   applicationId = '99'; await assert.rejects(registerStagingCommands({ transport, applicationId: APPLICATION, botUserId: BOT, confirmGuildId: GUILD }), /GATEWAY_IDENTITY_MISMATCH/);
   assert.equal(calls.some(call => call.method !== 'GET'), false);
   applicationId = APPLICATION; const result = await registerStagingCommands({ transport, applicationId: APPLICATION, botUserId: BOT, confirmGuildId: GUILD });
-  assert.equal(result.length, 5); assert.equal(calls.filter(call => call.method === 'POST').length, 5);
+  assert.equal(result.length, 6); assert.equal(calls.filter(call => call.method === 'POST').length, 6);
 });
 
 test('CLI validates the filled template and previews commands offline but refuses an unconfirmed start', async () => {

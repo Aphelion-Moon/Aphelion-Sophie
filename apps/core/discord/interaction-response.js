@@ -10,10 +10,12 @@ import { caseIssueQueueReply } from '../../../modules/tickets/delivery-issues.js
 import { caseContactReply } from '../../../modules/tickets/contacts.js';
 import { answerLookupReply } from '../../../modules/answers/discord.js';
 import { answerReplyReviewMessage } from './answer-reply-message.js';
+import { knowledgeLookupReply } from '../../../modules/assistant/lookup.js';
 
 const messages = Object.freeze({
   "shuttle_closed": "reply.shuttle_closed",
   "public_answer": "reply.public_answer",
+  "knowledge_lookup": "reply.public_answer",
   "case_answer_review": "reply.case_answer_review",
   "case_answer_unavailable": "reply.case_answer_unavailable",
   "case_answer_cancelled": "reply.case_answer_cancelled",
@@ -84,7 +86,7 @@ const messages = Object.freeze({
 });
 
 /** Only edits a verified interaction's own ephemeral response with bounded static presentation. */
-export function createInteractionResponder({ verifier, applicationId, fetch, clock, enabled, onboardingNavigation = null, onboardingAssistance = null, onboardingDeliveryIssues = null, caseLifecycle = null, caseStaff = null, caseIntake = null, caseDeliveryIssues = null, caseContacts = null, publicAnswers = null, caseAnswers = null, readSystemText = async () => defaultSystemText, wait = ms => new Promise(resolve => setTimeout(resolve, ms)) }) {
+export function createInteractionResponder({ verifier, applicationId, fetch, clock, enabled, onboardingNavigation = null, onboardingAssistance = null, onboardingDeliveryIssues = null, caseLifecycle = null, caseStaff = null, caseIntake = null, caseDeliveryIssues = null, caseContacts = null, publicAnswers = null, caseAnswers = null, knowledgeLookup = null, readSystemText = async () => defaultSystemText, wait = ms => new Promise(resolve => setTimeout(resolve, ms)) }) {
   requireId(applicationId);
   requireCondition(typeof fetch === 'function' && typeof clock === 'function' && typeof enabled === 'function', 'TRUSTED_ADAPTERS_REQUIRED');
   requireCondition(onboardingNavigation === null || typeof onboardingNavigation.resolve === 'function', 'TRUSTED_ADAPTERS_REQUIRED');
@@ -96,6 +98,7 @@ export function createInteractionResponder({ verifier, applicationId, fetch, clo
   requireCondition(caseDeliveryIssues === null || typeof caseDeliveryIssues.queue === 'function', 'TRUSTED_ADAPTERS_REQUIRED');
   requireCondition(caseContacts === null || typeof caseContacts.view === 'function', 'TRUSTED_ADAPTERS_REQUIRED');
   requireCondition(publicAnswers === null || typeof publicAnswers.view === 'function', 'TRUSTED_ADAPTERS_REQUIRED');
+  requireCondition(knowledgeLookup===null || ['view','current'].every(key=>typeof knowledgeLookup[key]==='function'),'TRUSTED_ADAPTERS_REQUIRED');
   requireCondition(caseAnswers === null || typeof caseAnswers.view === 'function', 'TRUSTED_ADAPTERS_REQUIRED');
   let cooldownUntil = 0, paused = false;
   return Object.freeze({
@@ -109,7 +112,8 @@ export function createInteractionResponder({ verifier, applicationId, fetch, clo
       const update = envelope.command === 'shuttle.control';
       if (update && ['shuttle_progress_recorded', 'shuttle_help_recorded', 'shuttle_help_paused'].includes(status)) return;
       const text = await readSystemText();
-      let body = { content: text(messages[status]), embeds: [], components: [] };
+      let body = { content: text(messages[status]), embeds: [], components: [] },lookupView=null;
+      if(status==='knowledge_lookup' && knowledgeLookup!==null){lookupView=await knowledgeLookup.view(envelope);body=knowledgeLookupReply(lookupView);}
       if (status === 'public_answer' && publicAnswers !== null) body = answerLookupReply(await publicAnswers.view(envelope), text);
       if (status === 'case_answer_review' && caseAnswers !== null) body = answerReplyReviewMessage(await caseAnswers.view(envelope), text);
       if (status === 'case_contact' && caseContacts !== null) body = caseContactReply(await caseContacts.view(envelope), text);
@@ -136,6 +140,7 @@ export function createInteractionResponder({ verifier, applicationId, fetch, clo
       requireCondition(await enabled() === true, 'DISCORD_TRANSPORT_DISABLED');
       verifier.replyCredentials(envelope); // Navigation may outlive the interaction's reply window.
       requireCondition(!paused && clock() >= cooldownUntil, 'INTERACTION_RESPONSE_RATE_LIMITED');
+      if(lookupView!==null)requireCondition(await knowledgeLookup.current(lookupView)===true,'KNOWLEDGE_SOURCE_STALE');
       const controller = new AbortController();
       const deadline = setTimeout(() => controller.abort(), 5_000);
       let response;

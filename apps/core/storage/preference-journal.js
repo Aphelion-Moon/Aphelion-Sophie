@@ -1,7 +1,7 @@
 import { open, unlink } from 'node:fs/promises';
 import { isAbsolute } from 'node:path';
 import { createHash } from 'node:crypto';
-import { requireCondition, requireId, requireInteger } from '../../../contracts/validation.js';
+import { ContractError, requireCondition, requireId, requireInteger } from '../../../contracts/validation.js';
 
 const limit = 8 * 1024 * 1024;
 const digest = value => createHash('sha256').update(value).digest('hex');
@@ -38,7 +38,10 @@ export function createPreferenceJournal({ path, id, qualified = async () => fals
         const result = await work({file,size:stat.size,epochs,previous});
         requireCondition(await qualified() === true,'AI_PREFERENCE_JOURNAL_UNAVAILABLE'); return result;
       } finally { await file.close(); }
-    } catch { requireCondition(false,'AI_PREFERENCE_JOURNAL_UNAVAILABLE'); }
+    } catch (error) {
+      if(error instanceof ContractError && error.code==='AI_PREFERENCE_STALE')throw error;
+      requireCondition(false,'AI_PREFERENCE_JOURNAL_UNAVAILABLE');
+    }
     finally {
       if (lock) {
         try { await lock.close(); await unlink(`${path}.lock`); }

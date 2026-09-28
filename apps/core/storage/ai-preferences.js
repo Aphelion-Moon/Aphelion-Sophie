@@ -4,9 +4,9 @@ import { canonicalResponsePreferences, PREFERENCE_LIFETIME_MS } from '../../../m
 /** Shared authenticated self-service operations. Settings never enter inference until a separate disclosure gate exists. */
 export function createAiPreferences({ guildId, transaction, memberPresence, journal = null, clock = Date.now }) {
   requireCondition(journal === null || ['read','advance'].every(name=>typeof journal[name] === 'function'),'TRUSTED_ADAPTERS_REQUIRED');
-  const expire = client => client.query('UPDATE sophie_ai.response_preferences SET settings=NULL WHERE guild_id=$1 AND settings IS NOT NULL AND expires_at<=clock_timestamp()',[guildId]);
+  const expire = (client,userId) => client.query('UPDATE sophie_ai.response_preferences SET settings=NULL WHERE guild_id=$1 AND user_id=$2 AND settings IS NOT NULL AND expires_at<=clock_timestamp()',[guildId,userId]);
   async function read(client,actor) {
-    await expire(client);
+    await expire(client,actor.userId);
     const row=(await client.query('SELECT * FROM sophie_ai.response_preferences WHERE guild_id=$1 AND user_id=$2',[guildId,actor.userId])).rows[0];
     const watermark=await journal.read(guildId,actor.userId);requireInteger(watermark);
     const saved=Number(row?.epoch ?? 0);requireInteger(saved);const quarantined=saved!==watermark;
