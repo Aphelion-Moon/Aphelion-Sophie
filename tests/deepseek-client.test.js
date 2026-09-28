@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createDeepSeekClient, deepSeekUsage } from '../apps/knowledge-worker/deepseek-client.js';
-import { firstChangedAiBlock } from '../apps/knowledge-worker/prompt-contract.js';
+import { firstChangedAiBlock,firstChangedAiComparison,validateAiComparison } from '../apps/knowledge-worker/prompt-contract.js';
 import { createMeteredAiWorker } from '../apps/core/runtime/ai-provider.js';
 import { aiBudgetPeriods, aiUsageCostNanos, DEFAULT_AI_BUDGET } from '../modules/assistant/budget.js';
 import { buildAiPrompt } from '../apps/knowledge-worker/prompt.js';
@@ -153,10 +153,17 @@ test('DS-02 preparation freezes the full outbound request and exposes only safe 
   assert.throws(() => { first.body.messages[0].content = 'tampered'; }, TypeError);
   assert.throws(() => first.contract.sourceIds.push('invented'), TypeError);
   assert.equal(firstChangedAiBlock(first, second), null);
+  assert.equal(firstChangedAiComparison(first.comparison,second.comparison),null);
+  assert.deepEqual(validateAiComparison(first.comparison),first.comparison);
+  assert.throws(()=>validateAiComparison({...first.comparison,text:'unexpected conversation archive'}),/AI_DIAGNOSTICS_INVALID/);
+  assert.throws(()=>validateAiComparison({...first.comparison,blocks:[{kind:'question',digest:'not a keyed fingerprint',bytes:20}]}),/AI_DIAGNOSTICS_INVALID/);
+  assert.notDeepEqual(fixture().client.prepare(payload).comparison.blocks,first.comparison.blocks,'worker boots must not share guessable comparison fingerprints');
   const changed = structuredClone(payload); changed.messages.at(-1).content = 'Different synthetic question';
   assert.equal(firstChangedAiBlock(first, f.client.prepare(changed)), 'question');
+  assert.equal(firstChangedAiComparison(first.comparison,f.client.prepare(changed).comparison),'question');
   assert.equal(JSON.stringify(first.diagnostics).includes('Hello Sophie'), false);
   assert.equal(JSON.stringify(first.body).includes('diagnostics'), false);
+  for(const block of first.comparison.blocks)assert.equal(first.serialized.includes(block.digest),false);
   await f.client.generatePrepared(first, { signal: new AbortController().signal, deadline: 15000 });
   assert.equal(JSON.stringify(f.calls[0].body), first.serialized);
   await assert.rejects(f.client.generatePrepared(first, { signal: new AbortController().signal, deadline: 15000 }), /AI_PREPARATION_UNTRUSTED/);

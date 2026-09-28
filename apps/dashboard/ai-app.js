@@ -13,11 +13,16 @@ let configuration = { schemaVersion: 1, enabled: false, deadlineMs: 15000, chann
 let configurationRevision = 0, personalityRevision = 0, consentRows = [], noticeRevision = 1;
 let budget = { ...DEFAULT_AI_BUDGET }, budgetRevision = 0;
 let workerRevision=0,workerStopRequest=null;
+let diagnosticTimer=null,diagnosticGeneration=0;
+function clearDiagnostic(){diagnosticGeneration++;clearTimeout(diagnosticTimer);diagnosticTimer=null;if(el('diagnostic-output'))el('diagnostic-output').textContent='';}
+window.addEventListener('pagehide',clearDiagnostic);
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState!=='visible')clearDiagnostic();});
 const requestId=()=>[...crypto.getRandomValues(new Uint8Array(32))].map(value=>value.toString(16).padStart(2,'0')).join('');
 const preferences = personal ? createPreferenceEditor({api,document,perform,identity:()=>session,changed,saved:()=>{dirty=false;}}) : null;
 const notice = text => { el('notice').textContent = text; };
 function changed() { dirty = true; pending = null; pendingRequestId = null; if (el('review')) el('review').hidden = true; if (el('review-content')) el('review-content').textContent = ''; }
 function clear() {
+  clearDiagnostic();el('diagnostic-channel')?.replaceChildren();
   preferences?.clear();
   el('workspace').hidden = true; changed(); consentRows = []; configuration.channels = []; configuration.emojis = []; character = { core: '', examples: [] };
   for (const id of ['channels', 'emojis', 'examples', 'consents', 'unresolved-spending','worker-release']) el(id)?.replaceChildren();
@@ -115,6 +120,11 @@ async function load() {
       el('worker-state').textContent=`Desired worker revision ${worker.desiredRevision}; active revision ${worker.activeRevision??'none'}. Phase: ${worker.phase}. ${worker.disabled?'AI processing is disabled.':''} ${worker.available?'':'No lifecycle adapter is registered.'}`;
       if(worker.historyFull)el('worker-state').textContent+=' Worker request history is full. Apply is paused; stop and recovery remain available.';
       el('worker-ack').textContent=worker.acknowledged?`Last acknowledged release: ${worker.acknowledged.releaseHash}; boot: ${worker.acknowledged.bootId}. Recorded ${worker.observedAt}.`:'No worker acknowledgement is recorded.';
+      clearDiagnostic();el('diagnostics').hidden=false;el('diagnostic-channel').replaceChildren();
+      for(const channel of configuration.channels.filter(item=>item.profile.mode!=='ignore')){
+        const option=document.createElement('option');option.value=channel.channelId;option.textContent=channel.channelId;el('diagnostic-channel').append(option);
+      }
+      el('read-diagnostic').disabled=el('diagnostic-channel').options.length===0;
       el('spending-hold').hidden = spending.policy?.held !== true; el('hold-evidence').value = '';
       el('monthly-budget').value = String(BigInt(budget.monthlyLimitNanos) / 1000000000n);
       el('price-valid-until').value = budget.priceValidUntil === null ? '' : new Date(budget.priceValidUntil).toISOString();
@@ -167,6 +177,17 @@ else {
   el('add-example').addEventListener('click', () => { if (character.examples.length < 8) { character.examples.push({ member: '', sophie: '' }); changed(); examples(); } });
   for (const kind of ['configuration', 'personality', 'budget']) el(`review-${kind}`).addEventListener('click', () => perform(() => review(kind)));
   el('worker-release').addEventListener('change',changed);
+  el('diagnostic-channel').addEventListener('change',clearDiagnostic);
+  el('read-diagnostic').addEventListener('click',()=>perform(async()=>{
+    clearDiagnostic();const channelId=el('diagnostic-channel').value,identity=session,generation=diagnosticGeneration;
+    const result=await api.aiDiagnostics(channelId);
+    if(generation!==diagnosticGeneration || session!==identity || result.actorId!==session.userId || result.guildId!==session.guildId || el('diagnostic-channel').value!==channelId)return;
+    const value=result.diagnostic;
+    if(!value || value.expiresAt<=Date.now()){el('diagnostic-output').textContent='No current comparison is available.';return;}
+    const labels={authoring:'authored policy and character',example:'dialogue example',evidence:'approved evidence',history:'temporary conversation',contract:'output contract',question:'current question',protocol:'provider protocol or boundary'};
+    el('diagnostic-output').textContent=`${value.comparable?value.firstChangedBlock===null?'Prepared blocks are unchanged.':`First changed block: ${labels[value.firstChangedBlock]}.`:'No earlier eligible preparation is available for comparison.'} Preparation took ${value.preparationMilliseconds} ms. Ordered block sizes: ${value.blocks.map(block=>`${labels[block.kind]} (${block.bytes} bytes)`).join(', ')}.`;
+    diagnosticTimer=setTimeout(()=>{clearDiagnostic();el('diagnostic-output').textContent='This comparison expired. Inspect again for current information.';},Math.max(1,Math.min(300000,value.expiresAt-Date.now())));
+  }));
   el('review-worker').addEventListener('click',()=>perform(async()=>{
     const candidate={candidateId:el('worker-release').value,expectedRevision:workerRevision};
     const result=await api.aiReviewWorker(candidate);pending={...candidate,reviewSha256:result.reviewSha256,operation:'applyWorker'};pendingRequestId=requestId();

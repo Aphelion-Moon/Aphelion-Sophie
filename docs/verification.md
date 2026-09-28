@@ -1,5 +1,28 @@
 # Verification and release limits
 
+## Temporary prepared-request diagnostics — 28 September 2026
+
+The worker fingerprints its final immutable outbound blocks with a random per-worker
+key. Comparison material crosses only the authenticated internal protocol. It never
+enters provider fields, persistent storage, log labels or dashboard output. Core
+keeps at most one comparison per existing conversation lane, tied to retained source
+revisions. Expiry, eviction, edits/deletion, source or consent loss and context reset
+discard it. Revalidation rejects stale sources and an invalidation during comparison
+cannot restore an old comparison basis.
+
+Authenticated channel inspection shows first changed block, ordered block byte sizes
+and preparation time. Operator/channel/control/source authority is checked again;
+disabled AI has no diagnostic result. Browser results clear on expiry and suspension.
+A preparation comparison does not prove provider dispatch, cache eviction or a token
+boundary. The selected request layout and provider payload remain unchanged.
+
+77 focused checks and 76 isolated AI/knowledge/Gateway scenarios pass, with 19 composed
+staging scenarios; both disposable databases stopped. Synthetic browser display and
+timed expiry passed. The final asynchronous invalidation fix has focused regression
+coverage. Actual provider cache/latency, model answers and Windows isolation remain
+unqualified. No schema, dependency/runtime, service, credential, live provider/Discord
+or deployment change. Evidence: `GitHub/.agent_docs/aphelion-sophie/diagnostics-verification.json`.
+
 ## AI worker operating controls — 28 September 2026
 
 Schema063 retains desired and active worker revisions and the last authenticated

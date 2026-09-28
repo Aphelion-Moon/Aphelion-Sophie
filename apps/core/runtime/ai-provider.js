@@ -13,6 +13,7 @@ export function createMeteredAiWorker({ worker, accounting }) {
       try {
         requireCondition(await current(), 'AI_DISPATCH_REVOKED');
         if (prepared.bytes === 0) return { kind: 'silent' };
+        if(prepared.comparison && context.onPrepared){await context.onPrepared(prepared.comparison);requireCondition(await current(),'AI_DISPATCH_REVOKED');}
         const token = await accounting.reserve({ local: payload.local, bytes: prepared.bytes, outputTokens: prepared.outputTokens, deadline: context.deadline });
         requireCondition(token !== null, 'AI_BUDGET_UNAVAILABLE');
         let dispatchPossible = false;

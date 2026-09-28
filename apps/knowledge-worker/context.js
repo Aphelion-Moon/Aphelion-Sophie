@@ -1,4 +1,5 @@
 import { requireCondition, requireInteger } from '../../contracts/validation.js';
+import { validateAiComparison, firstChangedAiComparison } from './prompt-contract.js';
 
 /** Disposable bounded context. Every source must be reauthorized by core before it is returned. */
 export function createAiContext({ clock = Date.now, maxLanes = 100, setTimer = setTimeout, clearTimer = clearTimeout }) {
@@ -6,7 +7,7 @@ export function createAiContext({ clock = Date.now, maxLanes = 100, setTimer = s
   const lanes = new Map(); let revision = 0, expiryTimer = null;
   function scheduleExpiry() {
     clearTimer(expiryTimer); expiryTimer = null;
-    const expiries = [...lanes.values()].flatMap(lane => lane.messages.map(item => item.expiresAt));
+    const expiries = [...lanes.values()].flatMap(lane => [...lane.messages.map(item => item.expiresAt),...(lane.diagnostic?[lane.diagnostic.expiresAt]:[])]);
     if (!expiries.length) return;
     expiryTimer = setTimer(() => { prune(); scheduleExpiry(); }, Math.max(1, Math.min(...expiries) - clock()));
     expiryTimer?.unref?.();
@@ -25,6 +26,7 @@ export function createAiContext({ clock = Date.now, maxLanes = 100, setTimer = s
     lane.messages.push({ request: stored, expiresAt });
     lane.messages = lane.messages.slice(-countLimit(request));
     while (lane.messages.length && Buffer.byteLength(JSON.stringify(lane.messages), 'utf8') > 65536) lane.messages.shift();
+    pruneDiagnostic(lane);
     lanes.delete(id); if (lane.messages.length) lanes.set(id, lane);
     while (lanes.size > maxLanes) lanes.delete(lanes.keys().next().value);
     scheduleExpiry();
@@ -35,7 +37,27 @@ export function createAiContext({ clock = Date.now, maxLanes = 100, setTimer = s
   }
   function prune() {
     const now = clock();
-    for (const [id, lane] of lanes) { lane.messages = lane.messages.filter(item => item.expiresAt > now); if (!lane.messages.length) lanes.delete(id); }
+    for (const [id, lane] of lanes) { lane.messages = lane.messages.filter(item => item.expiresAt > now);pruneDiagnostic(lane); if (!lane.messages.length) lanes.delete(id); }
+  }
+  function pruneDiagnostic(lane) {
+    const saved=lane.diagnostic;
+    if(saved && (saved.expiresAt<=clock() || saved.messages.some(ref=>!lane.messages.some(item=>item.request.contextRevision===ref))))delete lane.diagnostic;
+  }
+  async function sourceCurrent(source,authorize,authorizeKnowledge) {
+    const retained=()=>source.expiresAt>clock() && lanes.get(key(source))?.messages.some(item=>
+      item.request.messageId===source.messageId && item.request.contextRevision===source.contextRevision)===true;
+    if(!retained())return false;
+    if(source.kind!=='assistant')return await authorize(source)===true && retained();
+    for(const item of source.dependencies)if(item.expiresAt<=clock() || await authorize(item)!==true)return false;
+    return await authorizeKnowledge(source.knowledge)===true && retained();
+  }
+  async function diagnosticCurrent(id,lane,saved,authorize,authorizeKnowledge) {
+    pruneDiagnostic(lane);if(!saved || lane.diagnostic!==saved)return false;
+    for(const ref of saved.messages){
+      const source=lane.messages.find(item=>item.request.contextRevision===ref)?.request;
+      if(!source || !await sourceCurrent(source,authorize,authorizeKnowledge))return false;
+    }
+    return await authorizeKnowledge(saved.knowledge)===true && lanes.get(id)===lane && lane.diagnostic===saved && saved.expiresAt>clock();
   }
   return Object.freeze({
     remember(request) {
@@ -79,13 +101,35 @@ export function createAiContext({ clock = Date.now, maxLanes = 100, setTimer = s
       insert(request, { kind: 'assistant', guildId: request.guildId, channelId: request.channelId, messageId: id, text,
         binding: structuredClone(request.binding), expiresAt, dependencies: [...dependencies.values()], knowledge: [...knowledge.values()] }, expiresAt);
     },
-    async current(source, authorize, authorizeKnowledge) {
-      const retained = () => source.expiresAt > clock() && lanes.get(key(source))?.messages.some(item =>
-        item.request.messageId === source.messageId && item.request.contextRevision === source.contextRevision) === true;
-      if (!retained()) return false;
-      if (source.kind !== 'assistant') return await authorize(source) === true && retained();
-      for (const item of source.dependencies) if (item.expiresAt <= clock() || await authorize(item) !== true) return false;
-      return await authorizeKnowledge(source.knowledge) === true && retained();
+    current:sourceCurrent,
+    async comparePrepared(request,history,sources,comparison,authorize,authorizeKnowledge) {
+      const snapshot=validateAiComparison(comparison);prune();const id=key(request),lane=lanes.get(id);
+      if(!lane || !request.decision.context || countLimit(request)===0 || request.binding.restricted===true)return;
+      const previous=lane.diagnostic;
+      const comparable=await diagnosticCurrent(id,lane,previous,authorize,authorizeKnowledge);
+      if(!comparable && lane.diagnostic===previous)delete lane.diagnostic;
+      if(lanes.get(id)!==lane)return;
+      const records=[request,...history,...(request.fragments??[]).filter(item=>item.messageId!==request.messageId)].map(source=>
+        lane.messages.find(item=>item.request.messageId===source.messageId && item.request.inputRevision===source.inputRevision)?.request);
+      if(records.some(item=>!item)){delete lane.diagnostic;return;}
+      for(const source of records)if(!await sourceCurrent(source,authorize,authorizeKnowledge)){delete lane.diagnostic;return;}
+      if(!await authorizeKnowledge(sources) || lanes.get(id)!==lane){delete lane.diagnostic;return;}
+      pruneDiagnostic(lane);const retainedPrevious=comparable && lane.diagnostic===previous;
+      const expiresAt=Math.min(...records.map(item=>item.expiresAt),...sources.filter(item=>Number.isSafeInteger(item.validUntil)).map(item=>item.validUntil));
+      const diagnostic={comparison:snapshot,expiresAt,messages:[...new Set(records.map(item=>item.contextRevision))],
+        knowledge:sources.map(({id,publicationHash,epoch,validUntil})=>({id,publicationHash,epoch,validUntil})),
+        summary:{basis:'prepared-outbound-shape',expiresAt,comparable:retainedPrevious,firstChangedBlock:retainedPrevious?firstChangedAiComparison(previous.comparison,snapshot):null,
+          blocks:snapshot.blocks.map(({kind,bytes})=>({kind,bytes})),preparationMilliseconds:snapshot.milliseconds}};
+      lane.diagnostic=diagnostic;pruneDiagnostic(lane);scheduleExpiry();
+    },
+    async diagnostic(channelId,authorize,authorizeKnowledge) {
+      prune();
+      const candidates=[...lanes.entries()].filter(([,lane])=>lane.messages.some(item=>item.request.channelId===channelId));
+      // Multiple authority epochs are not a single comparable lane.
+      if(candidates.length!==1)return null;
+      const [id,lane]=candidates[0],saved=lane.diagnostic;
+      if(!await diagnosticCurrent(id,lane,saved,authorize,authorizeKnowledge)){if(lane.diagnostic===saved)delete lane.diagnostic;return null;}
+      return structuredClone(saved.summary);
     },
     async history(request, authorize) {
       if (countLimit(request) === 0 || !request.decision.context) return [];
@@ -93,7 +137,7 @@ export function createAiContext({ clock = Date.now, maxLanes = 100, setTimer = s
       const result = [];
       for (const item of [...lane.messages]) {
         if (item.request.messageId === request.messageId) continue;
-        if (!await authorize(item.request)) { lane.messages = lane.messages.filter(candidate => candidate !== item); continue; }
+        if (!await authorize(item.request)) { lane.messages = lane.messages.filter(candidate => candidate !== item);pruneDiagnostic(lane); continue; }
         // The lane may have been invalidated while awaiting the fresh source authorization.
         if (lanes.get(id) !== lane || !lane.messages.includes(item) || item.expiresAt <= clock()) return [];
         result.push(structuredClone(item.request));
@@ -105,6 +149,7 @@ export function createAiContext({ clock = Date.now, maxLanes = 100, setTimer = s
         const filter = { channelId, userId, messageId };
         lane.messages = lane.messages.filter(({ request }) => !matches(request, filter) &&
           !(request.dependencies ?? []).some(source => matches(source, filter)));
+        pruneDiagnostic(lane);
         if (!lane.messages.length) lanes.delete(id);
       }
       scheduleExpiry();

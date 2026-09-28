@@ -14,7 +14,7 @@ export function createAiScheduler({ clock = Date.now, execute, maxWaiting = 3, m
   function cancel(job, reason) {
     job.controller.abort(); finish(job, { state: reason });
     const index = queue.indexOf(job);
-    if (index !== -1) { queue.splice(index, 1); members.delete(job.member); requests.delete(job.id); job.payload = null; }
+    if (index !== -1) { queue.splice(index, 1); members.delete(job.member); requests.delete(job.id); job.payload = null;job.beforeExecute=null;job.beforeDispatch=null;job.onPrepared=null; }
   }
   function pump() {
     if (active.size >= maxActive || disabled) return;
@@ -34,20 +34,21 @@ export function createAiScheduler({ clock = Date.now, execute, maxWaiting = 3, m
       // Queued inputs can lose consent or source access while another generation runs.
       if (job.beforeExecute !== null && await job.beforeExecute() !== true) { cancel(job, 'cancelled'); return null; }
       if (job.controller.signal.aborted || clock() >= job.cutoff) return null;
-      return execute(job.payload, { signal: job.controller.signal, deadline: job.cutoff, beforeDispatch: job.beforeDispatch ?? (async () => true) });
+      return execute(job.payload, { signal: job.controller.signal, deadline: job.cutoff, beforeDispatch: job.beforeDispatch ?? (async () => true),onPrepared:job.onPrepared });
     }).then(result => {
       if (job.controller.signal.aborted || clock() >= job.cutoff) finish(job, { state: 'expired' });
       else finish(job, { state: 'completed', result });
     }, () => finish(job, { state: clock() >= job.cutoff ? 'expired' : job.controller.signal.aborted ? 'cancelled' : 'unavailable' }))
-      .finally(() => { members.delete(job.member); requests.delete(job.id); job.payload = null; job.beforeExecute = null; job.beforeDispatch = null; active.delete(job.id); pump(); });
+      .finally(() => { members.delete(job.member); requests.delete(job.id); job.payload = null; job.beforeExecute = null; job.beforeDispatch = null;job.onPrepared=null; active.delete(job.id); pump(); });
     pump();
   }
   return Object.freeze({
-    submit({ id, member, channel = member, receivedAt, deadline, proactive, payload, beforeExecute = null, beforeDispatch = null }) {
+    submit({ id, member, channel = member, receivedAt, deadline, proactive, payload, beforeExecute = null, beforeDispatch = null,onPrepared=null }) {
       requireName(id); requireName(member); requireName(channel); requireInteger(receivedAt); requireInteger(deadline);
       requireCondition(typeof proactive === 'boolean' && deadline > receivedAt && deadline - receivedAt <= AI_DEADLINE_MS, 'AI_DEADLINE_INVALID');
       requireCondition(beforeExecute === null || typeof beforeExecute === 'function', 'TRUSTED_ADAPTERS_REQUIRED');
       requireCondition(beforeDispatch === null || typeof beforeDispatch === 'function', 'TRUSTED_ADAPTERS_REQUIRED');
+      requireCondition(onPrepared===null || typeof onPrepared==='function','TRUSTED_ADAPTERS_REQUIRED');
       const now = clock(); requireInteger(now);
       if (receivedAt > now || now >= deadline - deliveryReserveMs) return Promise.resolve({ state: 'expired' });
       if (disabled) return Promise.resolve({ state: 'disabled' });
@@ -55,7 +56,7 @@ export function createAiScheduler({ clock = Date.now, execute, maxWaiting = 3, m
       if (members.has(member) || (active.size >= maxActive || [...active.values()].some(item=>item.channel===channel)) && queue.length >= maxWaiting) return Promise.resolve({ state: 'busy' });
       let resolve;
       const result = new Promise(done => { resolve = done; });
-      const job = { id, member, channel, proactive, payload, beforeExecute, beforeDispatch, cutoff: deadline - deliveryReserveMs, controller: new AbortController(), resolve, settled: false };
+      const job = { id, member, channel, proactive, payload, beforeExecute, beforeDispatch,onPrepared, cutoff: deadline - deliveryReserveMs, controller: new AbortController(), resolve, settled: false };
       job.timer = setTimeout(() => cancel(job, 'expired'), Math.max(1, job.cutoff - now));
       queue.push(job); members.add(member); requests.add(id); pump(); return result;
     },

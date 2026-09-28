@@ -1,6 +1,6 @@
 {
   "schema_version": 2,
-  "revision": "2026-09-28-worker-operations",
+  "revision": "2026-09-28-prepared-diagnostics",
   "reference_plan_version": "1.1",
   "source": "Sophie-Implementation-Plans-v1.1/backlog.json",
   "owner_decisions": "docs/decisions/0001-owner-policy.md",
@@ -2336,6 +2336,17 @@
       "implemented": "Durable desired/active/acknowledged worker revisions, authenticated AI-only apply/stop/recovery controls and a fenced single-owner lifecycle coordinator",
       "evidence": "44 focused checks, 75 isolated AI/knowledge/Gateway scenarios and 19 composed staging scenarios pass; both disposable clusters stopped. Synthetic browser review/apply/stop verified.",
       "remaining": "Concrete registered Windows lifecycle adapter, actual service identity/ACL/egress/credential and process-tree termination qualification, runtime candidate qualification and activation remain open. Apply keeps message processing disabled."
+    },
+    {
+      "title": "Ephemeral prepared-request diagnostics",
+      "tasks": [
+        "P22",
+        "P23",
+        "P24"
+      ],
+      "implemented": "Immutable bounded outbound preparation with per-boot keyed ephemeral block comparison, source-bound expiry/invalidation and authenticated public-channel diagnostic inspection",
+      "evidence": "77 focused checks, 76 isolated AI/knowledge/Gateway scenarios and 19 composed staging scenarios pass; both disposable clusters stopped. Synthetic browser display and expiry verified.",
+      "remaining": "Current Chat layout remains the control. Actual provider cache observations, reviewed answer quality, latency and Windows containment remain separately unqualified; no cache eviction or dispatch inference from preparation diagnostics."
     }
   ],
   "next_steps": [
@@ -2348,7 +2359,7 @@
         "P24",
         "P25"
       ],
-      "work": "Finish ephemeral first-changed-block diagnostics and remaining export verification, then implement the registered Windows lifecycle adapter and prepare its exact installation/qualification scope. Preserve the 15-second first-receipt deadline, one active call and separate provider/data clearance.",
+      "work": "Complete the registered Windows worker package, supervisor/transport and exact operational qualification scope using the existing Hyper-V isolation candidate. Verify the remaining browser preference export. Provider/data clearance and actual reviewed model answers remain separate gates; do not substitute ordinary host-process execution for containment.",
       "exit_evidence": "Scoped local source/transaction/transport evidence first; actual OS/egress and Discord tests need their explicit operational scope. Paid comparisons remain separately authorized."
     },
     {
@@ -2461,15 +2472,15 @@
       {
         "id": "DS-02",
         "title": "Prepared-turn contract",
-        "implementation": "implemented foundation",
-        "qualification": "Focused offline checks; no new provider qualification",
+        "implementation": "Immutable bounded outbound preparation with per-boot keyed ephemeral block comparison, source-bound expiry/invalidation and authenticated public-channel diagnostic inspection",
+        "qualification": "77 focused checks, 76 isolated AI/knowledge/Gateway scenarios and 19 composed staging scenarios pass; both disposable clusters stopped. Synthetic browser display and expiry verified.",
         "sai": [
           "SAI-01",
           "SAI-03",
           "SAI-05",
           "SAI-08"
         ],
-        "remaining": "Wire ephemeral first-changed-block diagnostics into the qualified worker; current layout remains control."
+        "remaining": "Current Chat layout remains the control. Actual provider cache observations, reviewed answer quality, latency and Windows containment remain separately unqualified; no cache eviction or dispatch inference from preparation diagnostics."
       },
       {
         "id": "DS-03",
@@ -2544,7 +2555,7 @@
       {
         "id": "DS-09",
         "title": "Effects and operating controls",
-        "implementation": "Durable desired/active/acknowledged worker revisions, authenticated AI-only apply/stop/recovery controls and a fenced single-owner lifecycle coordinator",
+        "implementation": "Durable desired/active/acknowledged worker revisions, authenticated AI-only apply/stop/recovery controls and a fenced single-owner lifecycle coordinator; authenticated temporary request-comparison inspection",
         "qualification": "44 focused checks, 75 isolated AI/knowledge/Gateway scenarios and 19 composed staging scenarios pass; both disposable clusters stopped. Synthetic browser review/apply/stop verified.",
         "sai": [
           "SAI-06",

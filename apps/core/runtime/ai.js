@@ -68,6 +68,7 @@ export function createAiRuntime({ configuration, corePool, controlPool, worker, 
   }
   return Object.freeze({
     ...gateway, invalidate,
+    diagnostics:channelId=>stopped?null:turns.diagnostics({guildId:mapping.guildId,channelId}),
     async start() {
       requireCondition(timer === null && !stopped, 'AI_RUNTIME_ALREADY_STARTED');
       await refresh(); schedule();

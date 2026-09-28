@@ -77,6 +77,20 @@ export async function runAiControlsSuite(cluster, run) {
     assert.deepEqual((await admin.query('SELECT * FROM sophie_control.runtime_gate')).rows, before);
     permitted = false; await assert.rejects(store.disable({ actor }), /OPERATION_DENIED/); permitted = true;
   });
+  await run('DS02-AI33 diagnostic reads require current operator/channel authority and unchanged enabled state',async()=>{
+    let calls=0,mode='current';const diagnostic={basis:'prepared-outbound-shape'};
+    const controls=createAiControls({pool,guildId:actor.guildId,authorize:async(_action,candidate)=>candidate===actor && permitted,
+      inspectChannel:async(_client,id)=>channelAvailable && id==='303'?{}:null,memberPresence:async()=>1,
+      readDiagnostic:async()=>{calls++;if(mode==='disable')await store.disable({actor});if(mode==='revoke')permitted=false;return diagnostic;}});
+    assert.deepEqual(await controls.diagnostics({actor,channelId:'303'}),{diagnostic:null});assert.equal(calls,0);
+    await admin.query('UPDATE sophie_ai.state SET disabled=false WHERE guild_id=$1',[actor.guildId]);
+    assert.deepEqual(await controls.diagnostics({actor,channelId:'303'}),{diagnostic});
+    await assert.rejects(controls.diagnostics({actor,channelId:'999'}),/AI_CHANNEL_UNAVAILABLE/);
+    mode='disable';assert.deepEqual(await controls.diagnostics({actor,channelId:'303'}),{diagnostic:null});
+    await admin.query('UPDATE sophie_ai.state SET disabled=false WHERE guild_id=$1',[actor.guildId]);
+    mode='revoke';await assert.rejects(controls.diagnostics({actor,channelId:'303'}),/OPERATION_DENIED/);
+    permitted=true;await store.disable({actor});
+  });
   const ingress = createAiIngress({ guildId: actor.guildId, botUserId: '505', clock: Date.now });
   let contextEligible = true, sourceRevision = 'original', presenceEpoch = 1;
   const admissionFor = ingress => createAiAdmission({ pool, guildId: actor.guildId, ingress, clock: Date.now,

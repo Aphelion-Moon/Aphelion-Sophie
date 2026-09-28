@@ -4,7 +4,7 @@ export const AI_ROUTES = Object.freeze({ '/api/ai/publication': 'GET', '/api/ai/
   '/api/ai/disable': 'POST', '/api/ai/consents': 'GET', '/api/ai/consent': 'POST', '/api/ai/budget': 'GET', '/api/ai/resolve-spending': 'POST',
   '/api/ai/review-spending-hold': 'POST', '/api/ai/clear-spending-hold': 'POST',
   '/api/ai/worker':'GET','/api/ai/review-worker':'POST','/api/ai/apply-worker':'POST','/api/ai/stop-worker':'POST',
-  '/api/ai/preferences':'GET', '/api/ai/save-preferences':'POST', '/api/ai/delete-preferences':'POST' });
+  '/api/ai/diagnostics':'GET','/api/ai/preferences':'GET', '/api/ai/save-preferences':'POST', '/api/ai/delete-preferences':'POST' });
 
 export function createAiControlsHttp({ auth, authorization, controls }) {
   return Object.freeze({ async execute({ path, method, query, body, credentials }) {
@@ -12,7 +12,10 @@ export function createAiControlsHttp({ auth, authorization, controls }) {
     let operation, fields;
     if (method === 'GET') {
       requireCondition(body === null, 'AI_INPUT_INVALID');
-      if (path === '/api/ai/publication') {
+      if(path==='/api/ai/diagnostics'){
+        requireCondition([...query.keys()].length===1 && query.has('channelId'),'AI_INPUT_INVALID');
+        fields={channelId:query.get('channelId')};operation='diagnostics';
+      } else if (path === '/api/ai/publication') {
         requireCondition([...query.keys()].length === 1 && query.has('kind'), 'AI_INPUT_INVALID');
         fields = { kind: query.get('kind') }; operation = 'current';
       } else { requireCondition([...query].length === 0, 'AI_INPUT_INVALID'); fields = {}; operation = path === '/api/ai/worker' ? 'workerStatus' : path === '/api/ai/budget' ? 'budgetStatus' : path === '/api/ai/preferences' ? 'ownPreferences' : 'ownConsents'; }

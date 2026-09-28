@@ -117,6 +117,7 @@ export async function createStagingRuntime({ configuration, pool, aiControlPool 
     const ai = aiControlPool === null ? null : createAiControlsHttp({ auth, authorization, controls: createAiControls({
       pool: aiControlPool, guildId: fixed.mapping.guildId, authorize: authorization.authorize, preferenceJournal:aiPreferenceJournal, clock,
       workerCatalogue:aiLifecycle===null?[]:aiRuntime.catalogue,workerOperationsAvailable:aiLifecycle!==null,
+      readDiagnostic:channelId=>aiRuntime?.diagnostics(channelId)??null,
       memberPresence: actor => authorization.aiMemberPresence(actor),
       invalidate: () => aiRuntime?.invalidate(),
       inspectChannel: (_client, channelId) => inspectAutomationChannel(pool, { guildId: fixed.mapping.guildId,

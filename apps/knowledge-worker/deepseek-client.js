@@ -1,4 +1,4 @@
-import { createHash, createHmac } from 'node:crypto';
+import { createHash, createHmac, randomBytes } from 'node:crypto';
 import { requireCondition, requireId, requireInteger } from '../../contracts/validation.js';
 import { validateAiOutput } from '../../modules/assistant/output.js';
 import { createAiOutputSchema, validateAiPrompt, freezeAiMaterial } from './prompt-contract.js';
@@ -27,6 +27,8 @@ export function createDeepSeekClient({ apiKey, fetchImpl = fetch, clock = Date.n
   requireCondition(Array.isArray(acceptedFingerprints) && acceptedFingerprints.length <= 16 && acceptedFingerprints.every(value =>
     typeof value === 'string' && /^[a-zA-Z0-9._-]{1,96}$/u.test(value)), 'AI_IDENTITY_POLICY_INVALID');
   const fingerprints = new Set(acceptedFingerprints), preparedTurns = new WeakSet(), consumed = new WeakSet();
+  const comparisonKey=randomBytes(32);
+  const compareHash=value=>createHmac('sha256',comparisonKey).update(JSON.stringify(value)).digest('hex');
   const profileHash = createHash('sha256').update(JSON.stringify({schema:1,provider:'deepseek',endpoint,model:DEEPSEEK_MODEL,
     maxPromptBytes,outputTokens,thinking:false,stream:false,temperature:0.4,responseFormat:'json_object',acceptedFingerprints:[...fingerprints].sort()})).digest('hex');
   let active = false, blockedUntil = 0, credentialBlocked = false, identityBlocked = false;
@@ -43,6 +45,7 @@ export function createDeepSeekClient({ apiKey, fetchImpl = fetch, clock = Date.n
       boundary.channelId, boundary.boundaryEpoch, boundary.continuity, releaseHash])).digest('hex');
   }
   function prepare(payload) {
+    const started=clock();
     validateAiPrompt(payload);
     const userId = scope(payload), { messages, outputContract, sourceMessages = [], trimGroups = [], contractMessageIndex } = payload;
     const removed = new Set(); let group = 0;
@@ -50,7 +53,7 @@ export function createDeepSeekClient({ apiKey, fetchImpl = fetch, clock = Date.n
       const sources = sourceMessages.filter(source => !removed.has(source.index)).map(source => ({ id: source.id }));
       const contract = { ...outputContract, sourceIds: sources.map(source => source.id) };
       const schema = createAiOutputSchema(contract);
-      if (schema.oneOf.length === 1) return prepared({ sources, contract, body: null, messages: [], blocks: [] });
+      if (schema.oneOf.length === 1) return prepared({ sources, contract, body: null, messages: [], blocks: [] },started);
       const selected = messages.filter((_message, index) => !removed.has(index) && index !== contractMessageIndex).map(({ role, content }) => ({ role, content }));
       // DeepSeek JSON mode does not enforce JSON Schema. Describe it, then validate locally.
       selected.splice(selected.length - 1, 0, { role: 'system', content: `Return one JSON object matching this turn's schema. Silence is {"kind":"silent"}. No markdown or extra fields.\n${JSON.stringify(schema)}` });
@@ -61,17 +64,19 @@ export function createDeepSeekClient({ apiKey, fetchImpl = fetch, clock = Date.n
           [{ kind: payload.blocks?.[index]?.kind ?? (index === 0 ? 'authoring' : index === messages.length - 1 ? 'question' : 'history'),
             ...(sourceMessages.find(source => source.index === index) ? { id: sourceMessages.find(source => source.index === index).id } : {}) }]);
         blocks.splice(blocks.length - 1, 0, { kind: 'contract' });
-        return prepared({ sources, contract, body, messages: selected, blocks });
+        return prepared({ sources, contract, body, messages: selected, blocks },started);
       }
       requireCondition(group < trimGroups.length, 'AI_CONTEXT_LIMIT');
       for (const index of trimGroups[group++]) removed.add(index);
     }
   }
-  function prepared(value) {
+  function prepared(value,started) {
     const serialized = value.body === null ? null : JSON.stringify(value.body);
     const result = freezeAiMaterial({ ...value, serialized, bytes: serialized === null ? 0 : Buffer.byteLength(serialized, 'utf8'),
       outputTokens, estimateQuality: 'conservative-byte-estimate',
-      diagnostics: value.blocks.map((block, index) => ({ ...block, bytes: Buffer.byteLength(value.messages[index].content, 'utf8') })) });
+      diagnostics: value.blocks.map((block, index) => ({ ...block, bytes: Buffer.byteLength(value.messages[index].content, 'utf8') })),
+      comparison:{protocol:compareHash({...value.body,messages:undefined}),milliseconds:Math.max(0,Math.min(15000,clock()-started)),
+        blocks:value.blocks.map((block,index)=>({kind:block.kind,digest:compareHash([block,value.messages[index]]),bytes:Buffer.byteLength(value.messages[index].content,'utf8')}))} });
     preparedTurns.add(result); return result;
   }
   async function generatePrepared(turn, { signal, deadline, beforeDispatch = async () => true,

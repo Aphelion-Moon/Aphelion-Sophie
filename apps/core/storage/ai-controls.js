@@ -26,9 +26,9 @@ function publication(kind, document) {
 
 /** Authenticated controls own desired state. Activation requires separate installation evidence. */
 export function createAiControls({ pool, guildId, authorize, inspectChannel, memberPresence, invalidate = () => {}, noticeRevision = 2,
-  noticeApproved = async () => false, preferenceJournal = null, clock = Date.now, workerCatalogue=[],workerOperationsAvailable=false }) {
+  noticeApproved = async () => false, preferenceJournal = null, clock = Date.now, workerCatalogue=[],workerOperationsAvailable=false,readDiagnostic=async()=>null }) {
   requireId(guildId); requireInteger(noticeRevision, 1);
-  for (const fn of [authorize, inspectChannel, memberPresence, noticeApproved]) requireCondition(typeof fn === 'function', 'TRUSTED_ADAPTERS_REQUIRED');
+  for (const fn of [authorize, inspectChannel, memberPresence, noticeApproved,readDiagnostic]) requireCondition(typeof fn === 'function', 'TRUSTED_ADAPTERS_REQUIRED');
   async function access(actor, action, scope = {}) {
     requireCondition(await authorize(action, actor, { guildId, ...scope }) === true, 'OPERATION_DENIED');
     const grant = operatorGrant(actor); requireCondition(grant.guildId === guildId, 'FOREIGN_GUILD'); return grant;
@@ -74,6 +74,16 @@ export function createAiControls({ pool, guildId, authorize, inspectChannel, mem
   return Object.freeze({
     ...createAiWorkerOperations({guildId,transaction,catalogue:workerCatalogue,available:workerOperationsAvailable}),
     ...createAiPreferences({guildId,transaction,memberPresence,journal:preferenceJournal,clock}),
+    async diagnostics({actor,channelId}) {
+      requireId(channelId);
+      const guard=()=>transaction(actor,'ai.control',async(client,state)=>{
+        requireCondition(await inspectChannel(client,channelId)!==null,'AI_CHANNEL_UNAVAILABLE');
+        return {epoch:Number(state.epoch),disabled:state.disabled};
+      });
+      const before=await guard();if(before.disabled)return {diagnostic:null};
+      const diagnostic=await readDiagnostic(channelId),after=await guard();
+      return {diagnostic:after.disabled || after.epoch!==before.epoch?null:diagnostic};
+    },
     async current({ actor, kind }) {
       publication(kind, kind === 'configuration' ? { schemaVersion: 1, enabled: false, deadlineMs: 15000, channels: [], emojis: [] } :
         kind === 'budget' ? DEFAULT_AI_BUDGET : { core: 'Sophie', examples: [] });

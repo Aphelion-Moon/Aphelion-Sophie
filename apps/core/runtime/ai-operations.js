@@ -68,6 +68,7 @@ export function createAiOperationsRuntime({pool,guildId,lifecycle,createRuntime,
   }
   return Object.freeze({
     catalogue,
+    diagnostics:channelId=>stopped?null:runtime?.diagnostics(channelId)??null,
     prepare:payload=>stopped?null:runtime?.prepare(payload)??null,
     committed:(proof,accepted)=>stopped?undefined:runtime?.committed(proof,accepted),
     invalidate(){runtime?.invalidate();operation?.abort();},

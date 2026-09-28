@@ -45,7 +45,10 @@ async function fixture({fetchImpl,generatePrepared,qualified = async()=>true,wor
 
 test('DS04-I01 authenticated private-stream turn preserves dispatch/settlement ordering and excludes core-only metadata',async()=>{
   const f=await fixture(); try {
-    assert.deepEqual(await f.generate(),output);
+    let comparison;
+    assert.deepEqual(await f.generate(prompt(),{onPrepared:async value=>{comparison=value;}}),output);
+    assert.ok(comparison.blocks.length>0);assert.equal(JSON.stringify(comparison).includes('Synthetic hello'),false);
+    assert.equal(comparison.blocks.at(-1).kind,'question');
     assert.deepEqual(f.events,['reserve','dispatch','network','settle','finish:true']);
     assert.equal(Object.hasOwn(f.inputs[0],'local'),false); assert.equal(Object.hasOwn(f.inputs[0],'token'),false);
     await tick(); assert.equal(f.worker.status().active,false);

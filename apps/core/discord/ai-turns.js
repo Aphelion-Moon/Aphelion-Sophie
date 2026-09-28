@@ -62,6 +62,11 @@ export function createAiTurns({ admission, scheduler, context, knowledge, messag
       const generated = await scheduler.submit({ id: request.messageId, member: `${request.guildId}.${request.userId}`, channel: `${request.guildId}.${request.channelId}`, receivedAt: request.receivedAt,
         deadline: request.deadline, proactive: request.decision.proactive,
         beforeDispatch: () => current(request, sources, history),
+        onPrepared: async comparison=>{
+          if(!await current(request,sources,history))return;
+          await context.comparePrepared(request,history,sources,comparison,admission.revalidateSource,
+            items=>items.length===0?true:knowledge.currentReferences(items,request));
+        },
         beforeExecute: async () => {
           if (!await current(request, sources, history)) return false;
           if (request.profile.typing && !request.decision.proactive && request.decision.outcomes.includes('reply')) {
@@ -108,6 +113,8 @@ export function createAiTurns({ admission, scheduler, context, knowledge, messag
     }
   }
   return Object.freeze({
+    diagnostics:({guildId,channelId})=>context.diagnostic(channelId,admission.revalidateSource,
+      items=>items.length===0?true:knowledge.currentReferences(items,{guildId,deadline:clock()+5000})),
     prepareEdit(filter) {
       invalidateContext(filter);
       const entry=gatheringFor(filter);

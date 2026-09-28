@@ -103,6 +103,53 @@ function turnsFixture() {
   return { turns, scheduler, admission, knowledge, messages, value, output, sent, states, modelCalls, time: at => { now = at; }, revoke: () => { eligible = false; } };
 }
 
+const comparison=(digest='a')=>({protocol:'b'.repeat(64),milliseconds:2,blocks:[{kind:'authoring',digest:'c'.repeat(64),bytes:40},{kind:'question',digest:digest.repeat(64),bytes:20}]});
+test('DS02 diagnostics compare final block fingerprints only within retained authorized context',async()=>{
+  const context=createAiContext({clock:()=>2000}),first=request(),second=request({messageId:'304'}),allow=async()=>true;
+  context.remember(first);await context.comparePrepared(first,[],[],comparison(),allow,allow);
+  assert.equal((await context.diagnostic('202',allow,allow)).comparable,false);
+  context.remember(second);await context.comparePrepared(second,[],[],comparison('d'),allow,allow);
+  const result=await context.diagnostic('202',allow,allow);assert.equal(result.firstChangedBlock,'question');
+  assert.equal(JSON.stringify(result).includes('digest'),false);assert.equal(JSON.stringify(result).includes(first.text),false);
+  const foreign=request({channelId:'203'});context.remember(foreign);await context.comparePrepared(foreign,[],[],comparison('d'),allow,allow);
+  assert.equal((await context.diagnostic('203',allow,allow)).comparable,false);
+  assert.equal(await context.diagnostic('202',async()=>false,allow),null);context.clear();
+});
+test('DS02 diagnostic retention follows source expiry, deletion and capacity eviction without another request',async()=>{
+  let now=1000,next;const allow=async()=>true,source=request(),context=createAiContext({clock:()=>now,setTimer:(callback,delay)=>{next={callback,delay};return next;},clearTimer:()=>{}});
+  context.remember(source);await context.comparePrepared(source,[],[{id:'guide.r1.s0',publicationHash:'e'.repeat(64),epoch:1,validUntil:1500}],comparison(),allow,allow);
+  assert.equal(next.delay,500);now=1500;next.callback();assert.equal(await context.diagnostic('202',allow,allow),null);
+  await context.comparePrepared(source,[],[],comparison(),allow,allow);context.invalidate({messageId:source.messageId});
+  assert.equal(await context.diagnostic('202',allow,allow),null);
+  context.remember(source);await context.comparePrepared(source,[],[],comparison(),allow,allow);
+  for(let index=0;index<12;index++)context.remember(request({messageId:String(800+index)}));
+  assert.equal(context.status().messages,12);assert.equal(await context.diagnostic('202',allow,allow),null);context.clear();
+});
+test('DS02 withdrawn knowledge and asynchronous invalidation cannot preserve or resurrect a comparison',async()=>{
+  const context=createAiContext({clock:()=>2000}),source=request(),allow=async()=>true;
+  context.remember(source);await context.comparePrepared(source,[],[],comparison(),allow,allow);
+  assert.equal(await context.diagnostic('202',allow,async()=>false),null);
+  await context.comparePrepared(source,[],[],comparison(),allow,allow);
+  await context.comparePrepared(source,[],[],comparison(),allow,async()=>false);
+  assert.equal(await context.diagnostic('202',allow,allow),null,'a later permission recovery cannot revive discarded comparison state');
+  await context.comparePrepared(source,[],[],comparison(),allow,async()=>{context.clear();return true;});
+  assert.equal(await context.diagnostic('202',allow,allow),null);
+});
+test('DS02 invalidation during a later comparison removes the earlier comparison basis',async()=>{
+  const context=createAiContext({clock:()=>2000}),first=request(),second=request({messageId:'304'}),allow=async()=>true;
+  context.remember(first);await context.comparePrepared(first,[],[],comparison(),allow,allow);context.remember(second);
+  await context.comparePrepared(second,[],[],comparison('d'),async source=>{
+    if(source.messageId===second.messageId)context.invalidate({messageId:first.messageId});return true;
+  },allow);
+  assert.equal((await context.diagnostic('202',allow,allow)).comparable,false);context.clear();
+});
+test('DS02 turn preparation callback records only while its admitted sources are still current',async()=>{
+  const f=turnsFixture();f.scheduler.submit=async input=>{await input.onPrepared(comparison());return {state:'completed',result:{kind:'silent'}};};
+  assert.deepEqual(await f.turns.handle({}),{state:'silent'});
+  assert.equal((await f.turns.diagnostics({guildId:'101',channelId:'202'})).basis,'prepared-outbound-shape');
+  f.turns.invalidate({messageId:f.value.messageId});assert.equal(await f.turns.diagnostics({guildId:'101',channelId:'202'}),null);await f.turns.stop();
+});
+
 test('SAI AT-12 one turn delivers one validated reply to the fixed destination', async () => {
   const f = turnsFixture(); assert.deepEqual(await f.turns.handle({}), { state: 'delivered' });
   assert.equal(f.modelCalls.length, 1); assert.equal(f.sent.length, 1);

@@ -34,7 +34,7 @@ export function createAiIpcWorker({ identity, key, adapter, qualified = async()=
           requireCondition(!active && !stopping,'AI_IPC_BUSY'); active = true; ownsSlot = true;
           const prepared = await adapter.prepare(input.payload);
           requireCondition(!channel.signal.aborted,'AI_IPC_CLOSED');
-          await channel.send('prepared',{bytes:prepared.bytes,outputTokens:prepared.outputTokens,contract:prepared.contract});
+          await channel.send('prepared',{bytes:prepared.bytes,outputTokens:prepared.outputTokens,contract:prepared.contract,comparison:prepared.comparison??null});
           const generation = await channel.receive('generate'); requireKeys(generation,['deadline'],'AI_IPC_INVALID'); channel.tighten(generation.deadline);
           async function acknowledgement(kind,body = {}) {
             await channel.send(kind,body); const result = await channel.receive('ack'); requireKeys(result,['kind','accepted'],'AI_IPC_INVALID');

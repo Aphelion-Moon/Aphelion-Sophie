@@ -1,4 +1,29 @@
-import { requireCondition, requireKeys } from '../../contracts/validation.js';
+import { requireCondition, requireInteger, requireKeys } from '../../contracts/validation.js';
+
+const blockKinds=['authoring','example','evidence','history','contract','question'];
+
+/** Ephemeral comparison fingerprints are keyed per worker boot and must never enter logs or persistence. */
+export function validateAiComparison(value) {
+  requireKeys(value,['protocol','blocks','milliseconds'],'AI_DIAGNOSTICS_INVALID');
+  const hash=value=>typeof value==='string' && /^[a-f0-9]{64}$/u.test(value);
+  requireCondition(hash(value.protocol) && Array.isArray(value.blocks) && value.blocks.length<=55,'AI_DIAGNOSTICS_INVALID');
+  requireInteger(value.milliseconds,0,15000);
+  for(const block of value.blocks){
+    requireKeys(block,['kind','digest','bytes'],'AI_DIAGNOSTICS_INVALID');
+    requireCondition(blockKinds.includes(block.kind) && hash(block.digest),'AI_DIAGNOSTICS_INVALID');requireInteger(block.bytes,0,32768);
+  }
+  requireCondition(value.blocks.reduce((sum,item)=>sum+item.bytes,0)<=32768,'AI_DIAGNOSTICS_INVALID');
+  return freezeAiMaterial(structuredClone(value));
+}
+
+export function firstChangedAiComparison(previous,current) {
+  if(previous.protocol!==current.protocol)return 'protocol';
+  for(let index=0;index<Math.max(previous.blocks.length,current.blocks.length);index++){
+    const before=previous.blocks[index],after=current.blocks[index];
+    if(before?.kind!==after?.kind || before?.digest!==after?.digest)return after?.kind??before.kind;
+  }
+  return null;
+}
 
 /** Only application-owned acyclic JSON data enters this contract. */
 export function freezeAiMaterial(value) {
