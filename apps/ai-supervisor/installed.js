@@ -6,7 +6,7 @@ import { createAiSupervisorWorkerSlot } from './worker-slot.js';
 import { createAiSupervisorControlService } from './control.js';
 import { installedRoleContext } from '../installation/context.js';
 
-const base='C:\\ProgramData\\Aphelion\\Sophie';
+const base='C:\\Aphelion\\Sophie';
 export async function createInstalledSupervisorService({pipes,signal,onFault,openJournal=openAiSupervisorJournal,createDocker=createAiDockerSlot}) {
   const {configuration,qualified,revocationSignal,keys}=installedRoleContext(pipes,'supervisor',signal);
   let journal,docker,slot;

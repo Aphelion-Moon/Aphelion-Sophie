@@ -518,3 +518,18 @@ not Microsoft runtime/compiler binaries. No installer, image/runtime upgrade,
 NuGet/System.Core dependency or broader language change is approved. After this
 runtime gate passes, continue the already approved Windows trial and its existing
 OS-boundary stop conditions. See `legal/windows-guest-toolchain.json`.
+
+### Fixed installation root amendment — 28 September 2026
+
+The owner approved the fixed-root amendment at
+`GitHub/.agent_docs/aphelion-sophie/windows-service-trial/installation-root-amendment.md`
+(SHA-256 `06657e70367e36e00b56fb51865e7b05d48616304a2439fefec1a57454fbd162`).
+Use `C:\Aphelion\Sophie` for the protected host installation, with the existing
+fixed guest paths. Create only the absent dedicated parent/tree and repoint the
+three already owned Manual diagnostic services, preserving their identities.
+Preserve the old ProgramData tree and all shared ancestor permissions. Keep the
+protected-file rejection rules intact; this is a layout change, not a permission
+exception. Resume the previously approved synthetic service/file/pipe/HCS checks;
+all other exclusions and OS-boundary stop conditions remain in force. Approval
+and evidence are distinct; `legal/windows-installation-trial.json` records the
+overlay without altering the original proposal or its hash.

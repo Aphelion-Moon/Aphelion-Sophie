@@ -1,5 +1,17 @@
 # Verification and release limits
 
+## Approved fixed root and WinSW clean-exit gate — 28 September 2026
+
+Approved fixed host root changed to C:\Aphelion\Sophie in native and JavaScript profiles. Created only the new protected parent/tree and repointed the three owned Manual diagnostic services with unchanged identities. Preserved the old ProgramData trial tree and shared ancestor descriptors; no protection rule was relaxed.
+
+Host and guest helpers rebuilt. Actual core service passes parent/child user and service SID, protected-root/own-marker, cross-role read and own-marker write denial, service-SID pipe create/close, and companion readiness/drained stop checks. Guest checks pass 36 native assertions, 11 boundary groups, four stream groups and two cross-profile rejection assertions. Host stream checks and six installation configuration checks pass. WinSW then fails clean-child-exit reporting because it requests full SCM access; the bounded driver stops the wrapper. Egress/supervisor were not started. Three services are Manual/stopped, no owned processes or containers remain.
+
+The first new-root driver attempt encountered the wrapper log lock and stopped its own service during cleanup; it is not a test pass. The corrected driver waited for exit and captured the successful core diagnostic, then timed out on SCM state. The wrapper log identifies SignalStopped → ServiceManager.Open(All), matching upstream WinSW issue #1136. Operator cleanup succeeded. No exit code was disguised and no SCM/service DACL or account was changed. The diagnostic ran service-probe.mjs, not the final installed application entrypoint. New guest compile and transport containers were removed.
+
+Current source-bound report: `GitHub/.agent_docs/aphelion-sophie/windows-fixed-root-verification.json`. Prepared worker package and host source/helper inventories are recorded there; no new worker image or qualified owner receipt is claimed. No broad application or database suite was rerun. The root proposal remains immutable for its approved hash; the approval overlay is in `legal/windows-installation-trial.json`. Historical entries below describe earlier candidates and superseded next steps.
+
+The fixed-root amendment is implemented. Review the private WinSW clean-exit build amendment at GitHub/.agent_docs/aphelion-sophie/windows-fixed-root-trial/wrapper-amendment.md: one SCM access-mask call-site fix, exact SDK/package inputs and unchanged service permissions. The stock-wrapper qualification is blocked; no patched wrapper has been built or installed. After that gate, continue the already approved egress/supervisor, HCS, mount, credential, physical-termination and uncertain-create checks. Full installed application, provider/account, publication/actual-answer, preference-journal and Discord gates remain open. Field-test and production readiness remain false.
+
 ## Windows service trial: shared-ancestor path gate — 28 September 2026
 
 Three approved Manual diagnostic services and the new protected ProgramData trial tree are provisioned. Core parent/native-child identity checks pass after requesting TOKEN_DUPLICATE with TOKEN_QUERY for enabled service membership; worker-only checks still request QUERY. No service/process DACL was widened.

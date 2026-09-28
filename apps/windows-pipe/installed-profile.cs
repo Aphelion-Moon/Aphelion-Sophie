@@ -19,9 +19,9 @@ namespace Sophie.WindowsPipe
         {
             try
             {
-                string role=args[1],trust=role=="worker"?@"C:\sophie-trust":@"C:\ProgramData\Aphelion\Sophie\trust";
-                SourceRoot=role=="worker"?@"C:\sophie":@"C:\ProgramData\Aphelion\Sophie\package\source";
-                RuntimeRoot=role=="worker"?@"C:\node":@"C:\ProgramData\Aphelion\Sophie\package\runtime";
+                string role=args[1],trust=role=="worker"?@"C:\sophie-trust":@"C:\Aphelion\Sophie\trust";
+                SourceRoot=role=="worker"?@"C:\sophie":@"C:\Aphelion\Sophie\package\source";
+                RuntimeRoot=role=="worker"?@"C:\node":@"C:\Aphelion\Sophie\package\runtime";
                 files.Root(trust);
                 var owner=files.Open(trust,role+".profile",8192);
                 if(ProtectedFiles.Hash(owner)!=args[5])throw new IOException("PIPE_OWNER_CHANGED");
@@ -52,8 +52,8 @@ namespace Sophie.WindowsPipe
                 if(role=="supervisor")
                 {
                     bootFiles=new ProtectedFiles(Values["supervisorSid"],Values["supervisorSid"]);
-                    bootFiles.Root(@"C:\ProgramData\Aphelion\Sophie\state\boots");
-                    bootFiles.Root(@"C:\ProgramData\Aphelion\Sophie\state\supervisor");
+                    bootFiles.Root(@"C:\Aphelion\Sophie\state\boots");
+                    bootFiles.Root(@"C:\Aphelion\Sophie\state\supervisor");
                 }
                 Current();
             }

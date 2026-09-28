@@ -26,7 +26,7 @@ export function parseInstallationOwner(text,role,now=Date.now()) {
 
 export function installationPaths(role) {
   requireCondition(['supervisor','core','egress','worker'].includes(role),code);
-  const base='C:\\ProgramData\\Aphelion\\Sophie',worker=role==='worker';
+  const base='C:\\Aphelion\\Sophie',worker=role==='worker';
   const trust=worker?'C:\\sophie-trust':`${base}\\trust`,source=worker?'C:\\sophie':`${base}\\package\\source`;
   return Object.freeze({trust,source,owner:win32.join(trust,`${role}.profile`),configuration:win32.join(trust,`${role}.json`),
     manifest:win32.join(source,'installation.manifest'),executable:win32.join(source,'apps\\windows-pipe\\sophie-pipe.exe')});
