@@ -1,6 +1,6 @@
 {
   "schema_version": 2,
-  "revision": "2026-09-28-hcs-observation-prestart-stop",
+  "revision": "2026-09-28-hcs-rights-matrix-failed",
   "reference_plan_version": "1.1",
   "source": "Sophie-Implementation-Plans-v1.1/backlog.json",
   "owner_decisions": "docs/decisions/0001-owner-policy.md",
@@ -1339,7 +1339,7 @@
   "checkpoint": {
     "summary": "Deterministic administration, Whitelist onboarding, protected editors, role/permission configuration and the configurable staging host are implemented.",
     "recorded_baseline": "AI handoff 0fa7a5ed538ff791e3def2c1f6ac7683531e15a1 plus preserved uncommitted Flash candidate; synthetic schema058 candidate. No live schema change.",
-    "current_work": "Executed the approved one-container HCS handle-rights attempt. Host service identity/owner/DACL and restricted-outsider controls passed; the runner rejected container configuration before guest start. Preserved the failure and prepared a corrected replacement runner. Authorize one replacement observation using GitHub/.agent_docs/aphelion-sophie/windows-hcs-trial/access-retry-review/proposal.md; the prior one-container limit is consumed and no retry ran. Retain the transport gate until evidence supports an explicit decision. Provider/account clearance, protected mounts, termination/recovery, installed composition, publication/actual-answer review, preference/restricted-context gates and exact Test Discord Server activation remain open.",
+    "current_work": "Completed the approved replacement HCS observation on core and egress. All ten forbidden opens succeeded with corresponding guest handle rights, so the direct transport remains unqualified. Prepared an explicit per-purpose relay transport decision; no application or installed permission change. Review GitHub/.agent_docs/aphelion-sophie/windows-hcs-trial/transport-decision.md to select separate per-purpose untrusted relays for local implementation. Do not repeat the same direct-HCS matrix or qualify a proxy SID from guest masks/associated primary tokens. Replacement architecture and its new public/private contract require the owner decision; installation and operational qualification remain separate. Provider/account, protected mounts, termination/recovery, installed composition, publication/actual answers, preference/restricted-context and Test Discord Server activation gates remain open.",
     "evidence_note": "Current source-bound offline results are in docs/verification.md and the external deepseek-verification.json index. Earlier administration, local model and Flash trial results remain historical; none grants present deployment approval."
   },
   "milestones": [
@@ -2556,11 +2556,22 @@
       "implemented": "Executed the approved one-container HCS handle-rights attempt. Host service identity/owner/DACL and restricted-outsider controls passed; the runner rejected container configuration before guest start. Preserved the failure and prepared a corrected replacement runner.",
       "evidence": "Docker records create/destroy only. All three services are Manual/stopped with zero exit codes, XML and permissions restored, and no owned processes/containers remain. The absent ExposedPorts guard defect reproduces offline; corrected exposure and approval controls pass. The current rejected inspect was not saved. All guest requested/granted measurements are unrun; the earlier forbidden-open failure remains failed.",
       "remaining": "Authorize one replacement observation using GitHub/.agent_docs/aphelion-sophie/windows-hcs-trial/access-retry-review/proposal.md; the prior one-container limit is consumed and no retry ran. Retain the transport gate until evidence supports an explicit decision. Provider/account clearance, protected mounts, termination/recovery, installed composition, publication/actual-answer review, preference/restricted-context gates and exact Test Discord Server activation remain open."
+    },
+    {
+      "title": "Completed HCS rights matrix rejects direct transport",
+      "tasks": [
+        "P22",
+        "P23",
+        "P24"
+      ],
+      "implemented": "Completed the approved replacement HCS observation on core and egress. All ten forbidden opens succeeded with corresponding guest handle rights, so the direct transport remains unqualified. Prepared an explicit per-purpose relay transport decision; no application or installed permission change.",
+      "evidence": "Each pipe passed five fresh exact-data-rights/descriptor/echo checks. Actual host owner/DACL and restricted-outsider controls passed; owner/DACL bytes remained unchanged after all connections. Guest/container exit 2 records the failed acceptance checks. Container removed, observed vmwp PID absent, services Manual/stopped with zero exit codes, XML/permissions restored and no owned processes/containers remain.",
+      "remaining": "Review GitHub/.agent_docs/aphelion-sophie/windows-hcs-trial/transport-decision.md to select separate per-purpose untrusted relays for local implementation. Do not repeat the same direct-HCS matrix or qualify a proxy SID from guest masks/associated primary tokens. Replacement architecture and its new public/private contract require the owner decision; installation and operational qualification remain separate. Provider/account, protected mounts, termination/recovery, installed composition, publication/actual answers, preference/restricted-context and Test Discord Server activation gates remain open."
     }
   ],
   "next_steps": [
     {
-      "title": "Run corrected observation after replacement authorization",
+      "title": "Decide separate relay transport and qualify private boundaries",
       "tasks": [
         "P21",
         "P22",
@@ -2568,8 +2579,8 @@
         "P24",
         "P25"
       ],
-      "work": "Authorize one replacement observation using GitHub/.agent_docs/aphelion-sophie/windows-hcs-trial/access-retry-review/proposal.md; the prior one-container limit is consumed and no retry ran. Retain the transport gate until evidence supports an explicit decision. Provider/account clearance, protected mounts, termination/recovery, installed composition, publication/actual-answer review, preference/restricted-context gates and exact Test Discord Server activation remain open.",
-      "exit_evidence": "Approved replacement scope, requested/granted measurements and explicit transport decision; preserve failed/unrun checks and complete remaining AI gates before Test Discord Server activation."
+      "work": "Review GitHub/.agent_docs/aphelion-sophie/windows-hcs-trial/transport-decision.md to select separate per-purpose untrusted relays for local implementation. Do not repeat the same direct-HCS matrix or qualify a proxy SID from guest masks/associated primary tokens. Replacement architecture and its new public/private contract require the owner decision; installation and operational qualification remain separate. Provider/account, protected mounts, termination/recovery, installed composition, publication/actual answers, preference/restricted-context and Test Discord Server activation gates remain open.",
+      "exit_evidence": "Recorded architecture decision, implemented bounded transport, actual private-endpoint and relay isolation evidence, then remaining installed and Test Discord Server gates. Historical failed opens remain failed."
     },
     {
       "title": "Privately verify deployed configuration and apply workflow",
@@ -2713,7 +2724,7 @@
           "SAI-05",
           "SAI-14"
         ],
-        "remaining": "Authorize one replacement observation using GitHub/.agent_docs/aphelion-sophie/windows-hcs-trial/access-retry-review/proposal.md; the prior one-container limit is consumed and no retry ran. Retain the transport gate until evidence supports an explicit decision. Provider/account clearance, protected mounts, termination/recovery, installed composition, publication/actual-answer review, preference/restricted-context gates and exact Test Discord Server activation remain open."
+        "remaining": "Review GitHub/.agent_docs/aphelion-sophie/windows-hcs-trial/transport-decision.md to select separate per-purpose untrusted relays for local implementation. Do not repeat the same direct-HCS matrix or qualify a proxy SID from guest masks/associated primary tokens. Replacement architecture and its new public/private contract require the owner decision; installation and operational qualification remain separate. Provider/account, protected mounts, termination/recovery, installed composition, publication/actual answers, preference/restricted-context and Test Discord Server activation gates remain open."
       },
       {
         "id": "DS-05",
@@ -2771,7 +2782,7 @@
           "SAI-07",
           "SAI-14"
         ],
-        "remaining": "Authorize one replacement observation using GitHub/.agent_docs/aphelion-sophie/windows-hcs-trial/access-retry-review/proposal.md; the prior one-container limit is consumed and no retry ran. Retain the transport gate until evidence supports an explicit decision. Provider/account clearance, protected mounts, termination/recovery, installed composition, publication/actual-answer review, preference/restricted-context gates and exact Test Discord Server activation remain open."
+        "remaining": "Review GitHub/.agent_docs/aphelion-sophie/windows-hcs-trial/transport-decision.md to select separate per-purpose untrusted relays for local implementation. Do not repeat the same direct-HCS matrix or qualify a proxy SID from guest masks/associated primary tokens. Replacement architecture and its new public/private contract require the owner decision; installation and operational qualification remain separate. Provider/account, protected mounts, termination/recovery, installed composition, publication/actual answers, preference/restricted-context and Test Discord Server activation gates remain open."
       },
       {
         "id": "DS-10",

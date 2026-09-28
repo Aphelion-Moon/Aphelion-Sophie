@@ -590,3 +590,14 @@ no guest rights were measured. This approval preserved all earlier failed
 acceptance gates and did not authorize an architecture or permission change.
 The replacement runner is corrected and checked offline; a second container
 requires its own authorization under the explicit consumed limit.
+
+### Completed replacement observation — 28 September 2026
+
+The owner approved the corrected one-container replacement recorded in
+`legal/windows-hcs-handle-retry.json`. The complete core/egress matrix returned
+ten accepted forbidden opens; the existing gate remains failed. Data, host
+owner/DACL and outsider controls passed; all operational cleanup is verified.
+No further container or transport-contract change follows from this approval.
+The separate per-purpose relay design in the external transport-decision.md
+is a recommendation awaiting an owner decision, not an implemented or qualified
+replacement. Associated vmwp identity and guest rights cannot populate a receipt.

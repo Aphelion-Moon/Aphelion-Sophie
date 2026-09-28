@@ -1,5 +1,15 @@
 # Verification and release limits
 
+## Completed HCS rights matrix — 28 September 2026
+
+Completed the approved replacement HCS observation on core and egress. All ten forbidden opens succeeded with corresponding guest handle rights, so the direct transport remains unqualified. Prepared an explicit per-purpose relay transport decision; no application or installed permission change.
+
+Each pipe passed five fresh exact-data-rights/descriptor/echo checks. Actual host owner/DACL and restricted-outsider controls passed; owner/DACL bytes remained unchanged after all connections. Guest/container exit 2 records the failed acceptance checks. Container removed, observed vmwp PID absent, services Manual/stopped with zero exit codes, XML/permissions restored and no owned processes/containers remain.
+
+Both endpoints reported WRITE_DAC 0x00140080, WRITE_OWNER 0x00180080, DELETE 0x00110080, CREATE_PIPE_INSTANCE 0x00100084 and generic-write 0x00120196 on accepted guest handles. Normal data handles were exactly 0x00120183. No guest management operation was attempted; these masks do not establish host authority or an effective opener. The associated vmwp primary identity is unqualified. See `GitHub/.agent_docs/aphelion-sophie/windows-hcs-trial/access-retry/result.md` and `hcs-handle-matrix-verification.json`. Guest compilation and runtime were measured; no application/database suite, provider request or Discord activation occurred.
+
+Review GitHub/.agent_docs/aphelion-sophie/windows-hcs-trial/transport-decision.md to select separate per-purpose untrusted relays for local implementation. Do not repeat the same direct-HCS matrix or qualify a proxy SID from guest masks/associated primary tokens. Replacement architecture and its new public/private contract require the owner decision; installation and operational qualification remain separate. Provider/account, protected mounts, termination/recovery, installed composition, publication/actual answers, preference/restricted-context and Test Discord Server activation gates remain open. AI test-server readiness remains false.
+
 ## HCS observation stopped before start — 28 September 2026
 
 Executed the approved one-container HCS handle-rights attempt. Host service identity/owner/DACL and restricted-outsider controls passed; the runner rejected container configuration before guest start. Preserved the failure and prepared a corrected replacement runner.

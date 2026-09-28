@@ -1,0 +1,21 @@
+{
+  "name": "Corrected bounded HCS handle-rights replacement",
+  "approved": true,
+  "authorization": "Owner replied Approved, proceed. to the corrected one-container replacement proposal.",
+  "approvedOn": "2026-09-28",
+  "proposalSha256": "f8575c4c897ba6bab3a73e96c3499416b5ffd0655cc4fd24ae77bc52bb0712bb",
+  "inputManifestSha256": "d61e3ece4d29a39a554e600517db97a6ce620454d4a98cead30dcbf3e60d4ef0",
+  "maximumContainers": 1,
+  "proposal": "GitHub/.agent_docs/aphelion-sophie/windows-hcs-trial/access-retry/proposal.md",
+  "containersCreated": 1,
+  "containersStarted": 1,
+  "observationComplete": true,
+  "forbiddenOpenChecksPassed": 0,
+  "forbiddenOpenChecksFailed": 10,
+  "applicationOrSharedPermissionChangeApproved": false,
+  "transportContractChangeApproved": false,
+  "relayArchitectureApproved": false,
+  "candidateGroupApprovedForProduction": false,
+  "fieldTestReady": false,
+  "productionReady": false
+}
