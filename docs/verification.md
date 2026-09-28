@@ -245,6 +245,35 @@ release qualification were not rerun. Worker/service composition, unattended wik
 refresh, Discord `/lookup`, reviewed extracts and the 40-question knowledge gate
 remain open. This milestone does not activate AI or complete the workplan.
 
+## Authenticated worker-stream foundation — 28 September 2026
+
+The new broker and worker exchange mutually fresh authenticated challenges before
+transferring a bounded prompt. HMAC frames bind direction, session and sequence;
+worker/boot/release/provider-profile hashes must match the separately qualified
+expected identity. The transport is injected, and `current()` requires an explicit
+trusted qualification check. The server accepts only public scoped prompts and
+fixed preparation/generation messages, with one prepared or physical request at
+a time. Core-only accounting and delivery metadata does not cross the boundary.
+
+Core acknowledges durable dispatch before the provider POST and settles usage
+before accepting output. Cancellation/expiry closes the stream and preserves any
+uncertain charge; an uncooperative underlying request keeps its physical slot.
+Denied budgets and silence discard preparation. Runtime stop closes the broker.
+
+40 focused IPC/adapter/scheduler checks pass, including wrong keys and identities,
+cross-connection greeting/request replay, tampered/oversized/unexpected frames,
+revocation before network handoff, cancelled preparation, deadline expiry and
+usage reporting for malformed paid output. These checks use synthetic loopback
+streams and mocked provider transport. Source-bound evidence is in
+`../.agent_docs/aphelion-sophie/worker-ipc-verification.json`.
+
+HMAC framing does not encrypt the stream or establish an OS identity boundary.
+The native private connector, service identities, ACLs, egress, provider credential
+custody, transport-pool teardown and hard process termination remain unqualified.
+No listener/service, credentials, dependency/runtime upgrade, live provider call,
+migration or Discord effect was installed or performed. Database suites were not
+rerun for this non-storage slice; earlier evidence remains separately source-bound.
+
 ## Member direct knowledge lookup — 28 September 2026
 
 Public answers now includes authenticated search over the existing reviewed public

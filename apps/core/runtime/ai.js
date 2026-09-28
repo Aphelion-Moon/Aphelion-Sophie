@@ -54,7 +54,7 @@ export function createAiRuntime({ configuration, corePool, controlPool, worker, 
   return Object.freeze({
     ...gateway, invalidate,
     async start() { requireCondition(timer === null && !stopped, 'AI_RUNTIME_ALREADY_STARTED'); await refresh(); schedule(); },
-    async stop() { stopped = true; clearTimeout(timer); invalidate(); await gateway.stop(); await refreshing; },
+    async stop() { stopped = true; clearTimeout(timer); invalidate(); await gateway.stop(); await worker.stop?.(); await refreshing; },
     status() { return { ...scheduler.status(), stopped, qualification: 'per-request-required' }; },
   });
 }

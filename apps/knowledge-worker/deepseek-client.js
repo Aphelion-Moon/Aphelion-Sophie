@@ -1,4 +1,4 @@
-import { createHmac } from 'node:crypto';
+import { createHash, createHmac } from 'node:crypto';
 import { requireCondition, requireId, requireInteger } from '../../contracts/validation.js';
 import { validateAiOutput } from '../../modules/assistant/output.js';
 import { createAiOutputSchema, validateAiPrompt, freezeAiMaterial } from './prompt-contract.js';
@@ -27,6 +27,8 @@ export function createDeepSeekClient({ apiKey, fetchImpl = fetch, clock = Date.n
   requireCondition(Array.isArray(acceptedFingerprints) && acceptedFingerprints.length <= 16 && acceptedFingerprints.every(value =>
     typeof value === 'string' && /^[a-zA-Z0-9._-]{1,96}$/u.test(value)), 'AI_IDENTITY_POLICY_INVALID');
   const fingerprints = new Set(acceptedFingerprints), preparedTurns = new WeakSet(), consumed = new WeakSet();
+  const profileHash = createHash('sha256').update(JSON.stringify({schema:1,provider:'deepseek',endpoint,model:DEEPSEEK_MODEL,
+    maxPromptBytes,outputTokens,thinking:false,stream:false,temperature:0.4,responseFormat:'json_object',acceptedFingerprints:[...fingerprints].sort()})).digest('hex');
   let active = false, blockedUntil = 0, credentialBlocked = false, identityBlocked = false;
   function scope({ boundary, workerDomain, releaseHash, requesterId, restricted }) {
     // Existing local/private qualifications do not authorize a remote restricted lane.
@@ -136,7 +138,7 @@ export function createDeepSeekClient({ apiKey, fetchImpl = fetch, clock = Date.n
       }
   }
   return Object.freeze({
-    provider: 'deepseek',
+    provider: 'deepseek', profileHash,
     prepare, generatePrepared,
     async generate(payload, context) { return generatePrepared(prepare(payload), context); },
     status() { return { active, credentialBlocked, identityBlocked, cooldownUntil: blockedUntil }; },

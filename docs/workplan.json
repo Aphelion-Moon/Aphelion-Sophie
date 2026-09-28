@@ -1,6 +1,6 @@
 {
   "schema_version": 2,
-  "revision": "2026-09-28-mediawiki-import",
+  "revision": "2026-09-28-worker-ipc",
   "reference_plan_version": "1.1",
   "source": "Sophie-Implementation-Plans-v1.1/backlog.json",
   "owner_decisions": "docs/decisions/0001-owner-policy.md",
@@ -850,13 +850,15 @@
       "suggested_owner": "Repository maintainer; separate human review where required",
       "guardrail": "No cloud fallback, auto-download or claimed unmeasured throughput.",
       "status": "in_progress",
-      "implementation_note": "Approved runtime installed inside Hyper-V only; both pinned models ran under four CPUs/8 GiB, ContainerUser, network none, no mounts/ports. Phi failed timing; Qwen2.5 completed small screens in 3.824–5.920 seconds but invented policy/authority. Exact count and prompt usage agreed. No full-turn, host-load, quality or live qualification. Later owner selection: official DeepSeek Flash supersedes active local-only exploration. The preserved local screens remain historical; Flash worker identity, transport and operational qualification are open.",
+      "implementation_note": "Approved runtime installed inside Hyper-V only; both pinned models ran under four CPUs/8 GiB, ContainerUser, network none, no mounts/ports. Phi failed timing; Qwen2.5 completed small screens in 3.824–5.920 seconds but invented policy/authority. Exact count and prompt usage agreed. No full-turn, host-load, quality or live qualification. Later owner selection: official DeepSeek Flash supersedes active local-only exploration. The preserved local screens remain historical; Flash worker identity, transport and operational qualification are open. Authenticated bounded private-stream broker/worker foundation implemented; native service/transport and OS qualification incomplete.",
       "completed_scope": [
         "Pinned Microsoft C++ runtime installed only inside the approved temporary worker; version/hash and containment evidence recorded.",
-        "Actual Phi/Qwen synthetic screens, bounded negative-access checks and Zen 4 backend observation completed. Per-turn output grammar and evidence-trimming constraints implemented; 22 focused checks pass."
+        "Actual Phi/Qwen synthetic screens, bounded negative-access checks and Zen 4 backend observation completed. Per-turn output grammar and evidence-trimming constraints implemented; 22 focused checks pass.",
+        "Bounded mutual-challenge HMAC stream exchange pins worker/boot/release/provider profile and preserves core dispatch/usage acknowledgements. Final source/consent checks precede prompt transfer; cancellation, expiry, replay and uncertain handoff tested locally."
       ],
       "remaining_scope": [
-        "Qualify selected Flash worker/provider identity, processing basis, bounded HTTP and 15-second full-turn behavior. A local alternative requires explicit selection; no automatic fallback."
+        "Provision and qualify the exact private transport and Windows identity/ACL/egress profile, provider-only credential custody, worker-local HTTP pool and AI-only process replacement. Qualify Node maintenance separately; no service listener or production connector is installed.",
+        "Provider data-use clearance, actual full-turn timing and selected feature acceptance remain open."
       ]
     },
     {
@@ -1337,7 +1339,7 @@
   "checkpoint": {
     "summary": "Deterministic administration, Whitelist onboarding, protected editors, role/permission configuration and the configurable staging host are implemented.",
     "recorded_baseline": "AI handoff 0fa7a5ed538ff791e3def2c1f6ac7683531e15a1 plus preserved uncommitted Flash candidate; synthetic schema058 candidate. No live schema change.",
-    "current_work": "Prepared immutable Flash requests, durable conservative accounting and operator controls, revised external-processing consent gate and dependency-bound assistant history. Worker IPC, durable effects, importer, explicit memory, gathering and selected-feature acceptance remain incomplete. Direct approved-source lookup is now on Public answers and composes without any inference worker or AI control store. The owner-selected Policies collection now has a bounded collector and isolated structured extractor, verified against the public wiki without publication. Durable manual Policies imports and source-bound publication review now pass isolated checks; no production migration or source publication.",
+    "current_work": "Prepared immutable Flash requests, durable conservative accounting and operator controls, revised external-processing consent gate and dependency-bound assistant history. Worker IPC, durable effects, importer, explicit memory, gathering and selected-feature acceptance remain incomplete. Direct approved-source lookup is now on Public answers and composes without any inference worker or AI control store. The owner-selected Policies collection now has a bounded collector and isolated structured extractor, verified against the public wiki without publication. Durable manual Policies imports and source-bound publication review now pass isolated checks; no production migration or source publication. Authenticated private-stream worker integration now preserves accounting and cancellation boundaries in synthetic checks; actual private transport/service qualification remains open.",
     "evidence_note": "Current source-bound offline results are in docs/verification.md and the external deepseek-verification.json index. Earlier administration, local model and Flash trial results remain historical; none grants present deployment approval."
   },
   "milestones": [
@@ -2252,6 +2254,16 @@
       "implemented": "Durable Policies snapshots, fenced manual refresh, source-bound review/publication and dashboard structured review implemented; service deployment and unattended synchronization incomplete",
       "evidence": "38 focused checks, 51 isolated AI/knowledge/accounting scenarios and synthetic browser review; no live publication or deployment",
       "remaining": "Qualified knowledge-service composition and unattended refresh; Discord /lookup; reviewed wiki extracts and separate Discord rules publication; 40-question knowledge acceptance and live qualification."
+    },
+    {
+      "title": "Authenticated worker-stream foundation",
+      "tasks": [
+        "P23",
+        "P24"
+      ],
+      "implemented": "Authenticated bounded private-stream broker/worker foundation implemented; native service/transport and OS qualification incomplete",
+      "evidence": "40 focused IPC/adapter/scheduler checks using synthetic loopback streams and mocked provider transport; not OS/process isolation or end-to-end release evidence",
+      "remaining": "Provision and qualify the exact private transport and Windows identity/ACL/egress profile, provider-only credential custody, worker-local HTTP pool and AI-only process replacement. Qualify Node maintenance separately; no service listener or production connector is installed."
     }
   ],
   "next_steps": [
@@ -2402,14 +2414,14 @@
       {
         "id": "DS-04",
         "title": "Windows worker and transport",
-        "implementation": "incomplete",
-        "qualification": "No current Windows provider identity/IPC/egress qualification",
+        "implementation": "Authenticated bounded private-stream broker/worker foundation implemented; native service/transport and OS qualification incomplete",
+        "qualification": "40 focused IPC/adapter/scheduler checks using synthetic loopback streams and mocked provider transport; not OS/process isolation or end-to-end release evidence",
         "sai": [
           "SAI-04",
           "SAI-05",
           "SAI-14"
         ],
-        "remaining": "Build authenticated bounded broker and qualification wrapper; propose exact service identities/ACLs and qualify Node maintenance separately. Raw provider adapter is not a deployable worker."
+        "remaining": "Provision and qualify the exact private transport and Windows identity/ACL/egress profile, provider-only credential custody, worker-local HTTP pool and AI-only process replacement. Qualify Node maintenance separately; no service listener or production connector is installed."
       },
       {
         "id": "DS-05",
