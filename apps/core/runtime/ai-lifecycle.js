@@ -8,7 +8,7 @@ import { createAiControlParticipant } from '../../ai-control/participant.js';
 import { createAiReversePipeClient } from './ai-reverse-pipe.js';
 
 /** Core uses bounded authenticated intents; only the supervisor identity can call Docker or publish boot files. */
-export function createAiWindowsLifecycle({client,release,qualified,revocationSignal,onFault}) {
+export function createAiWindowsLifecycle({client,release,qualified,revocationSignal,onFault,createPipeServer}) {
   const fixed=canonicalAiWorkerRelease(release);
   requireCondition(client?.signal instanceof AbortSignal && typeof client.request==='function' && typeof client.stop==='function' &&
     revocationSignal instanceof AbortSignal && typeof onFault==='function','AI_CONTROL_CONFIGURATION_INVALID');
@@ -65,7 +65,7 @@ export function createAiWindowsLifecycle({client,release,qualified,revocationSig
         await job('prepare',{revision:initial.revision,identity:peer,operationId},launchSignal);
         entry.participant=createAiControlParticipant({client,role:'core',identity:peer,operationId,revocationSignal:combined,
           qualified:()=>qualifiedRelease(fixed),onFault:fault,createChannel:options=>{
-            const channel=createAiReversePipeClient(options);return Object.freeze({...channel,status:channel.inboxStatus});
+            const channel=createAiReversePipeClient({...options,createPipeServer});return Object.freeze({...channel,status:channel.inboxStatus});
           }});
         await entry.participant.start();
         const ready=await waitFor(state=>{

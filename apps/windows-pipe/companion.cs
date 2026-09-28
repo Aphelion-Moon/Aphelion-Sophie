@@ -179,7 +179,7 @@ namespace Sophie.WindowsPipe
             try
             {
                 connection.Endpoint.Lifetime.Token.ThrowIfCancellationRequested();
-                pipe=NativePipe.Connect(connection.Endpoint.Spec.Name,profile.Sid,profile.Sid);
+                pipe=NativePipe.Connect(connection.Endpoint.Spec.Name,connection.Endpoint.Spec.OwnerSid,connection.Endpoint.Spec.PeerSid);
                 await Attach(connection,pipe,131).ConfigureAwait(false);pipe=null;
             }
             catch { }
@@ -214,7 +214,7 @@ namespace Sophie.WindowsPipe
             NativePipe accepted=null;
             try
             {
-                endpoint.Pending=NativePipe.Listen(endpoint.Spec.Name,profile.Sid,profile.Sid,endpoint.Spec.Limit+1,true);
+                endpoint.Pending=NativePipe.Listen(endpoint.Spec.Name,endpoint.Spec.OwnerSid,endpoint.Spec.PeerSid,endpoint.Spec.Limit+1,true);
                 await Reply(130,endpoint.Id).ConfigureAwait(false);
                 while(!endpoint.Lifetime.IsCancellationRequested)
                 {
@@ -226,7 +226,7 @@ namespace Sophie.WindowsPipe
                     await endpoint.Pending.AcceptAsync(endpoint.Lifetime.Token).ConfigureAwait(false);
                     accepted=endpoint.Pending;
                     // Keep an owned instance alive across every accept/rejection.
-                    endpoint.Pending=NativePipe.Listen(endpoint.Spec.Name,profile.Sid,profile.Sid,endpoint.Spec.Limit+1,false);
+                    endpoint.Pending=NativePipe.Listen(endpoint.Spec.Name,endpoint.Spec.OwnerSid,endpoint.Spec.PeerSid,endpoint.Spec.Limit+1,false);
                     Connection connection=null;
                     lock(gate)
                     {

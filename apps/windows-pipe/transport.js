@@ -5,6 +5,7 @@ import { isAbsolute } from 'node:path';
 import { EventEmitter } from 'node:events';
 import { Duplex } from 'node:stream';
 import { requireCondition } from '../../contracts/validation.js';
+import { loadInstallationConfiguration } from './installation.js';
 
 const signature=0x53505031, frameLimit=65536, queueLimit=1048576;
 const fail=()=>Error('AI_NATIVE_PIPE_UNAVAILABLE');
@@ -16,12 +17,25 @@ export async function createSyntheticWindowsPipeTransport({executable,sha256,rol
   requireCondition(process.platform==='win32' && isAbsolute(executable) && hex(sha256,64) &&
     ['supervisor','core','egress','worker'].includes(role) && hex(installationId,64) && hex(workerId,64) && hex(bootId,64) && hex(testRun,32),
   'AI_NATIVE_PIPE_CONFIGURATION_INVALID');
+  return startTransport({executable,sha256,role,installationId,workerId,bootId,authority:testRun,profile:'synthetic'});
+}
+
+/** No selectable installed paths. READY requires native identity, held files and independent owner-record verification. */
+export async function createInstalledWindowsPipeTransport({role,bootId='0'.repeat(64),bootstrapHash}) {
+  requireCondition(process.platform==='win32' && hex(bootId,64) && (role==='worker'?hex(bootstrapHash,64):bootstrapHash===undefined),'AI_NATIVE_PIPE_CONFIGURATION_INVALID');
+  const installation=await loadInstallationConfiguration(role);
+  const transport=await startTransport({executable:installation.paths.executable,sha256:installation.sha256,role,
+    installationId:installation.owner.installation,workerId:installation.owner.worker,bootId,bootstrapHash,authority:installation.ownerHash,profile:'installed'});
+  return Object.freeze({...transport,installation});
+}
+
+async function startTransport({executable,sha256,role,installationId,workerId,bootId,bootstrapHash,authority,profile}) {
   const info=await stat(executable);
   requireCondition(info.isFile() && info.size>0 && info.size<=1048576 &&
     createHash('sha256').update(await readFile(executable)).digest('hex')===sha256 &&
     createHash('sha256').update(await readFile(process.execPath)).digest('hex')==='3602f2bb1a10f2cbab4c36886218a33c1ab3db87290e73b033c46c77147d0237',
   'AI_NATIVE_PIPE_BUILD_CHANGED');
-  const child=spawn(executable,['synthetic',role,installationId,workerId,bootId,testRun,String(process.pid)],{
+  const child=spawn(executable,[profile,role,installationId,workerId,bootId,authority,String(process.pid),...(bootstrapHash?[bootstrapHash]:[])],{
     shell:false,windowsHide:true,stdio:['overlapped','overlapped','ignore'],env:{SystemRoot:process.env.SystemRoot},
   });
   const endpoints=new Map(),streams=new Map(),requests=new Map();
@@ -255,7 +269,7 @@ export async function createSyntheticWindowsPipeTransport({executable,sha256,rol
   await ready;
   let closing;
   return Object.freeze({
-    profile:'synthetic',signal:revocation.signal,
+    profile,signal:revocation.signal,
     createServer(callback){requireCondition(typeof callback==='function','AI_NATIVE_PIPE_CONFIGURATION_INVALID');return new PipeServer(callback);},
     connect(path){
       const endpoint=endpointFor(path);
@@ -263,7 +277,7 @@ export async function createSyntheticWindowsPipeTransport({executable,sha256,rol
       const stream=new PipeStream(nextConnection++,endpoint);streams.set(stream.id,stream);
       void endpoint.ready.then(()=>send(4,stream.id,number(endpoint.id)),()=>stream.physical(false));return stream;
     },
-    status:()=>({profile:'synthetic',phase:state,pid:child.pid,streams:streams.size,endpoints:endpoints.size,pending:requests.size}),
+    status:()=>({profile,phase:state,pid:child.pid,streams:streams.size,endpoints:endpoints.size,pending:requests.size}),
     stop(){
       if(closing)return closing;
       closing=(async()=>{

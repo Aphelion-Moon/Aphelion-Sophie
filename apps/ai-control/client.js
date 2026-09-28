@@ -25,7 +25,9 @@ export function createAiControlClient({installationId,role,key,revocationSignal,
         const greeting=await channel.receive('challenge');requireKeys(greeting,['installationId','role','session'],'AI_CONTROL_INVALID');
         requireCondition(greeting.installationId===scope.installationId && greeting.role===scope.role && aiControlHash(greeting.session),'AI_CONTROL_INVALID');
         if(session!==null && greeting.session!==session){void stop();throw Error('AI_CONTROL_SESSION_CHANGED');}
-        const nonce=randomBytes(32).toString('hex');await channel.send('proof',{...scope,nonce});channel.bind(nonce);
+        // A native relay may deliver the peer's ready frame before acknowledging
+        // our proof write. Bind after serialization, before waiting for that ACK.
+        const nonce=randomBytes(32).toString('hex'),proof=channel.send('proof',{...scope,nonce});channel.bind(nonce);await proof;
         const ready=await channel.receive('ready');requireKeys(ready,['session'],'AI_CONTROL_INVALID');requireCondition(ready.session===greeting.session,'AI_CONTROL_INVALID');
         await channel.send('request',{...request,session:greeting.session});
         const result=await channel.receive('result');

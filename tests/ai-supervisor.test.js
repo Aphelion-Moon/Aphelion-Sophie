@@ -39,6 +39,18 @@ test('DS04-S02 fixed Engine API creates, starts once, projects safe status and v
   assert.equal(f.calls.filter(call=>call.method==='DELETE')[0].path,`/v1.54/containers/${f.id}?force=true&v=false`);
 });
 
+test('DS04-S17 independent owner records require a disjoint read-only trust mount',()=>{
+  const f=inputs(),registration={...f.registration,trustDirectory:'C:\\synthetic-trust'};
+  for(const trustDirectory of [f.registration.bootRoot,f.registration.providerDirectory,f.registration.bootRoot+'\\trust'])
+    assert.throws(()=>registeredAiContainer({...registration,trustDirectory}),/AI_CONTAINER_REGISTRATION_INVALID/);
+  const profile=aiContainerProfile(registeredAiContainer(registration),f.identity,f.operationId),observed=inspected(profile,'synthetic',hash());
+  assert.equal(profile.HostConfig.Mounts.length,5);assert.equal(profile.HostConfig.Mounts[4].Target,'C:\\sophie-trust');
+  requireAiContainerProfile(observed,registration,f.identity,f.operationId);
+  for(const alter of [value=>value.Mounts[4].RW=true,value=>value.HostConfig.Mounts[4].ReadOnly=false,value=>value.Mounts.pop()]){
+    const bad=structuredClone(observed);alter(bad);assert.throws(()=>requireAiContainerProfile(bad,registration,f.identity,f.operationId),/AI_CONTAINER_PROFILE_MISMATCH/);
+  }
+});
+
 test('DS04-S03 ownership and image environment mismatches cannot start or remove another slot',async t=>{
   const f=await engineFixture(t);await f.create();f.container.Config.Labels['com.aphelion.sophie.installation']=hash();
   await assert.rejects(f.start(),/AI_CONTAINER_NOT_OWNED/);await assert.rejects(f.slot.remove(),/AI_CONTAINER_NOT_OWNED/);

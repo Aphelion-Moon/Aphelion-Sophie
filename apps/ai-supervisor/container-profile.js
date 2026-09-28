@@ -10,11 +10,15 @@ const absolute=value=>typeof value==='string' && /^[A-Za-z]:\\[^\x00-\x1f<>"|?*]
   win32.normalize(value)===value && !value.endsWith('\\') && !value.slice(2).includes(':') &&
   value.slice(3).split('\\').every(part=>!/[. ]$/u.test(part) && !/^(con|prn|aux|nul|com[1-9]|lpt[1-9])(?:\.|$)/iu.test(part));
 export function registeredAiContainer(value) {
-  requireKeys(value,['installationId','imageId','bootRoot','providerDirectory','release'],'AI_CONTAINER_REGISTRATION_INVALID');
+  requireKeys(value,['installationId','imageId','bootRoot','providerDirectory','release',...(Object.hasOwn(value??{},'trustDirectory')?['trustDirectory']:[])],'AI_CONTAINER_REGISTRATION_INVALID');
   requireCondition(hash(value.installationId) && /^sha256:[a-f0-9]{64}$/u.test(value.imageId) &&
     absolute(value.bootRoot) && absolute(value.providerDirectory) &&
     ![value.bootRoot,value.providerDirectory].some((path,index,paths)=>
       path.toLowerCase()===paths[1-index].toLowerCase() || path.toLowerCase().startsWith(paths[1-index].toLowerCase()+'\\')),
+  'AI_CONTAINER_REGISTRATION_INVALID');
+  if(Object.hasOwn(value,'trustDirectory'))requireCondition(absolute(value.trustDirectory) &&
+    [value.bootRoot,value.providerDirectory].every(path=>value.trustDirectory.toLowerCase()!==path.toLowerCase() &&
+      !value.trustDirectory.toLowerCase().startsWith(path.toLowerCase()+'\\') && !path.toLowerCase().startsWith(value.trustDirectory.toLowerCase()+'\\')),
   'AI_CONTAINER_REGISTRATION_INVALID');
   return Object.freeze({...value,release:canonicalAiWorkerRelease(value.release)});
 }
@@ -34,6 +38,7 @@ export function aiContainerProfile(registration,identity,operationId) {
   const mounts=['inference','egress'].map(purpose=>({Type:'npipe',Source:aiBootPipe(fixed,purpose),Target:aiBootPipe(fixed,purpose),ReadOnly:false}));
   mounts.push({Type:'bind',Source:win32.join(registration.bootRoot,fixed.bootId),Target:'C:\\sophie-boot',ReadOnly:true},
     {Type:'bind',Source:registration.providerDirectory,Target:'C:\\sophie-provider',ReadOnly:true});
+  if(registration.trustDirectory)mounts.push({Type:'bind',Source:registration.trustDirectory,Target:'C:\\sophie-trust',ReadOnly:true});
   return {Image:registration.imageId,User:'ContainerUser',Entrypoint:[...AI_CONTAINER_ENTRYPOINT],Cmd:[],WorkingDir:'C:\\sophie',Env:[],
     Labels:labels,AttachStdin:false,AttachStdout:false,AttachStderr:false,OpenStdin:false,Tty:false,
     HostConfig:{Isolation:'hyperv',NetworkMode:'none',CpuCount:4,Memory:8589934592,AutoRemove:false,
@@ -64,8 +69,8 @@ export function requireAiContainerProfile(value,registration,identity,operationI
     host.NetworkMode==='none' && host.CpuCount===4 && host.Memory===8589934592 && host.AutoRemove===false &&
     host.RestartPolicy?.Name==='no' && host.RestartPolicy.MaximumRetryCount===0 && host.LogConfig?.Type==='none' && !host.Privileged &&
     !(host.Binds?.length) && !(host.Devices?.length) && Object.keys(host.PortBindings??{}).length===0 &&
-    Array.isArray(host.Mounts) && host.Mounts.length===4 && expected.HostConfig.Mounts.every(mount=>host.Mounts.some(item=>
-      ['Type','Source','Target','ReadOnly'].every(key=>item[key]===mount[key]))) && Array.isArray(value.Mounts) && value.Mounts.length===4 &&
+    Array.isArray(host.Mounts) && host.Mounts.length===expected.HostConfig.Mounts.length && expected.HostConfig.Mounts.every(mount=>host.Mounts.some(item=>
+      ['Type','Source','Target','ReadOnly'].every(key=>item[key]===mount[key]))) && Array.isArray(value.Mounts) && value.Mounts.length===expected.HostConfig.Mounts.length &&
     expected.HostConfig.Mounts.every(mount=>value.Mounts.some(item=>item.Type===mount.Type && item.Source===mount.Source &&
       item.Destination===mount.Target && item.RW===!mount.ReadOnly)),
   'AI_CONTAINER_PROFILE_MISMATCH');

@@ -1,6 +1,6 @@
 {
   "schema_version": 2,
-  "revision": "2026-09-28-pipe-companion",
+  "revision": "2026-09-28-pipe-installation",
   "reference_plan_version": "1.1",
   "source": "Sophie-Implementation-Plans-v1.1/backlog.json",
   "owner_decisions": "docs/decisions/0001-owner-policy.md",
@@ -1339,7 +1339,7 @@
   "checkpoint": {
     "summary": "Deterministic administration, Whitelist onboarding, protected editors, role/permission configuration and the configurable staging host are implemented.",
     "recorded_baseline": "AI handoff 0fa7a5ed538ff791e3def2c1f6ac7683531e15a1 plus preserved uncommitted Flash candidate; synthetic schema058 candidate. No live schema change.",
-    "current_work": "Prepared immutable Flash requests, durable conservative accounting and operator controls, revised external-processing consent gate and dependency-bound assistant history. Worker IPC, durable effects, importer, explicit memory, gathering and selected-feature acceptance remain incomplete. Direct approved-source lookup is now on Public answers and composes without any inference worker or AI control store. The owner-selected Policies collection now has a bounded collector and isolated structured extractor, verified against the public wiki without publication. Durable manual Policies imports and source-bound publication review now pass isolated checks; no production migration or source publication. Authenticated private-stream worker integration now preserves accounting and cancellation boundaries in synthetic checks; actual private transport/service qualification remains open. Durable own-effect receipts and bounded cleanup now survive process replacement; unknown sends remain parked. Schema060 remains local only.",
+    "current_work": "Prepared Flash/accounting/effects, public knowledge lookup and member-saved preferences remain locally implemented with operational and data-clearance gates. Fixed installed profiles validate independent protected owner records, retained file handles, source/runtime manifests, parent/service identities and expiring authority. Core, supervisor, egress and worker payloads compose the native adapter; core isolates database readers and replaces lifecycle ownership on configuration Apply. Worker trust uses a separate read-only mount. Control proof binding now tolerates readiness before native write acknowledgement.",
     "evidence_note": "Current source-bound offline results are in docs/verification.md and the external deepseek-verification.json index. Earlier administration, local model and Flash trial results remain historical; none grants present deployment approval."
   },
   "milestones": [
@@ -2457,11 +2457,22 @@
       "implemented": "Original MIT C# companion verifies pinned parent/runtime and protected overlapped stdio, enforces role/boot endpoint registration, bounds multiplexed credit streams, and confirms native closure. A bounded JavaScript Duplex/server adapter is injected at control, inference and egress seams. Synthetic profiles derive only unique test namespaces; installed profiles remain unavailable.",
       "evidence": "Pinned csc build and three loaded Framework hashes verified. Ten native primitive checks, restricted-token generic-write/instance denial plus explicit-data acceptance, interrupted-frame poisoning, 1 MiB duplex/final-byte flow, stalled-reader cancellation, parent/helper exit, malformed/oversized commands and namespace cleanup passed. Existing encrypted control/inference and worker TLS carried two metered synthetic provider turns; wrong control key rejected. No real provider, database, Discord, container or installed-service changes.",
       "remaining": "Complete installed role profiles and protected-installation verification, fixed service entrypoints, and the helper/package manifest. The current companion explicitly accepts synthetic profiles only. Actual service identities/ACLs, HCS/Hyper-V proxy mapping, worker-image Framework compatibility, mounts/credentials, operational termination and unresolved-create disposition still require their separate operational trial. Installed-core/database and actual Discord acceptance remain open."
+    },
+    {
+      "title": "Installed Windows profiles and role composition",
+      "tasks": [
+        "P22",
+        "P23",
+        "P24"
+      ],
+      "implemented": "Fixed installed profiles validate independent protected owner records, retained file handles, source/runtime manifests, parent/service identities and expiring authority. Core, supervisor, egress and worker payloads compose the native adapter; core isolates database readers and replaces lifecycle ownership on configuration Apply. Worker trust uses a separate read-only mount. Control proof binding now tolerates readiness before native write acknowledgement.",
+      "evidence": "Pinned nine-source x64 helper build; 36 native descriptor/path/profile assertions; 11 companion and four stream PASS groups; six installation configuration checks; three composed scenarios with four actual synthetic companions; 15 isolated PostgreSQL privilege checks with owned cluster stopped; 51 focused repository checks (50 control/supervisor/worker plus new trust-mount regression). No installed-service, container, real provider or Discord qualification.",
+      "remaining": "Authorize the concrete Windows trial and exact SCM wrapper scope in GitHub/.agent_docs/aphelion-sophie/windows-pipe-installation/operational-trial-proposal.md. Actual service tokens, protected-file acceptance, HCS proxy/guest identities and masks, Framework compatibility, mount/credential isolation, physical termination and uncertain-create disposition remain unqualified. Final host SCM packaging, installed-core/database and actual Discord acceptance remain open. Provider/account clearance, preference journal custody and publication/actual-answer gates remain independent."
     }
   ],
   "next_steps": [
     {
-      "title": "Complete the selected Flash foundations",
+      "title": "Qualify the installed Windows boundary after explicit approval",
       "tasks": [
         "P21",
         "P22",
@@ -2469,8 +2480,8 @@
         "P24",
         "P25"
       ],
-      "work": "Implement trusted installed profiles, service entrypoints and source-bound helper packaging, preserving synthetic/operational separation. C#/.NET and Node scope approvals are already recorded. Provider data clearance, preference journal isolation and source/answer acceptance remain open.",
-      "exit_evidence": "Scoped local source/transaction/transport evidence first; actual OS/egress and Discord tests need their explicit operational scope. Paid comparisons remain separately authorized."
+      "work": "Authorize the concrete Windows trial and exact SCM wrapper scope in GitHub/.agent_docs/aphelion-sophie/windows-pipe-installation/operational-trial-proposal.md. Actual service tokens, protected-file acceptance, HCS proxy/guest identities and masks, Framework compatibility, mount/credential isolation, physical termination and uncertain-create disposition remain unqualified. Final host SCM packaging, installed-core/database and actual Discord acceptance remain open. Provider/account clearance, preference journal custody and publication/actual-answer gates remain independent.",
+      "exit_evidence": "Build-bound measured service/file/HCS/Framework/network/termination evidence under the separately approved synthetic trial. Keep field-test readiness false until provider, publication, preference and Discord gates also pass."
     },
     {
       "title": "Privately verify deployed configuration and apply workflow",
@@ -2607,14 +2618,14 @@
       {
         "id": "DS-04",
         "title": "Windows worker and transport",
-        "implementation": "Original MIT C# companion verifies pinned parent/runtime and protected overlapped stdio, enforces role/boot endpoint registration, bounds multiplexed credit streams, and confirms native closure. A bounded JavaScript Duplex/server adapter is injected at control, inference and egress seams. Synthetic profiles derive only unique test namespaces; installed profiles remain unavailable.",
-        "qualification": "Pinned csc build and three loaded Framework hashes verified. Ten native primitive checks, restricted-token generic-write/instance denial plus explicit-data acceptance, interrupted-frame poisoning, 1 MiB duplex/final-byte flow, stalled-reader cancellation, parent/helper exit, malformed/oversized commands and namespace cleanup passed. Existing encrypted control/inference and worker TLS carried two metered synthetic provider turns; wrong control key rejected. No real provider, database, Discord, container or installed-service changes.",
+        "implementation": "Fixed installed profiles validate independent protected owner records, retained file handles, source/runtime manifests, parent/service identities and expiring authority. Core, supervisor, egress and worker payloads compose the native adapter; core isolates database readers and replaces lifecycle ownership on configuration Apply. Worker trust uses a separate read-only mount. Control proof binding now tolerates readiness before native write acknowledgement.",
+        "qualification": "Pinned nine-source x64 helper build; 36 native descriptor/path/profile assertions; 11 companion and four stream PASS groups; six installation configuration checks; three composed scenarios with four actual synthetic companions; 15 isolated PostgreSQL privilege checks with owned cluster stopped; 51 focused repository checks (50 control/supervisor/worker plus new trust-mount regression). No installed-service, container, real provider or Discord qualification.",
         "sai": [
           "SAI-04",
           "SAI-05",
           "SAI-14"
         ],
-        "remaining": "Complete installed role profiles and protected-installation verification, fixed service entrypoints, and the helper/package manifest. The current companion explicitly accepts synthetic profiles only. Actual service identities/ACLs, HCS/Hyper-V proxy mapping, worker-image Framework compatibility, mounts/credentials, operational termination and unresolved-create disposition still require their separate operational trial. Installed-core/database and actual Discord acceptance remain open."
+        "remaining": "Authorize the concrete Windows trial and exact SCM wrapper scope in GitHub/.agent_docs/aphelion-sophie/windows-pipe-installation/operational-trial-proposal.md. Actual service tokens, protected-file acceptance, HCS proxy/guest identities and masks, Framework compatibility, mount/credential isolation, physical termination and uncertain-create disposition remain unqualified. Final host SCM packaging, installed-core/database and actual Discord acceptance remain open. Provider/account clearance, preference journal custody and publication/actual-answer gates remain independent."
       },
       {
         "id": "DS-05",
@@ -2665,14 +2676,14 @@
       {
         "id": "DS-09",
         "title": "Effects and operating controls",
-        "implementation": "Durable desired/active/acknowledged worker revisions, authenticated AI-only apply/stop/recovery controls and a fenced single-owner lifecycle coordinator; authenticated temporary request-comparison inspection; concrete authenticated Windows lifecycle adapter and role readiness composed locally",
-        "qualification": "44 focused checks, 75 isolated AI/knowledge/Gateway scenarios and 19 composed staging scenarios pass; both disposable clusters stopped. Synthetic browser review/apply/stop verified.",
+        "implementation": "Durable desired/active/acknowledged worker revisions and authenticated AI-only apply/stop/recovery controls now compose fixed native core/supervisor/egress payloads. Configuration Apply closes old lifecycle ownership before replacement.",
+        "qualification": "Pinned nine-source x64 helper build; 36 native descriptor/path/profile assertions; 11 companion and four stream PASS groups; six installation configuration checks; three composed scenarios with four actual synthetic companions; 15 isolated PostgreSQL privilege checks with owned cluster stopped; 51 focused repository checks (50 control/supervisor/worker plus new trust-mount regression). No installed-service, container, real provider or Discord qualification.",
         "sai": [
           "SAI-06",
           "SAI-07",
           "SAI-14"
         ],
-        "remaining": "Complete installed role profiles and protected-installation verification, fixed service entrypoints, and the helper/package manifest. The current companion explicitly accepts synthetic profiles only. Actual service identities/ACLs, HCS/Hyper-V proxy mapping, worker-image Framework compatibility, mounts/credentials, operational termination and unresolved-create disposition still require their separate operational trial. Installed-core/database and actual Discord acceptance remain open. Apply keeps processing disabled."
+        "remaining": "Authorize the concrete Windows trial and exact SCM wrapper scope in GitHub/.agent_docs/aphelion-sophie/windows-pipe-installation/operational-trial-proposal.md. Actual service tokens, protected-file acceptance, HCS proxy/guest identities and masks, Framework compatibility, mount/credential isolation, physical termination and uncertain-create disposition remain unqualified. Final host SCM packaging, installed-core/database and actual Discord acceptance remain open. Provider/account clearance, preference journal custody and publication/actual-answer gates remain independent. Apply keeps processing disabled."
       },
       {
         "id": "DS-10",

@@ -39,7 +39,7 @@ namespace Sophie.WindowsPipe
         private static async Task Run(string[] args)
         {
             uint parent;
-            if(args.Length!=7 || !UInt32.TryParse(args[6],out parent) || parent==0)throw new IOException("PIPE_START_INVALID");
+            if((args.Length!=7 && args.Length!=8) || !UInt32.TryParse(args[6],out parent) || parent==0)throw new IOException("PIPE_START_INVALID");
             stage=1;Runtime();stage=2;
             using(var boundary=new ParentBoundary(parent))
             {
@@ -50,9 +50,13 @@ namespace Sophie.WindowsPipe
             using(var output=NativePipe.Inherited(-11,boundary.Sid,2))
             {
                 stage=5;
-                var profile=new PipeProfile(args,boundary.Sid);
+                using(var profile=new PipeProfile(args,boundary.Sid,boundary))
+                using(var authority=CancellationTokenSource.CreateLinkedTokenSource(boundary.Signal))
+                {
+                authority.CancelAfter(profile.LifetimeMilliseconds);
                 stage=6;
-                await new Companion(profile,new PipeFrames(input,output,PipeFrames.LocalSignature),boundary.Signal).Run().ConfigureAwait(false);
+                await new Companion(profile,new PipeFrames(input,output,PipeFrames.LocalSignature),authority.Token).Run().ConfigureAwait(false);
+                }
             }
             }
             }

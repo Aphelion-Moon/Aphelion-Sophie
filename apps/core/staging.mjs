@@ -9,6 +9,8 @@ import { createDatabasePool } from './storage/pool.js';
 import { migrateCore } from './storage/migrate.js';
 import { createDiscordTransport } from './discord/transport.js';
 import { administrationCommandDefinitions, registerStagingCommands } from './discord/command-registration.js';
+import { runInstalledRole } from '../installation/host.js';
+import { createInstalledCoreService } from './runtime/installed.js';
 
 // All diagnostics are fixed codes. No original errors, request bodies, tokens or connection strings.
 const report = value => process.stdout.write(`${JSON.stringify(value)}\n`);
@@ -74,7 +76,13 @@ async function main() {
     await runRuntimeHost({ runtime, signal: controller.signal, report });
   } finally { process.off('SIGINT', signal); process.off('SIGTERM', signal); }
 }
-try { await main(); }
+try {
+  if(process.argv[2]==='start-installed') {
+    requireCondition(process.argv.length===3,'STAGING_ARGUMENTS_INVALID');
+    // The installed mode has fixed protected input paths and no per-file CLI overrides.
+    await runInstalledRole('core',createInstalledCoreService);
+  } else await main();
+}
 catch (error) { report({ error: /^[A-Z][A-Z_0-9]{1,63}$/.test(error.code ?? '') ? error.code : 'STAGING_OPERATION_FAILED', productionReady: false }); process.exitCode = 1; }
 finally {
   const closed = await Promise.allSettled([pool?.end(), ownerPool?.end()]);

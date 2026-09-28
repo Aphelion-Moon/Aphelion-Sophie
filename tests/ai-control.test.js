@@ -93,6 +93,22 @@ test('DS04-C02 wrong and cross-role keys cannot reach a handler',native,async t=
     handle:()=>empty(),revocationSignal:new AbortController().signal,onFault:()=>{}}),/AI_CONTROL_CONFIGURATION_INVALID/);
 });
 
+test('DS04-C22 peer readiness before the proof write callback preserves the bound control session',native,async t=>{
+  const f=await transport(t);let reordered=false;
+  const client=createAiControlClient({installationId:f.installationId,role:'core',key:f.keys.core,revocationSignal:f.lifetime.signal,
+    connectPipe:path=>{
+      const socket=connect(path),write=socket.write.bind(socket);let first=true,callback=null,chunks=0;
+      socket.on('data',()=>{if(++chunks===2){reordered=true;queueMicrotask(()=>callback?.());}});
+      socket.write=(bytes,done)=>{
+        if(!first)return write(bytes,done);first=false;
+        return write(bytes,error=>{if(error)done(error);else {callback=done;if(chunks>=2)queueMicrotask(done);}});
+      };
+      return socket;
+    }});
+  try {assert.deepEqual(await client.request('inspect'),empty());assert.equal(reordered,true);}
+  finally {await client.stop();}
+});
+
 test('DS04-C03 endpoint role and exact request fields reject mutation, unknown commands and extra content',native,async t=>{
   let calls=0;const f=await transport(t,{handle:()=>{calls++;return empty();}});
   for(const input of [{role:'egress',command:'quiesce',body:{revision:0,operationId:randomUUID()}},

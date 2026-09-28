@@ -23,6 +23,7 @@ namespace Sophie.WindowsPipe
         private readonly Task watcher;
         private int disposed;
         internal string Sid { get; private set; }
+        internal string ImagePath { get; private set; }
         internal CancellationToken Signal { get { return lifetime.Token; } }
         internal ParentBoundary(uint expectedParent)
         {
@@ -49,6 +50,7 @@ namespace Sophie.WindowsPipe
                         if(identity.User.Value!=Sid)throw new IOException("PARENT_IDENTITY_MISMATCH");
                     var path=new StringBuilder(32768);uint length=(uint)path.Capacity;
                     if(!QueryFullProcessImageName(parent,0,path,ref length))throw new IOException("PARENT_IMAGE_UNAVAILABLE");
+                    ImagePath=path.ToString();
                     image=new FileStream(path.ToString(),FileMode.Open,FileAccess.Read,FileShare.Read);
                     using(var hash=SHA256.Create())
                         if(BitConverter.ToString(hash.ComputeHash(image)).Replace("-","").ToLowerInvariant()!=NodeHash)throw new IOException("PARENT_IMAGE_CHANGED");
@@ -62,6 +64,18 @@ namespace Sophie.WindowsPipe
                     if(result!=258){lifetime.Cancel();return;}
                 }
             });
+        }
+        internal void RequireIdentity(string user,string service)
+        {
+            SafeAccessTokenHandle token;
+            if(!OpenProcessToken(parent,8,out token))throw new IOException("PARENT_IDENTITY_UNAVAILABLE");
+            using(token)using(var identity=new WindowsIdentity(token.DangerousGetHandle()))RequireIdentity(identity,user,service);
+            using(var identity=WindowsIdentity.GetCurrent())RequireIdentity(identity,user,service);
+        }
+        private static void RequireIdentity(WindowsIdentity identity,string user,string service)
+        {
+            if(identity.User.Value!=user || service!="-" && !new WindowsPrincipal(identity).IsInRole(new SecurityIdentifier(service)))
+                throw new IOException("PIPE_SERVICE_IDENTITY_MISMATCH");
         }
         public void Dispose()
         {
