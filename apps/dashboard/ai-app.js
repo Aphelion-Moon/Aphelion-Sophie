@@ -3,6 +3,7 @@ import { mountDashboardShell } from './shell.js';
 import { canonicalAiConfiguration, defaultParticipation, AI_MODES } from '../../modules/assistant/participation.js';
 import { canonicalPersonality, DRAFT_PERSONALITY } from '../../modules/assistant/personality.js';
 import { canonicalAiBudget, DEFAULT_AI_BUDGET } from '../../modules/assistant/budget.js';
+import { createPreferenceEditor } from './ai-preferences-view.js';
 
 const api = createDashboardApi({ fetch: window.fetch.bind(window) }), el = id => document.getElementById(id);
 const personal = window.location.pathname === '/ai-preferences';
@@ -11,9 +12,11 @@ let phase = 'loading', busy = false, dirty = false, pending = null, pendingReque
 let configuration = { schemaVersion: 1, enabled: false, deadlineMs: 15000, channels: [], emojis: [] }, character = structuredClone(DRAFT_PERSONALITY);
 let configurationRevision = 0, personalityRevision = 0, consentRows = [], noticeRevision = 1;
 let budget = { ...DEFAULT_AI_BUDGET }, budgetRevision = 0;
+const preferences = personal ? createPreferenceEditor({api,document,perform,identity:()=>session,changed,saved:()=>{dirty=false;}}) : null;
 const notice = text => { el('notice').textContent = text; };
 function changed() { dirty = true; pending = null; pendingRequestId = null; if (el('review')) el('review').hidden = true; if (el('review-content')) el('review-content').textContent = ''; }
 function clear() {
+  preferences?.clear();
   el('workspace').hidden = true; changed(); consentRows = []; configuration.channels = []; configuration.emojis = []; character = { core: '', examples: [] };
   for (const id of ['channels', 'emojis', 'examples', 'consents', 'unresolved-spending']) el(id)?.replaceChildren();
   for (const id of ['character-core', 'consent-channel']) if (el(id)) el(id).value = '';
@@ -92,7 +95,7 @@ async function consents() {
 }
 async function load() {
   session = await api.session(); el('logout').hidden = false;
-  if (personal) { if (!session.aiAvailable) throw Object.assign(Error(), { kind: 'denied' }); await consents(); }
+  if (personal) { if (!session.aiAvailable) throw Object.assign(Error(), { kind: 'denied' }); await consents(); await preferences.load(); }
   else {
     if (!session.canControlAi && !session.canEditPersonality) throw Object.assign(Error(), { kind: 'denied' });
     if (session.canControlAi) {
@@ -171,7 +174,7 @@ else {
   el('disable-ai').addEventListener('click', () => perform(async () => { await api.aiDisable(); await load(); notice('AI disabled. Administration continues independently.'); }));
 }
 const controller = { snapshot: () => ({ phase, busy, dirty, pending }), start: () => perform(load), checkAccess: () => perform(async () => {
-  const fresh = await api.session(); if (personal ? !fresh.aiAvailable : (!fresh.canControlAi && !fresh.canEditPersonality) || fresh.canControlAi !== session?.canControlAi || fresh.canEditPersonality !== session?.canEditPersonality) {
+  const fresh = await api.session(); if (fresh.userId!==session?.userId || fresh.guildId!==session?.guildId || (personal ? !fresh.aiAvailable : (!fresh.canControlAi && !fresh.canEditPersonality) || fresh.canControlAi !== session?.canControlAi || fresh.canEditPersonality !== session?.canEditPersonality)) {
     clear(); phase = 'denied'; notice('Access changed. Reload before continuing.');
   }
 }) };

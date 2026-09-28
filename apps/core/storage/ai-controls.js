@@ -6,6 +6,7 @@ import { canonicalPersonality } from '../../../modules/assistant/personality.js'
 import { inTransaction } from './transaction.js';
 import { canonicalAiBudget, DEFAULT_AI_BUDGET } from '../../../modules/assistant/budget.js';
 import { createAiAccounting } from './ai-accounting.js';
+import { createAiPreferences } from './ai-preferences.js';
 
 // PostgreSQL jsonb reorders object keys. Hash canonical data, including nested profiles.
 function ordered(value) {
@@ -24,7 +25,7 @@ function publication(kind, document) {
 
 /** Authenticated controls own desired state. Activation requires separate installation evidence. */
 export function createAiControls({ pool, guildId, authorize, inspectChannel, memberPresence, invalidate = () => {}, noticeRevision = 2,
-  noticeApproved = async () => false }) {
+  noticeApproved = async () => false, preferenceJournal = null, clock = Date.now }) {
   requireId(guildId); requireInteger(noticeRevision, 1);
   for (const fn of [authorize, inspectChannel, memberPresence, noticeApproved]) requireCondition(typeof fn === 'function', 'TRUSTED_ADAPTERS_REQUIRED');
   async function access(actor, action, scope = {}) {
@@ -69,6 +70,7 @@ export function createAiControls({ pool, guildId, authorize, inspectChannel, mem
     return { expectedRevision, evidenceHash, controlEpoch: Number(state.epoch) };
   }
   return Object.freeze({
+    ...createAiPreferences({guildId,transaction,memberPresence,journal:preferenceJournal,clock}),
     async current({ actor, kind }) {
       publication(kind, kind === 'configuration' ? { schemaVersion: 1, enabled: false, deadlineMs: 15000, channels: [], emojis: [] } :
         kind === 'budget' ? DEFAULT_AI_BUDGET : { core: 'Sophie', examples: [] });

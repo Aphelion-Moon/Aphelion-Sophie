@@ -42,6 +42,9 @@ export function createDashboardApi({ fetch, navigate = path => globalThis.locati
   const answer = value => { if (typeof value !== 'string' || !/^[a-z][a-z0-9-]{0,39}$/.test(value)) throw new DashboardFailure('invalid', 400); return value; };
   const cursor = value => { if (typeof value !== 'string' || !/^[A-Za-z0-9_-]{1,320}$/.test(value)) throw new DashboardFailure('invalid', 400); return value; };
   return Object.freeze({
+    aiPreferences: () => request('/api/ai/preferences'),
+    aiSavePreferences: body => request('/api/ai/save-preferences',body),
+    aiDeletePreferences: body => request('/api/ai/delete-preferences',body),
     knowledgeLookup: query => request('/api/knowledge/lookup', { query }),
     knowledgeCatalogue: () => request('/api/ai/knowledge'),
     knowledgePoliciesStatus: () => request('/api/ai/knowledge/policies-status'),

@@ -1,5 +1,24 @@
 # Verification and release limits
 
+## Explicit local response preferences — 28 September 2026
+
+Schema062 adds member-saved reply length and language only, authenticated self
+inspection/replacement/export/deletion, 90-day expiry and a separately qualified
+non-content restore watermark. Journal/database disagreement quarantines prior
+values; expiry maintenance is independent of inference. External use remains off.
+
+28 focused checks, 62 isolated AI/knowledge scenarios and 18 composed staging
+scenarios pass; disposable databases stopped. Synthetic browser save, edit and
+delete passed with no console warnings/errors. The download action produced no
+browser download event, so completed file export remains unverified. A malformed
+select option found during browser testing was corrected. Source-bound evidence:
+`GitHub/.agent_docs/aphelion-sophie/ai-preferences-verification.json`.
+
+Independent journal provisioning, identity/ACL/restore-exclusion qualification,
+backup retention and provider data clearance remain open. No live migration,
+service or grant changes. Unrelated migration-count assertions were updated;
+their suites were not rerun.
+
 The pre-AI baseline at `02e0e1ffe47049347a572c27ae695d65bb55bf08` passed these checks on 27 September 2026:
 
 - Repository validation: 442 JavaScript modules, 31 reference checksums, and eight

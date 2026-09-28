@@ -1,4 +1,5 @@
 import { createAiControls } from '../storage/ai-controls.js';
+import { createAiPreferenceExpiry } from './ai-preference-expiry.js';
 import { createAiRuntime } from './ai.js';
 import { createAiControlsHttp } from '../http/ai-controls.js';
 import { createAiKnowledgeHttp } from '../http/ai-knowledge.js';
@@ -59,7 +60,7 @@ import { createPermissionOptions } from '../discord/permission-options.js';
 import { runtimeDatabaseAvailable } from '../storage/runtime-maintenance.js';
 
 /** Explicit staging host. Construction starts no listener, connection, registration, migration or service. */
-export async function createStagingRuntime({ configuration, pool, aiControlPool = null, aiWorker = null, aiKnowledge = null, aiKnowledgeAdmin = null, token, clientSecret = null, fetch, connect, clock = Date.now, random = Math.random, onFault, configurationApplyEnabled = false }) {
+export async function createStagingRuntime({ configuration, pool, aiControlPool = null, aiPreferenceJournal = null, aiWorker = null, aiKnowledge = null, aiKnowledgeAdmin = null, token, clientSecret = null, fetch, connect, clock = Date.now, random = Math.random, onFault, configurationApplyEnabled = false }) {
   validateStagingRuntime(configuration); const fixed = structuredClone(configuration);
   requireCondition(typeof onFault === 'function', 'TRUSTED_ADAPTERS_REQUIRED');
   await requireUnquarantinedDatabase(pool);
@@ -68,6 +69,7 @@ export async function createStagingRuntime({ configuration, pool, aiControlPool 
   let maintenanceObserved = false;
   const active = () => started && !stopping && !maintenanceObserved;
   const fault = code => { try { onFault(code); } catch { /* Never log original dependency errors or payloads. */ } };
+  const preferenceExpiry = aiControlPool === null ? null : createAiPreferenceExpiry({pool:aiControlPool,guildId:fixed.mapping.guildId,onFault:()=>fault('AI_CONTROL_UNAVAILABLE')});
   const databaseActive = async () => {
     if (!active()) return false;
     if (await runtimeDatabaseAvailable(pool)) return true;
@@ -110,7 +112,7 @@ export async function createStagingRuntime({ configuration, pool, aiControlPool 
     const knowledge = aiKnowledgeAdmin === null ? null : createAiKnowledgeHttp({ auth, authorization, knowledge: aiKnowledgeAdmin, invalidate: () => aiRuntime?.invalidate() });
     const knowledgeLookup = aiKnowledge === null ? null : createKnowledgeLookupHttp({ auth, authorization, knowledge: aiKnowledge, clock });
     const ai = aiControlPool === null ? null : createAiControlsHttp({ auth, authorization, controls: createAiControls({
-      pool: aiControlPool, guildId: fixed.mapping.guildId, authorize: authorization.authorize,
+      pool: aiControlPool, guildId: fixed.mapping.guildId, authorize: authorization.authorize, preferenceJournal:aiPreferenceJournal, clock,
       memberPresence: actor => authorization.aiMemberPresence(actor),
       invalidate: () => aiRuntime?.invalidate(),
       inspectChannel: (_client, channelId) => inspectAutomationChannel(pool, { guildId: fixed.mapping.guildId,
@@ -164,7 +166,7 @@ export async function createStagingRuntime({ configuration, pool, aiControlPool 
   }
   async function stop() {
     stopping = true; clearTimeout(timer);
-    const results = await Promise.allSettled([interactions.close(), dashboardListening ? dashboard.close() : undefined, aiRuntime?.stop(), gateway.stop(), workerTask]);
+    const results = await Promise.allSettled([interactions.close(), dashboardListening ? dashboard.close() : undefined, aiRuntime?.stop(), preferenceExpiry?.stop(), gateway.stop(), workerTask]);
     dashboardListening = false;
     await gatewayTask;
     requireCondition(results.every(result => result.status === 'fulfilled'), 'RUNTIME_SHUTDOWN_INCOMPLETE');
@@ -181,6 +183,7 @@ export async function createStagingRuntime({ configuration, pool, aiControlPool 
         requireCondition(!stopping, 'RUNTIME_STOPPED');
         gatewayTask = gateway.start(owner).then(result => { if (!stopping) { stopping = true; clearTimeout(timer); fault('RUNTIME_GATEWAY_HALTED'); } return result; });
         await aiRuntime?.start();
+        preferenceExpiry?.start();
         if (automaticWorkers) schedule();
         return { interactions: interactionAddress, dashboard: dashboardAddress };
       } catch (error) { await stop(); throw error; }
