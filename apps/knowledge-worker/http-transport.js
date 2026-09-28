@@ -5,11 +5,19 @@ import { requireCondition } from '../../contracts/validation.js';
 const endpoint = 'https://api.deepseek.com/chat/completions';
 
 /** Worker-owned, single-origin transport. No redirects, retries, proxy inheritance or global dispatcher changes. */
-export function createDeepSeekTransport({ requestImpl = request } = {}) {
-  requireCondition(typeof requestImpl === 'function', 'TRUSTED_ADAPTERS_REQUIRED');
+export function createDeepSeekTransport({ requestImpl = request, connector = null } = {}) {
+  requireCondition(typeof requestImpl === 'function' && (connector === null ||
+    (typeof connector.open === 'function' && typeof connector.stop === 'function')), 'TRUSTED_ADAPTERS_REQUIRED');
   const agent = new Agent({ keepAlive:true, maxSockets:1, maxTotalSockets:1, maxFreeSockets:1,
     maxCachedSessions:0, timeout:15000, rejectUnauthorized:true, proxyEnv:{} });
-  const requests = new Set(); let stopped = false, closing = null;
+  const requests = new Set(), lifetime = new AbortController(); let stopped = false, closing = null, connectingSignal;
+  if (connector) agent.createConnection = (_options,callback) => {
+    const signal=connectingSignal;
+    Promise.resolve().then(()=>connector.open(signal)).then(socket=>{
+      if(signal.aborted || stopped){socket.destroy();callback(Error('AI_HTTP_UNAVAILABLE'));}
+      else callback(null,socket);
+    },()=>callback(Error('AI_HTTP_UNAVAILABLE')));
+  };
   return Object.freeze({
     fetch(url, options) {
       requireCondition(!stopped && requests.size === 0, 'AI_HTTP_UNAVAILABLE');
@@ -20,11 +28,14 @@ export function createDeepSeekTransport({ requestImpl = request } = {}) {
         Object.keys(options.headers).length === 2, 'AI_HTTP_REQUEST_INVALID');
       return new Promise((resolve,reject) => {
         let response, body, timer;
+        const aborted = new AbortController();
+        connectingSignal = AbortSignal.any([options.signal,lifetime.signal,aborted.signal]);
         const fail = () => {
           const error = Error('AI_HTTP_UNAVAILABLE');
+          aborted.abort();
           response?.destroy(error); body?.destroy(error); outgoing.destroy(error); reject(error);
         };
-        const outgoing = requestImpl(endpoint, { method:'POST', agent, signal:options.signal,
+        const outgoing = requestImpl(endpoint, { method:'POST', agent, signal:connectingSignal,
           headers:{...options.headers,'content-length':Buffer.byteLength(options.body)}, maxHeaderSize:8192 }, incoming => {
           response = incoming; let bytes = 0;
           if (!Number.isInteger(incoming.statusCode) || incoming.statusCode < 200 || incoming.statusCode > 599 ||
@@ -54,9 +65,9 @@ export function createDeepSeekTransport({ requestImpl = request } = {}) {
       idleSockets:Object.values(agent.freeSockets).reduce((sum,items)=>sum+items.length,0), concurrency:1 }; },
     stop() {
       if (closing) return closing;
-      stopped = true;
+      stopped = true; lifetime.abort();
       const handles = new Set([...requests,...Object.values(agent.sockets).flat(),...Object.values(agent.freeSockets).flat()]);
-      closing = Promise.all([...handles].filter(handle=>!handle.closed).map(handle=>new Promise(resolve=>handle.once('close',resolve)))).then(()=>{});
+      closing = Promise.all([connector?.stop(), ...[...handles].filter(handle=>!handle.closed).map(handle=>new Promise(resolve=>handle.once('close',resolve)))]).then(()=>{});
       for (const outgoing of requests) outgoing.destroy(Error('AI_HTTP_UNAVAILABLE'));
       agent.destroy(); return closing;
     },

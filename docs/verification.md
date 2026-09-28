@@ -1,5 +1,13 @@
 # Verification and release limits
 
+## Fixed-destination worker egress — 28 September 2026
+
+Authenticated fixed-destination host egress bridge and worker-owned TLS pipe connector, composed with the bounded single-socket HTTPS transport. A separate host bridge authenticates the current public worker boot before resolving only api.deepseek.com. It rejects special-purpose/non-IPv4 answers and connects to a checked numeric address at port 443. TLS and the provider credential remain inside the worker; the bridge forwards bounded encrypted bytes without content logs. Stop/revocation retains the slot until physical closure. The worker transport has no direct-network fallback when this connector is selected.
+
+36 focused checks pass using actual host-local Windows pipes and synthetic loopback TLS, including authentication/replay, certificate/hostname rejection, address and byte limits, reuse and physical cancellation. Not Hyper-V or production isolation qualification. Database, full application and browser suites were not rerun for this transport-only change. All synthetic listeners and sockets closed. No dependency/runtime, service, network, ACL, credential, database, provider or Discord change.
+
+Concrete worker package, host/guest inference transport and registered Windows lifecycle supervisor; actual Hyper-V pipe mapping, identities/ACLs/egress/credential and process-tree termination qualification; runtime candidate qualification and activation remain open. AI stays disabled. Source-bound evidence: `GitHub/.agent_docs/aphelion-sophie/egress-verification.json`; operational candidate details: `windows-egress-candidate-2026-09-28.md` in that directory.
+
 ## Temporary prepared-request diagnostics — 28 September 2026
 
 The worker fingerprints its final immutable outbound blocks with a random per-worker

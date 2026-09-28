@@ -1,6 +1,6 @@
 {
   "schema_version": 2,
-  "revision": "2026-09-28-prepared-diagnostics",
+  "revision": "2026-09-28-fixed-egress",
   "reference_plan_version": "1.1",
   "source": "Sophie-Implementation-Plans-v1.1/backlog.json",
   "owner_decisions": "docs/decisions/0001-owner-policy.md",
@@ -2347,6 +2347,17 @@
       "implemented": "Immutable bounded outbound preparation with per-boot keyed ephemeral block comparison, source-bound expiry/invalidation and authenticated public-channel diagnostic inspection",
       "evidence": "77 focused checks, 76 isolated AI/knowledge/Gateway scenarios and 19 composed staging scenarios pass; both disposable clusters stopped. Synthetic browser display and expiry verified.",
       "remaining": "Current Chat layout remains the control. Actual provider cache observations, reviewed answer quality, latency and Windows containment remain separately unqualified; no cache eviction or dispatch inference from preparation diagnostics."
+    },
+    {
+      "title": "Fixed-destination worker egress",
+      "tasks": [
+        "P22",
+        "P23",
+        "P24"
+      ],
+      "implemented": "Authenticated fixed-destination host egress bridge and worker-owned TLS pipe connector, composed with the bounded single-socket HTTPS transport",
+      "evidence": "36 focused checks pass using actual host-local Windows pipes and synthetic loopback TLS, including authentication/replay, certificate/hostname rejection, address and byte limits, reuse and physical cancellation. Not Hyper-V or production isolation qualification.",
+      "remaining": "Concrete worker package, host/guest inference transport and registered Windows lifecycle supervisor; actual Hyper-V pipe mapping, identities/ACLs/egress/credential and process-tree termination qualification; runtime candidate qualification and activation remain open."
     }
   ],
   "next_steps": [
@@ -2359,7 +2370,7 @@
         "P24",
         "P25"
       ],
-      "work": "Complete the registered Windows worker package, supervisor/transport and exact operational qualification scope using the existing Hyper-V isolation candidate. Verify the remaining browser preference export. Provider/data clearance and actual reviewed model answers remain separate gates; do not substitute ordinary host-process execution for containment.",
+      "work": "Finish the concrete worker entrypoint, host-to-guest inference path and registered supervisor package using the existing Hyper-V isolation candidate. Prepare exact mount/identity/network/credential/lifecycle qualification before requesting operational authorization. Browser preference export, provider/data clearance and reviewed model answers remain open.",
       "exit_evidence": "Scoped local source/transaction/transport evidence first; actual OS/egress and Discord tests need their explicit operational scope. Paid comparisons remain separately authorized."
     },
     {
@@ -2497,14 +2508,14 @@
       {
         "id": "DS-04",
         "title": "Windows worker and transport",
-        "implementation": "Authenticated boot-specific Windows named-pipe composition and single-socket worker-owned HTTPS transport implemented and checked locally",
-        "qualification": "18 IPC/native checks pass using actual local Windows pipes and synthetic loopback HTTP sockets; not production TLS/OS isolation qualification",
+        "implementation": "Authenticated fixed-destination host egress bridge and worker-owned TLS pipe connector, composed with the bounded single-socket HTTPS transport",
+        "qualification": "36 focused checks pass using actual host-local Windows pipes and synthetic loopback TLS, including authentication/replay, certificate/hostname rejection, address and byte limits, reuse and physical cancellation. Not Hyper-V or production isolation qualification.",
         "sai": [
           "SAI-04",
           "SAI-05",
           "SAI-14"
         ],
-        "remaining": "Concrete registered Windows lifecycle adapter, actual service identity/ACL/egress/credential and process-tree termination qualification, runtime candidate qualification and activation remain open. Apply keeps message processing disabled."
+        "remaining": "Concrete worker package, host/guest inference transport and registered Windows lifecycle supervisor; actual Hyper-V pipe mapping, identities/ACLs/egress/credential and process-tree termination qualification; runtime candidate qualification and activation remain open."
       },
       {
         "id": "DS-05",
