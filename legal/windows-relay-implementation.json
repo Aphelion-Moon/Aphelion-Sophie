@@ -10,7 +10,9 @@
   "existingPermissionOrFirewallChangesApproved": false,
   "additionalContainerApproved": false,
   "providerOrDiscordActivationApproved": false,
-  "gracefulSameBootReuseDecision": "pending clarification",
+  "gracefulSameBootReuseDecision": "approved: fully drained FIN/ACK/confirmation sessions may reconnect within the same worker boot; unexpected disconnect, timeout, revocation, helper failure or uncertain closure requires a fresh worker boot",
   "fieldTestReady": false,
-  "productionReady": false
+  "productionReady": false,
+  "gracefulSameBootReuseAuthorization": "After clarifying that fresh boot means the isolated AI worker container, the owner replied Approved, proceed.",
+  "hostRestartAuthorized": false
 }

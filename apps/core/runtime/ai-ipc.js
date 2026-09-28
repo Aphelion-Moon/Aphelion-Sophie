@@ -35,7 +35,7 @@ export function createAiIpcClient({ identity, key, connect, qualified, clock = D
         requireCondition(Object.keys(fixed).every(name=>peer[name]===fixed[name]) && !stopped && !signal?.aborted && await qualified(fixed)===true,'AI_WORKER_NOT_QUALIFIED');
         await channel.send('probe',{});requireKeys(await channel.receive('ready'),[],'AI_IPC_INVALID');
         requireCondition(!stopped && !signal?.aborted && await qualified(fixed)===true,'AI_WORKER_NOT_QUALIFIED');
-        await channel.send('received',{});return peer;
+        await channel.finish('received',{});return peer;
       } finally {signal?.removeEventListener('abort',abort);channel.close();channels.delete(channel);}
     },
     async prepare(payload,context = {}) {
@@ -72,7 +72,7 @@ export function createAiIpcClient({ identity, key, connect, qualified, clock = D
             requireCondition(kind === 'failed' || phase === 'result','AI_IPC_INVALID');
             if (kind === 'failed') requireKeys(body,[],'AI_IPC_INVALID');
             const result = kind === 'result' ? validateAiOutput(body,{...prepared.contract,sources:prepared.contract.sourceIds.map(id=>({id}))}) : null;
-            await channel.send('received',{});
+            await channel.finish('received',{});
             requireCondition(result !== null && !context.signal.aborted && clock() < context.deadline,'AI_WORKER_UNAVAILABLE'); return result;
           }
           requireCondition(['authorize','dispatch','usage','undispatched'].includes(kind),'AI_IPC_INVALID');

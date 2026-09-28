@@ -611,3 +611,15 @@ container or provider/Discord activation. Historical direct-HCS failures remain.
 The existing worker reconnects after orderly probes and replies; the literal
 fresh-boot-after-disconnect wording requires clarification before the final
 repeated-session controller is selected. No silent contract amendment is made.
+
+### Graceful relay reuse approved; no host restart — 28 September 2026
+
+The owner approved fully drained FIN/ACK/confirmation connections continuing in
+the same isolated AI worker boot. This supersedes the literal every-disconnect
+fresh-boot wording in the preserved relay proposal. Unexpected disconnect, expiry,
+revocation, helper failure or uncertain closure still invalidates the affected
+worker boot. Normal completion neither exits the relay helper nor restarts the
+worker. A fresh worker boot means replacing Sophie's isolated worker container;
+it never means rebooting Windows or altering existing game services. No Windows
+host restart is authorized. The original proposal bytes and failed HCS evidence
+remain preserved. Local source/synthetic scope and operational gates are unchanged.

@@ -101,7 +101,6 @@ async function startTransport({executable,sha256,role,installationId,workerId,bo
     }
     if(state==='starting')throw fail();
     if(code===138){if(state!=='stopping' || id!==0 || data.length!==0)throw fail();stopped=true;return;}
-    if(code===140){if(!role.endsWith('-relay') || !['ready','stopping'].includes(state) || id!==0 || data.length!==0)throw fail();stopped=true;state='stopping';return;}
     if([129,130,137,139].includes(code)){if(data.length!==0)throw fail();resolveRequest(code,id,data);return;}
     if(code===132){
       if(id<0x80000000 || data.length!==4 || streams.has(id) || streams.size>=8)throw fail();

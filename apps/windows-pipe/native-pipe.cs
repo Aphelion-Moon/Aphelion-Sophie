@@ -191,6 +191,20 @@ namespace Sophie.WindowsPipe
             }
         }
 
+        // Only a fully acknowledged relay session may reuse its server instance.
+        // Keeping this handle open retains first-instance namespace ownership.
+        internal void DisconnectDrained()
+        {
+            lock(gate)
+            {
+                if(stopped || !IsServer || !connected || reading!=null || writing!=null ||
+                    accepting==null || !accepting.IsCompleted || PendingIo!=0)
+                    throw new IOException("PIPE_DISCONNECT_BUSY");
+                if(!Native.DisconnectNamedPipe(handle))throw Failure("PIPE_DISCONNECT");
+                connected=false;accepting=null;
+            }
+        }
+
         internal Task CloseAsync()
         {
             lock (gate)
@@ -267,6 +281,7 @@ namespace Sophie.WindowsPipe
         [DllImport("kernel32.dll", CharSet=CharSet.Unicode, SetLastError=true, EntryPoint="CreateFileW")]
         internal static extern SafeFileHandle CreateFile(string name, uint access, uint share, IntPtr security, uint creation, uint flags, IntPtr template);
         [DllImport("kernel32.dll", SetLastError=true)] [return:MarshalAs(UnmanagedType.Bool)] internal static extern bool ConnectNamedPipe(SafeFileHandle handle, IntPtr overlapped);
+        [DllImport("kernel32.dll", SetLastError=true)] [return:MarshalAs(UnmanagedType.Bool)] internal static extern bool DisconnectNamedPipe(SafeFileHandle handle);
         [DllImport("kernel32.dll", SetLastError=true)] [return:MarshalAs(UnmanagedType.Bool)] internal static extern bool GetNamedPipeInfo(SafeFileHandle handle, out uint flags, out uint output, out uint input, out uint instances);
         [DllImport("kernel32.dll", SetLastError=true)] [return:MarshalAs(UnmanagedType.Bool)] internal static extern bool ReadFile(SafeFileHandle handle, IntPtr buffer, uint length, out uint read, IntPtr overlapped);
         [DllImport("kernel32.dll", SetLastError=true)] [return:MarshalAs(UnmanagedType.Bool)] internal static extern bool WriteFile(SafeFileHandle handle, IntPtr buffer, uint length, out uint written, IntPtr overlapped);

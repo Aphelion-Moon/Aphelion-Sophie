@@ -1,5 +1,15 @@
 # Verification and release limits
 
+## Graceful relay reuse — 28 September 2026
+
+Owner-approved graceful same-worker-boot reuse is implemented. Each relay retains its single first-instance listener across fully drained sessions; faults terminate that relay. Successful inference exchanges now finish through an explicit bounded graceful-close path; cancellation and malformed traffic still abort. Windows host restarts are prohibited by this workflow.
+
+Pinned native build passed. Five native transport groups passed, including three sequential sessions per purpose in unchanged helper/worker identities, final-byte drain, idle/backpressured stop, capacity denial and no reconnect after failure. Native malformed-frame/profile checks passed. The existing application protocol fixture, adapted to both relays, passed a probe and two metered synthetic localhost-TLS replies plus confirmed cleanup. All 19 IPC tests passed, including added EOF-before-write-ack and stalled-drain regressions. Earlier failing composition and cancellation checks are retained; their source causes were fixed, not waived.
+
+The listener handle remains owned while DisconnectNamedPipe separates drained sessions; each new private connection verifies its descriptor again. Original frame/byte/session deadlines remain. The IPC completion path waits for both its final write acknowledgement and physical closure. An initial EOF change delayed cancellation; DS04-I06 caught it and was restored to immediate failure outside explicit completion. No full suite, live service, container, provider, Discord, existing ACL/firewall change or host restart occurred. See `GitHub/.agent_docs/aphelion-sophie/windows-relay-reuse/implementation.md` and `relay-reuse-verification.json`.
+
+Complete the installed per-boot relay controller and independently authenticated dynamic grants, without rewriting static owner profiles or restarting the Windows host. Then prepare the exact two-service/account/ACL/network installation for separate operational authorization and actual-identity qualification. Installed activation still fails closed without a controller. Provider/account clearance, publication/actual-answer review, remaining AI acceptance gates and Test Discord Server deployment remain open. Full workplan and AI test-server readiness remain false.
+
 ## Relay source checkpoint — 28 September 2026
 
 Implemented the local relay session primitive, v2 distinct role/boot identity profiles, private/public pipe mapping, exact data-pipe owner/DACL checks, keyless relay entrypoints and supervisor readiness/physical-close seams. Installed supervisor refuses a missing relay controller. The final per-boot controller is not implemented; no installed activation is claimed.

@@ -291,3 +291,33 @@ test('DS04-I17 control key grants are encrypted and each channel gets a fresh di
     assert.notDeepEqual(salts[0],salts[1]);
   } finally {serverPeers.forEach(peer=>peer.close());await new Promise(resolve=>server.close(resolve));}
 });
+
+test('DS04-I18 graceful completion drains a final frame even when peer EOF precedes its write acknowledgement',async()=>{
+  const accepted=deferred(),received=deferred(),acknowledge=deferred();let peer,serverTask;
+  const server=createServer(socket=>{
+    peer=createAiIpcChannel({stream:socket,key,side:'worker'});
+    serverTask=(async()=>{assert.deepEqual(await peer.receive('challenge'),{final:true});received.resolve();await peer.finish();})();
+    accepted.resolve();
+  });
+  server.listen(0,'127.0.0.1');await once(server,'listening');
+  const socket=connect({host:'127.0.0.1',port:server.address().port}),write=socket.write.bind(socket);
+  socket.write=(bytes,callback)=>write(bytes,error=>{void acknowledge.promise.then(()=>callback(error));});
+  const channel=createAiIpcChannel({stream:socket,key,side:'broker'});
+  try {
+    await accepted.promise;
+    let finished=false;const pending=channel.finish('challenge',{final:true}).then(()=>{finished=true;});
+    await received.promise;await once(socket,'end');await tick();assert.equal(finished,false);
+    acknowledge.resolve();await pending;await serverTask;
+    assert.equal(socket.closed,true);assert.equal(channel.signal.aborted,true);
+  } finally {acknowledge.resolve();channel.close();peer?.close();await new Promise(resolve=>server.close(resolve));}
+});
+
+test('DS04-I19 graceful completion retains its original deadline and aborts a peer that never drains',async()=>{
+  const accepted=deferred();let peer;
+  const server=createServer({allowHalfOpen:true},socket=>{peer=socket;socket.resume();accepted.resolve();});
+  server.listen(0,'127.0.0.1');await once(server,'listening');
+  const socket=connect({host:'127.0.0.1',port:server.address().port});
+  const channel=createAiIpcChannel({stream:socket,key,side:'broker'});
+  try {await accepted.promise;channel.tighten(Date.now()+100);await assert.rejects(channel.finish(),/AI_IPC_CLOSED/);assert.equal(socket.closed,true);}
+  finally {channel.close();peer?.destroy();await new Promise(resolve=>server.close(resolve));}
+});

@@ -19,22 +19,38 @@ export function createAiIpcChannel({ stream, key, side, clock = Date.now, profil
   // A fresh 256-bit salt gives each sender/channel a distinct key. Sequence never resets under that key.
   const nonce = sequence => { const value=Buffer.alloc(12);value.writeUInt32BE(sequence,8);return value; };
   let session = side === 'broker' ? randomBytes(32).toString('hex') : null, incoming = 0, outgoing = 0, bound = false;
-  let received = 0, sent = 0, buffer = Buffer.alloc(0), waiting = null, stopped = false;
+  let received = 0, sent = 0, buffer = Buffer.alloc(0), waiting = null, stopped = false, finishing = false, ended = false;
+  let completion, complete;
   let deadline = clock() + limits.lifetime, timer;
-  function close() {
+  function release() {
     if (stopped) return; stopped = true; clearTimeout(timer); controller.abort();
     buffer = Buffer.alloc(0); queue.length = 0; secret.fill(0); sendKey.fill(0); receiveKey?.fill(0);
-    waiting?.reject(new ContractError('AI_IPC_CLOSED')); waiting = null; stream.destroy();
+    waiting?.reject(new ContractError('AI_IPC_CLOSED')); waiting = null;
+  }
+  function close() { release(); stream.destroy(); }
+  function finish(kind,body) {
+    if(completion)return completion;
+    requireCondition(!stopped && !waiting && buffer.length===0 && queue.length===0 && typeof stream.end==='function','AI_IPC_CLOSED');
+    // Mark completion before the final write acknowledgement: a fast peer can
+    // receive that frame and send EOF before our write callback runs.
+    const finalWrite=kind===undefined?Promise.resolve():channel.send(kind,body);
+    finishing=true;
+    const physical=new Promise((resolve,reject)=>{complete=ok=>ok?resolve():reject(new ContractError('AI_IPC_CLOSED'));});
+    completion=Promise.all([physical,finalWrite]).then(()=>{});
+    // Keep the original deadline active through physical closure.
+    void finalWrite.then(()=>{if(!stopped)stream.end();},close);return completion;
   }
   function tighten(expiresAt) {
     requireCondition(Number.isSafeInteger(expiresAt) && expiresAt > clock() && expiresAt <= deadline, 'AI_IPC_DEADLINE_INVALID');
     deadline = expiresAt; clearTimeout(timer); timer = setTimeout(close,Math.max(1,deadline-clock())); timer.unref();
   }
   tighten(deadline);
-  stream.on('error',close); stream.on('end',close); stream.on('close',close);
+  stream.on('error',close);
+  stream.on('end',()=>{ended=true;if(!finishing || waiting || buffer.length!==0)close();});
+  stream.on('close',()=>{const drained=finishing && !stopped && stream.readableEnded && stream.writableFinished;release();complete?.(drained);});
   stream.on('data',chunk => {
     try {
-      requireCondition(!stopped && Buffer.isBuffer(chunk) && clock() < deadline, 'AI_IPC_CLOSED');
+      requireCondition(!stopped && !finishing && Buffer.isBuffer(chunk) && clock() < deadline, 'AI_IPC_CLOSED');
       received += chunk.length; requireCondition(received <= limits.total, 'AI_IPC_LIMIT');
       buffer = Buffer.concat([buffer,chunk]);
       while (buffer.length >= 4) {
@@ -65,15 +81,15 @@ export function createAiIpcChannel({ stream, key, side, clock = Date.now, profil
   });
   // The authenticated inbox/dialer hands over a paused byte stream after its boot handshake.
   stream.resume?.();
-  return Object.freeze({
-    signal: controller.signal, close, tighten,
+  const channel=Object.freeze({
+    signal: controller.signal, close, finish, tighten,
     bind(challenge) {
       requireCondition(!bound && !stopped && incoming === 1 && outgoing === 1 && /^[a-f0-9]{64}$/u.test(challenge),'AI_IPC_INVALID');
       session = createHash('sha256').update(`${limits.domain}:${session}:${challenge}`).digest('hex'); bound = true;
     },
     async send(kind,body) {
       try {
-        requireCondition(!stopped && session !== null && outgoing < limits.messages && clock() < deadline,'AI_IPC_CLOSED');
+        requireCondition(!stopped && !finishing && session !== null && outgoing < limits.messages && clock() < deadline,'AI_IPC_CLOSED');
         const sequence=outgoing++,bytes=Buffer.from(JSON.stringify({version:2,session,sequence,kind,body}),'utf8');
         let frame;
         try {
@@ -88,10 +104,11 @@ export function createAiIpcChannel({ stream, key, side, clock = Date.now, profil
       } catch { close(); throw new ContractError('AI_IPC_CLOSED'); }
     },
     async receive(kind = null) {
-      requireCondition(!stopped && waiting === null && clock() < deadline,'AI_IPC_CLOSED');
+      requireCondition(!stopped && !finishing && (!ended || queue.length>0) && waiting === null && clock() < deadline,'AI_IPC_CLOSED');
       const frame = queue.length ? queue.shift() : await new Promise((resolve,reject) => { waiting = {resolve,reject}; });
       if (kind !== null && frame.kind !== kind) { close(); throw new ContractError('AI_IPC_INVALID'); }
       return kind === null ? {kind:frame.kind,body:frame.body} : frame.body;
     },
   });
+  return channel;
 }

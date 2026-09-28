@@ -26,7 +26,7 @@ export function createAiIpcWorker({ identity, key, adapter, qualified = async()=
           if(request.kind==='probe') {
             requireKeys(request.body,[],'AI_IPC_INVALID');
             requireCondition(await qualified(fixed,{signal:channel.signal}) === true && !channel.signal.aborted && !stopping,'AI_WORKER_NOT_QUALIFIED');
-            await channel.send('ready',{});requireKeys(await channel.receive('received'),[],'AI_IPC_INVALID');return;
+            await channel.send('ready',{});requireKeys(await channel.receive('received'),[],'AI_IPC_INVALID');await channel.finish();return;
           }
           requireCondition(request.kind==='prepare','AI_IPC_INVALID');const input=request.body;
           requireKeys(input,['deadline','payload'],'AI_IPC_PAYLOAD_INVALID');
@@ -46,10 +46,10 @@ export function createAiIpcWorker({ identity, key, adapter, qualified = async()=
             recordResponse: async observation => { requireCondition(await acknowledgement('usage',observation),'AI_IPC_ACCOUNTING_FAILED'); },
             recordUndispatched: async () => { requireCondition(await acknowledgement('undispatched'),'AI_IPC_ACCOUNTING_FAILED'); },
           });
-          release(); await channel.send('result',output); requireKeys(await channel.receive('received'),[],'AI_IPC_INVALID');
+          release(); await channel.send('result',output); requireKeys(await channel.receive('received'),[],'AI_IPC_INVALID');await channel.finish();
         } catch {
           release();
-          if (!channel.signal.aborted) try { await channel.send('failed',{}); requireKeys(await channel.receive('received'),[],'AI_IPC_INVALID'); } catch { /* The core retains any uncertain dispatch. */ }
+          if (!channel.signal.aborted) try { await channel.send('failed',{}); requireKeys(await channel.receive('received'),[],'AI_IPC_INVALID');await channel.finish(); } catch { /* The core retains any uncertain dispatch. */ }
         } finally { release(); channel.close(); }
       })();
       connections.add({channel,task});

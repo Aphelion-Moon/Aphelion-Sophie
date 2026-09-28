@@ -64,9 +64,13 @@ namespace Sophie.WindowsPipe
                 {
                     lifetime.Cancel();
                     try{await Task.WhenAll(outward,inward).ConfigureAwait(false);}catch{}
-                    await Task.WhenAll(front.CloseAsync(),back.CloseAsync()).ConfigureAwait(false);
+                    await back.CloseAsync().ConfigureAwait(false);
+                    if(failure!=null)await front.CloseAsync().ConfigureAwait(false);
                 }
                 if(failure!=null)throw failure;
+                // FIN/ACK/confirmation establishes drain before disconnection;
+                // no unread application bytes are carried into the next session.
+                front.DisconnectDrained();
             }
         }
     }
@@ -117,17 +121,19 @@ namespace Sophie.WindowsPipe
                 if(failure!=null)throw failure;
                 if(requested)using(var timeout=new CancellationTokenSource(2000))
                     await local.Send(138,0,new byte[0],timeout.Token).ConfigureAwait(false);
-                else using(var timeout=new CancellationTokenSource(2000))
-                    await local.Send(140,0,new byte[0],timeout.Token).ConfigureAwait(false);
-                // One session per helper. A subsequent session needs a new grant;
-                // no private reconnect or replay follows a broken connection.
             }
         }
         private static async Task Serve(NativePipe front,EndpointSpec back,CancellationToken signal)
         {
-            await front.AcceptAsync(signal).ConfigureAwait(false);
-            using(var target=NativePipe.Connect(back.Name,back.OwnerSid,back.PeerSid))
-                await new RelaySession(front,target).Run(signal).ConfigureAwait(false);
+            for(;;)
+            {
+                signal.ThrowIfCancellationRequested();
+                await front.AcceptAsync(signal).ConfigureAwait(false);
+                using(var target=NativePipe.Connect(back.Name,back.OwnerSid,back.PeerSid))
+                    await new RelaySession(front,target).Run(signal).ConfigureAwait(false);
+                // Only successful, physically disconnected sessions reach here.
+                // Any fault escapes to Run, closes the listener and revokes reuse.
+            }
         }
     }
 }
