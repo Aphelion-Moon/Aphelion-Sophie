@@ -30,7 +30,8 @@ export function checkModuleImports(file, source) {
       continue;
     }
     if (!specifier.startsWith('.')) {
-      if (!(file === 'apps/core/storage/pool.js' && specifier === 'pg')) failures.push(`${file}: unreviewed external import ${specifier}`);
+      if (!(file === 'apps/core/storage/pool.js' && specifier === 'pg') &&
+          !(file === 'apps/knowledge/html-extractor.js' && specifier === 'parse5')) failures.push(`${file}: unreviewed external import ${specifier}`);
       continue;
     }
     const target = posix.normalize(posix.join(posix.dirname(file), specifier));
@@ -52,7 +53,7 @@ export function checkModuleImports(file, source) {
         (allowedPeers[owner] ?? []).includes(target);
       if (!allowed) failures.push(`${file}: forbidden module dependency ${target}`);
     }
-    if (file.startsWith('apps/knowledge-worker/') && /^(apps\/core|modules\/(tickets|onboarding|membership))\//.test(target)) failures.push(`${file}: knowledge worker cannot access case/core modules`);
+    if (/^apps\/(knowledge-worker|knowledge)\//.test(file) && /^(apps\/core|modules\/(tickets|onboarding|membership))\//.test(target)) failures.push(`${file}: knowledge worker cannot access case/core modules`);
   }
   return failures;
 }

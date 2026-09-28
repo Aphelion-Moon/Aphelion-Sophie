@@ -1,0 +1,37 @@
+{
+  "schemaVersion": 1,
+  "reviewedAt": "2026-09-28",
+  "direct": [
+    "parse5"
+  ],
+  "packages": [
+    {
+      "name": "parse5",
+      "version": "8.0.1",
+      "license": "MIT",
+      "resolved": "https://registry.npmjs.org/parse5/-/parse5-8.0.1.tgz",
+      "integrity": "sha512-z1e/HMG90obSGeidlli3hj7cbocou0/wa5HacvI3ASx34PecNjNQeaHNo5WIZpWofN9kgkqV1q5YvXe3F0FoPw==",
+      "archiveSha256": "d94ec8606e3cef24b8ec001ac121df5d7938f015be69615da27b53a082f86832",
+      "optional": false,
+      "installed": true,
+      "noticePath": "legal/notices/parse5-8.0.1.txt",
+      "noticeSha256": "8c535800331e1e4439835555b3f9edc7fe9dee2fab0d8bbbd5a982e8b8343d4d",
+      "scopeDecision": "docs/decisions/0005-mediawiki-extraction.md",
+      "installScripts": false
+    },
+    {
+      "name": "entities",
+      "version": "8.1.0",
+      "license": "BSD-2-Clause",
+      "resolved": "https://registry.npmjs.org/entities/-/entities-8.1.0.tgz",
+      "integrity": "sha512-kxL7msIffSuh9aaFAMD7rxAIuTRMAHMeBtgHW2yUdWw732ZNh4MehkF2gdjvtdmikkaIP9bFDDJOPlsvm7avrA==",
+      "archiveSha256": "e9a27d66db0d0a6f2d76454219d94f5729ae2a29f08ab06c92e5f6eaa37cbe68",
+      "optional": false,
+      "installed": true,
+      "noticePath": "legal/notices/entities-8.1.0.txt",
+      "noticeSha256": "cb992345949ccd6e8394b2cd6c465f7b897c864f845937dbf64e8997f389e164",
+      "scopeDecision": "docs/decisions/0005-mediawiki-extraction.md",
+      "installScripts": false
+    }
+  ]
+}

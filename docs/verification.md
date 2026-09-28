@@ -188,6 +188,33 @@ restricted audiences, reviewed source/character acceptance and live qualificatio
 remain in the DS/SAI tracker. Real-member processing is blocked on the exact provider
 agreement/settings and approved notice. No model or release was activated.
 
+## Policies collection and structured extraction — 28 September 2026
+
+The owner selected the public Policies page and approved parse5 8.0.1 (MIT) with
+entities 8.1.0 (BSD-2-Clause), scoped in ADR 0005. The exact npm archives matched
+their integrity values, notices are preserved, install scripts were disabled,
+and the npm advisory query returned no entries for these two versions. Existing
+pg pins and the Node runtime are unchanged.
+
+Anonymous API discovery confirmed MediaWiki 1.46.0 and the page's advertised
+CC BY-NC-SA 4.0 content licence. The fixed-origin collector reads page 878 only,
+plus revision metadata for its transclusions, and compares repeated page,
+template, licence and rendered-content observations. It rejects redirects,
+missing/deleted/moved sources, changed observations and oversized responses.
+
+Fourteen focused collector/extractor checks pass. Actual public collection at
+revision 14796 found 52 templates; local extraction retained 174 headings and
+25 tables with 257 rows. The disposable parser worker has a termination deadline,
+V8 heap/stack limits and no inherited environment. These are bounded parsing
+controls, not OS isolation or an atomic MediaWiki snapshot guarantee.
+
+Raw snapshots and structured extracts remain outside Git, explicitly unreviewed.
+No source was published, scheduled, sent to a model or deployed. Durable import
+storage, review/publication integration, immediate source invalidation and the
+40-question knowledge release gate remain open. The source-bound report is
+`../.agent_docs/aphelion-sophie/mediawiki-verification.json`; the umbrella index
+retains previous milestone evidence without claiming its tests were rerun.
+
 ## Member direct knowledge lookup — 28 September 2026
 
 Public answers now includes authenticated search over the existing reviewed public

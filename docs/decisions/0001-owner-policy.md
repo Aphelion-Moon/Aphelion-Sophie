@@ -432,3 +432,21 @@ use `SAI-G*` for AI gates. The external continuation remains authoritative.
 Existing named-provider synthetic authorization remains recorded; no new paid
 comparison allowance, provider/account clearance, live provisioning, service or
 ACL changes, migration deployment or AI activation is inferred from resumption.
+
+### Initial explicit preferences and Discord rules — 28 September 2026
+
+The owner selected two initial member-saved preference types: **reply length** and
+**preferred language**, with inspection, editing and deletion controls. This
+does not permit free-text biographies, inferred facts, sensitive records or
+automatic extraction. Remote use remains disabled until its data-use and
+restore/deletion gates are qualified. A preference never overrides destination
+policy; the separately supplied Discord rules require English in Discord.
+
+The owner supplied `aphelion-discord-rules.txt` as the approved rule text for a
+separate source publication. Preserve its wording and provenance independently
+from the MediaWiki Policies collection. The source channel is
+`https://discord.com/channels/1527801651346411590/1528112081172172901` and contains
+six separately maintained messages. Sophie is not in the main server yet; the
+owner-supplied copy is provenance, not a claim of live channel verification.
+Publication review is still required; do not substitute the wiki URL or ingest
+Discord history to reconstruct those rules.

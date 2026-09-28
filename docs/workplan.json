@@ -1,6 +1,6 @@
 {
   "schema_version": 2,
-  "revision": "2026-09-28-deepseek-lookup",
+  "revision": "2026-09-28-mediawiki-collection",
   "reference_plan_version": "1.1",
   "source": "Sophie-Implementation-Plans-v1.1/backlog.json",
   "owner_decisions": "docs/decisions/0001-owner-policy.md",
@@ -752,8 +752,17 @@
       ],
       "suggested_owner": "Repository maintainer; separate human review where required",
       "guardrail": "No guessed endpoint, broad Discord scrape or case archive source.",
-      "status": "planned_not_started",
-      "implementation_note": "Not implemented. Reference-pack acceptance requirements still apply."
+      "status": "in_progress",
+      "implementation_note": "Owner-selected Policies page and discovered MediaWiki API; anonymous bounded one-page collection with template metadata, rendered hashes and race checks. Approved parse5/entities dependency scope, isolated structured extraction and local immutable unreviewed artifacts. No publication or live schedule.",
+      "completed_scope": [
+        "Actual MediaWiki 1.46.0/site licence/capabilities discovered and source collection fixed to Policies.",
+        "Fixed-origin, no-redirect, bounded read-only collector rechecks article/template/rights/rendered state.",
+        "Worker-bounded extraction retains headings, lists, table cells/spans/headers and anchors; 14 focused checks pass.",
+        "Owner approved parse5 8.0.1 and indirect entities 8.1.0; exact package hashes and notices recorded."
+      ],
+      "remaining_scope": [
+        "Durable snapshot/import store, review-to-publication integration and immediate template/deletion invalidation; Discord /lookup; separate Discord rules publication; reviewed knowledge launch qualification."
+      ]
     },
     {
       "id": "P21",
@@ -777,13 +786,13 @@
       "suggested_owner": "Repository maintainer; separate human review where required",
       "guardrail": "No semantic model dependency for basic lookup.",
       "status": "in_progress",
-      "implementation_note": "Approved public lexical/alias retrieval, source revision/hash/expiry checks and attributed member dashboard lookup are implemented. Source withdrawal and fresh member authorization are rechecked before returning results. MediaWiki import/sync, Discord /lookup, source rights/collection approvals and the 40-question launch gate remain open.",
+      "implementation_note": "Approved public lexical/alias retrieval, source revision/hash/expiry checks and attributed member dashboard lookup are implemented. Source withdrawal and fresh member authorization are rechecked before returning results. MediaWiki import/sync, Discord /lookup, reviewed source extracts and the 40-question launch gate remain open.",
       "completed_scope": [
         "Approved public lexical/alias retrieval, authority labels, revision/hash/expiry checks and attributed citations implemented.",
         "Member dashboard direct lookup on Public answers, independent of inference and AI opt-in."
       ],
       "remaining_scope": [
-        "Approved actual MediaWiki import/sync and collection/rights, Discord /lookup command and reviewed source/answer launch qualification."
+        "Durable reviewed MediaWiki import/sync, Discord /lookup command and reviewed source/answer launch qualification."
       ]
     },
     {
@@ -1326,7 +1335,7 @@
   "checkpoint": {
     "summary": "Deterministic administration, Whitelist onboarding, protected editors, role/permission configuration and the configurable staging host are implemented.",
     "recorded_baseline": "AI handoff 0fa7a5ed538ff791e3def2c1f6ac7683531e15a1 plus preserved uncommitted Flash candidate; synthetic schema058 candidate. No live schema change.",
-    "current_work": "Prepared immutable Flash requests, durable conservative accounting and operator controls, revised external-processing consent gate and dependency-bound assistant history. Worker IPC, durable effects, importer, explicit memory, gathering and selected-feature acceptance remain incomplete. Direct approved-source lookup is now on Public answers and composes without any inference worker or AI control store.",
+    "current_work": "Prepared immutable Flash requests, durable conservative accounting and operator controls, revised external-processing consent gate and dependency-bound assistant history. Worker IPC, durable effects, importer, explicit memory, gathering and selected-feature acceptance remain incomplete. Direct approved-source lookup is now on Public answers and composes without any inference worker or AI control store. The owner-selected Policies collection now has a bounded collector and isolated structured extractor, verified against the public wiki without publication.",
     "evidence_note": "Current source-bound offline results are in docs/verification.md and the external deepseek-verification.json index. Earlier administration, local model and Flash trial results remain historical; none grants present deployment approval."
   },
   "milestones": [
@@ -2221,6 +2230,16 @@
       "implemented": "Authenticated Public answers search returns up to four current published extracts with source links, authority, revision and attribution. No model, conversational consent, editorial authority or AI control store is required.",
       "evidence": "34 focused turn/lookup/dashboard checks, 18 isolated composed staging scenarios and synthetic browser search/empty-state checks; exact source-bound report outside the repository.",
       "remaining": "Approve actual wiki endpoint, collection/rights and extractor; importer/sync/template invalidation, Discord /lookup and actual reviewed-source qualification remain."
+    },
+    {
+      "title": "Policies collection and bounded extraction",
+      "tasks": [
+        "P20",
+        "P21"
+      ],
+      "implemented": "Owner-selected Policies page and discovered MediaWiki API; anonymous bounded one-page collection with template metadata, rendered hashes and race checks. Approved parse5/entities dependency scope, isolated structured extraction and local immutable unreviewed artifacts. No publication or live schedule.",
+      "evidence": "14 focused checks; actual page 878/revision 14796, 52 template metadata dependencies, 174 headings and 25 tables/257 rows extracted locally. Exact external report; no human publication or release pass.",
+      "remaining": "Durable snapshot/import store, review-to-publication integration and immediate template/deletion invalidation; Discord /lookup; separate Discord rules publication; reviewed knowledge launch qualification."
     }
   ],
   "next_steps": [
@@ -2406,13 +2425,13 @@
       {
         "id": "DS-07",
         "title": "Wiki synchronization and direct lookup",
-        "implementation": "public library and member dashboard lookup implemented; importer incomplete",
-        "qualification": "Synthetic publication/withdrawal/lexical, member lookup and composed-runtime checks",
+        "implementation": "public library, member dashboard lookup, bounded Policies collector and isolated structured extraction implemented; durable sync incomplete",
+        "qualification": "14 focused collector/extractor checks; actual anonymous Policies collection and extraction; earlier lookup evidence retained separately",
         "sai": [
           "SAI-08",
           "SAI-11"
         ],
-        "remaining": "Approve actual wiki endpoint, collection/rights and extractor; importer/sync/template invalidation, Discord /lookup and actual reviewed-source qualification remain."
+        "remaining": "Durable snapshot/import store, review-to-publication integration and immediate template/deletion invalidation; Discord /lookup; separate Discord rules publication; reviewed knowledge launch qualification."
       },
       {
         "id": "DS-08",
@@ -2424,7 +2443,7 @@
           "SAI-10",
           "SAI-11"
         ],
-        "remaining": "Persistent memory still needs permitted typed categories, separate data-use authorization, controls and restore/deletion watermark."
+        "remaining": "Owner selected reply length and preferred language. Implement typed saves, inspection/correction/deletion, expiry and independent restore/deletion watermark; remote preference use still needs data-use clearance."
       },
       {
         "id": "DS-09",
@@ -2483,7 +2502,7 @@
       {
         "id": "SAI-G2",
         "title": "Knowledge and direct lookup",
-        "implementation": "publications, lexical retrieval and member dashboard lookup; sync incomplete",
+        "implementation": "publications/lexical/member lookup and actual Policies collection/extraction; review/sync integration incomplete",
         "qualification": "importer/current-source/40-question gates open",
         "data_clearance": "source rights/collection unresolved",
         "activation": "off"
