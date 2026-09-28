@@ -1,5 +1,15 @@
 # Verification and release limits
 
+## Windows service trial: shared-ancestor path gate — 28 September 2026
+
+Three approved Manual diagnostic services and the new protected ProgramData trial tree are provisioned. Core parent/native-child identity checks pass after requesting TOKEN_DUPLICATE with TOKEN_QUERY for enabled service membership; worker-only checks still request QUERY. No service/process DACL was widened.
+
+Guest-specific and host helper builds pass. Final guest build passes 36 native assertions, 11 boundary groups, four stream groups and two runtime/role rejection checks; host stream checks pass. Actual core service identity passes; protected-root validation then rejects the existing ProgramData Users metadata-write ACE (0x116). Egress/supervisor were installed but not started. All three services are Manual/stopped; no owned trial processes remain. The guest containers were removed. The bounded diagnostic uses synthetic marker files and test pipe names, with no live credentials, database, provider or Discord connection. Final application-wrapper configurations are prepared but not activated.
+
+The first service failure identified a query-only primary token passed to WindowsPrincipal.IsInRole, which needs to duplicate it into an identification token. That source fix was compiled and the same core identity check passed. The subsequent file failure is a separate measured OS-layout mismatch: ProgramData grants BUILTIN\Users write-EA and write-attributes on the shared directory. The protection rule and existing ancestor ACLs are unchanged. Source-bound reports: `GitHub/.agent_docs/aphelion-sophie/windows-guest-framework-verification.json` and `windows-service-trial-verification.json`. Earlier source-bound images/packages remain historical; no application/database suite was rerun.
+
+Review the concrete fixed-root amendment at GitHub/.agent_docs/aphelion-sophie/windows-service-trial/installation-root-amendment.md. It proposes C:\Aphelion\Sophie while preserving the guard, existing shared ACLs and old trial artifacts. Service/WinSW and guest Framework approvals remain valid. Installed file/pipe/HCS, mounts, credential custody, physical termination and uncertain-create gates are not passed. Provider, publication/actual-answer, preference-journal and Discord gates remain independent. Field-test and production readiness remain false.
+
 ## Pinned guest Framework helper — 28 September 2026
 
 Separate compile-time host and Server Core worker runtime pins. Guest helper builds with the exact image-bundled compiler and rejects installed host roles. Host Framework 4.8.1 pins remain unchanged; no runtime fallback or Microsoft binary copying.

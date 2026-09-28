@@ -68,7 +68,9 @@ namespace Sophie.WindowsPipe
         internal void RequireIdentity(string user,string service)
         {
             SafeAccessTokenHandle token;
-            if(!OpenProcessToken(parent,8,out token))throw new IOException("PARENT_IDENTITY_UNAVAILABLE");
+            // WindowsPrincipal checks enabled membership using an identification
+            // token. A primary parent token needs TOKEN_DUPLICATE as well as QUERY.
+            if(!OpenProcessToken(parent,service=="-"?8u:10u,out token))throw new IOException("PARENT_IDENTITY_UNAVAILABLE");
             using(token)using(var identity=new WindowsIdentity(token.DangerousGetHandle()))RequireIdentity(identity,user,service);
             using(var identity=WindowsIdentity.GetCurrent())RequireIdentity(identity,user,service);
         }
