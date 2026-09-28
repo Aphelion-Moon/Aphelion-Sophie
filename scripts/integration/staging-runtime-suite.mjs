@@ -24,7 +24,7 @@ async function signedHttp(address, signed) {
   });
 }
 export async function runStagingRuntimeSuite(cluster, run) {
-  async function fixture({ dashboard = true, automaticWorkers = false, ready = true, answers = false, automation = false, automationIngress = false, unavailableAi = false, knowledgeOnly = false } = {}) {
+  async function fixture({ dashboard = true, automaticWorkers = false, ready = true, answers = false, automation = false, automationIngress = false, unavailableAi = false, unavailableAiLifecycle = false, knowledgeOnly = false } = {}) {
     const f = await onboardingWorkflow(cluster, { extraCapabilities: { 'case.forms.publish': [LEAD],
       'member.mute': [STAFF, LEAD], 'member.unmute': [STAFF, LEAD], ...(answers ? { 'answers.publish': [STAFF] } : {}), ...(automation ? { 'automation.publish': [STAFF] } : {}) } });
     const clock = () => f.clock.now, identities = syntheticInteractions({ clock }), oauth = simulatedOAuth(), replies = [], faults = [];
@@ -45,6 +45,9 @@ export async function runStagingRuntimeSuite(cluster, run) {
     const ai = unavailableAi ? { aiControlPool: { query: async () => { throw Error('synthetic control outage'); }, connect: async () => { throw Error('synthetic control outage'); } },
       aiWorker: { current: async () => assert.fail('unavailable control store must prevent worker qualification'), generate: async () => assert.fail('no AI ingestion') },
       aiKnowledge: { lookup: async () => assert.fail('no knowledge ingestion'), current: async () => assert.fail('no knowledge ingestion'), currentReferences: async () => assert.fail('no knowledge ingestion') } } :
+      unavailableAiLifecycle ? { aiControlPool: { query: async () => { throw Error('synthetic control outage'); }, connect: async () => { throw Error('synthetic control outage'); } },
+        aiLifecycle: { releases: [], qualified: async () => false, quiesce: async () => assert.fail('unowned lifecycle must not stop a service'), launch: async () => assert.fail('unowned lifecycle must not launch') },
+        aiKnowledge: { lookup: async () => assert.fail('no AI ingestion'), current: async () => true } } :
       knowledgeOnly ? { aiKnowledge: { lookup: async query => { assert.equal(query, 'synthetic topic'); return []; }, current: async () => true } } : {};
     const createHost = () => createStagingRuntime({ configuration: config, pool: f.pool, ...ai, token: SYNTHETIC_GATEWAY_TOKEN,
       clientSecret: syntheticClientSecret, fetch, connect: peer.connect, clock, random: () => 0.25, onFault: value => faults.push(value) });
@@ -70,7 +73,7 @@ export async function runStagingRuntimeSuite(cluster, run) {
   await run('RT01 runtime database privileges reject the owner and accept the restricted core identity', async () => {
     await cluster.adminPool.query('GRANT USAGE ON SCHEMA sophie_migrations TO sophie_test_core');
     await cluster.adminPool.query('GRANT SELECT ON sophie_migrations.applied TO sophie_test_core');
-    const result = await checkRuntimeDatabase(cluster.corePool); assert.ok(result.checkedTables > 0); assert.equal(result.migrations, 62);
+    const result = await checkRuntimeDatabase(cluster.corePool); assert.ok(result.checkedTables > 0); assert.equal(result.migrations, 63);
     await assert.rejects(checkRuntimeDatabase(cluster.adminPool), /RUNTIME_DATABASE_PRIVILEGES_INVALID/);
     const client = await cluster.adminPool.connect(); await client.query('BEGIN');
     try {
@@ -456,6 +459,15 @@ export async function runStagingRuntimeSuite(cluster, run) {
     assert.ok(f.discord.state.members.get(USER).includes(MUZZLED));
     assert.ok(f.faults.every(code => ['AI_CONTROL_UNAVAILABLE','AI_TURN_UNAVAILABLE'].includes(code)));
   }, { unavailableAi: true, dashboard: false });
+
+  await scenario('DS09-RT19 unavailable worker coordination leaves signed administration running', async f => {
+    assert.ok(f.faults.includes('AI_WORKER_OPERATIONS_UNAVAILABLE'));
+    assert.equal((await f.runtime.status()).current,true);
+    assert.equal((await f.send(f.identities.payload())).body.type,5);
+    for (let index = 0; index < 4; index++) await f.runtime.runOnce();
+    assert.ok(f.discord.state.members.get(USER).includes(MUZZLED));
+    assert.ok(f.faults.every(code => ['AI_CONTROL_UNAVAILABLE','AI_WORKER_OPERATIONS_UNAVAILABLE'].includes(code)));
+  }, { unavailableAiLifecycle: true, dashboard: false });
 
   await scenario('DS07-RT18 a member can use public knowledge lookup without any AI worker or control store', async f => {
     const start = await dashboardHttp(f.addresses.dashboard, '/auth/start');

@@ -84,6 +84,7 @@ test('DS04-N03 qualified Windows pipe composition completes metered turns and st
     settle:async()=>{events.push('settled');return true;},finish:async()=>{}}});
   try {
     await worker.start();assert.equal(worker.status().listener.phase,'listening');
+    assert.deepEqual(await broker.probe(),identity);assert.equal(f.stats().requests,0);
     for(let n=0;n<2;n++){const payload=prompt(identity);assert.deepEqual(await metered.generate(payload,{signal:new AbortController().signal,deadline:payload.local.deadline,beforeDispatch:async()=>true}),output);await tick();}
     assert.deepEqual(f.stats(),{connections:1,requests:2});assert.equal(events.length,2);
     qualified=false;await assert.rejects(broker.prepare(prompt(identity)),/AI_WORKER_NOT_QUALIFIED/);

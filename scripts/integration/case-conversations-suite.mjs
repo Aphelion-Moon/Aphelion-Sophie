@@ -219,7 +219,7 @@ export async function runCaseConversationsSuite(cluster, run) {
       sophie_core.case_message_observations, sophie_core.case_capture_gaps, sophie_core.case_capture_channels;
       ALTER TABLE sophie_core.gateway_lifecycle DROP COLUMN capture_enabled, DROP COLUMN capture_observed_at_ms;
       DELETE FROM sophie_migrations.applied WHERE id IN ('029-case-conversations.sql', '030-case-attachments.sql')`);
-    assert.deepEqual(await migrateCore(f.admin), { migrations: 62 });
+    assert.deepEqual(await migrateCore(f.admin), { migrations: 63 });
     await f.admin.query('GRANT SELECT, INSERT, UPDATE ON sophie_core.case_message_observations, sophie_core.case_capture_gaps, sophie_core.case_capture_channels, sophie_core.case_attachment_jobs, sophie_core.case_attachment_attempts, sophie_core.case_attachment_capacity TO sophie_test_core');
     assert.deepEqual(await f.rows('case_reservations'), cases); assert.deepEqual(await f.rows('case_intakes'), intake);
     assert.equal((await f.observations()).length, 0);

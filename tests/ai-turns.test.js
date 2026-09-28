@@ -241,6 +241,23 @@ test('SAI AT-07 dashboard session preserves explicit AI access flags and denies 
   session.aiAvailable = 'yes'; await assert.rejects(api.session(), /unavailable/);
 });
 
+test('DS09 operator HTTP accepts only fixed lifecycle inputs and suppresses responses after session revocation', async () => {
+  const actor={userId:'123',guildId:'101'},proof={},calls=[];let current=true;
+  const controls=Object.fromEntries(['workerStatus','reviewWorker','applyWorker','stopWorker'].map(operation=>[operation,async input=>{
+    assert.equal(input.actor,actor);calls.push(operation);return {queued:true};
+  }]));
+  const http=createAiControlsHttp({auth:{authenticate:async()=>({proof}),resolvePrincipal:async()=>{if(!current)throw Error('SESSION_REVOKED');}},
+    authorization:{resolveActor:async received=>{assert.equal(received,proof);return actor;}},controls});
+  const input={method:'POST',query:new URLSearchParams(),credentials:{},path:'/api/ai/apply-worker',
+    body:{candidateId:'a'.repeat(64),expectedRevision:0,reviewSha256:'b'.repeat(64),requestId:'c'.repeat(64),confirmed:true}};
+  await assert.rejects(http.execute({...input,body:{...input.body,command:'arbitrary'}}),/AI_INPUT_INVALID/);
+  await assert.rejects(http.execute({...input,body:{...input.body,actor:{userId:'999'}}}),/AI_INPUT_INVALID/);
+  assert.deepEqual(calls,[]);
+  assert.equal((await http.execute(input)).actorId,actor.userId);
+  current=false;await assert.rejects(http.execute({...input,path:'/api/ai/stop-worker',body:{requestId:'d'.repeat(64)}}),/SESSION_REVOKED/);
+  assert.deepEqual(calls,['applyWorker','stopWorker']);
+});
+
 test('SAI AT-07/19 typing is brief, fixed to an admitted addressed turn and cannot survive revocation', async () => {
   let eligible = true; const calls = [];
   const messages = createAiMessages({ botUserId: '505', clock: () => 1000, revalidate: async () => eligible, canReact: async () => false,

@@ -13,6 +13,20 @@ export function createAiIpcClient({ identity, key, connect, qualified, clock = D
   function discardPrepared(prepared) { const state = preparations.get(prepared); if (state) { state.signal?.removeEventListener('abort',state.abort); state.channel.close(); channels.delete(state.channel); preparations.delete(prepared); } }
   return Object.freeze({
     provider:'deepseek', current, discardPrepared,
+    async probe({signal}={}) {
+      requireCondition(!stopped && !signal?.aborted && channels.size===0 && await qualified(fixed)===true,'AI_WORKER_NOT_QUALIFIED');
+      const channel=createAiIpcChannel({stream:connect(),key,side:'broker',clock});channels.add(channel);
+      const abort=()=>channel.close();signal?.addEventListener('abort',abort,{once:true});
+      try {
+        channel.tighten(clock()+2000);await channel.send('challenge',{});
+        const hello=await channel.receive('hello');requireKeys(hello,['identity','challenge'],'AI_IPC_INVALID');channel.bind(hello.challenge);
+        const peer=canonicalAiWorkerIdentity(hello.identity);
+        requireCondition(Object.keys(fixed).every(name=>peer[name]===fixed[name]) && !stopped && !signal?.aborted && await qualified(fixed)===true,'AI_WORKER_NOT_QUALIFIED');
+        await channel.send('probe',{});requireKeys(await channel.receive('ready'),[],'AI_IPC_INVALID');
+        requireCondition(!stopped && !signal?.aborted && await qualified(fixed)===true,'AI_WORKER_NOT_QUALIFIED');
+        await channel.send('received',{});return peer;
+      } finally {signal?.removeEventListener('abort',abort);channel.close();channels.delete(channel);}
+    },
     async prepare(payload,context = {}) {
       requireCondition(await current(payload),'AI_WORKER_NOT_QUALIFIED');
       requireCondition(!context.signal?.aborted,'AI_IPC_CLOSED');

@@ -1,5 +1,35 @@
 # Verification and release limits
 
+## AI worker operating controls — 28 September 2026
+
+Schema063 retains desired and active worker revisions and the last authenticated
+worker acknowledgement. Reviewed apply binds the registered release and current
+configuration/personality/budget/control revisions. Stop disables processing before
+external work. A single session owner drains the previous AI lane, requires positive
+physical-quiescence evidence, and checks a freshly qualified worker probe before
+attaching the replacement. Failed or superseded starts cannot activate processing.
+An exact lost-response retry returns its receipt without cancelling its own launch.
+At the 1,000-request limit, one final stop remains available; failed terminal stop
+recovery reuses that intent without growing history. Apply always leaves AI disabled.
+
+44 focused checks, 75 isolated AI/knowledge/Gateway scenarios and 19 composed
+staging scenarios pass; both disposable databases stopped. The native pipe probe
+does not call the provider. RT19 verifies signed administration survives an optional
+worker-coordination outage. Synthetic browser review/apply/stop displays the expected
+revisions, acknowledgement and disabled state; this uses a simulated lifecycle API.
+Unrelated migration-count assertions changed without rerunning their suites.
+
+The coordinator requires an injected registered lifecycle adapter. The concrete
+Windows service adapter, actual process-tree termination, identities/ACLs/egress,
+credential custody and runtime candidate remain unqualified. No live migration,
+grant, credential, service, provider call, Discord effect or deployment changed.
+Evidence: `GitHub/.agent_docs/aphelion-sophie/worker-operations-verification.json`.
+The injected lifecycle contract still permits a hung call to hold shutdown and its
+ownership lock open. Production qualification must implement bounded cancellation
+and physical termination; this coordinator intentionally does not detach an unknown
+live worker. At terminal history capacity, later stop requests coalesce without
+retaining each later requester or request ID.
+
 ## Native worker transport and accounting retention — 28 September 2026
 
 Boot-specific Windows named pipes now compose the authenticated worker protocol.

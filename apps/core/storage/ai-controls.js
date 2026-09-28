@@ -7,6 +7,7 @@ import { inTransaction } from './transaction.js';
 import { canonicalAiBudget, DEFAULT_AI_BUDGET } from '../../../modules/assistant/budget.js';
 import { createAiAccounting } from './ai-accounting.js';
 import { createAiPreferences } from './ai-preferences.js';
+import { createAiWorkerOperations } from './ai-worker-operations.js';
 
 // PostgreSQL jsonb reorders object keys. Hash canonical data, including nested profiles.
 function ordered(value) {
@@ -25,7 +26,7 @@ function publication(kind, document) {
 
 /** Authenticated controls own desired state. Activation requires separate installation evidence. */
 export function createAiControls({ pool, guildId, authorize, inspectChannel, memberPresence, invalidate = () => {}, noticeRevision = 2,
-  noticeApproved = async () => false, preferenceJournal = null, clock = Date.now }) {
+  noticeApproved = async () => false, preferenceJournal = null, clock = Date.now, workerCatalogue=[],workerOperationsAvailable=false }) {
   requireId(guildId); requireInteger(noticeRevision, 1);
   for (const fn of [authorize, inspectChannel, memberPresence, noticeApproved]) requireCondition(typeof fn === 'function', 'TRUSTED_ADAPTERS_REQUIRED');
   async function access(actor, action, scope = {}) {
@@ -34,13 +35,14 @@ export function createAiControls({ pool, guildId, authorize, inspectChannel, mem
   }
   async function transaction(actor, action, work, scope = {}, changes = false) {
     await access(actor, action, scope);
+    let result;
     return inTransaction(pool, async client => {
       // One short AI control lock; never acquires the administration maintenance barrier.
       await client.query('SELECT pg_advisory_xact_lock(182745,56)');
       await client.query('INSERT INTO sophie_ai.state(guild_id) VALUES($1) ON CONFLICT DO NOTHING', [guildId]);
       const state = (await client.query('SELECT * FROM sophie_ai.state WHERE guild_id=$1 FOR UPDATE', [guildId])).rows[0];
-      const result = await work(client, state); await access(actor, action, scope); return result;
-    }).finally(() => { if (changes) invalidate(); });
+      result = await work(client, state); await access(actor, action, scope); return result;
+    }).finally(() => { if (typeof changes==='function' ? changes(result) : changes) invalidate(); });
   }
   async function current(client, kind) {
     const row = (await client.query('SELECT * FROM sophie_ai.publications WHERE guild_id=$1 AND kind=$2 ORDER BY revision DESC LIMIT 1', [guildId, kind])).rows[0];
@@ -70,6 +72,7 @@ export function createAiControls({ pool, guildId, authorize, inspectChannel, mem
     return { expectedRevision, evidenceHash, controlEpoch: Number(state.epoch) };
   }
   return Object.freeze({
+    ...createAiWorkerOperations({guildId,transaction,catalogue:workerCatalogue,available:workerOperationsAvailable}),
     ...createAiPreferences({guildId,transaction,memberPresence,journal:preferenceJournal,clock}),
     async current({ actor, kind }) {
       publication(kind, kind === 'configuration' ? { schemaVersion: 1, enabled: false, deadlineMs: 15000, channels: [], emojis: [] } :

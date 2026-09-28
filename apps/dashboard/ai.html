@@ -13,6 +13,11 @@
 <h3>Approved social reactions</h3><p>Choose up to 16 reactions Sophie may use. Operational status symbols are reserved. Custom emojis must belong to this server and be available when she reacts.</p><div id="emojis"></div><button id="add-emoji">Add reaction</button>
 <div class="actions"><button id="review-configuration" class="primary">Review participation changes</button></div>
 </section>
+<section id="worker" class="panel case-panel" hidden><h2>AI worker</h2><p id="worker-state"></p><p id="worker-ack"></p>
+<p>Apply stops current AI work and replaces only the AI worker. Message processing stays disabled until its separate release and data-use checks pass. An acknowledgement records the worker seen at that time; it is not a live health guarantee.</p>
+<label for="worker-release">Installed release</label><select id="worker-release"></select>
+<button id="review-worker">Review worker replacement</button><button id="stop-worker">Stop or recover AI worker</button>
+<p>Recovery first requires confirmation that the prior worker and any pending start have stopped. It does not retry a model request or clear uncertain charges.</p></section>
 <section id="budget" class="panel case-panel" hidden><h2>Spending</h2><p id="budget-state"></p><div id="unresolved-spending"></div>
 <label for="monthly-budget">Monthly ceiling, USD</label><input id="monthly-budget" type="number" min="1" max="9999" step="1" value="20">
 <p>Calendar months use Europe/Vienna. There is no separate daily money cap. The technical limit is 2,000 attempts per day. At 80% of the money ceiling, optional proactive calls stop first.</p>

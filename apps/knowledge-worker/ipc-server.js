@@ -22,7 +22,13 @@ export function createAiIpcWorker({ identity, key, adapter, qualified = async()=
           requireCondition(await qualified(fixed,{signal:channel.signal}) === true && !channel.signal.aborted && !stopping,'AI_WORKER_NOT_QUALIFIED');
           const challenge = randomBytes(32).toString('hex');
           const hello = channel.send('hello',{identity:fixed,challenge}); channel.bind(challenge); await hello;
-          const input = await channel.receive('prepare');
+          const request = await channel.receive();
+          if(request.kind==='probe') {
+            requireKeys(request.body,[],'AI_IPC_INVALID');
+            requireCondition(await qualified(fixed,{signal:channel.signal}) === true && !channel.signal.aborted && !stopping,'AI_WORKER_NOT_QUALIFIED');
+            await channel.send('ready',{});requireKeys(await channel.receive('received'),[],'AI_IPC_INVALID');return;
+          }
+          requireCondition(request.kind==='prepare','AI_IPC_INVALID');const input=request.body;
           requireKeys(input,['deadline','payload'],'AI_IPC_PAYLOAD_INVALID');
           channel.tighten(input.deadline); validateAiWorkerPayload(input.payload,fixed);
           requireCondition(!active && !stopping,'AI_IPC_BUSY'); active = true; ownsSlot = true;

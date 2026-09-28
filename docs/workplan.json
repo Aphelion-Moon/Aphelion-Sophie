@@ -1,6 +1,6 @@
 {
   "schema_version": 2,
-  "revision": "2026-09-28-worker-native",
+  "revision": "2026-09-28-worker-operations",
   "reference_plan_version": "1.1",
   "source": "Sophie-Implementation-Plans-v1.1/backlog.json",
   "owner_decisions": "docs/decisions/0001-owner-policy.md",
@@ -2325,6 +2325,17 @@
       "implemented": "Authenticated boot-specific Windows named-pipe composition and single-socket worker-owned HTTPS transport implemented and checked locally",
       "evidence": "18 IPC/native checks; 65 isolated AI/knowledge/Gateway scenarios; 509 module checks; 40-case historical source review",
       "remaining": "Actual service identities, ACLs/pipe confidentiality, remote-pipe denial, fixed egress, credential custody, process-tree termination and replacement remain unqualified. AI-only apply/recovery UI and same-LTS runtime candidate qualification remain open; no service installed."
+    },
+    {
+      "title": "AI worker operating controls",
+      "tasks": [
+        "P22",
+        "P23",
+        "P24"
+      ],
+      "implemented": "Durable desired/active/acknowledged worker revisions, authenticated AI-only apply/stop/recovery controls and a fenced single-owner lifecycle coordinator",
+      "evidence": "44 focused checks, 75 isolated AI/knowledge/Gateway scenarios and 19 composed staging scenarios pass; both disposable clusters stopped. Synthetic browser review/apply/stop verified.",
+      "remaining": "Concrete registered Windows lifecycle adapter, actual service identity/ACL/egress/credential and process-tree termination qualification, runtime candidate qualification and activation remain open. Apply keeps message processing disabled."
     }
   ],
   "next_steps": [
@@ -2337,7 +2348,7 @@
         "P24",
         "P25"
       ],
-      "work": "Follow DS-04 worker/broker and DS-09 durable effects next, then dependency-ordered gathering, approved wiki sync/direct lookup and selected memory controls. Prepare exact native identity/runtime proposals before any live provisioning. Preserve the 15-second first-receipt deadline and default one active call.",
+      "work": "Finish ephemeral first-changed-block diagnostics and remaining export verification, then implement the registered Windows lifecycle adapter and prepare its exact installation/qualification scope. Preserve the 15-second first-receipt deadline, one active call and separate provider/data clearance.",
       "exit_evidence": "Scoped local source/transaction/transport evidence first; actual OS/egress and Discord tests need their explicit operational scope. Paid comparisons remain separately authorized."
     },
     {
@@ -2482,7 +2493,7 @@
           "SAI-05",
           "SAI-14"
         ],
-        "remaining": "Actual service identities, ACLs/pipe confidentiality, remote-pipe denial, fixed egress, credential custody, process-tree termination and replacement remain unqualified. AI-only apply/recovery UI and same-LTS runtime candidate qualification remain open; no service installed."
+        "remaining": "Concrete registered Windows lifecycle adapter, actual service identity/ACL/egress/credential and process-tree termination qualification, runtime candidate qualification and activation remain open. Apply keeps message processing disabled."
       },
       {
         "id": "DS-05",
@@ -2533,14 +2544,14 @@
       {
         "id": "DS-09",
         "title": "Effects and operating controls",
-        "implementation": "Durable bounded own-effect receipts, deterministic automation precedence and known-effect restart/revocation cleanup implemented",
-        "qualification": "25 focused turn/observation checks; 55 isolated AI/knowledge/Gateway scenarios; 18 composed staging scenarios. Synthetic effects only.",
+        "implementation": "Durable desired/active/acknowledged worker revisions, authenticated AI-only apply/stop/recovery controls and a fenced single-owner lifecycle coordinator",
+        "qualification": "44 focused checks, 75 isolated AI/knowledge/Gateway scenarios and 19 composed staging scenarios pass; both disposable clusters stopped. Synthetic browser review/apply/stop verified.",
         "sai": [
           "SAI-06",
           "SAI-07",
           "SAI-14"
         ],
-        "remaining": "Active worker revisions and AI-only apply/replacement; actual Discord effect/recovery and Windows qualification remain open."
+        "remaining": "Concrete registered Windows lifecycle adapter, actual service identity/ACL/egress/credential and process-tree termination qualification, runtime candidate qualification and activation remain open. Apply keeps message processing disabled."
       },
       {
         "id": "DS-10",
