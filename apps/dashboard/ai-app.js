@@ -110,7 +110,9 @@ async function load() {
       const dollars = value => (Number(value) / 1000000000).toFixed(6);
       el('budget-state').textContent = `Budget revision ${budgetRevision}. ${spending.policy?.held ? 'Paid inference is held for accounting review.' : 'Europe/Vienna calendar; conservative peak-price accounting.'} ` +
         spending.balances.map(row => `${row.period}: $${dollars(row.settled_nanos)} settled, $${dollars(row.reserved_nanos)} reserved (including uncertainty), ${row.attempts} attempts.`).join(' ') +
-        ` Unresolved across all periods: ${spending.unresolved.attempts} attempts, $${dollars(spending.unresolved.nanos)}. An unreviewed or expired price pauses paid calls.`;
+        ` Unresolved across all periods: ${spending.unresolved.attempts} attempts, $${dollars(spending.unresolved.nanos)}. An unreviewed or expired price pauses paid calls.` +
+        ` Resolved attempt details expire after 90 days; daily totals after 90 days and monthly totals after 400 days once unreferenced. Unresolved charges and replay receipts remain.` +
+        (spending.capacityHeld ? ' Paid calls are paused at accounting storage capacity.' : '');
       el('unresolved-spending').replaceChildren();
       for (const attempt of spending.pending) {
         const row = document.createElement('fieldset'), label = document.createElement('label'), confirmation = document.createElement('input'), button = document.createElement('button');

@@ -1,6 +1,6 @@
 {
   "schema_version": 2,
-  "revision": "2026-09-28-knowledge-completion",
+  "revision": "2026-09-28-worker-native",
   "reference_plan_version": "1.1",
   "source": "Sophie-Implementation-Plans-v1.1/backlog.json",
   "owner_decisions": "docs/decisions/0001-owner-policy.md",
@@ -2314,6 +2314,17 @@
       "implemented": "Shared dashboard and signed Discord direct lookup; fixed Policies importer, human publication review and qualified unattended refresh composition implemented locally",
       "evidence": "61 focused checks; 64 isolated AI/knowledge/Gateway scenarios; 18 composed staging scenarios, including Discord lookup with AI unavailable",
       "remaining": "Deploy and qualify the actual knowledge identity and command registration; review/publish the selected wiki extracts and separate Discord rules; run the 40-question source/answer gate. No source publication or live service is activated."
+    },
+    {
+      "title": "Native worker transport, bounded accounting and source question review",
+      "tasks": [
+        "P22",
+        "P23",
+        "P24"
+      ],
+      "implemented": "Authenticated boot-specific Windows named-pipe composition and single-socket worker-owned HTTPS transport implemented and checked locally",
+      "evidence": "18 IPC/native checks; 65 isolated AI/knowledge/Gateway scenarios; 509 module checks; 40-case historical source review",
+      "remaining": "Actual service identities, ACLs/pipe confidentiality, remote-pipe denial, fixed egress, credential custody, process-tree termination and replacement remain unqualified. AI-only apply/recovery UI and same-LTS runtime candidate qualification remain open; no service installed."
     }
   ],
   "next_steps": [
@@ -2452,26 +2463,26 @@
       {
         "id": "DS-03",
         "title": "Durable spending and dispatch",
-        "implementation": "implemented foundation",
-        "qualification": "Synthetic PostgreSQL race/fence/expiry/settlement checks",
+        "implementation": "Durable reservation/dispatch/uncertainty accounting with bounded resolved-attempt and aggregate retention and a hard attempt-row capacity hold",
+        "qualification": "65 isolated AI/knowledge/Gateway scenarios pass, including 500-row cleanup, preserved unresolved charges and independent replay receipts",
         "sai": [
           "SAI-01",
           "SAI-02",
           "SAI-05"
         ],
-        "remaining": "Bound ledger retention, qualify actual framing/prices and transport crash/rollover behavior. Estimates are conservative, not guaranteed invoice caps."
+        "remaining": "Qualify provider framing, approved prices, actual transport crash/rollover and capacity performance; estimates remain conservative rather than invoice guarantees. Minimal replay receipts and unresolved balances are retained."
       },
       {
         "id": "DS-04",
         "title": "Windows worker and transport",
-        "implementation": "Authenticated bounded private-stream broker/worker foundation implemented; native service/transport and OS qualification incomplete",
-        "qualification": "40 focused IPC/adapter/scheduler checks using synthetic loopback streams and mocked provider transport; not OS/process isolation or end-to-end release evidence",
+        "implementation": "Authenticated boot-specific Windows named-pipe composition and single-socket worker-owned HTTPS transport implemented and checked locally",
+        "qualification": "18 IPC/native checks pass using actual local Windows pipes and synthetic loopback HTTP sockets; not production TLS/OS isolation qualification",
         "sai": [
           "SAI-04",
           "SAI-05",
           "SAI-14"
         ],
-        "remaining": "Provision and qualify the exact private transport and Windows identity/ACL/egress profile, provider-only credential custody, worker-local HTTP pool and AI-only process replacement. Qualify Node maintenance separately; no service listener or production connector is installed."
+        "remaining": "Actual service identities, ACLs/pipe confidentiality, remote-pipe denial, fixed egress, credential custody, process-tree termination and replacement remain unqualified. AI-only apply/recovery UI and same-LTS runtime candidate qualification remain open; no service installed."
       },
       {
         "id": "DS-05",
@@ -2534,12 +2545,12 @@
       {
         "id": "DS-10",
         "title": "Selected-release qualification",
-        "implementation": "partial offline",
-        "qualification": "Historical 20 quality calls and 12 cache calls are not current-release acceptance",
+        "implementation": "Offline 40-question source review completed; three wording/citation findings corrected in the historical candidate",
+        "qualification": "40/40 supplied-source locators resolve; 27 support and 13 abstention expectations; no model-answer acceptance",
         "sai": [
           "SAI-15"
         ],
-        "remaining": "Reviewed 40-question launch set, independent factual/character review, authorized paid/cache comparison and actual receipt-to-Discord timing."
+        "remaining": "Owner character/source publication approval, fresh source revisions, independently reviewed actual answers, authorized paid/cache comparison and receipt-to-Discord timing."
       },
       {
         "id": "DS-11",

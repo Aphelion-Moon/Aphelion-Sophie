@@ -3,9 +3,12 @@ import { requireCondition, requireId, requireInteger } from '../../../contracts/
 import { canonicalAiBudget, aiBudgetPeriods, aiReservationNanos, aiUsageCostNanos } from '../../../modules/assistant/budget.js';
 import { inTransaction } from './transaction.js';
 
+export const AI_ACCOUNTING_RETENTION = Object.freeze({ resolvedDays:90, dailyDays:90, monthlyDays:400, batch:500, maxAttemptRows:200000 });
+
 /** The trusted broker owns this store; the provider worker never receives its pool. */
 export function createAiAccounting({ pool, guildId }) {
   requireId(guildId);
+  let nextMaintenance = 0;
   const lock = client => client.query('SELECT pg_advisory_xact_lock(182745,56)');
   const now = async client => (await client.query('SELECT clock_timestamp() AS now')).rows[0].now.getTime();
   const receipt = row => Object.freeze({ messageId: row.message_id, fence: row.fence });
@@ -25,6 +28,20 @@ export function createAiAccounting({ pool, guildId }) {
     for (const row of rows) await release(client, row);
     await client.query("UPDATE sophie_ai.provider_attempts SET state='uncertain',updated_at=clock_timestamp() WHERE guild_id=$1 AND state='dispatch_started' AND deadline<=clock_timestamp()", [guildId]);
   }
+  async function maintain(client) {
+    const at = await now(client), day = aiBudgetPeriods(at - 90 * 86400000).day, month = aiBudgetPeriods(at - 400 * 86400000).month;
+    // Keep independent admission receipts: deleting a resolved cost row must never reopen a message for dispatch.
+    const attempts = await client.query(`DELETE FROM sophie_ai.provider_attempts p USING (
+      SELECT message_id FROM sophie_ai.provider_attempts WHERE guild_id=$1 AND state IN ('settled','released')
+        AND updated_at<clock_timestamp()-interval '90 days' AND deadline<clock_timestamp()-interval '90 days' LIMIT 500
+      ) old WHERE p.guild_id=$1 AND p.message_id=old.message_id`, [guildId]);
+    const periods = await client.query(`DELETE FROM sophie_ai.budget_periods p USING (
+      SELECT period FROM sophie_ai.budget_periods b WHERE b.guild_id=$1 AND b.reserved_nanos=0
+        AND ((length(b.period)=10 AND b.period<$2) OR (length(b.period)=7 AND b.period<$3))
+        AND NOT EXISTS (SELECT 1 FROM sophie_ai.provider_attempts a WHERE a.guild_id=b.guild_id AND (a.month_period=b.period OR a.day_period=b.period))
+        LIMIT 500) old WHERE p.guild_id=$1 AND p.period=old.period`, [guildId,day,month]);
+    return {attempts:attempts.rowCount,periods:periods.rowCount};
+  }
   return Object.freeze({
     async reserve({ local, bytes, outputTokens, deadline }) {
       requireId(local.messageId); requireInteger(local.controlEpoch); requireInteger(deadline);
@@ -41,6 +58,8 @@ export function createAiAccounting({ pool, guildId }) {
             AND NOT s.disabled AND s.epoch=$5`, [guildId, local.messageId, local.inputRevision, deadline, local.controlEpoch])).rows[0];
         if (!admitted || admitted.proactive !== local.proactive) return null;
         if ((await client.query('SELECT 1 FROM sophie_ai.provider_attempts WHERE guild_id=$1 AND message_id=$2', [guildId, local.messageId])).rowCount) return null;
+        const count = Number((await client.query('SELECT count(*) AS count FROM sophie_ai.provider_attempts WHERE guild_id=$1',[guildId])).rows[0].count);
+        if (count >= AI_ACCOUNTING_RETENTION.maxAttemptRows) return null;
         const outstanding = Number((await client.query("SELECT count(*) AS count FROM sophie_ai.provider_attempts WHERE guild_id=$1 AND state IN ('reserved','dispatch_started','uncertain')", [guildId])).rows[0].count);
         if (outstanding >= policy.maxUnresolved) return null;
         const amount = aiReservationNanos({ bytes, outputTokens }, policy);
@@ -99,7 +118,11 @@ export function createAiAccounting({ pool, guildId }) {
         else await client.query("UPDATE sophie_ai.provider_attempts SET state='uncertain',updated_at=clock_timestamp() WHERE guild_id=$1 AND message_id=$2", [guildId, row.message_id]);
       });
     },
-    async expire() { return inTransaction(pool, async client => { await lock(client); await expire(client); }); },
+    async maintain() { return inTransaction(pool, async client => { await lock(client); return maintain(client); }); },
+    async expire() { return inTransaction(pool, async client => {
+      await lock(client); await expire(client);
+      if (Date.now() >= nextMaintenance) { await maintain(client); nextMaintenance = Date.now() + 60000; }
+    }); },
     async status() {
       return inTransaction(pool, async client => {
         await lock(client); await expire(client);
@@ -108,7 +131,9 @@ export function createAiAccounting({ pool, guildId }) {
         const balances = (await client.query('SELECT period,reserved_nanos,settled_nanos,attempts FROM sophie_ai.budget_periods WHERE guild_id=$1 AND period=ANY($2)', [guildId, [periods.month, periods.day]])).rows;
         const unresolved = (await client.query("SELECT count(*)::int AS attempts,COALESCE(sum(reserved_nanos),0)::text AS nanos FROM sophie_ai.provider_attempts WHERE guild_id=$1 AND state='uncertain'", [guildId])).rows[0];
         const pending = (await client.query("SELECT message_id AS \"messageId\",fence,reserved_nanos AS nanos FROM sophie_ai.provider_attempts WHERE guild_id=$1 AND state='uncertain' ORDER BY updated_at LIMIT 4", [guildId])).rows;
-        return { policy, balances, unresolved, pending, currency: 'USD', timezone: 'Europe/Vienna', accounting: 'conservative-peak-estimate' };
+        const attemptRows = Number((await client.query('SELECT count(*) AS count FROM sophie_ai.provider_attempts WHERE guild_id=$1',[guildId])).rows[0].count);
+        return { policy, balances, unresolved, pending, retention:AI_ACCOUNTING_RETENTION, attemptRows,
+          capacityHeld:attemptRows >= AI_ACCOUNTING_RETENTION.maxAttemptRows, currency: 'USD', timezone: 'Europe/Vienna', accounting: 'conservative-peak-estimate' };
       });
     },
   });

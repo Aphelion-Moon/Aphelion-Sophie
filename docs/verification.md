@@ -1,5 +1,36 @@
 # Verification and release limits
 
+## Native worker transport and accounting retention — 28 September 2026
+
+Boot-specific Windows named pipes now compose the authenticated worker protocol.
+The worker owns a fixed-origin HTTPS agent with one reusable socket, bounded
+headers/body/deadline, no paid-POST retries or redirects, and physical teardown.
+Qualification remains mandatory; these pipes do not establish OS isolation.
+
+18 IPC/native checks pass, including actual local Windows pipes, synthetic socket
+reuse, cancellation, oversized response rejection and startup/shutdown races.
+Fresh worker readiness precedes the greeting that permits prompt transfer. A
+required revocation signal cancels physical work and closes the listener/pool;
+qualification is checked again before returning a result. Stalled qualification
+checks are bounded and cancellation preserves accounting uncertainty.
+65 isolated AI/knowledge/Gateway scenarios pass; the database stopped. Accounting
+cleanup removes at most 500 resolved details older than 90 days per batch, keeps
+unresolved charges and replay receipts, and preserves referenced budget periods.
+New reservations stop at 200,000 retained attempt rows per guild. Daily/monthly
+aggregate retention is 90/400 days, subject to outstanding references/reservations.
+The hard-cap performance boundary and production DELETE grants were not qualified.
+
+All 40 historical launch-question source locators were reviewed. Three wording or
+citation findings were corrected; 27 support and 13 abstention expectations remain.
+This is not model-answer acceptance, fresh source publication or owner approval.
+Evidence: `GitHub/.agent_docs/aphelion-sophie/worker-native-verification.json` and
+`launch-question-owner-review-2026-09-28.md` in that directory.
+
+Actual TLS/egress, service identities, pipe ACLs/confidentiality, credential custody,
+hard process termination, AI-only apply/replacement controls and runtime maintenance
+qualification remain open. No provider call, source publication, live database
+grant/migration, service installation, runtime upgrade or deployment occurred.
+
 ## Discord lookup and unattended refresh — 28 September 2026
 
 Signed `/lookup` shares the dashboard's deterministic reviewed-source use case.

@@ -15,6 +15,7 @@ export async function runAiControlsSuite(cluster, run) {
   await admin.query('GRANT SELECT,INSERT,UPDATE ON sophie_ai.state,sophie_ai.publications,sophie_ai.consents,sophie_ai.request_receipts TO sophie_test_core');
   await admin.query('GRANT SELECT ON sophie_ai.qualifications TO sophie_test_core');
   await admin.query('GRANT SELECT,INSERT,UPDATE ON sophie_ai.budget_policies,sophie_ai.budget_periods,sophie_ai.provider_attempts,sophie_ai.budget_hold_receipts TO sophie_test_core');
+  await admin.query('GRANT DELETE ON sophie_ai.budget_periods,sophie_ai.provider_attempts TO sophie_test_core');
   const actor = Object.freeze({ guildId: '101', userId: '202', capabilityEpoch: 1, policyVersion: 1 });
   let permitted = true, channelAvailable = true, checks = 0;
   const store = createAiControls({ pool, guildId: actor.guildId, noticeRevision: 1, noticeApproved: async () => true,
@@ -285,5 +286,25 @@ export async function runAiControlsSuite(cluster, run) {
     const after = await accounting.status(); assert.equal(after.policy.held, false); assert.deepEqual(after.balances, before.balances);
     assert.equal(await accounting.reserve(await generation()), null);
     assert.equal((await store.current({ actor, kind: 'budget' })).disabled, true);
+  });
+  await run('DS03-09 bounded retention preserves unresolved reservations, referenced periods and independent replay receipts', async () => {
+    const guild='919', retained=createAiAccounting({pool,guildId:guild});
+    await admin.query('INSERT INTO sophie_ai.state(guild_id) VALUES($1)',[guild]);
+    await admin.query(`INSERT INTO sophie_ai.budget_periods(guild_id,period,reserved_nanos) VALUES
+      ($1,'2000-01',2),($1,'2000-01-01',2),($1,'2001-01',0),($1,'2001-01-01',0)`,[guild]);
+    await admin.query(`INSERT INTO sophie_ai.request_receipts(guild_id,message_id,channel_id,user_id,input_revision,state,deadline)
+      SELECT $1,n::text,'303','202',repeat('a',64),'expired',timestamptz '2000-01-01' FROM generate_series(1000,1502) n`,[guild]);
+    await admin.query(`INSERT INTO sophie_ai.provider_attempts(guild_id,message_id,fence,state,policy_revision,price,month_period,day_period,
+      control_epoch,input_revision,reserved_nanos,prompt_bytes,output_tokens,deadline,updated_at)
+      SELECT $1,n::text,gen_random_uuid(),CASE WHEN n<1501 THEN 'released' ELSE 'uncertain' END,1,$2,'2000-01','2000-01-01',
+        0,repeat('a',64),1,1,1,timestamptz '2000-01-01',timestamptz '2000-01-01' FROM generate_series(1000,1502) n`,[guild,budget]);
+    assert.deepEqual(await retained.maintain(),{attempts:500,periods:2});
+    assert.deepEqual(await retained.maintain(),{attempts:1,periods:0});
+    const status=await retained.status();assert.equal(status.attemptRows,2);assert.equal(status.unresolved.nanos,'2');
+    assert.equal(status.retention.resolvedDays,90);assert.equal(status.capacityHeld,false);
+    assert.equal((await pool.query('SELECT count(*)::int AS n FROM sophie_ai.request_receipts WHERE guild_id=$1',[guild])).rows[0].n,503);
+    assert.deepEqual((await pool.query('SELECT reserved_nanos FROM sophie_ai.budget_periods WHERE guild_id=$1',[guild])).rows,
+      [{reserved_nanos:'2'},{reserved_nanos:'2'}]);
+    assert.deepEqual(await retained.maintain(),{attempts:0,periods:0});
   });
 }

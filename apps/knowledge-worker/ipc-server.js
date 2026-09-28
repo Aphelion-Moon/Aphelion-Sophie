@@ -3,9 +3,10 @@ import { createAiIpcChannel } from './ipc-channel.js';
 import { canonicalAiWorkerIdentity, validateAiWorkerPayload } from './ipc-contract.js';
 
 /** One prepared/in-flight turn. The host supplies the private transport; no listener, credentials or service provisioning here. */
-export function createAiIpcWorker({ identity, key, adapter, clock = Date.now }) {
+export function createAiIpcWorker({ identity, key, adapter, qualified = async()=>false, clock = Date.now }) {
   const fixed = canonicalAiWorkerIdentity(identity), connections = new Set();
   requireCondition(Buffer.isBuffer(key) && key.length === 32,'AI_IPC_CONFIGURATION_INVALID');
+  requireCondition(typeof qualified === 'function','TRUSTED_ADAPTERS_REQUIRED');
   requireCondition(adapter?.provider === fixed.provider && adapter.profileHash === fixed.profileHash &&
     ['prepare','generatePrepared'].every(name => typeof adapter[name] === 'function'),'AI_IPC_ADAPTER_INVALID');
   let active = false, stopping = false;
@@ -17,6 +18,8 @@ export function createAiIpcWorker({ identity, key, adapter, clock = Date.now }) 
       const task = (async () => {
         try {
           requireKeys(await channel.receive('challenge'),[],'AI_IPC_INVALID');
+          // The authenticated greeting is the worker's fresh pre-transfer readiness acknowledgement.
+          requireCondition(await qualified(fixed,{signal:channel.signal}) === true && !channel.signal.aborted && !stopping,'AI_WORKER_NOT_QUALIFIED');
           const challenge = randomBytes(32).toString('hex');
           const hello = channel.send('hello',{identity:fixed,challenge}); channel.bind(challenge); await hello;
           const input = await channel.receive('prepare');

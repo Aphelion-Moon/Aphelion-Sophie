@@ -22,12 +22,12 @@ const response = (content = JSON.stringify(output)) => Response.json({model:'dee
   usage:{prompt_tokens:100,completion_tokens:20,total_tokens:120,prompt_cache_hit_tokens:40,prompt_cache_miss_tokens:60},
   choices:[{finish_reason:'stop',message:{role:'assistant',content}}]});
 
-async function fixture({fetchImpl,generatePrepared,qualified = async()=>true,reserve = async()=>({}),dispatch = async()=>true,clientKey = key,clientIdentity} = {}) {
+async function fixture({fetchImpl,generatePrepared,qualified = async()=>true,workerQualified=async()=>true,reserve = async()=>({}),dispatch = async()=>true,clientKey = key,clientIdentity} = {}) {
   const events = [], inputs = [];
   const raw = createDeepSeekClient({apiKey:'synthetic-provider-key-only-in-worker',acceptedFingerprints:['synthetic-build'],
     fetchImpl:async (...args)=>{events.push('network'); return fetchImpl ? fetchImpl(...args) : response();}});
   const actualIdentity = {...identity,profileHash:raw.profileHash};
-  const worker = createAiIpcWorker({identity:actualIdentity,key,adapter:{provider:'deepseek',profileHash:raw.profileHash,prepare(value){inputs.push(value); return raw.prepare(value);},generatePrepared:generatePrepared ?? raw.generatePrepared}});
+  const worker = createAiIpcWorker({identity:actualIdentity,key,qualified:workerQualified,adapter:{provider:'deepseek',profileHash:raw.profileHash,prepare(value){inputs.push(value); return raw.prepare(value);},generatePrepared:generatePrepared ?? raw.generatePrepared}});
   const server = createServer(socket=>{void worker.accept(socket);}); server.listen(0,'127.0.0.1'); await once(server,'listening');
   const client = createAiIpcClient({identity:clientIdentity ? {...actualIdentity,...clientIdentity} : actualIdentity,key:clientKey,qualified,connect:()=>connect({host:'127.0.0.1',port:server.address().port})});
   const metered = createMeteredAiWorker({worker:client,accounting:{
@@ -53,7 +53,7 @@ test('DS04-I01 authenticated private-stream turn preserves dispatch/settlement o
 });
 
 test('DS04-I02 wrong authentication, worker boot and qualification prevent prompt preparation',async()=>{
-  for(const options of [{clientKey:Buffer.alloc(32,8)},{clientIdentity:{bootId:'5'.repeat(64)}},{clientIdentity:{profileHash:'5'.repeat(64)}},{qualified:async()=>false}]) {
+  for(const options of [{clientKey:Buffer.alloc(32,8)},{clientIdentity:{bootId:'5'.repeat(64)}},{clientIdentity:{profileHash:'5'.repeat(64)}},{qualified:async()=>false},{workerQualified:async()=>false}]) {
     const f=await fixture(options); try {await assert.rejects(f.generate(),/AI_WORKER|AI_DISPATCH/); assert.deepEqual(f.inputs,[]); assert.deepEqual(f.events,[]);}
     finally {await f.close();}
   }
