@@ -1,0 +1,24 @@
+{
+  "name": "Private patched WinSW clean-exit qualification",
+  "approvedOn": "2026-09-28",
+  "authorization": "Owner replied Approved the amendment. Proceed.",
+  "proposal": "GitHub/.agent_docs/aphelion-sophie/windows-fixed-root-trial/wrapper-amendment.md",
+  "proposalSha256": "3f7b397a49eb32f01394cee519f3c8c91f5becb259fec78fc0c6d865394a138d",
+  "sourceCommit": "eef5bade59fca0254e387ac73ed7625ba6aa7147",
+  "patchSha256": "062996939011306a144be23b24e6ec49ddda4505818a8cb9a4bf42f7891ea65e",
+  "sdk": "10.0.400",
+  "buildRuntime": "Microsoft.NETCore.App 10.0.11",
+  "toolchainInventorySha256": "26bdc5ce394de025d134214cc090216e2e6ee19dd7244f0430e7a8feee2a5cce",
+  "packagesInventorySha256": "3fd4c8e8063263e0dfa77d711339fcc564a51afce6aa1bc9132b125c3df3866c",
+  "target": "net461",
+  "scope": "One SCM Connect call-site patch and necessary pinned build metadata only; exact named SDK/package distribution exceptions and notices in the proposal. Private derived output may replace only the three owned stopped diagnostic wrappers after input/output hash and licence recording. No SCM/service DACL, identity, host installation, guest runtime, deployment or unrelated source changes.",
+  "fieldTestReady": false,
+  "productionReady": false,
+  "derivedWrapper": {
+    "sha256": "9dba15b5cc15f9f51190bc8d35bfeb3f870276fdb53902d1cb7b95dc502f603f",
+    "version": "2.12.0-sophie-scm-fix",
+    "buildRecord": "GitHub/.agent_docs/aphelion-sophie/windows-wrapper-trial/build-record.json",
+    "buildRecordSha256": "122f63c4aeea132f54d008eafe88db596efe5d8ecc48b6cc861241cdc929cf7e",
+    "qualification": "Passed core/egress/supervisor synthetic diagnostics and clean SCM exit, exit-code 7 preservation, and operator SIGINT/clean stop. Not final installed application qualification; HCS forbidden-access gate remains open."
+  }
+}

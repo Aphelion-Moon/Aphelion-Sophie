@@ -533,3 +533,19 @@ exception. Resume the previously approved synthetic service/file/pipe/HCS checks
 all other exclusions and OS-boundary stop conditions remain in force. Approval
 and evidence are distinct; `legal/windows-installation-trial.json` records the
 overlay without altering the original proposal or its hash.
+
+### Private WinSW clean-exit build amendment — 28 September 2026
+
+The owner approved `GitHub/.agent_docs/aphelion-sophie/windows-fixed-root-trial/wrapper-amendment.md`.
+`legal/windows-wrapper-build.json` pins its hash and scope. This permits a private
+WinSW 2.12.0 NET461 rebuild from the recorded upstream commit with the one-line
+SCM Connect access fix, using the named installed SDK 10.0.400 / build runtime
+10.0.11 and exact reviewed build packages/notices. Only necessary SDK, target,
+reference-pack and analyzer pinning metadata may change. Preserve warnings and
+checks; reject dependency resolution outside the recorded package set. This is
+a narrow build-tool/distribution exception, not a change to Sophie's application
+language policy or runtime. Record the derived wrapper hash before replacing
+only the three owned stopped trial wrappers. Keep their identities and service,
+SCM and shared-path permissions unchanged. Qualify clean/nonzero child exit and
+operator stop, then resume the existing synthetic Windows trial. All prior
+exclusions, operational stop conditions and release gates remain in force.
