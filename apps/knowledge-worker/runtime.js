@@ -4,11 +4,14 @@ import { createDeepSeekTransport } from './http-transport.js';
 import { createAiIpcWorker } from './ipc-server.js';
 import { canonicalAiWorkerIdentity } from './ipc-contract.js';
 import { createAiPipeListener, createAiWorkerQualification } from './windows-pipe.js';
+import { createAiInferenceDialer } from './inference-dialer.js';
 
 /** Launched under the independently provisioned inference identity. No core token, database or service manager access. */
-export function createAiWorkerRuntime({ identity, key, apiKey, acceptedFingerprints, qualified, revocationSignal, clock = Date.now, transport = createDeepSeekTransport() }) {
+export function createAiWorkerRuntime({ identity, key, apiKey, acceptedFingerprints, qualified, revocationSignal, clock = Date.now,
+  transport = createDeepSeekTransport(), connectionMode = 'listen', onFault = ()=>{} }) {
   const fixed = canonicalAiWorkerIdentity(identity);
-  requireCondition(typeof qualified === 'function' && revocationSignal instanceof AbortSignal, 'TRUSTED_ADAPTERS_REQUIRED');
+  requireCondition(typeof qualified === 'function' && revocationSignal instanceof AbortSignal && typeof onFault==='function' &&
+    ['listen','dial-host'].includes(connectionMode), 'TRUSTED_ADAPTERS_REQUIRED');
   const client = createDeepSeekClient({apiKey,acceptedFingerprints,fetchImpl:transport.fetch,clock});
   requireCondition(client.profileHash === fixed.profileHash,'AI_IPC_ADAPTER_INVALID');
   let stopped = false, closing = null; const lifetime=new AbortController();
@@ -24,7 +27,11 @@ export function createAiWorkerRuntime({ identity, key, apiKey, acceptedFingerpri
       requireCondition(await current(signal) && !signal.aborted,'AI_WORKER_NOT_QUALIFIED'); return result;
     },
   }});
-  const listener = createAiPipeListener({identity:fixed,worker,qualified:ready});
+  const listener = connectionMode==='dial-host'
+    ? createAiInferenceDialer({identity:fixed,key,worker,qualified:ready,onFault:code=>{
+      try{onFault(code);}finally{void stop().catch(()=>{});}
+    }})
+    : createAiPipeListener({identity:fixed,worker,qualified:ready});
   function stop() {
     if (closing) return closing;
     stopped = true; revocationSignal.removeEventListener('abort',revoke); lifetime.abort(); qualification.stop();

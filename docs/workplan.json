@@ -1,6 +1,6 @@
 {
   "schema_version": 2,
-  "revision": "2026-09-28-fixed-egress",
+  "revision": "2026-09-28-worker-source-package",
   "reference_plan_version": "1.1",
   "source": "Sophie-Implementation-Plans-v1.1/backlog.json",
   "owner_decisions": "docs/decisions/0001-owner-policy.md",
@@ -2358,6 +2358,17 @@
       "implemented": "Authenticated fixed-destination host egress bridge and worker-owned TLS pipe connector, composed with the bounded single-socket HTTPS transport",
       "evidence": "36 focused checks pass using actual host-local Windows pipes and synthetic loopback TLS, including authentication/replay, certificate/hostname rejection, address and byte limits, reuse and physical cancellation. Not Hyper-V or production isolation qualification.",
       "remaining": "Concrete worker package, host/guest inference transport and registered Windows lifecycle supervisor; actual Hyper-V pipe mapping, identities/ACLs/egress/credential and process-tree termination qualification; runtime candidate qualification and activation remain open."
+    },
+    {
+      "title": "Worker source package and host-initiated turns",
+      "tasks": [
+        "P22",
+        "P23",
+        "P24"
+      ],
+      "implemented": "Worker-initiated authenticated inference pipes, fixed-path container entrypoint and short-lived signed qualification leases; fixed-destination egress and worker-owned TLS retained",
+      "evidence": "46 focused checks pass, including actual host-local Windows pipes, metered reverse connections, cancellation and signed lease replay/expiry/stalled-read checks; container executable and OS isolation remain unqualified.",
+      "remaining": "Concrete privileged supervisor and atomic lease/bootstrap writer, runtime distribution qualification, exact identities/ACLs/mounts/credentials and Hyper-V pipe mapping, physical termination and composed OS qualification remain open."
     }
   ],
   "next_steps": [
@@ -2370,7 +2381,7 @@
         "P24",
         "P25"
       ],
-      "work": "Finish the concrete worker entrypoint, host-to-guest inference path and registered supervisor package using the existing Hyper-V isolation candidate. Prepare exact mount/identity/network/credential/lifecycle qualification before requesting operational authorization. Browser preference export, provider/data clearance and reviewed model answers remain open.",
+      "work": "Complete the registered privileged supervisor and atomic bootstrap/lease writer, qualify the Node distribution, and prepare the exact installation and Hyper-V mount/ACL/termination checks for authorization. The committed worker source package is preparatory; no image or live service is qualified. Preference export, provider/data clearance and reviewed answers remain open.",
       "exit_evidence": "Scoped local source/transaction/transport evidence first; actual OS/egress and Discord tests need their explicit operational scope. Paid comparisons remain separately authorized."
     },
     {
@@ -2508,14 +2519,14 @@
       {
         "id": "DS-04",
         "title": "Windows worker and transport",
-        "implementation": "Authenticated fixed-destination host egress bridge and worker-owned TLS pipe connector, composed with the bounded single-socket HTTPS transport",
-        "qualification": "36 focused checks pass using actual host-local Windows pipes and synthetic loopback TLS, including authentication/replay, certificate/hostname rejection, address and byte limits, reuse and physical cancellation. Not Hyper-V or production isolation qualification.",
+        "implementation": "Worker-initiated authenticated inference pipes, fixed-path container entrypoint and short-lived signed qualification leases; fixed-destination egress and worker-owned TLS retained",
+        "qualification": "46 focused checks pass, including actual host-local Windows pipes, metered reverse connections, cancellation and signed lease replay/expiry/stalled-read checks; container executable and OS isolation remain unqualified.",
         "sai": [
           "SAI-04",
           "SAI-05",
           "SAI-14"
         ],
-        "remaining": "Concrete worker package, host/guest inference transport and registered Windows lifecycle supervisor; actual Hyper-V pipe mapping, identities/ACLs/egress/credential and process-tree termination qualification; runtime candidate qualification and activation remain open."
+        "remaining": "Concrete privileged supervisor and atomic lease/bootstrap writer, runtime distribution qualification, exact identities/ACLs/mounts/credentials and Hyper-V pipe mapping, physical termination and composed OS qualification remain open."
       },
       {
         "id": "DS-05",

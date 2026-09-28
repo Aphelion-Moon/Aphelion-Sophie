@@ -46,6 +46,8 @@ export function createAiIpcChannel({ stream, key, side, clock = Date.now }) {
       }
     } catch { close(); }
   });
+  // The authenticated inbox/dialer hands over a paused byte stream after its boot handshake.
+  stream.resume?.();
   return Object.freeze({
     signal: controller.signal, close, tighten,
     bind(challenge) {

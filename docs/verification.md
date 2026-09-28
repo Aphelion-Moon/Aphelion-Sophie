@@ -1,5 +1,13 @@
 # Verification and release limits
 
+## Worker source package and reverse inference pipes — 28 September 2026
+
+Worker-initiated authenticated inference pipes, fixed-path container entrypoint and short-lived signed qualification leases; fixed-destination egress and worker-owned TLS retained. Core owns the boot-specific inbox; the guest connects and authenticates before waiting for an independently authorized turn. Per-turn accounting and the original deadlines remain intact. The fixed entrypoint requires distinct IPC/egress/lease keys, a current signed lease bound to the registered qualification evidence, and provider-only credential storage. Lease expiry uses an independent monotonic timer; stale, altered or late records cannot revive a revoked process.
+
+46 focused checks pass, including actual host-local Windows pipes, metered reverse connections, cancellation and signed lease replay/expiry/stalled-read checks; container executable and OS isolation remain unqualified. The first new response fixture omitted application/json and was corrected. No full application/database/browser rerun for this transport/bootstrap change; no live provisioning, provider call or Discord effect. The source package contains no runtime binary or credential and has not been built or launched as an image.
+
+Concrete privileged supervisor and atomic lease/bootstrap writer, runtime distribution qualification, exact identities/ACLs/mounts/credentials and Hyper-V pipe mapping, physical termination and composed OS qualification remain open. No field-test approval is claimed. Evidence: `GitHub/.agent_docs/aphelion-sophie/worker-package-verification.json` and `windows-worker-package-candidate-2026-09-28.md`.
+
 ## Fixed-destination worker egress — 28 September 2026
 
 Authenticated fixed-destination host egress bridge and worker-owned TLS pipe connector, composed with the bounded single-socket HTTPS transport. A separate host bridge authenticates the current public worker boot before resolving only api.deepseek.com. It rejects special-purpose/non-IPv4 answers and connects to a checked numeric address at port 443. TLS and the provider credential remain inside the worker; the bridge forwards bounded encrypted bytes without content logs. Stop/revocation retains the slot until physical closure. The worker transport has no direct-network fallback when this connector is selected.
