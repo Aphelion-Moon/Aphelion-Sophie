@@ -142,7 +142,7 @@ export async function runCuratedAnswersSuite(cluster, run) {
   });
   await scenario('CA12 migration replay retains publications and restricted core cannot delete their audit history', async f => {
     const request = await f.prepare(); await f.answers.change(request); const before = await f.rows('curated_answers');
-    assert.deepEqual(await migrateCore(f.admin), { migrations: 58 }); assert.deepEqual(await f.rows('curated_answers'), before);
+    assert.deepEqual(await migrateCore(f.admin), { migrations: 59 }); assert.deepEqual(await f.rows('curated_answers'), before);
     await assert.rejects(f.pool.query('DELETE FROM sophie_core.curated_answers'), error => error.code === '42501');
     await assert.rejects(f.pool.query('TRUNCATE sophie_core.curated_answers'), error => error.code === '42501');
   });

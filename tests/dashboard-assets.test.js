@@ -7,6 +7,24 @@ import { dashboardConfiguration } from './fixtures/oauth.js';
 import { dashboardBytes } from './fixtures/dashboard-http.js';
 import { ContractError } from '../contracts/validation.js';
 
+test('pending or failed wiki collection leaves administrative operations available', async () => {
+  let entered, release, faults = 0;
+  const pending = new Promise(resolve => { entered = resolve; }), wait = new Promise(resolve => { release = resolve; });
+  const server = createDashboardAuthHttpServer({ configuration: dashboardConfiguration, enabled: () => true,
+    auth: {}, authorization: {}, knowledge: { async execute() { entered(); await wait; throw new ContractError('WIKI_IMPORT_FAILED'); } },
+    answers: { async execute() { return { entries: [] }; } }, onFault: () => { faults++; } });
+  const address = await server.listen();
+  const options = { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' };
+  let refresh;
+  try {
+    refresh = dashboardBytes(address,'/api/ai/knowledge/refresh-policies',options); await pending;
+    assert.equal((await dashboardBytes(address,'/api/ai/knowledge/refresh-policies',options)).status,503);
+    assert.equal((await dashboardBytes(address,'/api/answers')).status,200);
+    release(); assert.equal((await refresh).status,503);
+    assert.equal(faults,0); assert.equal((await dashboardBytes(address,'/api/answers')).status,200);
+  } finally { release(); await refresh; await server.close(); }
+});
+
 test('authenticated shell serves fixed bytes and anonymous visitors receive only the login page', async () => {
   const presentation = await createDashboardPresentation();
   const server = createDashboardAuthHttpServer({ configuration: dashboardConfiguration, presentation, enabled: () => true,

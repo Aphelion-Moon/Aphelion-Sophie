@@ -28,7 +28,7 @@ export function createDashboardAuthHttpServer({ configuration, auth, authorizati
   const fixed = structuredClone(configuration), host = new URL(fixed.origin).host, running = new Set();
   const available = { knowledgeLookup: knowledgeLookup !== null, 'ai.knowledge.publish': knowledge !== null, ai: ai !== null, 'ai.control': ai !== null, 'ai.personality.publish': ai !== null, 'shuttle.publish': authoring !== null, 'case.forms.publish': formAuthoring !== null,
     'answers.publish': answers !== null, 'automation.publish': automation !== null, 'permissions.publish': permissions !== null };
-  let reserved = false, stopping = false;
+  let reserved = false, sourceReserved = false, stopping = false;
   const fault = () => { try { onFault('DASHBOARD_AUTH_UNAVAILABLE'); } catch { /* Never expose request material through logging. */ } };
   function send(response, status, data, extra = {}) {
     response.writeHead(status, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store',
@@ -87,8 +87,10 @@ export function createDashboardAuthHttpServer({ configuration, auth, authorizati
     finally { clearTimeout(timeout); }
     const cookies = dashboardCookies(request.headers.cookie);
     if (stopping || await enabled() !== true) { send(response, 503, { error: 'Sign-in is currently unavailable.' }); return; }
-    if (reserved) { send(response, 503, { error: 'Sign-in is busy. Please try again shortly.' }); return; }
-    reserved = true;
+    // A bounded upstream source check must not occupy the administrative request slot.
+    const sourceRefresh = path === '/api/ai/knowledge/refresh-policies';
+    if (sourceRefresh ? sourceReserved : reserved) { send(response, 503, { error: 'This operation is busy. Please try again shortly.' }); return; }
+    if (sourceRefresh) sourceReserved = true; else reserved = true;
     try {
       if (!editing && !['/auth/callback','/auth/start'].includes(path)) requireCondition(url.search === '', 'DASHBOARD_REQUEST_INVALID');
       if (editing) {
@@ -125,7 +127,7 @@ export function createDashboardAuthHttpServer({ configuration, auth, authorizati
         await auth.logout({ token: cookies.session, method: 'POST', origin: request.headers.origin, csrfToken: request.headers['x-csrf-token'] });
         send(response, 200, { status: 'signed_out' }, { 'Set-Cookie': dashboardCookie('session', null, 0) });
       }
-    } finally { reserved = false; }
+    } finally { if (sourceRefresh) sourceReserved = false; else reserved = false; }
   }
   const server = createServer({ maxHeaderSize: 16_384 }, (request, response) => {
     let task;
@@ -152,7 +154,9 @@ export function createDashboardAuthHttpServer({ configuration, auth, authorizati
         'CONTACT_NAVIGATION_INPUT_INVALID', 'CONTACT_ENTRY_INPUT_INVALID', 'INVALID_CASE_FORM_TOKEN', 'INVALID_CASE_FORM_ANSWERS', 'INVALID_CONTACT_RECIPIENTS',
         'INVALID_CASE_REPLY', 'CASE_REPLY_INPUT_INVALID', 'CASE_REPLY_CONFIRMATION_REQUIRED', 'CASE_REPLY_REQUEST_INVALID', 'CASE_REPLY_CURSOR_INVALID'].includes(error.code);
       const limited = error instanceof ContractError && error.code === 'CASE_REPLY_LIMIT';
-      if (!denied && !conflict && !missing && !invalid && !limited) fault();
+      const knowledgeUnavailable = error instanceof ContractError && (/^WIKI_[A-Z_]+$/u.test(error.code) ||
+        ['KNOWLEDGE_IMPORT_UNAVAILABLE','KNOWLEDGE_IMPORT_FAILED','KNOWLEDGE_IMPORT_BUSY','KNOWLEDGE_IMPORT_STALE','KNOWLEDGE_IMPORT_CAPACITY','KNOWLEDGE_IMPORT_CORRUPT','KNOWLEDGE_IMPORT_INVALID','KNOWLEDGE_EXTRACTOR_CHANGED'].includes(error.code));
+      if (!denied && !conflict && !missing && !invalid && !limited && !knowledgeUnavailable) fault();
       if (!response.headersSent && !response.destroyed) send(response, denied ? 403 : limited ? 429 : conflict ? 409 : missing ? 404 : invalid ? 400 : 503,
         { error: denied ? 'Sign-in or request could not be verified.' : limited ? 'Reply queue or cooldown limit reached. Retry later using the same request.' : conflict ? 'This configuration changed. Reload and review it again.' :
           missing ? 'Configuration was not found.' : invalid ? 'Check the configuration and request fields.' : 'This operation is currently unavailable.' });

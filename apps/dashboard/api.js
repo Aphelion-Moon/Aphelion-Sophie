@@ -9,12 +9,12 @@ export function createDashboardApi({ fetch, navigate = path => globalThis.locati
   let csrf = null;
   let initial = document?.querySelector('meta[name="sophie-session"]') ?? null;
   const login = () => navigate('/login?returnTo=' + encodeURIComponent(globalThis.location?.pathname ?? '/'));
-  async function request(path, body, post = body !== undefined, download = false) {
+  async function request(path, body, post = body !== undefined, download = false, timeoutMs = 12000) {
     if (post && csrf === null) throw new DashboardFailure('denied', 403);
     let response;
     try {
       response = await fetch(path, { method: post ? 'POST' : 'GET', credentials: 'same-origin', mode: 'same-origin',
-        cache: 'no-store', redirect: 'error', signal: AbortSignal.timeout(12_000),
+        cache: 'no-store', redirect: 'error', signal: AbortSignal.timeout(timeoutMs),
         headers: { Accept: download ? 'text/html' : 'application/json', ...(post ? { 'Content-Type': 'application/json', 'X-CSRF-Token': csrf } : {}) },
         ...(body !== undefined ? { body: JSON.stringify(body) } : {}) });
     } catch { throw new DashboardFailure('connection'); }
@@ -44,6 +44,9 @@ export function createDashboardApi({ fetch, navigate = path => globalThis.locati
   return Object.freeze({
     knowledgeLookup: query => request('/api/knowledge/lookup', { query }),
     knowledgeCatalogue: () => request('/api/ai/knowledge'),
+    knowledgePoliciesStatus: () => request('/api/ai/knowledge/policies-status'),
+    knowledgePoliciesSnapshot: snapshotHash => request(`/api/ai/knowledge/policies-snapshot?snapshotHash=${encodeURIComponent(snapshotHash)}`),
+    knowledgeRefreshPolicies: () => request('/api/ai/knowledge/refresh-policies', {}, true, false, 45000),
     knowledgeDocument: id => request(`/api/ai/knowledge/document?id=${encodeURIComponent(id)}`),
     knowledgeReview: body => request('/api/ai/knowledge/review', body),
     knowledgePublish: body => request('/api/ai/knowledge/publish', body),

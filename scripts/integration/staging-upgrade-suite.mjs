@@ -62,11 +62,11 @@ export async function runStagingUpgradeSuite(cluster, run) {
     assert.equal((await target.pool.query('SHOW default_transaction_read_only')).rows[0].default_transaction_read_only,'on');
   });
   await run('SU04 missing migrations 033 through 055 preserve historical rows and install current restricted runtime grants',async()=>{
-    assert.deepEqual(await migrateCore(pool),{migrations: 58});assert.deepEqual(await migrateCore(pool),{migrations: 58});
+    assert.deepEqual(await migrateCore(pool),{migrations: 59});assert.deepEqual(await migrateCore(pool),{migrations: 59});
     for(const table of tables)assert.deepEqual(sorted((await pool.query(`SELECT ${columns.get(table)} FROM sophie_core.${table}`)).rows),sorted(before.get(table)),table);
     await pool.query(`GRANT CONNECT ON DATABASE ${source.configuration.database} TO sophie_test_core`);
     await pool.query('GRANT USAGE ON SCHEMA sophie_core,sophie_migrations TO sophie_test_core; GRANT SELECT,INSERT,UPDATE ON ALL TABLES IN SCHEMA sophie_core TO sophie_test_core; GRANT SELECT ON sophie_migrations.applied TO sophie_test_core');
-    const checked=await checkRuntimeDatabase(source.corePool);assert.equal(checked.migrations, 58);assert.ok(checked.checkedTables>54);
+    const checked=await checkRuntimeDatabase(source.corePool);assert.equal(checked.migrations, 59);assert.ok(checked.checkedTables>54);
     await assert.rejects(source.corePool.query('SELECT * FROM sophie_control.events'),e=>e.code==='42501');
     await assert.rejects(source.corePool.query('DELETE FROM sophie_core.case_message_observations'),e=>e.code==='42501');
     assert.ok((await pool.query("SELECT count(*)::int AS total FROM sophie_control.events WHERE operation='baseline'")).rows[0].total>0);
@@ -88,11 +88,11 @@ export async function runStagingUpgradeSuite(cluster, run) {
     await db.query("INSERT INTO sophie_core.dashboard_sessions (guild_id,slot,policy_version,user_id,token_hash,expires_at) VALUES ($1,1,1,$1,$2,clock_timestamp()+interval '1 hour')",[GUILD,'c'.repeat(64)]);
     const session=(await db.query('SELECT * FROM sophie_core.dashboard_sessions')).rows;
     const flow=(await db.query('SELECT to_jsonb(f) AS value FROM sophie_core.dashboard_login_flows f')).rows[0].value;
-    assert.deepEqual(await migrateCore(db),{migrations: 58});
+    assert.deepEqual(await migrateCore(db),{migrations: 59});
     assert.deepEqual((await db.query('SELECT * FROM sophie_core.dashboard_sessions')).rows,session);
     assert.deepEqual((await db.query('SELECT to_jsonb(f) AS value FROM sophie_core.dashboard_login_flows f')).rows[0].value,{...flow,return_path:'/'});
     await assert.rejects(db.query("UPDATE sophie_core.dashboard_login_flows SET return_path='https://other.example.test'"),e=>e.code==='23514');
-    assert.deepEqual(await verifyCoreMigrations(db),{migrations: 58});
+    assert.deepEqual(await verifyCoreMigrations(db),{migrations: 59});
   });
   await run('SU07 schema 046 retained candidates survive additive maintenance guards and inventory with the barrier initially open',async()=>{
     const prior=await cluster.recovery.createHistoricalSource(),db=prior.pool;
@@ -105,11 +105,11 @@ export async function runStagingUpgradeSuite(cluster, run) {
       VALUES ($1,1,'{"synthetic":"retained-control-data"}',repeat('a',64),$2)`,[GUILD,{guildId:GUILD,userId:GUILD,capabilityEpoch:1,policyVersion:1}]);
     const tables=(await db.query("SELECT tablename FROM pg_tables WHERE schemaname='sophie_core' ORDER BY tablename")).rows;
     const before=new Map();for(const {tablename} of tables)before.set(tablename,(await db.query(`SELECT to_jsonb(t) AS row FROM sophie_core.${tablename} t`)).rows);
-    assert.deepEqual(await migrateCore(db),{migrations: 58});assert.deepEqual(await migrateCore(db),{migrations: 58});
+    assert.deepEqual(await migrateCore(db),{migrations: 59});assert.deepEqual(await migrateCore(db),{migrations: 59});
     for(const {tablename} of tables)assert.deepEqual((await db.query(`SELECT to_jsonb(t) AS row FROM sophie_core.${tablename} t`)).rows,before.get(tablename));
     assert.equal((await db.query('SELECT sophie_core.runtime_available() AS available')).rows[0].available,true);
     assert.equal((await db.query('SELECT count(*)::int AS total FROM sophie_control.maintenance_operations')).rows[0].total,0);
-    assert.deepEqual(await verifyCoreMigrations(db),{migrations: 58});
+    assert.deepEqual(await verifyCoreMigrations(db),{migrations: 59});
   });
   await run('SU08 schema 047 held maintenance and its generation survive inventory migration',async()=>{
     const prior=await cluster.recovery.createHistoricalSource(),db=prior.pool;
@@ -124,7 +124,7 @@ export async function runStagingUpgradeSuite(cluster, run) {
       VALUES ($1,$2,1,$1,$1,14,'held',session_user)`,[operationId,GUILD]);
     await db.query('UPDATE sophie_control.runtime_gate SET generation=14,operation_id=$1 WHERE singleton',[operationId]);
     const gate=(await db.query('SELECT * FROM sophie_control.runtime_gate')).rows,operations=(await db.query('SELECT * FROM sophie_control.maintenance_operations')).rows;
-    assert.deepEqual(await migrateCore(db),{migrations: 58});assert.deepEqual(await verifyCoreMigrations(db),{migrations: 58});
+    assert.deepEqual(await migrateCore(db),{migrations: 59});assert.deepEqual(await verifyCoreMigrations(db),{migrations: 59});
     assert.deepEqual((await db.query('SELECT * FROM sophie_control.runtime_gate')).rows,gate);
     assert.deepEqual((await db.query('SELECT * FROM sophie_control.maintenance_operations')).rows,operations);
     assert.equal((await db.query('SELECT sophie_core.runtime_available() AS available')).rows[0].available,false);
@@ -146,7 +146,7 @@ export async function runStagingUpgradeSuite(cluster, run) {
       (operation_id,revision,request_id,request_sha256,candidate_sha256,control_sha256,inventory,sha256)
       VALUES ($1,1,$1,$1,$1,$1,'{"synthetic":"metadata"}',$1)`,[operationId]);
     const before=new Map();for(const table of ['runtime_gate','maintenance_operations','maintenance_inventories'])before.set(table,(await db.query(`SELECT * FROM sophie_control.${table}`)).rows);
-    assert.deepEqual(await migrateCore(db),{migrations: 58});assert.deepEqual(await verifyCoreMigrations(db),{migrations: 58});
+    assert.deepEqual(await migrateCore(db),{migrations: 59});assert.deepEqual(await verifyCoreMigrations(db),{migrations: 59});
     for(const [table,rows] of before)assert.deepEqual((await db.query(`SELECT * FROM sophie_control.${table}`)).rows,rows);
     assert.equal((await db.query('SELECT sophie_core.runtime_available() AS available')).rows[0].available,false);
     for(const table of ['maintenance_seal_plans','maintenance_seal_effects'])assert.equal((await db.query(`SELECT count(*)::int AS total FROM sophie_control.${table}`)).rows[0].total,0);
@@ -171,7 +171,7 @@ export async function runStagingUpgradeSuite(cluster, run) {
     await db.query(`INSERT INTO sophie_control.maintenance_seal_effects
       (operation_id,channel_id,case_id,target,state,had_uncertainty,verified_at) VALUES ($1,'123','synthetic','{"channelId":"123"}','verified',true,clock_timestamp())`,[operationId]);
     const before=new Map();for(const table of ['runtime_gate','maintenance_operations','maintenance_inventories','maintenance_seal_plans','maintenance_seal_effects'])before.set(table,(await db.query(`SELECT * FROM sophie_control.${table}`)).rows);
-    assert.deepEqual(await migrateCore(db),{migrations: 58});assert.deepEqual(await verifyCoreMigrations(db),{migrations: 58});
+    assert.deepEqual(await migrateCore(db),{migrations: 59});assert.deepEqual(await verifyCoreMigrations(db),{migrations: 59});
     for(const [table,rows] of before)assert.deepEqual((await db.query(`SELECT * FROM sophie_control.${table}`)).rows,rows);
     assert.equal((await db.query('SELECT sophie_core.runtime_available() AS available')).rows[0].available,false);
     assert.equal((await db.query('SELECT count(*)::int AS total FROM sophie_control.maintenance_policy_applications')).rows[0].total,0);

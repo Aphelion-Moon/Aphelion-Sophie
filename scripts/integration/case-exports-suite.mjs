@@ -114,7 +114,7 @@ export async function runCaseExportsSuite(cluster, run) {
   });
   await scenario('EX08 export audit survives idempotent migrations and core or knowledge cannot delete/read outside its boundary', async f => {
     await f.confirm(await f.exports.review(f.scope)); const before = await f.rows('case_export_attempts');
-    assert.deepEqual(await migrateCore(f.admin), { migrations: 58 }); assert.deepEqual(await f.rows('case_export_attempts'), before);
+    assert.deepEqual(await migrateCore(f.admin), { migrations: 59 }); assert.deepEqual(await f.rows('case_export_attempts'), before);
     await assert.rejects(f.pool.query('DELETE FROM sophie_core.case_export_attempts'), error => error.code === '42501');
     await assert.rejects(cluster.knowledgePool.query('SELECT * FROM sophie_core.case_export_attempts'), error => error.code === '42501');
   });

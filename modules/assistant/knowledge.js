@@ -1,5 +1,7 @@
 import { requireCondition, requireId, requireInteger, requireKeys, requireName } from '../../contracts/validation.js';
 
+export const MEDIAWIKI_EXTRACTOR_REVISION = 'mediawiki-structured-v1';
+
 export function canonicalKnowledgeDocument(value) {
   requireKeys(value, ['id', 'title', 'kind', 'authority', 'url', 'rights', 'attribution', 'sourceRevision', 'dependencyHash', 'fetchedAt', 'validUntil', 'aliases', 'sections'], 'KNOWLEDGE_DOCUMENT_INVALID');
   requireCondition(typeof value.id === 'string' && /^[a-z][a-z0-9-]{0,47}$/.test(value.id), 'KNOWLEDGE_DOCUMENT_INVALID');

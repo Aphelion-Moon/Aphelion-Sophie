@@ -215,6 +215,36 @@ storage, review/publication integration, immediate source invalidation and the
 `../.agent_docs/aphelion-sophie/mediawiki-verification.json`; the umbrella index
 retains previous milestone evidence without claiming its tests were rerun.
 
+## Durable Policies imports and publication review — 28 September 2026
+
+Migration059 adds bounded immutable snapshot/extraction storage and fenced manual
+refresh. Changed rendered or template content revokes existing publication epochs
+before extraction. Review hashes bind the source generation, preventing a source
+reversion from reviving an old publication or uncommitted review. Retrieval, review
+and publication check artifact integrity and five-minute source freshness. A fresh
+identical check can restore eligibility after a transient failure, but cannot undo
+manual staleness, withdrawal or an observed source change.
+
+Publication receipts retain their request hash across migration and return confirmed
+duplicate results even after source expiry or change. Withdrawal retries resolve
+only the matching current tombstone. The dashboard renders structured text and
+table context, preserves wiki attribution/binding on edits, and requires separate
+publication confirmation. Slow or failed source collection leaves the administrative
+HTTP request slot available.
+
+38 focused checks and 51 isolated AI/knowledge/accounting scenarios pass with zero
+failures or skips. The database stopped. Synthetic browser checks covered source
+refresh/review, literal markup, lists/tables, explicit publication and retained wiki
+binding on edit; no console warnings/errors appeared. Browser checks used an
+in-memory fixture, not a deployed service. The source-bound report is
+`../.agent_docs/aphelion-sophie/mediawiki-import-verification.json`.
+
+No live migration, grants, service/ACL/network changes, provider calls, Discord
+effects or actual source publications occurred. Other storage suites and full
+release qualification were not rerun. Worker/service composition, unattended wiki
+refresh, Discord `/lookup`, reviewed extracts and the 40-question knowledge gate
+remain open. This milestone does not activate AI or complete the workplan.
+
 ## Member direct knowledge lookup — 28 September 2026
 
 Public answers now includes authenticated search over the existing reviewed public

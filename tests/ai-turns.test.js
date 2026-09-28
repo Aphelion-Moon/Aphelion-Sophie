@@ -241,3 +241,17 @@ test('DS-07 direct lookup requires current membership and source authority witho
   allowed = true; sourceCurrent = false; await assert.rejects(http.execute(input), /KNOWLEDGE_SOURCE_STALE/);
   sourceCurrent = true; revoke = true; await assert.rejects(http.execute(input), /OPERATION_DENIED/);
 });
+
+test('DS07-K07 import HTTP exposes fixed read/refresh operations only to current publishers', async () => {
+  const actor = { userId: '123', guildId: '101' }, proof = {}; let allowed = true, calls = 0, invalidations = 0;
+  const http = createAiKnowledgeHttp({ auth: { authenticate: async () => ({ proof }), resolvePrincipal: async () => ({}) },
+    authorization: { resolveActor: async () => actor, authorize: async () => allowed }, invalidate: () => { invalidations++; },
+    knowledge: { refreshPolicies: async input => { assert.deepEqual(input,{ actor }); calls++; return { publishedAutomatically: false }; },
+      policiesStatus: async () => ({ available: true, state: 'pending' }), policiesSnapshot: async input => ({ snapshotHash: input.snapshotHash, reviewed: false }) } });
+  const request = { path: '/api/ai/knowledge/refresh-policies', method: 'POST', body: {}, query: new URLSearchParams(), credentials: {} };
+  await assert.rejects(http.execute({ ...request, body: { url: 'https://example.invalid/private' } }),/KNOWLEDGE_INPUT_INVALID/);
+  allowed = false; await assert.rejects(http.execute(request),/OPERATION_DENIED/); assert.equal(calls,0);
+  allowed = true; assert.equal((await http.execute(request)).publishedAutomatically,false); assert.equal(calls,1); assert.equal(invalidations,1);
+  assert.equal((await http.execute({ ...request, method: 'GET', path: '/api/ai/knowledge/policies-status', body: null })).state,'pending');
+  assert.equal((await http.execute({ ...request, method: 'GET', path: '/api/ai/knowledge/policies-snapshot', body: null, query: new URLSearchParams({ snapshotHash: 'a'.repeat(64) }) })).reviewed,false);
+});

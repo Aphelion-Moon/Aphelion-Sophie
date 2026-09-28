@@ -1,6 +1,6 @@
 # Current implementation workplan
 
-Revision: 2026-09-28-mediawiki-collection. Official DeepSeek Flash is the selected provider. Local models are historical, explicitly selected alternatives only; no automatic fallback. Continue the DS workstream with synthetic data; full readiness and activation remain open.
+Revision: 2026-09-28-mediawiki-import. Official DeepSeek Flash is the selected provider. Local models are historical, explicitly selected alternatives only; no automatic fallback. Continue the DS workstream with synthetic data; full readiness and activation remain open.
 
 All production release gates remain open; pure and isolated database checks are not full application acceptance.
 
@@ -12,7 +12,7 @@ Deterministic administration, Whitelist onboarding, protected editors, role/perm
 
 Recorded baseline: AI handoff 0fa7a5ed538ff791e3def2c1f6ac7683531e15a1 plus preserved uncommitted Flash candidate; synthetic schema058 candidate. No live schema change.
 
-Current work: Prepared immutable Flash requests, durable conservative accounting and operator controls, revised external-processing consent gate and dependency-bound assistant history. Worker IPC, durable effects, importer, explicit memory, gathering and selected-feature acceptance remain incomplete. Direct approved-source lookup is now on Public answers and composes without any inference worker or AI control store. The owner-selected Policies collection now has a bounded collector and isolated structured extractor, verified against the public wiki without publication.
+Current work: Prepared immutable Flash requests, durable conservative accounting and operator controls, revised external-processing consent gate and dependency-bound assistant history. Worker IPC, durable effects, importer, explicit memory, gathering and selected-feature acceptance remain incomplete. Direct approved-source lookup is now on Public answers and composes without any inference worker or AI control store. The owner-selected Policies collection now has a bounded collector and isolated structured extractor, verified against the public wiki without publication. Durable manual Policies imports and source-bound publication review now pass isolated checks; no production migration or source publication.
 
 Current source-bound offline results are in docs/verification.md and the external deepseek-verification.json index. Earlier administration, local model and Flash trial results remain historical; none grants present deployment approval.
 
@@ -29,7 +29,7 @@ Owner resumed implementation, commits and generated rebuilds. USD 20 per Europe/
 | DS-04 — Windows worker and transport | incomplete | No current Windows provider identity/IPC/egress qualification | SAI-04, SAI-05, SAI-14 | Build authenticated bounded broker and qualification wrapper; propose exact service identities/ACLs and qualify Node maintenance separately. Raw provider adapter is not a deployable worker. |
 | DS-05 — Optional Responses comparison | deferred; Chat retained | No demonstrated gain; no paired paid trial | SAI-05, SAI-14, SAI-15 | Chat remains selected. Optional alternate protocol is not a release prerequisite. |
 | DS-06 — Gathering and fair concurrency | not started | Current scheduler stays at one active request | SAI-02, SAI-05 | After DS-03/04: gathering lease, compatible three-fragment admission, fair channels and one-versus-two qualification. |
-| DS-07 — Wiki synchronization and direct lookup | public library, member dashboard lookup, bounded Policies collector and isolated structured extraction implemented; durable sync incomplete | 14 focused collector/extractor checks; actual anonymous Policies collection and extraction; earlier lookup evidence retained separately | SAI-08, SAI-11 | Durable snapshot/import store, review-to-publication integration and immediate template/deletion invalidation; Discord /lookup; separate Discord rules publication; reviewed knowledge launch qualification. |
+| DS-07 — Wiki synchronization and direct lookup | Durable Policies snapshots, fenced manual refresh, source-bound review/publication and dashboard structured review implemented; service deployment and unattended synchronization incomplete | 38 focused checks, 51 isolated AI/knowledge/accounting scenarios and synthetic browser review; no live publication or deployment | SAI-08, SAI-11 | Qualified knowledge-service composition and unattended refresh; Discord /lookup; reviewed wiki extracts and separate Discord rules publication; 40-question knowledge acceptance and live qualification. |
 | DS-08 — Assistant context and explicit memory | assistant context implemented; memory not started | Synthetic capacity, dependency, expiry and withdrawal checks | SAI-02, SAI-10, SAI-11 | Owner selected reply length and preferred language. Implement typed saves, inspection/correction/deletion, expiry and independent restore/deletion watermark; remote preference use still needs data-use clearance. |
 | DS-09 — Effects and operating controls | partial | Synthetic budget/publication/consent UI and delivery checks | SAI-06, SAI-07, SAI-14 | Replace WeakMap effect ownership with durable receipts/arbitration; restart cleanup, active worker revisions and AI-only apply. |
 | DS-10 — Selected-release qualification | partial offline | Historical 20 quality calls and 12 cache calls are not current-release acceptance | SAI-15 | Reviewed 40-question launch set, independent factual/character review, authorized paid/cache comparison and actual receipt-to-Discord timing. |
@@ -39,8 +39,8 @@ Owner resumed implementation, commits and generated rebuilds. USD 20 per Europe/
 |---|---|---|---|---|
 | SAI-G0 — Scope and contracts | foundation recorded | local evidence only | account terms unresolved | off |
 | SAI-G1 — All five public social modes | partial | worker/effects/full-turn gates open | blocked | off |
-| SAI-G2 — Knowledge and direct lookup | publications/lexical/member lookup and actual Policies collection/extraction; review/sync integration incomplete | importer/current-source/40-question gates open | source rights/collection unresolved | off |
-| SAI-G3 — Explicit personal memory | not started | lifecycle/restore gates open | categories and separate permission unresolved | off |
+| SAI-G2 — Knowledge and direct lookup | Public library/member dashboard lookup, durable bounded import and current-source publication review | Offline import/invalidation/rollback/review evidence; service, Discord lookup and 40-question gates open | Policies collection selected; advertised CC BY-NC-SA 4.0 retained; publication-specific review remains required | off |
+| SAI-G3 — Explicit personal memory | not started | lifecycle/restore gates open | Reply length and preferred language selected; remote use remains gated | off |
 | SAI-G4 — Staff, Head/Project Lead and named project contexts | not qualified for remote | audiences, worker and provider separation unqualified | blocked per named domain | off |
 | SAI-G5 — Registered file profiles | unselected | not applicable until selected | no exact resources approved | off |
 | SAI-G6 — Operational release | incomplete | actual identity/network/Discord/recovery evidence open | capability-specific gates open | no deployment authorization |
@@ -128,6 +128,7 @@ These SAI-G gates are separate from the original G gates. Partial implementation
 | DeepSeek preparation, accounting and bounded assistant context (P21, P24, P25) | Immutable final-body preparation, exact outbound byte cap, local block diagnostics, usage-before-output accounting, fenced reservations and uncertainty, reviewed USD 20/Vienna spending controls, notice revision gate, confirmed assistant context with dependency expiry and cancellation. | Focused unit and isolated AI storage results, synthetic browser observations and exact source hashes in docs/verification.md and external deepseek-verification.json. No new provider or Discord call. | DS-03 retention and actual transport/rollover qualification; DS-04 worker; DS-06 gathering; DS-07 importer/direct lookup; DS-08 explicit memory; DS-09 durable effects; all real-data/release gates. |
 | Member direct lookup independent of inference (P21, P22) | Authenticated Public answers search returns up to four current published extracts with source links, authority, revision and attribution. No model, conversational consent, editorial authority or AI control store is required. | 34 focused turn/lookup/dashboard checks, 18 isolated composed staging scenarios and synthetic browser search/empty-state checks; exact source-bound report outside the repository. | Approve actual wiki endpoint, collection/rights and extractor; importer/sync/template invalidation, Discord /lookup and actual reviewed-source qualification remain. |
 | Policies collection and bounded extraction (P20, P21) | Owner-selected Policies page and discovered MediaWiki API; anonymous bounded one-page collection with template metadata, rendered hashes and race checks. Approved parse5/entities dependency scope, isolated structured extraction and local immutable unreviewed artifacts. No publication or live schedule. | 14 focused checks; actual page 878/revision 14796, 52 template metadata dependencies, 174 headings and 25 tables/257 rows extracted locally. Exact external report; no human publication or release pass. | Durable snapshot/import store, review-to-publication integration and immediate template/deletion invalidation; Discord /lookup; separate Discord rules publication; reviewed knowledge launch qualification. |
+| Durable Policies imports and source-bound publication review (P20, P21) | Durable Policies snapshots, fenced manual refresh, source-bound review/publication and dashboard structured review implemented; service deployment and unattended synchronization incomplete | 38 focused checks, 51 isolated AI/knowledge/accounting scenarios and synthetic browser review; no live publication or deployment | Qualified knowledge-service composition and unattended refresh; Discord /lookup; reviewed wiki extracts and separate Discord rules publication; 40-question knowledge acceptance and live qualification. |
 
 ## Next implementation sequence
 
@@ -804,7 +805,7 @@ Status: **in_progress**. Phase: Knowledge. Priority: P0.
 
 Depends on: P03, P06, P19. Acceptance: T23, T27, T28.
 
-Owner-selected Policies page and discovered MediaWiki API; anonymous bounded one-page collection with template metadata, rendered hashes and race checks. Approved parse5/entities dependency scope, isolated structured extraction and local immutable unreviewed artifacts. No publication or live schedule.
+Durable Policies snapshots, fenced manual refresh, source-bound review/publication and dashboard structured review implemented; service deployment and unattended synchronization incomplete
 
 Implemented scope:
 
@@ -812,10 +813,12 @@ Implemented scope:
 - Fixed-origin, no-redirect, bounded read-only collector rechecks article/template/rights/rendered state.
 - Worker-bounded extraction retains headings, lists, table cells/spans/headers and anchors; 14 focused checks pass.
 - Owner approved parse5 8.0.1 and indirect entities 8.1.0; exact package hashes and notices recorded.
+- Migration059 stores immutable bounded snapshots/extracts, fenced jobs and receipt input hashes. Source changes revoke old document epochs; review hashes bind source generations, including reversions. Currentness verifies stored integrity and five-minute source freshness.
+- Manual publisher source review safely renders structured text and retains wiki binding/attribution across edits. Refresh does not publish and cannot occupy the administrative HTTP request slot.
 
 Remaining scope:
 
-- Durable snapshot/import store, review-to-publication integration and immediate template/deletion invalidation; Discord /lookup; separate Discord rules publication; reviewed knowledge launch qualification.
+- Qualified knowledge-service composition and unattended refresh; Discord /lookup; reviewed wiki extracts and separate Discord rules publication; 40-question knowledge acceptance and live qualification.
 
 Full task deliverables:
 
@@ -840,7 +843,7 @@ Implemented scope:
 
 Remaining scope:
 
-- Durable reviewed MediaWiki import/sync, Discord /lookup command and reviewed source/answer launch qualification.
+- Qualified knowledge-service composition and unattended refresh; Discord /lookup; reviewed wiki extracts and separate Discord rules publication; 40-question knowledge acceptance and live qualification.
 
 Full task deliverables:
 

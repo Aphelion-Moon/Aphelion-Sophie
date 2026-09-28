@@ -8,6 +8,7 @@ const assets = [
   ['/ai', '../../dashboard/ai.html', 'text/html; charset=utf-8'],
   ['/ai-knowledge', '../../dashboard/ai-knowledge.html', 'text/html; charset=utf-8'],
   ['/dashboard/ai-knowledge-app.js', '../../dashboard/ai-knowledge-app.js', 'text/javascript; charset=utf-8'],
+  ['/dashboard/wiki-review.js', '../../dashboard/wiki-review.js', 'text/javascript; charset=utf-8'],
   ['/ai-preferences', '../../dashboard/ai-preferences.html', 'text/html; charset=utf-8'],
   ['/dashboard/ai-app.js', '../../dashboard/ai-app.js', 'text/javascript; charset=utf-8'],
   ['/modules/assistant/participation.js', '../../../modules/assistant/participation.js', 'text/javascript; charset=utf-8'],

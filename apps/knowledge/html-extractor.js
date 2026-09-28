@@ -1,7 +1,8 @@
 import { parseFragment } from 'parse5';
 import { requireCondition } from '../../contracts/validation.js';
+import { MEDIAWIKI_EXTRACTOR_REVISION } from '../../modules/assistant/knowledge.js';
 
-export const EXTRACTOR_REVISION = 'mediawiki-structured-v1';
+export const EXTRACTOR_REVISION = MEDIAWIKI_EXTRACTOR_REVISION;
 const ignored = new Set(['script','style','template','noscript','iframe','object','embed','svg','canvas','input','button','select','textarea']);
 const blocks = new Set(['address','article','aside','blockquote','div','dl','dt','dd','fieldset','figcaption','figure','footer','header','main','nav','p','pre','section']);
 const attr = (node, name) => node.attrs?.find(item => item.name === name)?.value ?? null;
