@@ -104,7 +104,7 @@ export async function runAutomationDeliverySuite(cluster,run) {
     const id=await f.send();f.discord.state.messages.delete(id);await f.drain(f.worker);assert.equal((await f.record()).state,'cancelled');assert.equal(writes(f).length,0);
   });
   await scenario('AD20 encrypted restore preserves delivery attempts receipts audit and quarantined jobs',async f=>{
-    await f.send();await f.run();assert.deepEqual(await migrateCore(f.admin),{migrations: 59});
+    await f.send();await f.run();assert.deepEqual(await migrateCore(f.admin),{migrations: 60});
     const configuration=stagingConfiguration('a'.repeat(64));configuration.capabilityPolicy=f.policy;configuration.automationEnabled=true;
     const {configuration:database,binaryRoot,directory:parent}=cluster.recovery,tools=await reviewedRecoveryTools(binaryRoot),key=randomBytes(32),maxDatabaseBytes=33554432;
     const backup=await createRecoveryBundle({pool:f.admin,database,tools,configuration,buildId:'a'.repeat(64),vaultRoots:[],parent,key,maxDatabaseBytes});

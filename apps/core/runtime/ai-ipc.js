@@ -65,7 +65,8 @@ export function createAiIpcClient({ identity, key, connect, qualified, clock = D
             requireCondition(phase === 'usage','AI_IPC_INVALID'); requireKeys(body,['usage','model','fingerprint'],'AI_IPC_INVALID');
             await context.recordResponse(body); accepted = true; phase = 'result';
           } else {
-            requireCondition(['undispatched','usage'].includes(phase),'AI_IPC_INVALID');
+            // After final authorization, only core-denied dispatch proves that no charge was possible.
+            requireCondition(phase === 'undispatched','AI_IPC_INVALID');
             await context.recordUndispatched(); accepted = true; phase = 'failed';
           }
           await channel.send('ack',{kind,accepted});

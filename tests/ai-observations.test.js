@@ -6,7 +6,7 @@ import { createAiIngress } from '../apps/core/discord/ai-ingress.js';
 import { PERMISSIONS } from '../platform/authorization/discord-permissions.js';
 
 function fixture() {
-  let now = 1000, stamp = 'live.1', excluded = false, reads = 0;
+  let now = 1000, stamp = 'live.1', excluded = false, automation = false, reads = 0;
   const bits = String(PERMISSIONS.viewChannel | PERMISSIONS.sendMessages | PERMISSIONS.readHistory | PERMISSIONS.addReactions);
   const members = { '505': { user: { id: '505', bot: true }, roles: [] }, '404': { user: { id: '404', bot: false }, roles: [] } };
   const channel = { id: '202', guild_id: '101', type: 0, parent_id: '606', permission_overwrites: [] };
@@ -14,13 +14,18 @@ function fixture() {
   const transport = { getChannel: async () => { reads++; return structuredClone(channel); }, getGuild: async () => ({ id: '101', owner_id: '808' }), getRoles: async () => structuredClone(roles),
     getMember: async id => structuredClone(members[id] ?? null), getAiSourceMetadata: async () => structuredClone(source), getAutomationSource: async () => ({ ...source, reactions: [] }) };
   const observed = [];
-  const observations = createAiObservations({ pool: { query: async () => ({ rowCount: excluded ? 1 : 0 }) }, transport,
+  const observations = createAiObservations({ pool: { query: async sql => ({ rowCount: (sql.includes('automation_deliveries') ? automation : excluded) ? 1 : 0 }) }, transport,
     authorityStore: { registerPolicy: async () => {}, observeWithPresence: async observation => { observed.push(observation); return { presenceEpoch: 1, grant: { capabilityEpoch: 3 } }; } },
     mapping: { guildId: '101', botUserId: '505', muzzled: '909' }, protectedCategoryId: '707', capabilityPolicy: { version: 1 },
     observer: { readAiContinuity: async () => stamp }, clock: () => now });
   return { observations, transport, members, channel, source, roles, observed, event: { guildId: '101', channelId: '202', userId: '404', messageId: '303' },
-    exclude: () => { excluded = true; }, reads: () => reads, time: value => { now = value; }, invalidate: () => { stamp += '.2'; } };
+    exclude: () => { excluded = true; }, automate: () => { automation = true; }, reads: () => reads, time: value => { now = value; }, invalidate: () => { stamp += '.2'; } };
 }
+
+test('DS-09 deterministic automation admission takes precedence before AI source access', async () => {
+  const f = fixture(); f.automate(); f.transport.getAiSourceMetadata = async () => assert.fail('automation owns this source');
+  assert.equal(await f.observations.inspectContext(f.event), null);
+});
 
 test('SAI AT-02 real observation adapter excludes registered cases before Discord message access', async () => {
   const f = fixture(); f.exclude(); assert.equal(await f.observations.inspectContext(f.event), null); assert.equal(f.reads(), 0);

@@ -104,7 +104,7 @@ export async function runAutomationAdmissionSuite(cluster,run){
     await assert.rejects(enabled.renew(next.lease),/GATEWAY_AUTOMATION_MODE_CHANGED/);
   });
   await scenario('AA13 migration replay and encrypted restore preserve event references cooldowns and pending jobs',async f=>{
-    await f.send();assert.deepEqual(await migrateCore(f.admin),{migrations: 59});
+    await f.send();assert.deepEqual(await migrateCore(f.admin),{migrations: 60});
     const configuration=stagingConfiguration('a'.repeat(64));configuration.capabilityPolicy=f.policy;configuration.automationEnabled=true;
     const {configuration:database,binaryRoot,directory:parent}=cluster.recovery,tools=await reviewedRecoveryTools(binaryRoot),key=randomBytes(32),maxDatabaseBytes=33554432;
     const backup=await createRecoveryBundle({pool:f.admin,database,tools,configuration,buildId:'a'.repeat(64),vaultRoots:[],parent,key,maxDatabaseBytes});

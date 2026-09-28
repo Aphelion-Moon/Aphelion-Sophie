@@ -4,7 +4,7 @@ import { buildAiPrompt } from '../../knowledge-worker/prompt.js';
 import { freezeAiMaterial } from '../../knowledge-worker/prompt-contract.js';
 
 /** Core owns delivery. No worker can choose a recipient, target message or operational indicator. */
-export function createAiTurns({ admission, scheduler, context, knowledge, messages, clock }) {
+export function createAiTurns({ admission, scheduler, context, knowledge, messages, clock, onInvalidate = () => {} }) {
   const outstanding = new Map(); let stopped = false;
   const historyCurrent = (request, source) => context.current(source, item => admission.revalidateSource(item), items => knowledge.current(items, request));
   async function current(request, sources = [], history = []) {
@@ -44,8 +44,8 @@ export function createAiTurns({ admission, scheduler, context, knowledge, messag
       // Deadline is propagated through the actual Discord request; no late-send queue or fallback destination.
       requireCondition(clock() < request.deadline, 'AI_DEADLINE_EXPIRED'); attempted = true;
       effect = output.kind === 'reply'
-        ? await messages.reply(request, renderAiReply(output, sources))
-        : await messages.react(request, request.config.emojis.find(emoji => emoji.key === output.emojiKey));
+        ? await messages.reply(request, renderAiReply(output, sources), history, sources)
+        : await messages.react(request, request.config.emojis.find(emoji => emoji.key === output.emojiKey), history, sources);
       if (clock() >= request.deadline || !await current(request, sources, history)) {
         await messages.remove(request, effect); await admission.settle(request, 'cancelled', effect.id); return { state: 'cancelled' };
       }
@@ -80,6 +80,7 @@ export function createAiTurns({ admission, scheduler, context, knowledge, messag
     },
     invalidate(filter = {}) {
       context.invalidate(filter);
+      onInvalidate(filter);
       // Any source in this bounded lane may be a history dependency of an active turn.
       for (const [id, { request }] of outstanding) if (!filter.channelId || request.channelId === filter.channelId) scheduler.cancel(id);
     },

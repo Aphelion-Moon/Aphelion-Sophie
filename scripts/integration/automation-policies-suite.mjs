@@ -142,7 +142,7 @@ export async function runAutomationPoliciesSuite(cluster,run) {
   });
   await scenario('AP13 migration replay preserves policy records and restricted runtime cannot delete retained history',async f=>{
     await f.automation.change(await f.prepare()); const before = await f.rows('automation_policies');
-    assert.deepEqual(await migrateCore(f.admin),{migrations: 59}); assert.deepEqual(await f.rows('automation_policies'),before);
+    assert.deepEqual(await migrateCore(f.admin),{migrations: 60}); assert.deepEqual(await f.rows('automation_policies'),before);
     await assert.rejects(f.pool.query('DELETE FROM sophie_core.automation_policies'),error=>error.code === '42501');
     await assert.rejects(f.pool.query('TRUNCATE sophie_core.automation_policies'),error=>error.code === '42501');
   });

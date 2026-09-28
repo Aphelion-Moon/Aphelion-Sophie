@@ -93,6 +93,11 @@ export function createAiAdmission({ pool, guildId, ingress, inspectContext, insp
       return current !== null && current.profile.mode !== 'ignore' && clock() < source.receivedAt + current.profile.contextTtlMs &&
         aiDigest(current.binding) === aiDigest(source.binding);
     },
+    async revalidateEffect(source) {
+      // Visible output ownership outlives transient context; recheck authority without renewing any content.
+      const current = await snapshot(pool, source);
+      return current !== null && aiDigest(current.binding) === source.bindingHash;
+    },
     async beginDelivery(request) {
       return inTransaction(pool, async client => {
         await client.query('SELECT pg_advisory_xact_lock(182745,56)');

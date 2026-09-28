@@ -202,6 +202,7 @@ test('SAI AT-07 dashboard session preserves explicit AI access flags and denies 
 test('SAI AT-07/19 typing is brief, fixed to an admitted addressed turn and cannot survive revocation', async () => {
   let eligible = true; const calls = [];
   const messages = createAiMessages({ botUserId: '505', clock: () => 1000, revalidate: async () => eligible, canReact: async () => false,
+    effects: Object.fromEntries(['claim','begin','note','cleanup','removed'].map(name => [name, async () => assert.fail('typing must not claim a social effect')])),
     transport: { indicateAiTyping: async (...values) => calls.push(values) } });
   const addressed = request({ decision: { ...request().decision, proactive: false } });
   await messages.typing(addressed); assert.deepEqual(calls, [['202',2000]]);

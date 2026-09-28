@@ -68,6 +68,9 @@ export function createAiObservations({ pool, transport, authorityStore, capabili
   return Object.freeze({
     async inspectContext(event) {
       members.delete(event); const current = await inspect(event); if (!current) return null;
+      // Gateway commits deterministic decisions before handing this same create event to AI.
+      // An admitted automation keeps ownership even when its delivery later becomes uncertain.
+      if ((await pool.query('SELECT 1 FROM sophie_core.automation_deliveries WHERE guild_id=$1 AND message_id=$2 LIMIT 1', [guildId,event.messageId])).rowCount) return null;
       const source = await transport.getAiSourceMetadata(event.channelId, event.messageId);
       if (source?.id !== event.messageId || source.channelId !== event.channelId || source.authorId !== event.userId || source.bot || source.webhook || ![0, 19].includes(source.type) ||
         await continuity() !== current.continuity || clock() - current.checkedAt >= 5000) return null;

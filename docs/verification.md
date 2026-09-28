@@ -274,6 +274,24 @@ No listener/service, credentials, dependency/runtime upgrade, live provider call
 migration or Discord effect was installed or performed. Database suites were not
 rerun for this non-storage slice; earlier evidence remains separately source-bound.
 
+## Durable AI effects — 28 September 2026
+
+Migration060 replaces transient effect ownership with fixed-target, fenced receipts.
+Intent precedes Discord dispatch; positive late receipts remain available for exact
+cleanup. Unknown sends stay parked without history searches or retries. Deterministic
+automation admission takes precedence. Cleanup uses bounded source/member revision
+metadata and public-source identifiers, with no message or generated text archive.
+An unavailable AI recovery store cannot prevent administration from starting.
+
+25 focused turn/observation checks, 55 isolated AI/knowledge/Gateway scenarios and
+18 composed staging scenarios pass. Both disposable database clusters stopped.
+13 IPC tests pass after preventing a worker from releasing possible spend through
+an undispatched assertion after final dispatch authorization. Evidence and source
+hashes are in `GitHub/.agent_docs/aphelion-sophie/ai-effects-verification.json`.
+No live schema, grants, provider calls or Discord effects were performed. Other
+migration-count assertions changed without rerunning unrelated suites. Actual
+Windows/service/effect qualification and active worker apply remain open.
+
 ## Member direct knowledge lookup — 28 September 2026
 
 Public answers now includes authenticated search over the existing reviewed public

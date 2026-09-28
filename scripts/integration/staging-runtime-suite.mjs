@@ -44,7 +44,7 @@ export async function runStagingRuntimeSuite(cluster, run) {
     };
     const ai = unavailableAi ? { aiControlPool: { query: async () => { throw Error('synthetic control outage'); }, connect: async () => { throw Error('synthetic control outage'); } },
       aiWorker: { current: async () => assert.fail('unavailable control store must prevent worker qualification'), generate: async () => assert.fail('no AI ingestion') },
-      aiKnowledge: { lookup: async () => assert.fail('no knowledge ingestion'), current: async () => assert.fail('no knowledge ingestion') } } :
+      aiKnowledge: { lookup: async () => assert.fail('no knowledge ingestion'), current: async () => assert.fail('no knowledge ingestion'), currentReferences: async () => assert.fail('no knowledge ingestion') } } :
       knowledgeOnly ? { aiKnowledge: { lookup: async query => { assert.equal(query, 'synthetic topic'); return []; }, current: async () => true } } : {};
     const createHost = () => createStagingRuntime({ configuration: config, pool: f.pool, ...ai, token: SYNTHETIC_GATEWAY_TOKEN,
       clientSecret: syntheticClientSecret, fetch, connect: peer.connect, clock, random: () => 0.25, onFault: value => faults.push(value) });
@@ -70,7 +70,7 @@ export async function runStagingRuntimeSuite(cluster, run) {
   await run('RT01 runtime database privileges reject the owner and accept the restricted core identity', async () => {
     await cluster.adminPool.query('GRANT USAGE ON SCHEMA sophie_migrations TO sophie_test_core');
     await cluster.adminPool.query('GRANT SELECT ON sophie_migrations.applied TO sophie_test_core');
-    const result = await checkRuntimeDatabase(cluster.corePool); assert.ok(result.checkedTables > 0); assert.equal(result.migrations, 59);
+    const result = await checkRuntimeDatabase(cluster.corePool); assert.ok(result.checkedTables > 0); assert.equal(result.migrations, 60);
     await assert.rejects(checkRuntimeDatabase(cluster.adminPool), /RUNTIME_DATABASE_PRIVILEGES_INVALID/);
     const client = await cluster.adminPool.connect(); await client.query('BEGIN');
     try {

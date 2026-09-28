@@ -37,7 +37,7 @@ export function createKnowledgeLibrary({ pool, guildId, authorize, restoreCurren
     finally { client.release(broken); }
   }
   const head = async (client, id) => (await client.query('SELECT * FROM sophie_knowledge.documents WHERE guild_id=$1 AND id=$2', [guildId,id])).rows[0];
-  async function available(sources, request) {
+  async function available(sources, request, referencesOnly = false) {
     if (request.guildId !== guildId || clock() >= request.deadline) return false;
     await ready();
     for (const source of sources) {
@@ -51,8 +51,8 @@ export function createKnowledgeLibrary({ pool, guildId, authorize, restoreCurren
       const document = canonicalKnowledgeDocument(row.document), section = document.sections[Number(source.id.split('.s').at(-1))];
       if (!await mediaWikiDocumentCurrent(pool,guildId,document)) return false;
       if (digest(document) !== row.sha256 || !section || row.text !== section.text || row.heading !== section.heading || row.title !== document.title || row.url !== document.url || row.authority !== document.authority ||
-        source.text !== row.text || source.url !== row.url || source.authority !== row.authority || source.title !== document.title ||
-        source.rights !== document.rights || source.attribution !== document.attribution || source.sourceRevision !== document.sourceRevision || source.validUntil !== document.validUntil) return false;
+        !referencesOnly && (source.text !== row.text || source.url !== row.url || source.authority !== row.authority || source.title !== document.title ||
+        source.rights !== document.rights || source.attribution !== document.attribution || source.sourceRevision !== document.sourceRevision || source.validUntil !== document.validUntil)) return false;
     }
     return clock() < request.deadline && await restoreCurrent() === true;
   }
@@ -146,5 +146,6 @@ export function createKnowledgeLibrary({ pool, guildId, authorize, restoreCurren
       return await available(rows,request) ? rows : [];
     },
     current: available,
+    currentReferences: (sources, request) => available(sources, request, true),
   });
 }

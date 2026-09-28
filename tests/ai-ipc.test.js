@@ -194,3 +194,14 @@ test('DS04-I12 challenges from both peers prevent replaying a prior greeting or 
   try {await channel.send('challenge',{});await assert.rejects(channel.receive('hello'),/AI_IPC_CLOSED/);}
   finally {channel.close();await new Promise(resolve=>replay.close(resolve));}
 });
+
+test('DS04-I13 a worker cannot release a possible charge after final dispatch authorization',async()=>{
+  const f=await fixture({generatePrepared:async(_turn,context)=>{
+    assert.equal(await context.beforeDispatch(),true);
+    assert.equal(await context.recordDispatch(),true);
+    assert.equal(await context.beforeDispatch(),true);
+    await context.recordUndispatched(); return output;
+  }});
+  try {await assert.rejects(f.generate(),/AI_IPC_INVALID/);assert.deepEqual(f.events,['reserve','dispatch','finish:true']);}
+  finally {await f.close();}
+});

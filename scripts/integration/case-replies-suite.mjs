@@ -273,11 +273,11 @@ export async function runCaseRepliesSuite(cluster, run) {
       ALTER TABLE sophie_core.outbox DROP CONSTRAINT outbox_kind_check;
       ALTER TABLE sophie_core.outbox ADD CONSTRAINT outbox_kind_check CHECK
         (kind IN ('whitelist.grant','whitelist.reconcile','member.reconcile','case.provision','shuttle.render','shuttle.alert','case.intake','case.dm'))`);
-    assert.deepEqual(await migrateCore(f.admin), { migrations: 59 });
+    assert.deepEqual(await migrateCore(f.admin), { migrations: 60 });
     await f.admin.query('GRANT SELECT, INSERT, UPDATE ON sophie_core.automation_recovery_actions, sophie_core.automation_delivery_events, sophie_core.automation_deliveries, sophie_core.automation_events, sophie_core.automation_cooldowns, sophie_core.case_replies, sophie_core.case_reply_events, sophie_core.case_answer_reviews TO sophie_test_core');
     assert.deepEqual(await f.rows('case_reservations'), reservations); assert.deepEqual(await f.rows('case_intakes'), intakes);
     assert.deepEqual(await f.rows('case_replies'), []); assert.deepEqual(await jobs(f), []);
-    assert.deepEqual(await migrateCore(f.admin), { migrations: 59 });
+    assert.deepEqual(await migrateCore(f.admin), { migrations: 60 });
   });
   await scenario('CR25 corrupt retained text cannot be sent or served as the original human reply', async f => {
     await f.replies.request(f.request()); await f.admin.query("UPDATE sophie_core.case_replies SET body = 'Altered synthetic retained text'");
@@ -396,11 +396,11 @@ export async function runCaseRepliesSuite(cluster, run) {
     const p = await parked(f, true), original = await reply(f), before = (await jobs(f))[0];
     await f.admin.query('DELETE FROM sophie_core.case_delivery_issues WHERE id = $1', [p.issue.id]);
     await f.admin.query("DELETE FROM sophie_migrations.applied WHERE id = '037-case-reply-issues.sql'");
-    assert.deepEqual(await migrateCore(f.admin), { migrations: 59 });
+    assert.deepEqual(await migrateCore(f.admin), { migrations: 60 });
     const row = (await f.rows('case_delivery_issues')).find(item => item.operation_id === before.operation_id);
     assert.equal(row.parked_fence, before.fence); assert.equal(row.case_id, original.case_id);
     assert.deepEqual(await reply(f), original); assert.deepEqual((await jobs(f))[0], before);
-    assert.deepEqual(await migrateCore(f.admin), { migrations: 59 }); assert.equal((await f.rows('case_delivery_issues')).length, 1);
+    assert.deepEqual(await migrateCore(f.admin), { migrations: 60 }); assert.equal((await f.rows('case_delivery_issues')).length, 1);
   });
   await scenario('CR35 competing operator rechecks have one audited winner and cannot revive an old revision', async f => {
     const p = await parked(f), actor = await f.actor(OTHER), observation = await f.discord.roles.observe(USER);
@@ -481,7 +481,7 @@ export async function runCaseRepliesSuite(cluster, run) {
   await scenario('CR41 migration 039 preserves existing manual reply hashes and replay leaves selected provenance unchanged', async f => {
     await f.replies.request(f.request()); const before = await reply(f);
     await f.admin.query("ALTER TABLE sophie_core.case_replies DROP COLUMN answer_reference; DELETE FROM sophie_migrations.applied WHERE id = '039-case-reply-answers.sql'");
-    assert.deepEqual(await migrateCore(f.admin), { migrations: 59 }); assert.deepEqual(await reply(f), before);
+    assert.deepEqual(await migrateCore(f.admin), { migrations: 60 }); assert.deepEqual(await reply(f), before);
     assert.equal((await f.replies.request(f.request())).duplicate, true);
     f.clock.now += 3000; const p = await publication(f); await f.replies.request({ ...p.request, requestId: 'b'.repeat(64) });
     const retained = await f.rows('case_replies'); await migrateCore(f.admin); assert.deepEqual(await f.rows('case_replies'), retained);
@@ -604,7 +604,7 @@ export async function runCaseRepliesSuite(cluster, run) {
   await scenario('CR52 migration 040 preserves prior replies and retained review corruption cannot authorize a send', async f => {
     await f.replies.request(f.request()); const before = await f.rows('case_replies');
     await f.admin.query("DROP TABLE sophie_core.case_answer_reviews; DELETE FROM sophie_migrations.applied WHERE id = '040-case-answer-reviews.sql'");
-    assert.deepEqual(await migrateCore(f.admin),{migrations: 59}); assert.deepEqual(await f.rows('case_replies'),before);
+    assert.deepEqual(await migrateCore(f.admin),{migrations: 60}); assert.deepEqual(await f.rows('case_replies'),before);
     await f.admin.query('GRANT SELECT,INSERT,UPDATE ON sophie_core.case_answer_reviews TO sophie_test_core');
     await assert.rejects(f.pool.query('DELETE FROM sophie_core.case_answer_reviews'),error => error.code === '42501');
     await publication(f); const review = await f.replies.prepareAnswerReview(reviewRequest(f));
