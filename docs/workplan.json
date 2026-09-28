@@ -1,6 +1,6 @@
 {
   "schema_version": 2,
-  "revision": "2026-09-28-worker-source-package",
+  "revision": "2026-09-28-supervisor-foundation",
   "reference_plan_version": "1.1",
   "source": "Sophie-Implementation-Plans-v1.1/backlog.json",
   "owner_decisions": "docs/decisions/0001-owner-policy.md",
@@ -2369,6 +2369,17 @@
       "implemented": "Worker-initiated authenticated inference pipes, fixed-path container entrypoint and short-lived signed qualification leases; fixed-destination egress and worker-owned TLS retained",
       "evidence": "46 focused checks pass, including actual host-local Windows pipes, metered reverse connections, cancellation and signed lease replay/expiry/stalled-read checks; container executable and OS isolation remain unqualified.",
       "remaining": "Concrete privileged supervisor and atomic lease/bootstrap writer, runtime distribution qualification, exact identities/ACLs/mounts/credentials and Hyper-V pipe mapping, physical termination and composed OS qualification remain open."
+    },
+    {
+      "title": "Registered container adapter and atomic boot publication",
+      "tasks": [
+        "P22",
+        "P23",
+        "P24"
+      ],
+      "implemented": "Worker source package and authenticated reverse pipes, plus a fixed-slot privileged Docker adapter and atomic bootstrap/qualification-lease publication with terminal revocation",
+      "evidence": "30 focused checks pass using a synthetic loopback Engine API, actual Windows temporary files and existing host-local pipe tests; no actual Docker/Hyper-V or service qualification.",
+      "remaining": "Durable supervisor ownership/recovery journal, authenticated control protocol, separate egress/core composition and service lifecycle adapter remain unfinished. Runtime distribution, image, identities/ACLs/mounts/credentials, Hyper-V pipes and physical termination require actual OS qualification."
     }
   ],
   "next_steps": [
@@ -2381,7 +2392,7 @@
         "P24",
         "P25"
       ],
-      "work": "Complete the registered privileged supervisor and atomic bootstrap/lease writer, qualify the Node distribution, and prepare the exact installation and Hyper-V mount/ACL/termination checks for authorization. The committed worker source package is preparatory; no image or live service is qualified. Preference export, provider/data clearance and reviewed answers remain open.",
+      "work": "Complete durable supervisor ownership/recovery and the registered control protocol, then compose core/egress readiness and the Windows lifecycle. Qualify the Node distribution and prepare exact installation/Hyper-V/ACL/termination checks for authorization. Preference export, provider/data clearance and reviewed answers remain open.",
       "exit_evidence": "Scoped local source/transaction/transport evidence first; actual OS/egress and Discord tests need their explicit operational scope. Paid comparisons remain separately authorized."
     },
     {
@@ -2519,14 +2530,14 @@
       {
         "id": "DS-04",
         "title": "Windows worker and transport",
-        "implementation": "Worker-initiated authenticated inference pipes, fixed-path container entrypoint and short-lived signed qualification leases; fixed-destination egress and worker-owned TLS retained",
-        "qualification": "46 focused checks pass, including actual host-local Windows pipes, metered reverse connections, cancellation and signed lease replay/expiry/stalled-read checks; container executable and OS isolation remain unqualified.",
+        "implementation": "Worker source package and authenticated reverse pipes, plus a fixed-slot privileged Docker adapter and atomic bootstrap/qualification-lease publication with terminal revocation",
+        "qualification": "30 focused checks pass using a synthetic loopback Engine API, actual Windows temporary files and existing host-local pipe tests; no actual Docker/Hyper-V or service qualification.",
         "sai": [
           "SAI-04",
           "SAI-05",
           "SAI-14"
         ],
-        "remaining": "Concrete privileged supervisor and atomic lease/bootstrap writer, runtime distribution qualification, exact identities/ACLs/mounts/credentials and Hyper-V pipe mapping, physical termination and composed OS qualification remain open."
+        "remaining": "Durable supervisor ownership/recovery journal, authenticated control protocol, separate egress/core composition and service lifecycle adapter remain unfinished. Runtime distribution, image, identities/ACLs/mounts/credentials, Hyper-V pipes and physical termination require actual OS qualification."
       },
       {
         "id": "DS-05",
@@ -2584,7 +2595,7 @@
           "SAI-07",
           "SAI-14"
         ],
-        "remaining": "Concrete registered Windows lifecycle adapter, actual service identity/ACL/egress/credential and process-tree termination qualification, runtime candidate qualification and activation remain open. Apply keeps message processing disabled."
+        "remaining": "Durable supervisor ownership/recovery journal, authenticated control protocol, separate egress/core composition and service lifecycle adapter remain unfinished. Runtime distribution, image, identities/ACLs/mounts/credentials, Hyper-V pipes and physical termination require actual OS qualification. Apply keeps message processing disabled."
       },
       {
         "id": "DS-10",
