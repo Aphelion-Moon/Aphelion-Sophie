@@ -1,6 +1,6 @@
 {
   "schema_version": 2,
-  "revision": "2026-09-28-supervisor-foundation",
+  "revision": "2026-09-28-supervisor-recovery",
   "reference_plan_version": "1.1",
   "source": "Sophie-Implementation-Plans-v1.1/backlog.json",
   "owner_decisions": "docs/decisions/0001-owner-policy.md",
@@ -2380,6 +2380,17 @@
       "implemented": "Worker source package and authenticated reverse pipes, plus a fixed-slot privileged Docker adapter and atomic bootstrap/qualification-lease publication with terminal revocation",
       "evidence": "30 focused checks pass using a synthetic loopback Engine API, actual Windows temporary files and existing host-local pipe tests; no actual Docker/Hyper-V or service qualification.",
       "remaining": "Durable supervisor ownership/recovery journal, authenticated control protocol, separate egress/core composition and service lifecycle adapter remain unfinished. Runtime distribution, image, identities/ACLs/mounts/credentials, Hyper-V pipes and physical termination require actual OS qualification."
+    },
+    {
+      "title": "Supervisor journal and removal-only restart recovery",
+      "tasks": [
+        "P22",
+        "P23",
+        "P24"
+      ],
+      "implemented": "Kernel-held Windows supervisor ownership, bounded revisioned on-disk journal and composed container lifecycle with intent-before-effect, removal-only restart recovery and preserved uncertain creates",
+      "evidence": "44 focused checks pass, including actual Windows files/pipes, abrupt termination of six test-only Node processes and a synthetic Engine HTTP endpoint. No real Docker/Hyper-V or service qualification.",
+      "remaining": "Authenticated supervisor control protocol/client, service entrypoints, core/egress readiness and lease scheduling remain unfinished. Node/image distribution, actual identities/ACLs/mounts/credentials, Hyper-V pipes, physical termination and unresolved-create operator disposition require qualification."
     }
   ],
   "next_steps": [
@@ -2392,7 +2403,7 @@
         "P24",
         "P25"
       ],
-      "work": "Complete durable supervisor ownership/recovery and the registered control protocol, then compose core/egress readiness and the Windows lifecycle. Qualify the Node distribution and prepare exact installation/Hyper-V/ACL/termination checks for authorization. Preference export, provider/data clearance and reviewed answers remain open.",
+      "work": "Implement the authenticated supervisor control service/client and fresh-session/revision fencing, then compose core/egress readiness, boot lease scheduling and service entrypoints. Qualify the Node/image and exact Windows installation/termination checks under approved operational scope. Keep provider clearance, preferences and reviewed answers open.",
       "exit_evidence": "Scoped local source/transaction/transport evidence first; actual OS/egress and Discord tests need their explicit operational scope. Paid comparisons remain separately authorized."
     },
     {
@@ -2530,14 +2541,14 @@
       {
         "id": "DS-04",
         "title": "Windows worker and transport",
-        "implementation": "Worker source package and authenticated reverse pipes, plus a fixed-slot privileged Docker adapter and atomic bootstrap/qualification-lease publication with terminal revocation",
-        "qualification": "30 focused checks pass using a synthetic loopback Engine API, actual Windows temporary files and existing host-local pipe tests; no actual Docker/Hyper-V or service qualification.",
+        "implementation": "Kernel-held Windows supervisor ownership, bounded revisioned on-disk journal and composed container lifecycle with intent-before-effect, removal-only restart recovery and preserved uncertain creates",
+        "qualification": "44 focused checks pass, including actual Windows files/pipes, abrupt termination of six test-only Node processes and a synthetic Engine HTTP endpoint. No real Docker/Hyper-V or service qualification.",
         "sai": [
           "SAI-04",
           "SAI-05",
           "SAI-14"
         ],
-        "remaining": "Durable supervisor ownership/recovery journal, authenticated control protocol, separate egress/core composition and service lifecycle adapter remain unfinished. Runtime distribution, image, identities/ACLs/mounts/credentials, Hyper-V pipes and physical termination require actual OS qualification."
+        "remaining": "Authenticated supervisor control protocol/client, service entrypoints, core/egress readiness and lease scheduling remain unfinished. Node/image distribution, actual identities/ACLs/mounts/credentials, Hyper-V pipes, physical termination and unresolved-create operator disposition require qualification."
       },
       {
         "id": "DS-05",
@@ -2595,7 +2606,7 @@
           "SAI-07",
           "SAI-14"
         ],
-        "remaining": "Durable supervisor ownership/recovery journal, authenticated control protocol, separate egress/core composition and service lifecycle adapter remain unfinished. Runtime distribution, image, identities/ACLs/mounts/credentials, Hyper-V pipes and physical termination require actual OS qualification. Apply keeps message processing disabled."
+        "remaining": "Authenticated supervisor control protocol/client, service entrypoints, core/egress readiness and lease scheduling remain unfinished. Node/image distribution, actual identities/ACLs/mounts/credentials, Hyper-V pipes, physical termination and unresolved-create operator disposition require qualification. Apply keeps message processing disabled."
       },
       {
         "id": "DS-10",

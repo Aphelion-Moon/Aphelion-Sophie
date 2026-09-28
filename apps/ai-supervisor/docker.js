@@ -1,5 +1,6 @@
 import { Agent, request } from 'node:http';
-import { requireCondition } from '../../contracts/validation.js';
+import { requireCondition, requireKeys } from '../../contracts/validation.js';
+import { canonicalAiWorkerIdentity } from '../knowledge-worker/ipc-contract.js';
 import { registeredAiContainer, registeredAiWorkerIdentity, aiContainerProfile, inspectOwnedAiContainer, requireAiContainerProfile, AI_CONTAINER_ENTRYPOINT } from './container-profile.js';
 
 const socketPath='\\\\.\\pipe\\docker_engine',prefix='/v1.54';
@@ -60,6 +61,8 @@ export function createAiDockerSlot({registration,requestImpl=request}) {
   return Object.freeze({
     name,
     status:()=>({stopped,busy,startPrepared:startable!==null,uncertain:uncertain?.action??null}),
+    knownContainer(){const known=uncertain?.id?uncertain:startable;
+      return known?.id?structuredClone({id:known.id,identity:known.identity,operationId:known.operationId,imageId:registered.imageId}):null;},
     inspect:({signal}={})=>exclusive(async()=>{const found=await inspect(signal);return found?.safe??null;}),
     qualified:({signal}={})=>exclusive(()=>engine(signal)),
     create({identity,operationId,signal}) {
@@ -94,18 +97,35 @@ export function createAiDockerSlot({registration,requestImpl=request}) {
         requireAiContainerProfile(running.raw,registered,prepared.identity,prepared.operationId);uncertain=null;return {id,running:true};
       });
     },
-    remove({signal}={}) {
+    remove({signal,recovery}={}) {
       return exclusive(async()=>{
+        let expected=uncertain;
+        if(recovery!==undefined && recovery!==null){
+          requireKeys(recovery,['identity','operationId','imageId','id','createPending'],'AI_CONTAINER_RECOVERY_INVALID');
+          const identity=canonicalAiWorkerIdentity(recovery.identity);
+          requireCondition(typeof recovery.operationId==='string' && /^[a-f0-9]{8}(?:-[a-f0-9]{4}){3}-[a-f0-9]{12}$/u.test(recovery.operationId) &&
+            typeof recovery.imageId==='string' && /^sha256:[a-f0-9]{64}$/u.test(recovery.imageId) &&
+            (recovery.id===null || (typeof recovery.id==='string' && /^[a-f0-9]{64}$/u.test(recovery.id))) && typeof recovery.createPending==='boolean',
+          'AI_CONTAINER_RECOVERY_INVALID');
+          requireCondition(!uncertain || (uncertain.operationId===recovery.operationId &&
+            Object.entries(uncertain.identity).every(([key,value])=>identity[key]===value) &&
+            (!uncertain.id || uncertain.id===recovery.id || (recovery.id===null && recovery.createPending))),
+          'AI_CONTAINER_RECOVERY_MISMATCH');
+          expected={...recovery,identity};
+          if(uncertain?.id && recovery.id===null)expected.id=uncertain.id;
+          if(uncertain?.action==='create' && !uncertain.id && recovery.id===null)expected.createPending=true;
+        }
         startable=null;const found=await inspect(signal);
+        requireCondition(recovery!==null || (!found && !uncertain),'AI_CONTAINER_REMOVAL_UNCONFIRMED');
         if(!found){
           // A known deleted ID cannot be resurrected by a late start. An unacknowledged create has no such proof.
-          if(uncertain?.id){const exact=await call('GET',`/containers/${uncertain.id}/json`,{signal,accepted:[200,404]});
-            requireCondition(exact.status===404,'AI_CONTAINER_REMOVAL_UNCONFIRMED');const id=uncertain.id;uncertain=null;return {removed:true,id};}
-          requireCondition(!uncertain,'AI_CONTAINER_REMOVAL_UNCONFIRMED');return {removed:true,id:null};
+          if(expected?.id){const exact=await call('GET',`/containers/${expected.id}/json`,{signal,accepted:[200,404]});
+            requireCondition(exact.status===404,'AI_CONTAINER_REMOVAL_UNCONFIRMED');const id=expected.id;uncertain=null;return {removed:true,id};}
+          requireCondition(!uncertain && !expected?.createPending,'AI_CONTAINER_REMOVAL_UNCONFIRMED');return {removed:true,id:null};
         }
-        requireCondition(!uncertain || (found.safe.operationId===uncertain.operationId &&
-          Object.entries(uncertain.identity).every(([key,value])=>found.safe.identity[key]===value) &&
-          (!uncertain.id || found.safe.id===uncertain.id)),'AI_CONTAINER_REMOVAL_UNCONFIRMED');
+        requireCondition(!expected || (found.safe.operationId===expected.operationId &&
+          Object.entries(expected.identity).every(([key,value])=>found.safe.identity[key]===value) &&
+          (!expected.imageId || found.safe.imageId===expected.imageId) && (!expected.id || found.safe.id===expected.id)),'AI_CONTAINER_REMOVAL_UNCONFIRMED');
         const id=found.safe.id;
         if(uncertain)uncertain.id=id;
         await call('DELETE',`/containers/${id}?force=true&v=false`,{signal,accepted:[204,404]});

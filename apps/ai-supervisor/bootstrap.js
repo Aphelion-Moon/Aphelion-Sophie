@@ -4,9 +4,22 @@ import { randomBytes } from 'node:crypto';
 import { performance } from 'node:perf_hooks';
 import { requireCondition } from '../../contracts/validation.js';
 import { signAiWorkerLease } from '../knowledge-worker/bootstrap.js';
+import { canonicalAiWorkerIdentity } from '../knowledge-worker/ipc-contract.js';
 import { registeredAiContainer, registeredAiWorkerIdentity } from './container-profile.js';
 
 const missingOkay=error=>{if(error.code!=='ENOENT')throw error;};
+
+/** Recovery never reloads old secrets or renews an old boot. Only these two registered files are removed. */
+export async function revokeAiWorkerBootFiles({registration,identity}) {
+  const registered=registeredAiContainer(registration),fixed=canonicalAiWorkerIdentity(identity);
+  const directory=win32.join(registered.bootRoot,fixed.bootId);
+  try {
+    const root=await lstat(registered.bootRoot),boot=await lstat(directory);
+    requireCondition(root.isDirectory() && !root.isSymbolicLink() && boot.isDirectory() && !boot.isSymbolicLink(),'AI_BOOT_CLEANUP_UNCONFIRMED');
+    await unlink(win32.join(directory,'lease.json')).catch(missingOkay);
+    await unlink(win32.join(directory,'boot.json')).catch(missingOkay);
+  } catch(error){if(error.code!=='ENOENT')throw Error('AI_BOOT_CLEANUP_UNCONFIRMED');}
+}
 
 /** Atomic visibility after a file flush, not a power-loss or ACL guarantee. The root is provisioned separately. */
 async function publish(path,value,current) {

@@ -1,62 +1,14 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { createServer, request } from 'node:http';
-import { once } from 'node:events';
-import { randomBytes, randomUUID } from 'node:crypto';
 import { mkdtemp, mkdir, readFile, readdir, rmdir } from 'node:fs/promises';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
-import { createAiDockerSlot } from '../apps/ai-supervisor/docker.js';
+import { hash, inputs, deferred, inspected, engineFixture, json } from './fixtures/ai-supervisor.js';
 import { registeredAiContainer, aiContainerProfile, requireAiContainerProfile } from '../apps/ai-supervisor/container-profile.js';
 import { prepareAiWorkerBoot } from '../apps/ai-supervisor/bootstrap.js';
 import { AI_WORKER_FILES, loadAiWorkerBootstrap, readAiWorkerFile, createAiWorkerLease } from '../apps/knowledge-worker/bootstrap.js';
 
-const hash=()=>randomBytes(32).toString('hex'),native={skip:process.platform!=='win32',timeout:15000};
-function inputs() {
-  const release={name:'Synthetic supervisor',workerId:hash(),releaseHash:hash(),profileHash:hash(),evidenceHash:hash(),provider:'deepseek',domain:'public'};
-  return {registration:{installationId:hash(),imageId:'sha256:'+hash(),bootRoot:'C:\\synthetic-boots',providerDirectory:'C:\\synthetic-provider',release},
-    identity:{workerId:release.workerId,bootId:hash(),releaseHash:release.releaseHash,profileHash:release.profileHash,provider:release.provider,domain:release.domain},operationId:randomUUID()};
-}
-function deferred(){let resolve;return {promise:new Promise(done=>resolve=done),resolve};}
-function inspected(body,name,id) {
-  const {HostConfig,...Config}=structuredClone(body);
-  return {Id:id,Name:`/${name}`,Image:body.Image,Config,HostConfig,
-    Mounts:HostConfig.Mounts.map(mount=>({Type:mount.Type,Source:mount.Source,Destination:mount.Target,RW:!mount.ReadOnly})),
-    State:{Running:false,Paused:false,Restarting:false,Dead:false}};
-}
-async function engineFixture(t) {
-  const fixed=inputs(),calls=[],transports=[],sockets=new Set(),id=hash();let container=null,hook=null;
-  const server=createServer(async(req,res)=>{
-    try {
-      const chunks=[];for await(const chunk of req)chunks.push(chunk);
-      const body=chunks.length?JSON.parse(Buffer.concat(chunks).toString('utf8')):undefined;
-      calls.push({method:req.method,path:req.url,body});
-      if(hook && await hook(req,res,body)===true)return;
-      if(req.url==='/v1.54/version')return json(res,200,{Version:'29.8.0',Os:'windows',Arch:'amd64'});
-      if(req.url===`/v1.54/images/${fixed.registration.imageId}/json`)return json(res,200,{Id:fixed.registration.imageId,Os:'windows',Architecture:'amd64',Config:aiContainerProfile(fixed.registration,fixed.identity,fixed.operationId)});
-      if(req.method==='GET' && req.url.startsWith('/v1.54/containers/'))return json(res,container?200:404,container??{message:'missing'});
-      if(req.url.startsWith('/v1.54/containers/create?name=')){
-        if(container)return json(res,409,{message:'occupied'});
-        container=inspected(body,new URL(req.url,'http://localhost').searchParams.get('name'),id);return json(res,201,{Id:id,Warnings:[]});
-      }
-      if(req.method==='POST' && req.url.endsWith('/start')){assert.ok(container);container.State.Running=true;return json(res,204);}
-      if(req.method==='DELETE'){container=null;return json(res,204);}
-      json(res,404,{message:'unregistered'});
-    } catch {if(!res.destroyed)res.destroy();}
-  });
-  server.on('connection',socket=>{sockets.add(socket);socket.on('close',()=>sockets.delete(socket));});
-  server.listen(0,'127.0.0.1');await once(server,'listening');
-  const slot=createAiDockerSlot({registration:fixed.registration,requestImpl:(options,callback)=>{
-    transports.push(options);assert.equal(options.socketPath,'\\\\.\\pipe\\docker_engine');assert.equal(options.host,'localhost');
-    assert.equal(options.agent.maxSockets,1);const {socketPath,host,...local}=options;
-    return request({...local,host:'127.0.0.1',port:server.address().port},callback);
-  }});
-  t.after(async()=>{await slot.close();for(const socket of sockets)socket.destroy();await new Promise(resolve=>server.close(resolve));});
-  return {...fixed,id,slot,calls,transports,get container(){return container;},set container(value){container=value;},set hook(value){hook=value;},
-    create:signal=>slot.create({...fixed,signal:signal??new AbortController().signal}),
-    start:signal=>slot.start({id,signal:signal??new AbortController().signal})};
-}
-function json(res,status,value) {res.writeHead(status,{'content-type':'application/json'});res.end(value===undefined?undefined:JSON.stringify(value));}
+const native={skip:process.platform!=='win32',timeout:15000};
 
 test('DS04-S01 registration confines exact worker, disjoint Windows mounts and observed profile',()=>{
   const {registration,identity,operationId}=inputs(),name='synthetic',id=hash();
