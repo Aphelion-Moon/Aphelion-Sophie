@@ -601,3 +601,13 @@ No further container or transport-contract change follows from this approval.
 The separate per-purpose relay design in the external transport-decision.md
 is a recommendation awaiting an owner decision, not an implemented or qualified
 replacement. Associated vmwp identity and guest rights cannot populate a receipt.
+
+### Relay source implementation approved — 28 September 2026
+
+The owner approved the separate per-purpose relay architecture for local source
+implementation and synthetic checks, recorded in `legal/windows-relay-implementation.json`.
+This does not authorize service/account/permission/firewall installation, another
+container or provider/Discord activation. Historical direct-HCS failures remain.
+The existing worker reconnects after orderly probes and replies; the literal
+fresh-boot-after-disconnect wording requires clarification before the final
+repeated-session controller is selected. No silent contract amendment is made.

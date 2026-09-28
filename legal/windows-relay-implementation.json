@@ -1,0 +1,16 @@
+{
+  "name": "Separate per-purpose relay source implementation",
+  "approvedOn": "2026-09-28",
+  "authorization": "Owner replied Approved, proceed. to the relay architecture and local implementation proposal.",
+  "proposal": "GitHub/.agent_docs/aphelion-sophie/windows-hcs-trial/transport-decision.md",
+  "proposalSha256": "cfb2fa7f426e54f4a6dc82f4d5d0b38a4755d49aa115081d3896f7f6ec8db424",
+  "sourceImplementationApproved": true,
+  "localSyntheticChecksApproved": true,
+  "serviceOrAccountInstallationApproved": false,
+  "existingPermissionOrFirewallChangesApproved": false,
+  "additionalContainerApproved": false,
+  "providerOrDiscordActivationApproved": false,
+  "gracefulSameBootReuseDecision": "pending clarification",
+  "fieldTestReady": false,
+  "productionReady": false
+}

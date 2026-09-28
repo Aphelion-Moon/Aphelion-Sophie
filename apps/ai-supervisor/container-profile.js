@@ -35,12 +35,12 @@ export function aiContainerProfile(registration,identity,operationId) {
   const labels={'com.aphelion.sophie.scope':'ai-public-v1','com.aphelion.sophie.installation':registration.installationId,
     'com.aphelion.sophie.operation':operationId};
   for(const [name,value]of Object.entries(fixed))labels[`com.aphelion.sophie.${name}`]=value;
-  const mounts=['inference','egress'].map(purpose=>({Type:'npipe',Source:aiBootPipe(fixed,purpose),Target:aiBootPipe(fixed,purpose),ReadOnly:false}));
+  const mounts=['inference','egress'].map(purpose=>({Type:'npipe',Source:aiBootPipe(fixed,purpose).replace('sophie-ai-','sophie-ai-relay-'),Target:aiBootPipe(fixed,purpose),ReadOnly:false}));
   mounts.push({Type:'bind',Source:win32.join(registration.bootRoot,fixed.bootId),Target:'C:\\sophie-boot',ReadOnly:true},
     {Type:'bind',Source:registration.providerDirectory,Target:'C:\\sophie-provider',ReadOnly:true});
   if(registration.trustDirectory)mounts.push({Type:'bind',Source:registration.trustDirectory,Target:'C:\\sophie-trust',ReadOnly:true});
   return {Image:registration.imageId,User:'ContainerUser',Entrypoint:[...AI_CONTAINER_ENTRYPOINT],Cmd:[],WorkingDir:'C:\\sophie',Env:[],
-    Labels:labels,AttachStdin:false,AttachStdout:false,AttachStderr:false,OpenStdin:false,Tty:false,
+    Labels:{...labels,'com.aphelion.sophie.transport':'relay-v2'},AttachStdin:false,AttachStdout:false,AttachStderr:false,OpenStdin:false,Tty:false,
     HostConfig:{Isolation:'hyperv',NetworkMode:'none',CpuCount:4,Memory:8589934592,AutoRemove:false,
       RestartPolicy:{Name:'no',MaximumRetryCount:0},LogConfig:{Type:'none',Config:{}},Mounts:mounts}};
 }

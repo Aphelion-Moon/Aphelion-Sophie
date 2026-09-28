@@ -28,6 +28,43 @@ import { createDeepSeekTransport } from '../apps/knowledge-worker/http-transport
 import { hash, inputs, deferred, engineFixture, json } from './fixtures/ai-supervisor.js';
 
 const native={skip:process.platform!=='win32',timeout:15000};
+
+test('DS04-C23 relay readiness precedes create and physical quiescence fences reuse',native,async t=>{
+  const entered=deferred(),ready=deferred(),closing=deferred(),closed=deferred();let active=false,armed=false,grant;
+  const relays={
+    async prepare(value){assert.deepEqual(Object.keys(value).sort(),['identity','operationId','signal']);grant=value;},
+    async start(value){assert.deepEqual(value.identity,grant.identity);entered.resolve();await ready.promise;active=true;armed=true;},
+    current:()=>active,
+    async quiesce(){active=false;if(armed){closing.resolve();await closed.promise;}},
+  };
+  const f=await composition(t,{booted:true,relays});t.after(()=>{ready.resolve();closed.resolve();});await prepared(f);
+  for(const role of ['core','egress']){
+    f.slot.channel({role,identity:f.identity,operationId:f.operationId});
+    f.slot.ready({role,identity:f.identity,operationId:f.operationId});
+  }
+  const created=f.slot.create({revision:f.journal.snapshot().revision});await entered.promise;
+  assert.equal(f.engine.calls.some(call=>call.path.includes('/containers/create')),false);
+  ready.resolve();await created;assert.equal(f.engine.container!==null,true);
+  let settled=false;const stopped=f.slot.quiesce().then(()=>{settled=true;});await closing.promise;
+  assert.equal(grant.signal.aborted,true);assert.equal(settled,false);
+  await new Promise(resolve=>setImmediate(resolve));assert.notEqual(f.engine.container,null);
+  assert.equal(f.engine.calls.some(call=>call.method==='DELETE'),false);
+  assert.throws(()=>f.slot.prepare({revision:f.journal.snapshot().revision,identity:f.identity,operationId:randomUUID()}),/AI_SUPERVISOR_NOT_READY/);
+  closed.resolve();await stopped;assert.equal(settled,true);assert.equal(f.engine.container,null);
+});
+
+test('DS04-C24 quiesce cancels a relay prepare before a live boot is published',native,async t=>{
+  const entered=deferred();let cancelled=false;
+  const relays={
+    prepare:({signal})=>new Promise((resolve,reject)=>{signal.addEventListener('abort',()=>{cancelled=true;reject(Error('cancelled'));},{once:true});entered.resolve();}),
+    start:async()=>{assert.fail('must not start');},current:()=>false,quiesce:async()=>{},
+  };
+  const f=await composition(t,{booted:true,relays});await f.slot.quiesce();
+  const preparing=f.slot.prepare({revision:f.journal.snapshot().revision,identity:f.identity,operationId:f.operationId});
+  const rejected=assert.rejects(preparing);await entered.promise;await f.slot.quiesce();await rejected;
+  assert.equal(cancelled,true);assert.equal(f.journal.snapshot().phase,'empty');
+  assert.equal(f.engine.calls.some(call=>call.path.includes('/containers/create')),false);
+});
 const keys=()=>({core:randomBytes(32),egress:randomBytes(32)});
 const empty=()=>({revision:0,phase:'empty',identity:null,operationId:null,recovered:false,readiness:{core:false,egress:false},job:null});
 async function until(check,ms=3000){const deadline=Date.now()+ms;while(Date.now()<deadline){if(await check())return;await new Promise(resolve=>setTimeout(resolve,5));}assert.fail('CONDITION_TIMEOUT');}
@@ -46,14 +83,14 @@ async function rawRequest(f,{role='core',command='inspect',body={},session,profi
   }finally{channel.close();await closed;}
 }
 const acceptedFingerprints=['synthetic-control'],apiKey='synthetic-control-provider-key';
-async function composition(t,{beforeStart=async()=>true,service=false,booted=false,monotonic}={}) {
+async function composition(t,{beforeStart=async()=>true,service=false,booted=false,monotonic,relays}={}) {
   const root=await mkdtemp(join(tmpdir(),'sophie-control-')),fixed=inputs(),bootRoot=join(root,'boots'),providerDirectory=join(root,'provider'),directory=join(root,'state');
   for(const path of [bootRoot,providerDirectory,directory])await mkdir(path);fixed.registration={...fixed.registration,bootRoot,providerDirectory};
   if(booted)fixed.identity.profileHash=fixed.registration.release.profileHash=createDeepSeekClient({apiKey,acceptedFingerprints}).profileHash;
   await provisionAiSupervisorJournal({...fixed,directory});const journal=await openAiSupervisorJournal({...fixed,directory});
   let closeEngine;
   const engine=await engineFixture({after:cleanup=>{closeEngine=cleanup;}},fixed),durable=createAiSupervisorSlot({registration:fixed.registration,journal,docker:engine.slot});
-  const slot=booted?createAiSupervisorWorkerSlot({registration:fixed.registration,slot:durable,acceptedFingerprints,qualified:async()=>true,
+  const slot=booted?createAiSupervisorWorkerSlot({registration:fixed.registration,slot:durable,relays,acceptedFingerprints,qualified:async()=>true,
     revocationSignal:new AbortController().signal,onFault:()=>{},...(monotonic?{monotonic}:{})}):durable;
   const api=createAiSupervisorControlApi({slot,beforeStart});let f;
   if(service){

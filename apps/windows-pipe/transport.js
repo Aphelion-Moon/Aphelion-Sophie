@@ -13,17 +13,21 @@ const hex=(value,length)=>typeof value==='string' && new RegExp(`^[a-f0-9]{${len
 const number=value=>{const bytes=Buffer.alloc(4);bytes.writeUInt32BE(value);return bytes;};
 
 /** Synthetic only: installed identities and pipe namespaces cannot be selected here. */
-export async function createSyntheticWindowsPipeTransport({executable,sha256,role,installationId,workerId='0'.repeat(64),bootId='0'.repeat(64),testRun}) {
+export async function createSyntheticWindowsPipeTransport({executable,sha256,role,installationId,workerId='0'.repeat(64),bootId='0'.repeat(64),testRun,relayed=false}) {
   requireCondition(process.platform==='win32' && isAbsolute(executable) && hex(sha256,64) &&
-    ['supervisor','core','egress','worker'].includes(role) && hex(installationId,64) && hex(workerId,64) && hex(bootId,64) && hex(testRun,32),
+    ['supervisor','core','egress','worker','inference-relay','egress-relay'].includes(role) && typeof relayed==='boolean' && (!role.endsWith('-relay') || relayed) && hex(installationId,64) && hex(workerId,64) && hex(bootId,64) && hex(testRun,32),
   'AI_NATIVE_PIPE_CONFIGURATION_INVALID');
-  return startTransport({executable,sha256,role,installationId,workerId,bootId,authority:testRun,profile:'synthetic'});
+  return startTransport({executable,sha256,role,installationId,workerId,bootId,authority:testRun,profile:relayed?'synthetic-relay':'synthetic'});
 }
 
 /** No selectable installed paths. READY requires native identity, held files and independent owner-record verification. */
 export async function createInstalledWindowsPipeTransport({role,bootId='0'.repeat(64),bootstrapHash}) {
   requireCondition(process.platform==='win32' && hex(bootId,64) && (role==='worker'?hex(bootstrapHash,64):bootstrapHash===undefined),'AI_NATIVE_PIPE_CONFIGURATION_INVALID');
   const installation=await loadInstallationConfiguration(role);
+  if(role.endsWith('-relay')){
+    requireCondition(bootId==='0'.repeat(64) || bootId===installation.owner.boot,'AI_INSTALLATION_INVALID');
+    bootId=installation.owner.boot;
+  }
   const transport=await startTransport({executable:installation.paths.executable,sha256:installation.sha256,role,
     installationId:installation.owner.installation,workerId:installation.owner.worker,bootId,bootstrapHash,authority:installation.ownerHash,profile:'installed'});
   return Object.freeze({...transport,installation});
@@ -97,7 +101,8 @@ async function startTransport({executable,sha256,role,installationId,workerId,bo
     }
     if(state==='starting')throw fail();
     if(code===138){if(state!=='stopping' || id!==0 || data.length!==0)throw fail();stopped=true;return;}
-    if([129,130,137].includes(code)){if(data.length!==0)throw fail();resolveRequest(code,id,data);return;}
+    if(code===140){if(!role.endsWith('-relay') || !['ready','stopping'].includes(state) || id!==0 || data.length!==0)throw fail();stopped=true;state='stopping';return;}
+    if([129,130,137,139].includes(code)){if(data.length!==0)throw fail();resolveRequest(code,id,data);return;}
     if(code===132){
       if(id<0x80000000 || data.length!==4 || streams.has(id) || streams.size>=8)throw fail();
       const endpoint=[...endpoints.values()].find(value=>value.id===data.readUInt32BE());
@@ -270,6 +275,7 @@ async function startTransport({executable,sha256,role,installationId,workerId,bo
   let closing;
   return Object.freeze({
     profile,signal:revocation.signal,
+    async startRelay(){requireCondition(role.endsWith('-relay'),'AI_NATIVE_PIPE_CONFIGURATION_INVALID');await request(11,0,Buffer.alloc(0),139);},
     createServer(callback){requireCondition(typeof callback==='function','AI_NATIVE_PIPE_CONFIGURATION_INVALID');return new PipeServer(callback);},
     connect(path){
       const endpoint=endpointFor(path);

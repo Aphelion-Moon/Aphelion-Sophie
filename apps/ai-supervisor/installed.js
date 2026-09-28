@@ -7,10 +7,13 @@ import { createAiSupervisorControlService } from './control.js';
 import { installedRoleContext } from '../installation/context.js';
 
 const base='C:\\Aphelion\\Sophie';
-export async function createInstalledSupervisorService({pipes,signal,onFault,openJournal=openAiSupervisorJournal,createDocker=createAiDockerSlot}) {
+export async function createInstalledSupervisorService({pipes,signal,onFault,relays,openJournal=openAiSupervisorJournal,createDocker=createAiDockerSlot}) {
   const {configuration,qualified,revocationSignal,keys}=installedRoleContext(pipes,'supervisor',signal);
   let journal,docker,slot;
   try {
+    // No implicit fallback to direct projection while the installed per-boot
+    // relay controller and its physical-close evidence are unavailable.
+    requireCondition(['prepare','start','current','quiesce'].every(name=>typeof relays?.[name]==='function'),'AI_RELAY_CONTROLLER_REQUIRED');
     const registration=configuration.registration;
     requireCondition(registration?.installationId===configuration.installationId && registration.imageId===configuration.qualification.imageId &&
       Object.entries(configuration.release).every(([key,value])=>registration.release?.[key]===value) && registration.bootRoot===`${base}\\state\\boots` &&
@@ -19,7 +22,7 @@ export async function createInstalledSupervisorService({pipes,signal,onFault,ope
     journal=await openJournal({registration,directory:`${base}\\state\\supervisor`});
     docker=createDocker({registration});
     const durable=createAiSupervisorSlot({registration,journal,docker});
-    slot=createAiSupervisorWorkerSlot({registration,slot:durable,acceptedFingerprints:configuration.acceptedFingerprints,qualified,revocationSignal,onFault});
+    slot=createAiSupervisorWorkerSlot({registration,slot:durable,relays,acceptedFingerprints:configuration.acceptedFingerprints,qualified,revocationSignal,onFault});
     return createAiSupervisorControlService({installationId:configuration.installationId,keys,
       qualified:(scope,context)=>scope.installationId===configuration.installationId && ['core','egress'].includes(scope.role) && qualified(configuration.release,context),slot,revocationSignal,onFault,
       beforeStart:({identity,signal:requestSignal})=>qualified(identity,{signal:requestSignal}),createPipeServer:pipes.createServer});

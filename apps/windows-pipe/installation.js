@@ -7,25 +7,27 @@ const code='AI_INSTALLATION_INVALID';
 const hash=value=>typeof value==='string' && /^[a-f0-9]{64}$/u.test(value) && value!=='0'.repeat(64);
 export const installationHash=value=>createHash('sha256').update(value).digest('hex');
 const names=['version','role','installation','worker','release','profile','evidence','manifest','configuration',
-  'userSid','serviceSid','supervisorSid','coreSid','egressSid','proxySid','guestSid','expires'];
+  'userSid','serviceSid','supervisorSid','coreSid','egressSid','inferenceRelaySid','egressRelaySid','projectionSid','guestSid','boot','expires'];
 
 /** Parsing does not establish trust. The native companion independently opens and holds these fixed files. */
 export function parseInstallationOwner(text,role,now=Date.now()) {
   requireCondition(typeof text==='string' && text.length<=8192 && /^[\x20-\x7e\n]+\n$/u.test(text),code);
   const pairs=text.trimEnd().split('\n').map(line=>{const split=line.indexOf('=');return [line.slice(0,split),line.slice(split+1)];});
   const owner=Object.fromEntries(pairs);requireKeys(owner,names,code);requireCondition(pairs.length===names.length,code);
-  requireCondition(owner.version==='1' && owner.role===role && ['supervisor','core','egress','worker'].includes(role) &&
+  requireCondition(owner.version==='2' && owner.role===role && ['supervisor','core','egress','worker','inference-relay','egress-relay'].includes(role) &&
     ['installation','worker','release','profile','evidence','manifest','configuration'].every(name=>hash(owner[name])) &&
-    ['userSid','supervisorSid','coreSid','egressSid','proxySid','guestSid'].every(name=>/^S-1-(?:\d+-)+\d+$/u.test(owner[name])) &&
-    ['supervisorSid','coreSid','egressSid'].every(name=>/^S-1-5-80-(?:\d+-){4}\d+$/u.test(owner[name])) &&
-    new Set([owner.supervisorSid,owner.coreSid,owner.egressSid,owner.proxySid,owner.guestSid]).size===5 &&
-    (role==='worker'?owner.serviceSid==='-' && owner.userSid===owner.guestSid:owner.serviceSid===owner[`${role}Sid`]) &&
+    ['userSid','supervisorSid','coreSid','egressSid','inferenceRelaySid','egressRelaySid','projectionSid','guestSid'].every(name=>/^S-1-(?:\d+-)+\d+$/u.test(owner[name])) &&
+    ['supervisorSid','coreSid','egressSid','inferenceRelaySid','egressRelaySid'].every(name=>/^S-1-5-80-(?:\d+-){4}\d+$/u.test(owner[name])) &&
+    new Set([owner.supervisorSid,owner.coreSid,owner.egressSid,owner.inferenceRelaySid,owner.egressRelaySid,owner.projectionSid,owner.guestSid]).size===7 &&
+    (role==='worker'?owner.serviceSid==='-' && owner.userSid===owner.guestSid:owner.serviceSid===owner[role==='inference-relay'?'inferenceRelaySid':role==='egress-relay'?'egressRelaySid':`${role}Sid`]) &&
     /^\d{1,15}$/u.test(owner.expires) && Number.isSafeInteger(Number(owner.expires)) && Number(owner.expires)>now && Number(owner.expires)-now<=86400000,code);
+  const relay=role.endsWith('-relay');
+  requireCondition(/^[a-f0-9]{64}$/u.test(owner.boot) && (relay?owner.boot!=='0'.repeat(64) && owner.userSid===owner.serviceSid:owner.boot==='0'.repeat(64)),code);
   return Object.freeze(owner);
 }
 
 export function installationPaths(role) {
-  requireCondition(['supervisor','core','egress','worker'].includes(role),code);
+  requireCondition(['supervisor','core','egress','worker','inference-relay','egress-relay'].includes(role),code);
   const base='C:\\Aphelion\\Sophie',worker=role==='worker';
   const trust=worker?'C:\\sophie-trust':`${base}\\trust`,source=worker?'C:\\sophie':`${base}\\package\\source`;
   return Object.freeze({trust,source,owner:win32.join(trust,`${role}.profile`),configuration:win32.join(trust,`${role}.json`),

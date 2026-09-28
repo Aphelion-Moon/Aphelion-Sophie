@@ -48,7 +48,7 @@ namespace Sophie.WindowsPipe
                     providerFiles=new ProtectedFiles(null,Values["guestSid"]);providerFiles.Root(@"C:\sophie-provider");
                     providerFiles.Open(@"C:\sophie-provider","api-key.txt",512);
                 }
-                else if(args.Length!=7 || args[4]!=new string('0',64))throw new IOException("PIPE_BOOT_INVALID");
+                else if(args.Length!=7 || args[4]!=Values["boot"])throw new IOException("PIPE_BOOT_INVALID");
                 if(role=="supervisor")
                 {
                     bootFiles=new ProtectedFiles(Values["supervisorSid"],Values["supervisorSid"]);
@@ -62,7 +62,7 @@ namespace Sophie.WindowsPipe
         internal static Dictionary<string,string> Parse(string text)
         {
             var values=new Dictionary<string,string>(StringComparer.Ordinal);
-            string[] names={"version","role","installation","worker","release","profile","evidence","manifest","configuration","userSid","serviceSid","supervisorSid","coreSid","egressSid","proxySid","guestSid","expires"};
+            string[] names={"version","role","installation","worker","release","profile","evidence","manifest","configuration","userSid","serviceSid","supervisorSid","coreSid","egressSid","inferenceRelaySid","egressRelaySid","projectionSid","guestSid","boot","expires"};
             if(text==null || !text.EndsWith("\n",StringComparison.Ordinal) || text.Length>8192)throw new IOException("PIPE_OWNER_INVALID");
             foreach(string line in text.TrimEnd('\n').Split('\n'))
             {
@@ -71,19 +71,21 @@ namespace Sophie.WindowsPipe
             }
             if(values.Count!=names.Length)throw new IOException("PIPE_OWNER_INVALID");
             foreach(string name in names)if(!values.ContainsKey(name))throw new IOException("PIPE_OWNER_INVALID");
-            if(values["version"]!="1" || !Regex.IsMatch(values["role"],"^(supervisor|core|egress|worker)$"))throw new IOException("PIPE_OWNER_INVALID");
+            if(values["version"]!="2" || !Regex.IsMatch(values["role"],"^(supervisor|core|egress|worker|inference-relay|egress-relay)$"))throw new IOException("PIPE_OWNER_INVALID");
             foreach(string name in new[]{"installation","worker","release","profile","evidence","manifest","configuration"})
                 if(!Regex.IsMatch(values[name],"^[a-f0-9]{64}$") || values[name]==new string('0',64))throw new IOException("PIPE_OWNER_INVALID");
-            foreach(string name in new[]{"userSid","supervisorSid","coreSid","egressSid","proxySid","guestSid"})CanonicalSid(values[name]);
-            foreach(string name in new[]{"supervisorSid","coreSid","egressSid"})
+            foreach(string name in new[]{"userSid","supervisorSid","coreSid","egressSid","inferenceRelaySid","egressRelaySid","projectionSid","guestSid"})CanonicalSid(values[name]);
+            foreach(string name in new[]{"supervisorSid","coreSid","egressSid","inferenceRelaySid","egressRelaySid"})
                 if(!Regex.IsMatch(values[name],@"^S-1-5-80-(\d+-){4}\d+$"))throw new IOException("PIPE_OWNER_INVALID");
-            if(values["supervisorSid"]==values["coreSid"] || values["supervisorSid"]==values["egressSid"] || values["coreSid"]==values["egressSid"] ||
-                values["proxySid"]==values["coreSid"] || values["proxySid"]==values["egressSid"] || values["proxySid"]==values["supervisorSid"] ||
-                values["guestSid"]==values["proxySid"] || values["guestSid"]==values["coreSid"] || values["guestSid"]==values["egressSid"] || values["guestSid"]==values["supervisorSid"])
-                throw new IOException("PIPE_OWNER_IDENTITY_OVERLAP");
+            var identities=new Dictionary<string,bool>();
+            foreach(string name in new[]{"supervisorSid","coreSid","egressSid","inferenceRelaySid","egressRelaySid","projectionSid","guestSid"})
+            {if(identities.ContainsKey(values[name]))throw new IOException("PIPE_OWNER_IDENTITY_OVERLAP");identities.Add(values[name],true);}
+            bool relay=values["role"]=="inference-relay" || values["role"]=="egress-relay";
+            if(!Regex.IsMatch(values["boot"],"^[a-f0-9]{64}$") || (relay?values["boot"]==new string('0',64):values["boot"]!=new string('0',64)))throw new IOException("PIPE_BOOT_INVALID");
             if(values["role"]=="worker")
             {if(values["serviceSid"]!="-" || values["userSid"]!=values["guestSid"])throw new IOException("PIPE_OWNER_INVALID");}
-            else if(values["serviceSid"]!=values[values["role"]+"Sid"])throw new IOException("PIPE_OWNER_INVALID");
+            else if(values["serviceSid"]!=values[values["role"]=="inference-relay"?"inferenceRelaySid":values["role"]=="egress-relay"?"egressRelaySid":values["role"]+"Sid"])throw new IOException("PIPE_OWNER_INVALID");
+            if(relay && values["userSid"]!=values["serviceSid"])throw new IOException("PIPE_RELAY_IDENTITY_INVALID");
             long expires;if(!Int64.TryParse(values["expires"],out expires) || expires<1 || expires>253402300799000L)throw new IOException("PIPE_OWNER_INVALID");
             return values;
         }
@@ -110,7 +112,7 @@ namespace Sophie.WindowsPipe
             }
             foreach(string name in new[]{"runtime/node.exe","runtime/LICENSE","source/package.json","source/apps/windows-pipe/sophie-pipe.exe","source/apps/windows-pipe/transport.js"})
                 if(!seen.ContainsKey(name))throw new IOException("PIPE_MANIFEST_INCOMPLETE");
-            string role=Values["role"],entry=role=="worker"?"apps/knowledge-worker/main.mjs":
+            string role=Values["role"],entry=role=="inference-relay"?"apps/ai-relay/inference.mjs":role=="egress-relay"?"apps/ai-relay/egress.mjs":role=="worker"?"apps/knowledge-worker/main.mjs":
                 "apps/"+(role=="core"?"core":"ai-"+role)+"/installed.mjs";
             if(!seen.ContainsKey("source/"+entry))throw new IOException("PIPE_MANIFEST_INCOMPLETE");
         }

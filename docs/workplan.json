@@ -1,6 +1,6 @@
 {
   "schema_version": 2,
-  "revision": "2026-09-28-hcs-rights-matrix-failed",
+  "revision": "2026-09-28-relay-source-checkpoint",
   "reference_plan_version": "1.1",
   "source": "Sophie-Implementation-Plans-v1.1/backlog.json",
   "owner_decisions": "docs/decisions/0001-owner-policy.md",
@@ -1339,7 +1339,7 @@
   "checkpoint": {
     "summary": "Deterministic administration, Whitelist onboarding, protected editors, role/permission configuration and the configurable staging host are implemented.",
     "recorded_baseline": "AI handoff 0fa7a5ed538ff791e3def2c1f6ac7683531e15a1 plus preserved uncommitted Flash candidate; synthetic schema058 candidate. No live schema change.",
-    "current_work": "Completed the approved replacement HCS observation on core and egress. All ten forbidden opens succeeded with corresponding guest handle rights, so the direct transport remains unqualified. Prepared an explicit per-purpose relay transport decision; no application or installed permission change. Review GitHub/.agent_docs/aphelion-sophie/windows-hcs-trial/transport-decision.md to select separate per-purpose untrusted relays for local implementation. Do not repeat the same direct-HCS matrix or qualify a proxy SID from guest masks/associated primary tokens. Replacement architecture and its new public/private contract require the owner decision; installation and operational qualification remain separate. Provider/account, protected mounts, termination/recovery, installed composition, publication/actual answers, preference/restricted-context and Test Discord Server activation gates remain open.",
+    "current_work": "Implemented the local relay session primitive, v2 distinct role/boot identity profiles, private/public pipe mapping, exact data-pipe owner/DACL checks, keyless relay entrypoints and supervisor readiness/physical-close seams. Installed supervisor refuses a missing relay controller. The final per-boot controller is not implemented; no installed activation is claimed. Resolve the pending owner choice: allow fully drained graceful connections within the same boot (recommended to match existing worker probe/reply behavior), or require a new boot after each completed connection. Unexpected disconnects must revoke the boot either way. Then implement separately authenticated per-boot arm records (never supervisor rewrites of static owner profiles), the concrete relay controller, source/package integration and focused composition evidence; prepare exact service/account/ACL/network/lifecycle changes for separate operational approval. Existing HCS failures, provider/account clearance and other Test Discord Server AI gates remain open.",
     "evidence_note": "Current source-bound offline results are in docs/verification.md and the external deepseek-verification.json index. Earlier administration, local model and Flash trial results remain historical; none grants present deployment approval."
   },
   "milestones": [
@@ -2567,11 +2567,22 @@
       "implemented": "Completed the approved replacement HCS observation on core and egress. All ten forbidden opens succeeded with corresponding guest handle rights, so the direct transport remains unqualified. Prepared an explicit per-purpose relay transport decision; no application or installed permission change.",
       "evidence": "Each pipe passed five fresh exact-data-rights/descriptor/echo checks. Actual host owner/DACL and restricted-outsider controls passed; owner/DACL bytes remained unchanged after all connections. Guest/container exit 2 records the failed acceptance checks. Container removed, observed vmwp PID absent, services Manual/stopped with zero exit codes, XML/permissions restored and no owned processes/containers remain.",
       "remaining": "Review GitHub/.agent_docs/aphelion-sophie/windows-hcs-trial/transport-decision.md to select separate per-purpose untrusted relays for local implementation. Do not repeat the same direct-HCS matrix or qualify a proxy SID from guest masks/associated primary tokens. Replacement architecture and its new public/private contract require the owner decision; installation and operational qualification remain separate. Provider/account, protected mounts, termination/recovery, installed composition, publication/actual answers, preference/restricted-context and Test Discord Server activation gates remain open."
+    },
+    {
+      "title": "Relay source and synthetic session checkpoint; lifecycle clarification pending",
+      "tasks": [
+        "P22",
+        "P23",
+        "P24"
+      ],
+      "implemented": "Implemented the local relay session primitive, v2 distinct role/boot identity profiles, private/public pipe mapping, exact data-pipe owner/DACL checks, keyless relay entrypoints and supervisor readiness/physical-close seams. Installed supervisor refuses a missing relay controller. The final per-boot controller is not implemented; no installed activation is claimed.",
+      "evidence": "Pinned Framework/C# build passed. Five native transport groups passed (both-purpose 1 MiB duplex/final drain, role/boot and capacity denial, backpressure stop, abnormal disconnect and exact owned helper loss). Native malformed-frame/profile checks and JS owner/secret-field rejection passed. Nine focused supervisor/control tests passed; after cancellation propagation changed, C23/C24 both passed, and six focused shutdown checks passed after ordering relay closure before worker removal. Repository checker passed 561 modules. An initial test assertion used the wrong status shape; it was corrected to inspect the actual journal and the failure log retained.",
+      "remaining": "Resolve the pending owner choice: allow fully drained graceful connections within the same boot (recommended to match existing worker probe/reply behavior), or require a new boot after each completed connection. Unexpected disconnects must revoke the boot either way. Then implement separately authenticated per-boot arm records (never supervisor rewrites of static owner profiles), the concrete relay controller, source/package integration and focused composition evidence; prepare exact service/account/ACL/network/lifecycle changes for separate operational approval. Existing HCS failures, provider/account clearance and other Test Discord Server AI gates remain open."
     }
   ],
   "next_steps": [
     {
-      "title": "Decide separate relay transport and qualify private boundaries",
+      "title": "Resolve graceful-close semantics and complete relay lifecycle",
       "tasks": [
         "P21",
         "P22",
@@ -2579,8 +2590,8 @@
         "P24",
         "P25"
       ],
-      "work": "Review GitHub/.agent_docs/aphelion-sophie/windows-hcs-trial/transport-decision.md to select separate per-purpose untrusted relays for local implementation. Do not repeat the same direct-HCS matrix or qualify a proxy SID from guest masks/associated primary tokens. Replacement architecture and its new public/private contract require the owner decision; installation and operational qualification remain separate. Provider/account, protected mounts, termination/recovery, installed composition, publication/actual answers, preference/restricted-context and Test Discord Server activation gates remain open.",
-      "exit_evidence": "Recorded architecture decision, implemented bounded transport, actual private-endpoint and relay isolation evidence, then remaining installed and Test Discord Server gates. Historical failed opens remain failed."
+      "work": "Resolve the pending owner choice: allow fully drained graceful connections within the same boot (recommended to match existing worker probe/reply behavior), or require a new boot after each completed connection. Unexpected disconnects must revoke the boot either way. Then implement separately authenticated per-boot arm records (never supervisor rewrites of static owner profiles), the concrete relay controller, source/package integration and focused composition evidence; prepare exact service/account/ACL/network/lifecycle changes for separate operational approval. Existing HCS failures, provider/account clearance and other Test Discord Server AI gates remain open.",
+      "exit_evidence": "Recorded session semantics, complete controller and current source-bound composition checks, then separately approved installed qualification and remaining AI gates."
     },
     {
       "title": "Privately verify deployed configuration and apply workflow",
@@ -2724,7 +2735,7 @@
           "SAI-05",
           "SAI-14"
         ],
-        "remaining": "Review GitHub/.agent_docs/aphelion-sophie/windows-hcs-trial/transport-decision.md to select separate per-purpose untrusted relays for local implementation. Do not repeat the same direct-HCS matrix or qualify a proxy SID from guest masks/associated primary tokens. Replacement architecture and its new public/private contract require the owner decision; installation and operational qualification remain separate. Provider/account, protected mounts, termination/recovery, installed composition, publication/actual answers, preference/restricted-context and Test Discord Server activation gates remain open."
+        "remaining": "Resolve the pending owner choice: allow fully drained graceful connections within the same boot (recommended to match existing worker probe/reply behavior), or require a new boot after each completed connection. Unexpected disconnects must revoke the boot either way. Then implement separately authenticated per-boot arm records (never supervisor rewrites of static owner profiles), the concrete relay controller, source/package integration and focused composition evidence; prepare exact service/account/ACL/network/lifecycle changes for separate operational approval. Existing HCS failures, provider/account clearance and other Test Discord Server AI gates remain open."
       },
       {
         "id": "DS-05",
@@ -2782,7 +2793,7 @@
           "SAI-07",
           "SAI-14"
         ],
-        "remaining": "Review GitHub/.agent_docs/aphelion-sophie/windows-hcs-trial/transport-decision.md to select separate per-purpose untrusted relays for local implementation. Do not repeat the same direct-HCS matrix or qualify a proxy SID from guest masks/associated primary tokens. Replacement architecture and its new public/private contract require the owner decision; installation and operational qualification remain separate. Provider/account, protected mounts, termination/recovery, installed composition, publication/actual answers, preference/restricted-context and Test Discord Server activation gates remain open."
+        "remaining": "Resolve the pending owner choice: allow fully drained graceful connections within the same boot (recommended to match existing worker probe/reply behavior), or require a new boot after each completed connection. Unexpected disconnects must revoke the boot either way. Then implement separately authenticated per-boot arm records (never supervisor rewrites of static owner profiles), the concrete relay controller, source/package integration and focused composition evidence; prepare exact service/account/ACL/network/lifecycle changes for separate operational approval. Existing HCS failures, provider/account clearance and other Test Discord Server AI gates remain open."
       },
       {
         "id": "DS-10",

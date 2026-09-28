@@ -69,7 +69,9 @@ namespace Sophie.WindowsPipe
                 {
                 authority.CancelAfter(profile.LifetimeMilliseconds);
                 stage=6;
-                await new Companion(profile,new PipeFrames(input,output,PipeFrames.LocalSignature),authority.Token).Run().ConfigureAwait(false);
+                var frames=new PipeFrames(input,output,PipeFrames.LocalSignature);
+                if(profile.IsRelay)await new RelayCompanion(profile,frames,authority.Token).Run().ConfigureAwait(false);
+                else await new Companion(profile,frames,authority.Token).Run().ConfigureAwait(false);
                 }
             }
             }

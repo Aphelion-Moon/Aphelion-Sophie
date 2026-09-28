@@ -59,7 +59,7 @@ namespace Sophie.WindowsPipe
         {
             RequireName(name);
             if (maximumInstances < 1 || maximumInstances > 4) throw new ArgumentException("PIPE_INSTANCE_LIMIT");
-            using (var security = new PipeDescriptor(ownerSid, peerSid))
+            using (var security = new PipeDescriptor(ownerSid, peerSid, ExactOwner(name)))
             {
                 var attributes = new Native.SecurityAttributes { Length = Marshal.SizeOf(typeof(Native.SecurityAttributes)), Descriptor = security.Pointer };
                 var handle = Native.CreateNamedPipe(name, 0x00000003u | 0x40000000u | (first ? 0x00080000u : 0u),
@@ -86,7 +86,7 @@ namespace Sophie.WindowsPipe
             if (handle.IsInvalid) { var error = Failure("PIPE_CONNECT"); handle.Dispose(); throw error; }
             try
             {
-                if(ownerSid!=null)using(var descriptor=new PipeDescriptor(ownerSid,peerSid))descriptor.Verify(handle);
+                if(ownerSid!=null)using(var descriptor=new PipeDescriptor(ownerSid,peerSid,ExactOwner(name)))descriptor.Verify(handle);
                 return new NativePipe(handle, true);
             }
             catch { handle.Dispose();throw; }
@@ -94,8 +94,24 @@ namespace Sophie.WindowsPipe
 
         internal static void RequireName(string name)
         {
-            if (name == null || !Regex.IsMatch(name, @"^\\\\\.\\pipe\\sophie-ai-(?:test-[a-f0-9]{32}|control-(?:core|egress)-[a-f0-9]{64}|(?:inference|egress)-[a-f0-9]{64}-[a-f0-9]{64})$"))
+            if (name == null || !Regex.IsMatch(name, @"^\\\\\.\\pipe\\sophie-ai-(?:test-[a-f0-9]{32}|control-(?:core|egress)-[a-f0-9]{64}|(?:(?:private|relay)-)?(?:inference|egress)-[a-f0-9]{64}-[a-f0-9]{64})$"))
                 throw new ArgumentException("PIPE_NAME_INVALID");
+        }
+
+        // Supervisor control pipes retain their existing service-SID descriptor.
+        // Only the new data boundary uses actual virtual-account object owners.
+        private static bool ExactOwner(string name){return !name.StartsWith(@"\\.\pipe\sophie-ai-control-",StringComparison.Ordinal);}
+
+        internal static void VerifyEndpoint(string name,string owner,string peer)
+        {
+            RequireName(name);
+            // A metadata-only connection can be discarded by the host's bounded
+            // unauthenticated listener. Recheck the actual data handle at use.
+            using(var file=Native.CreateFile(name,0x00020000,0,IntPtr.Zero,3,0x40100000,IntPtr.Zero))
+            {
+                if(file.IsInvalid)throw Failure("PIPE_METADATA_OPEN");
+                using(var descriptor=new PipeDescriptor(owner,peer,true))descriptor.Verify(file);
+            }
         }
 
         internal async Task AcceptAsync(CancellationToken cancellation)
@@ -200,25 +216,27 @@ namespace Sophie.WindowsPipe
     {
         internal IntPtr Pointer { get; private set; }
         private readonly string expected;
-        internal PipeDescriptor(string owner, string peer)
+        private readonly uint information;
+        internal PipeDescriptor(string owner, string peer,bool strict=false)
         {
             owner = new SecurityIdentifier(owner).Value; peer = new SecurityIdentifier(peer).Value;
-            var descriptor = "D:P(A;;FA;;;SY)(A;;FA;;;BA)(A;;FA;;;" + owner + ")(A;;0x00120183;;;" + peer + ")";
+            information=strict?5u:4u;
+            var descriptor = (strict?"O:"+owner+"D:P":"D:P(A;;FA;;;SY)(A;;FA;;;BA)")+"(A;;FA;;;" + owner + ")(A;;0x00120183;;;" + peer + ")";
             IntPtr value; uint size;
             if (!Native.ConvertStringSecurityDescriptorToSecurityDescriptor(descriptor, 1, out value, out size)) throw new Win32Exception(Marshal.GetLastWin32Error(), "PIPE_DESCRIPTOR_INVALID");
             Pointer = value;
             try { expected = Canonical(value); } catch { Dispose(); throw; }
         }
-        private static string Canonical(IntPtr descriptor)
+        private string Canonical(IntPtr descriptor)
         {
             IntPtr text; uint size;
-            if (!Native.ConvertSecurityDescriptorToStringSecurityDescriptor(descriptor, 1, 4, out text, out size)) throw new Win32Exception(Marshal.GetLastWin32Error(), "PIPE_DESCRIPTOR_UNREADABLE");
+            if (!Native.ConvertSecurityDescriptorToStringSecurityDescriptor(descriptor, 1, information, out text, out size)) throw new Win32Exception(Marshal.GetLastWin32Error(), "PIPE_DESCRIPTOR_UNREADABLE");
             try { return Marshal.PtrToStringUni(text); } finally { Native.LocalFree(text); }
         }
         internal void Verify(SafeFileHandle handle)
         {
             IntPtr owner, group, dacl, sacl, descriptor;
-            uint error = Native.GetSecurityInfo(handle, 1, 4, out owner, out group, out dacl, out sacl, out descriptor);
+            uint error = Native.GetSecurityInfo(handle, 1, information, out owner, out group, out dacl, out sacl, out descriptor);
             if (error != 0) throw new Win32Exception((int)error, "PIPE_DESCRIPTOR_UNREADABLE");
             try
             {

@@ -21,6 +21,13 @@ test('DS04-S01 registration confines exact worker, disjoint Windows mounts and o
   assert.throws(()=>aiContainerProfile(registration,{...identity,releaseHash:hash()},operationId),/AI_CONTAINER_SCOPE_INVALID/);
   const profile=aiContainerProfile(registeredAiContainer(registration),identity,operationId),observed=inspected(profile,name,id);
   assert.equal(profile.HostConfig.Mounts.length,4);assert.equal(profile.HostConfig.NetworkMode,'none');
+  assert.equal(profile.Labels['com.aphelion.sophie.transport'],'relay-v2');
+  for(const mount of profile.HostConfig.Mounts.filter(item=>item.Type==='npipe')){
+    assert.match(mount.Source,/\\sophie-ai-relay-(inference|egress)-/u);
+    assert.equal(mount.Source.replace('sophie-ai-relay-','sophie-ai-'),mount.Target);
+    const direct=structuredClone(observed);direct.HostConfig.Mounts.find(item=>item.Source===mount.Source).Source=mount.Target;
+    assert.throws(()=>requireAiContainerProfile(direct,registration,identity,operationId),/AI_CONTAINER_PROFILE_MISMATCH/);
+  }
   requireAiContainerProfile(observed,registration,identity,operationId);
   for(const alter of [v=>v.Config.Env=['HTTP_PROXY=http://synthetic'],v=>v.HostConfig.Isolation='process',v=>v.Mounts[2].RW=true,
     v=>v.Mounts[3].Source='C:\\unexpected',v=>v.HostConfig.RestartPolicy.Name='always',v=>v.HostConfig.Binds=['C:\\root:C:\\root']]){

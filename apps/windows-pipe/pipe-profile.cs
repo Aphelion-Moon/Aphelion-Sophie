@@ -11,12 +11,16 @@ namespace Sophie.WindowsPipe
         internal readonly string Role, Installation, Worker, Boot, Sid;
         private readonly string testRun;
         private readonly InstalledProfile installed;
+        private readonly bool relayed;
+        internal bool IsRelay { get { return Role=="inference-relay" || Role=="egress-relay"; } }
         internal PipeProfile(string[] args, string sid,ParentBoundary boundary=null)
         {
-            if((args.Length!=7 && !(args.Length==8 && args[0]=="installed" && args[1]=="worker")) || (args[0]!="synthetic" && args[0]!="installed") || !Regex.IsMatch(args[1],"^(supervisor|core|egress|worker)$") ||
-                !Hex(args[2],64) || !Hex(args[3],64) || !Hex(args[4],64) || !Hex(args[5],args[0]=="synthetic"?32:64))
+            if((args.Length!=7 && !(args.Length==8 && args[0]=="installed" && args[1]=="worker")) || (args[0]!="synthetic" && args[0]!="synthetic-relay" && args[0]!="installed") || !Regex.IsMatch(args[1],"^(supervisor|core|egress|worker|inference-relay|egress-relay)$") ||
+                !Hex(args[2],64) || !Hex(args[3],64) || !Hex(args[4],64) || !Hex(args[5],args[0]=="installed"?64:32))
                 throw new IOException("PIPE_PROFILE_UNQUALIFIED");
             Role=args[1];Installation=args[2];Worker=args[3];Boot=args[4];testRun=args[5];Sid=sid;
+            relayed=args[0]!="synthetic";
+            if(IsRelay && (!relayed || Worker==new string('0',64) || Boot==new string('0',64)))throw new IOException("PIPE_RELAY_SCOPE_INVALID");
             if(args[0]=="installed")
             {
                 if(boundary==null)throw new IOException("PIPE_PROFILE_UNQUALIFIED");
@@ -40,7 +44,18 @@ namespace Sophie.WindowsPipe
             bool listen=Role=="supervisor" && kind<3 || Role=="core" && kind==3 || Role=="egress" && kind==4;
             bool connect=Role=="core" && kind==1 || Role=="egress" && kind==2 || Role=="worker" && kind>=3;
             if(!listen && !connect)throw new IOException("PIPE_ROLE_DENIED");
-            string key=Installation+":"+kind+":"+worker+":"+boot;
+            return Make(kind,worker,boot,relayed && Role=="worker",listen,connect);
+        }
+        internal EndpointSpec[] RelayEndpoints()
+        {
+            if(!IsRelay)throw new IOException("PIPE_ROLE_DENIED");
+            if(installed!=null)installed.Current();
+            byte kind=Role=="inference-relay"?(byte)3:(byte)4;
+            return new[]{Make(kind,Worker,Boot,true,true,false),Make(kind,Worker,Boot,false,false,true)};
+        }
+        private EndpointSpec Make(byte kind,string worker,string boot,bool publicSide,bool listen,bool connect)
+        {
+            string key=Installation+":"+kind+":"+worker+":"+boot+(relayed&&kind>=3?(publicSide?":public":":private"):"");
             string name;
             string owner=Sid,peer=Sid;
             if(installed==null)
@@ -50,10 +65,11 @@ namespace Sophie.WindowsPipe
             }
             else
             {
+                string relay=kind==3?"inferenceRelaySid":"egressRelaySid";
                 name=kind<3?@"\\.\pipe\sophie-ai-control-"+(kind==1?"core":"egress")+"-"+Installation:
-                    @"\\.\pipe\sophie-ai-"+(kind==3?"inference":"egress")+"-"+worker+"-"+boot;
-                owner=installed.Values[kind<3?"supervisorSid":kind==3?"coreSid":"egressSid"];
-                peer=installed.Values[kind<3?(kind==1?"coreSid":"egressSid"):"proxySid"];
+                    @"\\.\pipe\sophie-ai-"+(publicSide?(Role=="worker"?"":"relay-"):"private-")+(kind==3?"inference":"egress")+"-"+worker+"-"+boot;
+                owner=installed.Values[kind<3?"supervisorSid":publicSide?relay:kind==3?"coreSid":"egressSid"];
+                peer=installed.Values[kind<3?(kind==1?"coreSid":"egressSid"):publicSide?"projectionSid":relay];
             }
             return new EndpointSpec { Name=name, OwnerSid=owner, PeerSid=peer, CanListen=listen, CanConnect=connect, Limit=kind==4?1:2 };
         }

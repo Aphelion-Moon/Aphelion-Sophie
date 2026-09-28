@@ -1,5 +1,15 @@
 # Verification and release limits
 
+## Relay source checkpoint — 28 September 2026
+
+Implemented the local relay session primitive, v2 distinct role/boot identity profiles, private/public pipe mapping, exact data-pipe owner/DACL checks, keyless relay entrypoints and supervisor readiness/physical-close seams. Installed supervisor refuses a missing relay controller. The final per-boot controller is not implemented; no installed activation is claimed.
+
+Pinned Framework/C# build passed. Five native transport groups passed (both-purpose 1 MiB duplex/final drain, role/boot and capacity denial, backpressure stop, abnormal disconnect and exact owned helper loss). Native malformed-frame/profile checks and JS owner/secret-field rejection passed. Nine focused supervisor/control tests passed; after cancellation propagation changed, C23/C24 both passed, and six focused shutdown checks passed after ordering relay closure before worker removal. Repository checker passed 561 modules. An initial test assertion used the wrong status shape; it was corrected to inspect the actual journal and the failure log retained.
+
+The native relay forwards the existing transport envelope without application parsing or secrets. It verifies a private descriptor through a disposable READ_CONTROL connection before announcing its listener, rechecks the data handle, and retains both handles until pending I/O drains. The tested primitive handles one connection; it does not settle the pending repeated-session contract. Synthetic tests under the local identity do not qualify distinct installed relay accounts or HCS. Existing supervisor control-pipe descriptors are preserved; exact owner/one-peer descriptors apply to data pipes. No services/accounts, shared ACLs, firewall, containers, provider or Discord operation occurred. No application/database full suite or guest build ran. See `GitHub/.agent_docs/aphelion-sophie/windows-relay/implementation.md` and `relay-source-verification.json`.
+
+Resolve the pending owner choice: allow fully drained graceful connections within the same boot (recommended to match existing worker probe/reply behavior), or require a new boot after each completed connection. Unexpected disconnects must revoke the boot either way. Then implement separately authenticated per-boot arm records (never supervisor rewrites of static owner profiles), the concrete relay controller, source/package integration and focused composition evidence; prepare exact service/account/ACL/network/lifecycle changes for separate operational approval. Existing HCS failures, provider/account clearance and other Test Discord Server AI gates remain open. Full workplan and AI test-server readiness remain false.
+
 ## Completed HCS rights matrix — 28 September 2026
 
 Completed the approved replacement HCS observation on core and egress. All ten forbidden opens succeeded with corresponding guest handle rights, so the direct transport remains unqualified. Prepared an explicit per-purpose relay transport decision; no application or installed permission change.
