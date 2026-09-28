@@ -1,5 +1,15 @@
 # Verification and release limits
 
+## Relay service trial stopped and rolled back — 28 September 2026
+
+The owner approved and the operator executed the bounded two-relay service trial against candidate f13395b731859fbd5473d46b8c8f6dead864d863. Both Manual services and dedicated protected package roots were installed, required privileges limited to SeChangeNotifyPrivilege, and 12 scoped firewall block rules created and read back. No container or AI application was activated.
+
+Candidate files and wrapper matched their pinned hashes. SCM configuration and rule readback succeeded. The first inference service launch failed before its diagnostic/native entrypoint: Node lstat returned EPERM on C:\Aphelion. The original trial forbids changing that existing ancestor, so execution stopped. Secondary wrapper Event Log errors exposed omitted source registration in the sc-create diagnostic procedure. Both services, all 12 rules and all new directories were removed; existing three Sophie service states/files and six existing ancestor descriptors match preflight. No candidate processes remained.
+
+No native token, private-pipe, access-denial, network-traffic or installed application test passed in this trial: startup failed before those checks. Firewall rule acceptance alone is not network isolation. The egress relay and existing three diagnostic services were never started. No container, provider/Discord request, runtime change or host reboot occurred. Earlier source checks remain evidence for their pinned builds; no application suite was rerun for this operational/documentation checkpoint.
+
+See `GitHub/.agent_docs/aphelion-sophie/windows-relay-service-trial/result.md` and `relay-service-verification.json`. Approve the exact non-inheriting metadata-access amendment for the two relay SIDs on five existing ancestor directories, correct wrapper event-source registration, then repeat the authorized trial. Actual identity, private pipe, custody, process and network denials remain unqualified. Guest/public-projection, provider/account, publication/actual-answer and Test Discord Server activation gates remain open. No host reboot is authorized.
+
 ## Installed relay controller — 28 September 2026
 
 Installed per-boot relay control is implemented: distinct private supervisor control pipes authenticate relay owners and the supervisor using OS descriptors; native grants bind installation, worker, release, profile, evidence, boot and operation. Persistent relay processes accept fresh boots after confirmed quiescence. Partial startup failure drains both purposes, qualification is bounded, and uncertain closure remains failed. No Windows host restart is part of this workflow.

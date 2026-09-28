@@ -1,6 +1,6 @@
 {
   "schema_version": 2,
-  "revision": "2026-09-28-relay-installed-controller",
+  "revision": "2026-09-28-relay-ancestor-stop",
   "reference_plan_version": "1.1",
   "source": "Sophie-Implementation-Plans-v1.1/backlog.json",
   "owner_decisions": "docs/decisions/0001-owner-policy.md",
@@ -1339,7 +1339,7 @@
   "checkpoint": {
     "summary": "Deterministic administration, Whitelist onboarding, protected editors, role/permission configuration and the configurable staging host are implemented.",
     "recorded_baseline": "AI handoff 0fa7a5ed538ff791e3def2c1f6ac7683531e15a1 plus preserved uncommitted Flash candidate; synthetic schema058 candidate. No live schema change.",
-    "current_work": "Installed per-boot relay control is implemented: distinct private supervisor control pipes authenticate relay owners and the supervisor using OS descriptors; native grants bind installation, worker, release, profile, evidence, boot and operation. Persistent relay processes accept fresh boots after confirmed quiescence. Partial startup failure drains both purposes, qualification is bounded, and uncertain closure remains failed. No Windows host restart is part of this workflow. Separately authorize and qualify the exact two relay service identities, filesystem/process/private-pipe/network boundaries, then the changed guest build/public HCS projection and installed composition. Provider/account clearance, publication/actual-answer review and remaining AI acceptance gates still precede Test Discord Server activation. No installed qualification receipt or production readiness is implied by local synthetic checks.",
+    "current_work": "Candidate files and wrapper matched their pinned hashes. SCM configuration and rule readback succeeded. The first inference service launch failed before its diagnostic/native entrypoint: Node lstat returned EPERM on C:\\Aphelion. The original trial forbids changing that existing ancestor, so execution stopped. Secondary wrapper Event Log errors exposed omitted source registration in the sc-create diagnostic procedure. Both services, all 12 rules and all new directories were removed; existing three Sophie service states/files and six existing ancestor descriptors match preflight. No candidate processes remained. Approve the exact non-inheriting metadata-access amendment for the two relay SIDs on five existing ancestor directories, correct wrapper event-source registration, then repeat the authorized trial. Actual identity, private pipe, custody, process and network denials remain unqualified. Guest/public-projection, provider/account, publication/actual-answer and Test Discord Server activation gates remain open. No host reboot is authorized.",
     "evidence_note": "Current source-bound offline results are in docs/verification.md and the external deepseek-verification.json index. Earlier administration, local model and Flash trial results remain historical; none grants present deployment approval."
   },
   "milestones": [
@@ -2600,11 +2600,22 @@
       "implemented": "Installed per-boot relay control is implemented: distinct private supervisor control pipes authenticate relay owners and the supervisor using OS descriptors; native grants bind installation, worker, release, profile, evidence, boot and operation. Persistent relay processes accept fresh boots after confirmed quiescence. Partial startup failure drains both purposes, qualification is bounded, and uncertain closure remains failed. No Windows host restart is part of this workflow.",
       "evidence": "Pinned host C# build and four native boundary groups passed. Five native-controller groups passed: two fresh boots through unchanged relay processes, repeated sessions, heartbeat, physical closure, unexpected disconnect, supervisor loss, native consumed-boot rejection and native heartbeat expiry. Actual application composition passed encrypted control/wrong-key denial, probe and two metered synthetic localhost-TLS replies plus confirmed cleanup. Six focused lifecycle tests DS04-C23 through C28 passed, as did v3 profile checks and repository validation. Earlier diagnostic failures are preserved and their source causes corrected.",
       "remaining": "Separately authorize and qualify the exact two relay service identities, filesystem/process/private-pipe/network boundaries, then the changed guest build/public HCS projection and installed composition. Provider/account clearance, publication/actual-answer review and remaining AI acceptance gates still precede Test Discord Server activation. No installed qualification receipt or production readiness is implied by local synthetic checks."
+    },
+    {
+      "title": "Authorized relay service trial stopped at ancestor access; rollback verified",
+      "tasks": [
+        "P22",
+        "P23",
+        "P24"
+      ],
+      "implemented": "The owner approved and the operator executed the bounded two-relay service trial against candidate f13395b731859fbd5473d46b8c8f6dead864d863. Both Manual services and dedicated protected package roots were installed, required privileges limited to SeChangeNotifyPrivilege, and 12 scoped firewall block rules created and read back. No container or AI application was activated.",
+      "evidence": "Candidate files and wrapper matched their pinned hashes. SCM configuration and rule readback succeeded. The first inference service launch failed before its diagnostic/native entrypoint: Node lstat returned EPERM on C:\\Aphelion. The original trial forbids changing that existing ancestor, so execution stopped. Secondary wrapper Event Log errors exposed omitted source registration in the sc-create diagnostic procedure. Both services, all 12 rules and all new directories were removed; existing three Sophie service states/files and six existing ancestor descriptors match preflight. No candidate processes remained.",
+      "remaining": "Approve the exact non-inheriting metadata-access amendment for the two relay SIDs on five existing ancestor directories, correct wrapper event-source registration, then repeat the authorized trial. Actual identity, private pipe, custody, process and network denials remain unqualified. Guest/public-projection, provider/account, publication/actual-answer and Test Discord Server activation gates remain open. No host reboot is authorized."
     }
   ],
   "next_steps": [
     {
-      "title": "Authorize and qualify actual relay identities",
+      "title": "Resolve exact relay ancestor metadata access",
       "tasks": [
         "P21",
         "P22",
@@ -2612,8 +2623,8 @@
         "P24",
         "P25"
       ],
-      "work": "Separately authorize and qualify the exact two relay service identities, filesystem/process/private-pipe/network boundaries, then the changed guest build/public HCS projection and installed composition. Provider/account clearance, publication/actual-answer review and remaining AI acceptance gates still precede Test Discord Server activation. No installed qualification receipt or production readiness is implied by local synthetic checks.",
-      "exit_evidence": "Actual service identity, private pipe, filesystem, process, network and lifecycle evidence before separate container/public projection qualification and AI activation."
+      "work": "Approve the exact non-inheriting metadata-access amendment for the two relay SIDs on five existing ancestor directories, correct wrapper event-source registration, then repeat the authorized trial. Actual identity, private pipe, custody, process and network denials remain unqualified. Guest/public-projection, provider/account, publication/actual-answer and Test Discord Server activation gates remain open. No host reboot is authorized.",
+      "exit_evidence": "Approved five-directory metadata-only ACL delta and repeated actual-identity qualification, preserving the original stop conditions."
     },
     {
       "title": "Privately verify deployed configuration and apply workflow",
@@ -2757,7 +2768,7 @@
           "SAI-05",
           "SAI-14"
         ],
-        "remaining": "Separately authorize and qualify the exact two relay service identities, filesystem/process/private-pipe/network boundaries, then the changed guest build/public HCS projection and installed composition. Provider/account clearance, publication/actual-answer review and remaining AI acceptance gates still precede Test Discord Server activation. No installed qualification receipt or production readiness is implied by local synthetic checks."
+        "remaining": "Approve the exact non-inheriting metadata-access amendment for the two relay SIDs on five existing ancestor directories, correct wrapper event-source registration, then repeat the authorized trial. Actual identity, private pipe, custody, process and network denials remain unqualified. Guest/public-projection, provider/account, publication/actual-answer and Test Discord Server activation gates remain open. No host reboot is authorized."
       },
       {
         "id": "DS-05",
@@ -2815,7 +2826,7 @@
           "SAI-07",
           "SAI-14"
         ],
-        "remaining": "Separately authorize and qualify the exact two relay service identities, filesystem/process/private-pipe/network boundaries, then the changed guest build/public HCS projection and installed composition. Provider/account clearance, publication/actual-answer review and remaining AI acceptance gates still precede Test Discord Server activation. No installed qualification receipt or production readiness is implied by local synthetic checks."
+        "remaining": "Approve the exact non-inheriting metadata-access amendment for the two relay SIDs on five existing ancestor directories, correct wrapper event-source registration, then repeat the authorized trial. Actual identity, private pipe, custody, process and network denials remain unqualified. Guest/public-projection, provider/account, publication/actual-answer and Test Discord Server activation gates remain open. No host reboot is authorized."
       },
       {
         "id": "DS-10",
