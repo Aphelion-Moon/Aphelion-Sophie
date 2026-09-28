@@ -101,6 +101,11 @@ async function startTransport({executable,sha256,role,installationId,workerId,bo
     }
     if(state==='starting')throw fail();
     if(code===138){if(state!=='stopping' || id!==0 || data.length!==0)throw fail();stopped=true;return;}
+    if([140,141,142,143].includes(code)){
+      if(role!=='supervisor' || id<1 || id>2 || data.length>1 || data.length===1 && data[0]!==1)throw fail();
+      if(data.length){const key=`${code}:${id}`,pending=requests.get(key);if(!pending)throw fail();clearTimeout(pending.timer);requests.delete(key);pending.reject(fail());}
+      else resolveRequest(code,id,data);return;
+    }
     if([129,130,137,139].includes(code)){if(data.length!==0)throw fail();resolveRequest(code,id,data);return;}
     if(code===132){
       if(id<0x80000000 || data.length!==4 || streams.has(id) || streams.size>=8)throw fail();
@@ -275,6 +280,17 @@ async function startTransport({executable,sha256,role,installationId,workerId,bo
   return Object.freeze({
     profile,signal:revocation.signal,
     async startRelay(){requireCondition(role.endsWith('-relay'),'AI_NATIVE_PIPE_CONFIGURATION_INVALID');await request(11,0,Buffer.alloc(0),139);},
+    async relayControl(command,purpose,grant){
+      const codes={prepare:12,start:13,current:14,quiesce:15},code=codes[command];
+      requireCondition(role==='supervisor' && profile!=='synthetic' && code && ['inference','egress'].includes(purpose),'AI_NATIVE_PIPE_CONFIGURATION_INVALID');
+      let data=Buffer.alloc(0);
+      if(command==='prepare'){
+        requireCondition(grant && Object.keys(grant).length===2 && hex(grant.bootId,64) && grant.bootId!=='0'.repeat(64) &&
+          /^[a-f0-9]{8}(?:-[a-f0-9]{4}){3}-[a-f0-9]{12}$/u.test(grant.operationId),'AI_NATIVE_PIPE_CONFIGURATION_INVALID');
+        data=Buffer.from(grant.bootId+grant.operationId.replaceAll('-',''),'hex');
+      }else requireCondition(grant===undefined,'AI_NATIVE_PIPE_CONFIGURATION_INVALID');
+      await request(code,purpose==='inference'?1:2,data,code+128);
+    },
     createServer(callback){requireCondition(typeof callback==='function','AI_NATIVE_PIPE_CONFIGURATION_INVALID');return new PipeServer(callback);},
     connect(path){
       const endpoint=endpointFor(path);

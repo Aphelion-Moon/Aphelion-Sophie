@@ -16,6 +16,7 @@ import { createAiSupervisorControlApi, createAiSupervisorControlService } from '
 import { provisionAiSupervisorJournal, openAiSupervisorJournal } from '../apps/ai-supervisor/journal.js';
 import { createAiSupervisorSlot } from '../apps/ai-supervisor/slot.js';
 import { createAiSupervisorWorkerSlot } from '../apps/ai-supervisor/worker-slot.js';
+import { createAiRelayController } from '../apps/ai-supervisor/relays.js';
 import { createAiEgressService } from '../apps/ai-egress/service.js';
 import { createAiEgressBridge } from '../apps/ai-egress/runtime.js';
 import { createAiWindowsLifecycle } from '../apps/core/runtime/ai-lifecycle.js';
@@ -28,6 +29,57 @@ import { createDeepSeekTransport } from '../apps/knowledge-worker/http-transport
 import { hash, inputs, deferred, engineFixture, json } from './fixtures/ai-supervisor.js';
 
 const native={skip:process.platform!=='win32',timeout:15000};
+
+test('DS04-C25 relay preparation is reserved before immediate quiesce and late grants are drained',async()=>{
+  const {identity,operationId}=inputs(),signal=new AbortController().signal,calls=[];
+  const pipes={signal,relayControl:async(...args)=>{calls.push(args);}};
+  const controller=createAiRelayController({pipes,signal,qualified:async()=>true});
+  const preparing=assert.rejects(controller.prepare({identity,operationId,signal}),/AI_RELAY_UNQUALIFIED/);
+  await controller.quiesce();await preparing;assert.deepEqual(calls,[]);
+  assert.equal(controller.current(identity,operationId),false);
+  assert.throws(()=>controller.prepare({identity,operationId,signal}),/AI_RELAY_GRANT_REUSED/);
+  const entered=deferred(),answer=deferred();let grants=0;
+  pipes.relayControl=async(command,purpose,grant)=>{
+    calls.push([command,purpose,grant]);
+    if(command==='prepare'){assert.deepEqual(Object.keys(grant).sort(),['bootId','operationId']);if(++grants===2)entered.resolve();await answer.promise;}
+  };
+  const next={identity:{...identity,bootId:hash()},operationId:randomUUID(),signal};
+  const pending=assert.rejects(controller.prepare(next),/AI_RELAY_UNAVAILABLE/);await entered.promise;
+  let stopped=false;const closing=controller.quiesce().then(()=>{stopped=true;});
+  await new Promise(resolve=>setImmediate(resolve));assert.equal(stopped,false);answer.resolve();await pending;await closing;
+  assert.deepEqual(calls.filter(([command])=>command==='quiesce').map(([,purpose])=>purpose).sort(),['egress','inference']);
+});
+
+test('DS04-C26 unconfirmed relay closure stays failed across repeated quiesce and blocks fresh grants',async()=>{
+  const {identity,operationId}=inputs(),signal=new AbortController().signal;
+  const controller=createAiRelayController({signal,qualified:async()=>true,pipes:{signal,async relayControl(command,purpose){
+    if(command==='quiesce' && purpose==='inference')throw Error('synthetic uncertain closure');
+  }}});
+  await controller.prepare({identity,operationId,signal});
+  await assert.rejects(controller.quiesce(),/AI_RELAY_STOP_UNCONFIRMED/);
+  await assert.rejects(controller.quiesce(),/AI_RELAY_STOP_UNCONFIRMED/);
+  assert.throws(()=>controller.prepare({identity:{...identity,bootId:hash()},operationId:randomUUID(),signal}),/AI_RELAY_BUSY/);
+});
+
+test('DS04-C27 stalled relay qualification cannot hold shutdown indefinitely or issue a late grant',{timeout:3000},async()=>{
+  const {identity,operationId}=inputs(),signal=new AbortController().signal,entered=deferred(),answer=deferred(),calls=[];
+  const controller=createAiRelayController({signal,pipes:{signal,relayControl:async(...args)=>{calls.push(args);}},qualified:()=>{entered.resolve();return answer.promise;}});
+  const pending=assert.rejects(controller.prepare({identity,operationId,signal}),/AI_RELAY_UNQUALIFIED/);await entered.promise;
+  await controller.quiesce();await pending;answer.resolve(true);await new Promise(resolve=>setImmediate(resolve));assert.deepEqual(calls,[]);
+});
+
+test('DS04-C28 a partial relay start drains both purposes before reporting failure',async()=>{
+  const {identity,operationId}=inputs(),signal=new AbortController().signal,entered=deferred(),physical=deferred(),stopped=[];
+  const controller=createAiRelayController({signal,qualified:async()=>true,pipes:{signal,async relayControl(command,purpose){
+    if(command==='start' && purpose==='egress')throw Error('synthetic start failure');
+    if(command==='quiesce'){stopped.push(purpose);if(stopped.length===2)entered.resolve();await physical.promise;}
+  }}});
+  await controller.prepare({identity,operationId,signal});let failed=false;
+  const starting=assert.rejects(controller.start({identity,operationId,signal}),/AI_RELAY_UNAVAILABLE/).then(()=>{failed=true;});
+  await entered.promise;assert.equal(controller.current(identity,operationId),false);
+  assert.equal(failed,false);physical.resolve();await starting;await controller.quiesce();
+  assert.deepEqual(stopped.sort(),['egress','inference']);
+});
 
 test('DS04-C23 relay readiness precedes create and physical quiescence fences reuse',native,async t=>{
   const entered=deferred(),ready=deferred(),closing=deferred(),closed=deferred();let active=false,armed=false,grant;

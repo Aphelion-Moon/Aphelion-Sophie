@@ -1,7 +1,8 @@
 import { requireCondition, requireKeys } from '../../contracts/validation.js';
 import { installationQualification } from '../installation/qualification.js';
 
-/** One fixed boot/purpose grant. This context deliberately has no application keys. */
+/** Persistent fixed-purpose control listener; each worker boot needs a fresh
+ * descriptor-authenticated supervisor grant. No application keys are present. */
 export function createInstalledRelayService({pipes,signal}) {
   const {owner,configuration}=pipes?.installation??{};
   requireCondition(pipes?.profile==='installed' && ['inference-relay','egress-relay'].includes(owner?.role) &&

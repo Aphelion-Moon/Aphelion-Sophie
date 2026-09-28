@@ -5,14 +5,14 @@ import { createAiSupervisorSlot } from './slot.js';
 import { createAiSupervisorWorkerSlot } from './worker-slot.js';
 import { createAiSupervisorControlService } from './control.js';
 import { installedRoleContext } from '../installation/context.js';
+import { createAiRelayController } from './relays.js';
 
 const base='C:\\Aphelion\\Sophie';
 export async function createInstalledSupervisorService({pipes,signal,onFault,relays,openJournal=openAiSupervisorJournal,createDocker=createAiDockerSlot}) {
   const {configuration,qualified,revocationSignal,keys}=installedRoleContext(pipes,'supervisor',signal);
   let journal,docker,slot;
   try {
-    // No implicit fallback to direct projection while the installed per-boot
-    // relay controller and its physical-close evidence are unavailable.
+    relays??=createAiRelayController({pipes,signal:revocationSignal,qualified});
     requireCondition(['prepare','start','current','quiesce'].every(name=>typeof relays?.[name]==='function'),'AI_RELAY_CONTROLLER_REQUIRED');
     const registration=configuration.registration;
     requireCondition(registration?.installationId===configuration.installationId && registration.imageId===configuration.qualification.imageId &&

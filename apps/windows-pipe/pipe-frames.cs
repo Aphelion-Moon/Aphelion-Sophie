@@ -15,7 +15,7 @@ namespace Sophie.WindowsPipe
     // Framing is only byte transport. It never parses application payloads, keys or JSON.
     internal sealed class PipeFrames
     {
-        internal const uint LocalSignature=0x53505031, PeerSignature=0x53505431;
+        internal const uint LocalSignature=0x53505031, PeerSignature=0x53505431, RelayControlSignature=0x53505231;
         private readonly NativePipe input,output;
         private readonly uint signature;
         private readonly SemaphoreSlim writer=new SemaphoreSlim(1,1);

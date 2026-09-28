@@ -34,6 +34,7 @@ namespace Sophie.WindowsPipe
         private readonly Dictionary<uint,Endpoint> endpoints=new Dictionary<uint,Endpoint>();
         private readonly Dictionary<uint,Connection> connections=new Dictionary<uint,Connection>();
         private readonly List<Task> operations=new List<Task>();
+        private readonly Dictionary<uint,RelayControlClient> relays=new Dictionary<uint,RelayControlClient>();
         private uint nextAccepted=0x80000000, lastOutbound;
         private bool stopping;
         internal Companion(PipeProfile profile,PipeFrames local,CancellationToken parent)
@@ -58,7 +59,8 @@ namespace Sophie.WindowsPipe
                 code==4 && id>0 && id<0x80000000 && length==4 ||
                 code==5 && id>0 && length>0 && length<=65536 ||
                 code==6 && id>0 && length==4 || (code==7 || code==8) && id>0 && length==0 ||
-                code==9 && id==0 && length==0 || code==10 && id>0 && length==0;
+                code==9 && id==0 && length==0 || code==10 && id>0 && length==0 ||
+                code>=12 && code<=15 && id>=1 && id<=2 && length==(code==12?48:0);
             if(!valid)throw new IOException("PIPE_COMMAND_INVALID");
             return Task.FromResult(true);
         }
@@ -78,13 +80,14 @@ namespace Sophie.WindowsPipe
             }
             catch(Exception error) { failure=error; }
             {
-                Endpoint[] registered;Task[] pending;
-                lock(gate){stopping=true;registered=new List<Endpoint>(endpoints.Values).ToArray();pending=new List<Task>(operations).ToArray();}
+                Endpoint[] registered;Task[] pending;RelayControlClient[] controlled;
+                lock(gate){stopping=true;registered=new List<Endpoint>(endpoints.Values).ToArray();pending=new List<Task>(operations).ToArray();controlled=new List<RelayControlClient>(relays.Values).ToArray();}
                 // Keep complete local frames on requested shutdown. Each publish has
                 // its own bound; a broken/cancelled frame permanently poisons output.
                 if(!requested)lifetime.Cancel();
                 foreach(var endpoint in registered)endpoint.Lifetime.Cancel();
                 var cleanup=new List<Task>();
+                foreach(var relay in controlled)cleanup.Add(relay.Close());
                 foreach(var endpoint in registered)cleanup.Add(Remove(endpoint));
                 cleanup.AddRange(pending);
                 try { await Task.WhenAll(cleanup).ConfigureAwait(false); } catch { }
@@ -126,6 +129,28 @@ namespace Sophie.WindowsPipe
             lock(gate)
             {
                 if(stopping)throw new IOException("PIPE_STOPPED");
+                if(frame.Code>=12 && frame.Code<=15)
+                {
+                    var spec=profile.RelayControl(frame.Id);
+                    if(!spec.CanConnect)throw new IOException("PIPE_ROLE_DENIED");
+                    RelayControlClient relay;
+                    if(frame.Code==12)
+                    {
+                        if(relays.ContainsKey(frame.Id))throw new IOException("PIPE_RELAY_BUSY");
+                        try{relay=new RelayControlClient(spec,profile.RelayBinding(),lifetime.Token);}
+                        catch{Track(()=>Send((byte)(frame.Code+128),frame.Id,new byte[]{1}));return;}
+                        relays.Add(frame.Id,relay);
+                    }
+                    else if(!relays.TryGetValue(frame.Id,out relay))
+                    {Track(()=>Send((byte)(frame.Code+128),frame.Id,new byte[]{1}));return;}
+                    Track(async()=>{
+                        bool failed=false;
+                        try{await relay.Execute(frame.Code==15?(byte)9:(byte)(frame.Code-11),frame.Data).ConfigureAwait(false);}catch{failed=true;}
+                        if(failed)await relay.Close().ConfigureAwait(false);
+                        if(failed || frame.Code==15)lock(gate)relays.Remove(frame.Id);
+                        await Send((byte)(frame.Code+128),frame.Id,failed?new byte[]{1}:new byte[0]).ConfigureAwait(false);
+                    });return;
+                }
                 if(frame.Code==1)
                 {
                     if(endpoints.ContainsKey(frame.Id) || endpoints.Count>=4)throw new IOException("PIPE_ENDPOINT_LIMIT");
@@ -223,7 +248,7 @@ namespace Sophie.WindowsPipe
                         lock(gate)if(Count(endpoint)<endpoint.Spec.Limit)break;
                         await endpoint.SlotFreed.WaitAsync(endpoint.Lifetime.Token).ConfigureAwait(false);
                     }
-                    await endpoint.Pending.AcceptAsync(endpoint.Lifetime.Token).ConfigureAwait(false);
+                    await endpoint.Pending.AcceptAsync(endpoint.Lifetime.Token,true).ConfigureAwait(false);
                     accepted=endpoint.Pending;
                     // Keep an owned instance alive across every accept/rejection.
                     endpoint.Pending=NativePipe.Listen(endpoint.Spec.Name,endpoint.Spec.OwnerSid,endpoint.Spec.PeerSid,endpoint.Spec.Limit+1,false);

@@ -1,5 +1,15 @@
 # Verification and release limits
 
+## Installed relay controller — 28 September 2026
+
+Installed per-boot relay control is implemented: distinct private supervisor control pipes authenticate relay owners and the supervisor using OS descriptors; native grants bind installation, worker, release, profile, evidence, boot and operation. Persistent relay processes accept fresh boots after confirmed quiescence. Partial startup failure drains both purposes, qualification is bounded, and uncertain closure remains failed. No Windows host restart is part of this workflow.
+
+Pinned host C# build and four native boundary groups passed. Five native-controller groups passed: two fresh boots through unchanged relay processes, repeated sessions, heartbeat, physical closure, unexpected disconnect, supervisor loss, native consumed-boot rejection and native heartbeat expiry. Actual application composition passed encrypted control/wrong-key denial, probe and two metered synthetic localhost-TLS replies plus confirmed cleanup. Six focused lifecycle tests DS04-C23 through C28 passed, as did v3 profile checks and repository validation. Earlier diagnostic failures are preserved and their source causes corrected.
+
+The source-bound record is `GitHub/.agent_docs/aphelion-sophie/relay-control-verification.json`; detailed limits and preserved logs are in `windows-relay-control/implementation.md`. This checkpoint supersedes the earlier missing-controller blocker. It does not qualify distinct installed identities or the guest helper/HCS projection. No full suite, service start/install, permission/firewall change, container, external provider/Discord request or host reboot occurred.
+
+Separately authorize and qualify the exact two relay service identities, filesystem/process/private-pipe/network boundaries, then the changed guest build/public HCS projection and installed composition. Provider/account clearance, publication/actual-answer review and remaining AI acceptance gates still precede Test Discord Server activation. No installed qualification receipt or production readiness is implied by local synthetic checks.
+
 ## Graceful relay reuse — 28 September 2026
 
 Owner-approved graceful same-worker-boot reuse is implemented. Each relay retains its single first-instance listener across fully drained sessions; faults terminate that relay. Successful inference exchanges now finish through an explicit bounded graceful-close path; cancellation and malformed traffic still abort. Windows host restarts are prohibited by this workflow.

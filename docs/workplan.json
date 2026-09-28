@@ -1,6 +1,6 @@
 {
   "schema_version": 2,
-  "revision": "2026-09-28-relay-graceful-reuse",
+  "revision": "2026-09-28-relay-installed-controller",
   "reference_plan_version": "1.1",
   "source": "Sophie-Implementation-Plans-v1.1/backlog.json",
   "owner_decisions": "docs/decisions/0001-owner-policy.md",
@@ -1339,7 +1339,7 @@
   "checkpoint": {
     "summary": "Deterministic administration, Whitelist onboarding, protected editors, role/permission configuration and the configurable staging host are implemented.",
     "recorded_baseline": "AI handoff 0fa7a5ed538ff791e3def2c1f6ac7683531e15a1 plus preserved uncommitted Flash candidate; synthetic schema058 candidate. No live schema change.",
-    "current_work": "Owner-approved graceful same-worker-boot reuse is implemented. Each relay retains its single first-instance listener across fully drained sessions; faults terminate that relay. Successful inference exchanges now finish through an explicit bounded graceful-close path; cancellation and malformed traffic still abort. Windows host restarts are prohibited by this workflow. Complete the installed per-boot relay controller and independently authenticated dynamic grants, without rewriting static owner profiles or restarting the Windows host. Then prepare the exact two-service/account/ACL/network installation for separate operational authorization and actual-identity qualification. Installed activation still fails closed without a controller. Provider/account clearance, publication/actual-answer review, remaining AI acceptance gates and Test Discord Server deployment remain open.",
+    "current_work": "Installed per-boot relay control is implemented: distinct private supervisor control pipes authenticate relay owners and the supervisor using OS descriptors; native grants bind installation, worker, release, profile, evidence, boot and operation. Persistent relay processes accept fresh boots after confirmed quiescence. Partial startup failure drains both purposes, qualification is bounded, and uncertain closure remains failed. No Windows host restart is part of this workflow. Separately authorize and qualify the exact two relay service identities, filesystem/process/private-pipe/network boundaries, then the changed guest build/public HCS projection and installed composition. Provider/account clearance, publication/actual-answer review and remaining AI acceptance gates still precede Test Discord Server activation. No installed qualification receipt or production readiness is implied by local synthetic checks.",
     "evidence_note": "Current source-bound offline results are in docs/verification.md and the external deepseek-verification.json index. Earlier administration, local model and Flash trial results remain historical; none grants present deployment approval."
   },
   "milestones": [
@@ -2589,11 +2589,22 @@
       "implemented": "Owner-approved graceful same-worker-boot reuse is implemented. Each relay retains its single first-instance listener across fully drained sessions; faults terminate that relay. Successful inference exchanges now finish through an explicit bounded graceful-close path; cancellation and malformed traffic still abort. Windows host restarts are prohibited by this workflow.",
       "evidence": "Pinned native build passed. Five native transport groups passed, including three sequential sessions per purpose in unchanged helper/worker identities, final-byte drain, idle/backpressured stop, capacity denial and no reconnect after failure. Native malformed-frame/profile checks passed. The existing application protocol fixture, adapted to both relays, passed a probe and two metered synthetic localhost-TLS replies plus confirmed cleanup. All 19 IPC tests passed, including added EOF-before-write-ack and stalled-drain regressions. Earlier failing composition and cancellation checks are retained; their source causes were fixed, not waived.",
       "remaining": "Complete the installed per-boot relay controller and independently authenticated dynamic grants, without rewriting static owner profiles or restarting the Windows host. Then prepare the exact two-service/account/ACL/network installation for separate operational authorization and actual-identity qualification. Installed activation still fails closed without a controller. Provider/account clearance, publication/actual-answer review, remaining AI acceptance gates and Test Discord Server deployment remain open."
+    },
+    {
+      "title": "Installed per-boot relay controller and bounded physical closure",
+      "tasks": [
+        "P22",
+        "P23",
+        "P24"
+      ],
+      "implemented": "Installed per-boot relay control is implemented: distinct private supervisor control pipes authenticate relay owners and the supervisor using OS descriptors; native grants bind installation, worker, release, profile, evidence, boot and operation. Persistent relay processes accept fresh boots after confirmed quiescence. Partial startup failure drains both purposes, qualification is bounded, and uncertain closure remains failed. No Windows host restart is part of this workflow.",
+      "evidence": "Pinned host C# build and four native boundary groups passed. Five native-controller groups passed: two fresh boots through unchanged relay processes, repeated sessions, heartbeat, physical closure, unexpected disconnect, supervisor loss, native consumed-boot rejection and native heartbeat expiry. Actual application composition passed encrypted control/wrong-key denial, probe and two metered synthetic localhost-TLS replies plus confirmed cleanup. Six focused lifecycle tests DS04-C23 through C28 passed, as did v3 profile checks and repository validation. Earlier diagnostic failures are preserved and their source causes corrected.",
+      "remaining": "Separately authorize and qualify the exact two relay service identities, filesystem/process/private-pipe/network boundaries, then the changed guest build/public HCS projection and installed composition. Provider/account clearance, publication/actual-answer review and remaining AI acceptance gates still precede Test Discord Server activation. No installed qualification receipt or production readiness is implied by local synthetic checks."
     }
   ],
   "next_steps": [
     {
-      "title": "Complete installed per-boot relay controller",
+      "title": "Authorize and qualify actual relay identities",
       "tasks": [
         "P21",
         "P22",
@@ -2601,8 +2612,8 @@
         "P24",
         "P25"
       ],
-      "work": "Complete the installed per-boot relay controller and independently authenticated dynamic grants, without rewriting static owner profiles or restarting the Windows host. Then prepare the exact two-service/account/ACL/network installation for separate operational authorization and actual-identity qualification. Installed activation still fails closed without a controller. Provider/account clearance, publication/actual-answer review, remaining AI acceptance gates and Test Discord Server deployment remain open.",
-      "exit_evidence": "Complete source-bound controller and composition evidence, then separately authorized installed qualification and remaining Test Discord Server AI gates."
+      "work": "Separately authorize and qualify the exact two relay service identities, filesystem/process/private-pipe/network boundaries, then the changed guest build/public HCS projection and installed composition. Provider/account clearance, publication/actual-answer review and remaining AI acceptance gates still precede Test Discord Server activation. No installed qualification receipt or production readiness is implied by local synthetic checks.",
+      "exit_evidence": "Actual service identity, private pipe, filesystem, process, network and lifecycle evidence before separate container/public projection qualification and AI activation."
     },
     {
       "title": "Privately verify deployed configuration and apply workflow",
@@ -2746,7 +2757,7 @@
           "SAI-05",
           "SAI-14"
         ],
-        "remaining": "Complete the installed per-boot relay controller and independently authenticated dynamic grants, without rewriting static owner profiles or restarting the Windows host. Then prepare the exact two-service/account/ACL/network installation for separate operational authorization and actual-identity qualification. Installed activation still fails closed without a controller. Provider/account clearance, publication/actual-answer review, remaining AI acceptance gates and Test Discord Server deployment remain open."
+        "remaining": "Separately authorize and qualify the exact two relay service identities, filesystem/process/private-pipe/network boundaries, then the changed guest build/public HCS projection and installed composition. Provider/account clearance, publication/actual-answer review and remaining AI acceptance gates still precede Test Discord Server activation. No installed qualification receipt or production readiness is implied by local synthetic checks."
       },
       {
         "id": "DS-05",
@@ -2804,7 +2815,7 @@
           "SAI-07",
           "SAI-14"
         ],
-        "remaining": "Complete the installed per-boot relay controller and independently authenticated dynamic grants, without rewriting static owner profiles or restarting the Windows host. Then prepare the exact two-service/account/ACL/network installation for separate operational authorization and actual-identity qualification. Installed activation still fails closed without a controller. Provider/account clearance, publication/actual-answer review, remaining AI acceptance gates and Test Discord Server deployment remain open."
+        "remaining": "Separately authorize and qualify the exact two relay service identities, filesystem/process/private-pipe/network boundaries, then the changed guest build/public HCS projection and installed composition. Provider/account clearance, publication/actual-answer review and remaining AI acceptance gates still precede Test Discord Server activation. No installed qualification receipt or production readiness is implied by local synthetic checks."
       },
       {
         "id": "DS-10",

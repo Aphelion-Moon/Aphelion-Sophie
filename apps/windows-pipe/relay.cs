@@ -123,14 +123,18 @@ namespace Sophie.WindowsPipe
                     await local.Send(138,0,new byte[0],timeout.Token).ConfigureAwait(false);
             }
         }
-        private static async Task Serve(NativePipe front,EndpointSpec back,CancellationToken signal)
+        internal static async Task Serve(NativePipe front,EndpointSpec back,CancellationToken signal)
         {
             for(;;)
             {
                 signal.ThrowIfCancellationRequested();
                 await front.AcceptAsync(signal).ConfigureAwait(false);
-                using(var target=NativePipe.Connect(back.Name,back.OwnerSid,back.PeerSid))
-                    await new RelaySession(front,target).Run(signal).ConfigureAwait(false);
+                using(var session=CancellationTokenSource.CreateLinkedTokenSource(signal))
+                {
+                    session.CancelAfter(60000);
+                    using(var target=await NativePipe.ConnectAvailable(back.Name,back.OwnerSid,back.PeerSid,session.Token).ConfigureAwait(false))
+                        await new RelaySession(front,target).Run(session.Token).ConfigureAwait(false);
+                }
                 // Only successful, physically disconnected sessions reach here.
                 // Any fault escapes to Run, closes the listener and revokes reuse.
             }

@@ -20,8 +20,10 @@ namespace Sophie.WindowsPipe
             try
             {
                 string role=args[1],trust=role=="worker"?@"C:\sophie-trust":@"C:\Aphelion\Sophie\trust";
-                SourceRoot=role=="worker"?@"C:\sophie":@"C:\Aphelion\Sophie\package\source";
-                RuntimeRoot=role=="worker"?@"C:\node":@"C:\Aphelion\Sophie\package\runtime";
+                string package=role=="inference-relay"?@"C:\Aphelion\Sophie\relays\inference\package":
+                    role=="egress-relay"?@"C:\Aphelion\Sophie\relays\egress\package":@"C:\Aphelion\Sophie\package";
+                SourceRoot=role=="worker"?@"C:\sophie":package+@"\source";
+                RuntimeRoot=role=="worker"?@"C:\node":package+@"\runtime";
                 files.Root(trust);
                 var owner=files.Open(trust,role+".profile",8192);
                 if(ProtectedFiles.Hash(owner)!=args[5])throw new IOException("PIPE_OWNER_CHANGED");
@@ -71,7 +73,7 @@ namespace Sophie.WindowsPipe
             }
             if(values.Count!=names.Length)throw new IOException("PIPE_OWNER_INVALID");
             foreach(string name in names)if(!values.ContainsKey(name))throw new IOException("PIPE_OWNER_INVALID");
-            if(values["version"]!="2" || !Regex.IsMatch(values["role"],"^(supervisor|core|egress|worker|inference-relay|egress-relay)$"))throw new IOException("PIPE_OWNER_INVALID");
+            if(values["version"]!="3" || !Regex.IsMatch(values["role"],"^(supervisor|core|egress|worker|inference-relay|egress-relay)$"))throw new IOException("PIPE_OWNER_INVALID");
             foreach(string name in new[]{"installation","worker","release","profile","evidence","manifest","configuration"})
                 if(!Regex.IsMatch(values[name],"^[a-f0-9]{64}$") || values[name]==new string('0',64))throw new IOException("PIPE_OWNER_INVALID");
             foreach(string name in new[]{"userSid","supervisorSid","coreSid","egressSid","inferenceRelaySid","egressRelaySid","projectionSid","guestSid"})CanonicalSid(values[name]);
@@ -81,7 +83,7 @@ namespace Sophie.WindowsPipe
             foreach(string name in new[]{"supervisorSid","coreSid","egressSid","inferenceRelaySid","egressRelaySid","projectionSid","guestSid"})
             {if(identities.ContainsKey(values[name]))throw new IOException("PIPE_OWNER_IDENTITY_OVERLAP");identities.Add(values[name],true);}
             bool relay=values["role"]=="inference-relay" || values["role"]=="egress-relay";
-            if(!Regex.IsMatch(values["boot"],"^[a-f0-9]{64}$") || (relay?values["boot"]==new string('0',64):values["boot"]!=new string('0',64)))throw new IOException("PIPE_BOOT_INVALID");
+            if(values["boot"]!=new string('0',64))throw new IOException("PIPE_BOOT_INVALID");
             if(values["role"]=="worker")
             {if(values["serviceSid"]!="-" || values["userSid"]!=values["guestSid"])throw new IOException("PIPE_OWNER_INVALID");}
             else if(values["serviceSid"]!=values[values["role"]=="inference-relay"?"inferenceRelaySid":values["role"]=="egress-relay"?"egressRelaySid":values["role"]+"Sid"])throw new IOException("PIPE_OWNER_INVALID");

@@ -623,3 +623,19 @@ worker. A fresh worker boot means replacing Sophie's isolated worker container;
 it never means rebooting Windows or altering existing game services. No Windows
 host restart is authorized. The original proposal bytes and failed HCS evidence
 remain preserved. Local source/synthetic scope and operational gates are unchanged.
+
+### Relay controller implementation checkpoint — 28 September 2026
+
+Installed per-boot relay control is implemented: distinct private supervisor control pipes authenticate relay owners and the supervisor using OS descriptors; native grants bind installation, worker, release, profile, evidence, boot and operation. Persistent relay processes accept fresh boots after confirmed quiescence. Partial startup failure drains both purposes, qualification is bounded, and uncertain closure remains failed. No Windows host restart is part of this workflow.
+
+Static installed owner profiles are version 3 with a zero boot placeholder; the
+worker receives its real boot through the existing bootstrap contract. Private
+relay control receives independently fixed release bindings and a fresh boot and
+operation, never application keys. Successful drained exchanges may reuse a boot;
+faults require a fresh worker boot. The 4,096-grant per-process replay budget fails
+closed when exhausted. Operator renewal may restart only Sophie service processes;
+no host reboot, automatic SCM restart or game-service change is authorized.
+Qualification expiry remains at most 24 hours. Per-purpose package roots allow
+independent network policy without blocking the egress application runtime.
+
+Separately authorize and qualify the exact two relay service identities, filesystem/process/private-pipe/network boundaries, then the changed guest build/public HCS projection and installed composition. Provider/account clearance, publication/actual-answer review and remaining AI acceptance gates still precede Test Discord Server activation. No installed qualification receipt or production readiness is implied by local synthetic checks. See `GitHub/.agent_docs/aphelion-sophie/windows-relay-control/operational-proposal.md`. This checkpoint does not expand operational authorization.

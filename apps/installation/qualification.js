@@ -10,7 +10,7 @@ export function installationQualification({configuration,owner},signal,clock=Dat
   const release=canonicalAiWorkerRelease(configuration.release),report=configuration.qualification;
   requireKeys(report,['installationId','releaseHash','profileHash','imageId','expiresAt','checks'],'AI_INSTALLATION_UNQUALIFIED');
   requireKeys(report.checks,installationChecks,'AI_INSTALLATION_UNQUALIFIED');
-  requireCondition(owner.version==='2' && signal instanceof AbortSignal && report.installationId===owner.installation && report.releaseHash===release.releaseHash &&
+  requireCondition(owner.version==='3' && signal instanceof AbortSignal && report.installationId===owner.installation && report.releaseHash===release.releaseHash &&
     report.profileHash===release.profileHash && /^sha256:[a-f0-9]{64}$/u.test(report.imageId) &&
     Number.isSafeInteger(report.expiresAt) && report.expiresAt===Number(owner.expires) &&
     installationChecks.every(name=>/^[a-f0-9]{64}$/u.test(report.checks[name]) && report.checks[name]!=='0'.repeat(64)) &&

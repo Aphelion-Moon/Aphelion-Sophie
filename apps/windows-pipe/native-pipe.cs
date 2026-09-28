@@ -17,7 +17,7 @@ namespace Sophie.WindowsPipe
     internal sealed class NativePipe : IDisposable
     {
         internal const uint ClientAccess = 0x00120183;
-        private const int Pending = 997, Connected = 535, Aborted = 995, Broken = 109, NoData = 232;
+        private const int Pending = 997, Connected = 535, Aborted = 995, Broken = 109, NoData = 232, NotConnected = 233;
         private readonly SafeFileHandle handle;
         private readonly SafeFileHandle completionPort;
         private readonly int direction;
@@ -94,13 +94,31 @@ namespace Sophie.WindowsPipe
 
         internal static void RequireName(string name)
         {
-            if (name == null || !Regex.IsMatch(name, @"^\\\\\.\\pipe\\sophie-ai-(?:test-[a-f0-9]{32}|control-(?:core|egress)-[a-f0-9]{64}|(?:(?:private|relay)-)?(?:inference|egress)-[a-f0-9]{64}-[a-f0-9]{64})$"))
+            if (name == null || !Regex.IsMatch(name, @"^\\\\\.\\pipe\\sophie-ai-(?:test-[a-f0-9]{32}|control-(?:core|egress|inference-relay|egress-relay)-[a-f0-9]{64}|(?:(?:private|relay)-)?(?:inference|egress)-[a-f0-9]{64}-[a-f0-9]{64})$"))
                 throw new ArgumentException("PIPE_NAME_INVALID");
+        }
+
+        internal static async Task<NativePipe> ConnectAvailable(string name,string owner,string peer,CancellationToken signal)
+        {
+            using(var timeout=CancellationTokenSource.CreateLinkedTokenSource(signal))
+            {
+                timeout.CancelAfter(500);
+                for(;;)
+                {
+                    timeout.Token.ThrowIfCancellationRequested();
+                    try{return Connect(name,owner,peer);}
+                    catch(Win32Exception error){if(error.NativeErrorCode!=231)throw;}
+                    // No handle or bytes exist on ERROR_PIPE_BUSY. Allow the
+                    // private listener to retire its metadata probe, within the
+                    // same session deadline; never retry a connected/faulted stream.
+                    await Task.Delay(10,timeout.Token).ConfigureAwait(false);
+                }
+            }
         }
 
         // Supervisor control pipes retain their existing service-SID descriptor.
         // Only the new data boundary uses actual virtual-account object owners.
-        private static bool ExactOwner(string name){return !name.StartsWith(@"\\.\pipe\sophie-ai-control-",StringComparison.Ordinal);}
+        private static bool ExactOwner(string name){return !Regex.IsMatch(name,@"^\\\\\.\\pipe\\sophie-ai-control-(core|egress)-");}
 
         internal static void VerifyEndpoint(string name,string owner,string peer)
         {
@@ -114,10 +132,23 @@ namespace Sophie.WindowsPipe
             }
         }
 
-        internal async Task AcceptAsync(CancellationToken cancellation)
+        internal async Task AcceptAsync(CancellationToken cancellation,bool discardAbandoned=false)
         {
-            await Start(0, null, cancellation).ConfigureAwait(false);
-            lock (gate) { if (stopped) throw new OperationCanceledException(); connected = true; }
+            for(int abandoned=0;;abandoned++)
+            {
+                int result=await Start(0,null,cancellation).ConfigureAwait(false);
+                lock(gate)
+                {
+                    if(stopped)throw new OperationCanceledException();
+                    if(result>=0){connected=true;return;}
+                    // A metadata-only verifier can close before ConnectNamedPipe
+                    // observes it. Private application listeners may discard that
+                    // unauthenticated connection without surrendering ownership.
+                    if(!discardAbandoned || abandoned>=7)throw new IOException("PIPE_CLOSED");
+                    if(!Native.DisconnectNamedPipe(handle))throw Failure("PIPE_DISCONNECT");
+                    accepting=null;
+                }
+            }
         }
         internal Task<int> ReadAsync(byte[] buffer, CancellationToken cancellation) { return Start(1, buffer, cancellation); }
         internal Task<int> WriteAsync(byte[] buffer, CancellationToken cancellation) { return Start(2, buffer, cancellation); }
@@ -159,7 +190,7 @@ namespace Sophie.WindowsPipe
                     int error = immediate ? 0 : Marshal.GetLastWin32Error();
                     if (!immediate && !(operation == 0 && error == Connected))
                     {
-                        if (error == Broken || error == NoData) { if (operation == 1) return 0; throw new IOException("PIPE_CLOSED"); }
+                        if (error == Broken || error == NoData || error==NotConnected) { if (operation == 1) return 0; if(operation==0 && error==NoData)return -1;throw new IOException("PIPE_CLOSED"); }
                         if (error != Pending) throw new Win32Exception(error, "PIPE_IO_FAILED");
                         Interlocked.Increment(ref pendingIo); pending = true;
                         // Register after issuing I/O: an already-cancelled token must cancel this operation,
@@ -171,7 +202,7 @@ namespace Sophie.WindowsPipe
                             {
                                 error = Marshal.GetLastWin32Error();
                                 if (error == Aborted) throw new OperationCanceledException();
-                                if (operation == 1 && (error == Broken || error == NoData)) return 0;
+                                if (operation == 1 && (error == Broken || error == NoData || error==NotConnected)) return 0;
                                 throw new Win32Exception(error, "PIPE_IO_FAILED");
                             }
                         }
