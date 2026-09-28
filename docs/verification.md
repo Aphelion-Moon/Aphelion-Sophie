@@ -1,5 +1,15 @@
 # Verification and release limits
 
+## Authorized Windows trial: guest runtime gate — 28 September 2026
+
+Owner approved the exact synthetic Windows trial and WinSW bundle scope. The pinned worker source/runtime/helper package built into an actual Windows image; one bounded Hyper-V runtime probe executed. No application source changed.
+
+Host compiler/Framework/Node and WinSW hashes matched. ContainerUser executed approved Node 24.19.0 in a four-CPU/eight-GiB Hyper-V container with network none, no mounts and no published ports. Guest Framework release 528449 differs from the host-pinned 533325; helper startup correctly rejected with PIPE_START_FAILED_1:PIPE_RUNTIME_CHANGED. Owned container removal and absence confirmed. No services, installation root/ACLs or existing data changed.
+
+The image is `sha256:57d72d3461ba88d96c995225e5ba5c8b2fd1af964b86f11bb4bfe0f299930b15`, built from source candidate `d2187602a07a5f942d447afed5cdc77c306adee0` and the previously approved pinned Server Core base. The recorded failure is the helper's exact-runtime guard; pipe/API compatibility on the guest remains untested. Framework64 file hashes were collected; the initial probe did not hash the separate GAC System path. No Microsoft binaries were copied, no Framework upgrade was installed, and no provider/Discord request was made. The image is retained for diagnosis; the one runtime container is removed. No application suite was rerun for these approval/evidence-only repository edits.
+
+The approved trial stopped at its first incompatible runtime boundary. Review GitHub/.agent_docs/aphelion-sophie/windows-installation-trial-2026-09-28/runtime-amendment.md for the exact bundled guest Framework 4.8/compiler exception. WinSW and the named service/ACL trial are already approved; do not ask again. After a qualified guest build, resume service tokens, protected files, HCS masks, mount/credential isolation, physical termination and uncertain-create qualification. Provider/account, publication/actual-answer, preference-journal and Discord gates remain open. Report: `GitHub/.agent_docs/aphelion-sophie/windows-installation-trial-verification.json`. Field-test and production readiness remain false. The preceding helper/package evidence remains bound to its original source candidate.
+
 ## Installed profiles and role composition — 28 September 2026
 
 Fixed installed profiles validate independent protected owner records, retained file handles, source/runtime manifests, parent/service identities and expiring authority. Core, supervisor, egress and worker payloads compose the native adapter; core isolates database readers and replaces lifecycle ownership on configuration Apply. Worker trust uses a separate read-only mount. Control proof binding now tolerates readiness before native write acknowledgement.

@@ -1,0 +1,24 @@
+{
+  "name": "Bounded synthetic Windows installation trial",
+  "approvedOn": "2026-09-28",
+  "authorization": "Owner replied 'You may proceed.' to the scoped Windows trial and exact WinSW exception request.",
+  "proposal": "GitHub/.agent_docs/aphelion-sophie/windows-pipe-installation/operational-trial-proposal.md",
+  "proposalSha256": "d74129293d456e345b56ad15d50401e07c513f31feee5bb70b0fc1b125708afe",
+  "sourceCandidate": "d2187602a07a5f942d447afed5cdc77c306adee0",
+  "wrapper": {
+    "name": "WinSW.NET461.exe",
+    "version": "2.12.0",
+    "sha256": "b5066b7bbdfba1293e5d15cda3caaea88fbeab35bd5b38c41c913d492aadfc4f",
+    "components": ["MIT WinSW 2.12.0", "MIT YamlDotNet 8.1.2", "Apache-2.0 log4net 2.0.12"],
+    "scope": "Exact private, Manual-start synthetic trial bundle; retained notices and existing security review apply. No blanket dependency exception."
+  },
+  "services": ["aphelion-bot", "aphelion-bot-ai-supervisor", "aphelion-bot-ai-egress"],
+  "newDedicatedRoot": "C:\\ProgramData\\Aphelion\\Sophie",
+  "containerBase": "mcr.microsoft.com/windows/servercore@sha256:e10503b9a4f7faafa30aa0f5d0e8e7f7ca30a4496b3b87d61178b4d7c6815fb5",
+  "containerLimits": {"isolation": "hyperv", "network": "none", "cpus": 4, "memoryBytes": 8589934592},
+  "permissions": "Provision only the new dedicated tree and named Manual/stopped trial services. Preserve existing paths, shared ancestors and Engine DACL. Use synthetic values and isolated databases only.",
+  "stopCondition": "Stop at the first incompatible OS/runtime boundary; do not copy Microsoft Framework binaries or substitute unapproved versions.",
+  "excluded": ["paid provider requests", "real Discord messages or main guild activation", "production database changes", "game-service changes", "reboot", "firewall weakening", "host runtime replacement", "image redistribution", "broad cleanup"],
+  "fieldTestReady": false,
+  "productionReady": false
+}

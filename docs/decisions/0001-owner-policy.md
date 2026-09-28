@@ -484,3 +484,22 @@ deployment; it does not approve WinSW, NuGet dependencies or redistribution of
 Microsoft runtime/compiler files. Actual service identities, installed-file
 protection, worker-image compatibility and Hyper-V mapping remain operational
 qualification gates. The proposal's source review is not a runtime test pass.
+
+### Scoped Windows installation trial — 28 September 2026
+
+The owner replied “You may proceed” to the request for the scoped Windows trial
+and exact WinSW exception in
+`GitHub/.agent_docs/aphelion-sophie/windows-pipe-installation/operational-trial-proposal.md`
+(SHA-256 `d74129293d456e345b56ad15d50401e07c513f31feee5bb70b0fc1b125708afe`).
+`legal/windows-installation-trial.json` records the named Manual trial services,
+dedicated paths, existing pinned Server Core base, Hyper-V resource/network limits,
+and exact private WinSW 2.12.0 NET461 bundle, including Apache-2.0 log4net 2.0.12
+and MIT YamlDotNet 8.1.2. Its retained licence/security review still applies.
+
+This extends the earlier local-helper approval only for the proposed synthetic
+installation trial. Preserve pre-existing services, paths, shared ancestor and
+Engine permissions. Stop at the first incompatible OS/runtime boundary; no
+Framework binary copying, version substitution or host runtime replacement is
+authorized. Paid requests, real Discord/main-guild activity, production databases,
+game-service changes, reboot, firewall weakening and redistribution remain
+excluded. Approval permits the trial; it does not establish operational readiness.
