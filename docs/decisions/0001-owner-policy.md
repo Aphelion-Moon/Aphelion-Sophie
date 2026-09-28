@@ -465,3 +465,22 @@ its components, TypeScript/SQLite application tooling, future runtime versions,
 host replacement, service/ACL changes, container provisioning, redistribution
 or deployment. Keep the vendor LICENSE and supplemental notices with each
 private runtime copy. Node 24.21.0 remains an unselected maintenance candidate.
+
+### Fixed Windows pipe companion — 28 September 2026
+
+The owner explicitly approved the Windows helper proposal at
+`GitHub/.agent_docs/aphelion-sophie/windows-pipe-companion/proposal.md`, SHA-256
+`1ba4de7a88c711ed5b9973870a5cc76da715a01f3f222a8a97e6233cb605c6e9`.
+This permits an original MIT C# pipe companion and the named installed Microsoft
+.NET Framework 4.8.1/compiler 4.8.9236.0 for local builds and bounded synthetic
+qualification, including explicit permissions on newly created test pipes.
+The exact installed inputs and exclusions are recorded in
+`legal/windows-pipe-toolchain.json`. JavaScript retains application policy,
+authorization, encrypted protocols, accounting and provider interaction.
+
+This is a narrow language/toolchain exception. It does not authorize changes to
+existing permissions, accounts, services, installed software, containers or
+deployment; it does not approve WinSW, NuGet dependencies or redistribution of
+Microsoft runtime/compiler files. Actual service identities, installed-file
+protection, worker-image compatibility and Hyper-V mapping remain operational
+qualification gates. The proposal's source review is not a runtime test pass.

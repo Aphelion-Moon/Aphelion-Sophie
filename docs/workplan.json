@@ -1,6 +1,6 @@
 {
   "schema_version": 2,
-  "revision": "2026-09-28-runtime-export",
+  "revision": "2026-09-28-native-capacity",
   "reference_plan_version": "1.1",
   "source": "Sophie-Implementation-Plans-v1.1/backlog.json",
   "owner_decisions": "docs/decisions/0001-owner-policy.md",
@@ -2435,6 +2435,17 @@
       "implemented": "Owner approved the exact Node 24.19.0 Windows x64 executable and original bundled notices for private packaging and synthetic qualification",
       "evidence": "Official archive/executable hashes and valid OpenJS signature verified; original aggregate plus seven supplemental notices retained. Static PE imports inspected. No host runtime replacement, container build, service/ACL change or operational qualification.",
       "remaining": "Exact Windows pipe creation/client-access adapter and its implementation/toolchain scope remain open, followed by fixed service entrypoints and trusted installation checks. Service identities/ACLs, mounts/credentials, Hyper-V communication, actual Node/image compatibility, physical termination and unresolved-create disposition require qualification. Database-coordinator/installed-service and Discord acceptance remain open."
+    },
+    {
+      "title": "Native pipe primitives and accounting capacity",
+      "tasks": [
+        "P22",
+        "P23",
+        "P24"
+      ],
+      "implemented": "Recorded owner C#/.NET approval, implemented protected Windows pipe and explicit-rights client primitives with owned overlapped cancellation; qualified the existing accounting capacity boundary",
+      "evidence": "10 native checks pass with the actual approved installed compiler/runtime. One isolated PostgreSQL run reaches 200,000 attempts: exactly one of two final-slot reservations succeeds, holds preserve balances, and 500-row retention keeps replay receipts. Cluster stopped. No provider calls or live service/permission changes.",
+      "remaining": "Complete parent/stdio verification, registered role/boot companion protocol, bounded multiplex/credit flow and JavaScript Duplex integration. Qualify final-byte drain, cross-service access denials and the full encrypted transport. Then complete fixed service entrypoints and trusted installation checks. Actual service identities/ACLs, mounts/credentials, Hyper-V mapping, worker-image runtime compatibility, physical termination, unresolved-create disposition and Discord/installed-core acceptance remain open. Provider framing, approved prices, actual transport crash/rollover and installed-service capacity/latency remain unqualified. The single synthetic host capacity run is not an end-to-end timing or production load guarantee."
     }
   ],
   "next_steps": [
@@ -2447,7 +2458,7 @@
         "P24",
         "P25"
       ],
-      "work": "Prepare the fixed Windows pipe companion contract and exact toolchain scope, then compose service entrypoints and concrete operational qualification. The pinned Node private-package scope is approved. Preserve provider clearance, preference journal restore/ACLs, publication/answer acceptance and restricted-context gates.",
+      "work": "Complete the approved fixed pipe companion and JavaScript bridge using the verified native primitives. C#/.NET scope is approved; preserve provider clearance, preference-journal isolation, source/answer approval and operational activation gates.",
       "exit_evidence": "Scoped local source/transaction/transport evidence first; actual OS/egress and Discord tests need their explicit operational scope. Paid comparisons remain separately authorized."
     },
     {
@@ -2574,25 +2585,25 @@
         "id": "DS-03",
         "title": "Durable spending and dispatch",
         "implementation": "Durable reservation/dispatch/uncertainty accounting with bounded resolved-attempt and aggregate retention and a hard attempt-row capacity hold",
-        "qualification": "65 isolated AI/knowledge/Gateway scenarios pass, including 500-row cleanup, preserved unresolved charges and independent replay receipts",
+        "qualification": "65 isolated AI/knowledge/Gateway scenarios pass, including 500-row cleanup, preserved unresolved charges and independent replay receipts; one actual isolated PostgreSQL check at 200,000 attempt rows verifies atomic last-slot admission, 500-row retention and preserved replay receipts (122 ms concurrent pair; 98 ms retention batch)",
         "sai": [
           "SAI-01",
           "SAI-02",
           "SAI-05"
         ],
-        "remaining": "Qualify provider framing, approved prices, actual transport crash/rollover and capacity performance; estimates remain conservative rather than invoice guarantees. Minimal replay receipts and unresolved balances are retained."
+        "remaining": "Provider framing, approved prices, actual transport crash/rollover and installed-service capacity/latency remain unqualified. The single synthetic host capacity run is not an end-to-end timing or production load guarantee."
       },
       {
         "id": "DS-04",
         "title": "Windows worker and transport",
-        "implementation": "Authenticated Windows lifecycle, role readiness and signed worker leases composed locally; Mandatory encrypted v2 inference/control frames protect prompt/reply content and purpose-key handoff while preserving fresh peer challenges, bounded accounting and lifecycle control; exact Node 24.19.0 runtime bundle approved for private packaging and synthetic qualification",
-        "qualification": "66 focused IPC, control, native, worker-package and egress checks pass. Actual host-local Windows pipes and synthetic TLS cover a metered turn; captured traffic excludes plaintext content and grants. Tampering, reflection, cross-profile traffic, replay and valid legacy HMAC frames are rejected. No actual Docker/Hyper-V or live provider qualification.",
+        "implementation": "Authenticated Windows lifecycle, role readiness and signed worker leases composed locally; Mandatory encrypted v2 inference/control frames protect prompt/reply content and purpose-key handoff while preserving fresh peer challenges, bounded accounting and lifecycle control; exact Node 24.19.0 runtime bundle approved for private packaging and synthetic qualification; owner-approved C#/.NET boundary and native protected-pipe/overlapped-I/O primitives implemented, companion integration unfinished",
+        "qualification": "66 focused IPC, control, native, worker-package and egress checks pass. Actual host-local Windows pipes and synthetic TLS cover a metered turn; captured traffic excludes plaintext content and grants. Tampering, reflection, cross-profile traffic, replay and valid legacy HMAC frames are rejected. No actual Docker/Hyper-V or live provider qualification.; 10 focused native checks pass after compilation with pinned csc and verification of three loaded runtime hashes; same-identity synthetic pipes only",
         "sai": [
           "SAI-04",
           "SAI-05",
           "SAI-14"
         ],
-        "remaining": "Exact Windows pipe creation/client-access adapter and its implementation/toolchain scope remain open, followed by fixed service entrypoints and trusted installation checks. Service identities/ACLs, mounts/credentials, Hyper-V communication, actual Node/image compatibility, physical termination and unresolved-create disposition require qualification. Database-coordinator/installed-service and Discord acceptance remain open."
+        "remaining": "Complete parent/stdio verification, registered role/boot companion protocol, bounded multiplex/credit flow and JavaScript Duplex integration. Qualify final-byte drain, cross-service access denials and the full encrypted transport. Then complete fixed service entrypoints and trusted installation checks. Actual service identities/ACLs, mounts/credentials, Hyper-V mapping, worker-image runtime compatibility, physical termination, unresolved-create disposition and Discord/installed-core acceptance remain open."
       },
       {
         "id": "DS-05",
@@ -2650,7 +2661,7 @@
           "SAI-07",
           "SAI-14"
         ],
-        "remaining": "Exact Windows pipe creation/client-access adapter and its implementation/toolchain scope remain open, followed by fixed service entrypoints and trusted installation checks. Service identities/ACLs, mounts/credentials, Hyper-V communication, actual Node/image compatibility, physical termination and unresolved-create disposition require qualification. Database-coordinator/installed-service and Discord acceptance remain open. Apply keeps message processing disabled."
+        "remaining": "Complete parent/stdio verification, registered role/boot companion protocol, bounded multiplex/credit flow and JavaScript Duplex integration. Qualify final-byte drain, cross-service access denials and the full encrypted transport. Then complete fixed service entrypoints and trusted installation checks. Actual service identities/ACLs, mounts/credentials, Hyper-V mapping, worker-image runtime compatibility, physical termination, unresolved-create disposition and Discord/installed-core acceptance remain open. Apply keeps processing disabled."
       },
       {
         "id": "DS-10",

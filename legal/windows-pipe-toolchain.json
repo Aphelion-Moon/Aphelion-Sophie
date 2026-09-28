@@ -1,0 +1,22 @@
+{
+  "name": "Fixed Windows pipe companion toolchain",
+  "implementation": "Original MIT C# limited to pipe/process-boundary primitives and bounded byte transport",
+  "runtime": "Installed Microsoft .NET Framework 4.8.1, registry release 533325",
+  "compiler": "Framework64/v4.0.30319/csc.exe 4.8.9236.0",
+  "compilerSha256": "0ef632133769d1ad6f9e2f246f950b02ded61e08ad42ebf8b9aea3c438f0c6a7",
+  "licence": "Microsoft Windows/Framework original terms; not an MIT runtime or compiler",
+  "inventory": "GitHub/.agent_docs/aphelion-sophie/windows-pipe-companion/toolchain-inventory.json",
+  "inventorySha256": "3e619a68ec555eb6748767c94e2a81227ebf678781a78542dcaac29e151c9970",
+  "proposal": "GitHub/.agent_docs/aphelion-sophie/windows-pipe-companion/proposal.md",
+  "proposalSha256": "1ba4de7a88c711ed5b9973870a5cc76da715a01f3f222a8a97e6233cb605c6e9",
+  "localBuildApproved": true,
+  "syntheticQualificationApproved": true,
+  "newTestPipeDescriptorsApproved": true,
+  "existingPermissionChangesApproved": false,
+  "accountOrServiceChangesApproved": false,
+  "containerProvisioningApproved": false,
+  "runtimeRedistributionApproved": false,
+  "deploymentApproved": false,
+  "excluded": ["NuGet packages", "WinSW", "installed modern dotnet SDK", "MSBuild", "compiler or Framework binary copying", "broader language migration"],
+  "operationalQualification": "Not run"
+}
