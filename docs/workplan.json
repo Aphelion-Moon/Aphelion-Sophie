@@ -1,6 +1,6 @@
 {
   "schema_version": 2,
-  "revision": "2026-09-28-supervisor-recovery",
+  "revision": "2026-09-28-supervisor-control",
   "reference_plan_version": "1.1",
   "source": "Sophie-Implementation-Plans-v1.1/backlog.json",
   "owner_decisions": "docs/decisions/0001-owner-policy.md",
@@ -2391,6 +2391,17 @@
       "implemented": "Kernel-held Windows supervisor ownership, bounded revisioned on-disk journal and composed container lifecycle with intent-before-effect, removal-only restart recovery and preserved uncertain creates",
       "evidence": "44 focused checks pass, including actual Windows files/pipes, abrupt termination of six test-only Node processes and a synthetic Engine HTTP endpoint. No real Docker/Hyper-V or service qualification.",
       "remaining": "Authenticated supervisor control protocol/client, service entrypoints, core/egress readiness and lease scheduling remain unfinished. Node/image distribution, actual identities/ACLs/mounts/credentials, Hyper-V pipes, physical termination and unresolved-create operator disposition require qualification."
+    },
+    {
+      "title": "Authenticated supervisor control and role-gated worker lifecycle",
+      "tasks": [
+        "P22",
+        "P23",
+        "P24"
+      ],
+      "implemented": "Authenticated role-scoped control sessions and revisioned jobs compose core launch/stop, a separate egress observer, purpose-specific boot keys, expiring readiness and signed worker-lease renewal with the durable supervisor",
+      "evidence": "53 focused checks pass: 21 control/lifecycle scenarios and 32 existing IPC/native/package/architecture checks. Actual host-local Windows pipes and temporary boot files carry one metered synthetic turn through worker-owned TLS to a loopback endpoint. Egress loss revokes authority and confirms synthetic Engine removal; no actual Docker/Hyper-V or live provider qualification.",
+      "remaining": "Fixed service entrypoints and trusted installation/qualification inputs remain unfinished. Node/image distribution, actual identities/ACLs/mounts/credentials, Hyper-V communication, physical termination and unresolved-create operator disposition require qualification. Database-coordinator/installed-service and actual Discord acceptance remain open."
     }
   ],
   "next_steps": [
@@ -2403,7 +2414,7 @@
         "P24",
         "P25"
       ],
-      "work": "Implement the authenticated supervisor control service/client and fresh-session/revision fencing, then compose core/egress readiness, boot lease scheduling and service entrypoints. Qualify the Node/image and exact Windows installation/termination checks under approved operational scope. Keep provider clearance, preferences and reviewed answers open.",
+      "work": "Complete fixed service entrypoints and trusted qualification/installation inputs, then prepare the concrete Windows installation and image verification for operator approval. Preserve provider-account clearance, preference restore/export, reviewed publication/answers and restricted-context gates.",
       "exit_evidence": "Scoped local source/transaction/transport evidence first; actual OS/egress and Discord tests need their explicit operational scope. Paid comparisons remain separately authorized."
     },
     {
@@ -2481,8 +2492,8 @@
       "independent_work": "Static approved-asset previews and developer keyboard/reflow checks."
     },
     {
-      "input": "Approved wiki endpoint/collections/rights, exact DeepSeek account processing terms and notices, explicit-memory categories and named restricted audiences remain unresolved.",
-      "affected_work": "Real member processing, source synchronization, selected persistent memory and each restricted context.",
+      "input": "Policies collection and the separate owner-supplied Discord rules are selected; current publication review remains open. Exact DeepSeek account processing terms/notices and named restricted-audience clearance remain unresolved. Reply length and preferred language are the two selected explicit preference types.",
+      "affected_work": "Real member processing, reviewed source publication, remote preference use and each restricted context.",
       "independent_work": "Synthetic source/worker/effect/control implementation; administration stays independent."
     }
   ],
@@ -2541,14 +2552,14 @@
       {
         "id": "DS-04",
         "title": "Windows worker and transport",
-        "implementation": "Kernel-held Windows supervisor ownership, bounded revisioned on-disk journal and composed container lifecycle with intent-before-effect, removal-only restart recovery and preserved uncertain creates",
-        "qualification": "44 focused checks pass, including actual Windows files/pipes, abrupt termination of six test-only Node processes and a synthetic Engine HTTP endpoint. No real Docker/Hyper-V or service qualification.",
+        "implementation": "Authenticated role-scoped control sessions and revisioned jobs compose core launch/stop, a separate egress observer, purpose-specific boot keys, expiring readiness and signed worker-lease renewal with the durable supervisor",
+        "qualification": "53 focused checks pass: 21 control/lifecycle scenarios and 32 existing IPC/native/package/architecture checks. Actual host-local Windows pipes and temporary boot files carry one metered synthetic turn through worker-owned TLS to a loopback endpoint. Egress loss revokes authority and confirms synthetic Engine removal; no actual Docker/Hyper-V or live provider qualification.",
         "sai": [
           "SAI-04",
           "SAI-05",
           "SAI-14"
         ],
-        "remaining": "Authenticated supervisor control protocol/client, service entrypoints, core/egress readiness and lease scheduling remain unfinished. Node/image distribution, actual identities/ACLs/mounts/credentials, Hyper-V pipes, physical termination and unresolved-create operator disposition require qualification."
+        "remaining": "Fixed service entrypoints and trusted installation/qualification inputs remain unfinished. Node/image distribution, actual identities/ACLs/mounts/credentials, Hyper-V communication, physical termination and unresolved-create operator disposition require qualification. Database-coordinator/installed-service and actual Discord acceptance remain open."
       },
       {
         "id": "DS-05",
@@ -2599,14 +2610,14 @@
       {
         "id": "DS-09",
         "title": "Effects and operating controls",
-        "implementation": "Durable desired/active/acknowledged worker revisions, authenticated AI-only apply/stop/recovery controls and a fenced single-owner lifecycle coordinator; authenticated temporary request-comparison inspection",
+        "implementation": "Durable desired/active/acknowledged worker revisions, authenticated AI-only apply/stop/recovery controls and a fenced single-owner lifecycle coordinator; authenticated temporary request-comparison inspection; concrete authenticated Windows lifecycle adapter and role readiness composed locally",
         "qualification": "44 focused checks, 75 isolated AI/knowledge/Gateway scenarios and 19 composed staging scenarios pass; both disposable clusters stopped. Synthetic browser review/apply/stop verified.",
         "sai": [
           "SAI-06",
           "SAI-07",
           "SAI-14"
         ],
-        "remaining": "Authenticated supervisor control protocol/client, service entrypoints, core/egress readiness and lease scheduling remain unfinished. Node/image distribution, actual identities/ACLs/mounts/credentials, Hyper-V pipes, physical termination and unresolved-create operator disposition require qualification. Apply keeps message processing disabled."
+        "remaining": "Fixed service entrypoints and trusted installation/qualification inputs remain unfinished. Node/image distribution, actual identities/ACLs/mounts/credentials, Hyper-V communication, physical termination and unresolved-create operator disposition require qualification. Database-coordinator/installed-service and actual Discord acceptance remain open. Apply keeps message processing disabled."
       },
       {
         "id": "DS-10",

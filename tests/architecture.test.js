@@ -15,6 +15,8 @@ test('T46 case access, hidden storage writes and runtime escape hatches fail mod
     ['apps/ai-egress/runtime.js', "import x from '../core/secrets.js';"],
     ['apps/ai-egress/runtime.js', "import x from '../../modules/tickets/index.js';"],
     ['apps/ai-supervisor/runtime.js', "import x from '../core/secrets.js';"],
+    ['apps/ai-control/server.js', "import x from '../core/secrets.js';"],
+    ['apps/ai-control/client.js', "import x from '../ai-supervisor/docker.js';"],
     ['apps/core/runtime/ai-lifecycle.js', "import x from '../../ai-supervisor/docker.js';"],
     ['apps/ai-egress/runtime.js', "import x from '../ai-supervisor/docker.js';"],
     ['modules/onboarding/index.js', "import pg from 'pg';"],
