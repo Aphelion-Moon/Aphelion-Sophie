@@ -100,6 +100,7 @@ export function createDashboardAuthHttpServer({ configuration, auth, authorizati
         const result = await editor.execute({ path, method: request.method, query: url.searchParams, body,
           credentials: { token: cookies.session, origin: request.headers.origin, csrfToken: request.headers['x-csrf-token'] } });
         if (path === '/api/cases/export/download') sendCaseExport(response, result);
+        else if (path === '/api/ai/preferences/export') send(response, 200, result, { 'Content-Disposition': 'attachment; filename="sophie-response-preferences.json"' });
         else send(response, 200, result);
       } else if (path === '/auth/start') {
         requireCondition([...url.searchParams.keys()].every(key => key === 'returnTo') && url.searchParams.getAll('returnTo').length <= 1, 'DASHBOARD_REQUEST_INVALID');

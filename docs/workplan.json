@@ -1,6 +1,6 @@
 {
   "schema_version": 2,
-  "revision": "2026-09-28-ipc-encryption",
+  "revision": "2026-09-28-runtime-export",
   "reference_plan_version": "1.1",
   "source": "Sophie-Implementation-Plans-v1.1/backlog.json",
   "owner_decisions": "docs/decisions/0001-owner-policy.md",
@@ -2413,6 +2413,28 @@
       "implemented": "Mandatory encrypted v2 inference/control frames protect prompt/reply content and purpose-key handoff while preserving fresh peer challenges, bounded accounting and lifecycle control",
       "evidence": "66 focused IPC, control, native, worker-package and egress checks pass. Actual host-local Windows pipes and synthetic TLS cover a metered turn; captured traffic excludes plaintext content and grants. Tampering, reflection, cross-profile traffic, replay and valid legacy HMAC frames are rejected. No actual Docker/Hyper-V or live provider qualification.",
       "remaining": "Fixed service entrypoints and trusted installation/qualification inputs remain unfinished. Node/image distribution and bundled-notice scope, actual service identities and pipe/file ACLs, mounts/credentials, Hyper-V communication, physical termination and unresolved-create operator disposition require qualification. Database-coordinator/installed-service and actual Discord acceptance remain open."
+    },
+    {
+      "title": "Authenticated preference attachment export",
+      "tasks": [
+        "P22",
+        "P23",
+        "P24"
+      ],
+      "implemented": "Fixed native browser attachment download shares current self-authorized preference inspection and rejects unavailable or quarantined state",
+      "evidence": "14 focused checks pass. An actual in-app browser download produced the expected 218-byte synthetic JSON file; contents/hash verified. Late session loss, query selectors and unavailable/quarantined stores reject without an attachment. No database/provider/Discord/live-service change.",
+      "remaining": "Independent journal identity/location/ACL and restore exclusion require operator qualification. Browser attachment download is verified with synthetic data. Remote preference use stays disabled pending provider/data clearance; no conversational extraction."
+    },
+    {
+      "title": "Approved private Node runtime bundle",
+      "tasks": [
+        "P22",
+        "P23",
+        "P24"
+      ],
+      "implemented": "Owner approved the exact Node 24.19.0 Windows x64 executable and original bundled notices for private packaging and synthetic qualification",
+      "evidence": "Official archive/executable hashes and valid OpenJS signature verified; original aggregate plus seven supplemental notices retained. Static PE imports inspected. No host runtime replacement, container build, service/ACL change or operational qualification.",
+      "remaining": "Exact Windows pipe creation/client-access adapter and its implementation/toolchain scope remain open, followed by fixed service entrypoints and trusted installation checks. Service identities/ACLs, mounts/credentials, Hyper-V communication, actual Node/image compatibility, physical termination and unresolved-create disposition require qualification. Database-coordinator/installed-service and Discord acceptance remain open."
     }
   ],
   "next_steps": [
@@ -2425,7 +2447,7 @@
         "P24",
         "P25"
       ],
-      "work": "Complete the registered Windows installation and qualification design, including exact pipe access across service identities and runtime bundled-notice scope; implement fixed service entrypoints from those inputs. Preserve provider clearance, preference restore/export, publication/answers and restricted-context gates.",
+      "work": "Prepare the fixed Windows pipe companion contract and exact toolchain scope, then compose service entrypoints and concrete operational qualification. The pinned Node private-package scope is approved. Preserve provider clearance, preference journal restore/ACLs, publication/answer acceptance and restricted-context gates.",
       "exit_evidence": "Scoped local source/transaction/transport evidence first; actual OS/egress and Discord tests need their explicit operational scope. Paid comparisons remain separately authorized."
     },
     {
@@ -2563,14 +2585,14 @@
       {
         "id": "DS-04",
         "title": "Windows worker and transport",
-        "implementation": "Authenticated Windows lifecycle, role readiness and signed worker leases composed locally; Mandatory encrypted v2 inference/control frames protect prompt/reply content and purpose-key handoff while preserving fresh peer challenges, bounded accounting and lifecycle control",
+        "implementation": "Authenticated Windows lifecycle, role readiness and signed worker leases composed locally; Mandatory encrypted v2 inference/control frames protect prompt/reply content and purpose-key handoff while preserving fresh peer challenges, bounded accounting and lifecycle control; exact Node 24.19.0 runtime bundle approved for private packaging and synthetic qualification",
         "qualification": "66 focused IPC, control, native, worker-package and egress checks pass. Actual host-local Windows pipes and synthetic TLS cover a metered turn; captured traffic excludes plaintext content and grants. Tampering, reflection, cross-profile traffic, replay and valid legacy HMAC frames are rejected. No actual Docker/Hyper-V or live provider qualification.",
         "sai": [
           "SAI-04",
           "SAI-05",
           "SAI-14"
         ],
-        "remaining": "Fixed service entrypoints and trusted installation/qualification inputs remain unfinished. Node/image distribution and bundled-notice scope, actual service identities and pipe/file ACLs, mounts/credentials, Hyper-V communication, physical termination and unresolved-create operator disposition require qualification. Database-coordinator/installed-service and actual Discord acceptance remain open."
+        "remaining": "Exact Windows pipe creation/client-access adapter and its implementation/toolchain scope remain open, followed by fixed service entrypoints and trusted installation checks. Service identities/ACLs, mounts/credentials, Hyper-V communication, actual Node/image compatibility, physical termination and unresolved-create disposition require qualification. Database-coordinator/installed-service and Discord acceptance remain open."
       },
       {
         "id": "DS-05",
@@ -2609,14 +2631,14 @@
       {
         "id": "DS-08",
         "title": "Assistant context and explicit memory",
-        "implementation": "Local member-saved reply length and language preferences with self inspection, replacement, export action, deletion and 90-day expiry; independent restore watermark fails closed",
-        "qualification": "28 focused unit checks, 62 isolated AI/knowledge scenarios, 18 composed staging scenarios; synthetic browser save/edit/delete verified",
+        "implementation": "Local member-saved reply length and language preferences with self inspection, replacement, authenticated attachment export, deletion and 90-day expiry; independent restore watermark fails closed",
+        "qualification": "28 focused unit checks, 62 isolated AI/knowledge scenarios, 18 composed staging scenarios; synthetic browser save/edit/delete verified; actual browser JSON attachment file verified, with 14 focused preference/HTTP/auth/dashboard checks",
         "sai": [
           "SAI-02",
           "SAI-10",
           "SAI-11"
         ],
-        "remaining": "Independent journal identity/location/ACL and restore exclusion require operator qualification. Actual browser download remains unverified. Remote preference use stays disabled pending provider/data clearance; no conversational extraction."
+        "remaining": "Independent journal identity/location/ACL and restore exclusion require operator qualification. Browser attachment download is verified with synthetic data. Remote preference use stays disabled pending provider/data clearance; no conversational extraction."
       },
       {
         "id": "DS-09",
@@ -2628,7 +2650,7 @@
           "SAI-07",
           "SAI-14"
         ],
-        "remaining": "Fixed service entrypoints and trusted installation/qualification inputs remain unfinished. Node/image distribution and bundled-notice scope, actual service identities and pipe/file ACLs, mounts/credentials, Hyper-V communication, physical termination and unresolved-create operator disposition require qualification. Database-coordinator/installed-service and actual Discord acceptance remain open. Apply keeps message processing disabled."
+        "remaining": "Exact Windows pipe creation/client-access adapter and its implementation/toolchain scope remain open, followed by fixed service entrypoints and trusted installation checks. Service identities/ACLs, mounts/credentials, Hyper-V communication, actual Node/image compatibility, physical termination and unresolved-create disposition require qualification. Database-coordinator/installed-service and Discord acceptance remain open. Apply keeps message processing disabled."
       },
       {
         "id": "DS-10",

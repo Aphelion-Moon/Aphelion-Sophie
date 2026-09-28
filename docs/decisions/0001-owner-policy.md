@@ -450,3 +450,18 @@ six separately maintained messages. Sophie is not in the main server yet; the
 owner-supplied copy is provenance, not a claim of live channel verification.
 Publication review is still required; do not substitute the wiki URL or ingest
 Discord history to reconstruct those rules.
+
+### Pinned Node runtime bundle — 28 September 2026
+
+The owner approved the named Node.js 24.19.0 Windows x64 runtime proposal for
+private Sophie packaging and synthetic qualification, including the embedded
+non-MIT components under their retained original notices. The executable SHA-256
+is `3602f2bb1a10f2cbab4c36886218a33c1ab3db87290e73b033c46c77147d0237`;
+the exact scope and provenance are in `legal/node-runtime.json` and the external
+`node-distribution-24.19.0/runtime-scope-proposal.md`.
+
+This approves the exact binary and bundled notices, not separate adoption of
+its components, TypeScript/SQLite application tooling, future runtime versions,
+host replacement, service/ACL changes, container provisioning, redistribution
+or deployment. Keep the vendor LICENSE and supplemental notices with each
+private runtime copy. Node 24.21.0 remains an unselected maintenance candidate.

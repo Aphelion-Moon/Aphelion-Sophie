@@ -37,8 +37,8 @@ export function createPreferenceEditor({api,document,perform,identity,changed,sa
   }));
   el('export-preferences').addEventListener('click',()=>perform(async()=>{
     await load();if(!current?.available || current.quarantined)return;
-    const url=URL.createObjectURL(new Blob([JSON.stringify(current,null,2)+'\n'],{type:'application/json'}));
-    const link=document.createElement('a');link.href=url;link.download='sophie-response-preferences.json';link.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
+    // The attachment route performs a fresh self-authorized read at download time.
+    const link=document.createElement('a');link.href='/api/ai/preferences/export';link.download='sophie-response-preferences.json';link.click();
   }));
   clear();return Object.freeze({load,clear});
 }

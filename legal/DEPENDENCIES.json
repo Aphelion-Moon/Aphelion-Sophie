@@ -22,7 +22,8 @@
     "purpose": "Existing host executable used for local synthetic development",
     "installedByThisWork": false,
     "deploymentApproved": false,
-    "bundledNoticesReview": "pending",
+    "bundledNoticesReview": "Reviewed and owner-approved for exact private packaging/synthetic scope in legal/node-runtime.json; operational qualification remains open",
+    "privatePackagingApproved": true,
     "licenseEvidence": "https://github.com/nodejs/node/blob/v24.19.0/LICENSE"
   },
   "storage": {
