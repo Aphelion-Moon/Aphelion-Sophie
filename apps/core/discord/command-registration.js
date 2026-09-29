@@ -22,15 +22,32 @@ export function administrationCommandDefinitions() {
     options: [{ type: 6, name: 'member', description: 'Current guild member.', required: true }] }))];
 }
 
+const wait = ms => new Promise(resolve => setTimeout(resolve, ms));
+
+/**
+ * Discord's per-route bucket for command upserts is smaller than Sophie's command set, and a rerun starts
+ * from the first command again, so a short explicit cooldown is honoured here for the same command.
+ * Long or repeated limits still stop registration for the operator.
+ */
+async function upsertWithCooldown(transport, applicationId, definition, sleep) {
+  for (let attempt = 0; ; attempt++) {
+    try { return await transport.upsertGuildCommand(applicationId, definition); }
+    catch (error) {
+      if (error?.code !== 'RATE_LIMITED' || attempt >= 3 || !Number.isSafeInteger(error.retryAfterMs) || error.retryAfterMs > 30_000) throw error;
+      await sleep(error.retryAfterMs + 250);
+    }
+  }
+}
+
 /** Explicit call upserts only Sophie's named commands; never bulk-replaces or deletes other commands. */
-export async function registerStagingCommands({ transport, applicationId, botUserId, confirmGuildId }) {
+export async function registerStagingCommands({ transport, applicationId, botUserId, confirmGuildId, sleep = wait }) {
   requireId(applicationId); requireId(botUserId);
   requireCondition(confirmGuildId === transport.guildId, 'COMMAND_REGISTRATION_CONFIRMATION_REQUIRED');
   const identity = await transport.getCurrentUser(), application = await transport.getCurrentApplication();
   requireCondition(identity?.id === botUserId && identity.bot === true && application?.id === applicationId, 'GATEWAY_IDENTITY_MISMATCH');
   const registered = [];
   for (const definition of administrationCommandDefinitions()) {
-    const result = await transport.upsertGuildCommand(applicationId, definition);
+    const result = await upsertWithCooldown(transport, applicationId, definition, sleep);
     requireCondition(result?.name === definition.name && result.type === 1 && result.application_id === applicationId &&
       result.guild_id === transport.guildId, 'COMMAND_REGISTRATION_UNCONFIRMED');
     requireId(result.id); registered.push({ name: definition.name, id: result.id });

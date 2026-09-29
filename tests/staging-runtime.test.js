@@ -125,6 +125,24 @@ test('registration checks the application and exact guild before writes, upserts
   assert.equal(result.length, 6); assert.equal(calls.filter(call => call.method === 'POST').length, 6);
 });
 
+test('command registration waits out a short per-route cooldown for the same command and stops on long limits', async () => {
+  const identity = { getCurrentUser: async () => ({ id: BOT, bot: true }), getCurrentApplication: async () => ({ id: APPLICATION }), guildId: GUILD };
+  const limited = retryAfterMs => Object.assign(Error('RATE_LIMITED'), { code: 'RATE_LIMITED', retryAfterMs });
+  const attempts = [], waits = [];
+  const transport = { ...identity, async upsertGuildCommand(_application, definition) {
+    attempts.push(definition.name);
+    if (attempts.length === 5) throw limited(4000);
+    return { id: '99', application_id: APPLICATION, guild_id: GUILD, type: 1, name: definition.name };
+  } };
+  const result = await registerStagingCommands({ transport, applicationId: APPLICATION, botUserId: BOT, confirmGuildId: GUILD, sleep: async ms => { waits.push(ms); } });
+  assert.equal(result.length, 6); assert.deepEqual(waits, [4250]); assert.equal(attempts[4], attempts[5]);
+  const stuck = { ...identity, async upsertGuildCommand() { throw limited(600_000); } };
+  await assert.rejects(registerStagingCommands({ transport: stuck, applicationId: APPLICATION, botUserId: BOT, confirmGuildId: GUILD, sleep: async () => assert.fail('NO_WAIT') }), /RATE_LIMITED/);
+  let repeated = 0; const always = { ...identity, async upsertGuildCommand() { repeated++; throw limited(1000); } };
+  await assert.rejects(registerStagingCommands({ transport: always, applicationId: APPLICATION, botUserId: BOT, confirmGuildId: GUILD, sleep: async () => {} }), /RATE_LIMITED/);
+  assert.equal(repeated, 4);
+});
+
 test('CLI validates the filled template and previews commands offline but refuses an unconfirmed start', async () => {
   const template = await readFile(new URL('../config/staging.example.json', import.meta.url), 'utf8');
   const replacements = { APPLICATION_ID: APPLICATION, APPLICATION_PUBLIC_KEY_64_HEX_CHARACTERS: 'a'.repeat(64),
