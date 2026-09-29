@@ -6,6 +6,8 @@ import { projectGatewayDispatch } from './gateway-projection.js';
 export function createGatewayObserver({ journal, mapping, applicationId, clock, capacity = 64, ai = null }) {
   validateRoleMapping(mapping); requireId(applicationId); requireInteger(capacity, 1, 256);
   requireCondition(typeof clock === 'function', 'TRUSTED_ADAPTERS_REQUIRED');
+  // Bitwise composition would silently absorb an arbitrary value; only the two reviewed sets are accepted.
+  requireCondition([undefined, 0, 33280].includes(journal.messageIntents), 'GATEWAY_INTENTS_INVALID');
   const configuration = { ...structuredClone(mapping), applicationId };
   let lease = null, connection = null, sessionId = null, revision = 0;
   let pending = 0, failed = true, acknowledgedAt = null, healthyUntil = 0;

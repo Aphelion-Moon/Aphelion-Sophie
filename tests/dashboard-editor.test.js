@@ -166,7 +166,8 @@ test('browser transport keeps CSRF private, fixes same-origin routes and sends l
   const calls = [], api = createDashboardApi({ fetch: async (path, options) => { calls.push({ path, options }); return Response.json(path === '/auth/session' ?
     { userId: '123', guildId: '456', csrfToken: 'ab'.repeat(32), canEditOnboarding: true, canEditForms: false } : { status: 'ok' }); } });
   await assert.rejects(api.save({}), error => error.kind === 'denied'); assert.equal(calls.length, 0);
-  assert.deepEqual(await api.session(), { userId: '123', guildId: '456', canEditOnboarding: true, canEditForms: false, canEditAnswers: false, canEditPermissions: false, canEditAutomation: false });
+  assert.deepEqual(await api.session(), { userId: '123', guildId: '456', canEditOnboarding: true, canEditForms: false, canEditPermissions: false, canEditAnswers: false, canEditAutomation: false,
+    canEditKnowledge: false, canControlAi: false, canEditPersonality: false, aiAvailable: false, knowledgeAvailable: false });
   await api.save({ requestId: 'cd'.repeat(32) }); await api.logout();
   const save = calls[1].options, logout = calls[2].options;
   assert.equal(save.credentials, 'same-origin'); assert.equal(save.redirect, 'error'); assert.equal(save.headers['X-CSRF-Token'], 'ab'.repeat(32));
