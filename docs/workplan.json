@@ -1,6 +1,6 @@
 {
   "schema_version": 2,
-  "revision": "2026-09-28-relay-ancestor-stop",
+  "revision": "2026-09-29-account-isolation-repair",
   "reference_plan_version": "1.1",
   "source": "Sophie-Implementation-Plans-v1.1/backlog.json",
   "owner_decisions": "docs/decisions/0001-owner-policy.md",
@@ -1339,7 +1339,7 @@
   "checkpoint": {
     "summary": "Deterministic administration, Whitelist onboarding, protected editors, role/permission configuration and the configurable staging host are implemented.",
     "recorded_baseline": "AI handoff 0fa7a5ed538ff791e3def2c1f6ac7683531e15a1 plus preserved uncommitted Flash candidate; synthetic schema058 candidate. No live schema change.",
-    "current_work": "Candidate files and wrapper matched their pinned hashes. SCM configuration and rule readback succeeded. The first inference service launch failed before its diagnostic/native entrypoint: Node lstat returned EPERM on C:\\Aphelion. The original trial forbids changing that existing ancestor, so execution stopped. Secondary wrapper Event Log errors exposed omitted source registration in the sc-create diagnostic procedure. Both services, all 12 rules and all new directories were removed; existing three Sophie service states/files and six existing ancestor descriptors match preflight. No candidate processes remained. Approve the exact non-inheriting metadata-access amendment for the two relay SIDs on five existing ancestor directories, correct wrapper event-source registration, then repeat the authorized trial. Actual identity, private pipe, custody, process and network denials remain unqualified. Guest/public-projection, provider/account, publication/actual-answer and Test Discord Server activation gates remain open. No host reboot is authorized.",
+    "current_work": "The unpushed 29 September commit replaced the Hyper-V/Docker/native-pipe isolation with a WinSW-wrapped worker service under its own virtual account. Review found the installed composition did not work: core could not load its configuration, the worker read container mount paths, service stop was not confirmed, the setup script targeted a nonexistent Node path with a mismatched local-user password and granted the worker the trust directory, and the provider address guard was dropped. These are repaired and covered by offline tests; nothing was installed or run on the host beyond read-only inspection and -WhatIf. Owner confirmation of the account-separation decision recorded on 29 September. Then, with operator approval: run ops/windows/Setup-InferenceAccount.ps1, stage a package, generate trust files with scripts/prepare-ai-installation.mjs, repoint the core/supervisor wrappers to the installed entrypoints, and record whoami/icacls/firewall denial evidence as the three qualification receipts. Provider/account, publication/actual-answer and Test Discord Server activation gates remain open. No host reboot is authorized.",
     "evidence_note": "Current source-bound offline results are in docs/verification.md and the external deepseek-verification.json index. Earlier administration, local model and Flash trial results remain historical; none grants present deployment approval."
   },
   "milestones": [
@@ -2615,7 +2615,7 @@
   ],
   "next_steps": [
     {
-      "title": "Resolve exact relay ancestor metadata access",
+      "title": "Confirm account isolation and run the worker setup",
       "tasks": [
         "P21",
         "P22",
@@ -2623,8 +2623,8 @@
         "P24",
         "P25"
       ],
-      "work": "Approve the exact non-inheriting metadata-access amendment for the two relay SIDs on five existing ancestor directories, correct wrapper event-source registration, then repeat the authorized trial. Actual identity, private pipe, custody, process and network denials remain unqualified. Guest/public-projection, provider/account, publication/actual-answer and Test Discord Server activation gates remain open. No host reboot is authorized.",
-      "exit_evidence": "Approved five-directory metadata-only ACL delta and repeated actual-identity qualification, preserving the original stop conditions."
+      "work": "Owner confirmation of the account-separation decision recorded on 29 September. Then, with operator approval: run ops/windows/Setup-InferenceAccount.ps1, stage a package, generate trust files with scripts/prepare-ai-installation.mjs, repoint the core/supervisor wrappers to the installed entrypoints, and record whoami/icacls/firewall denial evidence as the three qualification receipts. Provider/account, publication/actual-answer and Test Discord Server activation gates remain open. No host reboot is authorized.",
+      "exit_evidence": "Owner decision entry confirmed; setup readback; whoami/icacls/firewall denial receipts hashed into trust files by prepare-ai-installation.mjs."
     },
     {
       "title": "Privately verify deployed configuration and apply workflow",
@@ -2761,14 +2761,14 @@
       {
         "id": "DS-04",
         "title": "Windows worker and transport",
-        "implementation": "Fixed installed profiles validate independent protected owner records, retained file handles, source/runtime manifests, parent/service identities and expiring authority. Core, supervisor, egress and worker payloads compose the native adapter; core isolates database readers and replaces lifecycle ownership on configuration Apply. Worker trust uses a separate read-only mount. Control proof binding now tolerates readiness before native write acknowledgement. Separate compile-time host and Server Core worker runtime pins. Guest helper builds with the exact image-bundled compiler and rejects installed host roles. Host Framework 4.8.1 pins remain unchanged; no runtime fallback or Microsoft binary copying.",
-        "qualification": "Both host role owners/DACLs, Node/native service identities and first-instance guards pass. Separate supervisor restricted-token outsider checks deny data, all forbidden masks and extra server creation. Guest core owner/DACL projection and eight-byte echo pass. A subsequent WRITE_DAC open returns a valid handle on a fresh connection; the one permitted identical-DACL reapply returns Access Denied (5). Host owner/DACL bytes remain unchanged. The trial stops; later guest masks, guest egress/extra-instance checks and the conditional second container are not run. Container/proxy removed; all services exit zero and remain Manual/stopped; XML and permission snapshots restored/unchanged. Earlier local and service-wrapper evidence remains in source-bound milestone reports.",
+        "implementation": "WinSW-wrapped worker service (aphelion-bot-ai-worker) under NT SERVICE virtual account, started/stopped only by the supervisor through SCM with a service DACL grant; shared per-role trust loader with 24-hour expiry and full package-manifest re-hashing; worker reads boot/lease/provider files from fixed host paths and requires exactly one published boot; public-IPv4-only provider lookup; loopback authenticated control/inference channels. Hyper-V/Docker/native pipe companion, relays and egress bridge removed (7f55156).",
+        "qualification": "Offline only: 572/572 repository tests and repository check pass on Windows Server 2022, including new installed core/supervisor composition, trust-loader, manifest-tamper, fail-closed service stop and address-guard tests. Setup script parse-checked, -WhatIf run against the host (no changes) and ACL helpers exercised on scratch directories. Earlier relay/HCS evidence is historical and does not apply to this design.",
         "sai": [
           "SAI-04",
           "SAI-05",
           "SAI-14"
         ],
-        "remaining": "Approve the exact non-inheriting metadata-access amendment for the two relay SIDs on five existing ancestor directories, correct wrapper event-source registration, then repeat the authorized trial. Actual identity, private pipe, custody, process and network denials remain unqualified. Guest/public-projection, provider/account, publication/actual-answer and Test Discord Server activation gates remain open. No host reboot is authorized."
+        "remaining": "Owner confirmation of the account-separation decision recorded on 29 September. Then, with operator approval: run ops/windows/Setup-InferenceAccount.ps1, stage a package, generate trust files with scripts/prepare-ai-installation.mjs, repoint the core/supervisor wrappers to the installed entrypoints, and record whoami/icacls/firewall denial evidence as the three qualification receipts. Provider/account, publication/actual-answer and Test Discord Server activation gates remain open. No host reboot is authorized."
       },
       {
         "id": "DS-05",

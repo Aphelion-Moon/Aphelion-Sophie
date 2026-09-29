@@ -1,5 +1,60 @@
 # Verification and release limits
 
+## Review and repair of the account-isolation replacement — 29 September 2026
+
+A review of commit 7f55156 (next entry) found that its installed composition could not have run. Several
+claims in that entry are also wrong:
+
+- **Core could not start installed.** The new loader returned only `release`, `qualification` and `keys`.
+  `createInstalledCoreService` needs `configuration.core` and `configuration.installationId`. No test
+  composed an installed role, so this went unnoticed.
+- **The worker read container paths.** `main.mjs` still read `C:\sophie-boot\boot.json` and
+  `C:\sophie-provider\api-key.txt`, but the supervisor now publishes to
+  `C:\Aphelion\Sophie\state\boots\<bootId>\`.
+- **Stops were not confirmed.** A failed or timed-out `sc stop` was swallowed, and the slot then reported
+  `empty`. `sc start` treated "already running" as success, and a service that was not registered counted
+  as qualified.
+- **Package integrity was dropped.** The source/runtime manifest check lived in the deleted native companion.
+- **The setup script would not have worked.** It pointed at `C:\node\node.exe`, which does not exist. It
+  registered bare `node.exe` as a service binary, which SCM cannot run. It created a local user with one
+  random password and then configured the service with a different one. It added that user to `Users` and
+  granted it read access to `trust\`, which holds core's control key. Its one "egress" rule was an outbound
+  *allow*, which does nothing under the default-allow outbound policy. It gave no metadata access on the
+  ancestor directories, which is the same `lstat EPERM` that stopped the 28 September trial. The supervisor
+  had no right to start or stop the new service.
+- **The address guard was deleted, not "folded in".** `public-address.js` was removed with `apps/ai-egress`.
+  The DeepSeek client had no such check.
+
+Repairs:
+
+- `apps/installation/configuration.js` and `transport.js` are the shared loader and sockets for core and
+  the supervisor. The loader returns the full per-role configuration, bounds expiry to 24 hours and
+  re-hashes every entry of `package\source\installation.manifest`.
+- Boot, lease and provider paths are fixed host paths (`AI_WORKER_ROOTS`). The worker requires exactly one
+  published boot directory whose `boot.json` identity matches its name, and recovery removes every leftover
+  entry.
+- Service control and the slot fail closed on an unconfirmed stop, and refuse to adopt a worker that is
+  already running.
+- DeepSeek requests resolve only to public IPv4 addresses (`publicAiLookup`). The unused connector path is
+  removed.
+- `ops/windows/Setup-InferenceAccount.ps1` is rewritten to match the host (see the decision entry).
+  `scripts/prepare-ai-installation.mjs` writes the manifest and both trust files, with the receipts hashed
+  into the release evidence.
+- The case/core import boundary lint now also covers `apps/installation`.
+- Fixed the three pre-existing failures. The Gateway observer silently OR-masked any `messageIntents`
+  value into a valid set, and now rejects anything except 0 or 33280. The dashboard session tests were
+  stale and lacked the AI capability fields.
+
+Evidence, all offline on this Windows Server 2022 host: `npm test` 572/572 (0 skipped), `npm run check`
+passed, 548 source files. New coverage: installed core/supervisor composition, trust-loader rejection
+cases, manifest tamper, boot-directory location, fail-closed stop, recovery cleanup and the address guard.
+The generator was run end to end against a synthetic package in a scratch folder. Both roles loaded and
+qualified, a rerun refused to overwrite, and a tampered package file was rejected. The setup script was
+parse-checked and run with `-WhatIf` against the host, which made no change. Its ACL helpers were run on
+scratch folders and the firewall parameters were checked with `-WhatIf`. Nothing was installed, started,
+re-ACL'd or firewalled. The steps after WinSW registration need the real service SID and are not yet
+exercised. Next steps: `docs/ai-test-guild-runbook.md`.
+
 ## Replaced Hyper-V/Docker/native-pipe isolation with OS-account separation — 29 September 2026
 
 The Windows worker/transport line of work below (Relay service trial through Synthetic Windows
