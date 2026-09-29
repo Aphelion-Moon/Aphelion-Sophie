@@ -59,7 +59,9 @@ test('AI-INST03 the source manifest is bound by hash and every listed file is re
   await assert.rejects(fixture('core',{packageFiles:{...files,'source/apps/core/installed.mjs':'tampered'}}).load(),/AI_PACKAGE_CHANGED/);
   const {['source/apps/core/installed.mjs']:_omitted,...withoutCore}=files;
   await assert.rejects(fixture('core',{manifest:manifestText(withoutCore),packageFiles:withoutCore}).load(),/AI_MANIFEST_INCOMPLETE/);
-  for(const text of ['',`${hash()} ../escape.js\n`,`${hash()} other/file.js\n`,`${hash()} source/a.js`,`${hash()} source/a.js\n${hash()} SOURCE/A.js\n`])
+  const dotfiles={...files,'source/node_modules/.package-lock.json':'lock'};
+  await assert.doesNotReject(fixture('core',{manifest:manifestText(dotfiles),packageFiles:dotfiles}).load());
+  for(const text of ['',`${hash()} ../escape.js\n`,`${hash()} source/../escape.js\n`,`${hash()} source/./a.js\n`,`${hash()} other/file.js\n`,`${hash()} source/a.js`,`${hash()} source/a.js\n${hash()} SOURCE/A.js\n`])
     await assert.rejects(verifyInstallationManifest({role:'core',text,packageRoot:'C:\\p',hash:async()=>({sha256:hash(),size:1})}),/AI_MANIFEST_INVALID|AI_PACKAGE_CHANGED/);
 });
 

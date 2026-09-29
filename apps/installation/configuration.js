@@ -33,8 +33,10 @@ export async function verifyInstallationManifest({role,text,packageRoot,hash:dig
   requireCondition(typeof text==='string' && text.endsWith('\n'),'AI_MANIFEST_INVALID');
   const seen=new Set();let total=0;
   for(const line of text.slice(0,-1).split('\n')){
-    const match=/^([a-f0-9]{64}) ((?:runtime|source)\/(?:[a-zA-Z0-9_@-][a-zA-Z0-9_.@-]*\/)*[a-zA-Z0-9_@-][a-zA-Z0-9_.@-]*)$/u.exec(line);
-    requireCondition(match && seen.size<4096 && !seen.has(match[2].toLowerCase()),'AI_MANIFEST_INVALID');seen.add(match[2].toLowerCase());
+    // Dotfiles occur in pinned node_modules; '.' and '..' segments never do.
+    const match=/^([a-f0-9]{64}) ((?:runtime|source)(?:\/[a-zA-Z0-9_.@-]+)+)$/u.exec(line);
+    requireCondition(match && match[2].split('/').every(part=>part!=='.' && part!=='..') && seen.size<4096 && !seen.has(match[2].toLowerCase()),'AI_MANIFEST_INVALID');
+    seen.add(match[2].toLowerCase());
     const result=await digest(win32.join(packageRoot,...match[2].split('/')),268435456);
     total+=result.size;requireCondition(total<=536870912 && result.sha256===match[1],'AI_PACKAGE_CHANGED');
   }
