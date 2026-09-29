@@ -36,9 +36,9 @@ export function createAiWorkerSlot({registration,service}) {
     current();const active={abort,task:null};operation=active;
     active.task=(async()=>{try{return await work(combined,current);}finally{operation=null;}})();return active.task;
   }
-  function advance(from,to,extra={}) {
+  function advance(from,to) {
     requireCondition(from.includes(phase),'AI_SUPERVISOR_PHASE_INVALID');
-    phase=to;revision+=1;Object.assign({},extra);return snapshot();
+    phase=to;revision+=1;return snapshot();
   }
   async function cleanupStaleBoots() {
     // Cold-start hygiene only: this process holds no record of a prior boot's identity after
@@ -48,13 +48,15 @@ export function createAiWorkerSlot({registration,service}) {
     let entries=[];
     try {entries=await readdir(registered.bootRoot,{withFileTypes:true});} catch {return;}
     for (const entry of entries) {
-      if (!entry.isDirectory()) continue;
-      await rm(win32.join(registered.bootRoot,entry.name),{recursive:true,force:true}).catch(()=>{});
+      // The worker requires exactly one boot directory, so an unremovable leftover must fail recovery here.
+      await rm(win32.join(registered.bootRoot,entry.name),{recursive:true,force:true});
     }
   }
   async function remove(signal) {
-    const found=await service.inspect({signal}).catch(()=>null);
-    if(found)await service.remove({signal});
+    // Always confirm STOPPED through SCM. A failed inspection must not be mistaken for an absent worker,
+    // and the slot stays unrecovered (refusing new boots) until a later quiesce confirms the stop.
+    const {removed}=await service.remove({signal});
+    requireCondition(removed===true,'AI_SUPERVISOR_STOP_UNCONFIRMED');
     if(identity)await revokeAiWorkerBootFiles({registration:registered,identity}).catch(()=>{});
     await cleanupStaleBoots();
     identity=null;operationId=null;if(phase!=='empty')advance(['prepared','created','running','removing','empty'],'empty');

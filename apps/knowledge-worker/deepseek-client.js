@@ -18,6 +18,12 @@ export function deepSeekUsage(value) {
   return Object.freeze(usage);
 }
 
+/** Release binding for the fixed request profile. It never includes the provider key. */
+export function deepSeekProfileHash({ acceptedFingerprints, maxPromptBytes = 16384, outputTokens = 384 }) {
+  return createHash('sha256').update(JSON.stringify({schema:1,provider:'deepseek',endpoint,model:DEEPSEEK_MODEL,
+    maxPromptBytes,outputTokens,thinking:false,stream:false,temperature:0.4,responseFormat:'json_object',acceptedFingerprints:[...new Set(acceptedFingerprints)].sort()})).digest('hex');
+}
+
 /** Fixed remote provider. Only the inference identity receives this key; no SDK or fallback. */
 export function createDeepSeekClient({ apiKey, fetchImpl = fetch, clock = Date.now, onUsage = () => {}, maxPromptBytes = 16384, outputTokens = 384,
   acceptedFingerprints = [] }) {
@@ -29,8 +35,7 @@ export function createDeepSeekClient({ apiKey, fetchImpl = fetch, clock = Date.n
   const fingerprints = new Set(acceptedFingerprints), preparedTurns = new WeakSet(), consumed = new WeakSet();
   const comparisonKey=randomBytes(32);
   const compareHash=value=>createHmac('sha256',comparisonKey).update(JSON.stringify(value)).digest('hex');
-  const profileHash = createHash('sha256').update(JSON.stringify({schema:1,provider:'deepseek',endpoint,model:DEEPSEEK_MODEL,
-    maxPromptBytes,outputTokens,thinking:false,stream:false,temperature:0.4,responseFormat:'json_object',acceptedFingerprints:[...fingerprints].sort()})).digest('hex');
+  const profileHash = deepSeekProfileHash({ acceptedFingerprints, maxPromptBytes, outputTokens });
   let active = false, blockedUntil = 0, credentialBlocked = false, identityBlocked = false;
   function scope({ boundary, workerDomain, releaseHash, requesterId, restricted }) {
     // Existing local/private qualifications do not authorize a remote restricted lane.

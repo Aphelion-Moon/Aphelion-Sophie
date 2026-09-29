@@ -1,4 +1,4 @@
-import { createInstalledTransport } from '../inference-host/transport.js';
+import { createInstalledTransport } from './transport.js';
 import { requireCondition } from '../../contracts/validation.js';
 
 /** Foreground service payload. SCM registration/wrapper selection is a separate operational decision. */

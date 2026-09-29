@@ -1,23 +1,34 @@
 import { Agent, request } from 'node:https';
+import { lookup as dnsLookup } from 'node:dns';
 import { Readable, Transform } from 'node:stream';
 import { requireCondition } from '../../contracts/validation.js';
+import { isPublicAiAddress } from './public-address.js';
 
 const endpoint = 'https://api.deepseek.com/chat/completions';
 
-/** Worker-owned, single-origin transport. No redirects, retries, proxy inheritance or global dispatcher changes. */
-export function createDeepSeekTransport({ requestImpl = request, connector = null } = {}) {
-  requireCondition(typeof requestImpl === 'function' && (connector === null ||
-    (typeof connector.open === 'function' && typeof connector.stop === 'function')), 'TRUSTED_ADAPTERS_REQUIRED');
-  const agent = new Agent({ keepAlive:true, maxSockets:1, maxTotalSockets:1, maxFreeSockets:1,
-    maxCachedSessions:0, timeout:15000, rejectUnauthorized:true, proxyEnv:{} });
-  const requests = new Set(), lifetime = new AbortController(); let stopped = false, closing = null, connectingSignal;
-  if (connector) agent.createConnection = (_options,callback) => {
-    const signal=connectingSignal;
-    Promise.resolve().then(()=>connector.open(signal)).then(socket=>{
-      if(signal.aborted || stopped){socket.destroy();callback(Error('AI_HTTP_UNAVAILABLE'));}
-      else callback(null,socket);
-    },()=>callback(Error('AI_HTTP_UNAVAILABLE')));
+/**
+ * Resolves only to public IPv4 addresses. The worker's network path is direct (firewall-scoped to TCP 443),
+ * so a poisoned or rebinding answer must not reach loopback, link-local or private services on the host/LAN.
+ */
+export function publicAiLookup(resolve = dnsLookup) {
+  return (hostname, options, callback) => {
+    resolve(hostname, { family:4, all:true }, (error, addresses) => {
+      if (error) { callback(error); return; }
+      if (!Array.isArray(addresses) || addresses.length === 0 || !addresses.every(entry => isPublicAiAddress(entry?.address))) {
+        callback(Object.assign(Error('AI_HTTP_UNAVAILABLE'), { code:'EAI_AI_ADDRESS' })); return;
+      }
+      if (options?.all) callback(null, addresses.map(({ address }) => ({ address, family:4 })));
+      else callback(null, addresses[0].address, 4);
+    });
   };
+}
+
+/** Worker-owned, single-origin transport. No redirects, retries, proxy inheritance or global dispatcher changes. */
+export function createDeepSeekTransport({ requestImpl = request, lookup = publicAiLookup() } = {}) {
+  requireCondition(typeof requestImpl === 'function' && typeof lookup === 'function', 'TRUSTED_ADAPTERS_REQUIRED');
+  const agent = new Agent({ keepAlive:true, maxSockets:1, maxTotalSockets:1, maxFreeSockets:1,
+    maxCachedSessions:0, timeout:15000, rejectUnauthorized:true, proxyEnv:{}, lookup, family:4, autoSelectFamily:false });
+  const requests = new Set(), lifetime = new AbortController(); let stopped = false, closing = null;
   return Object.freeze({
     fetch(url, options) {
       requireCondition(!stopped && requests.size === 0, 'AI_HTTP_UNAVAILABLE');
@@ -29,7 +40,7 @@ export function createDeepSeekTransport({ requestImpl = request, connector = nul
       return new Promise((resolve,reject) => {
         let response, body, timer;
         const aborted = new AbortController();
-        connectingSignal = AbortSignal.any([options.signal,lifetime.signal,aborted.signal]);
+        const connectingSignal = AbortSignal.any([options.signal,lifetime.signal,aborted.signal]);
         const fail = () => {
           const error = Error('AI_HTTP_UNAVAILABLE');
           aborted.abort();
@@ -67,7 +78,7 @@ export function createDeepSeekTransport({ requestImpl = request, connector = nul
       if (closing) return closing;
       stopped = true; lifetime.abort();
       const handles = new Set([...requests,...Object.values(agent.sockets).flat(),...Object.values(agent.freeSockets).flat()]);
-      closing = Promise.all([connector?.stop(), ...[...handles].filter(handle=>!handle.closed).map(handle=>new Promise(resolve=>handle.once('close',resolve)))]).then(()=>{});
+      closing = Promise.all([...[...handles].filter(handle=>!handle.closed).map(handle=>new Promise(resolve=>handle.once('close',resolve)))]).then(()=>{});
       for (const outgoing of requests) outgoing.destroy(Error('AI_HTTP_UNAVAILABLE'));
       agent.destroy(); return closing;
     },

@@ -14,6 +14,7 @@ test('T46 case access, hidden storage writes and runtime escape hatches fail mod
     ['apps/knowledge/mediawiki.js', "import x from '../core/storage/core-store.js';"],
     ['apps/inference-host/service-control.js', "import x from '../core/secrets.js';"],
     ['apps/inference-host/service-control.js', "import x from '../../modules/tickets/index.js';"],
+    ['apps/installation/configuration.js', "import x from '../core/storage/core-store.js';"],
     ['apps/ai-control/server.js', "import x from '../core/secrets.js';"],
     ['apps/ai-control/client.js', "import x from '../inference-host/service-control.js';"],
     ['apps/core/runtime/ai-lifecycle.js', "import x from '../../inference-host/service-control.js';"],

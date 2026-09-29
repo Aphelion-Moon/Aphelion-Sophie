@@ -1,4 +1,4 @@
-import { loadAiWorkerBootstrap, createAiWorkerLease } from './bootstrap.js';
+import { locateAiWorkerBoot, loadAiWorkerBootstrap, createAiWorkerLease } from './bootstrap.js';
 import { createInstalledWorker } from './installed.js';
 import { requireCondition } from '../../contracts/validation.js';
 
@@ -20,7 +20,7 @@ async function stop(code=0) {
 process.once('SIGINT',()=>{void stop();});process.once('SIGTERM',()=>{void stop();});
 async function start() {
   requireCondition(process.argv.length===2,'AI_WORKER_ARGUMENTS_INVALID');
-  boot=await loadAiWorkerBootstrap();
+  boot=await loadAiWorkerBootstrap({bootId:await locateAiWorkerBoot()});
   if(stopping)throw Error('AI_WORKER_UNAVAILABLE');
   lease=createAiWorkerLease({identity:boot.identity,qualificationHash:boot.qualificationHash,key:boot.leaseKey});await lease.start();
   if(stopping)throw Error('AI_WORKER_UNAVAILABLE');

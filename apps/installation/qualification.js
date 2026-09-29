@@ -1,6 +1,6 @@
 import { requireCondition, requireKeys } from '../../contracts/validation.js';
 import { canonicalAiWorkerRelease } from '../../modules/assistant/worker-release.js';
-import { installationHash } from '../inference-host/installation.js';
+import { installationHash } from './configuration.js';
 
 // Shorter than the Hyper-V/HCS era's twelve-item checklist: with the worker isolated by its own
 // restricted OS account instead of a container, an operator now attests to three properties —

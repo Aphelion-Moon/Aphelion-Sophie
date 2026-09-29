@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { randomUUID, randomBytes, createHash } from 'node:crypto';
-import { mkdtemp, mkdir, rm, readFile, access } from 'node:fs/promises';
+import { mkdtemp, mkdir, rm, readFile, readdir, writeFile, access } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { registeredAiWorker, registeredAiWorkerIdentity } from '../apps/inference-host/worker-registration.js';
@@ -28,7 +28,7 @@ async function job(client,command,body) {
 }
 
 test('worker-registration rejects overlapping boot/provider/trust directories and cross-release identities', () => {
-  const base = { installationId: hash(), serviceName: 'SophieInference', bootRoot: 'C:\\Aphelion\\Sophie\\state\\boots',
+  const base = { installationId: hash(), serviceName: 'aphelion-bot-ai-worker', bootRoot: 'C:\\Aphelion\\Sophie\\state\\boots',
     providerDirectory: 'C:\\Aphelion\\Sophie\\provider', release: release() };
   assert.doesNotThrow(() => registeredAiWorker(base));
   assert.throws(() => registeredAiWorker({ ...base, providerDirectory: base.bootRoot }), /AI_WORKER_REGISTRATION_INVALID/);
@@ -44,7 +44,7 @@ async function bootFixture() {
   const root = await mkdtemp(join(tmpdir(), 'sophie-inference-host-'));
   const bootRoot = join(root, 'boots'), providerDirectory = join(root, 'provider');
   await Promise.all([bootRoot, providerDirectory].map(path => mkdir(path)));
-  const rel = release(), registration = { installationId: hash(), serviceName: 'SophieInference', bootRoot, providerDirectory, release: rel };
+  const rel = release(), registration = { installationId: hash(), serviceName: 'aphelion-bot-ai-worker', bootRoot, providerDirectory, release: rel };
   return { root, registration, rel, async close() { await rm(root, { recursive: true, force: true }); } };
 }
 
@@ -65,15 +65,15 @@ test('bootstrap publishes distinct ipc/lease keys and revokes both files without
   } finally { await f.close(); }
 });
 
-function mockService({ registered = true } = {}) {
+function mockService({ registered = true, stuck = false } = {}) {
   let state = registered ? 'STOPPED' : null;
   const calls = [];
   async function run(_command, args) {
     calls.push(args.join(' '));
     const verb = args[0];
     if (verb === 'query') return state === null ? { code: 1060, stdout: '' } : { code: 0, stdout: `STATE              : 4  ${state}` };
-    if (verb === 'start') { if (state === null) return { code: 1060, stdout: '' }; state = 'RUNNING'; return { code: 0, stdout: '' }; }
-    if (verb === 'stop') { state = 'STOPPED'; return { code: 0, stdout: '' }; }
+    if (verb === 'start') { if (state === null) return { code: 1060, stdout: '' }; if (state !== 'STOPPED') return { code: 1056, stdout: '' }; state = 'RUNNING'; return { code: 0, stdout: '' }; }
+    if (verb === 'stop') { if (state === 'STOPPED') return { code: 1062, stdout: '' }; if (!stuck) state = 'STOPPED'; return { code: 0, stdout: '' }; }
     throw Error(`unexpected sc.exe invocation: ${args.join(' ')}`);
   }
   return { run, calls, setState: value => { state = value; }, getState: () => state };
@@ -84,15 +84,42 @@ test('DS04-I01 service control starts, waits for RUNNING and stops back to STOPP
   try {
     const control = createAiServiceControl({ registration: f.registration, run: service.run });
     assert.equal(await control.inspect(), null);
+    assert.equal(await control.qualified(), false);
     await assert.rejects(control.create(), /AI_SERVICE_NOT_REGISTERED/);
     service.setState('STOPPED'); // the operator's one-time setup script has now registered the service
-    assert.deepEqual(await control.create(), { id: 'SophieInference' });
+    assert.deepEqual(await control.create(), { id: 'aphelion-bot-ai-worker' });
     await control.start();
     assert.deepEqual(await control.inspect(), { running: true });
     const receipt = await control.remove();
     assert.equal(receipt.removed, true);
     assert.equal(await control.inspect(), null);
     assert.equal(await control.qualified(), true);
+  } finally { await f.close(); }
+});
+
+test('DS04-I01b service control never reports an unconfirmed stop or adopts an already running worker', native, async () => {
+  const f = await bootFixture(), service = mockService({ stuck: true });
+  try {
+    const control = createAiServiceControl({ registration: f.registration, run: service.run, timeoutMs: 300 });
+    service.setState('RUNNING');
+    await assert.rejects(control.create(), /AI_SERVICE_NOT_STOPPED/);
+    await assert.rejects(control.start(), /AI_SERVICE_START_FAILED/);
+    await assert.rejects(control.remove(), /AI_SERVICE_OPERATION_TIMEOUT/);
+    const slot = createAiWorkerSlot({ registration: f.registration, service: control });
+    await assert.rejects(slot.quiesce(), /AI_SUPERVISOR_STOP_UNCONFIRMED|AI_SERVICE_OPERATION_TIMEOUT/);
+    assert.equal(slot.status().recovered, false);
+    assert.throws(() => slot.prepare({ revision: 0, identity: identity(f.rel), operationId: randomUUID() }), /AI_SUPERVISOR_NOT_READY/);
+  } finally { await f.close(); }
+});
+
+test('DS04-I01c recovery removes every leftover boot entry so the worker sees exactly one published boot', native, async () => {
+  const f = await bootFixture(), service = mockService();
+  try {
+    await mkdir(join(f.registration.bootRoot, hash()));
+    await writeFile(join(f.registration.bootRoot, 'stray.tmp'), 'x');
+    const slot = createAiWorkerSlot({ registration: f.registration, service: createAiServiceControl({ registration: f.registration, run: service.run }) });
+    await slot.quiesce();
+    assert.deepEqual(await readdir(f.registration.bootRoot), []);
   } finally { await f.close(); }
 });
 

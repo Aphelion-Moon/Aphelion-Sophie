@@ -11,7 +11,7 @@ import { createMeteredAiWorker } from '../apps/core/runtime/ai-provider.js';
 import { createAiWorkerRuntime } from '../apps/knowledge-worker/runtime.js';
 import { createDeepSeekClient } from '../apps/knowledge-worker/deepseek-client.js';
 import { aiBootPipe, authenticateAiBootPipe } from '../apps/knowledge-worker/boot-pipe.js';
-import { AI_WORKER_FILES, loadAiWorkerBootstrap, readAiWorkerFile, signAiWorkerLease, createAiWorkerLease } from '../apps/knowledge-worker/bootstrap.js';
+import { AI_WORKER_ROOTS, aiWorkerFiles, locateAiWorkerBoot, loadAiWorkerBootstrap, readAiWorkerFile, signAiWorkerLease, createAiWorkerLease } from '../apps/knowledge-worker/bootstrap.js';
 
 const key=Buffer.alloc(32,7),leaseKey=Buffer.alloc(32,8),qualificationHash='6'.repeat(64),apiKey='synthetic-package-provider-key';
 const acceptedFingerprints=['synthetic-package'],native={skip:process.platform!=='win32',timeout:15000};
@@ -101,12 +101,28 @@ test('DS04-P06 stop releases a pending broker connection without a worker proces
 
 const boot=()=>({version:1,identity:identity(),qualificationHash,ipcKey:key.toString('hex'),leaseKey:leaseKey.toString('hex'),acceptedFingerprints});
 test('DS04-P07 fixed bootstrap paths and distinct credentials reject unregistered data and unsafe key profiles',async()=>{
-  const value=boot(),reads=[];
-  const loaded=await loadAiWorkerBootstrap(async(path,limit)=>{reads.push([path,limit]);return path===AI_WORKER_FILES.bootstrap?JSON.stringify(value):apiKey;});
-  assert.deepEqual(reads,[[AI_WORKER_FILES.bootstrap,8192],[AI_WORKER_FILES.provider,512]]);assert.deepEqual(loaded.identity,value.identity);
+  const value=boot(),reads=[],bootId=value.identity.bootId,files=aiWorkerFiles(bootId);
+  // The worker reads exactly the host paths the supervisor publishes to, never a container mount.
+  assert.equal(files.bootstrap,`C:\\Aphelion\\Sophie\\state\\boots\\${bootId}\\boot.json`);
+  assert.equal(files.lease,`C:\\Aphelion\\Sophie\\state\\boots\\${bootId}\\lease.json`);
+  assert.equal(files.provider,'C:\\Aphelion\\Sophie\\provider\\api-key.txt');
+  const loaded=await loadAiWorkerBootstrap({bootId,read:async(path,limit)=>{reads.push([path,limit]);return path===files.bootstrap?JSON.stringify(value):apiKey;}});
+  assert.deepEqual(reads,[[files.bootstrap,8192],[files.provider,512]]);assert.deepEqual(loaded.identity,value.identity);
   for(const change of [{extra:'unregistered'}, {leaseKey:value.ipcKey}, {version:2}, {qualificationHash:'bad'}, {acceptedFingerprints:['bad name']}, {acceptedFingerprints:[]}])
-    await assert.rejects(loadAiWorkerBootstrap(async()=>JSON.stringify({...value,...change})),/AI_BOOT_INVALID/);
-  await assert.rejects(loadAiWorkerBootstrap(async path=>path===AI_WORKER_FILES.bootstrap?JSON.stringify(value):'short'),/AI_BOOT_INVALID/);
+    await assert.rejects(loadAiWorkerBootstrap({bootId,read:async()=>JSON.stringify({...value,...change})}),/AI_BOOT_INVALID/);
+  await assert.rejects(loadAiWorkerBootstrap({bootId,read:async path=>path===files.bootstrap?JSON.stringify(value):'short'}),/AI_BOOT_INVALID/);
+  // A boot file published under another boot's directory is rejected.
+  await assert.rejects(loadAiWorkerBootstrap({bootId:identity().bootId,read:async path=>path.endsWith('boot.json')?JSON.stringify(value):apiKey}),/AI_BOOT_INVALID/);
+  await assert.rejects(loadAiWorkerBootstrap({bootId:'..',read:async()=>JSON.stringify(value)}),/AI_BOOT_INVALID/);
+});
+
+test('DS04-P07b worker locates exactly one published boot directory and rejects ambiguous boot roots',async()=>{
+  const entry=(name,{directory=true,link=false}={})=>({name,isDirectory:()=>directory,isSymbolicLink:()=>link});
+  const bootId=identity().bootId,listed=[];
+  assert.equal(await locateAiWorkerBoot({list:async path=>{listed.push(path);return [entry(bootId)];}}),bootId);
+  assert.deepEqual(listed,[AI_WORKER_ROOTS.boots]);
+  for(const entries of [[],[entry(bootId),entry(identity().bootId)],[entry(bootId,{directory:false})],[entry(bootId,{link:true})],[entry('not-a-boot')]])
+    await assert.rejects(locateAiWorkerBoot({list:async()=>entries}),/AI_BOOT_INVALID/);
 });
 
 test('DS04-P08 mounted-file reader rejects oversized and invalid UTF-8 contents before parsing',async()=>{
@@ -122,7 +138,7 @@ function leaseFixture(){
   const make=(sequence=1,changes={})=>signAiWorkerLease({identity:fixed,qualificationHash,key:leaseKey,sequence,issuedAt:wall,expiresAt:wall+5000,...changes});
   let record=make(),reader=async()=>JSON.stringify(record);
   const lease=createAiWorkerLease({identity:fixed,qualificationHash,key:leaseKey,clock:()=>wall,monotonic:()=>mono,read:async(path,limit)=>{
-    assert.equal(path,AI_WORKER_FILES.lease);assert.equal(limit,2048);reads++;return reader();
+    assert.equal(path,aiWorkerFiles(fixed.bootId).lease);assert.equal(limit,2048);reads++;return reader();
   }});
   return {lease,make,get record(){return record;},set record(value){record=value;},advance(ms){wall+=ms;mono+=ms;},
     setReader(value){reader=value;},rollback(){wall-=10000;mono+=6000;},reads:()=>reads};
