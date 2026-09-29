@@ -1,5 +1,39 @@
 # Verification and release limits
 
+## Installed on WUFF for the Test Discord Server — 29 September 2026
+
+Owner-authorized host work, with game services left running throughout. Recorded observations:
+
+- **Database.** The previous staging cluster was cold-copied to `D:\Backups\sophie-staging\cold-20260929-172054`
+  (12,922 files, hashes equal) and moved to `C:\Aphelion\Sophie\staging`. A rename/upgrade tool was rehearsed on a
+  throwaway cluster, then run live. It verified the 55 legacy checksums equal Sophie's migration files once
+  the name is swapped, and took an encrypted pre-rename bundle with a quarantined restore. It renamed 3
+  schemas, 3 function bodies, 55 checksums, the database, 3 roles and 6 quarantined restore copies. It
+  applied migrations 056–063 with all 511 rows in 71 tables unchanged, and took a post-upgrade bundle. That
+  database is retained as `sophie_stage_archive_20260929`. A fresh `sophie_stage_bot` (63 migrations) serves
+  the new application.
+- **Identities.** `checkRuntimeDatabase` passes for core (71 tables). `requireInstalledAiDatabase` passes for the
+  control and knowledge roles, logged in through the installed package on the pinned Node runtime.
+- **Services.** All run under their own `NT SERVICE` virtual accounts: `aphelion-bot-postgres` (loopback only),
+  `aphelion-bot-tunnel`, `aphelion-bot-ai-supervisor` (moved off LocalSystem) and `aphelion-bot`.
+  `aphelion-bot-ai-worker` is registered and stopped. The worker SID holds only traverse on its ancestors,
+  read on `provider\` and `state\boots`, and read/execute on the package. It has nothing on `trust\` or
+  `staging\`, and 4 outbound block rules. Receipts are in `C:\Aphelion\Sophie\qualification\evidence-20260929`.
+- **Package integrity.** The installed loader re-hashes all 701 manifest entries. It rejected a deliberately
+  unregistered `host.js` edit (`AI_PACKAGE_CHANGED`) and a missing asset directory (`ENOENT`) before
+  composition; both were fixed by redeploying. Receipts expire in 24 hours, and
+  `staging\renewal\renew-installation.ps1` renews them. Renewal was exercised once, and it exposed the
+  30-second Gateway lease (`GATEWAY_OWNER_ACTIVE`); the script now waits it out.
+- **Discord.** The bootstrap for `aphelion-sophie` created the 5 roles, category and lobby, assigned Head Admin to
+  the guild owner and registered the commands. It needed a registration fix: a bounded cooldown retry, because
+  the per-route bucket is smaller than the command set. Gateway `current`, guild available, capture on.
+  `https://sophie.a13.info` returns 303 (dashboard), 403 (anonymous session) and 401 (unsigned interaction).
+- **Tests.** `npm test` 573/573 and `npm run check` pass on the host with the supervisor installed. The control
+  port is now injectable so tests no longer collide with it.
+
+Not done: no AI worker boot, provider call, channel qualification or member opt-in. The AI gates in
+`ai-test-guild-runbook.md` remain open, and nothing here is production readiness.
+
 ## Review and repair of the account-isolation replacement — 29 September 2026
 
 A review of commit 7f55156 (next entry) found that its installed composition could not have run. Several

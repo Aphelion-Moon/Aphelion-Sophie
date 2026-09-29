@@ -1,95 +1,71 @@
 # AI on the Test Discord Server — operator runbook
 
-Status (29 September 2026): the source and offline tests are ready. **None of these steps has been run on
-the host.** Every step marked *approval* changes host state, which needs the owner's explicit go-ahead.
-Record the outcome of each one in `docs/verification.md`. Do not paste the provider key, Discord token or
-trust-file contents into chat, logs or Git.
+Status (29 September 2026): Sophie runs on WUFF as installed services against the Test Discord Server,
+using the `aphelion-sophie` Discord application. The AI worker is installed but **not started**, and no
+channel is qualified for AI. Starting it is an owner action through the dashboard (step 3). Do not paste
+the provider key, Discord token or trust-file contents into chat, logs or Git.
 
-## 0. Gates that stay open throughout
+## What is installed
 
-- The owner confirms the 29 September account-isolation decision entry in `decisions/0001-owner-policy.md`.
-- DS-01 provider/data-use clearance. Until it passes, public message processing stays blocked even with
-  the worker running.
-- Publication review of the selected knowledge sources, and the actual-answer gate.
-- Per-channel participation and per-member opt-in on the test server, configured in the dashboard. Unknown
-  channels default to ignore.
-- The USD 20/month budget. Tickets and onboarding content are never AI inputs.
+| Service (all Manual) | Account | Runs |
+| --- | --- | --- |
+| `aphelion-bot-postgres` | `NT SERVICE\aphelion-bot-postgres` | Staging PostgreSQL 17.11 on 127.0.0.1:52435, data in `C:\Aphelion\Sophie\staging\postgres-data`, from Sophie's own hash-verified binary copy in `C:\Aphelion\Sophie\postgres` |
+| `aphelion-bot-tunnel` | `NT SERVICE\aphelion-bot-tunnel` | Pinned cloudflared for the `sophie-staging` tunnel (`sophie.a13.info`) |
+| `aphelion-bot-ai-supervisor` | `NT SERVICE\aphelion-bot-ai-supervisor` | `apps/inference-host/installed.mjs`; control on 127.0.0.1:47551 |
+| `aphelion-bot` | `NT SERVICE\aphelion-bot` | `apps/core/installed.mjs`; listeners 127.0.0.1:38121/38122 |
+| `aphelion-bot-ai-worker` | `NT SERVICE\aphelion-bot-ai-worker` | `apps/knowledge-worker/main.mjs`; started/stopped only by the supervisor |
 
-## 1. Stage a package (local)
+Start order: postgres, tunnel, supervisor, core. Wait at least 31 seconds between stopping and starting
+core, because its Gateway ownership lease fails closed (`GATEWAY_OWNER_ACTIVE`) until then.
+Setup is reproducible with `ops/windows/Setup-StagingServices.ps1` and `ops/windows/Setup-InferenceAccount.ps1`.
+Both are idempotent and support `-WhatIf`.
 
-Copy `apps`, `contracts`, `modules`, `platform`, `node_modules`, `package.json`, `package-lock.json` and
-`LICENSE` from the reviewed commit into `<staging>\source`. Copy the pinned runtime into `<staging>\runtime`
-(`node.exe`, SHA-256 `3602f2bb…0237`, plus `LICENSE`). The manifest is written in step 3.
+Database `sophie_stage_bot` was created fresh for the new application, with migrations 001–063. The
+earlier staging data is retained, renamed and fenced as `sophie_stage_archive_20260929`, plus encrypted
+bundles in `D:\Backups`. Runtime identities are `sophie_stage_core`, `sophie_stage_control` (AI tables only)
+and `sophie_stage_knowledge` (read-only knowledge). The owner and admin logins are maintenance-only.
 
-## 2. Register the worker service — *approval*
+## Daily: renew the installation receipts
 
-```powershell
-pwsh -File ops\windows\Setup-InferenceAccount.ps1 -WhatIf   # review first
-pwsh -File ops\windows\Setup-InferenceAccount.ps1
-```
-
-This creates `aphelion-bot-ai-worker` under `NT SERVICE\aphelion-bot-ai-worker`, adds the worker's file
-grants, replaces the `provider\` ACL, grants the supervisor start/stop rights on the service and creates four
-outbound block rules. It also removes the stale Hyper-V container ACE (`S-1-5-93-2-2`) from `provider\`.
-Readback commands are printed at the end.
-
-## 3. Collect receipts and write trust files — *approval*
-
-Record one evidence file per check. These are text captures, kept outside Git:
-
-| Check | Capture |
-| --- | --- |
-| `service-account-identity` | `sc.exe qc aphelion-bot-ai-worker`, `sc.exe showsid aphelion-bot-ai-worker`, `sc.exe sdshow aphelion-bot-ai-worker` |
-| `file-acl-scope` | `icacls` on `trust`, `trust\*.json`, `provider`, `state\boots`, the core database credential and the Discord token location; the worker SID must appear only on the allowed paths |
-| `firewall-egress-scope` | `Get-NetFirewallRule -DisplayName 'Sophie AI worker*'` with its service/port filters |
-
-A denial probe running *as* the worker (reading `trust\core.json` fails, a TCP 80 connection fails) would
-be stronger than ACL readback. The earlier `qualification\service-probe.mjs` pattern can host one if the
-owner wants it.
-
-Write an input file in a restricted folder outside Git. Its fields are listed in the header of
-`scripts/prepare-ai-installation.mjs`. The core block must contain `runtime`, `database`, `ownerDatabase`,
-`controlDatabase`, `knowledgeDatabase` and `credentials` (`token`, `clientSecret`), matching
-`apps/core/runtime/installed.js`. Then run:
+Trust files expire 24 hours after issue by design. From an elevated PowerShell:
 
 ```powershell
-node scripts\prepare-ai-installation.mjs <restricted>\input.json
+pwsh -File C:\Aphelion\Sophie\staging\renewal\renew-installation.ps1
 ```
 
-Copy `<staging>` to `C:\Aphelion\Sophie\package` and the two trust files to `C:\Aphelion\Sophie\trust`.
-Rerun the setup script so `core.json` is readable only by `aphelion-bot` and `supervisor.json` only by
-`aphelion-bot-ai-supervisor`. Register the printed release record in the dashboard AI worker catalogue.
-The receipts expire after 24 hours, so trust files and the release record are reissued daily.
+It resyncs `package\source` from the committed repository (it refuses to run with uncommitted changes),
+rewrites the manifest and both trust files with fresh keys, re-locks them, and restarts the supervisor
+and core with the lease wait. The Discord credentials it reads live in `staging\renewal`, readable only
+by SYSTEM, Administrators and the operator. A renewal also redeploys the current commit, so review what
+is committed before running it.
 
-## 4. Point core and supervisor at the installed entrypoints — *approval*
+## Enabling AI on one test channel
 
-In the existing WinSW XMLs under `services\`:
-
-- `aphelion-bot`: set `<arguments>` to `"C:\Aphelion\Sophie\package\source\apps\core\installed.mjs" start-installed`
-  and `<workingdirectory>` to `package\source`.
-- `aphelion-bot-ai-supervisor`: set `<arguments>` to `"C:\Aphelion\Sophie\package\source\apps\inference-host\installed.mjs"`
-  and change `<serviceaccount>` from `LocalSystem` to `NT SERVICE` / `aphelion-bot-ai-supervisor`. It already
-  has full control of `state\boots`, and step 2 gave it rights on the worker service.
-
-Installed core uses the same bot token as the foreground staging launcher (`.local/staging-host/run.mjs`).
-Stop the launcher before starting `aphelion-bot`; they must never run at the same time.
-
-## 5. Start and observe — *approval*
-
-Start `aphelion-bot-ai-supervisor`, then `aphelion-bot`. Core drives the worker through the supervisor.
-Never start `aphelion-bot-ai-worker` by hand. Check `logs\*` and the dashboard AI page for the worker
-acknowledgement. Only then enable one test channel and one opted-in test member.
+1. **Clear the gates first**: DS-01 provider/data-use clearance, knowledge-source publication review, and
+   the USD 20/month budget policy. Tickets and onboarding content are never AI inputs.
+2. **Dashboard setup** (Head Admin): publish the AI notice and budget policy, then have test members opt in.
+3. **Start the worker** from the dashboard AI page by selecting the installed release
+   (`sophie-deepseek-<commit>`). Core asks the supervisor for a fresh boot, and the supervisor starts
+   `aphelion-bot-ai-worker`. The worker reaches DeepSeek only on TCP 443, and only at public IPv4 addresses.
+4. **Qualify one channel**: insert its row in `sophie_ai.qualifications` as the owner identity. The row
+   binds the release and evidence hashes, so it has to be reissued when the release changes. Unknown
+   channels default to ignore.
 
 ## Rollback
 
-Stop the three services. Run `services\worker\aphelion-bot-ai-worker.exe uninstall` and remove the
-`Sophie AI worker*` firewall rules. Restore the two XMLs from their backup copies and restart the
-foreground staging launcher. Trust files and boot directories can be deleted; they hold no durable state.
+Stop the four running services. Core, supervisor and the worker return to the previous state by
+restoring the XML backups in `C:\Aphelion\Sophie\rollback\20260929-170850` (the old configs no longer
+start anything useful). The database rollback is the cold copy
+`D:\Backups\sophie-staging\cold-20260929-172054` plus its credential files. Uninstall added services with
+their WinSW `uninstall` (tunnel, worker) or `pg_ctl unregister -N aphelion-bot-postgres`, and remove the
+`Sophie AI worker*` firewall rules. Retired artifacts from the earlier project name are archived under
+`D:\Backups\sophie-staging\legacy-artifacts-20260929`.
 
-## Obsolete after confirmation
+## Still to do in Discord (owner)
 
-- The `aphelion-bot-ai-egress` service and `services\egress`: stopped, Manual, and no longer used by any code.
-- `worker-trust\` and the `qualification\*-probe` executables from the HCS trials.
-- The Hyper-V role. Disabling it needs a reboot, which is not authorized.
-
-Remove these only with approval. They are harmless while stopped.
+- Remove the previous application's bot from the test guild, then remove its guild commands under
+  Server Settings → Integrations. Delete the previous roles, category and lobby once no longer needed.
+  The new bootstrap created fresh "Sophie Test" ones.
+- Optionally grant the new bot **Manage Threads**, which child-thread inspection may require. Do not
+  grant Administrator.
+- Retire the previous application in the Developer Portal, then delete its credential file from the Desktop.

@@ -1,5 +1,10 @@
 # Current isolated staging operation
 
+**Current (29 September 2026):** staging runs on WUFF as installed Manual services under the
+`aphelion-sophie` application with a fresh schema-063 database. See the
+[AI test-guild runbook](ai-test-guild-runbook.md) for services, renewal and rollback. The foreground-host
+sections below are history.
+
 On 20 September 2026 the owner authorized `https://sophie.a13.info` and the
 [cloudflared staging exception](decisions/0004-staging-cloudflare.md). The test bot,
 dedicated PostgreSQL cluster and separate foreground tunnel connector were launched

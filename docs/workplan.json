@@ -1,6 +1,6 @@
 {
   "schema_version": 2,
-  "revision": "2026-09-29-account-isolation-repair",
+  "revision": "2026-09-29-wuff-installed",
   "reference_plan_version": "1.1",
   "source": "Sophie-Implementation-Plans-v1.1/backlog.json",
   "owner_decisions": "docs/decisions/0001-owner-policy.md",
@@ -1339,7 +1339,7 @@
   "checkpoint": {
     "summary": "Deterministic administration, Whitelist onboarding, protected editors, role/permission configuration and the configurable staging host are implemented.",
     "recorded_baseline": "AI handoff 0fa7a5ed538ff791e3def2c1f6ac7683531e15a1 plus preserved uncommitted Flash candidate; synthetic schema058 candidate. No live schema change.",
-    "current_work": "The unpushed 29 September commit replaced the Hyper-V/Docker/native-pipe isolation with a WinSW-wrapped worker service under its own virtual account. Review found the installed composition did not work: core could not load its configuration, the worker read container mount paths, service stop was not confirmed, the setup script targeted a nonexistent Node path with a mismatched local-user password and granted the worker the trust directory, and the provider address guard was dropped. These are repaired and covered by offline tests; nothing was installed or run on the host beyond read-only inspection and -WhatIf. Owner confirmation of the account-separation decision recorded on 29 September. Then, with operator approval: run ops/windows/Setup-InferenceAccount.ps1, stage a package, generate trust files with scripts/prepare-ai-installation.mjs, repoint the core/supervisor wrappers to the installed entrypoints, and record whoami/icacls/firewall denial evidence as the three qualification receipts. Provider/account, publication/actual-answer and Test Discord Server activation gates remain open. No host reboot is authorized.",
+    "current_work": "Sophie runs on WUFF as installed services (postgres, tunnel, supervisor, core) for the Test Discord Server under the new aphelion-sophie application: fresh schema-063 database, bootstrap-created roles/category/lobby, Gateway current, public ingress verified. The AI worker service is installed and stopped with its account, ACL and firewall scope captured as receipts. Former-name references were removed from the database, host and documents; superseded material is archived on D:. Owner: clear DS-01 provider/data-use, publication review and budget; publish the AI notice/budget in the dashboard; start the worker from the dashboard AI page; qualify one test channel; record first live AI turn evidence. Renew installation receipts daily (staging\renewal\renew-installation.ps1). Remove the previous application's bot, commands and roles from the test guild.",
     "evidence_note": "Current source-bound offline results are in docs/verification.md and the external deepseek-verification.json index. Earlier administration, local model and Flash trial results remain historical; none grants present deployment approval."
   },
   "milestones": [
@@ -2615,16 +2615,17 @@
   ],
   "next_steps": [
     {
-      "title": "Confirm account isolation and run the worker setup",
+      "title": "Activate AI on one test channel",
       "tasks": [
         "P21",
         "P22",
         "P23",
         "P24",
-        "P25"
+        "P25",
+        "P32"
       ],
-      "work": "Owner confirmation of the account-separation decision recorded on 29 September. Then, with operator approval: run ops/windows/Setup-InferenceAccount.ps1, stage a package, generate trust files with scripts/prepare-ai-installation.mjs, repoint the core/supervisor wrappers to the installed entrypoints, and record whoami/icacls/firewall denial evidence as the three qualification receipts. Provider/account, publication/actual-answer and Test Discord Server activation gates remain open. No host reboot is authorized.",
-      "exit_evidence": "Owner decision entry confirmed; setup readback; whoami/icacls/firewall denial receipts hashed into trust files by prepare-ai-installation.mjs."
+      "work": "Owner: clear DS-01 provider/data-use, publication review and budget; publish the AI notice/budget in the dashboard; start the worker from the dashboard AI page; qualify one test channel; record first live AI turn evidence. Renew installation receipts daily (staging\renewal\renew-installation.ps1). Remove the previous application's bot, commands and roles from the test guild.",
+      "exit_evidence": "Worker boot acknowledged in the dashboard, one qualified channel, a live DeepSeek turn within the 15-second ceiling, and a denial check from the worker account."
     },
     {
       "title": "Privately verify deployed configuration and apply workflow",
@@ -2762,13 +2763,13 @@
         "id": "DS-04",
         "title": "Windows worker and transport",
         "implementation": "WinSW-wrapped worker service (aphelion-bot-ai-worker) under NT SERVICE virtual account, started/stopped only by the supervisor through SCM with a service DACL grant; shared per-role trust loader with 24-hour expiry and full package-manifest re-hashing; worker reads boot/lease/provider files from fixed host paths and requires exactly one published boot; public-IPv4-only provider lookup; loopback authenticated control/inference channels. Hyper-V/Docker/native pipe companion, relays and egress bridge removed (7f55156).",
-        "qualification": "Offline only: 572/572 repository tests and repository check pass on Windows Server 2022, including new installed core/supervisor composition, trust-loader, manifest-tamper, fail-closed service stop and address-guard tests. Setup script parse-checked, -WhatIf run against the host (no changes) and ACL helpers exercised on scratch directories. Earlier relay/HCS evidence is historical and does not apply to this design.",
+        "qualification": "Installed on WUFF 29 September: worker/supervisor/core virtual accounts, service DACL, ACL scope and 4 egress block rules captured as receipts hashed into the release evidence; 701-entry package manifest enforced at startup (tamper and missing-file cases observed failing closed). 573/573 repository tests pass on the host with the supervisor installed. No worker boot or provider call yet.",
         "sai": [
           "SAI-04",
           "SAI-05",
           "SAI-14"
         ],
-        "remaining": "Owner confirmation of the account-separation decision recorded on 29 September. Then, with operator approval: run ops/windows/Setup-InferenceAccount.ps1, stage a package, generate trust files with scripts/prepare-ai-installation.mjs, repoint the core/supervisor wrappers to the installed entrypoints, and record whoami/icacls/firewall denial evidence as the three qualification receipts. Provider/account, publication/actual-answer and Test Discord Server activation gates remain open. No host reboot is authorized."
+        "remaining": "Start the worker from the dashboard after DS-01/publication/budget gates; observe the first boot, lease renewal and a provider turn; confirm the firewall service filter applies to the node child process with a live denial check."
       },
       {
         "id": "DS-05",

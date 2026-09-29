@@ -671,3 +671,25 @@ The owner's authorization covers running `ops/windows/Setup-InferenceAccount.ps1
 service wrappers and ACLs, and preparing the Test Discord Server deployment. It does not cover rebooting
 the host or touching any non-Sophie service. The provider/account, publication/actual-answer, consent and budget gates are unchanged.
 Historical HCS/relay evidence stays preserved and does not qualify this design.
+
+### Test Discord Server fresh start and staging services — 29 September 2026
+
+The owner supplied a new Discord application (`aphelion-sophie`) for the Test Discord Server and chose a
+**fresh start** over migrating the previous application's policies in place. The documented bootstrap
+created new zero-permission Sophie Test roles, a case category and a lobby, and registered the six guild
+commands. A new `sophie_stage_bot` database was migrated to schema 063. The previous staging database
+was first renamed from the former project prefix to `sophie_*`, with every retained row verified
+unchanged. It is kept as `sophie_stage_archive_20260929`, with runtime logins revoked.
+
+The owner also directed that the staging PostgreSQL cluster and tunnel connector run as Manual services
+under their own virtual accounts (`aphelion-bot-postgres`, `aphelion-bot-tunnel`). This supersedes
+decision 0004's "separate foreground connector, no Windows service" rule for staging only. The pinned
+cloudflared hash and the tunnel's ingress rules are unchanged. PostgreSQL runs from Sophie's own
+hash-verified copy of the reviewed 17.11 build, so it shares no binaries or identity with the game
+servers' clusters.
+
+The owner directed removal of every reference to the project's former name. That covers the database,
+roles, local checkout, agent documents and host artifacts. Superseded material is archived on `D:\Backups`
+rather than destroyed, and the obsolete egress service is uninstalled. No game service was stopped or
+changed. The provider/account, publication/actual-answer, consent and budget gates remain open, and the
+worker stays stopped until an owner starts it from the dashboard.
