@@ -7,14 +7,16 @@ const revision=value=>Number.isSafeInteger(value) && value>=0;
 const mutations=['prepare','create','start','quiesce'];
 const commands=['inspect','channel','ready',...mutations];
 const phases=['empty','prepared','created','running','removing'];
-const CONTROL_PORT=47551;
+/** Installed default. Tests and side-by-side hosts pass their own loopback port. */
+export const AI_CONTROL_PORT=47551;
 export function aiControlScope(installationId,role) {
   requireCondition(aiControlHash(installationId) && role==='core','AI_CONTROL_CONFIGURATION_INVALID');
   return {installationId,role};
 }
-export function aiControlPipe(installationId,role) {
+export function aiControlPipe(installationId,role,port=AI_CONTROL_PORT) {
   aiControlScope(installationId,role);requireCondition(process.platform==='win32','AI_WINDOWS_REQUIRED');
-  return { port: CONTROL_PORT, host: '127.0.0.1' };
+  requireCondition(Number.isSafeInteger(port) && port>=1024 && port<=65535,'AI_CONTROL_CONFIGURATION_INVALID');
+  return { port, host: '127.0.0.1' };
 }
 export function aiControlRequest(value,role) {
   requireKeys(value,['session','command','body'],'AI_CONTROL_INVALID');

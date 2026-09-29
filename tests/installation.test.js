@@ -88,13 +88,16 @@ test('DS04-E01 provider lookups resolve only to public IPv4 addresses', async ()
     assert.match((await call(answers)).error?.message??'',/AI_HTTP_UNAVAILABLE/);
 });
 
+// A port nothing listens on, so composition never reaches a live supervisor on this host.
+const unusedPort=await new Promise(resolve=>{const probe=createServer();probe.listen(0,'127.0.0.1',()=>{const {port}=probe.address();probe.close(()=>resolve(port));});});
+
 async function installedPipes(role) {
   const f=fixture(role),loaded=await f.load(),report={...loaded.configuration.qualification,checks:Object.fromEntries(installationChecks.map(name=>[name,hash()]))};
   const release={...loaded.configuration.release,evidenceHash:installationHash(JSON.stringify(report))};
   // Receipts are verified against the live clock, so this fixture expires an hour from now.
   const expires=Date.now()+3600000;report.expiresAt=expires;release.evidenceHash=installationHash(JSON.stringify(report));
   const lifetime=new AbortController();
-  return {lifetime,pipes:{profile:'installed',signal:lifetime.signal,createServer,connect,
+  return {lifetime,pipes:{profile:'installed',signal:lifetime.signal,createServer,connect:options=>connect({...options,port:unusedPort}),
     installation:{owner:{...loaded.owner,expires:String(expires)},configuration:{...loaded.configuration,release,qualification:report}}}};
 }
 

@@ -5,8 +5,8 @@ import { createAiIpcChannel } from '../knowledge-worker/ipc-channel.js';
 import { aiControlHash, aiControlPipe, aiControlScope, aiControlRequest, aiControlResult } from './contract.js';
 
 /** Session is learned by inspect once. A new supervisor requires a new client and fresh lifecycle recovery. */
-export function createAiControlClient({installationId,role,key,revocationSignal,connectPipe=connect}) {
-  const scope=aiControlScope(installationId,role),path=aiControlPipe(installationId,role);
+export function createAiControlClient({installationId,role,key,revocationSignal,connectPipe=connect,port}) {
+  const scope=aiControlScope(installationId,role),path=aiControlPipe(installationId,role,port);
   requireCondition(Buffer.isBuffer(key) && key.length===32 && revocationSignal instanceof AbortSignal,'AI_CONTROL_CONFIGURATION_INVALID');
   const secret=Buffer.from(key),lifetime=new AbortController(),signal=AbortSignal.any([lifetime.signal,revocationSignal]),active=new Set();let session=null,closing=null;
   function stop(){if(closing)return closing;lifetime.abort();secret.fill(0);revocationSignal.removeEventListener('abort',revoke);

@@ -6,7 +6,8 @@ import { aiControlHash, aiControlPipe, aiControlScope, aiControlRequest, aiContr
 import { createAiControlQualification } from './qualification.js';
 
 /** One fixed role endpoint with encrypted frames; actual OS-account and firewall boundaries require separate qualification. */
-export function createAiControlServer({installationId,keys,qualified,handle,revocationSignal,onFault,createPipeServer=createServer}) {
+export function createAiControlServer({installationId,keys,qualified,handle,revocationSignal,onFault,createPipeServer=createServer,port}) {
+  const address=aiControlPipe(installationId,'core',port);
   requireKeys(keys,['core'],'AI_CONTROL_CONFIGURATION_INVALID');
   requireCondition(Buffer.isBuffer(keys.core) && keys.core.length===32 &&
     typeof handle==='function' && typeof onFault==='function' && revocationSignal instanceof AbortSignal,'AI_CONTROL_CONFIGURATION_INVALID');
@@ -60,7 +61,7 @@ export function createAiControlServer({installationId,keys,qualified,handle,revo
       starting=(async()=>{try{
         requireCondition(await qualification.current(scope,signal) && !signal.aborted,'AI_CONTROL_UNAVAILABLE');
         await new Promise((resolve,reject)=>{const fail=()=>{server.off('listening',ready);reject(Error('AI_CONTROL_UNAVAILABLE'));};
-          const ready=()=>{server.off('error',fail);resolve();};server.once('error',fail);server.once('listening',ready);server.listen(aiControlPipe(installationId,role));});
+          const ready=()=>{server.off('error',fail);resolve();};server.once('error',fail);server.once('listening',ready);server.listen(address);});
         requireCondition(!signal.aborted,'AI_CONTROL_UNAVAILABLE');phase='listening';
       }catch{void stop();throw Error('AI_CONTROL_UNAVAILABLE');}})();return starting;
     },

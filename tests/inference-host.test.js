@@ -13,6 +13,10 @@ import { createAiSupervisorControlService } from '../apps/inference-host/control
 import { createAiControlClient } from '../apps/ai-control/client.js';
 import { aiControlScope } from '../apps/ai-control/contract.js';
 import { createDeepSeekClient } from '../apps/knowledge-worker/deepseek-client.js';
+import { createServer as createNetServer } from 'node:net';
+// The installed supervisor may already hold the default control port on this host.
+const port=await new Promise((resolve,reject)=>{const probe=createNetServer();probe.once('error',reject);probe.listen(0,'127.0.0.1',()=>{const {port}=probe.address();probe.close(()=>resolve(port));});});
+
 
 const native={skip:process.platform!=='win32',timeout:15000};
 const hash=()=>createHash('sha256').update(randomBytes(32)).digest('hex');
@@ -155,9 +159,9 @@ test('DS04-I03 core control composes prepare/create/start/quiesce through the au
   const revocation = new AbortController();
   const slot = createAiSupervisorWorkerSlot({ registration: f.registration, slot: durable, acceptedFingerprints,
     qualified: async () => true, revocationSignal: revocation.signal, onFault: () => {} });
-  const server = createAiSupervisorControlService({ installationId, keys: keySet, qualified: async () => true, slot,
+  const server = createAiSupervisorControlService({ port, installationId, keys: keySet, qualified: async () => true, slot,
     beforeStart: async () => true, revocationSignal: revocation.signal, onFault: () => {} });
-  const client = createAiControlClient({ installationId, role: 'core', key: keySet.core, revocationSignal: new AbortController().signal });
+  const client = createAiControlClient({port, installationId, role: 'core', key: keySet.core, revocationSignal: new AbortController().signal });
   t.after(async () => { revocation.abort(); await client.stop(); await server.stop(); await f.close(); });
   await server.start();
   await until(async () => (await client.request('inspect')).recovered);
@@ -191,9 +195,9 @@ test('DS04-I05 an unapproved job command and a stale-revision retry are denied b
   const revocation = new AbortController();
   const slot = createAiSupervisorWorkerSlot({ registration: f.registration, slot: durable, acceptedFingerprints,
     qualified: async () => true, revocationSignal: revocation.signal, onFault: () => {} });
-  const server = createAiSupervisorControlService({ installationId, keys: keySet, qualified: async () => true, slot,
+  const server = createAiSupervisorControlService({ port, installationId, keys: keySet, qualified: async () => true, slot,
     beforeStart: async () => true, revocationSignal: revocation.signal, onFault: () => {} });
-  const client = createAiControlClient({ installationId, role: 'core', key: keySet.core, revocationSignal: new AbortController().signal });
+  const client = createAiControlClient({port, installationId, role: 'core', key: keySet.core, revocationSignal: new AbortController().signal });
   t.after(async () => { revocation.abort(); await client.stop(); await server.stop(); await f.close(); });
   await server.start();
   await until(async () => (await client.request('inspect')).recovered);

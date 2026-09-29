@@ -7,6 +7,10 @@ import { createAiIpcChannel } from '../apps/knowledge-worker/ipc-channel.js';
 import { createAiControlServer } from '../apps/ai-control/server.js';
 import { createAiControlClient } from '../apps/ai-control/client.js';
 import { aiControlPipe } from '../apps/ai-control/contract.js';
+import { createServer as createNetServer } from 'node:net';
+// The installed supervisor may already hold the default control port on this host.
+const port=await new Promise((resolve,reject)=>{const probe=createNetServer();probe.once('error',reject);probe.listen(0,'127.0.0.1',()=>{const {port}=probe.address();probe.close(()=>resolve(port));});});
+
 
 const native={skip:process.platform!=='win32',timeout:15000};
 const hash=()=>createHash('sha256').update(randomBytes(32)).digest('hex');
@@ -14,13 +18,13 @@ const keys=()=>({core:randomBytes(32)});
 const empty=()=>({revision:0,phase:'empty',identity:null,operationId:null,recovered:false,readiness:{core:false},job:null});
 async function until(check,ms=3000){const deadline=Date.now()+ms;while(Date.now()<deadline){if(await check())return;await new Promise(resolve=>setTimeout(resolve,5));}assert.fail('CONDITION_TIMEOUT');}
 async function transport(t,{handle=()=>empty(),qualified=async()=>true,keySet=keys(),installationId=hash()}={}) {
-  const lifetime=new AbortController(),server=createAiControlServer({installationId,keys:keySet,handle,qualified,revocationSignal:lifetime.signal,onFault:()=>{}}),clients=new Set();
-  const client=(key=keySet.core)=>{const value=createAiControlClient({installationId,role:'core',key,revocationSignal:lifetime.signal});clients.add(value);return value;};
+  const lifetime=new AbortController(),server=createAiControlServer({port,installationId,keys:keySet,handle,qualified,revocationSignal:lifetime.signal,onFault:()=>{}}),clients=new Set();
+  const client=(key=keySet.core)=>{const value=createAiControlClient({port,installationId,role:'core',key,revocationSignal:lifetime.signal});clients.add(value);return value;};
   t.after(async()=>{for(const value of clients)await value.stop();await server.stop();});
   await server.start();return {server,client,lifetime,keys:keySet,installationId};
 }
 async function rawRequest(f,{command='inspect',body={},session,profile='control',key=f.keys.core}={}) {
-  const socket=connect(aiControlPipe(f.installationId,'core'));socket.on('error',()=>{});const closed=new Promise(resolve=>socket.once('close',resolve));
+  const socket=connect(aiControlPipe(f.installationId,'core',port));socket.on('error',()=>{});const closed=new Promise(resolve=>socket.once('close',resolve));
   const channel=createAiIpcChannel({stream:socket,key,side:'worker',profile});
   try{
     const greeting=await channel.receive('challenge'),nonce=hash();await channel.send('proof',{installationId:f.installationId,role:'core',nonce});channel.bind(nonce);
@@ -31,13 +35,13 @@ async function rawRequest(f,{command='inspect',body={},session,profile='control'
 test('DS04-C02 wrong key cannot reach a handler',native,async t=>{
   let calls=0;const f=await transport(t,{handle:()=>{calls++;return empty();}});
   await assert.rejects(f.client(randomBytes(32)).request('inspect'),/AI_CONTROL_UNAVAILABLE/);assert.equal(calls,0);
-  assert.throws(()=>createAiControlServer({installationId:f.installationId,keys:{},qualified:async()=>true,
+  assert.throws(()=>createAiControlServer({port,installationId:f.installationId,keys:{},qualified:async()=>true,
     handle:()=>empty(),revocationSignal:new AbortController().signal,onFault:()=>{}}),/AI_CONTROL_CONFIGURATION_INVALID/);
 });
 
 test('DS04-C22 peer readiness before the proof write callback preserves the bound control session',native,async t=>{
   const f=await transport(t);let reordered=false;
-  const client=createAiControlClient({installationId:f.installationId,role:'core',key:f.keys.core,revocationSignal:f.lifetime.signal,
+  const client=createAiControlClient({port,installationId:f.installationId,role:'core',key:f.keys.core,revocationSignal:f.lifetime.signal,
     connectPipe:path=>{
       const socket=connect(path),write=socket.write.bind(socket);let first=true,callback=null,chunks=0;
       socket.on('data',()=>{if(++chunks===2){reordered=true;queueMicrotask(()=>callback?.());}});
@@ -59,7 +63,7 @@ test('DS04-C03 exact request fields reject mutation, unknown commands and extra 
 
 test('DS04-C04 supervisor restart revokes a pinned client and old-session requests cannot dispatch',native,async t=>{
   let calls=0;const f=await transport(t,{handle:()=>{calls++;return empty();}}),client=f.client();await client.request('inspect');const oldSession=client.session();
-  await f.server.stop();const replacement=createAiControlServer({installationId:f.installationId,keys:f.keys,qualified:async()=>true,
+  await f.server.stop();const replacement=createAiControlServer({port,installationId:f.installationId,keys:f.keys,qualified:async()=>true,
     handle:()=>{calls++;return empty();},revocationSignal:new AbortController().signal,onFault:()=>{}});t.after(()=>replacement.stop());await replacement.start();
   await assert.rejects(client.request('inspect'),/AI_CONTROL_SESSION_CHANGED/);assert.equal(client.signal.aborted,true);
   await assert.rejects(rawRequest(f,{session:oldSession}),/AI_IPC/);assert.equal(calls,1);
@@ -82,7 +86,7 @@ test('DS04-C08 stalled qualification checks stay bounded across disconnected cal
 test('DS04-C09 inference-domain frames and oversized control frames are rejected before dispatch',native,async t=>{
   let calls=0;const f=await transport(t,{handle:()=>{calls++;return empty();}});
   await assert.rejects(rawRequest(f,{profile:'inference'}),/AI_IPC/);
-  const socket=connect(aiControlPipe(f.installationId,'core'));socket.on('error',()=>{});socket.resume();const closed=new Promise(resolve=>socket.once('close',resolve));
+  const socket=connect(aiControlPipe(f.installationId,'core',port));socket.on('error',()=>{});socket.resume();const closed=new Promise(resolve=>socket.once('close',resolve));
   const header=Buffer.alloc(4);header.writeUInt32BE(8193);socket.write(header);await closed;assert.equal(calls,0);
 });
 
@@ -94,6 +98,6 @@ test('DS04-C11 control errors and invalid handler results never serialize privat
 
 test('DS04-C10 a second server cannot bind the same control port while the first is listening',native,async t=>{
   const f=await transport(t);
-  const second=createAiControlServer({installationId:f.installationId,keys:f.keys,qualified:async()=>true,handle:()=>empty(),revocationSignal:new AbortController().signal,onFault:()=>{}});
+  const second=createAiControlServer({port,installationId:f.installationId,keys:f.keys,qualified:async()=>true,handle:()=>empty(),revocationSignal:new AbortController().signal,onFault:()=>{}});
   await assert.rejects(second.start(),/AI_CONTROL_UNAVAILABLE/);await second.stop();
 });
