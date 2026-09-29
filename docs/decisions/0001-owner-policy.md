@@ -648,13 +648,16 @@ Candidate files and wrapper matched their pinned hashes. SCM configuration and r
 
 The proposed amendment is `GitHub/.agent_docs/aphelion-sophie/windows-relay-service-trial/ancestor-amendment.md`, with exact before/after ACLs in `ancestor-acl-proposal.json`. It remains unapproved and unapplied. Approve the exact non-inheriting metadata-access amendment for the two relay SIDs on five existing ancestor directories, correct wrapper event-source registration, then repeat the authorized trial. Actual identity, private pipe, custody, process and network denials remain unqualified. Guest/public-projection, provider/account, publication/actual-answer and Test Discord Server activation gates remain open. No host reboot is authorized.
 
-### OS-account worker isolation replaces Hyper-V relays — 29 September 2026 (pending owner confirmation)
+### OS-account worker isolation replaces Hyper-V relays — 29 September 2026
+
+**Confirmed by the owner on 29 September 2026**, who also authorized implementation on the WUFF host
+(the dedicated game-server host that also runs Sophie's staging). Other game services on WUFF must not be
+disturbed. The owner also directed that every remaining reference to Sophie's former name be removed.
 
 Reconstructed from the owner's own unpushed commit 7f55156 ("death to hyper-v"), which removed the
 Hyper-V/Docker worker container, native pipe companion, relays and egress bridge approved on 28 September,
 and recorded the rationale only in `docs/verification.md`. That commit had no decision entry. This entry
-records the direction so that later work does not follow the superseded relay next step. **The owner still
-needs to confirm it.**
+records the direction so that later work does not follow the superseded relay next step.
 
 Selected design: the worker runs as its own WinSW-wrapped Manual service, `aphelion-bot-ai-worker`, under
 the virtual account `NT SERVICE\aphelion-bot-ai-worker`. It reuses the existing pinned wrapper, Node
@@ -664,8 +667,7 @@ except TCP 443, and in process the worker accepts only public IPv4 provider addr
 inference channels stay authenticated and encrypted. Qualification is three operator receipts: service
 account identity, file ACL scope and firewall egress scope, each hashed into the release evidence.
 
-This entry authorizes local source work and synthetic checks only. Running
-`ops/windows/Setup-InferenceAccount.ps1`, changing service wrappers or ACLs, placing the provider key,
-and activating AI on the Test Discord Server each still need explicit approval. No host reboot is
-authorized. The provider/account, publication/actual-answer, consent and budget gates are unchanged.
+The owner's authorization covers running `ops/windows/Setup-InferenceAccount.ps1`, changing Sophie's
+service wrappers and ACLs, and preparing the Test Discord Server deployment. It does not cover rebooting
+the host or touching any non-Sophie service. The provider/account, publication/actual-answer, consent and budget gates are unchanged.
 Historical HCS/relay evidence stays preserved and does not qualify this design.
