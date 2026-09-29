@@ -1,5 +1,77 @@
 # Verification and release limits
 
+## Replaced Hyper-V/Docker/native-pipe isolation with OS-account separation — 29 September 2026
+
+The Windows worker/transport line of work below (Relay service trial through Synthetic Windows
+companion) never reached a passing installed trial: each entry stopped at a new Windows/HCS/WinSW
+boundary and proposed the next narrow amendment. Reviewing that history end to end found the root
+cause: the Hyper-V container/relay architecture was adopted for a *local GGUF model* (llama.cpp),
+where bounding an untrusted local binary's CPU/memory/network made sense. After the owner selected
+the hosted DeepSeek Flash API, the only remaining thing needing isolation was one outbound HTTPS
+client — but the container/relay/native-pipe architecture was carried forward unchanged, dragging
+in a Docker Engine dependency, a custom C#/.NET native pipe companion built with a bare `csc.exe`
+(no `.csproj`/MSBuild), a patched WinSW wrapper, and HCS handle-rights forensics that never once
+cleared its own forbidden-open gate.
+
+This milestone replaces that isolation layer with plain Windows account separation, per the
+existing owner constraint that the runtime not require Docker Desktop or a GPU:
+
+- The worker runs as a plain OS process (a registered Windows Service, `SophieInference`) under a
+  dedicated low-privilege local account with no grant on the ticket database, Discord token or
+  core configuration files. `ops/windows/Setup-InferenceAccount.ps1` provisions the account, NTFS
+  ACL scope and a firewall egress rule; it replaces the entire HCS/Hyper-V/WinSW-patch runbook.
+- `apps/ai-supervisor` (Docker orchestration, container-lifecycle journal, pipe-relay controller)
+  and `apps/windows-pipe` (the native C# pipe companion and its custom binary IPC protocol) are
+  deleted. `apps/ai-egress` and `apps/ai-relay` (the pipe-tunneled egress bridge, needed only
+  because the old container ran with `NetworkMode:'none'`) are deleted as well: the worker now
+  calls DeepSeek directly over its own firewall-scoped network path.
+- `apps/inference-host` replaces them with a Windows-Service-oriented supervisor of comparable
+  scope: ~567 lines versus ~3,730 lines deleted (`apps/ai-supervisor` + `apps/windows-pipe` +
+  `apps/ai-egress` + `apps/ai-relay`), roughly an 85% reduction in the isolation/control-plane
+  code. The genuinely reusable, transport-agnostic pieces were kept rather than rewritten: the
+  AES-256-GCM/HKDF encrypted IPC channel (`apps/knowledge-worker/ipc-channel.js`), the HMAC boot
+  handshake (`boot-pipe.js`), the signed worker-lease renewal and atomic boot-file publication
+  (moved from `apps/ai-supervisor/bootstrap.js` to `apps/inference-host/bootstrap.js` with the
+  now-unused `egressKey` dropped), and the generic authenticated job-queue RPC protocol in
+  `apps/ai-control` (simplified from two roles, core and egress, to one, since there is no longer
+  a separate egress process to authenticate). These were already correct, already Node-native, and
+  never depended on Hyper-V, Docker or the native companion — only on `\\.\pipe\...` path strings,
+  which now resolve to loopback TCP ports instead; every consumer of those paths (`server.listen`,
+  `net.connect`) already accepted an options object interchangeably, so most call sites needed no
+  change at all beyond the one function that built the path.
+- The 12-item Hyper-V/HCS-era installation qualification checklist
+  (`service-identities, file-custody, private-pipe-access, relay-identities, relay-isolation,
+  relay-lifecycle, public-projection, worker-framework, container-mounts, network-isolation,
+  physical-termination, uncertain-create-disposition`) is replaced by a 3-item checklist matching
+  what an operator can actually attest to under this model: `service-account-identity,
+  file-acl-scope, firewall-egress-scope` (`apps/installation/qualification.js`).
+- Postgres role separation between core/control/knowledge schemas (`apps/core/runtime/installed.js:
+  requireInstalledAiDatabase`, migrations 056–063) is unchanged; it was already implemented and
+  already tested against real Postgres, and was never part of the problem — the worker never held
+  a database credential of any kind, isolated or otherwise.
+
+30 tests pass in `tests/inference-host.test.js`, `tests/ai-control.test.js` (rewritten for the
+single-role protocol) and the adjusted `tests/ai-worker-package.test.js`, run against the real
+Windows Server 2022 host (not skipped): worker-registration path-safety, boot-file publish/lease
+renewal without an `egressKey`, a mocked-`sc.exe` service-control lifecycle (start/wait-for-RUNNING/
+stop), stale-revision and wrong-role rejection, cold-start recovery stopping a service a crashed
+supervisor left running, and a full prepare→create→start→quiesce cycle through the authenticated
+control channel. `node scripts/check-repository.mjs` passes (545 source files, module conventions
+still enforced against the new `apps/inference-host` boundary). The full suite is otherwise
+unchanged at 560/563 passing; the 3 pre-existing failures (`dashboard-editor.test.js`,
+`dashboard-forms.test.js`, `gateway-supervisor.test.js`) predate this milestone and are unrelated
+to AI isolation.
+
+No live deployment occurred. `ops/windows/Setup-InferenceAccount.ps1` was written and reviewed but
+not run against any real host, and no `apps/inference-host/installation.js` trust config files were
+generated for an actual installation. Remaining before this can go live: writing those per-role
+trust JSON files for a real release/qualification, running the setup script on the isolated staging
+host, and confirming with `icacls`/`whoami` that the resulting account genuinely cannot reach the
+ticket database credential or Discord token files. AI remains disabled; all provider/account,
+publication/actual-answer and Test Discord Server activation gates from earlier entries remain open
+and are unaffected by this change — this milestone only replaces how the worker process is isolated
+on the host, not any of the content, consent or budget gates around it.
+
 ## Relay service trial stopped and rolled back — 28 September 2026
 
 The owner approved and the operator executed the bounded two-relay service trial against candidate f13395b731859fbd5473d46b8c8f6dead864d863. Both Manual services and dedicated protected package roots were installed, required privileges limited to SeChangeNotifyPrivilege, and 12 scoped firewall block rules created and read back. No container or AI application was activated.

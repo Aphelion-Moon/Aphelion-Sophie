@@ -6,19 +6,20 @@ const uuid=value=>typeof value==='string' && /^[a-f0-9]{8}(?:-[a-f0-9]{4}){3}-[a
 const revision=value=>Number.isSafeInteger(value) && value>=0;
 const mutations=['prepare','create','start','quiesce'];
 const commands=['inspect','channel','ready',...mutations];
-const phases=['empty','prepared','creating','created','starting','running','removing'];
+const phases=['empty','prepared','created','running','removing'];
+const CONTROL_PORT=47551;
 export function aiControlScope(installationId,role) {
-  requireCondition(aiControlHash(installationId) && ['core','egress'].includes(role),'AI_CONTROL_CONFIGURATION_INVALID');
+  requireCondition(aiControlHash(installationId) && role==='core','AI_CONTROL_CONFIGURATION_INVALID');
   return {installationId,role};
 }
 export function aiControlPipe(installationId,role) {
   aiControlScope(installationId,role);requireCondition(process.platform==='win32','AI_WINDOWS_REQUIRED');
-  return `\\\\.\\pipe\\sophie-ai-control-${role}-${installationId}`;
+  return { port: CONTROL_PORT, host: '127.0.0.1' };
 }
 export function aiControlRequest(value,role) {
   requireKeys(value,['session','command','body'],'AI_CONTROL_INVALID');
   requireCondition(aiControlHash(value.session) && commands.includes(value.command),'AI_CONTROL_INVALID');
-  requireCondition(role==='core' || (role==='egress' && ['inspect','channel','ready'].includes(value.command)),'AI_CONTROL_DENIED');
+  requireCondition(role==='core','AI_CONTROL_DENIED');
   const body=value.body;
   if(['channel','ready'].includes(value.command)){
     requireKeys(body,['operationId','identity'],'AI_CONTROL_INVALID');requireCondition(uuid(body.operationId),'AI_CONTROL_INVALID');
@@ -39,13 +40,13 @@ export function aiControlResult(command,value) {
   if(['channel','ready'].includes(command)){
     requireKeys(value,command==='channel'?['identity','operationId','purpose','key']:['identity','operationId','ready'],'AI_CONTROL_INVALID');
     canonicalAiWorkerIdentity(value.identity);requireCondition(uuid(value.operationId),'AI_CONTROL_INVALID');
-    if(command==='channel')requireCondition(['inference','egress'].includes(value.purpose) && aiControlHash(value.key),'AI_CONTROL_INVALID');
+    if(command==='channel')requireCondition(value.purpose==='inference' && aiControlHash(value.key),'AI_CONTROL_INVALID');
     else requireCondition(value.ready===true,'AI_CONTROL_INVALID');
   }else if(command==='inspect'){
     requireKeys(value,['revision','phase','identity','operationId','recovered','readiness','job'],'AI_CONTROL_INVALID');
     requireCondition(revision(value.revision) && phases.includes(value.phase) && typeof value.recovered==='boolean','AI_CONTROL_INVALID');
-    requireKeys(value.readiness,['core','egress'],'AI_CONTROL_INVALID');
-    requireCondition(['core','egress'].every(role=>typeof value.readiness[role]==='boolean'),'AI_CONTROL_INVALID');
+    requireKeys(value.readiness,['core'],'AI_CONTROL_INVALID');
+    requireCondition(typeof value.readiness.core==='boolean','AI_CONTROL_INVALID');
     if(value.phase==='empty')requireCondition(value.identity===null && value.operationId===null,'AI_CONTROL_INVALID');
     else {canonicalAiWorkerIdentity(value.identity);requireCondition(uuid(value.operationId),'AI_CONTROL_INVALID');}
     if(value.job!==null)job(value.job);

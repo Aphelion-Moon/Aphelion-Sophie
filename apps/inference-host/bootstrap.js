@@ -5,13 +5,13 @@ import { performance } from 'node:perf_hooks';
 import { requireCondition } from '../../contracts/validation.js';
 import { signAiWorkerLease } from '../knowledge-worker/bootstrap.js';
 import { canonicalAiWorkerIdentity } from '../knowledge-worker/ipc-contract.js';
-import { registeredAiContainer, registeredAiWorkerIdentity } from './container-profile.js';
+import { registeredAiWorker, registeredAiWorkerIdentity } from './worker-registration.js';
 
 const missingOkay=error=>{if(error.code!=='ENOENT')throw error;};
 
 /** Recovery never reloads old secrets or renews an old boot. Only these two registered files are removed. */
 export async function revokeAiWorkerBootFiles({registration,identity}) {
-  const registered=registeredAiContainer(registration),fixed=canonicalAiWorkerIdentity(identity);
+  const registered=registeredAiWorker(registration),fixed=canonicalAiWorkerIdentity(identity);
   const directory=win32.join(registered.bootRoot,fixed.bootId);
   try {
     const root=await lstat(registered.bootRoot),boot=await lstat(directory);
@@ -33,9 +33,9 @@ async function publish(path,value,current) {
   } finally {await unlink(temporary).catch(missingOkay);}
 }
 
-/** Supervisor-owned secrets. Only the purpose-specific channel key may cross its corresponding control interface. */
+/** The inference identity's OS account reads this file directly; there is no container mount to bridge. */
 export async function prepareAiWorkerBoot({registration,identity,acceptedFingerprints,qualified,clock=Date.now,monotonic=()=>performance.now()}) {
-  const registered=registeredAiContainer(registration),fixed=registeredAiWorkerIdentity(registered,identity);
+  const registered=registeredAiWorker(registration),fixed=registeredAiWorkerIdentity(registered,identity);
   requireCondition(typeof qualified==='function' && Array.isArray(acceptedFingerprints) && acceptedFingerprints.length>0 &&
     acceptedFingerprints.length<=16 && acceptedFingerprints.every(value=>typeof value==='string' && /^[a-zA-Z0-9._-]{1,128}$/u.test(value)) &&
     new Set(acceptedFingerprints).size===acceptedFingerprints.length,'AI_BOOT_INVALID');
@@ -44,7 +44,7 @@ export async function prepareAiWorkerBoot({registration,identity,acceptedFingerp
   const directory=win32.join(registered.bootRoot,fixed.bootId),bootPath=win32.join(directory,'boot.json'),leasePath=win32.join(directory,'lease.json');
   // No reuse after a crash, even if an old directory looks empty. Its boot identity is consumed.
   await mkdir(directory,{mode:0o700});
-  const keys={ipc:randomBytes(32),egress:randomBytes(32),lease:randomBytes(32)},revoked=new AbortController();
+  const keys={ipc:randomBytes(32),lease:randomBytes(32)},revoked=new AbortController();
   let pending=null,closing=null,sequence=0,expiresAt=0,until=0,expiry;
   function invalidate(){if(!revoked.signal.aborted)revoked.abort();clearTimeout(expiry);Object.values(keys).forEach(key=>key.fill(0));}
   async function discard(){await unlink(leasePath).catch(missingOkay);await unlink(bootPath).catch(missingOkay);}
@@ -57,14 +57,14 @@ export async function prepareAiWorkerBoot({registration,identity,acceptedFingerp
   }
   try {
     const bootstrap={version:1,identity:fixed,qualificationHash:registered.release.evidenceHash,
-      ipcKey:keys.ipc.toString('hex'),egressKey:keys.egress.toString('hex'),leaseKey:keys.lease.toString('hex'),acceptedFingerprints:[...acceptedFingerprints]};
-    requireCondition(new Set([bootstrap.ipcKey,bootstrap.egressKey,bootstrap.leaseKey]).size===3,'AI_BOOT_INVALID');
+      ipcKey:keys.ipc.toString('hex'),leaseKey:keys.lease.toString('hex'),acceptedFingerprints:[...acceptedFingerprints]};
+    requireCondition(new Set([bootstrap.ipcKey,bootstrap.leaseKey]).size===2,'AI_BOOT_INVALID');
     await publish(bootPath,bootstrap,()=>!revoked.signal.aborted);
   } catch {invalidate();await discard();await rmdir(directory);throw Error('AI_BOOT_PUBLICATION_FAILED');}
   return Object.freeze({identity:fixed,signal:revoked.signal,
     channel(purpose) {
-      requireCondition(!revoked.signal.aborted && ['inference','egress'].includes(purpose),'AI_BOOT_PUBLICATION_REVOKED');
-      return {identity:fixed,key:Buffer.from(keys[purpose==='inference'?'ipc':'egress'])};
+      requireCondition(!revoked.signal.aborted && purpose==='inference','AI_BOOT_PUBLICATION_REVOKED');
+      return {identity:fixed,key:Buffer.from(keys.ipc)};
     },
     renew({signal}={}) {
       if(sequence>0 && monotonic()>=until)invalidate();

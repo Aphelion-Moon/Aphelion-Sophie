@@ -1,4 +1,4 @@
-import { createInstalledWindowsPipeTransport } from '../windows-pipe/transport.js';
+import { createInstalledTransport } from '../inference-host/transport.js';
 import { requireCondition } from '../../contracts/validation.js';
 
 /** Foreground service payload. SCM registration/wrapper selection is a separate operational decision. */
@@ -9,7 +9,7 @@ export async function runInstalledRole(role,compose) {
   process.once('SIGINT',abort);process.once('SIGTERM',abort);
   try {
     requireCondition(process.argv.length===2 || role==='core' && process.argv.length===3 && process.argv[2]==='start-installed','AI_INSTALLATION_ARGUMENTS_INVALID');
-    pipes=await createInstalledWindowsPipeTransport({role});
+    pipes=await createInstalledTransport({role});
     pipes.signal.addEventListener('abort',fatal,{once:true});
     requireCondition(!pipes.signal.aborted && !lifetime.signal.aborted,'AI_INSTALLATION_UNAVAILABLE');
     service=await compose({pipes,signal:lifetime.signal,onFault});

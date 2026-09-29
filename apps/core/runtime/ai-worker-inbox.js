@@ -2,7 +2,7 @@ import { createServer } from 'node:net';
 import { requireCondition } from '../../../contracts/validation.js';
 import { canonicalAiWorkerIdentity } from '../../knowledge-worker/ipc-contract.js';
 import { aiBootPipe, authenticateAiBootPipe } from '../../knowledge-worker/boot-pipe.js';
-import { createAiWorkerQualification } from '../../knowledge-worker/windows-pipe.js';
+import { createAiWorkerQualification } from '../../knowledge-worker/worker-listener.js';
 
 /** Host-owned pipe mapped into a container. Only authenticated connections become available to the broker. */
 export function createAiWorkerInbox({identity,key,qualified,revocationSignal,createPipeServer=createServer}) {

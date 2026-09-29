@@ -2,7 +2,7 @@ import { connect } from 'node:net';
 import { requireCondition } from '../../contracts/validation.js';
 import { canonicalAiWorkerIdentity } from './ipc-contract.js';
 import { aiBootPipe, authenticateAiBootPipe } from './boot-pipe.js';
-import { createAiWorkerQualification } from './windows-pipe.js';
+import { createAiWorkerQualification } from './worker-listener.js';
 
 function waitForTurn(socket,signal) {
   return new Promise((resolve,reject)=>{

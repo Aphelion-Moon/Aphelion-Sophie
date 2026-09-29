@@ -2,11 +2,15 @@ import { createHmac, randomBytes, timingSafeEqual } from 'node:crypto';
 import { requireCondition } from '../../contracts/validation.js';
 import { canonicalAiWorkerIdentity } from './ipc-contract.js';
 
+// A fixed loopback port, not a per-boot namespace: peer identity is proven by the HMAC/AES-GCM
+// handshake below, not by OS pipe naming, so a stale boot's socket cannot be mistaken for a fresh one.
+const INFERENCE_PORT = 47552;
+
 export function aiBootPipe(identity, purpose) {
-  const fixed = canonicalAiWorkerIdentity(identity);
+  canonicalAiWorkerIdentity(identity);
   requireCondition(process.platform === 'win32', 'AI_WINDOWS_REQUIRED');
-  requireCondition(['inference','egress'].includes(purpose),'AI_BOOT_PIPE_INVALID');
-  return `\\\\.\\pipe\\sophie-ai-${purpose}-${fixed.workerId}-${fixed.bootId}`;
+  requireCondition(purpose === 'inference','AI_BOOT_PIPE_INVALID');
+  return { port: INFERENCE_PORT, host: '127.0.0.1' };
 }
 
 function readExactly(stream, length, signal) {
@@ -29,7 +33,7 @@ function readExactly(stream, length, signal) {
 /** Fixed-size mutual boot authentication. Confidentiality depends on the selected transport, not this MAC. */
 export async function authenticateAiBootPipe({ stream, identity, key, side, signal, purpose }) {
   const fixed = canonicalAiWorkerIdentity(identity);
-  requireCondition(Buffer.isBuffer(key) && key.length === 32 && ['host','worker'].includes(side) && ['inference','egress'].includes(purpose) &&
+  requireCondition(Buffer.isBuffer(key) && key.length === 32 && ['host','worker'].includes(side) && purpose === 'inference' &&
     signal instanceof AbortSignal, 'AI_EGRESS_CONFIGURATION_INVALID');
   const secret = Buffer.from(key), timeout = new AbortController();
   const combined = AbortSignal.any([signal,timeout.signal]);

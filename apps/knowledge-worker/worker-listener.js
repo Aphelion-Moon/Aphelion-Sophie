@@ -2,11 +2,14 @@ import { createServer, connect } from 'node:net';
 import { requireCondition } from '../../contracts/validation.js';
 import { canonicalAiWorkerIdentity } from './ipc-contract.js';
 
-/** Boot-specific name. The OS ACL, remote-pipe access and identity are separately qualified, never inferred from HMAC. */
+// A fixed loopback port. OS-account separation, the firewall egress scope and the HMAC/AES-GCM
+// handshake are the qualified boundaries here, never inferred from this port number alone.
+const WORKER_PORT = 47553;
+
 export function aiWorkerPipe(identity) {
-  const fixed = canonicalAiWorkerIdentity(identity);
+  canonicalAiWorkerIdentity(identity);
   requireCondition(process.platform === 'win32', 'AI_WINDOWS_REQUIRED');
-  return `\\\\.\\pipe\\sophie-ai-${fixed.workerId}-${fixed.bootId}`;
+  return { port: WORKER_PORT, host: '127.0.0.1' };
 }
 
 export function connectAiWorkerPipe(identity) { return connect(aiWorkerPipe(identity)); }
@@ -32,7 +35,7 @@ export function createAiWorkerQualification({identity,qualified}) {
 }
 
 export function createAiPipeListener({ identity, worker, qualified }) {
-  const fixed = canonicalAiWorkerIdentity(identity), path = aiWorkerPipe(fixed), sockets = new Set();
+  const fixed = canonicalAiWorkerIdentity(identity), address = aiWorkerPipe(fixed), sockets = new Set();
   requireCondition(typeof worker?.accept === 'function' && typeof qualified === 'function', 'TRUSTED_ADAPTERS_REQUIRED');
   const qualification=createAiWorkerQualification({identity:fixed,qualified});
   let phase = 'idle', closing = null, starting = null;
@@ -58,7 +61,7 @@ export function createAiPipeListener({ identity, worker, qualified }) {
         await new Promise((resolve,reject)=>{
           const error=()=>{server.off('listening',ready);reject(Error('AI_PIPE_UNAVAILABLE'));};
           const ready=()=>{server.off('error',error);resolve();};
-          server.once('error',error);server.once('listening',ready);server.listen(path);
+          server.once('error',error);server.once('listening',ready);server.listen(address);
         });
         requireCondition(phase === 'starting','AI_WORKER_STOPPED'); phase='listening';
       } catch { if (phase !== 'stopped') phase='failed'; throw Error('AI_PIPE_UNAVAILABLE'); }

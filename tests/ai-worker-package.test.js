@@ -60,15 +60,13 @@ test('DS04-P02 cancellation while waiting for a worker neither consumes its late
   } finally {await f.close();}
 });
 
-test('DS04-P03 egress-purpose proof and incorrect profile are never admitted to the inference inbox',native,async()=>{
+test('DS04-P03 an incorrect profile is never admitted to the inference inbox',native,async()=>{
   const f=await fixture();
   try {
-    for(const mode of ['purpose','profile']){
-      const socket=connect(aiBootPipe(f.fixed,'inference'));socket.on('error',()=>{});
-      await assert.rejects(authenticateAiBootPipe({stream:socket,key,identity:mode==='profile'?{...f.fixed,profileHash:'9'.repeat(64)}:f.fixed,
-        side:'worker',purpose:mode==='purpose'?'egress':'inference',signal:new AbortController().signal}),/AI_EGRESS_UNAVAILABLE/);
-      await until(()=>f.broker.inboxStatus().connections===0);assert.equal(f.broker.inboxStatus().available,false);
-    }
+    const socket=connect(aiBootPipe(f.fixed,'inference'));socket.on('error',()=>{});
+    await assert.rejects(authenticateAiBootPipe({stream:socket,key,identity:{...f.fixed,profileHash:'9'.repeat(64)},
+      side:'worker',purpose:'inference',signal:new AbortController().signal}),/AI_EGRESS_UNAVAILABLE/);
+    await until(()=>f.broker.inboxStatus().connections===0);assert.equal(f.broker.inboxStatus().available,false);
     assert.equal(f.transport.status().calls,0);
   } finally {await f.close();}
 });
@@ -101,12 +99,12 @@ test('DS04-P06 stop releases a pending broker connection without a worker proces
   } finally {await f.close();}
 });
 
-const boot=()=>({version:1,identity:identity(),qualificationHash,ipcKey:key.toString('hex'),egressKey:'a'.repeat(64),leaseKey:leaseKey.toString('hex'),acceptedFingerprints});
+const boot=()=>({version:1,identity:identity(),qualificationHash,ipcKey:key.toString('hex'),leaseKey:leaseKey.toString('hex'),acceptedFingerprints});
 test('DS04-P07 fixed bootstrap paths and distinct credentials reject unregistered data and unsafe key profiles',async()=>{
   const value=boot(),reads=[];
   const loaded=await loadAiWorkerBootstrap(async(path,limit)=>{reads.push([path,limit]);return path===AI_WORKER_FILES.bootstrap?JSON.stringify(value):apiKey;});
   assert.deepEqual(reads,[[AI_WORKER_FILES.bootstrap,8192],[AI_WORKER_FILES.provider,512]]);assert.deepEqual(loaded.identity,value.identity);
-  for(const change of [{extra:'unregistered'}, {egressKey:value.ipcKey}, {version:2}, {qualificationHash:'bad'}, {acceptedFingerprints:['bad name']}, {acceptedFingerprints:[]}])
+  for(const change of [{extra:'unregistered'}, {leaseKey:value.ipcKey}, {version:2}, {qualificationHash:'bad'}, {acceptedFingerprints:['bad name']}, {acceptedFingerprints:[]}])
     await assert.rejects(loadAiWorkerBootstrap(async()=>JSON.stringify({...value,...change})),/AI_BOOT_INVALID/);
   await assert.rejects(loadAiWorkerBootstrap(async path=>path===AI_WORKER_FILES.bootstrap?JSON.stringify(value):'short'),/AI_BOOT_INVALID/);
 });

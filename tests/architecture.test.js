@@ -12,13 +12,12 @@ test('T46 case access, hidden storage writes and runtime escape hatches fail mod
     ['apps/knowledge-worker/index.js', "import x from '../core/secrets.js';"],
     ['apps/knowledge-worker/index.js', "import x from '../core/storage/core-store.js';"],
     ['apps/knowledge/mediawiki.js', "import x from '../core/storage/core-store.js';"],
-    ['apps/ai-egress/runtime.js', "import x from '../core/secrets.js';"],
-    ['apps/ai-egress/runtime.js', "import x from '../../modules/tickets/index.js';"],
-    ['apps/ai-supervisor/runtime.js', "import x from '../core/secrets.js';"],
+    ['apps/inference-host/service-control.js', "import x from '../core/secrets.js';"],
+    ['apps/inference-host/service-control.js', "import x from '../../modules/tickets/index.js';"],
     ['apps/ai-control/server.js', "import x from '../core/secrets.js';"],
-    ['apps/ai-control/client.js', "import x from '../ai-supervisor/docker.js';"],
-    ['apps/core/runtime/ai-lifecycle.js', "import x from '../../ai-supervisor/docker.js';"],
-    ['apps/ai-egress/runtime.js', "import x from '../ai-supervisor/docker.js';"],
+    ['apps/ai-control/client.js', "import x from '../inference-host/service-control.js';"],
+    ['apps/core/runtime/ai-lifecycle.js', "import x from '../../inference-host/service-control.js';"],
+    ['apps/knowledge-worker/runtime.js', "import x from '../inference-host/service-control.js';"],
     ['modules/onboarding/index.js', "import pg from 'pg';"],
   ]) assert.ok(checkModuleImports(path, source).length > 0);
   assert.deepEqual(checkModuleImports('modules/onboarding/index.js', "import { requireShuttleEligibility } from '../membership/index.js';"), []);

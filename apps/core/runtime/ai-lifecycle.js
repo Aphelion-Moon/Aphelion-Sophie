@@ -70,7 +70,7 @@ export function createAiWindowsLifecycle({client,release,qualified,revocationSig
         await entry.participant.start();
         const ready=await waitFor(state=>{
           requireCondition(state.identity?.bootId===peer.bootId && state.operationId===operationId && state.phase==='prepared','AI_CONTROL_STALE');
-          return state.readiness.core && state.readiness.egress;
+          return state.readiness.core;
         },launchSignal);
         const created=await job('create',{revision:ready.revision,operationId},launchSignal);
         requireCondition(await startChecks.current({check:beforeStart},launchSignal) && await qualifiedRelease(fixed) && !launchSignal.aborted,'AI_WORKER_START_NOT_APPROVED');

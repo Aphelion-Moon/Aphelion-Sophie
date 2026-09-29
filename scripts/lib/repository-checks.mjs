@@ -53,8 +53,8 @@ export function checkModuleImports(file, source) {
         (allowedPeers[owner] ?? []).includes(target);
       if (!allowed) failures.push(`${file}: forbidden module dependency ${target}`);
     }
-    if (/^apps\/(knowledge-worker|knowledge|ai-egress|ai-supervisor|ai-control)\//.test(file) && /^(apps\/core|modules\/(tickets|onboarding|membership))\//.test(target)) failures.push(`${file}: knowledge/AI transport cannot access case/core modules`);
-    if (!file.startsWith('apps/ai-supervisor/') && target.startsWith('apps/ai-supervisor/')) failures.push(`${file}: supervisor implementation cannot be imported into another identity`);
+    if (/^apps\/(knowledge-worker|knowledge|ai-control|inference-host)\//.test(file) && /^(apps\/core|modules\/(tickets|onboarding|membership))\//.test(target)) failures.push(`${file}: knowledge/AI transport cannot access case/core modules`);
+    if (!file.startsWith('apps/inference-host/') && target.startsWith('apps/inference-host/service-control.js')) failures.push(`${file}: supervisor implementation cannot be imported into another identity`);
   }
   return failures;
 }

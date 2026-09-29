@@ -3,7 +3,7 @@ import { createDeepSeekClient } from './deepseek-client.js';
 import { createDeepSeekTransport } from './http-transport.js';
 import { createAiIpcWorker } from './ipc-server.js';
 import { canonicalAiWorkerIdentity } from './ipc-contract.js';
-import { createAiPipeListener, createAiWorkerQualification } from './windows-pipe.js';
+import { createAiPipeListener, createAiWorkerQualification } from './worker-listener.js';
 import { createAiInferenceDialer } from './inference-dialer.js';
 
 /** Launched under the independently provisioned inference identity. No core token, database or service manager access. */

@@ -3,7 +3,7 @@ import { requireCondition } from '../../contracts/validation.js';
 import { aiControlRequest, aiControlResult } from '../ai-control/contract.js';
 import { createAiControlServer } from '../ai-control/server.js';
 
-/** Short RPCs own bounded local jobs, never caller-supplied functions, paths, commands or Docker arguments. */
+/** Short RPCs own bounded local jobs, never caller-supplied functions, paths or service-control arguments. */
 export function createAiSupervisorControlApi({slot,beforeStart}) {
   requireCondition(slot && ['status','prepare','create','start','quiesce','close'].every(name=>typeof slot[name]==='function') && typeof beforeStart==='function',
   'AI_CONTROL_CONFIGURATION_INVALID');
@@ -14,7 +14,7 @@ export function createAiSupervisorControlApi({slot,beforeStart}) {
       requireCondition(!closed && !signal.aborted,'AI_CONTROL_UNAVAILABLE');
       const {command,body}=aiControlRequest(request,role),status=slot.status(),state=status.journal;
       if(command==='inspect')return aiControlResult(command,{revision:state.revision,phase:state.phase,identity:state.identity,operationId:state.operationId,
-        recovered:status.recovered,readiness:status.readiness??{core:false,egress:false},job:latest?receipt(latest):null});
+        recovered:status.recovered,readiness:status.readiness??{core:false},job:latest?receipt(latest):null});
       if(['channel','ready'].includes(command)){
         requireCondition(active?.command!=='quiesce','AI_CONTROL_BUSY');
         requireCondition(typeof slot[command]==='function','AI_CONTROL_UNAVAILABLE');

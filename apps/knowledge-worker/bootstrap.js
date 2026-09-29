@@ -21,17 +21,17 @@ export async function readAiWorkerFile(path,limit) {
 
 export async function loadAiWorkerBootstrap(read=readAiWorkerFile) {
   const data=JSON.parse(await read(AI_WORKER_FILES.bootstrap,8192));
-  requireKeys(data,['version','identity','qualificationHash','ipcKey','egressKey','leaseKey','acceptedFingerprints'],'AI_BOOT_INVALID');
+  requireKeys(data,['version','identity','qualificationHash','ipcKey','leaseKey','acceptedFingerprints'],'AI_BOOT_INVALID');
   const identity=canonicalAiWorkerIdentity(data.identity);
-  requireCondition(data.version===1 && [data.qualificationHash,data.ipcKey,data.egressKey,data.leaseKey].every(hex) &&
-    new Set([data.ipcKey,data.egressKey,data.leaseKey]).size===3 && Array.isArray(data.acceptedFingerprints) &&
+  requireCondition(data.version===1 && [data.qualificationHash,data.ipcKey,data.leaseKey].every(hex) &&
+    new Set([data.ipcKey,data.leaseKey]).size===2 && Array.isArray(data.acceptedFingerprints) &&
     data.acceptedFingerprints.length>0 && data.acceptedFingerprints.length<=16 &&
     data.acceptedFingerprints.every(value=>typeof value==='string' && /^[a-zA-Z0-9._-]{1,128}$/u.test(value)) &&
     new Set(data.acceptedFingerprints).size===data.acceptedFingerprints.length,'AI_BOOT_INVALID');
   const apiKey=(await read(AI_WORKER_FILES.provider,512)).trim();
   requireCondition(/^[a-zA-Z0-9_-]{16,256}$/u.test(apiKey),'AI_BOOT_INVALID');
   return Object.freeze({identity,qualificationHash:data.qualificationHash,ipcKey:Buffer.from(data.ipcKey,'hex'),
-    egressKey:Buffer.from(data.egressKey,'hex'),leaseKey:Buffer.from(data.leaseKey,'hex'),acceptedFingerprints:Object.freeze([...data.acceptedFingerprints]),apiKey});
+    leaseKey:Buffer.from(data.leaseKey,'hex'),acceptedFingerprints:Object.freeze([...data.acceptedFingerprints]),apiKey});
 }
 
 const leaseBytes=record=>JSON.stringify([record.version,record.identityHash,record.qualificationHash,record.sequence,record.issuedAt,record.expiresAt]);
