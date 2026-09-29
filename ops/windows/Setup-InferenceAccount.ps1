@@ -1,151 +1,185 @@
 #Requires -RunAsAdministrator
+#Requires -Version 7
 <#
 .SYNOPSIS
-  One-time host setup for the isolated Sophie inference worker.
+  Registers Sophie's AI worker as its own WinSW service under a virtual service account, scopes its
+  file and network access, and lets the supervisor service start/stop it. Supports -WhatIf.
 
 .DESCRIPTION
-  Replaces the earlier Hyper-V/HCS/WinSW-based isolation trials with plain Windows
-  account separation: a dedicated, unprivileged local service account runs the
-  knowledge-worker process directly on the host (no container, no relay process).
-  Isolation comes from three ordinary OS mechanisms, each idempotent here:
+  Follows the layout already present on the staging host: pinned WinSW 2.12.0 wrappers under
+  services\<role>, the pinned Node runtime under package\runtime, hashed source under package\source,
+  NT SERVICE\<id> virtual accounts and explicit protected ACLs on every Sophie directory.
 
-    1. A dedicated local account with no membership beyond its own boot/provider
-       directories. It cannot read the ticket database credentials, the Discord
-       token, or core's configuration, because those files' ACLs never grant it
-       access in the first place.
-    2. A Windows Service ("SophieInference") running the pinned worker entrypoint
-       under that account, so the process identity is enforced by the OS, not by
-       application code.
-    3. A Windows Firewall outbound rule scoped to that account's worker executable.
-       This only proves "no other program on this box can use this identity to
-       reach the network" — it does not by itself prove "this program only talks
-       to api.deepseek.com". That narrower guarantee is enforced in-process by the
-       DeepSeek client's own DNS/TLS servername pinning (see
-       apps/knowledge-worker/deepseek-client.js and the historical
-       apps/ai-egress/public-address.js pinning logic now folded into it).
+  What it changes (each step is idempotent and reported):
+    1. services\worker\aphelion-bot-ai-worker.{exe,xml}: a byte-identical copy of the existing wrapper
+       (hash-checked against the other three) running package\source\apps\knowledge-worker\main.mjs
+       as NT SERVICE\aphelion-bot-ai-worker, Manual start, no failure restart.
+    2. File access for the worker SID, added without removing existing entries:
+         C:\Aphelion, Sophie, package, state          list/traverse/read-attributes, this folder only
+                                                     (the missing ancestor metadata access is what made
+                                                     the 28 September relay trial fail with lstat EPERM)
+         package\runtime, package\source              read and execute, inherited
+         state\boots                                  read, inherited (the supervisor writes)
+         logs\worker                                  modify (WinSW writes logs as the service account)
+       provider\ is replaced with a protected ACL: SYSTEM, Administrators and the worker (read) only.
+       The worker SID never receives trust\, the core database or the Discord token.
+    3. Per-role trust files, when present: trust\core.json readable only by aphelion-bot,
+       trust\supervisor.json readable only by aphelion-bot-ai-supervisor. Both trust directory
+       entries are otherwise inheritable to every role, so without this each role can read the
+       other's control key.
+    4. Service DACL on aphelion-bot-ai-worker: the supervisor SID may query, start and stop it; nothing else.
+    5. Outbound firewall block rules for the worker service: every TCP port except 443, all UDP,
+       ICMPv4/ICMPv6. Loopback is not filtered by Windows Firewall, so the authenticated
+       127.0.0.1 inference channel to core keeps working. The DeepSeek transport additionally refuses
+       any non-public IPv4 answer in process (apps/knowledge-worker/http-transport.js).
 
-  This script only prepares the OS account, service registration and firewall
-  rule. It does not write apps/core/state/boots, apps/core/state/provider or the
-  apps/inference-host/installation.js trust/*.json config files — those are
-  runtime/deployment concerns handled separately, not part of one-time OS setup.
-
-.PARAMETER InstallRoot
-  The Sophie install root. Defaults to C:\Aphelion\Sophie, matching the fixed
-  path already assumed by apps/inference-host and the knowledge-worker.
-
-.PARAMETER AccountName
-  The dedicated local account that will run the worker service. Kept short and
-  fixed rather than configurable per-deployment, since AGENTS.md pins one
-  production Discord identity per host; there is exactly one worker to isolate.
+  It does not start any service, write trust\*.json, place the provider key or change core/supervisor
+  wrappers. Qualification (whoami/icacls/firewall denial evidence) is a separate recorded step.
 #>
 [CmdletBinding(SupportsShouldProcess)]
 param(
     [string]$InstallRoot = 'C:\Aphelion\Sophie',
-    [string]$AccountName = 'svc-sophie-inference',
-    [string]$ServiceName = 'SophieInference',
-    [string]$NodeExecutable = 'C:\node\node.exe',
-    [string]$WorkerEntrypoint = "$InstallRoot\apps\knowledge-worker\main.mjs"
+    [string]$WrapperSha256 = '9DBA15B5CC15F9F51190BC8D35BFEB3F870276FDB53902D1CB7B95DC502F603F'
 )
 
 $ErrorActionPreference = 'Stop'
+Set-StrictMode -Version Latest
 
-function New-RandomPassword {
-    # Only used once, at account creation, and only held long enough to hand to
-    # New-LocalUser. A service account's password is never referenced again —
-    # sc.exe registers the service against the account SID, not a stored secret.
-    $bytes = [byte[]]::new(32)
-    [System.Security.Cryptography.RandomNumberGenerator]::Fill($bytes)
-    return (ConvertTo-SecureString -String ([Convert]::ToBase64String($bytes) + 'Aa1!') -AsPlainText -Force)
+$ServiceId = 'aphelion-bot-ai-worker'
+$SupervisorId = 'aphelion-bot-ai-supervisor'
+$CoreId = 'aphelion-bot'
+$Node = Join-Path $InstallRoot 'package\runtime\node.exe'
+$Source = Join-Path $InstallRoot 'package\source'
+$Entrypoint = Join-Path $Source 'apps\knowledge-worker\main.mjs'
+$ServiceDirectory = Join-Path $InstallRoot 'services\worker'
+$Wrapper = Join-Path $ServiceDirectory "$ServiceId.exe"
+$LogDirectory = Join-Path $InstallRoot 'logs\worker'
+
+function Get-ServiceSid([string]$Id) {
+    ([System.Security.Principal.NTAccount]::new('NT SERVICE', $Id)).Translate([System.Security.Principal.SecurityIdentifier]).Value
 }
 
-Write-Host "Ensuring local account '$AccountName'..."
-$account = Get-LocalUser -Name $AccountName -ErrorAction SilentlyContinue
-if (-not $account) {
-    if ($PSCmdlet.ShouldProcess($AccountName, 'Create local service account')) {
-        New-LocalUser -Name $AccountName -Password (New-RandomPassword) -PasswordNeverExpires -UserMayNotChangePassword `
-            -AccountNeverExpires -Description 'Sophie inference worker — restricted, no case/core data access' | Out-Null
-    }
-} else {
-    Write-Host "  already exists."
+function Add-Grant {
+    param([string]$Path, [string]$Sid, [System.Security.AccessControl.FileSystemRights]$Rights,
+          [System.Security.AccessControl.InheritanceFlags]$Inheritance)
+    $acl = Get-Acl -LiteralPath $Path
+    $identity = [System.Security.Principal.SecurityIdentifier]::new($Sid)
+    $rule = [System.Security.AccessControl.FileSystemAccessRule]::new($identity, $Rights, $Inheritance, 'None', 'Allow')
+    $existing = @($acl.Access | Where-Object {
+        $_.IdentityReference.Translate([System.Security.Principal.SecurityIdentifier]).Value -eq $Sid -and
+        $_.AccessControlType -eq 'Allow' -and $_.InheritanceFlags -eq $Inheritance -and
+        ($_.FileSystemRights -band $Rights) -eq $Rights })
+    if ($existing.Count -gt 0) { Write-Host "  = $Path"; return }
+    $acl.AddAccessRule($rule)
+    if ($PSCmdlet.ShouldProcess($Path, "Grant $Rights to $Sid")) { Set-Acl -LiteralPath $Path -AclObject $acl; Write-Host "  + $Path" }
 }
-# A service account only needs to run as a service, not to log on interactively.
-Add-LocalGroupMember -Group 'Users' -Member $AccountName -ErrorAction SilentlyContinue | Out-Null
-$sid = (Get-LocalUser -Name $AccountName).SID.Value
 
-Write-Host "Granting 'Log on as a service' to $AccountName..."
-$secedit = & secedit /export /cfg "$env:TEMP\sophie-secpol.cfg" /quiet; $secedit | Out-Null
-$policy = Get-Content "$env:TEMP\sophie-secpol.cfg"
-$line = $policy | Where-Object { $_ -match '^SeServiceLogonRight' }
-if (-not $line -or $line -notmatch [regex]::Escape($sid)) {
-    $newLine = if ($line) { "$line,*$sid" } else { "SeServiceLogonRight = *$sid" }
-    $policy = if ($line) { $policy -replace [regex]::Escape($line), $newLine } else { $policy + $newLine }
-    $policy | Set-Content "$env:TEMP\sophie-secpol.cfg"
-    if ($PSCmdlet.ShouldProcess($AccountName, 'Grant SeServiceLogonRight')) {
-        secedit /configure /db "$env:windir\security\local.sdb" /cfg "$env:TEMP\sophie-secpol.cfg" /quiet | Out-Null
-    }
-} else {
-    Write-Host "  already granted."
-}
-Remove-Item "$env:TEMP\sophie-secpol.cfg" -ErrorAction SilentlyContinue
-
-Write-Host "Scoping directory ACLs..."
-function Set-ExclusiveAcl {
-    param([string]$Path, [string[]]$AllowSids, [string]$Rights = 'ReadAndExecute')
-    if (-not (Test-Path $Path)) { New-Item -ItemType Directory -Path $Path -Force | Out-Null }
-    $acl = Get-Acl $Path
-    $acl.SetAccessRuleProtection($true, $false) # stop inheriting the parent's broader ACL
-    $acl.Access | ForEach-Object { $acl.RemoveAccessRule($_) | Out-Null }
-    foreach ($builtin in @('NT AUTHORITY\SYSTEM', 'BUILTIN\Administrators')) {
+function Set-ProtectedAcl {
+    param([string]$Path, [hashtable]$Grants, [System.Security.AccessControl.InheritanceFlags]$Inheritance)
+    $acl = [System.Security.AccessControl.FileSecurity]::new()
+    if ((Get-Item -LiteralPath $Path) -is [System.IO.DirectoryInfo]) { $acl = [System.Security.AccessControl.DirectorySecurity]::new() }
+    $acl.SetAccessRuleProtection($true, $false)
+    $all = @{ 'S-1-5-18' = 'FullControl'; 'S-1-5-32-544' = 'FullControl' } + $Grants
+    foreach ($sid in $all.Keys) {
         $acl.AddAccessRule([System.Security.AccessControl.FileSystemAccessRule]::new(
-            $builtin, 'FullControl', 'ContainerInherit,ObjectInherit', 'None', 'Allow'))
+            [System.Security.Principal.SecurityIdentifier]::new($sid), $all[$sid], $Inheritance, 'None', 'Allow'))
     }
-    foreach ($allowSid in $AllowSids) {
-        $acl.AddAccessRule([System.Security.AccessControl.FileSystemAccessRule]::new(
-            [System.Security.Principal.SecurityIdentifier]::new($allowSid), $Rights, 'ContainerInherit,ObjectInherit', 'None', 'Allow'))
-    }
-    if ($PSCmdlet.ShouldProcess($Path, 'Replace ACL')) { Set-Acl $Path $acl }
-}
-# The inference account can read its own boot/provider directories and the worker source tree...
-Set-ExclusiveAcl -Path "$InstallRoot\state\boots" -AllowSids @($sid) -Rights 'Modify'
-Set-ExclusiveAcl -Path "$InstallRoot\provider" -AllowSids @($sid)
-Set-ExclusiveAcl -Path "$InstallRoot\trust" -AllowSids @($sid)
-# ...and nothing else. It is never added to the core database credential, Discord token or
-# case-content directories, so those keep whatever ACL core's own setup already applies to them.
-
-Write-Host "Registering Windows Service '$ServiceName'..."
-$existing = Get-CimInstance Win32_Service -Filter "Name='$ServiceName'" -ErrorAction SilentlyContinue
-$binPath = "`"$NodeExecutable`" `"$WorkerEntrypoint`""
-if (-not $existing) {
-    if ($PSCmdlet.ShouldProcess($ServiceName, 'Create service')) {
-        sc.exe create $ServiceName binPath= $binPath start= demand obj= ".\$AccountName" password= "$([guid]::NewGuid())" | Out-Null
-        # sc.exe's password= above is a placeholder; New-LocalUser already set the real one.
-        # Re-run with the actual credential so LSA has it, using the same random-password helper.
-        sc.exe config $ServiceName obj= ".\$AccountName" password= (New-RandomPassword | ConvertFrom-SecureString -AsPlainText) | Out-Null
-    }
-} elseif ($existing.PathName -ne $binPath) {
-    if ($PSCmdlet.ShouldProcess($ServiceName, 'Repoint existing service to pinned entrypoint')) {
-        sc.exe config $ServiceName binPath= $binPath | Out-Null
-    }
-} else {
-    Write-Host "  already registered with the expected entrypoint."
+    if ($PSCmdlet.ShouldProcess($Path, 'Replace with protected ACL')) { Set-Acl -LiteralPath $Path -AclObject $acl; Write-Host "  * $Path" }
 }
 
-Write-Host "Scoping outbound firewall access to the worker executable..."
-$ruleName = 'Sophie inference worker egress'
-if (-not (Get-NetFirewallRule -DisplayName $ruleName -ErrorAction SilentlyContinue)) {
-    if ($PSCmdlet.ShouldProcess($ruleName, 'Create outbound firewall rule')) {
-        New-NetFirewallRule -DisplayName $ruleName -Direction Outbound -Program $NodeExecutable `
-            -Protocol TCP -RemotePort 443 -Action Allow | Out-Null
+Write-Host 'Checking preconditions...'
+foreach ($path in @($Node, $Entrypoint, (Join-Path $InstallRoot 'state\boots'), (Join-Path $InstallRoot 'provider'), (Join-Path $InstallRoot 'trust'))) {
+    if (-not (Test-Path -LiteralPath $path)) { throw "Missing $path" }
+}
+$wrappers = @('core\aphelion-bot.exe', 'supervisor\aphelion-bot-ai-supervisor.exe') | ForEach-Object { Join-Path $InstallRoot "services\$_" }
+foreach ($existing in $wrappers) {
+    if ((Get-FileHash -LiteralPath $existing -Algorithm SHA256).Hash -ne $WrapperSha256) { throw "Wrapper hash mismatch: $existing" }
+}
+$supervisorSid = Get-ServiceSid $SupervisorId
+$coreSid = Get-ServiceSid $CoreId
+
+Write-Host "Registering $ServiceId..."
+$registered = Get-CimInstance Win32_Service -Filter "Name='$ServiceId'"
+if (-not $registered) {
+    if ($PSCmdlet.ShouldProcess($ServiceDirectory, 'Create wrapper directory and configuration')) {
+        New-Item -ItemType Directory -Force -Path $ServiceDirectory, $LogDirectory | Out-Null
+        Copy-Item -LiteralPath $wrappers[0] -Destination $Wrapper
+        if ((Get-FileHash -LiteralPath $Wrapper -Algorithm SHA256).Hash -ne $WrapperSha256) { throw 'Copied wrapper hash mismatch' }
+        @"
+<service>
+ <id>$ServiceId</id><name>Sophie AI worker</name>
+ <description>DeepSeek inference worker. Started and stopped only by $SupervisorId; Manual startup.</description>
+ <executable>$Node</executable>
+ <arguments>"$Entrypoint"</arguments>
+ <workingdirectory>$Source</workingdirectory>
+ <serviceaccount><domain>NT SERVICE</domain><user>$ServiceId</user></serviceaccount>
+ <startmode>Manual</startmode><stoptimeout>10 sec</stoptimeout><stopparentprocessfirst>true</stopparentprocessfirst>
+ <onfailure action="none"/>
+ <env name="NODE_OPTIONS" value=""/><env name="NODE_PATH" value=""/>
+ <env name="HTTP_PROXY" value=""/><env name="HTTPS_PROXY" value=""/><env name="ALL_PROXY" value=""/>
+ <logpath>$LogDirectory</logpath><log mode="roll-by-size"><sizeThreshold>1024</sizeThreshold><keepFiles>2</keepFiles></log>
+</service>
+"@ | Set-Content -LiteralPath (Join-Path $ServiceDirectory "$ServiceId.xml") -Encoding utf8NoBOM
+    }
+    if ($PSCmdlet.ShouldProcess($ServiceId, 'Install WinSW service')) {
+        & $Wrapper install
+        if ($LASTEXITCODE -ne 0) { throw "WinSW install failed ($LASTEXITCODE)" }
     }
 } else {
-    Write-Host "  already present."
+    Write-Host "  = already registered as $($registered.StartName) ($($registered.PathName))"
+    if ($registered.StartName -ne "NT SERVICE\$ServiceId") { throw "Unexpected service account $($registered.StartName)" }
 }
+if ($WhatIfPreference -and -not $registered) { Write-Host 'WhatIf: the remaining steps need the registered service SID.'; return }
+$workerSid = Get-ServiceSid $ServiceId
+
+Write-Host 'Granting worker file access...'
+$metadata = [System.Security.AccessControl.FileSystemRights]'ListDirectory, ReadAttributes, ReadExtendedAttributes, Traverse, ReadPermissions, Synchronize'
+foreach ($path in @('C:\Aphelion', $InstallRoot, (Join-Path $InstallRoot 'package'), (Join-Path $InstallRoot 'state'), (Join-Path $InstallRoot 'logs'))) {
+    Add-Grant -Path $path -Sid $workerSid -Rights $metadata -Inheritance 'None'
+}
+foreach ($path in @((Join-Path $InstallRoot 'package\runtime'), $Source)) {
+    Add-Grant -Path $path -Sid $workerSid -Rights 'ReadAndExecute, Synchronize' -Inheritance 'ContainerInherit, ObjectInherit'
+}
+Add-Grant -Path (Join-Path $InstallRoot 'state\boots') -Sid $workerSid -Rights 'Read, Synchronize' -Inheritance 'ContainerInherit, ObjectInherit'
+if (Test-Path -LiteralPath $LogDirectory) {
+    Add-Grant -Path $LogDirectory -Sid $workerSid -Rights 'Modify, Synchronize' -Inheritance 'ContainerInherit, ObjectInherit'
+}
+Set-ProtectedAcl -Path (Join-Path $InstallRoot 'provider') -Grants @{ $workerSid = 'Read, Synchronize' } -Inheritance 'ContainerInherit, ObjectInherit'
+
+Write-Host 'Restricting per-role trust files...'
+foreach ($role in @(@{ File = 'core.json'; Sid = $coreSid }, @{ File = 'supervisor.json'; Sid = $supervisorSid })) {
+    $path = Join-Path $InstallRoot "trust\$($role.File)"
+    if (Test-Path -LiteralPath $path) { Set-ProtectedAcl -Path $path -Grants @{ $role.Sid = 'Read, Synchronize' } -Inheritance 'None' }
+    else { Write-Host "  - $path not written yet; rerun after writing it" }
+}
+
+Write-Host 'Allowing the supervisor to query/start/stop the worker service...'
+# SY/BA keep their defaults; the supervisor gets query-status/config, start, stop, interrogate and read-control.
+$sddl = "D:(A;;CCLCSWRPWPDTLOCRRC;;;SY)(A;;CCDCLCSWRPWPDTLOCRSDRCWDWO;;;BA)(A;;CCLCSWRPWPLORC;;;$supervisorSid)"
+if ($PSCmdlet.ShouldProcess($ServiceId, "sc.exe sdset $sddl")) {
+    & sc.exe sdset $ServiceId $sddl | Out-Null
+    if ($LASTEXITCODE -ne 0) { throw "sc.exe sdset failed ($LASTEXITCODE)" }
+}
+
+Write-Host 'Scoping worker egress...'
+$rules = @(
+    @{ Name = 'Sophie AI worker block TCP except 443'; Protocol = 'TCP'; RemotePort = @('1-442', '444-65535') },
+    @{ Name = 'Sophie AI worker block UDP'; Protocol = 'UDP' },
+    @{ Name = 'Sophie AI worker block ICMPv4'; Protocol = 'ICMPv4' },
+    @{ Name = 'Sophie AI worker block ICMPv6'; Protocol = 'ICMPv6' }
+)
+foreach ($rule in $rules) {
+    if (Get-NetFirewallRule -DisplayName $rule.Name -ErrorAction SilentlyContinue) { Write-Host "  = $($rule.Name)"; continue }
+    $arguments = @{ DisplayName = $rule.Name; Direction = 'Outbound'; Action = 'Block'; Service = $ServiceId; Protocol = $rule.Protocol; Profile = 'Any' }
+    if ($rule.ContainsKey('RemotePort')) { $arguments.RemotePort = $rule.RemotePort }
+    if ($PSCmdlet.ShouldProcess($rule.Name, 'Create outbound block rule')) { New-NetFirewallRule @arguments | Out-Null; Write-Host "  + $($rule.Name)" }
+}
+
 Write-Host @"
 
-Done. Remaining manual steps (not automated by this script, since they depend on
-the current deployment's release/qualification data):
-  - Write apps/inference-host's trust\core.json and trust\supervisor.json config
-    files (see apps/inference-host/installation.js for the expected shape).
-  - Place the DeepSeek API key at $InstallRoot\provider (ACL'd above).
-  - Start the service once core is ready to drive it: sc.exe start $ServiceName
+Done. Readback before qualification:
+  icacls "$InstallRoot\trust" "$InstallRoot\provider" "$InstallRoot\state\boots"
+  sc.exe qc $ServiceId ; sc.exe sdshow $ServiceId
+  Get-NetFirewallRule -DisplayName 'Sophie AI worker*' | Get-NetFirewallServiceFilter
+Remaining operator steps: docs/ai-test-guild-runbook.md
 "@
