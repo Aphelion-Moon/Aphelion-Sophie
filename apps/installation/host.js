@@ -20,7 +20,11 @@ export async function runInstalledRole(role,compose) {
     if(!lifetime.signal.aborted)polling=poll();
     if(!lifetime.signal.aborted)await new Promise(resolve=>lifetime.signal.addEventListener('abort',resolve,{once:true}));
     requireCondition(!failed,'AI_INSTALLATION_UNAVAILABLE');
-  } catch {process.stderr.write('AI_INSTALLED_ROLE_UNAVAILABLE\n');process.exitCode=1;}
+  } catch(error) {
+    // Only a fixed contract code is logged: never messages, paths, SQL or credentials.
+    const code=[error?.code,error?.message].find(value=>typeof value==='string' && /^[A-Z][A-Z0-9_]{2,63}$/u.test(value));
+    process.stderr.write(`AI_INSTALLED_ROLE_UNAVAILABLE${code?` ${code}`:''}\n`);process.exitCode=1;
+  }
   finally {
     abort();clearTimeout(timer);await polling;
     const results=await Promise.allSettled([Promise.resolve().then(()=>service?.stop())]);
