@@ -19,6 +19,8 @@ no last error. Supervisor read-only inspection confirms an empty, recovered slot
 quiescence; core holds worker coordination. Worker remains stopped for owner dashboard action.
 Both loopback-with-approved-Host and public HTTPS checks pass: login, protected-page redirects,
 anonymous API denials and the installed AI JavaScript hash. No account was impersonated.
+The fixed public Policies importer subsequently reached `ready` with a current five-minute
+freshness window, observed through metadata only. No source publication or actual answer review is implied.
 
 Source-bound evidence and separate installed/access/child-identity reports are in
 `GitHub/.agent_docs/aphelion-sophie/pretest-*-2026-09-30.*`. Initial operator checks corrected a
