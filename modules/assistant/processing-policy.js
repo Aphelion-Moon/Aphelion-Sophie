@@ -13,7 +13,9 @@ export function canonicalProcessingPolicy(value) {
 export function createProcessingApproval({ policy = null, qualified, clock = Date.now }) {
   const fixed = policy === null ? null : canonicalProcessingPolicy(policy);
   requireCondition(typeof qualified === 'function', 'TRUSTED_ADAPTERS_REQUIRED');
-  const current = async () => fixed?.approved === true && clock() < fixed.validUntil && await qualified() === true;
+  // Qualification may wait on storage. Do not admit processing after the evidence expires during it.
+  const current = async () => fixed?.approved === true && clock() < fixed.validUntil &&
+    await qualified() === true && clock() < fixed.validUntil;
   return Object.freeze({ current,
     async notice() { return { revision: fixed?.noticeRevision ?? 2, text: fixed?.noticeText ?? 'AI message processing is awaiting operator review.', approved: await current() }; },
     async evidence() { return await current() ? { evidenceHash: fixed.evidenceHash, noticeRevision: fixed.noticeRevision, validUntil: fixed.validUntil } : null; },

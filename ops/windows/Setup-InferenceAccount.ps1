@@ -15,10 +15,11 @@
        (hash-checked against the other three) running package\source\apps\knowledge-worker\main.mjs
        as NT SERVICE\aphelion-bot-ai-worker, Manual start, no failure restart.
     2. File access for the worker SID, added without removing existing entries:
-         C:\Aphelion, Sophie, package, state          list/traverse/read-attributes, this folder only
+         C:\Aphelion, Sophie, package, state, services list/traverse/read-attributes, this folder only
                                                      (the missing ancestor metadata access is what made
                                                      the 28 September relay trial fail with lstat EPERM)
          package\runtime, package\source              read and execute, inherited
+         services\worker                              read and execute, inherited (WinSW and its XML)
          state\boots                                  read, inherited (the supervisor writes)
          logs\worker                                  modify (WinSW writes logs as the service account)
        provider\ is replaced with a protected ACL: SYSTEM, Administrators and the worker (read) only.
@@ -87,6 +88,43 @@ function Set-ProtectedAcl {
     if ($PSCmdlet.ShouldProcess($Path, 'Replace with protected ACL')) { Set-Acl -LiteralPath $Path -AclObject $acl; Write-Host "  * $Path" }
 }
 
+function Assert-WorkerService {
+    param($Registration, [xml]$Configuration, [string]$ExpectedWrapperHash)
+    if ($Registration.StartName -ne "NT SERVICE\$ServiceId" -or
+        $Registration.PathName -notin @($Wrapper, "`"$Wrapper`"") -or $Registration.StartMode -ne 'Manual') {
+        throw 'Existing worker service registration differs from the reviewed configuration; repair requires operator review.'
+    }
+    if ($ExpectedWrapperHash -ne $WrapperSha256) { throw 'Existing worker wrapper hash mismatch' }
+    $service = $Configuration.service
+    if ($service.id -ne $ServiceId -or $service.executable -ne $Node -or
+        $service.arguments -ne "`"$Entrypoint`"" -or $service.workingdirectory -ne $Source -or
+        $service.serviceaccount.domain -ne 'NT SERVICE' -or $service.serviceaccount.user -ne $ServiceId -or
+        $service.startmode -ne 'Manual' -or $service.stoptimeout -ne '10 sec' -or
+        $service.stopparentprocessfirst -ne 'true' -or @($service.onfailure).Count -ne 1 -or $service.onfailure.action -ne 'none') {
+        throw 'Existing worker wrapper configuration differs from the reviewed configuration; repair requires operator review.'
+    }
+}
+
+function Assert-WorkerFirewallRule {
+    param($Existing, $Port, $ServiceFilter, $Application, $Address, $Interface, $InterfaceType, [hashtable]$Expected)
+    $remotePorts = if ($Expected.ContainsKey('RemotePort')) { $Expected.RemotePort } else { @('Any') }
+    if ($Existing.Enabled -ne 'True' -or $Existing.Direction -ne 'Outbound' -or $Existing.Action -ne 'Block' -or
+        $Existing.Profile -ne 'Any' -or $ServiceFilter.Service -ne $ServiceId -or $Port.Protocol -ne $Expected.Protocol -or
+        $Port.LocalPort -ne 'Any' -or (Compare-Object @($Port.RemotePort) @($remotePorts)) -or
+        $Application.Program -ne 'Any' -or $Application.Package -notin @($null, '', 'Any') -or
+        $Address.LocalAddress -ne 'Any' -or $Address.RemoteAddress -ne 'Any' -or
+        $Interface.InterfaceAlias -ne 'Any' -or $InterfaceType.InterfaceType -ne 'Any') {
+        throw "Existing firewall rule differs from the reviewed scope: $($Expected.Name). Repair requires operator review."
+    }
+}
+
+$rules = @(
+    @{ Name = 'Sophie AI worker block TCP except 443'; Protocol = 'TCP'; RemotePort = @('1-442', '444-65535') },
+    @{ Name = 'Sophie AI worker block UDP'; Protocol = 'UDP' },
+    @{ Name = 'Sophie AI worker block ICMPv4'; Protocol = 'ICMPv4' },
+    @{ Name = 'Sophie AI worker block ICMPv6'; Protocol = 'ICMPv6' }
+)
+
 Write-Host 'Checking preconditions...'
 foreach ($path in @($Node, $Entrypoint, (Join-Path $InstallRoot 'state\boots'), (Join-Path $InstallRoot 'provider'), (Join-Path $InstallRoot 'trust'))) {
     if (-not (Test-Path -LiteralPath $path)) { throw "Missing $path" }
@@ -98,8 +136,24 @@ foreach ($existing in $wrappers) {
 $supervisorSid = Get-ServiceSid $SupervisorId
 $coreSid = Get-ServiceSid $CoreId
 
-Write-Host "Registering $ServiceId..."
+# Validate existing objects before any writes. A familiar display name is not evidence of the rule's scope.
 $registered = Get-CimInstance Win32_Service -Filter "Name='$ServiceId'"
+if ($registered) {
+    $configuration = [xml](Get-Content -LiteralPath (Join-Path $ServiceDirectory "$ServiceId.xml") -Raw)
+    Assert-WorkerService $registered $configuration (Get-FileHash -LiteralPath $Wrapper -Algorithm SHA256).Hash
+}
+foreach ($rule in $rules) {
+    $existingRules = @(Get-NetFirewallRule -DisplayName $rule.Name -ErrorAction SilentlyContinue)
+    if ($existingRules.Count -gt 1) { throw "Ambiguous firewall rule: $($rule.Name)" }
+    if ($existingRules.Count -eq 1) {
+        $existing = $existingRules[0]
+        Assert-WorkerFirewallRule $existing ($existing | Get-NetFirewallPortFilter) ($existing | Get-NetFirewallServiceFilter) `
+            ($existing | Get-NetFirewallApplicationFilter) ($existing | Get-NetFirewallAddressFilter) `
+            ($existing | Get-NetFirewallInterfaceFilter) ($existing | Get-NetFirewallInterfaceTypeFilter) $rule
+    }
+}
+
+Write-Host "Registering $ServiceId..."
 if (-not $registered) {
     if ($PSCmdlet.ShouldProcess($ServiceDirectory, 'Create wrapper directory and configuration')) {
         New-Item -ItemType Directory -Force -Path $ServiceDirectory, $LogDirectory | Out-Null
@@ -134,10 +188,10 @@ $workerSid = Get-ServiceSid $ServiceId
 
 Write-Host 'Granting worker file access...'
 $metadata = [System.Security.AccessControl.FileSystemRights]'ListDirectory, ReadAttributes, ReadExtendedAttributes, Traverse, ReadPermissions, Synchronize'
-foreach ($path in @('C:\Aphelion', $InstallRoot, (Join-Path $InstallRoot 'package'), (Join-Path $InstallRoot 'state'), (Join-Path $InstallRoot 'logs'))) {
+foreach ($path in @('C:\Aphelion', $InstallRoot, (Join-Path $InstallRoot 'package'), (Join-Path $InstallRoot 'state'), (Join-Path $InstallRoot 'logs'), (Join-Path $InstallRoot 'services'))) {
     Add-Grant -Path $path -Sid $workerSid -Rights $metadata -Inheritance 'None'
 }
-foreach ($path in @((Join-Path $InstallRoot 'package\runtime'), $Source)) {
+foreach ($path in @((Join-Path $InstallRoot 'package\runtime'), $Source, $ServiceDirectory)) {
     Add-Grant -Path $path -Sid $workerSid -Rights 'ReadAndExecute, Synchronize' -Inheritance 'ContainerInherit, ObjectInherit'
 }
 Add-Grant -Path (Join-Path $InstallRoot 'state\boots') -Sid $workerSid -Rights 'Read, Synchronize' -Inheritance 'ContainerInherit, ObjectInherit'
@@ -168,12 +222,6 @@ if ($PSCmdlet.ShouldProcess($ServiceId, "sc.exe sdset $sddl")) {
 }
 
 Write-Host 'Scoping worker egress...'
-$rules = @(
-    @{ Name = 'Sophie AI worker block TCP except 443'; Protocol = 'TCP'; RemotePort = @('1-442', '444-65535') },
-    @{ Name = 'Sophie AI worker block UDP'; Protocol = 'UDP' },
-    @{ Name = 'Sophie AI worker block ICMPv4'; Protocol = 'ICMPv4' },
-    @{ Name = 'Sophie AI worker block ICMPv6'; Protocol = 'ICMPv6' }
-)
 foreach ($rule in $rules) {
     if (Get-NetFirewallRule -DisplayName $rule.Name -ErrorAction SilentlyContinue) { Write-Host "  = $($rule.Name)"; continue }
     $arguments = @{ DisplayName = $rule.Name; Direction = 'Outbound'; Action = 'Block'; Service = $ServiceId; Protocol = $rule.Protocol; Profile = 'Any' }

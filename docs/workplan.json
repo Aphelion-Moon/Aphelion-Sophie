@@ -1,6 +1,6 @@
 {
   "schema_version": 2,
-  "revision": "2026-09-30-pretest-activation",
+  "revision": "2026-09-30-blocker-repairs",
   "reference_plan_version": "1.1",
   "source": "Sophie-Implementation-Plans-v1.1/backlog.json",
   "owner_decisions": "docs/decisions/0001-owner-policy.md",
@@ -184,8 +184,7 @@
         "System-wording reads/writes independently require current guidance-publisher authority; concurrent edits conflict and exact uncertain saves replay without another revision."
       ],
       "remaining_scope": [
-        "permission activation/reconciliation qualification with explicit role/channel selection, versioned review, lockout protection and retained changes; flexible case responder mapping consistent with Head Admin privacy.",
-        "Remaining route parity, live OAuth/TLS and production composition."
+        "Private owner/member acceptance of the installed website apply/reconciliation workflow and independently selected capability mappings; production OAuth/TLS and current authorization acceptance."
       ]
     },
     {
@@ -343,7 +342,7 @@
         "Live Gateway current; Discord accepted the signed public interaction endpoint. Unsigned/forged signatures rejected over HTTPS. OAuth callback registered and a completed owner login verified; editor visibility confirmed by the owner on a private machine."
       ],
       "remaining_scope": [
-        "Live registration/Discord/OAuth/TLS compatibility, approved IDs/permissions, remaining commands and production deployment acceptance; Oceanic is not adopted."
+        "Fresh test application and six commands are installed; complete independent Discord client, role hierarchy, remaining workflow and production registration acceptance."
       ]
     },
     {
@@ -763,7 +762,7 @@
         "Manual publisher source review safely renders structured text and retains wiki binding/attribution across edits. Refresh does not publish and cannot occupy the administrative HTTP request slot."
       ],
       "remaining_scope": [
-        "Qualified knowledge-service composition and unattended refresh; Discord /lookup; reviewed wiki extracts and separate Discord rules publication; 40-question knowledge acceptance and live qualification."
+        "Review and publish fresh Policies extracts and separate Discord rules. Installed fixed-source refresh and direct lookup need live acceptance; complete the source-bound 40-question knowledge gate."
       ]
     },
     {
@@ -794,7 +793,7 @@
         "Member dashboard direct lookup on Public answers, independent of inference and AI opt-in."
       ],
       "remaining_scope": [
-        "Qualified knowledge-service composition and unattended refresh; Discord /lookup; reviewed wiki extracts and separate Discord rules publication; 40-question knowledge acceptance and live qualification."
+        "Direct dashboard and Discord lookup are implemented. Qualify current source attribution, authority, invalidation and member access against reviewed publications; complete the 40-question gate."
       ]
     },
     {
@@ -824,7 +823,7 @@
         "Separate knowledge identity, reviewed public publication, catalogue/editor, source invalidation and removal of all stored plaintext revisions on withdrawal."
       ],
       "remaining_scope": [
-        "Source synchronization/health, production service/identity wiring, external restore watermark, permitted source collection and live acceptance remain open."
+        "Knowledge-only editor and fixed Policies refresh are installed with database isolation checked. Remaining: owner source publication, operational invalidation/recovery and live editor/lookup acceptance."
       ]
     },
     {
@@ -857,8 +856,8 @@
         "Bounded mutual-challenge HMAC stream exchange pins worker/boot/release/provider profile and preserves core dispatch/usage acknowledgements. Final source/consent checks precede prompt transfer; cancellation, expiry, replay and uncertain handoff tested locally."
       ],
       "remaining_scope": [
-        "Provision and qualify the exact private transport and Windows identity/ACL/egress profile, provider-only credential custody, worker-local HTTP pool and AI-only process replacement. Qualify Node maintenance separately; no service listener or production connector is installed.",
-        "Provider data-use clearance, actual full-turn timing and selected feature acceptance remain open."
+        "Install the reviewed local worker repair candidate under explicit live/permission authorization. Qualify actual child identity, file/network denials, signed leases, physical stop and failed-start recovery; no Hyper-V/relay work remains selected.",
+        "DS-01 processing/deletion commitments, actual full-turn timing, representative host load and selected feature acceptance remain open."
       ]
     },
     {
@@ -895,7 +894,7 @@
         "Core Gateway handoff now composes metadata observations, current audience/presence gates, consent, short-lived context, public retrieval, inference queue and fixed output. Stable AI continuity ignores ordinary traffic but invalidates audience changes. Input trimming retains policy/current question; brief typing is limited to admitted addressed turns."
       ],
       "remaining_scope": [
-        "Qualified worker broker and service/restore wiring, durable effect recovery and reaction ownership, private worker domains, explicit-memory implementation/scope, source sync and full enabled-feature acceptance remain open."
+        "Public-context gathering, durable effects and temporary replies are implemented. Qualify actual worker/Discord lifecycle, effects and source revocation. Remote explicit preferences and named restricted domains remain separately blocked."
       ]
     },
     {
@@ -927,7 +926,7 @@
         "Participation/personality/own-consent dashboard plus authenticated reviewed public knowledge editor. Synthetic editor publication and withdrawal verified; unavailable AI controls do not block composed administration."
       ],
       "remaining_scope": [
-        "Applied-worker acknowledgement, operational release/resources controls, source sync, personal-memory controls, actual model dialogue evaluation and explicit activation remain open."
+        "Reviewed dashboard activation and actual worker acknowledgement checks are installed. Local repair candidate awaits deployment; owner-reviewed personality, participation, current budget, individual consent and actual model dialogue/release acceptance remain open."
       ]
     },
     {
@@ -1339,8 +1338,8 @@
   "checkpoint": {
     "summary": "Deterministic administration, Whitelist onboarding, protected editors, role/permission configuration and the configurable staging host are implemented.",
     "recorded_baseline": "AI handoff 0fa7a5ed538ff791e3def2c1f6ac7683531e15a1 plus preserved uncommitted Flash candidate; synthetic schema058 candidate. No live schema change.",
-    "current_work": "Schema064/source95e92bd installed under September30 authorization. Live migration preserved100 tables/10 rows; isolated knowledge editor, policy-v2 operator grants and independent core-only journal are installed. Four Sophie services run under verified child identities; Gateway and public dashboard checks pass. Worker stays stopped; actual AI acceptance remains gated.",
-    "evidence_note": "27 focused tests, 77 isolated AI/database scenarios and 20 composed staging scenarios passed; disposable clusters stopped. Repository check and PowerShell parse passed. Source-bound and separate installed evidence are in GitHub/.agent_docs/aphelion-sophie. Real-message processing remains uncleared."
+    "current_work": "Schema064/source95e92bd remains the installed test build. A local repair candidate closes processing-approval expiry during qualification, bounds stalled SCM commands, validates existing worker setup configuration and supplies missing wrapper-directory grants. No deployment or permission change in this repair pass; worker remains stopped.",
+    "evidence_note": "September30 installed and earlier storage evidence remains source-bound to its original build. Repair evidence: 19 focused installation/service tests and 26 pure PowerShell configuration guard cases pass; setup -WhatIf checks actual configuration without mutation. See GitHub/.agent_docs/aphelion-sophie/blocker-repair-verification-2026-09-30.json for final source hashes and check results. Actual worker child denials, provider clearance and Discord acceptance remain open."
   },
   "milestones": [
     {
@@ -2611,11 +2610,23 @@
       "implemented": "The owner approved and the operator executed the bounded two-relay service trial against candidate f13395b731859fbd5473d46b8c8f6dead864d863. Both Manual services and dedicated protected package roots were installed, required privileges limited to SeChangeNotifyPrivilege, and 12 scoped firewall block rules created and read back. No container or AI application was activated.",
       "evidence": "Candidate files and wrapper matched their pinned hashes. SCM configuration and rule readback succeeded. The first inference service launch failed before its diagnostic/native entrypoint: Node lstat returned EPERM on C:\\Aphelion. The original trial forbids changing that existing ancestor, so execution stopped. Secondary wrapper Event Log errors exposed omitted source registration in the sc-create diagnostic procedure. Both services, all 12 rules and all new directories were removed; existing three Sophie service states/files and six existing ancestor descriptors match preflight. No candidate processes remained.",
       "remaining": "Approve the exact non-inheriting metadata-access amendment for the two relay SIDs on five existing ancestor directories, correct wrapper event-source registration, then repeat the authorized trial. Actual identity, private pipe, custody, process and network denials remain unqualified. Guest/public-projection, provider/account, publication/actual-answer and Test Discord Server activation gates remain open. No host reboot is authorized."
+    },
+    {
+      "title": "Local blocker repairs and reviewed test preparation",
+      "tasks": [
+        "P07",
+        "P19",
+        "P23",
+        "P25"
+      ],
+      "implemented": "Processing approval rechecks expiry after asynchronous qualification. SCM operations have one deadline covering initial commands and polling, with late-result fencing. Worker setup validates existing registration/wrapper/firewall scope before mutation and adds missing services-parent metadata and worker-wrapper read/execute grants in source.",
+      "evidence": "19 focused installation/service tests and 26 pure PowerShell guard cases passed. Read-only installed observations confirm absent worker wrapper-directory grant and matching current service/firewall configuration; -WhatIf performed no writes. Source-bound verification and publication/qualification preparation are external.",
+      "remaining": "Repair candidate not deployed; no installed permission change, worker boot, provider call, publication or Discord acceptance. DS-01, owner approvals, actual worker qualification and production recovery gates remain open."
     }
   ],
   "next_steps": [
     {
-      "title": "Stage and qualify the schema-064 test candidate",
+      "title": "Apply reviewed worker repairs, then qualify the installed test candidate",
       "tasks": [
         "P07",
         "P19",
@@ -2626,7 +2637,7 @@
         "P25",
         "P32"
       ],
-      "work": "Scoped test update is installed and verified (schema064/source95e92bd; four Sophie services running, current Gateway, public dashboard and owner operator-role metadata). Owner reports improvement-use opt-out disabled; record its documented terms basis. Obtain remaining downstream API processing/deletion commitments, review/publish actual content and prices, then perform owner-started worker and public-channel acceptance with individual consent. Actual worker-child file/network denials remain unrun.",
+      "work": "Review the source-bound blocker-preparation-2026-09-30.json proposal for the two missing worker directory grants and committed-package renewal. Application needs explicit live/permission approval; no migration is needed. Resolve DS-01 independently; prepare owner publications and current prices. Actual worker-child denials and physical stop precede owner-led member-channel activation and consent.",
       "exit_evidence": "Build-bound installed identity/ACL/network and synthetic boot/transport/stop results; effective operator permissions and accessible dashboard. Real-member AI acceptance and reviewed knowledge answers remain explicit open gates."
     },
     {
@@ -2734,7 +2745,7 @@
           "SAI-12",
           "SAI-14"
         ],
-        "remaining": "Public terms and owner-reported setting recorded30September. No fixed API retention/deletion or complete no-own-purpose downstream processing agreement established; privacy policy explicitly excludes downstream users. Real Discord processing, remote preferences and restricted scopes remain blocked. Protected processingPolicy/notice are installed; no approval receipt was supplied or manufactured."
+        "remaining": "Owner-reported improvement-use opt-out and published terms basis are recorded. Downstream processing/deletion commitments remain unresolved; no processing approval receipt is installed. Protected processingPolicy and notice support are implemented, not clearance. Provider enquiry remains unsent; real Discord export, remote preferences and restricted scopes remain denied."
       },
       {
         "id": "DS-02",
@@ -2771,7 +2782,7 @@
           "SAI-05",
           "SAI-14"
         ],
-        "remaining": "Deploy schema-064 candidate under scoped operator authorization, renew installation and identity evidence; verify actual worker boot/lease, Node-child file/network denial, synthetic provider transport and physical stop. Existing 29 September installation is schema063."
+        "remaining": "Schema064 installed30September; no repeat migration needed. Local setup/service repair candidate awaits separate live and permission approval. Verify actual worker boot/lease, Node-child protected-file/network denials, synthetic transport and physical stop before member activation."
       },
       {
         "id": "DS-05",
@@ -2868,7 +2879,7 @@
       {
         "id": "SAI-G1",
         "title": "All five public social modes",
-        "implementation": "All five public mode settings, notice/approval binding and reviewed public-channel activation implemented; source candidate only.",
+        "implementation": "All five public mode settings, notice/approval binding and reviewed public-channel activation are installed in source95e92bd/schema064; local expiry repair awaits deployment.",
         "qualification": "worker/effects/full-turn gates open",
         "data_clearance": "blocked",
         "activation": "off"
@@ -2876,7 +2887,7 @@
       {
         "id": "SAI-G2",
         "title": "Knowledge and direct lookup",
-        "implementation": "Shared dashboard and signed Discord direct lookup; fixed Policies importer, human publication review and qualified unattended refresh composition implemented locally",
+        "implementation": "Shared dashboard and signed Discord lookup, fixed Policies importer and knowledge-only editor/refresh are installed. No automatic publication.",
         "qualification": "61 focused checks; 64 isolated AI/knowledge/Gateway scenarios; 18 composed staging scenarios, including Discord lookup with AI unavailable; operational/source/40-question gates open",
         "data_clearance": "Policies collection selected; advertised CC BY-NC-SA 4.0 retained; publication-specific review remains required",
         "activation": "off"
@@ -2885,7 +2896,7 @@
         "id": "SAI-G3",
         "title": "Explicit personal memory",
         "implementation": "Local member-saved reply length and language preferences with self inspection, replacement, export action, deletion and 90-day expiry; independent restore watermark fails closed",
-        "qualification": "Offline lifecycle/restore evidence; operational journal and export qualification open",
+        "qualification": "Offline lifecycle/export/restore evidence and installed protected journal receipt exist; actual worker denial and operational restore/export acceptance remain open.",
         "data_clearance": "Two explicit preference types selected; external processing not cleared",
         "activation": "off"
       },
@@ -2909,9 +2920,9 @@
         "id": "SAI-G6",
         "title": "Operational release",
         "implementation": "incomplete",
-        "qualification": "77 isolated AI/database and 27 focused checks; installed candidate, actual worker denials/timing and selected release acceptance remain open.",
+        "qualification": "Schema064 installed with separate identity/access/manifest evidence. Local repair tests pass; actual worker denials, physical lifecycle, latency and selected release acceptance remain open.",
         "data_clearance": "capability-specific gates open",
-        "activation": "no deployment authorization"
+        "activation": "Staging preparation installed; no real-member AI activation or production approval."
       }
     ]
   }

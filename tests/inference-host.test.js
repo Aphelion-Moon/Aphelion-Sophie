@@ -101,6 +101,29 @@ test('DS04-I01 service control starts, waits for RUNNING and stops back to STOPP
   } finally { await f.close(); }
 });
 
+test('DS04-I01c stalled SCM queries and commands time out without confirming a stopped worker', native, async () => {
+  const f=await bootFixture();
+  try {
+    for(const verb of ['query','start','stop']) {
+      let aborted=false;
+      const control=createAiServiceControl({registration:f.registration,timeoutMs:30,run:async(_command,args,signal)=>{
+        if(args[0]!==verb)return {code:0,stdout:'STATE : 4 RUNNING'};
+        await new Promise((_,reject)=>signal.addEventListener('abort',()=>{aborted=true;reject(Error('stalled SCM aborted'));},{once:true}));
+      }});
+      await assert.rejects(verb==='start'?control.start():control.remove(),/AI_SERVICE_OPERATION_TIMEOUT/);
+      assert.equal(aborted,true);
+    }
+    let finishQuery;const calls=[];
+    const control=createAiServiceControl({registration:f.registration,timeoutMs:30,run:async(_command,args)=>{
+      calls.push(args[0]);return new Promise(resolve=>{finishQuery=resolve;});
+    }});
+    await assert.rejects(control.remove(),/AI_SERVICE_OPERATION_TIMEOUT/);
+    finishQuery({code:0,stdout:'STATE : 4 RUNNING'});
+    await new Promise(resolve=>setImmediate(resolve));
+    assert.deepEqual(calls,['query']); // A late query must not dispatch a stop after the operation expired.
+  } finally {await f.close();}
+});
+
 test('DS04-I01b service control never reports an unconfirmed stop or adopts an already running worker', native, async () => {
   const f = await bootFixture(), service = mockService({ stuck: true });
   try {

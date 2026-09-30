@@ -1,6 +1,6 @@
 # Current implementation workplan
 
-Revision: 2026-09-30-pretest-activation. Official DeepSeek Flash is the selected provider. Local models are historical, explicitly selected alternatives only; no automatic fallback. Continue the DS workstream with synthetic data; full readiness and activation remain open.
+Revision: 2026-09-30-blocker-repairs. Official DeepSeek Flash is the selected provider. Local models are historical, explicitly selected alternatives only; no automatic fallback. Continue the DS workstream with synthetic data; full readiness and activation remain open.
 
 All production release gates remain open; pure and isolated database checks are not full application acceptance.
 
@@ -12,9 +12,9 @@ Deterministic administration, Whitelist onboarding, protected editors, role/perm
 
 Recorded baseline: AI handoff 0fa7a5ed538ff791e3def2c1f6ac7683531e15a1 plus preserved uncommitted Flash candidate; synthetic schema058 candidate. No live schema change.
 
-Current work: Schema064/source95e92bd installed under September30 authorization. Live migration preserved100 tables/10 rows; isolated knowledge editor, policy-v2 operator grants and independent core-only journal are installed. Four Sophie services run under verified child identities; Gateway and public dashboard checks pass. Worker stays stopped; actual AI acceptance remains gated.
+Current work: Schema064/source95e92bd remains the installed test build. A local repair candidate closes processing-approval expiry during qualification, bounds stalled SCM commands, validates existing worker setup configuration and supplies missing wrapper-directory grants. No deployment or permission change in this repair pass; worker remains stopped.
 
-27 focused tests, 77 isolated AI/database scenarios and 20 composed staging scenarios passed; disposable clusters stopped. Repository check and PowerShell parse passed. Source-bound and separate installed evidence are in GitHub/.agent_docs/aphelion-sophie. Real-message processing remains uncleared.
+September30 installed and earlier storage evidence remains source-bound to its original build. Repair evidence: 19 focused installation/service tests and 26 pure PowerShell configuration guard cases pass; setup -WhatIf checks actual configuration without mutation. See GitHub/.agent_docs/aphelion-sophie/blocker-repair-verification-2026-09-30.json for final source hashes and check results. Actual worker child denials, provider clearance and Discord acceptance remain open.
 
 ## Selected AI workstream
 
@@ -23,10 +23,10 @@ Owner resumed implementation, commits and generated rebuilds. USD 20 per Europe/
 | Task | Implementation | Qualification | SAI mapping | Remaining work |
 |---|---|---|---|---|
 | DS-00 — Reconcile preserved handoff | complete | Original eight source and five evidence hashes matched; historical files preserved | SAI-00, SAI-14 | Keep this tracker current at each milestone. |
-| DS-01 — Provider and data-use clearance | partial | Owner reports improvement-use switch disabled; Terms4.3 documents the setting and API/shared-account terms support the interpretation | SAI-00, SAI-12, SAI-14 | Public terms and owner-reported setting recorded30September. No fixed API retention/deletion or complete no-own-purpose downstream processing agreement established; privacy policy explicitly excludes downstream users. Real Discord processing, remote preferences and restricted scopes remain blocked. Protected processingPolicy/notice are installed; no approval receipt was supplied or manufactured. |
+| DS-01 — Provider and data-use clearance | partial | Owner reports improvement-use switch disabled; Terms4.3 documents the setting and API/shared-account terms support the interpretation | SAI-00, SAI-12, SAI-14 | Owner-reported improvement-use opt-out and published terms basis are recorded. Downstream processing/deletion commitments remain unresolved; no processing approval receipt is installed. Protected processingPolicy and notice support are implemented, not clearance. Provider enquiry remains unsent; real Discord export, remote preferences and restricted scopes remain denied. |
 | DS-02 — Prepared-turn contract | Immutable bounded outbound preparation with per-boot keyed ephemeral block comparison, source-bound expiry/invalidation and authenticated public-channel diagnostic inspection | 77 focused checks, 76 isolated AI/knowledge/Gateway scenarios and 19 composed staging scenarios pass; both disposable clusters stopped. Synthetic browser display and expiry verified. | SAI-01, SAI-03, SAI-05, SAI-08 | Current Chat layout remains the control. Actual provider cache observations, reviewed answer quality, latency and Windows containment remain separately unqualified; no cache eviction or dispatch inference from preparation diagnostics. |
 | DS-03 — Durable spending and dispatch | Durable reservation/dispatch/uncertainty accounting with bounded resolved-attempt and aggregate retention and a hard attempt-row capacity hold | 65 isolated AI/knowledge/Gateway scenarios pass, including 500-row cleanup, preserved unresolved charges and independent replay receipts; one actual isolated PostgreSQL check at 200,000 attempt rows verifies atomic last-slot admission, 500-row retention and preserved replay receipts (122 ms concurrent pair; 98 ms retention batch) | SAI-01, SAI-02, SAI-05 | Provider framing, approved prices, actual transport crash/rollover and installed-service capacity/latency remain unqualified. The single synthetic host capacity run is not an end-to-end timing or production load guarantee. |
-| DS-04 — Windows worker and transport | Owner-selected OS-account worker isolation, manifest enforcement and protected installation composition; supports narrowly scoped public processing policy and independent preference-journal receipt. | Installed on WUFF 29 September: worker/supervisor/core virtual accounts, service DACL, ACL scope and 4 egress block rules captured as receipts hashed into the release evidence; 701-entry package manifest enforced at startup (tamper and missing-file cases observed failing closed). 573/573 repository tests pass on the host with the supervisor installed. No worker boot or provider call yet. | SAI-04, SAI-05, SAI-14 | Deploy schema-064 candidate under scoped operator authorization, renew installation and identity evidence; verify actual worker boot/lease, Node-child file/network denial, synthetic provider transport and physical stop. Existing 29 September installation is schema063. |
+| DS-04 — Windows worker and transport | Owner-selected OS-account worker isolation, manifest enforcement and protected installation composition; supports narrowly scoped public processing policy and independent preference-journal receipt. | Installed on WUFF 29 September: worker/supervisor/core virtual accounts, service DACL, ACL scope and 4 egress block rules captured as receipts hashed into the release evidence; 701-entry package manifest enforced at startup (tamper and missing-file cases observed failing closed). 573/573 repository tests pass on the host with the supervisor installed. No worker boot or provider call yet. | SAI-04, SAI-05, SAI-14 | Schema064 installed30September; no repeat migration needed. Local setup/service repair candidate awaits separate live and permission approval. Verify actual worker boot/lease, Node-child protected-file/network denials, synthetic transport and physical stop before member activation. |
 | DS-05 — Optional Responses comparison | deferred; Chat retained | No demonstrated gain; no paired paid trial | SAI-05, SAI-14, SAI-15 | Chat remains selected. Optional alternate protocol is not a release prerequisite. |
 | DS-06 — Gathering and fair concurrency | Fenced three-fragment gathering, first-receipt deadline, ingress flood limit and fair bounded channel scheduler implemented; eligible edited fragments replace their own pre-freeze revision | 43 focused runtime/turn/observation checks and 63 isolated AI/knowledge/Gateway scenarios; no actual provider or Discord timing | SAI-02, SAI-05 | Qualify actual one-versus-two workers and end-to-end latency before increasing runtime concurrency from one. |
 | DS-07 — Wiki synchronization and direct lookup | Installed read-only lookup plus separately credentialed knowledge-only editor/import/synchronizer composition, current actor checks and fixed Policies collection. No automatic publication. | 61 focused checks; 64 isolated AI/knowledge/Gateway scenarios; 18 composed staging scenarios, including Discord lookup with AI unavailable | SAI-08, SAI-11 | Distinct knowledge editor installed and database isolation verified 30 September. Fixed public Policies importer reached ready with current freshness metadata. Review/publish its extracts and Discord rules; qualify lookup and actual 40-question answers. Historical offline question review remains distinct. |
@@ -38,16 +38,18 @@ Owner resumed implementation, commits and generated rebuilds. USD 20 per Europe/
 | Capability gate | Implementation | Qualification | Data clearance | Activation |
 |---|---|---|---|---|
 | SAI-G0 — Scope and contracts | foundation recorded | local evidence only | account terms unresolved | off |
-| SAI-G1 — All five public social modes | All five public mode settings, notice/approval binding and reviewed public-channel activation implemented; source candidate only. | worker/effects/full-turn gates open | blocked | off |
-| SAI-G2 — Knowledge and direct lookup | Shared dashboard and signed Discord direct lookup; fixed Policies importer, human publication review and qualified unattended refresh composition implemented locally | 61 focused checks; 64 isolated AI/knowledge/Gateway scenarios; 18 composed staging scenarios, including Discord lookup with AI unavailable; operational/source/40-question gates open | Policies collection selected; advertised CC BY-NC-SA 4.0 retained; publication-specific review remains required | off |
-| SAI-G3 — Explicit personal memory | Local member-saved reply length and language preferences with self inspection, replacement, export action, deletion and 90-day expiry; independent restore watermark fails closed | Offline lifecycle/restore evidence; operational journal and export qualification open | Two explicit preference types selected; external processing not cleared | off |
+| SAI-G1 — All five public social modes | All five public mode settings, notice/approval binding and reviewed public-channel activation are installed in source95e92bd/schema064; local expiry repair awaits deployment. | worker/effects/full-turn gates open | blocked | off |
+| SAI-G2 — Knowledge and direct lookup | Shared dashboard and signed Discord lookup, fixed Policies importer and knowledge-only editor/refresh are installed. No automatic publication. | 61 focused checks; 64 isolated AI/knowledge/Gateway scenarios; 18 composed staging scenarios, including Discord lookup with AI unavailable; operational/source/40-question gates open | Policies collection selected; advertised CC BY-NC-SA 4.0 retained; publication-specific review remains required | off |
+| SAI-G3 — Explicit personal memory | Local member-saved reply length and language preferences with self inspection, replacement, export action, deletion and 90-day expiry; independent restore watermark fails closed | Offline lifecycle/export/restore evidence and installed protected journal receipt exist; actual worker denial and operational restore/export acceptance remain open. | Two explicit preference types selected; external processing not cleared | off |
 | SAI-G4 — Staff, Head/Project Lead and named project contexts | not qualified for remote | audiences, worker and provider separation unqualified | blocked per named domain | off |
 | SAI-G5 — Registered file profiles | unselected | not applicable until selected | no exact resources approved | off |
-| SAI-G6 — Operational release | incomplete | 77 isolated AI/database and 27 focused checks; installed candidate, actual worker denials/timing and selected release acceptance remain open. | capability-specific gates open | no deployment authorization |
+| SAI-G6 — Operational release | incomplete | Schema064 installed with separate identity/access/manifest evidence. Local repair tests pass; actual worker denials, physical lifecycle, latency and selected release acceptance remain open. | capability-specific gates open | Staging preparation installed; no real-member AI activation or production approval. |
 
 These SAI-G gates are separate from the original G gates. Partial implementation and blocked activation do not establish full readiness.
 
 ## Implemented milestones and remaining scope
+
+Milestone entries preserve their checkpoint evidence. Current next steps and owner decisions supersede historical remaining-work text, including the retired Hyper-V/HCS/relay design.
 
 | Milestone | Implemented and verified offline | Evidence | Still required |
 |---|---|---|---|
@@ -162,12 +164,13 @@ These SAI-G gates are separate from the original G gates. Partial implementation
 | Graceful same-worker-boot relay reuse and application completion (P22, P23, P24) | Owner-approved graceful same-worker-boot reuse is implemented. Each relay retains its single first-instance listener across fully drained sessions; faults terminate that relay. Successful inference exchanges now finish through an explicit bounded graceful-close path; cancellation and malformed traffic still abort. Windows host restarts are prohibited by this workflow. | Pinned native build passed. Five native transport groups passed, including three sequential sessions per purpose in unchanged helper/worker identities, final-byte drain, idle/backpressured stop, capacity denial and no reconnect after failure. Native malformed-frame/profile checks passed. The existing application protocol fixture, adapted to both relays, passed a probe and two metered synthetic localhost-TLS replies plus confirmed cleanup. All 19 IPC tests passed, including added EOF-before-write-ack and stalled-drain regressions. Earlier failing composition and cancellation checks are retained; their source causes were fixed, not waived. | Complete the installed per-boot relay controller and independently authenticated dynamic grants, without rewriting static owner profiles or restarting the Windows host. Then prepare the exact two-service/account/ACL/network installation for separate operational authorization and actual-identity qualification. Installed activation still fails closed without a controller. Provider/account clearance, publication/actual-answer review, remaining AI acceptance gates and Test Discord Server deployment remain open. |
 | Installed per-boot relay controller and bounded physical closure (P22, P23, P24) | Installed per-boot relay control is implemented: distinct private supervisor control pipes authenticate relay owners and the supervisor using OS descriptors; native grants bind installation, worker, release, profile, evidence, boot and operation. Persistent relay processes accept fresh boots after confirmed quiescence. Partial startup failure drains both purposes, qualification is bounded, and uncertain closure remains failed. No Windows host restart is part of this workflow. | Pinned host C# build and four native boundary groups passed. Five native-controller groups passed: two fresh boots through unchanged relay processes, repeated sessions, heartbeat, physical closure, unexpected disconnect, supervisor loss, native consumed-boot rejection and native heartbeat expiry. Actual application composition passed encrypted control/wrong-key denial, probe and two metered synthetic localhost-TLS replies plus confirmed cleanup. Six focused lifecycle tests DS04-C23 through C28 passed, as did v3 profile checks and repository validation. Earlier diagnostic failures are preserved and their source causes corrected. | Separately authorize and qualify the exact two relay service identities, filesystem/process/private-pipe/network boundaries, then the changed guest build/public HCS projection and installed composition. Provider/account clearance, publication/actual-answer review and remaining AI acceptance gates still precede Test Discord Server activation. No installed qualification receipt or production readiness is implied by local synthetic checks. |
 | Authorized relay service trial stopped at ancestor access; rollback verified (P22, P23, P24) | The owner approved and the operator executed the bounded two-relay service trial against candidate f13395b731859fbd5473d46b8c8f6dead864d863. Both Manual services and dedicated protected package roots were installed, required privileges limited to SeChangeNotifyPrivilege, and 12 scoped firewall block rules created and read back. No container or AI application was activated. | Candidate files and wrapper matched their pinned hashes. SCM configuration and rule readback succeeded. The first inference service launch failed before its diagnostic/native entrypoint: Node lstat returned EPERM on C:\Aphelion. The original trial forbids changing that existing ancestor, so execution stopped. Secondary wrapper Event Log errors exposed omitted source registration in the sc-create diagnostic procedure. Both services, all 12 rules and all new directories were removed; existing three Sophie service states/files and six existing ancestor descriptors match preflight. No candidate processes remained. | Approve the exact non-inheriting metadata-access amendment for the two relay SIDs on five existing ancestor directories, correct wrapper event-source registration, then repeat the authorized trial. Actual identity, private pipe, custody, process and network denials remain unqualified. Guest/public-projection, provider/account, publication/actual-answer and Test Discord Server activation gates remain open. No host reboot is authorized. |
+| Local blocker repairs and reviewed test preparation (P07, P19, P23, P25) | Processing approval rechecks expiry after asynchronous qualification. SCM operations have one deadline covering initial commands and polling, with late-result fencing. Worker setup validates existing registration/wrapper/firewall scope before mutation and adds missing services-parent metadata and worker-wrapper read/execute grants in source. | 19 focused installation/service tests and 26 pure PowerShell guard cases passed. Read-only installed observations confirm absent worker wrapper-directory grant and matching current service/firewall configuration; -WhatIf performed no writes. Source-bound verification and publication/qualification preparation are external. | Repair candidate not deployed; no installed permission change, worker boot, provider call, publication or Discord acceptance. DS-01, owner approvals, actual worker qualification and production recovery gates remain open. |
 
 ## Next implementation sequence
 
 These are bounded next steps within the task dependencies below. An unresolved live or operational input stops only work that needs that input.
 
-1. **Stage and qualify the schema-064 test candidate** (P07, P19, P21, P22, P23, P24, P25, P32). Scoped test update is installed and verified (schema064/source95e92bd; four Sophie services running, current Gateway, public dashboard and owner operator-role metadata). Owner reports improvement-use opt-out disabled; record its documented terms basis. Obtain remaining downstream API processing/deletion commitments, review/publish actual content and prices, then perform owner-started worker and public-channel acceptance with individual consent. Actual worker-child file/network denials remain unrun. Exit evidence: Build-bound installed identity/ACL/network and synthetic boot/transport/stop results; effective operator permissions and accessible dashboard. Real-member AI acceptance and reviewed knowledge answers remain explicit open gates.
+1. **Apply reviewed worker repairs, then qualify the installed test candidate** (P07, P19, P21, P22, P23, P24, P25, P32). Review the source-bound blocker-preparation-2026-09-30.json proposal for the two missing worker directory grants and committed-package renewal. Application needs explicit live/permission approval; no migration is needed. Resolve DS-01 independently; prepare owner publications and current prices. Actual worker-child denials and physical stop precede owner-led member-channel activation and consent. Exit evidence: Build-bound installed identity/ACL/network and synthetic boot/transport/stop results; effective operator permissions and accessible dashboard. Real-member AI acceptance and reviewed knowledge answers remain explicit open gates.
 2. **Privately verify deployed configuration and apply workflow** (P03, P05, P08, P11, P15). Sign in with the existing Lead ops role at /permissions. Verify Crew/base, Whitelist, Muzzled, Staff/lead ops, feature grants, responders and category; review/apply an intentional change and verify progress, preserved restrictions and case access. Do not inspect private data through agent tools or repeat bootstrap/deployment. Exit evidence: Owner pass/fail with client/time and no private content. Keep the held recovery path and fresh Whitelist-run rule; no old-policy or schema054 rollback.
 3. **After feedback: qualify Onboarding production gates** (P01, P02, P05, P06, P07, P09, P13, P14, P26, P27, P29, P30, P31). Address the reported Onboarding failures first. Then qualify final guidance/mappings, existing-role ownership, Muzzled and fresh-run revocation, no-AI/privacy, restart/uncertain-effect recovery, independent latest-history recovery, Windows identity/service packaging and approved production handoff. Preserve the broader feature backlog without making unrelated functionality a prerequisite for the next Onboarding test. Exit evidence: Build-specific applicable release evidence and explicit operator approval; no production-ready claim from this human-test checkpoint.
 
@@ -375,8 +378,7 @@ Implemented scope:
 
 Remaining scope:
 
-- permission activation/reconciliation qualification with explicit role/channel selection, versioned review, lockout protection and retained changes; flexible case responder mapping consistent with Head Admin privacy.
-- Remaining route parity, live OAuth/TLS and production composition.
+- Private owner/member acceptance of the installed website apply/reconciliation workflow and independently selected capability mappings; production OAuth/TLS and current authorization acceptance.
 
 Full task deliverables:
 
@@ -510,7 +512,7 @@ Implemented scope:
 
 Remaining scope:
 
-- Live registration/Discord/OAuth/TLS compatibility, approved IDs/permissions, remaining commands and production deployment acceptance; Oceanic is not adopted.
+- Fresh test application and six commands are installed; complete independent Discord client, role hierarchy, remaining workflow and production registration acceptance.
 
 Full task deliverables:
 
@@ -851,7 +853,7 @@ Implemented scope:
 
 Remaining scope:
 
-- Qualified knowledge-service composition and unattended refresh; Discord /lookup; reviewed wiki extracts and separate Discord rules publication; 40-question knowledge acceptance and live qualification.
+- Review and publish fresh Policies extracts and separate Discord rules. Installed fixed-source refresh and direct lookup need live acceptance; complete the source-bound 40-question knowledge gate.
 
 Full task deliverables:
 
@@ -876,7 +878,7 @@ Implemented scope:
 
 Remaining scope:
 
-- Qualified knowledge-service composition and unattended refresh; Discord /lookup; reviewed wiki extracts and separate Discord rules publication; 40-question knowledge acceptance and live qualification.
+- Direct dashboard and Discord lookup are implemented. Qualify current source attribution, authority, invalidation and member access against reviewed publications; complete the 40-question gate.
 
 Full task deliverables:
 
@@ -900,7 +902,7 @@ Implemented scope:
 
 Remaining scope:
 
-- Source synchronization/health, production service/identity wiring, external restore watermark, permitted source collection and live acceptance remain open.
+- Knowledge-only editor and fixed Policies refresh are installed with database isolation checked. Remaining: owner source publication, operational invalidation/recovery and live editor/lookup acceptance.
 
 Full task deliverables:
 
@@ -925,8 +927,8 @@ Implemented scope:
 
 Remaining scope:
 
-- Provision and qualify the exact private transport and Windows identity/ACL/egress profile, provider-only credential custody, worker-local HTTP pool and AI-only process replacement. Qualify Node maintenance separately; no service listener or production connector is installed.
-- Provider data-use clearance, actual full-turn timing and selected feature acceptance remain open.
+- Install the reviewed local worker repair candidate under explicit live/permission authorization. Qualify actual child identity, file/network denials, signed leases, physical stop and failed-start recovery; no Hyper-V/relay work remains selected.
+- DS-01 processing/deletion commitments, actual full-turn timing, representative host load and selected feature acceptance remain open.
 
 Full task deliverables:
 
@@ -950,7 +952,7 @@ Implemented scope:
 
 Remaining scope:
 
-- Qualified worker broker and service/restore wiring, durable effect recovery and reaction ownership, private worker domains, explicit-memory implementation/scope, source sync and full enabled-feature acceptance remain open.
+- Public-context gathering, durable effects and temporary replies are implemented. Qualify actual worker/Discord lifecycle, effects and source revocation. Remote explicit preferences and named restricted domains remain separately blocked.
 
 Full task deliverables:
 
@@ -975,7 +977,7 @@ Implemented scope:
 
 Remaining scope:
 
-- Applied-worker acknowledgement, operational release/resources controls, source sync, personal-memory controls, actual model dialogue evaluation and explicit activation remain open.
+- Reviewed dashboard activation and actual worker acknowledgement checks are installed. Local repair candidate awaits deployment; owner-reviewed personality, participation, current budget, individual consent and actual model dialogue/release acceptance remain open.
 
 Full task deliverables:
 

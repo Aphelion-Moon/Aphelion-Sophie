@@ -31,6 +31,13 @@ approved AI/editor capabilities for the existing configured Head Admin role; oth
 
 ## Daily: renew the installation receipts
 
+The September 30 local repair candidate is not installed. Its setup source adds worker read/execute
+access to `services\worker` and metadata access to `services`; the installed worker currently lacks
+the wrapper-directory grant. It also rejects drifted existing service/firewall configuration before
+changing anything. Review the scoped repair/qualification proposal in
+`GitHub/.agent_docs/aphelion-sophie/blocker-preparation-2026-09-30.json` before applying this candidate.
+An installation receipt or successful `-WhatIf` does not prove actual worker file/network denial.
+
 Trust files expire 24 hours after issue by design. From an elevated PowerShell:
 
 ```powershell
@@ -79,6 +86,14 @@ The September 30 installation trust expires 1 October at 13:57 Warsaw time.
    an older notice does not carry forward after an installation with a new notice revision.
 7. Record installed worker boot/lease, actual child-process network/file denials, stop/revocation and a
    receipt-to-Discord response within 15 seconds. Exercise exclusion and opt-out with synthetic data.
+
+Perform the synthetic worker isolation and stop checks before enabling a member channel. Keep
+protected-file probes metadata-only: opening a forbidden file must fail; never read or print its
+contents. Network denial needs a reachable controlled endpoint and a successful control connection;
+a timeout to an unroutable address is not firewall evidence. The approved account design blocks
+non-443 outbound traffic, with fixed-provider/public-IPv4 checks in the application. It does not
+claim OS denial of loopback or arbitrary TCP 443. Record actual wrapper and Node-child exit,
+not only SCM's stopped state. Keep processing disabled until these checks and DS-01 are cleared.
 
 The installed knowledge editor uses optional `knowledgeOwnerDatabase`, a distinct non-owner PostgreSQL
 login with only USAGE and SELECT/INSERT/UPDATE in `sophie_knowledge`, no CREATE and no core/AI access.

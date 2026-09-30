@@ -703,3 +703,13 @@ AI/dashboard operator grants for the existing configured leadOps role, protected
 renewal and only Sophie's staging service starts. Preserve current settings and archived records.
 The worker remains stopped for owner dashboard action. No real-message processing clearance,
 automatic publication/consent, production or game-service changes are authorized by this update.
+
+### Blocker repair and preparation — 30 September 2026
+
+The owner requested resolution of remaining blockers through repairs and preparation, explicitly
+allowing commits and up to two GPT-6.1 Sol subagents at XHigh for this pass. This supersedes the older
+model/effort restriction for this bounded work. One implementation owner retains all edits; the two
+independent reviews are read-only. Local fixes, safe isolated checks and reviewable operator preparation
+are in scope. Existing requirements for explicit live-service/permission changes, source publication,
+provider processing clearance and owner-started worker activation remain unchanged. No host reboot or
+non-Sophie service change is authorized.

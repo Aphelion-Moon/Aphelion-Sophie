@@ -22,6 +22,7 @@ export function renderWorkplan(plan) {
       'These SAI-G gates are separate from the original G gates. Partial implementation and blocked activation do not establish full readiness.', '',
     ] : []),
     '## Implemented milestones and remaining scope', '',
+    'Milestone entries preserve their checkpoint evidence. Current next steps and owner decisions supersede historical remaining-work text, including the retired Hyper-V/HCS/relay design.', '',
     '| Milestone | Implemented and verified offline | Evidence | Still required |', '|---|---|---|---|',
     ...plan.milestones.map(item => `| ${item.title} (${item.tasks.join(', ')}) | ${item.implemented} | ${item.evidence} | ${item.remaining} |`), '',
     '## Next implementation sequence', '',

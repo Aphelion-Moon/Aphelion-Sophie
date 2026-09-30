@@ -5,7 +5,8 @@ import { installationHash } from './configuration.js';
 // Shorter than the Hyper-V/HCS era's twelve-item checklist: with the worker isolated by its own
 // restricted OS account instead of a container, an operator now attests to three properties —
 // the dedicated service account's identity, the NTFS ACL scope on its secrets/config, and the
-// firewall egress scope limiting it to the provider host — instead of container/relay/HCS evidence.
+// firewall egress scope limiting outbound ports to TCP 443 — instead of container/relay/HCS evidence.
+// The application transport separately fixes the provider origin and rejects non-public IPv4 addresses.
 export const installationChecks=Object.freeze(['service-account-identity','file-acl-scope','firewall-egress-scope']);
 
 /** An owner-managed, source-bound operator receipt; never an automatic OS qualification. */

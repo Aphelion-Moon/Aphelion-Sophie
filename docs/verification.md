@@ -1,5 +1,34 @@
 # Verification and release limits
 
+## Local blocker repairs and preparation — 30 September 2026
+
+The installed baseline remains schema064/source95e92bd. This local candidate fixes evidence expiry
+during asynchronous processing qualification and adds one deadline around every worker SCM operation,
+including initial queries/commands. A stalled command fails without confirming worker quiescence;
+a late query cannot dispatch a stop after its operation expires.
+
+Worker setup now validates existing service identity/path/start mode, pinned wrapper/configuration and
+firewall filters before mutation. It proposes the missing worker metadata access on `services` and
+read/execute access on `services\worker`. Read-only installed ACL inspection confirmed that the worker
+currently lacks the wrapper-directory grant. Current service/firewall configuration passed `-WhatIf`;
+no ACL, firewall, package or service state was changed. Firewall scope is non-443 outbound denial,
+with fixed origin and public IPv4 enforced in the application; it is not an OS provider-host allowlist.
+
+19 focused installation/service tests and 26 pure PowerShell configuration-guard cases pass, including
+expiry while waiting, stalled SCM commands, late-query fencing and drifted setup objects. Full suites,
+storage suites, actual worker-child denial/lifecycle tests, paid calls and Discord acceptance were not
+run for these changes. The prior storage and installed evidence retains its original source binding.
+Final source hashes and command results are recorded in
+`GitHub/.agent_docs/aphelion-sophie/blocker-repair-verification-2026-09-30.json`.
+
+The source-bound repair proposal and publication/acceptance packet are
+`GitHub/.agent_docs/aphelion-sophie/blocker-preparation-2026-09-30.json`. The current official Flash peak
+prices match existing accounting defaults; the prepared budget retains null price validity and is not
+published. Personality remains a draft; historical knowledge cases are not fresh publication or actual
+answer acceptance. No processing clearance, consent or qualification receipt was manufactured.
+Installation of the repair/permission changes, DS-01, owner publication and actual worker/Discord
+acceptance remain open. Production recovery and cutover gates are unchanged.
+
 ## Installed test preparation — 30 September 2026
 
 Owner-approved proposal applied with source commit `95e92bd`. Migration 064 preserved all 100

@@ -25,6 +25,15 @@ test('AI-INST06 processing authority and notice remain public-only, current and 
   assert.equal(await createProcessingApproval({qualified:async()=>true}).current(),false);
 });
 
+test('AI-INST08 processing evidence expiring during qualification cannot approve a notice or admission', async () => {
+  let now=NOW;
+  const policy={schemaVersion:1,provider:'deepseek',domain:'public',approved:true,evidenceHash:hash(),validUntil:NOW+1000,noticeRevision:3,noticeText:'Synthetic processing notice'};
+  const approval=createProcessingApproval({policy,clock:()=>now,qualified:async()=>{now=policy.validUntil;return true;}});
+  assert.equal(await approval.current(),false);
+  now=NOW;assert.equal((await approval.notice()).approved,false);
+  now=NOW;assert.equal(await approval.evidence(),null);
+});
+
 const hash=()=>createHash('sha256').update(randomBytes(32)).digest('hex');
 const NOW=1_800_000_000_000;
 const files={'runtime/node.exe':'node','runtime/LICENSE':'licence','source/package.json':'{}','source/apps/knowledge-worker/main.mjs':'worker',
