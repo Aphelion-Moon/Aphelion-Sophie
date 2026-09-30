@@ -7,6 +7,7 @@ import { createAiAdmission } from '../../apps/core/storage/ai-admission.js';
 import { createAiIngress } from '../../apps/core/discord/ai-ingress.js';
 import { createAiAccounting } from '../../apps/core/storage/ai-accounting.js';
 import { DEFAULT_AI_BUDGET, aiReservationNanos } from '../../modules/assistant/budget.js';
+import { createAiActivation } from '../../apps/core/storage/ai-activation.js';
 
 /** Existing isolated PostgreSQL runner, synthetic metadata and authored text only. */
 export async function runAiControlsSuite(cluster, run) {
@@ -300,6 +301,41 @@ export async function runAiControlsSuite(cluster, run) {
     const after = await accounting.status(); assert.equal(after.policy.held, false); assert.deepEqual(after.balances, before.balances);
     assert.equal(await accounting.reserve(await generation()), null);
     assert.equal((await store.current({ actor, kind: 'budget' })).disabled, true);
+  });
+  await run('TS-AI01 reviewed activation checks approval, live audience, publications and worker, then fences replay', async () => {
+    const operator={...actor,guildId:'991'},channelId='303';let approved=false,restricted=false,ready=true,authorized=true,noticeRevision=2;
+    const control=createAiControls({pool,guildId:operator.guildId,authorize:async(_action,who)=>who===operator&&authorized,
+      inspectChannel:async()=>({id:channelId}),memberPresence:async()=>1,
+      readNotice:async()=>({revision:noticeRevision,text:'Synthetic notice',approved})});
+    for(const [kind,doc] of [['configuration',document],['personality',DRAFT_PERSONALITY],['budget',{...DEFAULT_AI_BUDGET,priceValidUntil:Date.now()+60000}]]){
+      const reviewed=await control.review({actor:operator,kind,expectedRevision:0,document:doc});
+      await control.publish({actor:operator,kind,expectedRevision:0,document:doc,requestId:aiDigest({kind}),reviewSha256:reviewed.reviewSha256,confirmed:true});
+    }
+    const release={name:'Synthetic',workerId:'a'.repeat(64),releaseHash:'b'.repeat(64),profileHash:'c'.repeat(64),evidenceHash:'d'.repeat(64),provider:'deepseek',domain:'public'};
+    const activation=createAiActivation({pool:admin,guildId:operator.guildId,authorize:async(action,who)=>action==='ai.runtime.apply'&&who===operator&&authorized,
+      inspectChannel:async()=>({eligible:true,restricted,checkedAt:Date.now(),audienceHash:'e'.repeat(64),continuity:'synthetic'}),
+      approval:{evidence:async()=>approved?{evidenceHash:'f'.repeat(64),noticeRevision,validUntil:1799000000000}:null},
+      workerRelease:async()=>ready?release:null,restoreCurrent:async()=>true});
+    await assert.rejects(activation.reviewActivation({actor:operator,channelId}),/AI_PROCESSING_UNAPPROVED/);
+    await assert.rejects(control.consent({actor:operator,channelId,enabled:true,expectedEpoch:0,acceptedNoticeRevision:2}),/AI_NOTICE_UNAPPROVED/);
+    let noticeReads=0;
+    const expiringConsent=createAiControls({pool,guildId:operator.guildId,authorize:async()=>true,inspectChannel:async()=>({id:channelId}),memberPresence:async()=>1,
+      readNotice:async()=>({revision:2,text:'Synthetic notice',approved:++noticeReads===1})});
+    await assert.rejects(expiringConsent.consent({actor:operator,channelId,enabled:true,expectedEpoch:0,acceptedNoticeRevision:2}),/AI_NOTICE_UNAPPROVED/);
+    approved=true;restricted=true;await assert.rejects(activation.reviewActivation({actor:operator,channelId}),/AI_PUBLIC_CHANNEL_REQUIRED/);
+    restricted=false;ready=false;await assert.rejects(activation.reviewActivation({actor:operator,channelId}),/AI_WORKER_NOT_READY/);ready=true;
+    let reviewed=await activation.reviewActivation({actor:operator,channelId});
+    const confirm=()=>({actor:operator,channelId,reviewSha256:reviewed.reviewSha256,requestId:'9'.repeat(64),confirmed:true});
+    noticeRevision=3;await assert.rejects(activation.activate(confirm()),/AI_ACTIVATION_STALE/);
+    await assert.rejects(control.consent({actor:operator,channelId,enabled:true,expectedEpoch:0,acceptedNoticeRevision:2}),/AI_NOTICE_STALE/);
+    assert.equal((await control.ownConsents({actor:operator})).noticeRevision,3);
+    reviewed=await activation.reviewActivation({actor:operator,channelId});authorized=false;await assert.rejects(activation.activate(confirm()),/OPERATION_DENIED/);authorized=true;
+    const receipt=await activation.activate(confirm());assert.equal(receipt.duplicate,false);
+    assert.equal((await control.current({actor:operator,kind:'configuration'})).disabled,false);
+    await control.disable({actor:operator});assert.equal((await activation.activate(confirm())).duplicate,true);
+    assert.equal((await control.current({actor:operator,kind:'configuration'})).disabled,true);
+    await assert.rejects(pool.query('UPDATE sophie_ai.qualifications SET active=true'),error=>error.code==='42501');
+    await assert.rejects(pool.query('DELETE FROM sophie_ai.activation_receipts'),error=>error.code==='42501');
   });
   await run('DS03-09 bounded retention preserves unresolved reservations, referenced periods and independent replay receipts', async () => {
     const guild='919', retained=createAiAccounting({pool,guildId:guild});

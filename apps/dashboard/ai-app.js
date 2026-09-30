@@ -92,6 +92,7 @@ function examples() {
 }
 async function consents() {
   const current = await api.aiConsents(); consentRows = current.channels; noticeRevision = current.noticeRevision; el('consents').replaceChildren();
+  if(el('processing-notice'))el('processing-notice').textContent=current.noticeText??'AI processing is awaiting operator review.';
   el('opt-in').disabled = current.optInAvailable !== true;
   el('accept-notice').disabled = current.optInAvailable !== true;
   for (const row of consentRows) {
@@ -115,6 +116,9 @@ async function load() {
       const worker=await api.aiWorker();
       if(worker.actorId!==session.userId || worker.guildId!==session.guildId)throw Object.assign(Error(),{kind:'denied'});
       workerRevision=worker.desiredRevision;el('worker').hidden=false;el('worker-release').replaceChildren();
+      el('activation-channel').replaceChildren();
+      for(const channel of configuration.channels.filter(row=>row.profile.mode!=='ignore')){const option=document.createElement('option');option.value=channel.channelId;option.textContent=channel.channelId;el('activation-channel').append(option);}
+      el('review-activation').disabled=worker.phase!=='ready'||el('activation-channel').options.length===0;
       for(const candidate of worker.candidates){const option=document.createElement('option');option.value=candidate.id;option.textContent=candidate.release.name;el('worker-release').append(option);}
       el('review-worker').disabled=!worker.available || worker.historyFull || worker.candidates.length===0;el('stop-worker').disabled=!worker.available;
       el('worker-state').textContent=`Desired worker revision ${worker.desiredRevision}; active revision ${worker.activeRevision??'none'}. Phase: ${worker.phase}. ${worker.disabled?'AI processing is disabled.':''} ${worker.available?'':'No lifecycle adapter is registered.'}`;
@@ -198,6 +202,12 @@ else {
     workerStopRequest??=requestId();await api.aiStopWorker({requestId:workerStopRequest});workerStopRequest=null;
     await load();notice('AI stop requested. Reload to inspect the confirmed worker state.');
   }));
+  el('review-activation').addEventListener('click',()=>perform(async()=>{
+    const channelId=el('activation-channel').value,result=await api.aiReviewActivation({channelId});
+    pending={channelId,reviewSha256:result.reviewSha256,operation:'activate'};pendingRequestId=requestId();
+    el('review-summary').textContent='Enable processing in this public channel after confirming the current approval, publications, budget, worker and audience. Each member must opt in.';
+    el('review-content').textContent=JSON.stringify(result,null,2);el('review').hidden=false;el('publish').textContent='Enable this channel';
+  }));
   el('review-spending-hold').addEventListener('click', () => perform(async () => {
     const candidate = { expectedRevision: budgetRevision, evidenceHash: el('hold-evidence').value.trim() };
     const result = await api.aiReviewSpendingHold(candidate);
@@ -212,9 +222,9 @@ else {
   el('publish').addEventListener('click', () => perform(async () => {
     if (!pending) return;
     const { operation, ...fields } = pending;
-    const apply = operation === 'applyWorker' ? api.aiApplyWorker : operation === 'clearSpendingHold' ? api.aiClearSpendingHold : api.aiPublish;
+    const apply = operation === 'activate' ? api.aiActivate : operation === 'applyWorker' ? api.aiApplyWorker : operation === 'clearSpendingHold' ? api.aiClearSpendingHold : api.aiPublish;
     await apply({ ...fields, requestId: pendingRequestId, confirmed: true }); await load();
-    notice(operation === 'applyWorker' ? 'Worker apply requested. Reload to inspect its acknowledgement; AI processing remains disabled.' : operation === 'clearSpendingHold' ? 'Accounting hold cleared. Existing charges and all other qualification gates remain.' : 'Publication saved. Activation remains subject to release qualification.');
+    notice(operation === 'activate' ? 'Channel activation confirmed. Current approval and individual consent still govern every message.' : operation === 'applyWorker' ? 'Worker apply requested. Reload to inspect its acknowledgement; AI processing remains disabled.' : operation === 'clearSpendingHold' ? 'Accounting hold cleared. Existing charges and all other qualification gates remain.' : 'Publication saved. Activation remains subject to release qualification.');
   }));
   el('disable-ai').addEventListener('click', () => perform(async () => { await api.aiDisable(); await load(); notice('AI disabled. Administration continues independently.'); }));
 }

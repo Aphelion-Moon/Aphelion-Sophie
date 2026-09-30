@@ -10,6 +10,20 @@ import { createInstalledCoreService } from '../apps/core/runtime/installed.js';
 import { createInstalledCoreLifecycle } from '../apps/core/runtime/installed-lifecycle.js';
 import { createInstalledSupervisorService, AI_WORKER_SERVICE } from '../apps/inference-host/installed.js';
 import { createServer, connect } from 'node:net';
+import { canonicalProcessingPolicy, createProcessingApproval } from '../modules/assistant/processing-policy.js';
+
+test('AI-INST06 processing authority and notice remain public-only, current and separately approved', async () => {
+  const policy={schemaVersion:1,provider:'deepseek',domain:'public',approved:true,evidenceHash:hash(),validUntil:NOW+1000,noticeRevision:3,noticeText:'Synthetic processing notice'};
+  let qualified=true,now=NOW;
+  const approval=createProcessingApproval({policy,qualified:async()=>qualified,clock:()=>now});
+  assert.equal(await approval.current(),true);assert.equal((await approval.notice()).revision,3);
+  policy.approved=false;assert.equal(await approval.current(),true);
+  qualified=false;assert.equal(await approval.current(),false);assert.equal((await approval.notice()).approved,false);
+  qualified=true;now+=1000;assert.equal(await approval.current(),false);assert.equal(await approval.evidence(),null);
+  assert.throws(()=>canonicalProcessingPolicy({...policy,domain:'staff'}),/AI_PROCESSING_POLICY_INVALID/);
+  assert.throws(()=>canonicalProcessingPolicy({...policy,evidenceHash:'0'.repeat(64)}),/AI_PROCESSING_POLICY_INVALID/);
+  assert.equal(await createProcessingApproval({qualified:async()=>true}).current(),false);
+});
 
 const hash=()=>createHash('sha256').update(randomBytes(32)).digest('hex');
 const NOW=1_800_000_000_000;
@@ -118,4 +132,28 @@ test('AI-INST05 installed core and supervisor compose from the loaded configurat
   assert.equal(registrations[0].bootRoot,AI_WORKER_ROOTS.boots);assert.equal(AI_WORKER_ROOTS.boots,'C:\\Aphelion\\Sophie\\state\\boots');
   assert.equal(registrations[0].providerDirectory,AI_WORKER_ROOTS.provider);
   await service.stop();supervisor.lifetime.abort();core.lifetime.abort();
+});
+
+test('AI-INST07 installed composition carries approved notices, independent preferences and a knowledge-only editor', async () => {
+  const core=await installedPipes('core'),signal=new AbortController().signal,closed=[];
+  const database=user=>({host:'127.0.0.1',port:5432,database:'sophie_stage_ai',user,password:'synthetic'});
+  const options={runtime:{mapping:{guildId:'101'}},database:database('sophie_stage_core'),ownerDatabase:database('sophie_stage_owner'),
+    controlDatabase:database('sophie_stage_control'),knowledgeDatabase:database('sophie_stage_knowledge'),knowledgeOwnerDatabase:database('sophie_stage_editor'),
+    credentials:{token:'synthetic',clientSecret:'synthetic'},processingPolicy:{schemaVersion:1,provider:'deepseek',domain:'public',approved:true,evidenceHash:hash(),validUntil:Date.now()+3600000,noticeRevision:4,noticeText:'Synthetic notice'},
+    preferenceJournal:{id:hash(),evidenceHash:hash(),expiresAt:Number(core.pipes.installation.owner.expires)}};
+  core.pipes.installation.configuration={...core.pipes.installation.configuration,core:options};let input;
+  const createPool=configuration=>({async query(sql){
+    if(sql.includes('restore_name'))return {rows:[{restore_name:false,quarantined:false}]};
+    if(sql.includes('rolsuper'))return {rows:[{rolsuper:false,rolcreatedb:false,rolcreaterole:false,rolreplication:false,rolbypassrls:false,core:false,
+      ai:configuration.user==='sophie_stage_control',knowledge:configuration.user.includes('knowledge')||configuration.user.includes('editor')}]};
+    return {rows:[{schema_create:false,knowledge_write:configuration.user==='sophie_stage_editor'}]};
+  },async end(){closed.push(configuration.user);}});
+  const service=await createInstalledCoreService({pipes:core.pipes,signal,onFault:()=>{},createPool,
+    configurableFactory:async args=>args.runtimeFactory(args),runtimeFactory:async args=>{input=args;return {start:async()=>{},stop:async()=>{},status:()=>({})};}});
+  assert.equal(await input.aiApproval.current(),true);assert.equal((await input.aiApproval.notice()).revision,4);
+  assert.equal(typeof input.aiPreferenceJournal.advance,'function');assert.ok(input.aiActivationPool);
+  const knowledge=input.aiKnowledgeAdminFactory({authorize:async()=>false,invalidate:()=>{}});
+  assert.equal(typeof knowledge.editor.publish,'function');await knowledge.stop();
+  await service.start();await assert.rejects(service.stop(),/AI_CORE_STOP_UNCONFIRMED/);
+  assert.equal(closed.length,5);core.lifetime.abort();
 });

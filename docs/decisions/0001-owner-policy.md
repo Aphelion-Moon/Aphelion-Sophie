@@ -693,3 +693,13 @@ roles, local checkout, agent documents and host artifacts. Superseded material i
 rather than destroyed, and the obsolete egress service is uninstalled. No game service was stopped or
 changed. The provider/account, publication/actual-answer, consent and budget gates remain open, and the
 worker stays stopped until an owner starts it from the dashboard.
+
+### Remaining test preparation authorized — 30 September 2026
+
+The owner approved `GitHub/.agent_docs/aphelion-sophie/pretest-staging-proposal-2026-09-30.json`
+with “Apply the prepared test update.” Scope: additive schema 064 with retained staging state,
+a distinct restricted knowledge-editor login, independent private preference journal, versioned
+AI/dashboard operator grants for the existing configured leadOps role, protected installation
+renewal and only Sophie's staging service starts. Preserve current settings and archived records.
+The worker remains stopped for owner dashboard action. No real-message processing clearance,
+automatic publication/consent, production or game-service changes are authorized by this update.

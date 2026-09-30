@@ -66,6 +66,8 @@ export function createAiObservations({ pool, transport, authorityStore, capabili
         roles: projected.sort((a, b) => a.id.localeCompare(b.id)), overwrites: [...raw.permission_overwrites].sort((a, b) => `${a.type}.${a.id}`.localeCompare(`${b.type}.${b.id}`)) }) };
   }
   return Object.freeze({
+    // Qualification observes audience and permissions without fetching any message or case content.
+    inspectChannel: request => inspect(request),
     async inspectContext(event) {
       members.delete(event); const current = await inspect(event); if (!current) return null;
       // Gateway commits deterministic decisions before handing this same create event to AI.

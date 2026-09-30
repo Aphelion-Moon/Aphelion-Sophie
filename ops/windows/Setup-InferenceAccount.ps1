@@ -147,6 +147,12 @@ if (Test-Path -LiteralPath $LogDirectory) {
 Set-ProtectedAcl -Path (Join-Path $InstallRoot 'provider') -Grants @{ $workerSid = 'Read, Synchronize' } -Inheritance 'ContainerInherit, ObjectInherit'
 
 Write-Host 'Restricting per-role trust files...'
+# Preference epochs are independent of the staging database and its restore bundles.
+# Provisioning is explicit; neither this setup nor the runtime recreates a lost journal.
+$preferenceDirectory = Join-Path $InstallRoot 'preferences'
+if (Test-Path -LiteralPath $preferenceDirectory) {
+    Set-ProtectedAcl -Path $preferenceDirectory -Grants @{ $coreSid = 'Modify, Synchronize' } -Inheritance 'ContainerInherit, ObjectInherit'
+}
 foreach ($role in @(@{ File = 'core.json'; Sid = $coreSid }, @{ File = 'supervisor.json'; Sid = $supervisorSid })) {
     $path = Join-Path $InstallRoot "trust\$($role.File)"
     if (Test-Path -LiteralPath $path) { Set-ProtectedAcl -Path $path -Grants @{ $role.Sid = 'Read, Synchronize' } -Inheritance 'None' }

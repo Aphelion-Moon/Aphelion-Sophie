@@ -1,4 +1,7 @@
 import { createAiControls } from '../storage/ai-controls.js';
+import { createAiActivation } from '../storage/ai-activation.js';
+import { createAiObservations } from '../discord/ai-observations.js';
+import { createActorAuthorityStore } from '../storage/actor-authority.js';
 import { createAiPreferenceExpiry } from './ai-preference-expiry.js';
 import { createAiRuntime } from './ai.js';
 import { createAiOperationsRuntime } from './ai-operations.js';
@@ -61,12 +64,13 @@ import { createPermissionOptions } from '../discord/permission-options.js';
 import { runtimeDatabaseAvailable } from '../storage/runtime-maintenance.js';
 
 /** Explicit staging host. Construction starts no listener, connection, registration, migration or service. */
-export async function createStagingRuntime({ configuration, pool, aiControlPool = null, aiPreferenceJournal = null, aiWorker = null, aiLifecycle = null, aiKnowledge = null, aiKnowledgeAdmin = null, token, clientSecret = null, fetch, connect, clock = Date.now, random = Math.random, onFault, configurationApplyEnabled = false }) {
+export async function createStagingRuntime({ configuration, pool, aiControlPool = null, aiPreferenceJournal = null, aiWorker = null, aiLifecycle = null, aiKnowledge = null, aiKnowledgeAdmin = null, aiKnowledgeAdminFactory = null, aiApproval = null, aiActivationPool = null, aiRestoreCurrent = async () => false, token, clientSecret = null, fetch, connect, clock = Date.now, random = Math.random, onFault, configurationApplyEnabled = false }) {
   validateStagingRuntime(configuration); const fixed = structuredClone(configuration);
   requireCondition(typeof onFault === 'function', 'TRUSTED_ADAPTERS_REQUIRED');
   await requireUnquarantinedDatabase(pool);
   requireCondition(await runtimeDatabaseAvailable(pool), 'RUNTIME_MAINTENANCE_ACTIVE');
   let started = false, stopping = false, gatewayTask = null, workerTask = Promise.resolve(), timer = null, dashboardListening = false;
+  let knowledgeAdministration = null, knowledgeStarted = false;
   let maintenanceObserved = false;
   const active = () => started && !stopping && !maintenanceObserved;
   const fault = code => { try { onFault(code); } catch { /* Never log original dependency errors or payloads. */ } };
@@ -96,7 +100,8 @@ export async function createStagingRuntime({ configuration, pool, aiControlPool 
     oauth: createDiscordOAuth({ configuration: fixed.dashboard, clientSecret, fetch, clock, enabled }), discord: authRoles, clock, enabled });
   const principals = auth === null ? verifier : createCorePrincipals({ interactions: verifier, dashboard: auth });
   const createAiLane=worker=>createAiRuntime({ configuration: fixed, corePool: pool, controlPool: aiControlPool, worker, knowledge: aiKnowledge,
-    observer, token, fetch, clock, enabled, onFault: fault });
+    observer, token, fetch, clock, enabled, onFault: fault,
+    remoteProcessingApproved:()=>aiApproval?.current()??false, readNoticeRevision:async()=> (await aiApproval?.notice())?.revision ?? (worker.provider === 'deepseek' ? 2 : 1) });
   if(aiWorker!==null)aiRuntime=createAiLane(aiWorker);
   if(aiLifecycle!==null)aiRuntime=createAiOperationsRuntime({pool:aiControlPool,guildId:fixed.mapping.guildId,lifecycle:aiLifecycle,createRuntime:createAiLane,onFault:fault});
   const readSystemText = createSystemWordingReader({ pool, guildId: fixed.mapping.guildId });
@@ -112,17 +117,26 @@ export async function createStagingRuntime({ configuration, pool, aiControlPool 
   if (auth !== null) {
     const browser = lane(), { authorization, roles } = browser;
     const aiChannels = createAutomationChannels({ transport: browser.transport });
-    const knowledge = aiKnowledgeAdmin === null ? null : createAiKnowledgeHttp({ auth, authorization, knowledge: aiKnowledgeAdmin, invalidate: () => aiRuntime?.invalidate() });
+    const knowledgeAdmin = knowledgeAdministration = aiKnowledgeAdminFactory?.({ authorize: authorization.authorize, invalidate: () => aiRuntime?.invalidate() });
+    const knowledge = aiKnowledgeAdmin === null && !knowledgeAdmin ? null : createAiKnowledgeHttp({ auth, authorization, knowledge: aiKnowledgeAdmin ?? knowledgeAdmin.editor, invalidate: () => aiRuntime?.invalidate() });
+    const qualificationObservations = aiActivationPool === null ? null : createAiObservations({ pool, transport: browser.transport,
+      authorityStore: createActorAuthorityStore({ pool, clock }), capabilityPolicy: fixed.capabilityPolicy, mapping: fixed.mapping,
+      protectedCategoryId: fixed.casePolicy.categoryId, observer, clock });
+    const activation = qualificationObservations === null || aiApproval === null ? null : createAiActivation({ pool: aiActivationPool,
+      guildId: fixed.mapping.guildId, authorize: authorization.authorize, inspectChannel: qualificationObservations.inspectChannel,
+      approval: aiApproval, workerRelease: () => aiRuntime?.qualifiedRelease?.() ?? null, restoreCurrent: aiRestoreCurrent, clock,
+      invalidate: () => aiRuntime?.invalidate() });
     const knowledgeLookup = aiKnowledge === null ? null : createKnowledgeLookupHttp({ auth, authorization, knowledge: aiKnowledge, clock });
-    const ai = aiControlPool === null ? null : createAiControlsHttp({ auth, authorization, controls: createAiControls({
+    const ai = aiControlPool === null ? null : createAiControlsHttp({ auth, authorization, controls: { ...createAiControls({
       pool: aiControlPool, guildId: fixed.mapping.guildId, authorize: authorization.authorize, preferenceJournal:aiPreferenceJournal, clock,
       workerCatalogue:aiLifecycle===null?[]:aiRuntime.catalogue,workerOperationsAvailable:aiLifecycle!==null,
       readDiagnostic:channelId=>aiRuntime?.diagnostics(channelId)??null,
+      ...(aiApproval === null ? {} : { readNotice: aiApproval.notice }),
       memberPresence: actor => authorization.aiMemberPresence(actor),
       invalidate: () => aiRuntime?.invalidate(),
       inspectChannel: (_client, channelId) => inspectAutomationChannel(pool, { guildId: fixed.mapping.guildId,
         protectedCategoryId: fixed.casePolicy.categoryId, channels: aiChannels, channelId }),
-    }) });
+    }), ...(activation ?? { reviewActivation: async () => { requireCondition(false, 'AI_ACTIVATION_UNAVAILABLE'); }, activate: async () => { requireCondition(false, 'AI_ACTIVATION_UNAVAILABLE'); } }) } });
     const permissions = createPermissionEditorHttp({ auth, authorization, store: createPermissionEditor({ pool,
       authorize: authorization.authorize, configuration: fixed, options: createPermissionOptions({ transport: browser.transport }),
       observeActor: userId => roles.observeActor(userId), clock, applyEnabled: configurationApplyEnabled }) });
@@ -157,6 +171,9 @@ export async function createStagingRuntime({ configuration, pool, aiControlPool 
     ticking = true;
     workerTask = (async () => {
       if (!await enabled()) return;
+      if(active() && knowledgeAdministration && !knowledgeStarted){
+        try {await knowledgeAdministration.start();knowledgeStarted=true;}catch{fault('KNOWLEDGE_SYNC_UNAVAILABLE');}
+      }
       await reconciler.runOnce();
       // Bounded round-robin: a busy case queue cannot starve membership or role revocation.
       for (const worker of delivery.workers) { if (!active()) break; await worker.runOnce(owner); }
@@ -172,6 +189,7 @@ export async function createStagingRuntime({ configuration, pool, aiControlPool 
   async function stop() {
     stopping = true; clearTimeout(timer);
     const results = await Promise.allSettled([interactions.close(), dashboardListening ? dashboard.close() : undefined, aiRuntime?.stop(), preferenceExpiry?.stop(), gateway.stop(), workerTask]);
+    results.push(...await Promise.allSettled([knowledgeAdministration?.stop()]));
     dashboardListening = false;
     await gatewayTask;
     requireCondition(results.every(result => result.status === 'fulfilled'), 'RUNTIME_SHUTDOWN_INCOMPLETE');

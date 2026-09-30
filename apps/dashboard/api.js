@@ -50,6 +50,8 @@ export function createDashboardApi({ fetch, navigate = path => globalThis.locati
     aiReviewWorker:body=>request('/api/ai/review-worker',body),
     aiApplyWorker:body=>request('/api/ai/apply-worker',body),
     aiStopWorker:body=>request('/api/ai/stop-worker',body),
+    aiReviewActivation:body=>request('/api/ai/review-activation',body),
+    aiActivate:body=>request('/api/ai/activate',body),
     aiPreferences: () => request('/api/ai/preferences'),
     aiSavePreferences: body => request('/api/ai/save-preferences',body),
     aiDeletePreferences: body => request('/api/ai/delete-preferences',body),

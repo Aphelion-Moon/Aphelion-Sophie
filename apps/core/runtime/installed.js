@@ -7,9 +7,14 @@ import { requireUnquarantinedDatabase } from './recovery.js';
 import { createKnowledgeLibrary } from '../../knowledge/library.js';
 import { installedRoleContext } from '../../installation/context.js';
 import { createInstalledCoreLifecycle } from './installed-lifecycle.js';
+import { createProcessingApproval } from '../../../modules/assistant/processing-policy.js';
+import { createPreferenceJournal } from '../storage/preference-journal.js';
+import { createKnowledgeRuntime } from '../../knowledge/runtime.js';
+
+export const INSTALLED_PREFERENCE_JOURNAL = 'C:\\Aphelion\\Sophie\\preferences\\watermarks.jsonl';
 
 export async function requireInstalledAiDatabase(pool,kind) {
-  requireCondition(['control','knowledge'].includes(kind),'AI_DATABASE_IDENTITY_INVALID');
+  requireCondition(['control','knowledge','knowledge-owner'].includes(kind),'AI_DATABASE_IDENTITY_INVALID');
   await requireUnquarantinedDatabase(pool);
   const row=(await pool.query(`SELECT rolsuper,rolcreatedb,rolcreaterole,rolreplication,rolbypassrls,
     has_schema_privilege(current_user,'sophie_core','USAGE') AS core,
@@ -17,7 +22,7 @@ export async function requireInstalledAiDatabase(pool,kind) {
     has_schema_privilege(current_user,'sophie_knowledge','USAGE') AS knowledge
     FROM pg_roles WHERE rolname=current_user`)).rows[0];
   requireCondition(row && ['rolsuper','rolcreatedb','rolcreaterole','rolreplication','rolbypassrls','core'].every(name=>row[name]===false) &&
-    (kind==='knowledge'?row.knowledge===true && row.ai===false:row.ai===true && row.knowledge===false),'AI_DATABASE_IDENTITY_INVALID');
+    (kind.startsWith('knowledge')?row.knowledge===true && row.ai===false:row.ai===true && row.knowledge===false),'AI_DATABASE_IDENTITY_INVALID');
   const privileges=(await pool.query(`SELECT
     has_schema_privilege(current_user,'sophie_knowledge','CREATE') OR has_schema_privilege(current_user,'sophie_ai','CREATE') AS schema_create,
     EXISTS (SELECT 1 FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace
@@ -27,20 +32,21 @@ export async function requireInstalledAiDatabase(pool,kind) {
         ELSE has_table_privilege(c.oid,'INSERT') OR has_table_privilege(c.oid,'UPDATE') OR
          has_table_privilege(c.oid,'DELETE') OR has_table_privilege(c.oid,'TRUNCATE') OR
          has_table_privilege(c.oid,'REFERENCES') OR has_table_privilege(c.oid,'TRIGGER') END)) AS knowledge_write`)).rows[0];
-  requireCondition(privileges?.schema_create===false && privileges.knowledge_write===false,'AI_DATABASE_IDENTITY_INVALID');
+  requireCondition(privileges?.schema_create===false && privileges.knowledge_write===(kind==='knowledge-owner'),'AI_DATABASE_IDENTITY_INVALID');
 }
 
-/** Core reads public knowledge through a restricted database identity. Ingestion/publication stays outside this entrypoint. */
+/** Public lookup and optional administration use distinct knowledge-only database identities. */
 export async function createInstalledCoreService({pipes,signal,onFault,createPool=createDatabasePool,runtimeFactory=createStagingRuntime,
   configurableFactory=createConfigurableStagingRuntime,fetchImpl=fetch,connect=url=>new WebSocket(url)}) {
   const {configuration,qualified,keys}=installedRoleContext(pipes,'core',signal);Object.values(keys).forEach(key=>key.fill(0));
   const options=configuration.core;
-  requireKeys(options,['runtime','database','ownerDatabase','controlDatabase','knowledgeDatabase','credentials'],'AI_INSTALLATION_INVALID');
+  requireKeys(options,['runtime','database','ownerDatabase','controlDatabase','knowledgeDatabase','credentials',
+    ...['processingPolicy','preferenceJournal','knowledgeOwnerDatabase'].filter(key=>Object.hasOwn(options,key))],'AI_INSTALLATION_INVALID');
   requireKeys(options.credentials,['token','clientSecret'],'AI_INSTALLATION_INVALID');
-  const databases=[options.database,options.controlDatabase,options.knowledgeDatabase];
+  const databases=[options.database,options.controlDatabase,options.knowledgeDatabase,...(options.knowledgeOwnerDatabase?[options.knowledgeOwnerDatabase]:[])];
   for(const database of databases){requireStagingDatabase(database);requireCondition(database.host===options.database.host &&
     database.port===options.database.port && database.database===options.database.database,'AI_DATABASE_IDENTITY_INVALID');}
-  requireCondition(new Set(databases.map(database=>database.user)).size===3,'AI_DATABASE_IDENTITY_INVALID');
+  requireCondition(new Set(databases.map(database=>database.user)).size===databases.length,'AI_DATABASE_IDENTITY_INVALID');
   if(options.ownerDatabase){requireStagingOwnerDatabase(options.database,options.ownerDatabase);
     requireCondition(!databases.some(database=>database.user===options.ownerDatabase.user),'AI_DATABASE_IDENTITY_INVALID');}
   const pools=[];let runtime,closing;
@@ -53,9 +59,22 @@ export async function createInstalledCoreService({pipes,signal,onFault,createPoo
     requireCondition(await qualified(),'AI_INSTALLATION_UNQUALIFIED');
     const pool=add(options.database),controlPool=add(options.controlDatabase),knowledgePool=add(options.knowledgeDatabase);
     const ownerPool=options.ownerDatabase?add(options.ownerDatabase):null;
+    const knowledgeOwnerPool=options.knowledgeOwnerDatabase?add(options.knowledgeOwnerDatabase):null;
     function add(database){const value=createPool(database,onFault);pools.push(value);return value;}
     if(!ownerPool)await checkRuntimeDatabase(pool);
     await requireInstalledAiDatabase(controlPool,'control');await requireInstalledAiDatabase(knowledgePool,'knowledge');
+    if(knowledgeOwnerPool)await requireInstalledAiDatabase(knowledgeOwnerPool,'knowledge-owner');
+    const restoreCurrent=async()=>{if(!await qualified())return false;await requireUnquarantinedDatabase(controlPool);return true;};
+    const aiApproval=createProcessingApproval({policy:options.processingPolicy??null,qualified:restoreCurrent});
+    let aiPreferenceJournal=null;
+    if(options.preferenceJournal){
+      const receipt=options.preferenceJournal;
+      requireKeys(receipt,['id','evidenceHash','expiresAt'],'AI_PREFERENCE_JOURNAL_INVALID');
+      requireCondition(/^[a-f0-9]{64}$/u.test(receipt.evidenceHash) && receipt.evidenceHash!=='0'.repeat(64) &&
+        Number.isSafeInteger(receipt.expiresAt) && receipt.expiresAt<=Number(pipes.installation.owner.expires),'AI_PREFERENCE_JOURNAL_INVALID');
+      aiPreferenceJournal=createPreferenceJournal({path:INSTALLED_PREFERENCE_JOURNAL,id:receipt.id,
+        qualified:async()=>Date.now()<receipt.expiresAt && await restoreCurrent()});
+    }
     const library=createKnowledgeLibrary({pool:knowledgePool,guildId:options.runtime.mapping.guildId,authorize:async()=>false,clock:Date.now,
       restoreCurrent:async()=>{if(!await qualified())return false;await requireUnquarantinedDatabase(knowledgePool);return true;}});
     const aiKnowledge=Object.freeze({lookup:library.lookup,current:library.current,currentReferences:library.currentReferences});
@@ -63,7 +82,11 @@ export async function createInstalledCoreService({pipes,signal,onFault,createPoo
     // A stopped control client/boot must never be reused by the replacement runtime.
     const compose=async input=>{
       const lifecycle=createInstalledCoreLifecycle({pipes,signal,onFault});let instance,closed;
-      try {instance=await runtimeFactory({...input,aiControlPool:controlPool,aiKnowledge,aiLifecycle:lifecycle});}
+      try {instance=await runtimeFactory({...input,aiControlPool:controlPool,aiKnowledge,aiLifecycle:lifecycle,aiApproval,aiPreferenceJournal,
+        aiActivationPool:ownerPool,aiRestoreCurrent:restoreCurrent,
+        aiKnowledgeAdminFactory:knowledgeOwnerPool===null?null:({authorize,invalidate})=>createKnowledgeRuntime({pool:knowledgeOwnerPool,
+          guildId:input.configuration.mapping.guildId,authorize,qualified,restoreCurrent:async()=>{await requireUnquarantinedDatabase(knowledgeOwnerPool);return true;},
+          fetchImpl,invalidate,onFault})});}
       catch(error){await lifecycle.stop().catch(()=>{});throw error;}
       return Object.freeze({...instance,stop:()=>closed??=(async()=>{try{await instance.stop();}finally{await lifecycle.stop();}})()});
     };

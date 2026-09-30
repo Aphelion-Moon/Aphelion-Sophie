@@ -17,6 +17,9 @@
 <p>Apply stops current AI work and replaces only the AI worker. Message processing stays disabled until its separate release and data-use checks pass. An acknowledgement records the worker seen at that time; it is not a live health guarantee.</p>
 <label for="worker-release">Installed release</label><select id="worker-release"></select>
 <button id="review-worker">Review worker replacement</button><button id="stop-worker">Stop or recover AI worker</button>
+<h3>Enable a reviewed public channel</h3><label for="activation-channel">Configured channel</label><select id="activation-channel"></select>
+<button id="review-activation">Review channel activation</button>
+<p>Processing approval, the current worker, publications, budget and live audience must pass again when you confirm. Members opt in separately.</p>
 <p>Recovery first requires confirmation that the prior worker and any pending start have stopped. It does not retry a model request or clear uncertain charges.</p></section>
 <section id="diagnostics" class="panel case-panel" hidden><h2>Request comparison</h2>
 <p>Inspect the latest temporary preparation in an enabled public channel. This compares the final request structure after trimming. It does not prove that a provider request was sent or explain a cache hit or miss.</p>

@@ -16,7 +16,7 @@ import { createMeteredAiWorker } from './ai-provider.js';
 
 /** Core composition only. Inference receives a fixed turn payload, never this pool or Discord transport. */
 export function createAiRuntime({ configuration, corePool, controlPool, worker, knowledge, observer, token, fetch, clock, enabled, onFault,
-  remoteProcessingApproved = async () => false }) {
+  remoteProcessingApproved = async () => false, readNoticeRevision = async () => worker.provider === 'deepseek' ? 2 : 1 }) {
   requireCondition(worker && typeof worker.generate === 'function' && typeof worker.current === 'function' && knowledge &&
     ['lookup','current','currentReferences'].every(name => typeof knowledge[name] === 'function'), 'AI_ADAPTERS_REQUIRED');
   const { mapping, casePolicy, capabilityPolicy } = configuration;
@@ -27,7 +27,7 @@ export function createAiRuntime({ configuration, corePool, controlPool, worker, 
   let recovered = false;
   requireCondition(typeof remoteProcessingApproved === 'function', 'TRUSTED_ADAPTERS_REQUIRED');
   const admission = createAiAdmission({ pool: controlPool, guildId: mapping.guildId, ingress, ...observations, clock,
-    noticeRevision: worker.provider === 'deepseek' ? 2 : 1,
+    noticeRevision: worker.provider === 'deepseek' ? 2 : 1, readNoticeRevision,
     inspectContext: async event => !recovered || worker.provider === 'deepseek' && await remoteProcessingApproved() !== true ? null : observations.inspectContext(event) });
   const accounting = createAiAccounting({ pool: controlPool, guildId: mapping.guildId });
   const inference = worker.provider === 'deepseek' ? createMeteredAiWorker({ worker, accounting }) : worker;

@@ -1,5 +1,39 @@
 # Verification and release limits
 
+## Test preparation and reviewed AI activation — 30 September 2026
+
+Source candidate only; the existing schema-063 staging installation has not been replaced by this
+milestone. Processing approval and the displayed notice now flow from protected installation data
+through controls and per-message admission. Notice changes require fresh consent. Missing, expired
+or unapproved processing evidence remains denied.
+
+Migration 064 retains operator activation receipts. The reviewed dashboard activation uses the
+maintenance identity, current role capability, an actual worker probe, public audience, publication
+hashes and current budget. Confirmation checks them again. Retried confirmations never undo a later
+disable; normal control credentials still cannot write qualification or activation receipts.
+
+Installed composition supports a distinct knowledge-only editor identity, the existing fixed Policies
+refresh lifecycle, and an independently qualified preference journal outside database restore bundles.
+No remote memory/restricted-context clearance is inferred. Runtime never recreates a missing journal.
+
+Evidence: 27 focused installation/staging/preference/dashboard-asset checks passed; the isolated AI
+database suite passed 77/77 and its cluster stopped. Earlier failures exposed the omitted migration
+registration, current migration-count expectations and a three-identity assumption when composing
+the optional fourth database identity. Each was corrected without weakening the checks. New actual
+worker-probe coverage is included in the final focused rerun. Full suites were not run.
+
+The composed staging suite also passed 20/20, including administration continuing after failed
+knowledge startup and draining refresh on shutdown. The final repository check passed (550 source
+files, 40 tasks, 60 acceptance specifications). PowerShell parsing and diff whitespace checks passed;
+neither is evidence that live ACL denials work.
+
+Source-bound final results and the operational proposal are stored under
+`GitHub/.agent_docs/aphelion-sophie/`. No live provider or Discord call, credential, ACL, firewall,
+database, publication, service or installed package change is claimed by these offline results.
+DS-01 account-specific processing clearance, the staging update and actual worker/channel/answer
+acceptance remain distinct gates. Public provider documentation is research evidence, not an
+account-specific clearance receipt.
+
 ## Installed on WUFF for the Test Discord Server — 29 September 2026
 
 Owner-authorized host work, with game services left running throughout. Recorded observations:

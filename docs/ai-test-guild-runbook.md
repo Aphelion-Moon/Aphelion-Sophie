@@ -1,8 +1,9 @@
 # AI on the Test Discord Server — operator runbook
 
-Status (29 September 2026): Sophie runs on WUFF as installed services against the Test Discord Server,
-using the `aphelion-sophie` Discord application. The AI worker is installed but **not started**, and no
-channel is qualified for AI. Starting it is an owner action through the dashboard (step 3). Do not paste
+Status (30 September 2026): the schema-063 installation on WUFF targets the Test Discord Server,
+using the `aphelion-sophie` Discord application. All five services were observed stopped. The source
+candidate adds migration 064 and the reviewed activation workflow; it needs a scoped staging update.
+No live AI processing is cleared. Starting the worker is an owner action through the dashboard. Do not paste
 the provider key, Discord token or trust-file contents into chat, logs or Git.
 
 ## What is installed
@@ -41,25 +42,49 @@ is committed before running it.
 
 ## Enabling AI on one test channel
 
-1. **Clear the gates first**: DS-01 provider/data-use clearance, knowledge-source publication review, and
-   the USD 20/month budget policy. Tickets and onboarding content are never AI inputs.
-2. **Dashboard setup** (Head Admin): publish the AI notice and budget policy, then have test members opt in.
-3. **Start the worker** from the dashboard AI page by selecting the installed release
+1. Record DS-01 evidence before clearing real message processing. The protected core installation accepts
+   an optional `processingPolicy`: schemaVersion 1, provider `deepseek`, domain `public`, explicit `approved`,
+   nonzero evidenceHash, validUntil, noticeRevision (at least 2), and reviewed noticeText. Missing, unapproved,
+   expired or unqualified policy denies processing and opt-in. Renewal must retain this reviewed policy;
+   never manufacture clearance from possession of an API key. It does not approve memory or restricted data.
+2. Review the effective capability policy. Grant the chosen operator role `ai.control`,
+   `ai.personality.publish` and `ai.runtime.apply`; `ai.knowledge.publish` also requires the separate
+   knowledge-only editor identity. Role names, guild ownership and Administrator do not grant these operations.
+3. In the dashboard review/publish Sophie’s personality, participation for the exact public test channel,
+   and the USD 20/month Europe/Vienna budget with 2,000 daily attempts and a current price review date.
+   Knowledge tests additionally need reviewed current source publications and the 40-question acceptance.
+   Tickets, onboarding, their parent categories and child channels remain excluded.
+4. **Start the worker** from the dashboard AI page by selecting the installed release
    (`sophie-deepseek-<commit>`). Core asks the supervisor for a fresh boot, and the supervisor starts
    `aphelion-bot-ai-worker`. The worker reaches DeepSeek only on TCP 443, and only at public IPv4 addresses.
-4. **Qualify one channel**: insert its row in `sophie_ai.qualifications` as the owner identity. The row
-   binds the release and evidence hashes, so it has to be reissued when the release changes. Unknown
-   channels default to ignore.
+5. Select the configured channel under **Enable a reviewed public channel**, review, then confirm. The
+   maintenance identity verifies current authorization, actual worker acknowledgement, public channel
+   audience, processing evidence, publication hashes and budget again before committing qualification
+   and clearing the global processing hold. Changed reviews fail; duplicate confirmations do not enable
+   AI again after a later disable. Do not insert qualification rows or flip database flags manually.
+6. Test members read the displayed processing notice and opt into that channel individually. Consent to
+   an older notice does not carry forward after an installation with a new notice revision.
+7. Record installed worker boot/lease, actual child-process network/file denials, stop/revocation and a
+   receipt-to-Discord response within 15 seconds. Exercise exclusion and opt-out with synthetic data.
+
+The installed knowledge editor uses optional `knowledgeOwnerDatabase`, a distinct non-owner PostgreSQL
+login with only USAGE and SELECT/INSERT/UPDATE in `sophie_knowledge`, no CREATE and no core/AI access.
+The separate read-only knowledge login remains unchanged. No source is published automatically; the
+fixed Policies synchronizer refreshes only after Gateway readiness and stops with core.
+
+Preferences use optional `preferenceJournal` with id, evidenceHash and expiresAt in protected core
+configuration. Its fixed path is `C:\Aphelion\Sophie\preferences\watermarks.jsonl`, independently
+provisioned outside database restore bundles and readable/writable only by core plus the operator,
+SYSTEM and Administrators. Missing/truncated/unqualified journals stay unavailable and are never
+recreated at startup. Remote preference use remains separately disabled.
 
 ## Rollback
 
-Stop the four running services. Core, supervisor and the worker return to the previous state by
-restoring the XML backups in `C:\Aphelion\Sophie\rollback\20260929-170850` (the old configs no longer
-start anything useful). The database rollback is the cold copy
-`D:\Backups\sophie-staging\cold-20260929-172054` plus its credential files. Uninstall added services with
-their WinSW `uninstall` (tunnel, worker) or `pg_ctl unregister -N aphelion-bot-postgres`, and remove the
-`Sophie AI worker*` firewall rules. Retired artifacts from the earlier project name are archived under
-`D:\Backups\sophie-staging\legacy-artifacts-20260929`.
+Disable AI and stop only Sophie’s affected services. Preserve retained database state, credentials,
+receipts and the independent preference journal. After applying 064, repair forward with schema-064
+compatible code; the old schema-063 package is no longer a runtime rollback. Cold copies and encrypted
+bundles are retained recovery evidence and must remain quarantined if restored. They are not automatic
+live rollback targets. Do not restore old Discord roles, reactivate approvals or erase uncertain effects.
 
 ## Still to do in Discord (owner)
 

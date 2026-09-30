@@ -64,6 +64,9 @@ export async function runAiOperationsSuite(cluster,run) {
       assert.equal(second.activeRevision,2);assert.notEqual(second.acknowledged.bootId,first.acknowledged.bootId);
       assert.deepEqual(f.events.filter(event=>['quiesce','launch','probe','lane-start','lane-stop'].includes(event)),
         ['quiesce','quiesce','launch','probe','lane-start','lane-stop','quiesce','launch','probe','lane-start']);
+      assert.deepEqual(await f.runtime.qualifiedRelease(),release);
+      f.flags.wrongAck=true;assert.equal(await f.runtime.qualifiedRelease(),null);f.flags.wrongAck=false;
+      f.flags.qualified=false;assert.equal(await f.runtime.qualifiedRelease(),null);f.flags.qualified=true;
     }finally{await f.close();}
   });
   await run('DS09-O03 replacement waits for the actual prior lane to stop',async()=>{

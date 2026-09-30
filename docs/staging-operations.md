@@ -1,7 +1,8 @@
 # Current isolated staging operation
 
-**Current (29 September 2026):** staging runs on WUFF as installed Manual services under the
-`aphelion-sophie` application with a fresh schema-063 database. See the
+**Current (30 September 2026):** staging uses WUFF's installed Manual services under the
+`aphelion-sophie` application. Schema-063 services were observed stopped; the owner approved the
+schema-064 test-preparation update. See the
 [AI test-guild runbook](ai-test-guild-runbook.md) for services, renewal and rollback. The foreground-host
 sections below are history.
 
@@ -11,7 +12,7 @@ dedicated PostgreSQL cluster and separate foreground tunnel connector were launc
 on the current development computer; they were restarted and verified on 27 September as recorded below. This is not a Windows service or production
 release. Only synthetic content belongs in this test guild.
 
-## Selected build: schema 054 — upgrade verified 27 September
+## Historical build: schema 054 — upgrade verified 27 September
 
 The owner explicitly approved this upgrade and the public /whitelist command rename.
 The launcher now selects build-9479c2c-lf, commit **9479c2c**, with 765 exact commit

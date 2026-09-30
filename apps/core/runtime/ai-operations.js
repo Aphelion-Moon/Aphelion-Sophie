@@ -9,14 +9,14 @@ export function createAiOperationsRuntime({pool,guildId,lifecycle,createRuntime,
   requireCondition(lifecycle && ['quiesce','launch','qualified'].every(key=>typeof lifecycle[key]==='function') &&
     typeof createRuntime==='function' && typeof onFault==='function','TRUSTED_ADAPTERS_REQUIRED');
   const catalogue=aiWorkerCatalogue(lifecycle.releases),journal=createAiWorkerJournal({pool,guildId}),owner=randomUUID();
-  let runtime=null,session=null,timer=null,started=false,stopped=false,task=Promise.resolve(),operation=null,closing=null,starting=null,owns=false,running=false,automatic=true;
+  let runtime=null,activeWorker=null,activeRelease=null,activeIdentity=null,session=null,timer=null,started=false,stopped=false,task=Promise.resolve(),operation=null,closing=null,starting=null,owns=false,running=false,automatic=true;
   const fault=()=>{try{onFault('AI_WORKER_OPERATIONS_UNAVAILABLE');}catch{}};
   async function quiesce(operationId) {
     const receipt=await lifecycle.quiesce({operationId});requireKeys(receipt,['operationId','stopped'],'AI_WORKER_STOP_UNCONFIRMED');
     requireCondition(receipt.operationId===operationId && receipt.stopped===true,'AI_WORKER_STOP_UNCONFIRMED');
   }
   async function drain(operationId) {
-    const previous=runtime;runtime=null;
+    const previous=runtime;runtime=null;activeWorker=null;activeRelease=null;activeIdentity=null;
     // Logical cancellation precedes physical termination; replacement waits for both.
     await previous?.stop();await quiesce(operationId);
   }
@@ -42,7 +42,7 @@ export function createAiOperationsRuntime({pool,guildId,lifecycle,createRuntime,
       candidate=createRuntime(worker);await candidate.start();
       requireCondition(await current(),'AI_WORKER_OPERATION_STALE');
       requireCondition(await journal.transition(token,'ready',acknowledged),'AI_WORKER_OPERATION_STALE');
-      runtime=candidate;candidate=null;worker=null;
+      runtime=candidate;activeWorker=worker;activeRelease=selected.release;activeIdentity=identity;candidate=null;worker=null;
     } catch {
       // An uncertain launch cannot be retried until the registered slot proves quiescence again.
       await candidate?.stop().catch(fault);if(worker?.stop)await Promise.resolve().then(()=>worker.stop()).catch(fault);
@@ -68,6 +68,15 @@ export function createAiOperationsRuntime({pool,guildId,lifecycle,createRuntime,
   }
   return Object.freeze({
     catalogue,
+    async qualifiedRelease() {
+      const current=activeWorker,release=activeRelease,identity=activeIdentity;
+      if(stopped || operation || !runtime || !current || !await lifecycle.qualified(release))return null;
+      try {
+        const seen=await current.probe({signal:AbortSignal.timeout(5000)});
+        return current===activeWorker && !stopped && !operation && Object.keys(identity).every(key=>seen[key]===identity[key]) &&
+          await lifecycle.qualified(release) ? release : null;
+      } catch {return null;}
+    },
     diagnostics:channelId=>stopped?null:runtime?.diagnostics(channelId)??null,
     prepare:payload=>stopped?null:runtime?.prepare(payload)??null,
     committed:(proof,accepted)=>stopped?undefined:runtime?.committed(proof,accepted),

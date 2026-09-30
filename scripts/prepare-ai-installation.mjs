@@ -22,6 +22,7 @@ import { deepSeekProfileHash } from '../apps/knowledge-worker/deepseek-client.js
 import { canonicalAiWorkerRelease } from '../modules/assistant/worker-release.js';
 import { installationChecks } from '../apps/installation/qualification.js';
 import { verifyInstallationManifest } from '../apps/installation/configuration.js';
+import { canonicalProcessingPolicy } from '../modules/assistant/processing-policy.js';
 
 const sha256 = bytes => createHash('sha256').update(bytes).digest('hex');
 const LIFETIME = 86400000;
@@ -58,6 +59,7 @@ const release = canonicalAiWorkerRelease({ name: input.release.name, workerId: i
   profileHash, evidenceHash: sha256(JSON.stringify(qualification)), provider: 'deepseek', domain: 'public' });
 const shared = { version: 1, installationId, expires, manifest: sha256(text), release, qualification, keys: { core: randomBytes(32).toString('hex') } };
 const core = JSON.parse(await readFile(input.core, 'utf8'));
+if(core.processingPolicy)core.processingPolicy=canonicalProcessingPolicy(core.processingPolicy);
 
 await mkdir(join(input.outputDirectory, 'trust'), { recursive: true });
 await writeFile(join(input.outputDirectory, 'trust', 'core.json'), JSON.stringify({ ...shared, role: 'core', core }) + '\n', { flag: 'wx' });
