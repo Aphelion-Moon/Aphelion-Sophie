@@ -1057,3 +1057,5 @@ body:has(.service-nav) .editor-layout { grid-template-columns:minmax(180px,230px
 .wiki-review table { border-collapse:collapse; width:100%; margin-block:1rem; }
 .wiki-review td, .wiki-review th { border:1px solid var(--border); padding:.5rem; text-align:left; vertical-align:top; }
 .wiki-review pre { white-space:pre-wrap; }
+
+#processing-notice { white-space: pre-wrap; }

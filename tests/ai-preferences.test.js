@@ -60,3 +60,21 @@ test('DS08-E01 attachment export binds the current member and fails closed on ac
     }
   }finally{await server.close();}
 });
+
+test('DS01-C04 consent export is a private attachment and rechecks the session after reading',async()=>{
+  const token='a'.repeat(64),actor={guildId:'101',userId:'202'},proof={};let current=true,reads=0;
+  const auth={authenticate:async input=>{if(input.token!==token)throw new ContractError('DASHBOARD_SESSION_INVALID');return {proof};},
+    resolvePrincipal:async()=>{if(!current)throw new ContractError('DASHBOARD_SESSION_INVALID');return {};}};
+  const authorization={resolveActor:async()=>actor},controls={exportConsents:async input=>{assert.equal(input.actor,actor);reads++;return {channels:[{receipt:{text:'Synthetic notice'}}]};}};
+  const ai=createAiControlsHttp({auth,authorization,controls});
+  const server=createDashboardAuthHttpServer({configuration:dashboardConfiguration,auth,authorization,ai,enabled:async()=>true,onFault:()=>assert.fail('unexpected fault')});
+  const endpoint=await server.listen(),path='/api/ai/consents/export',headers={Cookie:`__Host-sophie-session=${token}`};
+  try{
+    const response=await dashboardHttp(endpoint,path,{headers});assert.equal(response.status,200);
+    assert.equal(response.headers['content-disposition'],'attachment; filename="sophie-consent-records.json"');assert.equal(response.headers['cache-control'],'no-store');
+    assert.equal(response.body.actorId,actor.userId);assert.equal(response.body.channels[0].receipt.text,'Synthetic notice');
+    assert.equal((await dashboardHttp(endpoint,path+'?userId=303',{headers})).status,400);
+    assert.equal((await dashboardHttp(endpoint,path)).status,403);assert.equal(reads,1);
+    current=false;const denied=await dashboardHttp(endpoint,path,{headers});assert.equal(denied.status,403);assert.equal(denied.body.channels,undefined);
+  }finally{await server.close();}
+});

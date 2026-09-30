@@ -13,29 +13,44 @@ import { createServer, connect } from 'node:net';
 import { canonicalProcessingPolicy, createProcessingApproval } from '../modules/assistant/processing-policy.js';
 
 test('AI-INST06 processing authority and notice remain public-only, current and separately approved', async () => {
-  const policy={schemaVersion:1,provider:'deepseek',domain:'public',approved:true,evidenceHash:hash(),validUntil:NOW+1000,noticeRevision:3,noticeText:'Synthetic processing notice'};
+  const policy={schemaVersion:2,review:acceptedReview(),provider:'deepseek',domain:'public',approved:true,evidenceHash:hash(),validUntil:NOW+1000,noticeRevision:3,noticeText:'Synthetic processing notice'};
   let qualified=true,now=NOW;
-  const approval=createProcessingApproval({policy,qualified:async()=>qualified,clock:()=>now});
+  const approval=createProcessingApproval({digest:installationHash,policy,qualified:async()=>qualified,clock:()=>now});
   assert.equal(await approval.current(),true);assert.equal((await approval.notice()).revision,3);
   policy.approved=false;assert.equal(await approval.current(),true);
   qualified=false;assert.equal(await approval.current(),false);assert.equal((await approval.notice()).approved,false);
   qualified=true;now+=1000;assert.equal(await approval.current(),false);assert.equal(await approval.evidence(),null);
   assert.throws(()=>canonicalProcessingPolicy({...policy,domain:'staff'}),/AI_PROCESSING_POLICY_INVALID/);
   assert.throws(()=>canonicalProcessingPolicy({...policy,evidenceHash:'0'.repeat(64)}),/AI_PROCESSING_POLICY_INVALID/);
-  assert.equal(await createProcessingApproval({qualified:async()=>true}).current(),false);
+  assert.equal(await createProcessingApproval({digest:installationHash,qualified:async()=>true}).current(),false);
 });
 
 test('AI-INST08 processing evidence expiring during qualification cannot approve a notice or admission', async () => {
   let now=NOW;
-  const policy={schemaVersion:1,provider:'deepseek',domain:'public',approved:true,evidenceHash:hash(),validUntil:NOW+1000,noticeRevision:3,noticeText:'Synthetic processing notice'};
-  const approval=createProcessingApproval({policy,clock:()=>now,qualified:async()=>{now=policy.validUntil;return true;}});
+  const policy={schemaVersion:2,review:acceptedReview(),provider:'deepseek',domain:'public',approved:true,evidenceHash:hash(),validUntil:NOW+1000,noticeRevision:3,noticeText:'Synthetic processing notice'};
+  const approval=createProcessingApproval({digest:installationHash,policy,clock:()=>now,qualified:async()=>{now=policy.validUntil;return true;}});
   assert.equal(await approval.current(),false);
   now=NOW;assert.equal((await approval.notice()).approved,false);
   now=NOW;assert.equal(await approval.evidence(),null);
 });
 
+const acceptedReview=()=>({status:'accepted',processorAgreement:'a'.repeat(64),discordServiceProviderTerms:'b'.repeat(64),retentionAndDeletion:'c'.repeat(64),internationalTransfers:'d'.repeat(64)});
 const hash=()=>createHash('sha256').update(randomBytes(32)).digest('hex');
 const NOW=1_800_000_000_000;
+
+test('DS01-C01 drafts and legacy approvals cannot authorize processing; exact notice and evidence bind approval', async () => {
+  const policy={schemaVersion:2,review:acceptedReview(),provider:'deepseek',domain:'public',approved:true,evidenceHash:hash(),validUntil:NOW+1000,noticeRevision:3,noticeText:'Synthetic notice'};
+  const approval=value=>createProcessingApproval({digest:installationHash,policy:value,qualified:async()=>true,clock:()=>NOW});
+  const initial=approval(policy),binding=(await initial.notice()).binding;
+  assert.equal((await initial.evidence()).evidenceHash,binding);
+  assert.equal(await approval({...policy,review:{...policy.review,status:'draft'}}).current(),false);
+  const {review,...legacy}=policy;
+  assert.equal(await approval({...legacy,schemaVersion:1}).current(),false);
+  assert.notEqual((await approval({...policy,noticeText:'Changed without revision bump'}).notice()).binding,binding);
+  assert.notEqual((await approval({...policy,review:{...review,retentionAndDeletion:'e'.repeat(64)}}).notice()).binding,binding);
+  policy.review.status='draft';assert.equal(await initial.current(),true);
+  assert.throws(()=>approval({...policy,review:{...review,processorAgreement:'DRAFT'}}),/AI_PROCESSING_POLICY_INVALID/);
+});
 const files={'runtime/node.exe':'node','runtime/LICENSE':'licence','source/package.json':'{}','source/apps/knowledge-worker/main.mjs':'worker',
   'source/apps/core/installed.mjs':'core','source/apps/inference-host/installed.mjs':'supervisor'};
 const manifestText=(entries=files)=>Object.entries(entries).map(([name,body])=>`${installationHash(body)} ${name}`).join('\n')+'\n';
@@ -148,7 +163,7 @@ test('AI-INST07 installed composition carries approved notices, independent pref
   const database=user=>({host:'127.0.0.1',port:5432,database:'sophie_stage_ai',user,password:'synthetic'});
   const options={runtime:{mapping:{guildId:'101'}},database:database('sophie_stage_core'),ownerDatabase:database('sophie_stage_owner'),
     controlDatabase:database('sophie_stage_control'),knowledgeDatabase:database('sophie_stage_knowledge'),knowledgeOwnerDatabase:database('sophie_stage_editor'),
-    credentials:{token:'synthetic',clientSecret:'synthetic'},processingPolicy:{schemaVersion:1,provider:'deepseek',domain:'public',approved:true,evidenceHash:hash(),validUntil:Date.now()+3600000,noticeRevision:4,noticeText:'Synthetic notice'},
+    credentials:{token:'synthetic',clientSecret:'synthetic'},processingPolicy:{schemaVersion:2,review:acceptedReview(),provider:'deepseek',domain:'public',approved:true,evidenceHash:hash(),validUntil:Date.now()+3600000,noticeRevision:4,noticeText:'Synthetic notice'},
     preferenceJournal:{id:hash(),evidenceHash:hash(),expiresAt:Number(core.pipes.installation.owner.expires)}};
   core.pipes.installation.configuration={...core.pipes.installation.configuration,core:options};let input;
   const createPool=configuration=>({async query(sql){

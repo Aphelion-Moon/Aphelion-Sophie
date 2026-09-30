@@ -168,9 +168,10 @@ export function createAiControls({ pool, guildId, authorize, inspectChannel, mem
         return { resolved:true,duplicate:false };
       });
     },
-    async consent({ actor, channelId, enabled, expectedEpoch, acceptedNoticeRevision }) {
+    async consent({ actor, channelId, enabled, expectedEpoch, acceptedNoticeRevision, acceptedNoticeBinding = null }) {
       requireId(channelId); requireInteger(expectedEpoch); requireInteger(acceptedNoticeRevision, 1);
-      const notice = await readNotice();
+      const notice = enabled ? await readNotice() : null;
+      if (enabled && acceptedNoticeBinding !== null) { hash(acceptedNoticeBinding); requireCondition(typeof notice.text === 'string' && notice.text.length > 0 && notice.text.length <= 8000, 'AI_NOTICE_STALE'); }
       requireCondition(typeof enabled === 'boolean' && (!enabled || acceptedNoticeRevision === notice.revision), 'AI_NOTICE_STALE');
       return transaction(actor, 'ai.self', async client => {
         const prior = (await client.query('SELECT * FROM sophie_ai.consents WHERE guild_id=$1 AND channel_id=$2 AND user_id=$3 FOR UPDATE', [guildId, channelId, actor.userId])).rows[0];
@@ -179,23 +180,37 @@ export function createAiControls({ pool, guildId, authorize, inspectChannel, mem
         if (enabled) {
           const currentNotice = await readNotice();
           requireCondition(notice.approved === true && currentNotice.approved === true && currentNotice.revision === acceptedNoticeRevision, 'AI_NOTICE_UNAPPROVED');
+          requireCondition((notice.binding ?? null) === acceptedNoticeBinding && (currentNotice.binding ?? null) === acceptedNoticeBinding, 'AI_NOTICE_STALE');
           const configuration = await current(client, 'configuration');
           requireCondition(configuration?.document.channels.some(channel => channel.channelId === channelId && channel.profile.mode !== 'ignore') &&
             await inspectChannel(client, channelId) !== null, 'AI_CHANNEL_UNAVAILABLE');
         }
         const presence = await memberPresence(actor); requireInteger(presence);
+        if (enabled) {
+          const latest = await readNotice();
+          requireCondition(latest.approved === true && latest.revision === acceptedNoticeRevision &&
+            (latest.binding ?? null) === acceptedNoticeBinding && latest.text === notice.text, 'AI_NOTICE_STALE');
+        }
         const epoch = expectedEpoch + 1; requireInteger(epoch);
-        await client.query(`INSERT INTO sophie_ai.consents(guild_id,channel_id,user_id,epoch,enabled,presence_epoch,notice_revision)
-          VALUES($1,$2,$3,$4,$5,$6,$7) ON CONFLICT(guild_id,channel_id,user_id) DO UPDATE SET
-          epoch=EXCLUDED.epoch,enabled=EXCLUDED.enabled,presence_epoch=EXCLUDED.presence_epoch,notice_revision=EXCLUDED.notice_revision,updated_at=clock_timestamp()`,
-        [guildId, channelId, actor.userId, epoch, enabled, presence, acceptedNoticeRevision]);
-        return { channelId, enabled, epoch, noticeRevision: acceptedNoticeRevision };
+        const savedRevision = enabled ? acceptedNoticeRevision : prior?.notice_revision ?? acceptedNoticeRevision;
+        const receipt = enabled && acceptedNoticeBinding !== null ? { revision: acceptedNoticeRevision, binding: acceptedNoticeBinding,
+          text: notice.text, acceptedAt: new Date(clock()).toISOString() } : enabled ? null : prior?.receipt ?? null;
+        await client.query(`INSERT INTO sophie_ai.consents(guild_id,channel_id,user_id,epoch,enabled,presence_epoch,notice_revision,receipt)
+          VALUES($1,$2,$3,$4,$5,$6,$7,$8) ON CONFLICT(guild_id,channel_id,user_id) DO UPDATE SET
+          epoch=EXCLUDED.epoch,enabled=EXCLUDED.enabled,presence_epoch=EXCLUDED.presence_epoch,notice_revision=EXCLUDED.notice_revision,receipt=EXCLUDED.receipt,updated_at=clock_timestamp()`,
+        [guildId, channelId, actor.userId, epoch, enabled, presence, savedRevision, receipt]);
+        return { channelId, enabled, epoch, noticeRevision: savedRevision };
       }, { userId: actor.userId }, true);
     },
     ownConsents: ({ actor }) => transaction(actor, 'ai.self', async client => {
-      const notice=await readNotice();
-      return {noticeRevision:notice.revision,noticeText:notice.text,optInAvailable:notice.approved===true,
+      const notice=await readNotice().catch(()=>({revision:noticeRevision,text:'Processing approval is unavailable. You can still opt out.',approved:false}));
+      return {noticeRevision:notice.revision,noticeText:notice.text,noticeBinding:notice.binding??null,optInAvailable:notice.approved===true,
         channels:(await client.query('SELECT channel_id AS "channelId",epoch,enabled,notice_revision AS "noticeRevision" FROM sophie_ai.consents WHERE guild_id=$1 AND user_id=$2 ORDER BY channel_id LIMIT 101',[guildId,actor.userId])).rows.map(row=>({...row,epoch:Number(row.epoch)}))};
     }, { userId: actor.userId }),
+    exportConsents: ({ actor }) => transaction(actor, 'ai.self', async client => ({
+      scope: 'Latest acceptance per channel and current choice; not a complete historical audit',
+      channels: (await client.query(`SELECT channel_id AS "channelId",epoch,enabled,notice_revision AS "noticeRevision",receipt,updated_at AS "updatedAt"
+        FROM sophie_ai.consents WHERE guild_id=$1 AND user_id=$2 ORDER BY channel_id`, [guildId, actor.userId])).rows.map(row=>({...row,epoch:Number(row.epoch)})),
+    }), { userId: actor.userId }),
   });
 }

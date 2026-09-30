@@ -1,5 +1,38 @@
 # Verification and release limits
 
+## Draft agreements and exact consent support — 30 September 2026
+
+The source candidate adds schema065 with a nullable latest-acceptance receipt on existing consent
+rows. Legacy records remain readable and withdrawable but cannot authorize remote processing.
+The receipt preserves the accepted notice text, revision, aggregate processing-evidence binding and
+acceptance timestamp. Withdrawal retains that snapshot and changes current state; the authenticated
+JSON attachment exports only the requesting member's records, not a complete historical audit.
+
+Protected processingPolicy schema2 requires separate operator-recorded hashes for the accepted
+processor agreement, Discord service-provider terms, retention/deletion review and international-transfer
+review. Draft and schema1 approvals cannot authorize processing. These hashes bind reviewed evidence;
+they cannot prove that an agreement exists or is legally sufficient. Changed notice text or evidence
+invalidates earlier remote consent even when the notice revision number was not changed.
+
+Validation: 14 focused policy/installation/preference HTTP tests passed; 79 isolated AI/storage,
+knowledge and Gateway scenarios passed with the synthetic cluster stopped. They exercise stale and
+racing acceptance, legacy/draft denial, withdrawal during notice outage, own-record export, current
+session checks, denial before message-body access and invalidation before delivery. Initial validation
+caught a domain-layer hashing import and a reused flood-limited test ingress; both were corrected.
+The final source and log hashes are in
+`GitHub/.agent_docs/aphelion-sophie/consent-support-verification-2026-09-30.json`.
+
+The external `consent-packet-2026-09-30` folder contains the draft DOCX and exact content JSON. The
+operator identity/contact supplied by the owner are included there. Provider obligations are proposals
+awaiting actual acceptance; retention, transfers and other marked factual annexes remain incomplete.
+DOCX text/structure consistency was checked; the configured renderer could not find LibreOffice,
+so no rendered PDF, page images or visual layout verification are claimed.
+
+No source installation, database migration, agreement signature, email, public notice publication,
+real-message consent, paid request or worker activation occurred. Staging remains source7a152ca,
+schema064. Deployment preparation and rollback limits are in the external preparation JSON. The
+provider clearance and existing real-worker/Discord acceptance gates remain open.
+
 ## Approved repair installed — 30 September 2026
 
 After explicit owner approval, pinned source `7a152ca` was installed using the existing staging renewal

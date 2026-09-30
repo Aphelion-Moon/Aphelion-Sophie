@@ -337,6 +337,54 @@ export async function runAiControlsSuite(cluster, run) {
     await assert.rejects(pool.query('UPDATE sophie_ai.qualifications SET active=true'),error=>error.code==='42501');
     await assert.rejects(pool.query('DELETE FROM sophie_ai.activation_receipts'),error=>error.code==='42501');
   });
+  await run('DS01-C02 exact notice receipts reject stale acceptance and survive provider outage and withdrawal', async () => {
+    const member={...actor,guildId:'929'},channelId='303';
+    let binding='a'.repeat(64),text='Synthetic complete notice',outage=false,changeDuringPresence=false;
+    const controls=createAiControls({pool,guildId:member.guildId,authorize:async(_action,who)=>who===member,
+      inspectChannel:async()=>({id:channelId}),memberPresence:async()=>{if(changeDuringPresence)binding='c'.repeat(64);return 1;},
+      readNotice:async()=>{if(outage)throw Error('synthetic outage');return {revision:2,binding,text,approved:true};}});
+    const request={actor:member,kind:'configuration',expectedRevision:0,document};
+    const review=await controls.review(request);
+    await controls.publish({...request,requestId:'1'.repeat(64),reviewSha256:review.reviewSha256,confirmed:true});
+    const consent={actor:member,channelId,enabled:true,expectedEpoch:0,acceptedNoticeRevision:2,acceptedNoticeBinding:binding};
+    await assert.rejects(controls.consent({...consent,acceptedNoticeBinding:null}),/AI_NOTICE_STALE/);
+    changeDuringPresence=true;await assert.rejects(controls.consent(consent),/AI_NOTICE_STALE/);
+    changeDuringPresence=false;binding=consent.acceptedNoticeBinding;
+    await controls.consent(consent);
+    const accepted=(await controls.exportConsents({actor:member})).channels[0];
+    assert.equal(accepted.receipt.text,text);assert.equal(accepted.receipt.binding,binding);assert.ok(Date.parse(accepted.receipt.acceptedAt)>0);
+    binding='b'.repeat(64);text='Changed notice at same revision';
+    await assert.rejects(controls.consent({...consent,expectedEpoch:1}),/AI_NOTICE_STALE/);
+    outage=true;assert.equal((await controls.ownConsents({actor:member})).optInAvailable,false);
+    await controls.consent({...consent,enabled:false,expectedEpoch:1,acceptedNoticeRevision:99});
+    const withdrawn=(await controls.exportConsents({actor:member})).channels[0];
+    assert.equal(withdrawn.enabled,false);assert.equal(withdrawn.noticeRevision,2);assert.deepEqual(withdrawn.receipt,accepted.receipt);
+    await assert.rejects(controls.exportConsents({actor:{...member,userId:'999'}}),/OPERATION_DENIED/);
+    assert.equal((await controls.exportConsents({actor:member})).channels.length,1);
+  });
+  await run('DS01-C03 remote consent binding is checked before content and on delivery', async () => {
+    let binding='a'.repeat(64);
+    const consentIngress=createAiIngress({guildId:actor.guildId,botUserId:'505',clock:Date.now});
+    const consentEvent=id=>{
+      const d={guild_id:actor.guildId,channel_id:'303',id,author:{id:actor.userId,bot:false},type:0,mentions:[{id:'505'}]};
+      Object.defineProperty(d,'content',{get(){bodyReads++;return 'Synthetic direct question';}});
+      const proof=consentIngress.prepare({t:'MESSAGE_CREATE',d});assert.ok(proof);return proof;
+    };
+    await admin.query('UPDATE sophie_ai.state SET disabled=false WHERE guild_id=$1',[actor.guildId]);
+    await admin.query('UPDATE sophie_ai.qualifications SET active=true WHERE guild_id=$1',[actor.guildId]);
+    const consent=(await pool.query('SELECT * FROM sophie_ai.consents WHERE guild_id=$1 AND channel_id=$2 AND user_id=$3',[actor.guildId,'303',actor.userId])).rows[0];
+    const remote=createAiAdmission({pool,guildId:actor.guildId,ingress:consentIngress,clock:Date.now,noticeRevision:consent.notice_revision,readNoticeBinding:async()=>binding,
+      inspectContext:async()=>({eligible:true,audienceHash:'e'.repeat(64),restricted:false,canReply:true,canReact:true,messageRevision:sourceRevision,continuity:'synthetic-current',checkedAt:Date.now()}),
+      inspectMember:async()=>({eligible:true,presenceEpoch:Number(consent.presence_epoch),accessEpoch:1,checkedAt:Date.now()})});
+    await admin.query('UPDATE sophie_ai.consents SET enabled=true WHERE guild_id=$1',[actor.guildId]);
+    bodyReads=0;assert.equal(await remote.admit(consentEvent('9901')),null);assert.equal(bodyReads,0);
+    await admin.query('UPDATE sophie_ai.consents SET receipt=$2 WHERE guild_id=$1',[actor.guildId,{binding}]);
+    await admin.query("UPDATE sophie_ai.request_receipts SET state='silent',received_at=clock_timestamp()-interval '2 minutes' WHERE guild_id=$1",[actor.guildId]);
+    const currentRequest=await remote.admit(consentEvent('9903'));assert.ok(currentRequest);
+    assert.equal(await remote.revalidate(currentRequest),true);
+    binding='b'.repeat(64);assert.equal(await remote.revalidate(currentRequest),false);
+    bodyReads=0;assert.equal(await remote.admit(consentEvent('9902')),null);assert.equal(bodyReads,0);
+  });
   await run('DS03-09 bounded retention preserves unresolved reservations, referenced periods and independent replay receipts', async () => {
     const guild='919', retained=createAiAccounting({pool,guildId:guild});
     await admin.query('INSERT INTO sophie_ai.state(guild_id) VALUES($1)',[guild]);

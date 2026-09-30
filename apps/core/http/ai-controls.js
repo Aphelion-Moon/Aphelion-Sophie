@@ -1,7 +1,7 @@
 import { requireCondition, requireKeys } from '../../../contracts/validation.js';
 
 export const AI_ROUTES = Object.freeze({ '/api/ai/publication': 'GET', '/api/ai/review': 'POST', '/api/ai/publish': 'POST',
-  '/api/ai/disable': 'POST', '/api/ai/consents': 'GET', '/api/ai/consent': 'POST', '/api/ai/budget': 'GET', '/api/ai/resolve-spending': 'POST',
+  '/api/ai/disable': 'POST', '/api/ai/consents': 'GET', '/api/ai/consents/export': 'GET', '/api/ai/consent': 'POST', '/api/ai/budget': 'GET', '/api/ai/resolve-spending': 'POST',
   '/api/ai/review-spending-hold': 'POST', '/api/ai/clear-spending-hold': 'POST',
   '/api/ai/worker':'GET','/api/ai/review-worker':'POST','/api/ai/apply-worker':'POST','/api/ai/stop-worker':'POST',
   '/api/ai/review-activation':'POST', '/api/ai/activate':'POST',
@@ -28,7 +28,8 @@ export function createAiControlsHttp({ auth, authorization, controls }) {
         'review-worker':['candidateId','expectedRevision'],'apply-worker':['candidateId','expectedRevision','reviewSha256','requestId','confirmed'],'stop-worker':['requestId'],
         'review-activation':['channelId'], activate:['channelId','reviewSha256','requestId','confirmed'],
         'save-preferences':['expectedEpoch','settings','confirmed'], 'delete-preferences':['expectedEpoch','confirmed'] };
-      requireKeys(body, keys[operation], 'AI_INPUT_INVALID'); fields = body;
+      const optionalBinding = operation === 'consent' && body && Object.hasOwn(body, 'acceptedNoticeBinding') ? ['acceptedNoticeBinding'] : [];
+      requireKeys(body, [...keys[operation], ...optionalBinding], 'AI_INPUT_INVALID'); fields = body;
       if (operation === 'resolve-spending') operation = 'resolveSpending';
       if (operation === 'review-spending-hold') operation = 'reviewSpendingHold';
       if (operation === 'clear-spending-hold') operation = 'clearSpendingHold';
@@ -39,6 +40,7 @@ export function createAiControlsHttp({ auth, authorization, controls }) {
       if (operation === 'stop-worker') operation = 'stopWorker';
       if (operation === 'review-activation') operation = 'reviewActivation';
     }
+    if (path === '/api/ai/consents/export') operation = 'exportConsents';
     const { proof } = await auth.authenticate({ ...credentials, method });
     const actor = await authorization.resolveActor(proof);
     const result = await controls[operation]({ ...fields, actor });

@@ -6,7 +6,8 @@ import { inTransaction } from './transaction.js';
 import { randomUUID } from 'node:crypto';
 
 /** Atomic metadata receipts and pacing. Content stays in the returned transient handoff only. */
-export function createAiAdmission({ pool, guildId, ingress, inspectContext, inspectMember, clock, noticeRevision = 1, readNoticeRevision = async () => noticeRevision }) {
+export function createAiAdmission({ pool, guildId, ingress, inspectContext, inspectMember, clock, noticeRevision = 1, readNoticeRevision = async () => noticeRevision,
+  readNoticeBinding = null }) {
   requireInteger(noticeRevision, 1);
   requireCondition(ingress.guildId === guildId && [inspectContext, inspectMember, clock, readNoticeRevision].every(fn => typeof fn === 'function'), 'TRUSTED_ADAPTERS_REQUIRED');
   const gatherOwner = randomUUID();
@@ -25,6 +26,10 @@ export function createAiAdmission({ pool, guildId, ingress, inspectContext, insp
     if (!qualification?.active || !qualification.restore_ready || qualification.configuration_sha256 !== configuration.sha256 || qualification.personality_sha256 !== personality.sha256) return null;
     const consent = (await client.query('SELECT * FROM sophie_ai.consents WHERE guild_id=$1 AND channel_id=$2 AND user_id=$3', [guildId, event.channelId, event.userId])).rows[0];
     if (!consent?.enabled || consent.notice_revision !== await readNoticeRevision()) return null;
+    if (readNoticeBinding !== null) {
+      const binding = await readNoticeBinding();
+      if (typeof binding !== 'string' || consent.receipt?.binding !== binding) return null;
+    }
     // These trusted core adapters read current exclusion/ACL/member metadata, never case content.
     const context = await inspectContext(event), member = await inspectMember(event);
     if (!context?.eligible || !member?.eligible || context.audienceHash !== qualification.audience_sha256 ||

@@ -1,4 +1,5 @@
 import { requireCondition, requireKeys } from '../../../contracts/validation.js';
+import { installationHash } from '../../installation/configuration.js';
 import { createDatabasePool } from '../storage/pool.js';
 import { createStagingRuntime } from './staging.js';
 import { createConfigurableStagingRuntime } from './configurable-staging.js';
@@ -65,7 +66,7 @@ export async function createInstalledCoreService({pipes,signal,onFault,createPoo
     await requireInstalledAiDatabase(controlPool,'control');await requireInstalledAiDatabase(knowledgePool,'knowledge');
     if(knowledgeOwnerPool)await requireInstalledAiDatabase(knowledgeOwnerPool,'knowledge-owner');
     const restoreCurrent=async()=>{if(!await qualified())return false;await requireUnquarantinedDatabase(controlPool);return true;};
-    const aiApproval=createProcessingApproval({policy:options.processingPolicy??null,qualified:restoreCurrent});
+    const aiApproval=createProcessingApproval({policy:options.processingPolicy??null,qualified:restoreCurrent,digest:installationHash});
     let aiPreferenceJournal=null;
     if(options.preferenceJournal){
       const receipt=options.preferenceJournal;

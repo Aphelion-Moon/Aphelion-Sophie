@@ -1,6 +1,6 @@
 {
   "schema_version": 2,
-  "revision": "2026-09-30-repair-installed",
+  "revision": "2026-09-30-consent-support",
   "reference_plan_version": "1.1",
   "source": "Sophie-Implementation-Plans-v1.1/backlog.json",
   "owner_decisions": "docs/decisions/0001-owner-policy.md",
@@ -921,7 +921,7 @@
       "suggested_owner": "Repository maintainer; separate human review where required",
       "guardrail": "No persistent member profiling or case-content feedback.",
       "status": "in_progress",
-      "implementation_note": "Participation/personality/own-consent dashboard plus authenticated reviewed public knowledge editor. Synthetic editor publication and withdrawal verified; unavailable AI controls do not block composed administration. Applied-worker acknowledgement, operational release/resources controls, source sync, personal-memory controls, actual model dialogue evaluation and explicit activation remain open.",
+      "implementation_note": "Participation/personality/own-consent dashboard plus authenticated reviewed public knowledge editor. Synthetic editor publication and withdrawal verified; unavailable AI controls do not block composed administration. Applied-worker acknowledgement, operational release/resources controls, source sync, personal-memory controls, actual model dialogue evaluation and explicit activation remain open. Schema065 candidate adds exact notice/evidence-bound consent and private latest-record export; no live installation or provider clearance.",
       "completed_scope": [
         "Participation/personality/own-consent dashboard plus authenticated reviewed public knowledge editor. Synthetic editor publication and withdrawal verified; unavailable AI controls do not block composed administration."
       ],
@@ -1338,8 +1338,8 @@
   "checkpoint": {
     "summary": "Deterministic administration, Whitelist onboarding, protected editors, role/permission configuration and the configurable staging host are implemented.",
     "recorded_baseline": "AI handoff 0fa7a5ed538ff791e3def2c1f6ac7683531e15a1 plus preserved uncommitted Flash candidate; synthetic schema058 candidate. No live schema change.",
-    "current_work": "Approved repair source7a152ca is installed on schema064. Configuration digest and independent journal expiry are preserved; only the two approved services/worker directory descriptors changed. Four Sophie service children match their virtual accounts, Gateway is current/leased and12 public/loopback checks pass. Worker remains stopped; processing is unapproved.",
-    "evidence_note": "Local repair19 focused and26 PowerShell checks remain source-bound to7a152ca. Installed manifest/configuration/ACL/identity/control/dashboard evidence is in GitHub/.agent_docs/aphelion-sophie/repair-deployment-verification-2026-09-30.json. No worker boot, provider call or Discord AI acceptance. Earlier storage evidence was not rerun."
+    "current_work": "Prepared draft privacy notice, per-channel voluntary consent and proposed provider processor agreement for the identified Netherlands operator. Source candidate schema065 preserves exact latest consent snapshots and private export, permits withdrawal during approval outage, binds remote admission/delivery to the current notice and evidence, and rejects legacy/draft processing approvals. Installed staging remains source7a152ca/schema064, worker stopped and processing unapproved.",
+    "evidence_note": "14 focused installation/policy/preference HTTP tests and79 isolated AI/storage/knowledge/Gateway scenarios passed; isolated cluster stopped. Repository module checks passed. Source-bound evidence: GitHub/.agent_docs/aphelion-sophie/consent-support-verification-2026-09-30.json. DOCX text/structure checked; rendering unavailable, no visual QA. No new deployment or real provider processing."
   },
   "milestones": [
     {
@@ -2634,6 +2634,17 @@
       "implemented": "Approved repair source7a152ca is installed on schema064. Configuration digest and independent journal expiry are preserved; only the two approved services/worker directory descriptors changed. Four Sophie service children match their virtual accounts, Gateway is current/leased and12 public/loopback checks pass. Worker remains stopped; processing is unapproved.",
       "evidence": "Local repair19 focused and26 PowerShell checks remain source-bound to7a152ca. Installed manifest/configuration/ACL/identity/control/dashboard evidence is in GitHub/.agent_docs/aphelion-sophie/repair-deployment-verification-2026-09-30.json. No worker boot, provider call or Discord AI acceptance. Earlier storage evidence was not rerun.",
       "remaining": "Provider commitments and operator source/personality/participation/budget/notice review; actual worker and Discord acceptance. No new production clearance."
+    },
+    {
+      "title": "Draft agreements and exact consent support prepared",
+      "tasks": [
+        "P19",
+        "P23",
+        "P25"
+      ],
+      "implemented": "Prepared draft privacy notice, per-channel voluntary consent and proposed provider processor agreement for the identified Netherlands operator. Source candidate schema065 preserves exact latest consent snapshots and private export, permits withdrawal during approval outage, binds remote admission/delivery to the current notice and evidence, and rejects legacy/draft processing approvals. Installed staging remains source7a152ca/schema064, worker stopped and processing unapproved.",
+      "evidence": "14 focused installation/policy/preference HTTP tests and79 isolated AI/storage/knowledge/Gateway scenarios passed; isolated cluster stopped. Repository module checks passed. Source-bound evidence: GitHub/.agent_docs/aphelion-sophie/consent-support-verification-2026-09-30.json. DOCX text/structure checked; rendering unavailable, no visual QA. No new deployment or real provider processing.",
+      "remaining": "Obtain actual provider commitments and transfer/retention evidence; finish factual retention, eligibility and provider annexes before notice publication. Review final notice and operator publications, approve deployment of schema065/source separately, then complete existing worker and Discord acceptance gates. Draft documents and hashes are not legal clearance."
     }
   ],
   "next_steps": [
@@ -2750,14 +2761,14 @@
       {
         "id": "DS-01",
         "title": "Provider and data-use clearance",
-        "implementation": "partial",
-        "qualification": "Owner reports improvement-use switch disabled; Terms4.3 documents the setting and API/shared-account terms support the interpretation",
+        "implementation": "Draft agreement/disclosure packet and schema2 protected processing evidence support; exact notice-bound consent receipts, export and outage-safe withdrawal implemented locally.",
+        "qualification": "14 focused tests and79 isolated AI scenarios passed; no provider acceptance, legal clearance or live migration established.",
         "sai": [
           "SAI-00",
           "SAI-12",
           "SAI-14"
         ],
-        "remaining": "Owner-reported improvement-use opt-out and published terms basis are recorded. Downstream processing/deletion commitments remain unresolved; no processing approval receipt is installed. Protected processingPolicy and notice support are implemented, not clearance. Provider enquiry remains unsent; real Discord export, remote preferences and restricted scopes remain denied."
+        "remaining": "Obtain actual provider commitments and transfer/retention evidence; finish factual retention, eligibility and provider annexes before notice publication. Review final notice and operator publications, approve deployment of schema065/source separately, then complete existing worker and Discord acceptance gates. Draft documents and hashes are not legal clearance."
       },
       {
         "id": "DS-02",

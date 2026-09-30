@@ -727,3 +727,18 @@ The owner reports EU location, has not identified an API processing agreement, a
 disclosure/disclaimer is sufficient. This is a request for guidance, not acceptance of provider terms
 or a waiver of DS-01. The provider enquiry is updated for EU processor/transfer requirements and remains
 unsent. Existing synthetic-check authority is unchanged; actual worker and Discord acceptance remain open.
+
+### Agreements and matching consent support requested — 30 September 2026
+
+The owner requested creation of the agreements, disclosures and matching system support. The owner
+identified an individual operator in the Netherlands and supplied a privacy contact; those details are
+recorded in the external draft packet. This authorizes drafting and local implementation, not signing
+for DeepSeek, sending correspondence, accepting unknown terms, or replacing DS-01 with a blanket waiver.
+Members retain mandatory rights and ordinary community access if they decline or withdraw consent.
+
+The schema065/source candidate binds remote consent to exact notice text and reviewed processing
+evidence, preserves the latest acceptance snapshot, supports private export and keeps withdrawal
+available during notice/provider outage. Schema2 processing approval requires separate reviewed
+agreement, Discord service-provider, retention/deletion and transfer evidence. Drafts and legacy
+schema1 approval are insufficient. No automatic notice publication or live migration is authorized by
+this drafting request. The installed source7a152ca/schema064 and prior acceptance gates remain in place.

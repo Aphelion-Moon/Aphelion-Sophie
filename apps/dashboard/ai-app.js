@@ -10,7 +10,7 @@ const personal = window.location.pathname === '/ai-preferences';
 const names = { ignore: 'Ignore', addressed: 'Mentions and replies only', questions: 'Answer supported questions', reactive: 'Read and react; speak when asked', conversational: 'Join the conversation' };
 let phase = 'loading', busy = false, dirty = false, pending = null, pendingRequestId = null, session = null;
 let configuration = { schemaVersion: 1, enabled: false, deadlineMs: 15000, channels: [], emojis: [] }, character = structuredClone(DRAFT_PERSONALITY);
-let configurationRevision = 0, personalityRevision = 0, consentRows = [], noticeRevision = 1;
+let configurationRevision = 0, personalityRevision = 0, consentRows = [], noticeRevision = 1, noticeBinding = null;
 let budget = { ...DEFAULT_AI_BUDGET }, budgetRevision = 0;
 let workerRevision=0,workerStopRequest=null;
 let diagnosticTimer=null,diagnosticGeneration=0;
@@ -92,7 +92,11 @@ function examples() {
 }
 async function consents() {
   const current = await api.aiConsents(); consentRows = current.channels; noticeRevision = current.noticeRevision; el('consents').replaceChildren();
+  noticeBinding = current.noticeBinding ?? null; el('accept-notice').checked = false;
   if(el('processing-notice'))el('processing-notice').textContent=current.noticeText??'AI processing is awaiting operator review.';
+  if(el('consent-notice'))el('consent-notice').textContent=current.optInAvailable===true
+    ? 'External AI processing is available only under the reviewed notice below, in an approved channel, with your current opt-in.'
+    : 'External AI processing is awaiting current provider and operator approval. New opt-ins are unavailable; you can still opt out.';
   el('opt-in').disabled = current.optInAvailable !== true;
   el('accept-notice').disabled = current.optInAvailable !== true;
   for (const row of consentRows) {
@@ -172,7 +176,7 @@ el('retry').addEventListener('click', () => perform(load));
 el('logout').addEventListener('click', () => perform(async () => { await api.logout(); clear(); phase = 'denied'; }));
 if (personal) el('opt-in').addEventListener('click', () => perform(async () => {
   if (!el('accept-notice').checked) { notice('Read and accept the processing notice first.'); return; }
-  const channelId = el('consent-channel').value.trim(); await api.aiConsent({ channelId, enabled: true, expectedEpoch: consentRows.find(row => row.channelId === channelId)?.epoch ?? 0, acceptedNoticeRevision: noticeRevision });
+  const channelId = el('consent-channel').value.trim(); await api.aiConsent({ channelId, enabled: true, expectedEpoch: consentRows.find(row => row.channelId === channelId)?.epoch ?? 0, acceptedNoticeRevision: noticeRevision, acceptedNoticeBinding: noticeBinding });
   el('accept-notice').checked = false; await consents(); notice('Your channel choice was saved. Processing still requires an active qualified channel.');
 }));
 else {

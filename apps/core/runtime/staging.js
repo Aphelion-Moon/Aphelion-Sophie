@@ -101,7 +101,8 @@ export async function createStagingRuntime({ configuration, pool, aiControlPool 
   const principals = auth === null ? verifier : createCorePrincipals({ interactions: verifier, dashboard: auth });
   const createAiLane=worker=>createAiRuntime({ configuration: fixed, corePool: pool, controlPool: aiControlPool, worker, knowledge: aiKnowledge,
     observer, token, fetch, clock, enabled, onFault: fault,
-    remoteProcessingApproved:()=>aiApproval?.current()??false, readNoticeRevision:async()=> (await aiApproval?.notice())?.revision ?? (worker.provider === 'deepseek' ? 2 : 1) });
+    remoteProcessingApproved:()=>aiApproval?.current()??false, readNoticeRevision:async()=> (await aiApproval?.notice())?.revision ?? (worker.provider === 'deepseek' ? 2 : 1),
+    readNoticeBinding:async()=> (await aiApproval?.notice())?.binding ?? null });
   if(aiWorker!==null)aiRuntime=createAiLane(aiWorker);
   if(aiLifecycle!==null)aiRuntime=createAiOperationsRuntime({pool:aiControlPool,guildId:fixed.mapping.guildId,lifecycle:aiLifecycle,createRuntime:createAiLane,onFault:fault});
   const readSystemText = createSystemWordingReader({ pool, guildId: fixed.mapping.guildId });
