@@ -1,6 +1,6 @@
 {
   "schema_version": 2,
-  "revision": "2026-09-30-blocker-repairs",
+  "revision": "2026-09-30-repair-installed",
   "reference_plan_version": "1.1",
   "source": "Sophie-Implementation-Plans-v1.1/backlog.json",
   "owner_decisions": "docs/decisions/0001-owner-policy.md",
@@ -856,8 +856,8 @@
         "Bounded mutual-challenge HMAC stream exchange pins worker/boot/release/provider profile and preserves core dispatch/usage acknowledgements. Final source/consent checks precede prompt transfer; cancellation, expiry, replay and uncertain handoff tested locally."
       ],
       "remaining_scope": [
-        "Install the reviewed local worker repair candidate under explicit live/permission authorization. Qualify actual child identity, file/network denials, signed leases, physical stop and failed-start recovery; no Hyper-V/relay work remains selected.",
-        "DS-01 processing/deletion commitments, actual full-turn timing, representative host load and selected feature acceptance remain open."
+        "Installed repair7a152ca verified. Qualify actual worker child identity/file/network denials, signed leases, physical stop and failed-start recovery; owner dashboard start remains pending.",
+        "DS-01 processing/deletion/transfer commitments, actual full-turn timing, representative host load and selected feature acceptance remain open."
       ]
     },
     {
@@ -926,7 +926,7 @@
         "Participation/personality/own-consent dashboard plus authenticated reviewed public knowledge editor. Synthetic editor publication and withdrawal verified; unavailable AI controls do not block composed administration."
       ],
       "remaining_scope": [
-        "Reviewed dashboard activation and actual worker acknowledgement checks are installed. Local repair candidate awaits deployment; owner-reviewed personality, participation, current budget, individual consent and actual model dialogue/release acceptance remain open."
+        "Reviewed activation and repaired processing-expiry check are installed. Owner-reviewed personality, exact channel participation, budget, notice and current individual consent remain required; actual model dialogue/release acceptance remains open."
       ]
     },
     {
@@ -1338,8 +1338,8 @@
   "checkpoint": {
     "summary": "Deterministic administration, Whitelist onboarding, protected editors, role/permission configuration and the configurable staging host are implemented.",
     "recorded_baseline": "AI handoff 0fa7a5ed538ff791e3def2c1f6ac7683531e15a1 plus preserved uncommitted Flash candidate; synthetic schema058 candidate. No live schema change.",
-    "current_work": "Schema064/source95e92bd remains the installed test build. A local repair candidate closes processing-approval expiry during qualification, bounds stalled SCM commands, validates existing worker setup configuration and supplies missing wrapper-directory grants. No deployment or permission change in this repair pass; worker remains stopped.",
-    "evidence_note": "September30 installed and earlier storage evidence remains source-bound to its original build. Repair evidence: 19 focused installation/service tests and 26 pure PowerShell configuration guard cases pass; setup -WhatIf checks actual configuration without mutation. See GitHub/.agent_docs/aphelion-sophie/blocker-repair-verification-2026-09-30.json for final source hashes and check results. Actual worker child denials, provider clearance and Discord acceptance remain open."
+    "current_work": "Approved repair source7a152ca is installed on schema064. Configuration digest and independent journal expiry are preserved; only the two approved services/worker directory descriptors changed. Four Sophie service children match their virtual accounts, Gateway is current/leased and12 public/loopback checks pass. Worker remains stopped; processing is unapproved.",
+    "evidence_note": "Local repair19 focused and26 PowerShell checks remain source-bound to7a152ca. Installed manifest/configuration/ACL/identity/control/dashboard evidence is in GitHub/.agent_docs/aphelion-sophie/repair-deployment-verification-2026-09-30.json. No worker boot, provider call or Discord AI acceptance. Earlier storage evidence was not rerun."
   },
   "milestones": [
     {
@@ -2622,11 +2622,23 @@
       "implemented": "Processing approval rechecks expiry after asynchronous qualification. SCM operations have one deadline covering initial commands and polling, with late-result fencing. Worker setup validates existing registration/wrapper/firewall scope before mutation and adds missing services-parent metadata and worker-wrapper read/execute grants in source.",
       "evidence": "19 focused installation/service tests and 26 pure PowerShell guard cases passed. Read-only installed observations confirm absent worker wrapper-directory grant and matching current service/firewall configuration; -WhatIf performed no writes. Source-bound verification and publication/qualification preparation are external.",
       "remaining": "Repair candidate not deployed; no installed permission change, worker boot, provider call, publication or Discord acceptance. DS-01, owner approvals, actual worker qualification and production recovery gates remain open."
+    },
+    {
+      "title": "Approved worker repair installed on retained schema064",
+      "tasks": [
+        "P07",
+        "P19",
+        "P23",
+        "P25"
+      ],
+      "implemented": "Approved repair source7a152ca is installed on schema064. Configuration digest and independent journal expiry are preserved; only the two approved services/worker directory descriptors changed. Four Sophie service children match their virtual accounts, Gateway is current/leased and12 public/loopback checks pass. Worker remains stopped; processing is unapproved.",
+      "evidence": "Local repair19 focused and26 PowerShell checks remain source-bound to7a152ca. Installed manifest/configuration/ACL/identity/control/dashboard evidence is in GitHub/.agent_docs/aphelion-sophie/repair-deployment-verification-2026-09-30.json. No worker boot, provider call or Discord AI acceptance. Earlier storage evidence was not rerun.",
+      "remaining": "Provider commitments and operator source/personality/participation/budget/notice review; actual worker and Discord acceptance. No new production clearance."
     }
   ],
   "next_steps": [
     {
-      "title": "Apply reviewed worker repairs, then qualify the installed test candidate",
+      "title": "Resolve provider terms and complete owner-led worker/chat acceptance",
       "tasks": [
         "P07",
         "P19",
@@ -2637,7 +2649,7 @@
         "P25",
         "P32"
       ],
-      "work": "Review the source-bound blocker-preparation-2026-09-30.json proposal for the two missing worker directory grants and committed-package renewal. Application needs explicit live/permission approval; no migration is needed. Resolve DS-01 independently; prepare owner publications and current prices. Actual worker-child denials and physical stop precede owner-led member-channel activation and consent.",
+      "work": "Repair7a152ca is installed; no repeat deployment/migration is needed. EU-based operator needs suitable API processor and transfer/retention commitments; provider-eu-enquiry-2026-09-30.json is prepared but unsent. Owner reviews actual publications and exact public channel. Worker boot/file/network/physical-stop qualification precedes member activation; DS-01 and individual consent remain enforced.",
       "exit_evidence": "Build-bound installed identity/ACL/network and synthetic boot/transport/stop results; effective operator permissions and accessible dashboard. Real-member AI acceptance and reviewed knowledge answers remain explicit open gates."
     },
     {
@@ -2782,7 +2794,7 @@
           "SAI-05",
           "SAI-14"
         ],
-        "remaining": "Schema064 installed30September; no repeat migration needed. Local setup/service repair candidate awaits separate live and permission approval. Verify actual worker boot/lease, Node-child protected-file/network denials, synthetic transport and physical stop before member activation."
+        "remaining": "Approved7a152ca repair is installed on schema064 with wrapper-directory access corrected. Actual worker boot/lease, Node-child file/network denials and physical stop remain unrun; owner dashboard start and operational acceptance remain required."
       },
       {
         "id": "DS-05",
@@ -2840,7 +2852,7 @@
           "SAI-07",
           "SAI-14"
         ],
-        "remaining": "Scoped staging update completed30September; current configured ACL/firewall observations, actual four service-child identities and recovered supervisor slot recorded. Actual worker-child denials and worker/Discord acceptance remain open. Real message processing requires DS-01 and individually current consent; no manual flag/qualification-row edits."
+        "remaining": "Installed7a152ca repair verified without changing runtime configuration or enabling processing. Owner publications, DS-01, individually current consent and actual worker/Discord acceptance remain open."
       },
       {
         "id": "DS-10",
@@ -2879,7 +2891,7 @@
       {
         "id": "SAI-G1",
         "title": "All five public social modes",
-        "implementation": "All five public mode settings, notice/approval binding and reviewed public-channel activation are installed in source95e92bd/schema064; local expiry repair awaits deployment.",
+        "implementation": "Public-mode settings, notice/approval binding, reviewed channel activation and processing-expiry repair are installed in7a152ca/schema064.",
         "qualification": "worker/effects/full-turn gates open",
         "data_clearance": "blocked",
         "activation": "off"
@@ -2920,7 +2932,7 @@
         "id": "SAI-G6",
         "title": "Operational release",
         "implementation": "incomplete",
-        "qualification": "Schema064 installed with separate identity/access/manifest evidence. Local repair tests pass; actual worker denials, physical lifecycle, latency and selected release acceptance remain open.",
+        "qualification": "7a152ca installed manifest/configuration/ACL/child-identity/control/dashboard checks pass. Actual worker boot/denials/stop, latency and selected release acceptance remain open.",
         "data_clearance": "capability-specific gates open",
         "activation": "Staging preparation installed; no real-member AI activation or production approval."
       }

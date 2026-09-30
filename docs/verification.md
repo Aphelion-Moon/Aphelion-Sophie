@@ -1,5 +1,34 @@
 # Verification and release limits
 
+## Approved repair installed — 30 September 2026
+
+After explicit owner approval, pinned source `7a152ca` was installed using the existing staging renewal
+procedure. Schema064 and the complete core configuration digest are unchanged; no database migration
+or publication was performed. The previous source, trust files, evidence and reviewed ACL descriptors
+are retained under the protected `staging\repair-7a152ca-20260930` directory.
+
+The two approved directory grants now provide worker access to its wrapper. Comparing the reviewed
+descriptors confirms only `services` and `services\worker` changed; provider, preferences and per-role
+trust descriptors are unchanged. Service/firewall readback was captured and hashed into renewed
+installation evidence. These are configured-boundary observations, not actual worker-denial results.
+
+Installed manifest verification and configuration comparison pass. The actual core, supervisor,
+PostgreSQL and tunnel children match their separate virtual accounts. Supervisor inspection reports an
+empty recovered slot and completed quiescence; Gateway is current/leased, retaining a historical
+`DISCONNECTED` code after restart. All 12 public/loopback dashboard and asset checks pass. Worker remains
+stopped, processing unapproved, configuration/personality publication revisions zero. No provider request,
+Discord AI message, consent, worker qualification or production action occurred.
+
+Trust expires 1 October at 14:45 Warsaw. The independent preference-journal receipt still expires
+1 October at 12:54 Warsaw; renewal did not extend it. Source-bound installed results and preservation
+records are indexed in `GitHub/.agent_docs/aphelion-sophie/repair-deployment-verification-2026-09-30.json`.
+No application/storage suites were rerun for deployment; source checks remain bound to the repair commit.
+
+The owner reports being EU-based and asked whether a disclosure would suffice. Public EU/Discord/API
+terms research is recorded with the unsent `provider-eu-enquiry-2026-09-30.json`; no account agreement or
+processing approval is established by that research. DS-01, owner publications/current consent and
+actual worker/knowledge/Discord acceptance still prevent declaring the AI chat trial ready.
+
 ## Local blocker repairs and preparation — 30 September 2026
 
 The installed baseline remains schema064/source95e92bd. This local candidate fixes evidence expiry

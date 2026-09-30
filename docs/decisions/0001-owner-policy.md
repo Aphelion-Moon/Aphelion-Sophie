@@ -713,3 +713,17 @@ independent reviews are read-only. Local fixes, safe isolated checks and reviewa
 are in scope. Existing requirements for explicit live-service/permission changes, source publication,
 provider processing clearance and owner-started worker activation remain unchanged. No host reboot or
 non-Sophie service change is authorized.
+
+### Prepared staging repair approved — 30 September 2026
+
+The owner replied “Approved, proceed. Please continue until we can have our AI chat test.” to the
+prepared `blocker-preparation-2026-09-30.json` staging repair. This authorizes the scoped worker-directory
+grants, pinned7a152ca package renewal and Sophie core/supervisor restarts described there. The repair
+was applied and verified on retained schema064. It leaves the worker stopped for the selected owner
+dashboard workflow and real-message processing denied. No production or non-Sophie service action,
+provider switch, source publication or fabricated qualification/consent follows from this approval.
+
+The owner reports EU location, has not identified an API processing agreement, and asked whether a
+disclosure/disclaimer is sufficient. This is a request for guidance, not acceptance of provider terms
+or a waiver of DS-01. The provider enquiry is updated for EU processor/transfer requirements and remains
+unsent. Existing synthetic-check authority is unchanged; actual worker and Discord acceptance remain open.

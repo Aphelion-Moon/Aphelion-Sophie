@@ -1,6 +1,6 @@
 # AI on the Test Discord Server — operator runbook
 
-Status (30 September 2026): schema 064 and source commit `95e92bd` are installed on WUFF for the
+Status (30 September 2026): schema 064 and source commit `7a152ca` are installed on WUFF for the
 Test Discord Server, using the `aphelion-sophie` Discord application. PostgreSQL, tunnel, supervisor
 and core are running with a current Gateway. The worker is stopped. Public dashboard/login/denial
 and current AI JavaScript checks passed; the owner already holds the configured test Head Admin role.
@@ -31,12 +31,13 @@ approved AI/editor capabilities for the existing configured Head Admin role; oth
 
 ## Daily: renew the installation receipts
 
-The September 30 local repair candidate is not installed. Its setup source adds worker read/execute
-access to `services\worker` and metadata access to `services`; the installed worker currently lacks
-the wrapper-directory grant. It also rejects drifted existing service/firewall configuration before
-changing anything. Review the scoped repair/qualification proposal in
-`GitHub/.agent_docs/aphelion-sophie/blocker-preparation-2026-09-30.json` before applying this candidate.
-An installation receipt or successful `-WhatIf` does not prove actual worker file/network denial.
+The owner-approved September 30 repair is installed. Worker read/execute access to `services\worker`
+and metadata access to `services` are now present; the other reviewed descriptors are unchanged.
+Setup rejects drifted service/firewall configuration before mutation. Manifest verification, unchanged
+runtime configuration digest, four actual service-child identities, recovered supervisor state and
+12 dashboard checks passed. The worker remains stopped; actual worker file/network denial and
+physical-stop qualification are still open. Evidence is in
+`GitHub/.agent_docs/aphelion-sophie/repair-deployment-verification-2026-09-30.json`.
 
 Trust files expire 24 hours after issue by design. From an elevated PowerShell:
 
@@ -54,7 +55,8 @@ The assembler retains `knowledge-editor.json`, `preference-journal.json` and any
 `processing-policy.json` from the protected staging directory. The independent journal has its own
 qualification expiry; renewing installation trust does not extend that evidence automatically.
 After rechecking its ACL and database-restore exclusion, explicitly renew its receipt before expiry.
-The September 30 installation trust expires 1 October at 13:57 Warsaw time.
+Current installation trust expires 1 October at 14:45 Warsaw time. The independent preference-journal
+receipt expires earlier, at 12:54 Warsaw time, and was not extended by renewal.
 
 ## Enabling AI on one test channel
 
@@ -67,6 +69,10 @@ The September 30 installation trust expires 1 October at 13:57 Warsaw time.
    names the switch and includes APIs; the Open Platform incorporates those terms and shares the account.
    This supports the improvement-use opt-out interpretation, but supplies no fixed API retention/deletion
    commitment. The downstream-user exclusion in Privacy Policy/Open Platform 5.5 still applies.
+   The owner reports an EU-based operation. The unsent provider enquiry at
+   `GitHub/.agent_docs/aphelion-sophie/provider-eu-enquiry-2026-09-30.json` requests applicable API
+   processor terms, retention/deletion commitments, subprocessors and international-transfer safeguards.
+   A member disclosure does not create those provider commitments or install processing clearance.
 2. Review the effective capability policy. Grant the chosen operator role `ai.control`,
    `ai.personality.publish` and `ai.runtime.apply`; `ai.knowledge.publish` also requires the separate
    knowledge-only editor identity. Role names, guild ownership and Administrator do not grant these operations.
