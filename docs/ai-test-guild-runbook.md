@@ -1,8 +1,9 @@
 # AI on the Test Discord Server — operator runbook
 
-Status (30 September 2026): the schema-063 installation on WUFF targets the Test Discord Server,
-using the `aphelion-sophie` Discord application. All five services were observed stopped. The source
-candidate adds migration 064 and the reviewed activation workflow; it needs a scoped staging update.
+Status (30 September 2026): schema 064 and source commit `95e92bd` are installed on WUFF for the
+Test Discord Server, using the `aphelion-sophie` Discord application. PostgreSQL, tunnel, supervisor
+and core are running with a current Gateway. The worker is stopped. Public dashboard/login/denial
+and current AI JavaScript checks passed; the owner already holds the configured test Head Admin role.
 No live AI processing is cleared. Starting the worker is an owner action through the dashboard. Do not paste
 the provider key, Discord token or trust-file contents into chat, logs or Git.
 
@@ -21,10 +22,12 @@ core, because its Gateway ownership lease fails closed (`GATEWAY_OWNER_ACTIVE`) 
 Setup is reproducible with `ops/windows/Setup-StagingServices.ps1` and `ops/windows/Setup-InferenceAccount.ps1`.
 Both are idempotent and support `-WhatIf`.
 
-Database `sophie_stage_bot` was created fresh for the new application, with migrations 001–063. The
+Database `sophie_stage_bot` was created fresh for the new application, now with migrations 001–064. The
 earlier staging data is retained, renamed and fenced as `sophie_stage_archive_20260929`, plus encrypted
 bundles in `D:\Backups`. Runtime identities are `sophie_stage_core`, `sophie_stage_control` (AI tables only)
-and `sophie_stage_knowledge` (read-only knowledge). The owner and admin logins are maintenance-only.
+and `sophie_stage_knowledge` (read-only knowledge), plus `sophie_stage_knowledge_editor` (knowledge-only
+SELECT/INSERT/UPDATE). The owner and admin logins are maintenance-only. Policy version 2 adds the
+approved AI/editor capabilities for the existing configured Head Admin role; other grants and role ownership remain unchanged.
 
 ## Daily: renew the installation receipts
 
@@ -40,6 +43,12 @@ and core with the lease wait. The Discord credentials it reads live in `staging\
 by SYSTEM, Administrators and the operator. A renewal also redeploys the current commit, so review what
 is committed before running it.
 
+The assembler retains `knowledge-editor.json`, `preference-journal.json` and any separately approved
+`processing-policy.json` from the protected staging directory. The independent journal has its own
+qualification expiry; renewing installation trust does not extend that evidence automatically.
+After rechecking its ACL and database-restore exclusion, explicitly renew its receipt before expiry.
+The September 30 installation trust expires 1 October at 13:57 Warsaw time.
+
 ## Enabling AI on one test channel
 
 1. Record DS-01 evidence before clearing real message processing. The protected core installation accepts
@@ -47,6 +56,10 @@ is committed before running it.
    nonzero evidenceHash, validUntil, noticeRevision (at least 2), and reviewed noticeText. Missing, unapproved,
    expired or unqualified policy denies processing and opt-in. Renewal must retain this reviewed policy;
    never manufacture clearance from possession of an API key. It does not approve memory or restricted data.
+   The owner reported disabling “Improve the model for everyone” on September 30. Base Terms 4.3
+   names the switch and includes APIs; the Open Platform incorporates those terms and shares the account.
+   This supports the improvement-use opt-out interpretation, but supplies no fixed API retention/deletion
+   commitment. The downstream-user exclusion in Privacy Policy/Open Platform 5.5 still applies.
 2. Review the effective capability policy. Grant the chosen operator role `ai.control`,
    `ai.personality.publish` and `ai.runtime.apply`; `ai.knowledge.publish` also requires the separate
    knowledge-only editor identity. Role names, guild ownership and Administrator do not grant these operations.

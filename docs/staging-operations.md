@@ -1,8 +1,8 @@
 # Current isolated staging operation
 
 **Current (30 September 2026):** staging uses WUFF's installed Manual services under the
-`aphelion-sophie` application. Schema-063 services were observed stopped; the owner approved the
-schema-064 test-preparation update. See the
+`aphelion-sophie` application. The approved schema-064 update (`95e92bd`) is installed; four services
+are running with a current Gateway and the AI worker is stopped for owner dashboard action. See the
 [AI test-guild runbook](ai-test-guild-runbook.md) for services, renewal and rollback. The foreground-host
 sections below are history.
 

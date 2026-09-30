@@ -1,9 +1,41 @@
 # Verification and release limits
 
+## Installed test preparation — 30 September 2026
+
+Owner-approved proposal applied with source commit `95e92bd`. Migration 064 preserved all 100
+existing application tables and their 10 rows. Core (71 restricted table checks), AI control,
+read-only knowledge and new knowledge-only editor database identity checks passed. Policy version 2
+adds the approved AI/editor grants to the existing configured Head Admin role. Current Discord
+metadata confirms the owner already holds it; no Discord role assignment was changed.
+
+The independent preference journal was explicitly provisioned with protected core/SYSTEM/Admin
+ACLs. Renewal retains its receipt and the editor credential; its separate expiry does not extend
+automatically. Installed manifest verification passed for `sophie-deepseek-95e92bd`; trust expires
+1 October 2026 at 11:57 UTC (13:57 Warsaw).
+
+PostgreSQL, tunnel, supervisor and core are running. Their actual child-process identities match
+their individual virtual accounts; listeners are loopback-only and Gateway is current/leased with
+no last error. Supervisor read-only inspection confirms an empty, recovered slot and completed
+quiescence; core holds worker coordination. Worker remains stopped for owner dashboard action.
+Both loopback-with-approved-Host and public HTTPS checks pass: login, protected-page redirects,
+anonymous API denials and the installed AI JavaScript hash. No account was impersonated.
+
+Source-bound evidence and separate installed/access/child-identity reports are in
+`GitHub/.agent_docs/aphelion-sophie/pretest-*-2026-09-30.*`. Initial operator checks corrected a
+singleton-gate interpretation before mutation and HTTP expectations after inspecting the existing
+Host/redirect/denial contract; no application checks were bypassed.
+
+DS-01 is partial: the owner reports disabling the exact improvement-use switch named in Terms 4.3;
+API inclusion/shared-account terms support that interpretation. No fixed downstream API retention,
+deletion or complete no-own-purpose processing agreement is established. No approval receipt was
+installed. Actual worker-child file/network denials, provider/Discord response acceptance, reviewed
+publications/knowledge answers and individual current consent remain open. No live provider call or
+AI message export was performed in this update.
+
 ## Test preparation and reviewed AI activation — 30 September 2026
 
-Source candidate only; the existing schema-063 staging installation has not been replaced by this
-milestone. Processing approval and the displayed notice now flow from protected installation data
+Offline implementation evidence, subsequently installed in the checkpoint above. Processing approval
+and the displayed notice now flow from protected installation data
 through controls and per-message admission. Notice changes require fresh consent. Missing, expired
 or unapproved processing evidence remains denied.
 
@@ -30,7 +62,7 @@ neither is evidence that live ACL denials work.
 Source-bound final results and the operational proposal are stored under
 `GitHub/.agent_docs/aphelion-sophie/`. No live provider or Discord call, credential, ACL, firewall,
 database, publication, service or installed package change is claimed by these offline results.
-DS-01 account-specific processing clearance, the staging update and actual worker/channel/answer
+DS-01 account-specific processing clearance and actual worker/channel/answer
 acceptance remain distinct gates. Public provider documentation is research evidence, not an
 account-specific clearance receipt.
 

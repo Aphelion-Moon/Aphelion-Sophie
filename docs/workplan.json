@@ -1339,7 +1339,7 @@
   "checkpoint": {
     "summary": "Deterministic administration, Whitelist onboarding, protected editors, role/permission configuration and the configurable staging host are implemented.",
     "recorded_baseline": "AI handoff 0fa7a5ed538ff791e3def2c1f6ac7683531e15a1 plus preserved uncommitted Flash candidate; synthetic schema058 candidate. No live schema change.",
-    "current_work": "Schema-064 test preparation authorized 30 September: protected processing/notice approval and reviewed activation implemented. Live migration preserved 100 tables/10 rows; knowledge editor, policy-v2 operator grants and independent core-only journal provisioned. Source package renewal is in progress. Actual AI acceptance remains gated.",
+    "current_work": "Schema064/source95e92bd installed under September30 authorization. Live migration preserved100 tables/10 rows; isolated knowledge editor, policy-v2 operator grants and independent core-only journal are installed. Four Sophie services run under verified child identities; Gateway and public dashboard checks pass. Worker stays stopped; actual AI acceptance remains gated.",
     "evidence_note": "27 focused tests, 77 isolated AI/database scenarios and 20 composed staging scenarios passed; disposable clusters stopped. Repository check and PowerShell parse passed. Source-bound and separate installed evidence are in GitHub/.agent_docs/aphelion-sophie. Real-message processing remains uncleared."
   },
   "milestones": [
@@ -2626,7 +2626,7 @@
         "P25",
         "P32"
       ],
-      "work": "Owner authorized scoped test update on 30 September. Migration064, retained state, knowledge editor, independent journal and policy-v2 operator grants are installed. Complete committed-source renewal and verify only Sophie services/dashboard. Worker stays stopped for owner dashboard action. Actual worker boot/lease, file/network denial, provider turn and stop plus DS-01/publication/consent remain open.",
+      "work": "Scoped test update is installed and verified (schema064/source95e92bd; four Sophie services running, current Gateway, public dashboard and owner operator-role metadata). Owner reports improvement-use opt-out disabled; record its documented terms basis. Obtain remaining downstream API processing/deletion commitments, review/publish actual content and prices, then perform owner-started worker and public-channel acceptance with individual consent. Actual worker-child file/network denials remain unrun.",
       "exit_evidence": "Build-bound installed identity/ACL/network and synthetic boot/transport/stop results; effective operator permissions and accessible dashboard. Real-member AI acceptance and reviewed knowledge answers remain explicit open gates."
     },
     {
@@ -2728,13 +2728,13 @@
         "id": "DS-01",
         "title": "Provider and data-use clearance",
         "implementation": "partial",
-        "qualification": "No account-specific processing evidence supplied",
+        "qualification": "Owner reports improvement-use switch disabled; Terms4.3 documents the setting and API/shared-account terms support the interpretation",
         "sai": [
           "SAI-00",
           "SAI-12",
           "SAI-14"
         ],
-        "remaining": "Public provider policies researched 30 September; account-specific downstream API processing restrictions remain unresolved. Real Discord processing, remote preferences and restricted scopes remain blocked. Protected processingPolicy and member notice are implemented; missing/unapproved/expired receipts deny use."
+        "remaining": "Public terms and owner-reported setting recorded30September. No fixed API retention/deletion or complete no-own-purpose downstream processing agreement established; privacy policy explicitly excludes downstream users. Real Discord processing, remote preferences and restricted scopes remain blocked. Protected processingPolicy/notice are installed; no approval receipt was supplied or manufactured."
       },
       {
         "id": "DS-02",
@@ -2805,7 +2805,7 @@
           "SAI-08",
           "SAI-11"
         ],
-        "remaining": "Distinct knowledge editor provisioned and database isolation verified 30 September; complete package renewal. Review/publish current Policies extracts and Discord rules, qualify refresh/lookup and actual 40-question answers. Historical offline question review remains distinct."
+        "remaining": "Distinct knowledge editor installed and database isolation verified30September. Review/publish current Policies extracts and Discord rules, qualify refresh/lookup and actual40-question answers. Historical offline question review remains distinct."
       },
       {
         "id": "DS-08",
@@ -2817,7 +2817,7 @@
           "SAI-10",
           "SAI-11"
         ],
-        "remaining": "Independent journal explicitly provisioned with protected core-only ACL 30 September; complete installed composition verification. Actual worker open denial, remote preference and named restricted-context acceptance remain separately gated."
+        "remaining": "Independent journal explicitly provisioned with protected core-only ACL and installed receipt30September. Journal evidence expires independently of renewed installation trust. Actual worker open denial, remote preference and named restricted-context acceptance remain separately gated."
       },
       {
         "id": "DS-09",
@@ -2829,7 +2829,7 @@
           "SAI-07",
           "SAI-14"
         ],
-        "remaining": "Scoped staging update, fresh identity/network/file evidence and actual worker/Discord acceptance. Real message processing requires DS-01 and individually current consent; no manual flag/qualification-row edits."
+        "remaining": "Scoped staging update completed30September; current configured ACL/firewall observations, actual four service-child identities and recovered supervisor slot recorded. Actual worker-child denials and worker/Discord acceptance remain open. Real message processing requires DS-01 and individually current consent; no manual flag/qualification-row edits."
       },
       {
         "id": "DS-10",
