@@ -1,5 +1,20 @@
 # Verification and release limits
 
+## Maintenance procedure preparation — 4 October 2026
+
+P35 now has a review draft covering dependency/API/provider/model revalidation,
+proposed operator ownership and cadence, agent PR/release evidence, and isolated
+recovery with current independent deletion history. It uses the existing tooling
+and preserves the current selected-provider and no-ticket-AI boundaries. Cadence,
+named operators, recovery custody/targets and P31 cutover remain unapproved.
+
+The draft's repository links, referenced commands and changed workplan/ledger
+were checked against the current source. This is documentation preparation, not
+an executed upgrade or recovery drill. No application tests were run for this
+documentation-only milestone; no schedule, notification or service was changed.
+Draft and source-bound review:
+GitHub/.agent_docs/aphelion-sophie/maintenance-2026-10-04/procedure.md and verification.json.
+
 ## Blank Contact staff entry — 4 October 2026
 
 Core now attaches one fixed Contact staff button to validated AI replies. The

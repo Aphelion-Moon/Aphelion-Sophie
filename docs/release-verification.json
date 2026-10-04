@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
-  "baseline": "37074bf9892d",
-  "recordedAt": "2026-10-04T19:04:25.978Z",
+  "baseline": "0e51c9fc47f9",
+  "recordedAt": "2026-10-04T19:08:23.308Z",
   "productionReady": false,
   "context": "Single-sheet human release ledger. Synthetic content only. Record commit, environment/guild, schema, config/capability versions and actor fixture; include runtime/model/source generation hashes when applicable.",
   "resultsPolicy": "Not run is not a pass. Record actual outcome, evidence location, reviewer, date and run context. Optional tracks require separate activation approval. Sheet results never activate production.",
@@ -67,9 +67,9 @@
   "sources": {
     "scripts/build-release-verification.mjs": "a026bfe403ef56e5b9d6619c16053f4755843a60ac75a3caa13a7a34eb22c917",
     "docs/acceptance-cases.json": "045704422b90f0d73c6912223b4a5ed2c1d39a7f1d40d7d1cbb4448599629a6c",
-    "docs/workplan.json": "a671895bc27fc21f2809429ace3d4d7a07048036698bbd50558d90c9b5be8c26",
+    "docs/workplan.json": "49adfefe5d4fa9c773fd67a69fa5f14816ff5174dbc79fa4c02cb74828fed84e",
     "docs/decisions/0001-owner-policy.md": "b412a3d246194aef85b8317c686f3ccc1769cc4b75c5c174c4565ac7ebcb3fbc",
-    "docs/verification.md": "f687caeadfa3093ee6fb75c62e1b89e4f9b90e90d04afb7945825fc6d32938a7",
+    "docs/verification.md": "22636e0f0896b5b231aa84f2116192c5ec04e9ba6797b80b9172551d10061ebc",
     "Sophie-Implementation-Plans-v1.1/01-REQUIREMENTS-AND-DECISIONS.md": "2afa92bd13e889c4b3bd37d327255aaacf5ed9df3bf18b781b8444a9186c8dd9"
   },
   "requirements": [
@@ -2609,12 +2609,12 @@
       "scope": "Admin launch",
       "kind": "Build prerequisite",
       "gate": "G5",
-      "readiness": "Needs implementation",
-      "prerequisite": "Not implemented. Reference-pack acceptance requirements still apply.",
+      "readiness": "Work remains",
+      "prerequisite": "P31 cutover remains a prerequisite for adoption. Owner must select named operators/reviewer/custodian, cadence and outage/fallback channels, independent recovery destination/key custody and RPO/RTO/retention. Operational drills, upgrades and production qualification require their exact authorization and evidence.",
       "operator": "Developer / operator",
-      "procedure": "Dependency/API/model revalidation procedure; Operator ownership and recovery-drill schedule proposal; Documented agent PR and release protocol",
+      "procedure": "P31 cutover remains a prerequisite for adoption. Owner must select named operators/reviewer/custodian, cadence and outage/fallback channels, independent recovery destination/key custody and RPO/RTO/retention. Operational drills, upgrades and production qualification require their exact authorization and evidence.",
       "expected": "Complete the approved task scope and record evidence for T02, T31, T38, T39, T46. Do not treat a partial milestone as full task completion.",
-      "existing": "Workplan status: planned_not_started. Not implemented. Reference-pack acceptance requirements still apply.",
+      "existing": "Workplan status: in_progress. Prepared a source-bound maintenance review draft for dependency/API/provider/model revalidation, proposed operator roles and cadence, agent PR/release evidence and isolated recovery with current deletion/revocation history. It uses existing tooling and creates no recurring job or operational change. P31 cutover remains a prerequisite for adoption. Owner must select named operators/reviewer/custodian, cadence and outage/fallback channels, independent recovery destination/key custody and RPO/RTO/retention. Operational drills, upgrades and production qualification require their exact authorization and evidence.",
       "source": "docs/workplan.json#P35",
       "result": "Not run",
       "actual": "",
