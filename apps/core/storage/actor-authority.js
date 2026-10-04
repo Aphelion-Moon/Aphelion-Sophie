@@ -1,6 +1,7 @@
 import { requireCondition, requireInteger } from '../../../contracts/validation.js';
 import { validateActorObservation, validateCapabilityPolicy } from '../../../platform/authorization/actor-policy.js';
 import { inTransaction } from './transaction.js';
+import { recordAiDeparture } from './ai-departures.js';
 
 /** Records observed revocations. It does not make an offline interval authoritative. */
 export function createActorAuthorityStore({ pool, clock }) {
@@ -23,6 +24,7 @@ export function createActorAuthorityStore({ pool, clock }) {
       const epoch = Number(previous.capability_epoch) + (changed ? 1 : 0); requireInteger(epoch, 1);
       const lostPresence = previous.observation.present && (!normalized.present || (!previous.observation.bot && normalized.bot));
       const presenceEpoch = Number(previous.presence_epoch) + Number(lostPresence); requireInteger(presenceEpoch, 1);
+      if (lostPresence && !normalized.present) await recordAiDeparture(client,observation.guildId,observation.userId);
       await client.query(`UPDATE sophie_core.actor_authority SET capability_epoch = $3, policy_version = $4, observation = $5, presence_epoch = $6
         WHERE guild_id = $1 AND user_id = $2`, [observation.guildId, observation.userId, epoch, policyVersion, normalized, presenceEpoch]);
       return { grant: { guildId: observation.guildId, userId: observation.userId, capabilityEpoch: epoch, policyVersion }, presenceEpoch };

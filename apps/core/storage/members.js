@@ -2,6 +2,7 @@ import { ContractError, requireId } from '../../../contracts/validation.js';
 import { createMembership, observeMembership } from '../../../modules/membership/index.js';
 import { inTransaction } from './transaction.js';
 import { enqueue } from './outbox.js';
+import { recordAiDeparture } from './ai-departures.js';
 
 export async function lockMember(client, guildId, userId) {
   requireId(guildId); requireId(userId);
@@ -28,6 +29,7 @@ export function createMemberOperation({ pool, clock }) {
       const previous = await lockMember(client, observation.guildId, observation.userId);
       const member = observeMembership(previous, observation, clock());
       await saveMember(client, member);
+      if (previous.observation?.present && !observation.present) await recordAiDeparture(client,observation.guildId,observation.userId);
       await client.query('SAVEPOINT domain_action');
       try { return { value: await action(client, member, previous) }; }
       catch (error) {

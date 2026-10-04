@@ -13,7 +13,7 @@ import { createAiActivation } from '../../apps/core/storage/ai-activation.js';
 export async function runAiControlsSuite(cluster, run) {
   const { adminPool: admin, corePool: pool, knowledgePool: knowledge } = cluster;
   await admin.query('GRANT USAGE ON SCHEMA sophie_ai TO sophie_test_core');
-  await admin.query('GRANT SELECT,INSERT,UPDATE ON sophie_ai.state,sophie_ai.publications,sophie_ai.consents,sophie_ai.request_receipts TO sophie_test_core');
+  await admin.query('GRANT SELECT,INSERT,UPDATE ON sophie_ai.state,sophie_ai.publications,sophie_ai.consents,sophie_ai.request_receipts,sophie_ai.request_tombstones TO sophie_test_core');
   await admin.query('GRANT SELECT ON sophie_ai.qualifications TO sophie_test_core');
   await admin.query('GRANT SELECT,INSERT,UPDATE ON sophie_ai.budget_policies,sophie_ai.budget_periods,sophie_ai.provider_attempts,sophie_ai.budget_hold_receipts TO sophie_test_core');
   await admin.query('GRANT DELETE ON sophie_ai.budget_periods,sophie_ai.provider_attempts TO sophie_test_core');
@@ -120,6 +120,10 @@ export async function runAiControlsSuite(cluster, run) {
   await run('AI09 concurrent replay has one durable admission; message text never enters receipts', async () => {
     const results = await Promise.all([admission.admit(event('602')), admission.admit(event('602'))]);
     assert.equal(results.filter(Boolean).length, 1); admitted = results.find(Boolean);
+    const replay=createAiAdmission({pool,guildId:actor.guildId,ingress,clock:Date.now,
+      readNotice:async()=>assert.fail('a duplicate must not repeat approval checks'),
+      inspectContext:async()=>assert.fail('a duplicate must not fetch metadata'),inspectMember:async()=>assert.fail('duplicate member lookup')});
+    assert.equal(await replay.admit(event('602')),null);
     assert.equal(await admission.revalidate(admitted), true);
     const rows = (await admin.query('SELECT * FROM sophie_ai.request_receipts WHERE guild_id=$1', [actor.guildId])).rows;
     assert.equal(rows.length, 1); assert.equal(JSON.stringify(rows).includes('Synthetic hello'), false);
@@ -373,7 +377,8 @@ export async function runAiControlsSuite(cluster, run) {
     await admin.query('UPDATE sophie_ai.state SET disabled=false WHERE guild_id=$1',[actor.guildId]);
     await admin.query('UPDATE sophie_ai.qualifications SET active=true WHERE guild_id=$1',[actor.guildId]);
     const consent=(await pool.query('SELECT * FROM sophie_ai.consents WHERE guild_id=$1 AND channel_id=$2 AND user_id=$3',[actor.guildId,'303',actor.userId])).rows[0];
-    const remote=createAiAdmission({pool,guildId:actor.guildId,ingress:consentIngress,clock:Date.now,noticeRevision:consent.notice_revision,readNoticeBinding:async()=>binding,
+    const remote=createAiAdmission({pool,guildId:actor.guildId,ingress:consentIngress,clock:Date.now,noticeRevision:consent.notice_revision,
+      readNotice:async()=>({revision:consent.notice_revision,binding,approved:true}),
       inspectContext:async()=>({eligible:true,audienceHash:'e'.repeat(64),restricted:false,canReply:true,canReact:true,messageRevision:sourceRevision,continuity:'synthetic-current',checkedAt:Date.now()}),
       inspectMember:async()=>({eligible:true,presenceEpoch:Number(consent.presence_epoch),accessEpoch:1,checkedAt:Date.now()})});
     await admin.query('UPDATE sophie_ai.consents SET enabled=true WHERE guild_id=$1',[actor.guildId]);
@@ -384,6 +389,60 @@ export async function runAiControlsSuite(cluster, run) {
     assert.equal(await remote.revalidate(currentRequest),true);
     binding='b'.repeat(64);assert.equal(await remote.revalidate(currentRequest),false);
     bodyReads=0;assert.equal(await remote.admit(consentEvent('9902')),null);assert.equal(bodyReads,0);
+  });
+  await run('DS01-C04 approval, revision and binding remain current after asynchronous metadata checks', async () => {
+    const binding='a'.repeat(64), revision=2;
+    await admin.query('UPDATE sophie_ai.consents SET enabled=true,notice_revision=$2,receipt=$3 WHERE guild_id=$1',[actor.guildId,revision,{binding}]);
+    const consent=(await pool.query('SELECT * FROM sophie_ai.consents WHERE guild_id=$1 AND channel_id=$2 AND user_id=$3',[actor.guildId,'303',actor.userId])).rows[0];
+    for (const change of ['approval', 'revision', 'binding', 'unbound', 'invalidation']) {
+      const notice={approved:true,revision,binding:change==='unbound'?null:binding};
+      const fresh=createAiIngress({guildId:actor.guildId,botUserId:'505',clock:Date.now});
+      let notices=0, metadata=0;
+      const lane=createAiAdmission({pool,guildId:actor.guildId,ingress:fresh,clock:Date.now,noticeRevision:revision,
+        readNotice:async()=>{notices++;if(change==='invalidation' && notices===2)lane.invalidate();return {...notice};},
+        inspectContext:async()=>{metadata++;return {eligible:true,audienceHash:'e'.repeat(64),restricted:false,canReply:true,canReact:true,
+          messageRevision:sourceRevision,continuity:'synthetic-current',checkedAt:Date.now()};},
+        inspectMember:async()=>{
+          if(change==='approval')notice.approved=false;
+          if(change==='revision')notice.revision++;
+          if(change==='binding')notice.binding='b'.repeat(64);
+          return {eligible:true,presenceEpoch:Number(consent.presence_epoch),accessEpoch:1,checkedAt:Date.now()};
+        }});
+      const d={guild_id:actor.guildId,channel_id:'303',id:'9910',author:{id:actor.userId,bot:false},type:0,mentions:[]};
+      Object.defineProperty(d,'content',{get(){assert.fail(`stale ${change} must stop before message content`);}});
+      assert.equal(await lane.admit(fresh.prepare({t:'MESSAGE_CREATE',d})),null,change);
+      assert.equal(metadata,change==='unbound'?0:1);assert.equal(notices,change==='unbound'?1:2);
+    }
+    const unbound=createAiControls({pool,guildId:actor.guildId,authorize:async()=>true,noticeRevision:revision,
+      readNotice:async()=>({revision,text:'Synthetic unbound notice',approved:true,binding:null}),
+      inspectChannel:async()=>assert.fail('unbound remote opt-in must stop before channel inspection'),memberPresence:async()=>1});
+    assert.equal((await unbound.ownConsents({actor})).optInAvailable,false);
+    await assert.rejects(unbound.consent({actor,channelId:'303',enabled:true,expectedEpoch:Number(consent.epoch),acceptedNoticeRevision:revision}),/AI_NOTICE_STALE/);
+  });
+  await run('DS01-C05 revalidation rejects consent, control or qualification revocation during metadata lookup', async () => {
+    const consent=(await pool.query('SELECT * FROM sophie_ai.consents WHERE guild_id=$1 AND channel_id=$2 AND user_id=$3',[actor.guildId,'303',actor.userId])).rows[0];
+    const fresh=createAiIngress({guildId:actor.guildId,botUserId:'505',clock:Date.now});
+    let revoke=null;
+    const lane=createAiAdmission({pool,guildId:actor.guildId,ingress:fresh,clock:Date.now,noticeRevision:2,
+      readNotice:async()=>({revision:2,binding:consent.receipt.binding,approved:true}),
+      inspectContext:async()=>({eligible:true,audienceHash:'e'.repeat(64),restricted:false,canReply:true,canReact:true,
+        messageRevision:sourceRevision,continuity:'synthetic-current',checkedAt:Date.now()}),
+      inspectMember:async()=>{
+        if(revoke!==null){const action=revoke;revoke=null;await action();}
+        return {eligible:true,presenceEpoch:Number(consent.presence_epoch),accessEpoch:1,checkedAt:Date.now()};
+      }});
+    await admin.query("UPDATE sophie_ai.request_receipts SET state='silent',received_at=clock_timestamp()-interval '2 minutes' WHERE guild_id=$1",[actor.guildId]);
+    const admitted=await lane.admit(fresh.prepare({t:'MESSAGE_CREATE',d:{guild_id:actor.guildId,channel_id:'303',id:'9920',
+      author:{id:actor.userId,bot:false},type:0,mentions:[{id:'505'}],content:'Synthetic authority race'}}));
+    assert.ok(admitted);assert.equal(await lane.revalidate(admitted),true);
+    for (const [table,column] of [['consents','enabled'],['state','disabled'],['qualifications','active']]) {
+      const before=column!=='disabled';
+      revoke=()=>admin.query(`UPDATE sophie_ai.${table} SET ${column}=$2 WHERE guild_id=$1`,[actor.guildId,!before]);
+      try {assert.equal(await lane.revalidate(admitted),false,table);}
+      finally {await admin.query(`UPDATE sophie_ai.${table} SET ${column}=$2 WHERE guild_id=$1`,[actor.guildId,before]);}
+    }
+    revoke=()=>admin.query('UPDATE sophie_ai.consents SET epoch=epoch+1 WHERE guild_id=$1',[actor.guildId]);
+    assert.equal(await lane.revalidateSource(admitted),false);
   });
   await run('DS03-09 bounded retention preserves unresolved reservations, referenced periods and independent replay receipts', async () => {
     const guild='919', retained=createAiAccounting({pool,guildId:guild});
@@ -404,5 +463,33 @@ export async function runAiControlsSuite(cluster, run) {
     assert.deepEqual((await pool.query('SELECT reserved_nanos FROM sophie_ai.budget_periods WHERE guild_id=$1',[guild])).rows,
       [{reserved_nanos:'2'},{reserved_nanos:'2'}]);
     assert.deepEqual(await retained.maintain(),{attempts:0,periods:0});
+  });
+  await run('DS01-C06 every historical choice remains reachable and withdrawable through bounded self-only pages', async () => {
+    const member={guildId:'91501',userId:'202',capabilityEpoch:1,policyVersion:1};let invalidations=0;
+    const choices=createAiControls({pool,guildId:member.guildId,authorize:async(action,candidate,scope)=>
+      action==='ai.self' && candidate===member && scope.userId===member.userId,
+    readNotice:async()=>{throw Error('synthetic provider outage');},noticeRevision:2,
+    inspectChannel:async()=>assert.fail('withdrawal does not require current channel visibility'),memberPresence:async()=>1,
+    invalidate:()=>{invalidations++;}});
+    const absent=await choices.consent({actor:member,channelId:'999',enabled:false,expectedEpoch:0,acceptedNoticeRevision:2});
+    assert.equal(absent.epoch,0);assert.equal(absent.enabled,false);assert.equal(invalidations,0);
+    assert.equal((await pool.query('SELECT 1 FROM sophie_ai.consents WHERE guild_id=$1',[member.guildId])).rowCount,0);
+    await admin.query(`INSERT INTO sophie_ai.consents(guild_id,channel_id,user_id,epoch,enabled,presence_epoch,notice_revision)
+      SELECT $1,(10000+n)::text,$2,1,true,1,1 FROM generate_series(0,202) n`,[member.guildId,member.userId]);
+    await admin.query(`INSERT INTO sophie_ai.consents(guild_id,channel_id,user_id,epoch,enabled,presence_epoch,notice_revision)
+      VALUES($1,'99999','303',1,true,1,1)`,[member.guildId]);
+    const first=await choices.ownConsents({actor:member});assert.equal(first.channels.length,100);assert.equal(first.nextAfterChannelId,'10099');assert.equal(first.optInAvailable,false);
+    const second=await choices.ownConsents({actor:member,afterChannelId:first.nextAfterChannelId});
+    assert.equal(second.channels.length,100);assert.equal(second.nextAfterChannelId,'10199');
+    const third=await choices.ownConsents({actor:member,afterChannelId:second.nextAfterChannelId});
+    assert.equal(third.channels.length,3);assert.equal(third.nextAfterChannelId,null);
+    assert.equal(new Set([...first.channels,...second.channels,...third.channels].map(item=>item.channelId)).size,203);
+    const exact=await choices.ownConsents({actor:member,channelId:'10202'});
+    assert.deepEqual(exact.channels,[{channelId:'10202',epoch:1,enabled:true,noticeRevision:1}]);assert.equal(exact.nextAfterChannelId,null);
+    assert.deepEqual((await choices.ownConsents({actor:member,channelId:'99999'})).channels,[]);
+    await choices.consent({actor:member,channelId:'10202',enabled:false,expectedEpoch:exact.channels[0].epoch,acceptedNoticeRevision:2});
+    assert.equal((await choices.ownConsents({actor:member,channelId:'10202'})).channels[0].enabled,false);assert.equal(invalidations,1);
+    await assert.rejects(choices.ownConsents({actor:{...member,userId:'303'}}),/OPERATION_DENIED/);
+    assert.throws(()=>choices.ownConsents({actor:member,channelId:'10202',afterChannelId:'10099'}),/AI_INPUT_INVALID/);
   });
 }

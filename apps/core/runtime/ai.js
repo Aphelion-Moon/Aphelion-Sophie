@@ -16,8 +16,7 @@ import { createMeteredAiWorker } from './ai-provider.js';
 
 /** Core composition only. Inference receives a fixed turn payload, never this pool or Discord transport. */
 export function createAiRuntime({ configuration, corePool, controlPool, worker, knowledge, observer, token, fetch, clock, enabled, onFault,
-  remoteProcessingApproved = async () => false, readNoticeRevision = async () => worker.provider === 'deepseek' ? 2 : 1,
-  readNoticeBinding = async () => null }) {
+  readNotice = async () => ({ revision: worker.provider === 'deepseek' ? 2 : 1, binding: null, approved: worker.provider !== 'deepseek' }), privacyCurrent = async () => false }) {
   requireCondition(worker && typeof worker.generate === 'function' && typeof worker.current === 'function' && knowledge &&
     ['lookup','current','currentReferences'].every(name => typeof knowledge[name] === 'function'), 'AI_ADAPTERS_REQUIRED');
   const { mapping, casePolicy, capabilityPolicy } = configuration;
@@ -26,11 +25,9 @@ export function createAiRuntime({ configuration, corePool, controlPool, worker, 
     capabilityPolicy, mapping, protectedCategoryId: casePolicy.categoryId, observer, clock });
   const ingress = createAiIngress({ guildId: mapping.guildId, botUserId: mapping.botUserId, clock });
   let recovered = false;
-  requireCondition(typeof remoteProcessingApproved === 'function', 'TRUSTED_ADAPTERS_REQUIRED');
   const admission = createAiAdmission({ pool: controlPool, guildId: mapping.guildId, ingress, ...observations, clock,
-    noticeRevision: worker.provider === 'deepseek' ? 2 : 1, readNoticeRevision,
-    readNoticeBinding: worker.provider === 'deepseek' ? readNoticeBinding : null,
-    inspectContext: async event => !recovered || worker.provider === 'deepseek' && await remoteProcessingApproved() !== true ? null : observations.inspectContext(event) });
+    noticeRevision: worker.provider === 'deepseek' ? 2 : 1, readNotice, privacyCurrent,
+    inspectContext: async event => recovered ? observations.inspectContext(event) : null });
   const accounting = createAiAccounting({ pool: controlPool, guildId: mapping.guildId });
   const inference = worker.provider === 'deepseek' ? createMeteredAiWorker({ worker, accounting }) : worker;
   const scheduler = createAiScheduler({ clock, execute: async (payload, context) => {

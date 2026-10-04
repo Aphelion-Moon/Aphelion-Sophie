@@ -1,17 +1,27 @@
 import { requireCondition, requireInteger } from '../../../contracts/validation.js';
-import { canonicalAiConfiguration, participationDecision, questionCandidate } from '../../../modules/assistant/participation.js';
+import { canonicalAiConfiguration, participationDecision } from '../../../modules/assistant/participation.js';
 import { canonicalPersonality } from '../../../modules/assistant/personality.js';
 import { aiDigest } from './ai-controls.js';
 import { inTransaction } from './transaction.js';
 import { randomUUID } from 'node:crypto';
+import { aiReceiptHash } from './ai-privacy.js';
 
 /** Atomic metadata receipts and pacing. Content stays in the returned transient handoff only. */
-export function createAiAdmission({ pool, guildId, ingress, inspectContext, inspectMember, clock, noticeRevision = 1, readNoticeRevision = async () => noticeRevision,
-  readNoticeBinding = null }) {
+export function createAiAdmission({ pool, guildId, ingress, inspectContext, inspectMember, clock, noticeRevision = 1,
+  readNotice = async () => ({ revision: noticeRevision, binding: null, approved: noticeRevision === 1 }), privacyCurrent = async () => true }) {
   requireInteger(noticeRevision, 1);
-  requireCondition(ingress.guildId === guildId && [inspectContext, inspectMember, clock, readNoticeRevision].every(fn => typeof fn === 'function'), 'TRUSTED_ADAPTERS_REQUIRED');
+  requireCondition(ingress.guildId === guildId && [inspectContext, inspectMember, clock, readNotice].every(fn => typeof fn === 'function'), 'TRUSTED_ADAPTERS_REQUIRED');
   const gatherOwner = randomUUID();
+  let generation = 0;
+  async function noticeMatches(consent) {
+    const notice = await readNotice();
+    if (notice?.approved !== true || !Number.isSafeInteger(notice.revision) || notice.revision < noticeRevision || notice.revision !== consent.notice_revision) return false;
+    if (notice.revision === 1 && notice.binding === null) return true;
+    return typeof notice.binding === 'string' && /^[a-f0-9]{64}$/u.test(notice.binding) && consent.receipt?.binding === notice.binding;
+  }
   async function snapshot(client, event) {
+    const version = generation;
+    if (!await privacyCurrent(event.userId,client===pool?null:client)) return null;
     const state = (await client.query('SELECT * FROM sophie_ai.state WHERE guild_id=$1', [guildId])).rows[0];
     if (!state || state.disabled) return null;
     const rows = (await client.query(`SELECT kind,revision,document,sha256 FROM sophie_ai.publications WHERE guild_id=$1 AND
@@ -25,11 +35,7 @@ export function createAiAdmission({ pool, guildId, ingress, inspectContext, insp
     const qualification = (await client.query('SELECT * FROM sophie_ai.qualifications WHERE guild_id=$1 AND channel_id=$2', [guildId, event.channelId])).rows[0];
     if (!qualification?.active || !qualification.restore_ready || qualification.configuration_sha256 !== configuration.sha256 || qualification.personality_sha256 !== personality.sha256) return null;
     const consent = (await client.query('SELECT * FROM sophie_ai.consents WHERE guild_id=$1 AND channel_id=$2 AND user_id=$3', [guildId, event.channelId, event.userId])).rows[0];
-    if (!consent?.enabled || consent.notice_revision !== await readNoticeRevision()) return null;
-    if (readNoticeBinding !== null) {
-      const binding = await readNoticeBinding();
-      if (typeof binding !== 'string' || consent.receipt?.binding !== binding) return null;
-    }
+    if (!consent?.enabled || !await noticeMatches(consent)) return null;
     // These trusted core adapters read current exclusion/ACL/member metadata, never case content.
     const context = await inspectContext(event), member = await inspectMember(event);
     if (!context?.eligible || !member?.eligible || context.audienceHash !== qualification.audience_sha256 ||
@@ -37,6 +43,17 @@ export function createAiAdmission({ pool, guildId, ingress, inspectContext, insp
       !Number.isSafeInteger(member.presenceEpoch) || !Number.isSafeInteger(member.accessEpoch) ||
       typeof context.continuity !== 'string' || context.continuity.length === 0 || typeof context.messageRevision !== 'string' ||
       member.presenceEpoch !== Number(consent.presence_epoch)) return null;
+    // Revalidation runs without the admission write lock. Do not return versions read before slow external observations.
+    const latest = (await client.query(`SELECT s.epoch AS control_epoch,s.disabled,q.boundary_epoch,q.active,q.restore_ready,
+      c.epoch AS consent_epoch,c.enabled,c.presence_epoch FROM sophie_ai.state s
+      JOIN sophie_ai.qualifications q ON q.guild_id=s.guild_id AND q.channel_id=$2
+      JOIN sophie_ai.consents c ON c.guild_id=s.guild_id AND c.channel_id=q.channel_id AND c.user_id=$3
+      WHERE s.guild_id=$1`, [guildId,event.channelId,event.userId])).rows[0];
+    if (!latest || latest.disabled || !latest.active || !latest.restore_ready || !latest.enabled ||
+      Number(latest.control_epoch) !== Number(state.epoch) || Number(latest.boundary_epoch) !== Number(qualification.boundary_epoch) ||
+      Number(latest.consent_epoch) !== Number(consent.epoch) || Number(latest.presence_epoch) !== Number(consent.presence_epoch)) return null;
+    // Metadata and presence reads may outlive approval or a notice change.
+    if (!await noticeMatches(consent) || !await privacyCurrent(event.userId,client===pool?null:client) || version !== generation) return null;
     const now = clock();
     if ([context, member].some(value => !Number.isSafeInteger(value.checkedAt) || value.checkedAt > now || now - value.checkedAt > 5000)) return null;
     return { config, character, profile: channel.profile, deadline: event.receivedAt + config.deadlineMs,
@@ -48,19 +65,22 @@ export function createAiAdmission({ pool, guildId, ingress, inspectContext, insp
         workerDomain: qualification.worker_domain, releaseHash: qualification.release_sha256, restricted: qualification.restricted } };
   }
   return Object.freeze({
+    invalidate() { generation++; },
     async admit(proof) {
       if (proof === null) return null;
+      const version = generation;
       try {
         const event = ingress.inspect(proof);
         if (event.kind !== 'MESSAGE_CREATE') return null;
         return await inTransaction(pool, async client => {
           await client.query('SELECT pg_advisory_xact_lock(182745,56)');
-          const initial = await snapshot(client, event);
-          if (!initial || clock() >= initial.deadline - 1000) return null;
           const duplicate = await client.query('SELECT 1 FROM sophie_ai.request_receipts WHERE guild_id=$1 AND message_id=$2', [guildId, event.messageId]);
           if (duplicate.rowCount) return null;
+          if ((await client.query('SELECT 1 FROM sophie_ai.request_tombstones WHERE guild_id=$1 AND message_hash=$2',[guildId,aiReceiptHash(guildId,event.messageId)])).rowCount) return null;
+          const initial = await snapshot(client, event);
+          if (!initial || version !== generation || clock() >= initial.deadline - 1000) return null;
           const content = ingress.content(proof); if (content === null) return null;
-          const decision = participationDecision(initial.profile, { addressed: content.addressed, question: questionCandidate(content.text), directedToOther: content.directedToOther, now: clock() });
+          const decision = participationDecision(initial.profile, { addressed: content.addressed, question: content.question, directedToOther: content.directedToOther, now: clock() });
           decision.outcomes = decision.outcomes.filter(kind => kind === 'silent' || initial.capabilities[kind]);
           const inputRevision = aiDigest([event.messageId, content.inputRevision]);
           if (inputRevision !== initial.binding.inputRevision) return null;
@@ -116,6 +136,7 @@ export function createAiAdmission({ pool, guildId, ingress, inspectContext, insp
       } finally { ingress.discard(proof); }
     },
     async replaceGather(proof, previous) {
+      const version = generation;
       try {
         const edited = ingress.inspect(proof);
         if (edited.kind !== 'MESSAGE_UPDATE' || !previous.gather || edited.messageId!==previous.messageId ||
@@ -127,9 +148,9 @@ export function createAiAdmission({ pool, guildId, ingress, inspectContext, insp
           const root=rows.find(row=>row.message_id===previous.gather.rootId),prior=rows.find(row=>row.message_id===previous.messageId);
           if (!root || root.state!=='gathering' || root.gather_owner!==gatherOwner || !prior || prior.input_revision!==previous.inputRevision ||
             clock()>=root.gather_until.getTime() || clock()>=root.gather_quiet_until.getTime()) return null;
-          const initial=await snapshot(client,event);if(!initial || initial.profile.mode!=='conversational')return null;
+          const initial=await snapshot(client,event);if(!initial || version!==generation || initial.profile.mode!=='conversational')return null;
           const content=ingress.content(proof);if(!content)return null;
-          const decision=participationDecision(initial.profile,{addressed:content.addressed,question:questionCandidate(content.text),directedToOther:content.directedToOther,now:clock()});
+          const decision=participationDecision(initial.profile,{addressed:content.addressed,question:content.question,directedToOther:content.directedToOther,now:clock()});
           decision.outcomes=decision.outcomes.filter(kind=>kind==='silent' || initial.capabilities[kind]);
           const {inputRevision:_revision,...scope}=initial.binding;
           if(aiDigest({scope,target:content.conversationTarget,decision})!==root.gather_scope)return null;

@@ -91,6 +91,22 @@ export async function runGatewaySuite(cluster, run) {
     await observer.pause(connection); assert.equal(await observer.readAiContinuity(), null);
   });
 
+  await scenario('DS08-D06 first observed removal durably requests AI cleanup and duplicate dispatch cannot replay it',async()=>{
+    await boot();await authority.observeWithPresence(await discord.roles.observeActor(USER),policy.version);
+    const raw=gatewayEvent(++sequence,'GUILD_MEMBER_REMOVE',{guild_id:GUILD,user:{id:USER}});
+    await observer.accept(connection,raw);await observer.accept(connection,raw);
+    assert.equal((await read('actor_authority')).find(row=>row.user_id===USER).ai_departure_epoch,'1');
+    await send('GUILD_MEMBER_ADD',{guild_id:GUILD,user:{id:USER},roles:[CREW]});
+    assert.equal((await read('actor_authority')).find(row=>row.user_id===USER).ai_cleanup_epoch,'0');
+  });
+  await scenario('DS08-D10 confirmed REST absence queues cleanup once without treating repeat observations as new departures',async()=>{
+    await boot();await authority.observeWithPresence(await discord.roles.observeActor(USER),policy.version);
+    discord.state.members.delete(USER);
+    await authority.observeWithPresence(await discord.roles.observeActor(USER),policy.version);
+    await authority.observeWithPresence(await discord.roles.observeActor(USER),policy.version);
+    const row=(await read('actor_authority')).find(row=>row.user_id===USER);assert.equal(row.ai_departure_epoch,'1');assert.equal(row.ai_cleanup_epoch,'0');
+  });
+
   await scenario('G02 Whitelist loss revokes old progress atomically and duplicate dispatch does not replay it', async () => {
     await boot(); discord.state.members.get(USER).push(WHITELIST);
     await memberEvent(discord.state.members.get(USER));

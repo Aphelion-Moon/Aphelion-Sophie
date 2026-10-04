@@ -157,7 +157,7 @@ export function createDashboardAuthHttpServer({ configuration, auth, authorizati
         'INVALID_CASE_REPLY', 'CASE_REPLY_INPUT_INVALID', 'CASE_REPLY_CONFIRMATION_REQUIRED', 'CASE_REPLY_REQUEST_INVALID', 'CASE_REPLY_CURSOR_INVALID'].includes(error.code);
       const limited = error instanceof ContractError && error.code === 'CASE_REPLY_LIMIT';
       const knowledgeUnavailable = error instanceof ContractError && (/^WIKI_[A-Z_]+$/u.test(error.code) ||
-        ['AI_PREFERENCE_JOURNAL_UNAVAILABLE','KNOWLEDGE_IMPORT_UNAVAILABLE','KNOWLEDGE_IMPORT_FAILED','KNOWLEDGE_IMPORT_BUSY','KNOWLEDGE_IMPORT_STALE','KNOWLEDGE_IMPORT_CAPACITY','KNOWLEDGE_IMPORT_CORRUPT','KNOWLEDGE_IMPORT_INVALID','KNOWLEDGE_EXTRACTOR_CHANGED'].includes(error.code));
+        ['AI_DELETION_PENDING','AI_PREFERENCE_JOURNAL_UNAVAILABLE','KNOWLEDGE_IMPORT_UNAVAILABLE','KNOWLEDGE_IMPORT_FAILED','KNOWLEDGE_IMPORT_BUSY','KNOWLEDGE_IMPORT_STALE','KNOWLEDGE_IMPORT_CAPACITY','KNOWLEDGE_IMPORT_CORRUPT','KNOWLEDGE_IMPORT_INVALID','KNOWLEDGE_EXTRACTOR_CHANGED'].includes(error.code));
       if (!denied && !conflict && !missing && !invalid && !limited && !knowledgeUnavailable) fault();
       if (!response.headersSent && !response.destroyed) send(response, denied ? 403 : limited ? 429 : conflict ? 409 : missing ? 404 : invalid ? 400 : 503,
         { error: denied ? 'Sign-in or request could not be verified.' : limited ? 'Reply queue or cooldown limit reached. Retry later using the same request.' : conflict ? 'This configuration changed. Reload and review it again.' :

@@ -1,5 +1,136 @@
 # Verification and release limits
 
+## Departure deletion, consent navigation and request preparation — 4 October 2026
+
+The schema066 candidate deletes member-specific AI data on confirmed departure by default.
+A separate, explicitly saved retention setting defaults to false. Core records departure and
+cleanup epochs atomically with observed membership revocation; the AI control identity performs
+cleanup without receiving core/case access. Cleanup runs independently of inference, retries after
+failure and fences rejoin writes until it finishes. Retention preserves saved preferences, consent
+history and completed activity records while disabling active consent and pending processing.
+
+The independent preference journal protects the retention choice and deletion against an older
+consistent database restore. Normal journal writes and privacy reads use the same AI transaction
+lock, avoiding false restore detection between fsync and commit. Deletion removes consent and
+resolved activity records, retains minimal deletion/replay fences, and preserves aggregate spending.
+Unsent reservations are released; uncertain spending and unresolved Discord effects remain pending.
+Dependency cleanup includes effects owned by other requesters. Those obligations are not a passed
+deletion and may need operator resolution. A missing core authority row in an inconsistent selective
+restore/import is a reported failure; this pass does not qualify selective recovery or fabricate
+authority. Journal outage, capacity and qualification expiry hold processing and affected cleanup.
+
+Consent navigation now uses bounded 100-row pages and exact self-only channel lookup. Historical
+choices no longer hide newer ones; opt-in uses the current channel epoch even when it is not loaded.
+Withdrawing an absent choice creates no row or global invalidation. DeepSeek preparation reuses its
+accepted serialized request for byte accounting and dispatch, removing a duplicate serialization
+without changing provider inputs or privacy checks. No new end-to-end latency claim is made.
+
+Validation: 90 focused preference/provider/IPC/turn/observation tests and 92 isolated AI/database
+scenarios passed, including Gateway/REST departure, restart, retained/default choices, consistent
+restore, journal/commit concurrency, replay denial, cross-member dependencies and spending holds.
+The composed staging run passed 20 scenarios, including administration with an unavailable AI lane;
+later cleanup-query changes were covered by the final AI/database run. All owned database clusters
+stopped. Synthetic browser checks exercised 203 choices, off-page opt-in, withdrawal during provider
+outage, and saving retention on/off. The browser used actual assets with a synthetic API, not Discord
+or the installed service. Source conventions checked 554 files. Workplan generation and diff checks
+passed. Source-bound evidence and screenshots:
+`GitHub/.agent_docs/aphelion-sophie/dispatch-iteration-2026-10-04/verification.json`.
+
+No dependency or installed permission change occurred. Deployment needs schema066, AI-control
+SELECT/INSERT on `request_tombstones`, SELECT/INSERT/DELETE on `effect_erasure`, and DELETE on
+`consents` and `request_receipts` in addition to existing AI-control grants. Core retains its existing
+no-DELETE/no-AI-schema boundary. Only isolated test roles received the test grants. Review the matching
+notice/retention annex and requalify the changed source and worker before activation. Provider
+commitments, real-member/Discord acceptance and separately authorized deployment remain open;
+free-form redaction still does not establish anonymity or EU compliance.
+
+## AI privacy checks across asynchronous work — 4 October 2026
+
+AI invalidation now fences pending metadata reads, one-use member observations and
+admissions. A read started before a clear cannot repopulate the metadata cache, and
+an older admission cannot refill cleared temporary memory. Exclusions registered
+during authority, automation, source or emoji lookups deny the affected context or
+reaction. Checks also reject expired observations and clock rollback.
+
+Admission now reads approval, notice revision and consent binding together, before
+and after asynchronous metadata. A final database version check rejects consent,
+control or qualification changes during those reads. Invalidation also fences the
+last notice lookup before message-body access. Remote notices without a binding
+cannot offer or save opt-in. Duplicate receipts stop before repeating approval and
+Discord metadata work. Two coherent notice reads replace three separate
+approval-dependent reads per eligible snapshot; this is a call-count improvement,
+not a measured end-to-end latency result.
+
+Validation: 68 focused observation/turn/installation/runtime tests, 81 isolated
+AI/database scenarios and 20 composed staging scenarios passed. Both synthetic
+database clusters stopped. Four race regressions failed before the changes and
+pass after them. The composed tests include administrative operation with an
+unavailable AI lane; they do not establish live Discord or provider acceptance.
+Final source and evidence hashes are recorded in
+`GitHub/.agent_docs/aphelion-sophie/privacy-iteration-2026-10-04/verification.json`.
+Earlier redaction and synthetic performance measurements below retain their own
+source bindings; they were not measured again in this iteration.
+
+The review also identified a remaining product boundary: dashboard withdrawal and
+export currently require guild membership. A departed-member route or operator-led
+process must be settled alongside the notice and provider commitments. No new
+authentication or permission route was introduced in this pass. Source inspection
+of this limitation is distinct from runtime verification of a replacement flow.
+
+Redaction remains best effort and does not establish anonymity or EU compliance.
+Provider commitments, reviewed notices/publications, deployment and renewed worker
+qualification remain separate gates. No dependency, schema, installed permission,
+live-service or activation change occurred. Last installed observations remain the
+30 September record.
+
+## AI memory redaction and context performance — 4 October 2026
+
+The owner selected free-form chat with identifier redaction and retained privacy
+gates. Eligible message creates/edits now mask metadata-derived names and common
+direct identifiers before temporary memory creation. Confirmed assistant memory is
+also redacted. DeepSeek preparation independently redacts every outgoing free-text
+block, including old history, examples and published source text. Unsafe citation
+and emoji keys are rejected before a request. No reverse name map is retained.
+
+The provider-visible channel pseudonym now uses a private random key per worker,
+instead of the API key known to the provider. Same-worker grouping remains for
+cache use; new workers do not reuse that pseudonym. Local core/worker metadata still
+contains IDs needed by the existing boundary contracts; those fields are absent
+from the provider HTTP body. Profile schema2 binds the new policies and requires
+fresh qualification when deployed. Source publications and accepted notices are
+not rewritten by redaction.
+
+History retrieval now rechecks every selected record after all asynchronous source
+authorizations. An earlier source deleted, replaced, expired or evicted during a
+later authorization causes that retrieval to return no history. The regression
+failed on the original source and passes after the fix. Context insertion now
+computes each immutable record's serialized byte count once, including UTF-8 and
+reply dependencies, while preserving the 12-item, 64-KiB and five-minute bounds.
+
+All 100 focused context/provider/worker tests and 79 isolated AI/storage/knowledge/
+Gateway scenarios pass; the synthetic PostgreSQL cluster is stopped. These include
+exclusion before message/identity-alias access, creates/edits, captured HTTP bodies,
+old unsanitized context, private partition rotation, current consent and cancellation.
+Question detection uses the original eligible text so common-word names cannot
+silently change the trigger. A bounded token scan avoids repeatedly rescanning
+long malformed email/domain inputs.
+
+A synthetic benchmark of 3,000 inserts across 100 lanes, using five samples after
+two warmups, measured 112.06 ms median before and 54.76 ms with the final redaction
+path (about 51% lower). Maximum-size redaction/nonmatch cases measured 0.02–0.56 ms
+median. Timers were stubbed in the context benchmark; these results do not measure
+provider, database, Discord or end-to-end latency. Source hashes and full results are in
+`GitHub/.agent_docs/aphelion-sophie/memory-2026-10-04/verification.json`.
+
+Redaction is best effort: unknown names, obfuscated identifiers and identifying
+personal facts can remain; common-word names and identifier-like numbers can also
+be over-redacted. It does not establish anonymity or EU compliance. Existing
+provider, exact-notice consent, publication and qualification gates remain in force.
+Explicit saved preferences stay local; automatic long-term extraction remains off.
+No dependency, schema, permission, live-service or activation change was made.
+Full release and real-provider/Discord acceptance were not run. Last installed
+staging observations remain the 30 September record; this pass did not refresh them.
+
 ## Draft agreements and exact consent support — 30 September 2026
 
 The source candidate adds schema065 with a nullable latest-acceptance receipt on existing consent

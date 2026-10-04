@@ -10,7 +10,7 @@ const personal = window.location.pathname === '/ai-preferences';
 const names = { ignore: 'Ignore', addressed: 'Mentions and replies only', questions: 'Answer supported questions', reactive: 'Read and react; speak when asked', conversational: 'Join the conversation' };
 let phase = 'loading', busy = false, dirty = false, pending = null, pendingRequestId = null, session = null;
 let configuration = { schemaVersion: 1, enabled: false, deadlineMs: 15000, channels: [], emojis: [] }, character = structuredClone(DRAFT_PERSONALITY);
-let configurationRevision = 0, personalityRevision = 0, consentRows = [], noticeRevision = 1, noticeBinding = null;
+let configurationRevision = 0, personalityRevision = 0, consentRows = [], consentNext = null, noticeRevision = 1, noticeBinding = null;
 let budget = { ...DEFAULT_AI_BUDGET }, budgetRevision = 0;
 let workerRevision=0,workerStopRequest=null;
 let diagnosticTimer=null,diagnosticGeneration=0;
@@ -24,7 +24,8 @@ function changed() { dirty = true; pending = null; pendingRequestId = null; if (
 function clear() {
   clearDiagnostic();el('diagnostic-channel')?.replaceChildren();
   preferences?.clear();
-  el('workspace').hidden = true; changed(); consentRows = []; configuration.channels = []; configuration.emojis = []; character = { core: '', examples: [] };
+  el('workspace').hidden = true; changed(); consentRows = []; consentNext = null; configuration.channels = []; configuration.emojis = []; character = { core: '', examples: [] };
+  if (el('more-consents')) el('more-consents').hidden = true;
   for (const id of ['channels', 'emojis', 'examples', 'consents', 'unresolved-spending','worker-release']) el(id)?.replaceChildren();
   for (const id of ['character-core', 'consent-channel']) if (el(id)) el(id).value = '';
   for (const id of ['monthly-budget', 'price-valid-until', 'hold-evidence']) if (el(id)) el(id).value = '';
@@ -90,8 +91,11 @@ function examples() {
     const remove = document.createElement('button'); remove.textContent = 'Remove example'; remove.addEventListener('click', () => { character.examples.splice(index, 1); changed(); examples(); }); box.append(remove); el('examples').append(box);
   });
 }
-async function consents() {
-  const current = await api.aiConsents(); consentRows = current.channels; noticeRevision = current.noticeRevision; el('consents').replaceChildren();
+async function consents(append = false) {
+  const current = await api.aiConsents(append ? { afterChannelId: consentNext } : {});
+  consentRows = append ? [...consentRows, ...current.channels] : current.channels;
+  consentNext = current.nextAfterChannelId; el('more-consents').hidden = consentNext === null;
+  noticeRevision = current.noticeRevision; el('consents').replaceChildren();
   noticeBinding = current.noticeBinding ?? null; el('accept-notice').checked = false;
   if(el('processing-notice'))el('processing-notice').textContent=current.noticeText??'AI processing is awaiting operator review.';
   if(el('consent-notice'))el('consent-notice').textContent=current.optInAvailable===true
@@ -174,9 +178,11 @@ async function review(kind) {
 }
 el('retry').addEventListener('click', () => perform(load));
 el('logout').addEventListener('click', () => perform(async () => { await api.logout(); clear(); phase = 'denied'; }));
+if (personal) el('more-consents').addEventListener('click', () => perform(async () => { if (consentNext !== null) await consents(true); }));
 if (personal) el('opt-in').addEventListener('click', () => perform(async () => {
   if (!el('accept-notice').checked) { notice('Read and accept the processing notice first.'); return; }
-  const channelId = el('consent-channel').value.trim(); await api.aiConsent({ channelId, enabled: true, expectedEpoch: consentRows.find(row => row.channelId === channelId)?.epoch ?? 0, acceptedNoticeRevision: noticeRevision, acceptedNoticeBinding: noticeBinding });
+  const channelId = el('consent-channel').value.trim(), current = await api.aiConsents({ channelId });
+  await api.aiConsent({ channelId, enabled: true, expectedEpoch: current.channels.find(row => row.channelId === channelId)?.epoch ?? 0, acceptedNoticeRevision: noticeRevision, acceptedNoticeBinding: noticeBinding });
   el('accept-notice').checked = false; await consents(); notice('Your channel choice was saved. Processing still requires an active qualified channel.');
 }));
 else {

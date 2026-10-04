@@ -1,6 +1,6 @@
 {
   "schema_version": 2,
-  "revision": "2026-09-30-consent-support",
+  "revision": "2026-10-04-departure-privacy",
   "reference_plan_version": "1.1",
   "source": "Sophie-Implementation-Plans-v1.1/backlog.json",
   "owner_decisions": "docs/decisions/0001-owner-policy.md",
@@ -1337,9 +1337,9 @@
   ],
   "checkpoint": {
     "summary": "Deterministic administration, Whitelist onboarding, protected editors, role/permission configuration and the configurable staging host are implemented.",
-    "recorded_baseline": "AI handoff 0fa7a5ed538ff791e3def2c1f6ac7683531e15a1 plus preserved uncommitted Flash candidate; synthetic schema058 candidate. No live schema change.",
-    "current_work": "Prepared draft privacy notice, per-channel voluntary consent and proposed provider processor agreement for the identified Netherlands operator. Source candidate schema065 preserves exact latest consent snapshots and private export, permits withdrawal during approval outage, binds remote admission/delivery to the current notice and evidence, and rejects legacy/draft processing approvals. Installed staging remains source7a152ca/schema064, worker stopped and processing unapproved.",
-    "evidence_note": "14 focused installation/policy/preference HTTP tests and79 isolated AI/storage/knowledge/Gateway scenarios passed; isolated cluster stopped. Repository module checks passed. Source-bound evidence: GitHub/.agent_docs/aphelion-sophie/consent-support-verification-2026-09-30.json. DOCX text/structure checked; rendering unavailable, no visual QA. No new deployment or real provider processing."
+    "recorded_baseline": "Source ce46b9f plus local schema066 candidate. Last recorded installed staging remains source7a152ca/schema064 on 30 September; no live inspection or deployment in this pass.",
+    "current_work": "Schema066 records confirmed departure and cleanup epochs in core authority and adds a default-off retention choice protected by the independent journal. AI cleanup is durable, bounded and independent of inference; deleted preferences/consents/resolved activity cannot silently return from an older consistent restore. Cross-member effects and uncertain costs remain pending until resolved. Retention never restores active consent. Consent pages/exact lookup expose every historical choice; absent withdrawals are no-ops. Accepted DeepSeek request serialization is reused for byte accounting and dispatch. Local candidate only. Qualify schema066 and narrow AI-control grants, journal health/capacity, matching notice and retention annex, and changed worker source. Unknown effects/charges require resolution before deletion completes. Selective/inconsistent restores are not qualified. Provider commitments, live Discord/member acceptance and deployment remain separate gates; free-form redaction is best effort.",
+    "evidence_note": "90 focused unit checks, 92 isolated AI/database scenarios, 20 composed staging scenarios, synthetic browser pagination/withdrawal/retention checks, and 554 source checks passed; owned clusters and preview stopped. Final cleanup queries are covered by the final AI/database run. Source-bound evidence: GitHub/.agent_docs/aphelion-sophie/dispatch-iteration-2026-10-04/verification.json. No new end-to-end performance measurement."
   },
   "milestones": [
     {
@@ -2645,6 +2645,36 @@
       "implemented": "Prepared draft privacy notice, per-channel voluntary consent and proposed provider processor agreement for the identified Netherlands operator. Source candidate schema065 preserves exact latest consent snapshots and private export, permits withdrawal during approval outage, binds remote admission/delivery to the current notice and evidence, and rejects legacy/draft processing approvals. Installed staging remains source7a152ca/schema064, worker stopped and processing unapproved.",
       "evidence": "14 focused installation/policy/preference HTTP tests and79 isolated AI/storage/knowledge/Gateway scenarios passed; isolated cluster stopped. Repository module checks passed. Source-bound evidence: GitHub/.agent_docs/aphelion-sophie/consent-support-verification-2026-09-30.json. DOCX text/structure checked; rendering unavailable, no visual QA. No new deployment or real provider processing.",
       "remaining": "Obtain actual provider commitments and transfer/retention evidence; finish factual retention, eligibility and provider annexes before notice publication. Review final notice and operator publications, approve deployment of schema065/source separately, then complete existing worker and Discord acceptance gates. Draft documents and hashes are not legal clearance."
+    },
+    {
+      "title": "AI memory and DeepSeek identifier redaction",
+      "tasks": [
+        "P23",
+        "P25"
+      ],
+      "implemented": "Owner-selected free-form chat with local identifier redaction before temporary memory and independently at DeepSeek egress. Current metadata names, common structured identifiers and unsafe structural keys are handled; the original eligible question trigger is preserved. Private per-worker channel pseudonyms replace provider-key-derived values. Context retrieval rejects stale earlier records after async authorization and serializes each record once for byte accounting.",
+      "evidence": "100 focused context/provider/worker checks and 79 isolated AI/storage/knowledge/Gateway scenarios pass; cluster stopped. Synthetic 3,000-insert/100-lane median improved from 112.06 to 54.76 ms, including redaction. Maximum-size redaction/nonmatch medians were 0.02–0.56 ms. These are local synthetic measurements, not provider or end-to-end timing. Evidence: GitHub/.agent_docs/aphelion-sophie/memory-2026-10-04/verification.json.",
+      "remaining": "Free text can still identify people, and conservative masking can also remove ordinary words/numbers. Redaction is not proof of anonymity or EU compliance. Existing processing, consent, publication and worker gates remain; the changed profile needs separately authorized staging renewal/qualification. Explicit preferences remain local; no new persistent memory category or automatic extraction."
+    },
+    {
+      "title": "AI privacy checks fenced across asynchronous work",
+      "tasks": [
+        "P23",
+        "P25"
+      ],
+      "implemented": "Invalidation fences pending metadata, member observations and admissions so cleared context cannot be refilled by older work. New exclusions are checked around authority, automation, source and reaction lookups. Admission uses coherent approved notice/revision/binding checks before and after metadata, rejects unbound remote notices, and verifies current consent/control/qualification versions after slow reads. Duplicate receipts stop before repeating approval or Discord metadata work.",
+      "evidence": "68 focused observation/turn/installation/runtime tests, 81 isolated AI/database scenarios and 20 composed staging scenarios passed; synthetic clusters stopped. Four race regressions failed before the fixes. Two coherent notice reads replace three separate approval-dependent reads per eligible snapshot; no new end-to-end latency measurement. Source-bound evidence: GitHub/.agent_docs/aphelion-sophie/privacy-iteration-2026-10-04/verification.json.",
+      "remaining": "Free-form redaction remains best effort. Provider commitments, reviewed notices/publications, deployment and worker/Discord acceptance remain separate gates. Current dashboard privacy controls require guild membership; a departed-member withdrawal/export route or operator-led process remains to be settled. No live configuration, permission, schema or activation change."
+    },
+    {
+      "title": "AI data deletion on departure, explicit retention and complete consent navigation",
+      "tasks": [
+        "P23",
+        "P25"
+      ],
+      "implemented": "Schema066 records confirmed departure and cleanup epochs in core authority and adds a default-off retention choice protected by the independent journal. AI cleanup is durable, bounded and independent of inference; deleted preferences/consents/resolved activity cannot silently return from an older consistent restore. Cross-member effects and uncertain costs remain pending until resolved. Retention never restores active consent. Consent pages/exact lookup expose every historical choice; absent withdrawals are no-ops. Accepted DeepSeek request serialization is reused for byte accounting and dispatch.",
+      "evidence": "90 focused unit checks, 92 isolated AI/database scenarios, 20 composed staging scenarios, synthetic browser pagination/withdrawal/retention checks, and 554 source checks passed; owned clusters and preview stopped. Final cleanup queries are covered by the final AI/database run. Source-bound evidence: GitHub/.agent_docs/aphelion-sophie/dispatch-iteration-2026-10-04/verification.json. No new end-to-end performance measurement.",
+      "remaining": "Local candidate only. Qualify schema066 and narrow AI-control grants, journal health/capacity, matching notice and retention annex, and changed worker source. Unknown effects/charges require resolution before deletion completes. Selective/inconsistent restores are not qualified. Provider commitments, live Discord/member acceptance and deployment remain separate gates; free-form redaction is best effort."
     }
   ],
   "next_steps": [
@@ -2660,7 +2690,7 @@
         "P25",
         "P32"
       ],
-      "work": "Repair7a152ca is installed; no repeat deployment/migration is needed. EU-based operator needs suitable API processor and transfer/retention commitments; provider-eu-enquiry-2026-09-30.json is prepared but unsent. Owner reviews actual publications and exact public channel. Worker boot/file/network/physical-stop qualification precedes member activation; DS-01 and individual consent remain enforced.",
+      "work": "Review provider commitments and exact notices, including default deletion on departure and explicit retention. Separately authorize schema066/source deployment with narrow AI-control grants and renew independent-journal/worker qualification. Exercise real Discord departure, rejoin, cleanup and provider acceptance before activation. Existing installed observations remain the 30 September record.",
       "exit_evidence": "Build-bound installed identity/ACL/network and synthetic boot/transport/stop results; effective operator permissions and accessible dashboard. Real-member AI acceptance and reviewed knowledge answers remain explicit open gates."
     },
     {
@@ -2761,20 +2791,20 @@
       {
         "id": "DS-01",
         "title": "Provider and data-use clearance",
-        "implementation": "Draft agreement/disclosure packet and schema2 protected processing evidence support; exact notice-bound consent receipts, export and outage-safe withdrawal implemented locally.",
-        "qualification": "14 focused tests and79 isolated AI scenarios passed; no provider acceptance, legal clearance or live migration established.",
+        "implementation": "Draft agreement/disclosure packet and schema2 protected processing evidence support; exact notice-bound consent receipts, export and outage-safe withdrawal implemented locally. Coherent notice checks now fence asynchronous metadata and control changes; unbound remote notices cannot offer or save opt-in. Consent navigation is paged with exact self-only lookup, and departure cleanup/restore holds block new consent and processing.",
+        "qualification": "4 October schema066 candidate: 90 focused unit checks, 92 AI/database scenarios and 20 composed staging scenarios passed, plus synthetic browser checks. No legal/provider clearance or live migration established.",
         "sai": [
           "SAI-00",
           "SAI-12",
           "SAI-14"
         ],
-        "remaining": "Obtain actual provider commitments and transfer/retention evidence; finish factual retention, eligibility and provider annexes before notice publication. Review final notice and operator publications, approve deployment of schema065/source separately, then complete existing worker and Discord acceptance gates. Draft documents and hashes are not legal clearance."
+        "remaining": "Obtain actual provider commitments and transfer/retention evidence; finish factual retention, eligibility and provider annexes before notice publication. Review final notice and operator publications, approve deployment of schema065/source separately, then complete existing worker and Discord acceptance gates. Draft documents and hashes are not legal clearance. Match the notice and retention annex to default AI-data deletion on departure; retained-data requests still use the existing operator contact route."
       },
       {
         "id": "DS-02",
         "title": "Prepared-turn contract",
-        "implementation": "Immutable bounded outbound preparation with per-boot keyed ephemeral block comparison, source-bound expiry/invalidation and authenticated public-channel diagnostic inspection",
-        "qualification": "77 focused checks, 76 isolated AI/knowledge/Gateway scenarios and 19 composed staging scenarios pass; both disposable clusters stopped. Synthetic browser display and expiry verified.",
+        "implementation": "Immutable bounded outbound preparation with independently redacted free text, unsafe structural-key rejection, private per-worker channel pseudonyms and keyed ephemeral diagnostic comparison. Profile schema2 binds redaction and cache-partition policy.",
+        "qualification": "4 October: final HTTP-body capture, worker partition rotation, budget/consent cancellation and 100 focused worker/context/provider checks pass; 79 isolated AI/database scenarios pass. Earlier browser/composed-staging evidence is historical. No live provider or cache requalification.",
         "sai": [
           "SAI-01",
           "SAI-03",
@@ -2844,14 +2874,14 @@
       {
         "id": "DS-08",
         "title": "Assistant context and explicit memory",
-        "implementation": "Local self-service preferences with independent journal, epoch/quarantine, authenticated export/deletion/expiry and fixed installed journal path; no automatic runtime provisioning or remote preference use.",
-        "qualification": "28 focused unit checks, 62 isolated AI/knowledge scenarios, 18 composed staging scenarios; synthetic browser save/edit/delete verified; actual browser JSON attachment file verified, with 14 focused preference/HTTP/auth/dashboard checks",
+        "implementation": "Local self-service preferences with independent journal, epoch/quarantine, authenticated export/deletion/expiry; remote preference use remains off. Temporary context now redacts common identifiers and eligible identity aliases, preserves original question detection, rejects async invalidation races and uses cached byte counts. Pending metadata and admissions are fenced against invalidation; context cannot be refilled by an older admission. Departure now deletes personal AI data by default; explicit saved retention preserves local data without reenrolling the member. Durable cleanup and journal fences cover restart, rejoin, restore, dependent effects and unresolved spending. Minimal deletion/replay markers remain after erasure.",
+        "qualification": "4 October departure candidate: 90 focused checks, 92 isolated AI/database scenarios, 20 staging scenarios and synthetic browser checks passed. Prior source-bound redaction/context timings remain historical; no new latency or anonymity claim.",
         "sai": [
           "SAI-02",
           "SAI-10",
           "SAI-11"
         ],
-        "remaining": "Independent journal explicitly provisioned with protected core-only ACL and installed receipt30September. Journal evidence expires independently of renewed installation trust. Actual worker open denial, remote preference and named restricted-context acceptance remain separately gated."
+        "remaining": "Independent journal explicitly provisioned with protected core-only ACL and installed receipt30September. Journal evidence expires independently of renewed installation trust. Actual worker open denial, remote preference and named restricted-context acceptance remain separately gated. Qualify schema066 deletion grants, journal health/capacity and actual departure cleanup. Unknown external effects and spending hold erasure pending until resolved; backups/provider copies follow their own reviewed retention."
       },
       {
         "id": "DS-09",

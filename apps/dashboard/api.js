@@ -54,6 +54,7 @@ export function createDashboardApi({ fetch, navigate = path => globalThis.locati
     aiActivate:body=>request('/api/ai/activate',body),
     aiPreferences: () => request('/api/ai/preferences'),
     aiSavePreferences: body => request('/api/ai/save-preferences',body),
+    aiSaveRetention: body => request('/api/ai/save-retention',body),
     aiDeletePreferences: body => request('/api/ai/delete-preferences',body),
     knowledgeLookup: query => request('/api/knowledge/lookup', { query }),
     knowledgeCatalogue: () => request('/api/ai/knowledge'),
@@ -75,7 +76,7 @@ export function createDashboardApi({ fetch, navigate = path => globalThis.locati
     aiResolveSpending: body => request('/api/ai/resolve-spending', body),
     aiReviewSpendingHold: body => request('/api/ai/review-spending-hold', body),
     aiClearSpendingHold: body => request('/api/ai/clear-spending-hold', body),
-    aiConsents: () => request('/api/ai/consents'),
+    aiConsents: (query = {}) => request('/api/ai/consents' + (Object.keys(query).length ? '?' + new URLSearchParams(query) : '')),
     aiConsent: body => request('/api/ai/consent', body),
     async session() {
       let value;

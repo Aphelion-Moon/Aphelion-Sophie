@@ -742,3 +742,44 @@ available during notice/provider outage. Schema2 processing approval requires se
 agreement, Discord service-provider, retention/deletion and transfer evidence. Drafts and legacy
 schema1 approval are insufficient. No automatic notice publication or live migration is authorized by
 this drafting request. The installed source7a152ca/schema064 and prior acceptance gates remain in place.
+
+### Local identifier redaction for DeepSeek — 4 October 2026
+
+The owner clarified that the requested anonymous memory work concerns avoiding transmission of
+personally identifying member data to DeepSeek, rather than autonomous memory extraction. When
+presented with the limits of automated anonymisation, the owner selected: **Keep free-form chat;
+redact identifiers and retain privacy gates.** Local redaction is a minimisation measure, not proof
+that arbitrary messages or resulting memories are anonymous or that EU compliance is established.
+
+Apply bounded local redaction before eligible temporary context is stored, and independently to
+outbound provider text. Preserve local identity for consent, deletion, revocation and delivery.
+Use a private per-worker secret for the provider's channel pseudonym; the provider API key is not
+an appropriate secret for that purpose. Same-worker channel grouping remains intentional for the
+existing cache and audience boundaries. No reverse name map or new personal-text archive is needed.
+
+Existing provider, exact-notice consent, source publication, budget and qualification gates remain.
+Tickets and onboarding stay excluded before content or identity-alias processing. The two explicit
+member preferences remain local and automatic long-term extraction remains off. No new persistent
+memory category, live deployment, migration, processing clearance or worker activation is selected.
+
+### Delete member AI data on departure by default — 4 October 2026
+
+The owner selected: **Delete all data when leaving server unless they specifically choose to retain
+in settings.** In this AI privacy workstream this applies to member-specific AI preferences, channel
+consent and personal activity records. It does not change the permanent human case-record policy.
+The explicit retention setting defaults to false and is protected by the independent preference
+journal. Retaining saved data does not retain temporary context, authorize further processing or
+restore active channel consent after rejoining; existing expiry limits continue to apply.
+
+Record confirmed departures durably with core membership authority, then clean AI data through the
+separate AI control identity. Retries and restarts must preserve pending deletion. An older consistent
+database restore must not restore deleted settings or authorize AI processing. Keep only minimal
+deletion/replay fences after successful erasure; accounting totals may remain without personal
+activity records. Unresolved provider charges and unknown or failed external-effect cleanup remain
+pending until their outcome is resolved, including effects that used the departing member's context
+for another requester. Do not silently discard those obligations or claim immediate erasure from
+backups, Discord copies or the provider.
+
+Schema066, its narrowly scoped AI control grants, independent-journal health, matching notice and
+retention annex, and worker/Discord acceptance require separate deployment qualification. This
+decision authorizes the local implementation, not live migration, privilege changes or activation.

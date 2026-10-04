@@ -17,6 +17,7 @@ function packet(change = {}) { return { t: 'MESSAGE_CREATE', d: { guild_id: '101
 test('SAI AT-02 ingress metadata never touches message content before trusted admission', () => {
   const ingress = createAiIngress({ guildId: '101', botUserId: '505', clock: () => 1000 });
   const raw = packet(); Object.defineProperty(raw.d, 'content', { get() { assert.fail('excluded sentinel must not be read'); } });
+  Object.defineProperty(raw.d.author, 'global_name', { get() { assert.fail('identity aliases must not be read before admission'); } });
   const proof = ingress.prepare(raw); assert.equal(ingress.inspect(proof).channelId, '202'); ingress.discard(proof);
   assert.throws(() => ingress.content(proof), /AI_EVENT_UNTRUSTED/);
   assert.equal(ingress.prepare(packet({ author: { id: '404', bot: true } })), null);
@@ -29,6 +30,32 @@ test('SAI AT-02 forwards, attachments and cross-channel replies cannot expand mo
     { content: 'https://discord.com/channels/101/999/888' }]) assert.equal(ingress.content(ingress.prepare(packet(change))), null);
   const embedded = { author: { id: '505' } }; Object.defineProperty(embedded, 'content', { get() { assert.fail('quoted text must not be read'); } });
   assert.equal(ingress.content(ingress.prepare(packet({ type: 19, message_reference: { channel_id: '202' }, referenced_message: embedded }))).addressed, true);
+});
+
+test('DS-08 eligible creates and edits redact metadata names and identifiers before temporary memory', () => {
+  const ingress = createAiIngress({ guildId: '101', botUserId: '505', clock: () => 1000 });
+  for (const type of ['MESSAGE_CREATE', 'MESSAGE_UPDATE']) {
+    const raw = packet({ author: { id: '404', bot: false, username: 'synthetic_alice', global_name: 'Alice Example' }, member: { nick: 'Ali Example' },
+      mentions: [{ id: '505', username: 'Sophie' }, { id: '606', global_name: 'Bob Example' }], attachments: [],
+      edited_timestamp: '2026-10-04T12:00:00Z',
+      content: '<@505> Alice Example (Ali Example / synthetic_alice) told Bob Example: alice@example.invalid, +31 6 1234 5678' });
+    raw.t = type;
+    const proof = ingress.prepare(raw), value = ingress.content(proof);
+    assert.equal(value.addressed, true); assert.equal(value.directedToOther, true);
+    assert.equal(ingress.inspect(proof).userId, '404', 'current consent and deletion identity remains local');
+    for (const name of ['Alice Example', 'Ali Example', 'synthetic_alice', 'Bob Example', 'alice@example.invalid', '+31 6 1234 5678', '<@505>'])
+      assert.equal(value.text.includes(name), false, name);
+    ingress.discard(proof);
+  }
+});
+
+test('DS-08 a common-word username cannot change the original message question trigger', () => {
+  const ingress = createAiIngress({ guildId: '101', botUserId: '505', clock: () => 1000 });
+  const proof = ingress.prepare(packet({ author: { id: '404', username: 'help', global_name: 'me' }, content: 'help me' }));
+  const value = ingress.content(proof);
+  assert.equal(value.question, true);
+  assert.equal(value.text, '[member] [member]');
+  ingress.discard(proof);
 });
 
 const request = (fields = {}) => ({ guildId: '101', channelId: '202', userId: '404', messageId: '303', receivedAt: 1000, deadline: 16000,
@@ -91,6 +118,62 @@ test('DS-08 assistant replies share the twelve-item capacity and zero-context re
   context.clear(); assert.equal(context.status().messages, 0);
 });
 
+test('DS-08 temporary memory redacts direct identifiers in member text and confirmed assistant replies', async () => {
+  const context = createAiContext({ clock: () => 2000 });
+  try {
+    const first = request({ text: 'Contact synthetic.member@example.invalid' });
+    context.remember(first);
+    const next = request({ messageId: '999' });
+    const history = await context.history(next, async () => true);
+    context.rememberReply(first, { id: '800', text: 'Phone +31 6 1234 5678 or <@123456789012345678>' }, history, []);
+    const retained = await context.history(next, async () => true);
+    assert.equal(retained[0].text, 'Contact [email]');
+    assert.equal(retained[1].text, 'Phone [phone] or [mention]');
+    context.invalidate({ userId: first.userId }); assert.equal(context.status().messages, 0);
+  } finally { context.clear(); }
+});
+
+test('DS-08 context cannot return an earlier source invalidated while a later source is authorized', async () => {
+  for (const change of ['deleted', 'replaced', 'expired', 'evicted']) {
+    let now = 1000;
+    const context = createAiContext({ clock: () => now }), first = request();
+    const second = request({ messageId: '304', receivedAt: 2000 });
+    context.remember(first); context.remember(second);
+    try {
+      const history = await context.history(request({ messageId: '999' }), async source => {
+        if (source.messageId === second.messageId) {
+          if (change === 'deleted') context.invalidate({ messageId: first.messageId });
+          if (change === 'replaced') context.remember({ ...first, text: 'Corrected synthetic text', inputRevision: 'edited' });
+          if (change === 'expired') now = 301000;
+          if (change === 'evicted') for (let index = 0; index < 11; index++) context.remember(request({ messageId: String(700 + index) }));
+        }
+        return true;
+      });
+      assert.deepEqual(history, [], change);
+    } finally { context.clear(); }
+  }
+});
+
+test('DS-08 context byte limit includes UTF-8 and reply dependencies after replacement and eviction', async () => {
+  const context = createAiContext({ clock: () => 2000 });
+  const next = request({ messageId: '999' });
+  try {
+    for (let index = 0; index < 12; index++) context.remember(request({ messageId: String(700 + index), text: '\u754c'.repeat(4000) }));
+    const history = await context.history(next, async () => true);
+    assert.ok(history.length > 0 && history.length < 12);
+    const bytes = sources => Buffer.byteLength(JSON.stringify(sources.map(source => ({ request: source, expiresAt: source.expiresAt }))), 'utf8');
+    assert.ok(bytes(history) <= 65536);
+    const evicted = { ...history[0], messageId: String(Number(history[0].messageId) - 1) };
+    assert.ok(bytes([evicted, ...history]) > 65536, 'only records needed to meet the byte limit are evicted');
+    context.remember(request({ messageId: '711', text: 'Short replacement' }));
+    context.rememberReply(next, { id: '800', text: '\u754c'.repeat(1600) }, history, []);
+    const updated = await context.history(next, async () => true);
+    assert.equal(updated.filter(source => source.messageId === '711').length, 1);
+    assert.equal(updated.at(-1).kind, 'assistant');
+    assert.ok(bytes(updated) <= 65536);
+  } finally { context.clear(); }
+});
+
 function turnsFixture() {
   let now = 1000, eligible = true; const sent = [], states = [], modelCalls = [];
   const value = request(), output = { kind: 'reply', text: 'Hello!', purpose: 'conversation', support: 'current_conversation', citations: [] };
@@ -99,8 +182,9 @@ function turnsFixture() {
   const scheduler = { submit: async input => { modelCalls.push(input); return { state: 'completed', result: output }; }, cancel() {}, disable() {} };
   const knowledge = { lookup: async () => [], current: async () => true };
   const messages = { reply: async (req, payload) => { sent.push({ req, payload }); return { id: '606' }; }, react: async () => assert.fail('no permitted reaction'), remove: async () => sent.push('removed') };
-  const turns = createAiTurns({ admission, scheduler, context: createAiContext({ clock: () => now }), knowledge, messages, clock: () => now });
-  return { turns, scheduler, admission, knowledge, messages, value, output, sent, states, modelCalls, time: at => { now = at; }, revoke: () => { eligible = false; } };
+  const context = createAiContext({ clock: () => now });
+  const turns = createAiTurns({ admission, scheduler, context, knowledge, messages, clock: () => now });
+  return { turns, scheduler, admission, context, knowledge, messages, value, output, sent, states, modelCalls, time: at => { now = at; }, revoke: () => { eligible = false; } };
 }
 
 const comparison=(digest='a')=>({protocol:'b'.repeat(64),milliseconds:2,blocks:[{kind:'authoring',digest:'c'.repeat(64),bytes:40},{kind:'question',digest:digest.repeat(64),bytes:20}]});
@@ -155,6 +239,17 @@ test('SAI AT-12 one turn delivers one validated reply to the fixed destination',
   assert.equal(f.modelCalls.length, 1); assert.equal(f.sent.length, 1);
   assert.equal(f.sent[0].req.channelId, '202'); assert.equal(f.sent[0].req.deadline, 16000);
   assert.deepEqual(f.sent[0].payload.allowed_mentions.parse, []); assert.deepEqual(f.states, ['delivered']);
+});
+
+test('DS-08 invalidation during admission cannot refill temporary memory or start inference', async () => {
+  for (const infer of [false, true]) {
+    const f = turnsFixture(); f.value.decision.infer = infer;
+    let invalidated=0; f.admission.invalidate=()=>{invalidated++;};
+    let release; f.admission.admit = () => new Promise(resolve => { release = resolve; });
+    const pending = f.turns.handle({}); f.turns.invalidate({ channelId: '202', userId: '404' }); release(f.value);
+    assert.equal((await pending).state, 'cancelled'); assert.equal(f.context.status().messages, 0);
+    assert.equal(f.modelCalls.length, 0); assert.equal(invalidated,1); await f.turns.stop();
+  }
 });
 
 test('DS-06 three compatible fragments freeze into one request with the first deadline and all dependencies', async () => {

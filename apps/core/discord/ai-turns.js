@@ -5,7 +5,7 @@ import { freezeAiMaterial } from '../../knowledge-worker/prompt-contract.js';
 
 /** Core owns delivery. No worker can choose a recipient, target message or operational indicator. */
 export function createAiTurns({ admission, scheduler, context, knowledge, messages, clock, onInvalidate = () => {} }) {
-  const outstanding = new Map(), gatherings = new Map(); let stopped = false;
+  const outstanding = new Map(), gatherings = new Map(); let stopped = false, generation = 0;
   function finishGather(entry) {
     clearTimeout(entry.timer); gatherings.delete(entry.rootId);
     entry.resolve?.(entry.cancelled ? null : [...entry.fragments.values()].sort((a,b)=>a.receivedAt-b.receivedAt || a.messageId.localeCompare(b.messageId)));
@@ -18,7 +18,9 @@ export function createAiTurns({ admission, scheduler, context, knowledge, messag
     return [...gatherings.values()].find(entry=>entry.fragments.has(filter.messageId) && entry.fragments.get(filter.messageId).channelId===filter.channelId);
   }
   function invalidateContext(filter) {
-    context.invalidate(filter);onInvalidate(filter);
+    admission.invalidate?.();context.invalidate(filter);onInvalidate(filter);
+    // Pending admissions have no trusted identity yet; discard them on any invalidation.
+    generation++;
     for(const [id,{request}] of outstanding)if(!filter.channelId || request.channelId===filter.channelId)scheduler.cancel(id);
   }
   async function gather(request) {
@@ -134,8 +136,10 @@ export function createAiTurns({ admission, scheduler, context, knowledge, messag
     },
     async handle(proof) {
       if (stopped) return { state: 'disabled' };
+      const version = generation;
       let request = await admission.admit(proof); if (!request) return { state: 'ignored' };
       if (stopped) { await admission.settle(request, 'cancelled'); return { state: 'disabled' }; }
+      if (version !== generation) { await admission.settle(request, 'cancelled'); return { state: 'cancelled' }; }
       context.remember(request);
       if (!request.decision.infer) return { state: 'context' };
       const first = request; request = await gather(request);

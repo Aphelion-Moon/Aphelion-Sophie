@@ -13,12 +13,12 @@ function fixture() {
   const roles = [{ id: '101', permissions: bits, position: 0 }], source = { id: '303', channelId: '202', authorId: '404', type: 0, revision: 'original', bot: false, webhook: false };
   const transport = { getChannel: async () => { reads++; return structuredClone(channel); }, getGuild: async () => ({ id: '101', owner_id: '808' }), getRoles: async () => structuredClone(roles),
     getMember: async id => structuredClone(members[id] ?? null), getAiSourceMetadata: async () => structuredClone(source), getAutomationSource: async () => ({ ...source, reactions: [] }) };
-  const observed = [];
-  const observations = createAiObservations({ pool: { query: async sql => ({ rowCount: (sql.includes('automation_deliveries') ? automation : excluded) ? 1 : 0 }) }, transport,
-    authorityStore: { registerPolicy: async () => {}, observeWithPresence: async observation => { observed.push(observation); return { presenceEpoch: 1, grant: { capabilityEpoch: 3 } }; } },
+  const observed = [], pool = { query: async sql => ({ rowCount: (sql.includes('automation_deliveries') ? automation : excluded) ? 1 : 0 }) };
+  const authorityStore = { registerPolicy: async () => {}, observeWithPresence: async observation => { observed.push(observation); return { presenceEpoch: 1, grant: { capabilityEpoch: 3 } }; } };
+  const observations = createAiObservations({ pool, transport, authorityStore,
     mapping: { guildId: '101', botUserId: '505', muzzled: '909' }, protectedCategoryId: '707', capabilityPolicy: { version: 1 },
     observer: { readAiContinuity: async () => stamp }, clock: () => now });
-  return { observations, transport, members, channel, source, roles, observed, event: { guildId: '101', channelId: '202', userId: '404', messageId: '303' },
+  return { observations, transport, members, channel, source, roles, observed, pool, authorityStore, event: { guildId: '101', channelId: '202', userId: '404', messageId: '303' },
     exclude: () => { excluded = true; }, automate: () => { automation = true; }, reads: () => reads, time: value => { now = value; }, invalidate: () => { stamp += '.2'; } };
 }
 
@@ -59,6 +59,47 @@ test('SAI AT-05 a private channel with individual bot and member grants remains 
   ];
   const observed = await f.observations.inspectContext(f.event);
   assert.equal(observed.eligible,true); assert.equal(observed.restricted,true);
+});
+
+test('DS-08 invalidation fences in-flight metadata and one-use member observations', async () => {
+  const f = fixture(), original = f.transport.getChannel;
+  let release, started;
+  const reading = new Promise(resolve => { started = resolve; });
+  f.transport.getChannel = async () => {
+    const saved = await original(); started(); await new Promise(resolve => { release = resolve; }); return saved;
+  };
+  const pending = f.observations.inspectContext(f.event); await reading;
+  f.observations.clear(); f.channel.parent_id = '707'; release();
+  assert.equal(await pending, null);
+  f.transport.getChannel = original;
+  assert.equal(await f.observations.inspectContext(f.event), null); assert.equal(f.reads(), 2);
+  const member = fixture(); assert.ok(await member.observations.inspectContext(member.event));
+  member.observations.clear(); assert.equal(await member.observations.inspectMember(member.event), null);
+});
+
+test('SAI AT-02 exclusions registered during authority or automation checks deny source access', async () => {
+  for (const phase of ['authority', 'automation']) {
+    const f = fixture(); f.transport.getAiSourceMetadata = async () => assert.fail('newly excluded source must not be fetched');
+    if (phase === 'authority') {
+      const observe = f.authorityStore.observeWithPresence;
+      f.authorityStore.observeWithPresence = async (...args) => { const result = await observe(...args); f.exclude(); return result; };
+    } else {
+      const query = f.pool.query;
+      f.pool.query = async sql => { const result = await query(sql); if (sql.includes('automation_deliveries')) f.exclude(); return result; };
+    }
+    assert.equal(await f.observations.inspectContext(f.event), null, phase);
+    assert.equal(await f.observations.inspectMember(f.event), null);
+  }
+});
+
+test('SAI AT-02 exclusion during source or emoji lookup denies context and reactions', async () => {
+  const f = fixture(); f.transport.getAiSourceMetadata = async () => { f.exclude(); return f.source; };
+  assert.equal(await f.observations.inspectContext(f.event), null); assert.equal(await f.observations.inspectMember(f.event), null);
+  const reaction = fixture(); reaction.transport.getAutomationEmoji = async () => { reaction.exclude(); return { id: '808', name: 'wave', roles: [] }; };
+  reaction.transport.getAutomationSource = async () => assert.fail('newly excluded source must not be fetched');
+  assert.equal(await reaction.observations.canReact(reaction.event, { id: '808', name: 'wave' }), false);
+  const late = fixture(); late.transport.getAutomationSource = async () => { late.exclude(); return { ...late.source, reactions: [] }; };
+  assert.equal(await late.observations.canReact(late.event, { id: null, name: 'wave' }), false);
 });
 
 test('SAI AT-07 Gateway handoff is bounded, commit-dependent and detached from slow AI', async () => {

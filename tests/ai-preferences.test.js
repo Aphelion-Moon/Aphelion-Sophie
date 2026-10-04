@@ -8,6 +8,7 @@ import { createDashboardAuthHttpServer } from '../apps/core/http/dashboard-auth.
 import { ContractError } from '../contracts/validation.js';
 import { dashboardConfiguration } from './fixtures/oauth.js';
 import { dashboardHttp } from './fixtures/dashboard-http.js';
+import { createDashboardApi } from '../apps/dashboard/api.js';
 
 async function fixture() {
   const base=resolve('.local/preference-unit');await mkdir(base,{recursive:true});const root=await mkdtemp(resolve(base,'run-'));
@@ -28,13 +29,33 @@ test('DS-08 independent journal rejects missing, truncated, changed-identity and
 test('DS-08 preference HTTP binds the member and requires explicit save or delete without extra data fields',async()=>{
   const actor={guildId:'101',userId:'202'},proof={},seen=[];
   const http=createAiControlsHttp({auth:{authenticate:async()=>({proof}),resolvePrincipal:async()=>({})},authorization:{resolveActor:async()=>actor},
-    controls:{ownPreferences:async input=>{seen.push(input);return {remoteUse:false};},savePreferences:async input=>{seen.push(input);return {remoteUse:false};},deletePreferences:async input=>{seen.push(input);return {remoteUse:false};}}});
+    controls:{ownPreferences:async input=>{seen.push(input);return {remoteUse:false};},saveRetention:async input=>{seen.push(input);return {retainOnLeave:input.retainOnLeave};},savePreferences:async input=>{seen.push(input);return {remoteUse:false};},deletePreferences:async input=>{seen.push(input);return {remoteUse:false};}}});
   const input={path:'/api/ai/preferences',method:'GET',query:new URLSearchParams(),body:null,credentials:{}};
   assert.equal((await http.execute(input)).actorId,actor.userId);
   const save={...input,path:'/api/ai/save-preferences',method:'POST',body:{expectedEpoch:0,settings:{replyLength:'brief',language:'en'},confirmed:true}};
   await http.execute(save);assert.equal(seen.at(-1).actor,actor);
   await assert.rejects(http.execute({...save,body:{...save.body,userId:'303'}}),/AI_INPUT_INVALID/);
   await http.execute({...save,path:'/api/ai/delete-preferences',body:{expectedEpoch:1,confirmed:true}});assert.equal(seen.length,3);
+  const retention={...save,path:'/api/ai/save-retention',body:{expectedEpoch:2,retainOnLeave:true,confirmed:true}};
+  assert.equal((await http.execute(retention)).retainOnLeave,true);assert.equal(seen.at(-1).actor,actor);
+  await assert.rejects(http.execute({...retention,body:{...retention.body,userId:'303'}}),/AI_INPUT_INVALID/);
+});
+
+test('DS01-C06 consent pages and exact lookup preserve self authority and reject extra or ambiguous selectors',async()=>{
+  const actor={guildId:'101',userId:'202'},proof={},calls=[];
+  const http=createAiControlsHttp({auth:{authenticate:async()=>({proof}),resolvePrincipal:async()=>({})},authorization:{resolveActor:async()=>actor},
+    controls:{ownConsents:async input=>{calls.push(input);return {channels:[],nextAfterChannelId:null};}}});
+  const input={path:'/api/ai/consents',method:'GET',body:null,credentials:{}};
+  for (const selector of ['', 'afterChannelId=10099', 'channelId=10202']) {
+    await http.execute({...input,query:new URLSearchParams(selector)});
+    assert.deepEqual(calls.at(-1),{...Object.fromEntries(new URLSearchParams(selector)),actor});
+  }
+  for (const selector of ['userId=303','afterChannelId=10099&channelId=10202','afterChannelId=10099&afterChannelId=10199','channelId=not-an-id','afterChannelId='])
+    await assert.rejects(http.execute({...input,query:new URLSearchParams(selector)}));
+  assert.equal(calls.length,3);
+  const paths=[],api=createDashboardApi({document:null,fetch:async path=>{paths.push(path);return Response.json({channels:[],nextAfterChannelId:null});}});
+  await api.aiConsents();await api.aiConsents({afterChannelId:'10099'});await api.aiConsents({channelId:'10202'});
+  assert.deepEqual(paths,['/api/ai/consents','/api/ai/consents?afterChannelId=10099','/api/ai/consents?channelId=10202']);
 });
 
 test('DS08-E01 attachment export binds the current member and fails closed on access or restore changes',async()=>{

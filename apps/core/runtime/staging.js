@@ -3,6 +3,10 @@ import { createAiActivation } from '../storage/ai-activation.js';
 import { createAiObservations } from '../discord/ai-observations.js';
 import { createActorAuthorityStore } from '../storage/actor-authority.js';
 import { createAiPreferenceExpiry } from './ai-preference-expiry.js';
+import { createAiDepartures } from '../storage/ai-departures.js';
+import { createAiPrivacy } from '../storage/ai-privacy.js';
+import { createAiEffects } from '../storage/ai-effects.js';
+import { createAiMessages } from '../discord/ai-messages.js';
 import { createAiRuntime } from './ai.js';
 import { createAiOperationsRuntime } from './ai-operations.js';
 import { createAiControlsHttp } from '../http/ai-controls.js';
@@ -74,7 +78,6 @@ export async function createStagingRuntime({ configuration, pool, aiControlPool 
   let maintenanceObserved = false;
   const active = () => started && !stopping && !maintenanceObserved;
   const fault = code => { try { onFault(code); } catch { /* Never log original dependency errors or payloads. */ } };
-  const preferenceExpiry = aiControlPool === null ? null : createAiPreferenceExpiry({pool:aiControlPool,guildId:fixed.mapping.guildId,onFault:()=>fault('AI_CONTROL_UNAVAILABLE')});
   const databaseActive = async () => {
     if (!active()) return false;
     if (await runtimeDatabaseAvailable(pool)) return true;
@@ -83,6 +86,13 @@ export async function createStagingRuntime({ configuration, pool, aiControlPool 
   const transport = createDiscordTransport({ guildId: fixed.mapping.guildId, token, fetch, clock, enabled: databaseActive });
   requireCondition((aiWorker===null || aiLifecycle===null) && (aiWorker===null && aiLifecycle===null || aiKnowledge!==null && aiControlPool!==null), 'AI_ADAPTERS_REQUIRED');
   let aiRuntime = null;
+  const privacyEffects=aiControlPool===null?null:createAiEffects({pool:aiControlPool,guildId:fixed.mapping.guildId,clock});
+  const privacyMessages=privacyEffects===null?null:createAiMessages({transport,botUserId:fixed.mapping.botUserId,effects:privacyEffects,clock,
+    revalidate:async()=>false,canReact:async()=>false});
+  const privacy=aiControlPool===null?null:createAiPrivacy({pool:aiControlPool,guildId:fixed.mapping.guildId,journal:aiPreferenceJournal,
+    departures:createAiDepartures({pool,guildId:fixed.mapping.guildId}),invalidate:()=>aiRuntime?.invalidate(),onFault:fault,
+    removeEffect:effect=>privacyMessages.remove({guildId:fixed.mapping.guildId,channelId:effect.channel_id},{messageId:effect.message_id,owner:effect.owner,id:effect.receipt_id})});
+  const preferenceExpiry=privacy===null?null:createAiPreferenceExpiry({pool:aiControlPool,guildId:fixed.mapping.guildId,onFault:()=>fault('AI_CONTROL_UNAVAILABLE'),maintainPrivacy:privacy.maintain});
   const aiGateway = aiWorker === null && aiLifecycle===null ? null : { prepare: payload => aiRuntime?.prepare(payload) ?? null,
     committed: (proof, accepted) => aiRuntime?.committed(proof, accepted), invalidate: () => aiRuntime?.invalidate() };
   const journal = createGatewayJournal({ pool, mapping: fixed.mapping, clock,
@@ -100,9 +110,8 @@ export async function createStagingRuntime({ configuration, pool, aiControlPool 
     oauth: createDiscordOAuth({ configuration: fixed.dashboard, clientSecret, fetch, clock, enabled }), discord: authRoles, clock, enabled });
   const principals = auth === null ? verifier : createCorePrincipals({ interactions: verifier, dashboard: auth });
   const createAiLane=worker=>createAiRuntime({ configuration: fixed, corePool: pool, controlPool: aiControlPool, worker, knowledge: aiKnowledge,
-    observer, token, fetch, clock, enabled, onFault: fault,
-    remoteProcessingApproved:()=>aiApproval?.current()??false, readNoticeRevision:async()=> (await aiApproval?.notice())?.revision ?? (worker.provider === 'deepseek' ? 2 : 1),
-    readNoticeBinding:async()=> (await aiApproval?.notice())?.binding ?? null });
+    observer, token, fetch, clock, enabled, onFault: fault,privacyCurrent:privacy.current,
+    ...(aiApproval === null ? {} : { readNotice: aiApproval.notice }) });
   if(aiWorker!==null)aiRuntime=createAiLane(aiWorker);
   if(aiLifecycle!==null)aiRuntime=createAiOperationsRuntime({pool:aiControlPool,guildId:fixed.mapping.guildId,lifecycle:aiLifecycle,createRuntime:createAiLane,onFault:fault});
   const readSystemText = createSystemWordingReader({ pool, guildId: fixed.mapping.guildId });
@@ -129,7 +138,7 @@ export async function createStagingRuntime({ configuration, pool, aiControlPool 
       invalidate: () => aiRuntime?.invalidate() });
     const knowledgeLookup = aiKnowledge === null ? null : createKnowledgeLookupHttp({ auth, authorization, knowledge: aiKnowledge, clock });
     const ai = aiControlPool === null ? null : createAiControlsHttp({ auth, authorization, controls: { ...createAiControls({
-      pool: aiControlPool, guildId: fixed.mapping.guildId, authorize: authorization.authorize, preferenceJournal:aiPreferenceJournal, clock,
+      pool: aiControlPool, guildId: fixed.mapping.guildId, authorize: authorization.authorize, preferenceJournal:aiPreferenceJournal, privacyCurrent:privacy.current,clock,
       workerCatalogue:aiLifecycle===null?[]:aiRuntime.catalogue,workerOperationsAvailable:aiLifecycle!==null,
       readDiagnostic:channelId=>aiRuntime?.diagnostics(channelId)??null,
       ...(aiApproval === null ? {} : { readNotice: aiApproval.notice }),

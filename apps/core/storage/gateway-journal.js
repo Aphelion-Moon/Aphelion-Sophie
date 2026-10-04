@@ -7,6 +7,7 @@ import { inTransaction } from './transaction.js';
 import { lockMember, saveMember } from './members.js';
 import { enqueue } from './outbox.js';
 import { recordCaseConversation } from './case-conversations.js';
+import { recordAiDeparture } from './ai-departures.js';
 import { recordCaseCaptureGap, closeCaseCaptureGap, markCaseCapturePermissions } from './case-capture-coverage.js';
 
 export const gatewayMappingHash = mapping => createHash('sha256').update(JSON.stringify([mapping.guildId,mapping.botUserId,mapping.crew,
@@ -195,6 +196,7 @@ export function createGatewayJournal({ pool, mapping, clock, caseCapture = null,
           // Authority observations can exist before the member journal has seen this identity.
           if (changed || !normalized.present || normalized.bot) await client.query('UPDATE sophie_core.actor_authority SET capability_epoch = capability_epoch + 1 WHERE guild_id = $1 AND user_id = $2', [fixed.guildId, normalized.userId]);
           if (!normalized.present || normalized.bot) await client.query('UPDATE sophie_core.actor_authority SET presence_epoch = presence_epoch + 1 WHERE guild_id = $1 AND user_id = $2', [fixed.guildId, normalized.userId]);
+          if (!normalized.present) await recordAiDeparture(client,fixed.guildId,normalized.userId);
           await client.query(`INSERT INTO sophie_core.gateway_members (guild_id, user_id, continuity_epoch, state) VALUES ($1, $2, $3, $4)
             ON CONFLICT (guild_id, user_id) DO UPDATE SET continuity_epoch = EXCLUDED.continuity_epoch, state = EXCLUDED.state`,
           [fixed.guildId, normalized.userId, row.continuity_epoch, normalized]);

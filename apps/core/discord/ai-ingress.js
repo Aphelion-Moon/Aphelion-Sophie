@@ -1,4 +1,6 @@
 import { requireCondition, requireId, requireInteger } from '../../../contracts/validation.js';
+import { redactAiIdentifiers } from '../../knowledge-worker/redaction.js';
+import { questionCandidate } from '../../../modules/assistant/participation.js';
 
 /** Core-only transient event. Embedded replies/forwards and attachments never become AI context. */
 export function createAiIngress({ guildId, botUserId, clock }) {
@@ -40,7 +42,14 @@ export function createAiIngress({ guildId, botUserId, clock }) {
       const directedToOther = Array.isArray(raw.mentions) && raw.mentions.some(item => item.id !== botUserId);
       const target = raw.message_reference?.message_id ?? null;
       if (target !== null) requireId(target);
-      return { text, addressed: mentioned || replied, directedToOther: directedToOther || raw.type === 19 && !replied,
+      // This runs only after core's metadata/consent admission. Never retain a reverse name map.
+      const members = Array.isArray(raw.mentions) ? raw.mentions : [];
+      if (members.length > 32) return null;
+      const aliases = [raw.author.username, raw.author.global_name, raw.member?.nick,
+        ...members.flatMap(member => [member.username, member.global_name])];
+      const redacted = redactAiIdentifiers(text, aliases);
+      if (redacted.length > 4000) return null;
+      return { text: redacted, question: questionCandidate(text), addressed: mentioned || replied, directedToOther: directedToOther || raw.type === 19 && !replied,
         conversationTarget: target, inputRevision: raw.edited_timestamp ?? 'original' };
     },
     discard: proof => proofs.delete(proof),
