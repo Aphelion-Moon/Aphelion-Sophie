@@ -1,8 +1,10 @@
 import { ContractError, requireCondition } from '../../../contracts/validation.js';
+import { createOnboardingStaffOperations } from './onboarding-staff-operations.js';
 
 /** Staff-only metadata queue and logged resolution, shared with the private response adapter. */
 export function createOnboardingAssistance({ authorization, discord, store, enabled }) {
   requireCondition(typeof enabled === 'function', 'DELIVERY_GATE_REQUIRED');
+  const operations = createOnboardingStaffOperations({ store, discord, enabled });
   async function principal(envelope) {
     const actor = await authorization.resolveActor(envelope);
     requireCondition(envelope.guildId === discord.guildId && envelope.targetId === envelope.userId &&
@@ -21,13 +23,11 @@ export function createOnboardingAssistance({ authorization, discord, store, enab
       try {
         const actor = await principal(envelope);
         if (envelope.command === 'shuttle.queue') return 'shuttle_help_queue';
-        const request = await store.describeOnboardingHelp({ actor, guildId: envelope.guildId, requestId: envelope.requestId });
-        const observation = await discord.observe(request.userId);
-        if (await enabled() !== true) return 'disabled';
-        const result = await store.resolveOnboardingHelp({ actor, interactionId: envelope.interactionId, requestId: envelope.requestId,
-          expectedRevision: envelope.expectedRevision, observation });
+        const result = await operations.resolve({ actor, guildId: envelope.guildId, interactionId: envelope.interactionId,
+          requestId: envelope.requestId, expectedRevision: envelope.expectedRevision });
         return result.resumed ? 'shuttle_help_resumed' : 'shuttle_help_resolved';
       } catch (error) {
+        if (error instanceof ContractError && error.code === 'SHUTTLE_STAFF_DISABLED') return 'disabled';
         if (error instanceof ContractError && ['MEMBER_MUZZLED', 'NOT_IN_GUILD'].includes(error.code)) return 'shuttle_help_waiting';
         if (error instanceof ContractError && ['STALE_SHUTTLE_HELP', 'SHUTTLE_HELP_NOT_FOUND'].includes(error.code)) return 'shuttle_help_stale';
         return failure(error);

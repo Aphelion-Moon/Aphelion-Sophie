@@ -24,6 +24,22 @@ An eligible current screen is refreshed without the outstanding-help banner. If 
 
 ## Migration and evidence
 
+Authenticated Staff dashboard controls are available at `/shuttle-assistance`. The
+bounded queue contains request/member/channel identifiers, case state and whether
+the run was paused; it contains no conversation text. Staff review the exact
+request and explicitly confirm resolution. The shared command/HTTP operation
+reauthorizes the actor and target, recognizes an exact committed receipt before
+observing the member, and preserves the original resumed/resolved result. A
+changed action under the same request ID is rejected. Current Muzzled and
+eligibility checks still control resumption; resolution never advances progress
+or grants Whitelist.
+
+Browser account changes, denial, sign-out and hidden-page transitions clear
+private state. An uncertain response retains one exact retry request while the
+page remains active. Migration 069 adds only the two fixed Shuttle login return
+paths. The core package includes the new page and scripts; existing capability
+grants are unchanged. Deployment and live client acceptance remain separate.
+
 Migration `010-shuttle-assistance.sql` adds open/resolved status, bounded revisions, one-open-request-per-session uniqueness, a numeric queue index and retained resolution records. Existing duplicate open requests cause migration failure rather than being deleted or silently merged. Earlier migrations are unchanged. The test core identity has no DELETE or migration privilege; the knowledge identity cannot read these tables.
 
 Three contract tests exercise signed routing, bounded metadata/pagination and the explicit command union. H01–H13 exercise PostgreSQL, real authorization/signatures and simulated Discord: request/resolve/re-request, current Staff checks, concurrent duplicates, audit/outbox failure, mid-operation revocation, response-time revocation, pagination, older repeats, Muzzled members, historical requests, forged identities, case-type separation, policy/gate changes and actual loopback HTTP delivery. S17 restarts the isolated database and checks the retained request, staff audit and recovered screen. No real case or onboarding-session content is used.

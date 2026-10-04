@@ -1,8 +1,11 @@
 const reasons = Object.freeze({ permissions: 'Current permissions or authority need review.', attempts: 'Automatic attempts reached their limit.',
+  roles: 'Current role configuration or hierarchy needs review.', delivery: 'Discord delivery needs review.',
   uncertain: 'An earlier delivery has an uncertain result.', review: 'This delivery needs review.' });
-const kinds = Object.freeze({ case: 'Private case provisioning', intake: 'Ticket answer delivery', reply: 'Staff reply delivery' });
+const kinds = Object.freeze({ case: 'Private case provisioning', intake: 'Ticket answer delivery', reply: 'Staff reply delivery',
+  grant: 'Whitelist delivery', reconcile: 'Whitelist reconciliation', screen: 'Shuttle screen delivery', alert: 'Shuttle help alert delivery' });
 
-export function createDeliveryView({ document, controller }) {
+export function createDeliveryView({ document, controller, scope = 'case' }) {
+  const shuttle = scope === 'shuttle', caseName = entry => shuttle ? 'Shuttle' : entry.caseType.replaceAll('-', ' ');
   const el = id => document.getElementById(id), text = (id, value) => { el(id).textContent = value ?? ''; el(id).hidden = !value; };
   const node = (tag, value) => { const element = document.createElement(tag); element.textContent = value; return element; };
   let showingReview = false;
@@ -19,10 +22,10 @@ export function createDeliveryView({ document, controller }) {
     text('empty', state.page && !state.page.entries.length ? 'No parked deliveries you can manage on this page.' : null);
     el('issues').replaceChildren(...(state.page?.entries ?? []).map(entry => {
       const row = node('article', ''), title = node('h2', kinds[entry.kind]), details = node('p',
-        `Member ${entry.userId} · ${entry.caseType.replaceAll('-', ' ')} · ${entry.caseState}${entry.channelId ? ` · Channel ${entry.channelId}` : ''}`);
+        `Member ${entry.userId} · ${caseName(entry)} · ${entry.caseState}${entry.channelId ? ` · Channel ${entry.channelId}` : ''}`);
       row.className = 'panel case-panel'; details.className = 'case-text'; row.append(title, details, node('p', reasons[entry.reason]));
       if (entry.attempted) row.append(node('p', 'An earlier change may already have reached Discord.'));
-      const disabled = state.busy || pending || review || entry.revision > 2_147_483_644;
+      const disabled = state.busy || pending || review || entry.revision > (shuttle ? 2_147_483_645 : 2_147_483_644);
       const button = (label, action, resultId = null) => { const b = node('button', label); b.disabled = disabled;
         b.addEventListener('click', () => controller.review(entry.issueId, action, resultId)); return b; };
       if (entry.recheckable) row.append(button('Review recheck', 'recheck'));
@@ -41,14 +44,14 @@ export function createDeliveryView({ document, controller }) {
         if (entry.channelChoice.total <= 500) {
           const choices = node('div', ''); choices.className = 'actions';
           choices.append(...entry.channelChoice.candidates.map(candidate => button(`Review channel ${candidate}`, 'select_channel', candidate))); row.append(choices);
-          if (entry.channelChoice.total > 5) row.append(node('p', `Only the first five candidates are shown. For another retained candidate, use /ticket choose with issue ${entry.issueId}.${entry.revision} in Discord.`));
+          if (entry.channelChoice.total > 5) row.append(node('p', `Only the first five candidates are shown. For another retained candidate, use /${shuttle ? 'whitelist' : 'ticket'} choose with issue ${entry.issueId}.${entry.revision} in Discord.`));
         } else row.append(node('p', 'The candidate limit requires operator review.'));
       } else if (!entry.needsMessageId && !entry.recheckable) row.append(node('p', 'Review the case and configuration before requesting another check.'));
       return row;
     }));
     el('review').hidden = !review || pending;
     const selected = state.review;
-    text('review-details', selected ? `${kinds[selected.entry.kind]} for member ${selected.entry.userId}, ${selected.entry.caseType.replaceAll('-', ' ')}.${selected.entry.channelId ? ` Case channel ${selected.entry.channelId}.` : ''}\n` +
+    text('review-details', selected ? `${kinds[selected.entry.kind]} for member ${selected.entry.userId}, ${caseName(selected.entry)}.${selected.entry.channelId ? ` Case channel ${selected.entry.channelId}.` : ''}\n` +
       (selected.action === 'recheck' ? 'Request a fresh check of this parked delivery.' : selected.action === 'adopt_message' ?
         `Verify and retain Sophie message ${selected.resultId}. This does not confirm that delivery is complete.` :
         `Select retained channel ${selected.resultId}. Other candidates must be sealed before delivery can continue.`) : null);

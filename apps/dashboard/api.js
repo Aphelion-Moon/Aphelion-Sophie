@@ -94,6 +94,7 @@ export function createDashboardApi({ fetch, navigate = path => globalThis.locati
       if (value.canEditPermissions !== undefined && typeof value.canEditPermissions !== 'boolean') throw new DashboardFailure('unavailable');
       if (value.canEditAutomation !== undefined && typeof value.canEditAutomation !== 'boolean') throw new DashboardFailure('unavailable');
       if (value.canRecoverCases !== undefined && typeof value.canRecoverCases !== 'boolean') throw new DashboardFailure('unavailable');
+      if (value.canManageOnboarding !== undefined && typeof value.canManageOnboarding !== 'boolean') throw new DashboardFailure('unavailable');
       if (value.canRecoverModeration !== undefined && typeof value.canRecoverModeration !== 'boolean') throw new DashboardFailure('unavailable');
       for (const key of ['canControlAi', 'canEditPersonality', 'canEditKnowledge', 'aiAvailable', 'knowledgeAvailable']) if (value[key] !== undefined && typeof value[key] !== 'boolean') throw new DashboardFailure('unavailable');
       for (const group of document?.querySelectorAll('.nav-group') ?? []) {
@@ -102,7 +103,7 @@ export function createDashboardApi({ fetch, navigate = path => globalThis.locati
         group.hidden = links.every(link => link.hidden);
       }
       csrf = value.csrfToken; return { userId: value.userId, guildId: value.guildId, canEditOnboarding: value.canEditOnboarding, canEditForms: value.canEditForms, canEditPermissions: value.canEditPermissions === true, canEditAnswers: value.canEditAnswers === true, canEditAutomation: value.canEditAutomation === true,
-        canEditKnowledge: value.canEditKnowledge === true, canControlAi: value.canControlAi === true, canEditPersonality: value.canEditPersonality === true, aiAvailable: value.aiAvailable === true, knowledgeAvailable: value.knowledgeAvailable === true, canRecoverModeration: value.canRecoverModeration === true, canRecoverCases: value.canRecoverCases === true };
+        canEditKnowledge: value.canEditKnowledge === true, canControlAi: value.canControlAi === true, canEditPersonality: value.canEditPersonality === true, aiAvailable: value.aiAvailable === true, knowledgeAvailable: value.knowledgeAvailable === true, canRecoverModeration: value.canRecoverModeration === true, canRecoverCases: value.canRecoverCases === true, canManageOnboarding: value.canManageOnboarding === true };
     },
     automation: () => request('/api/automation'),
     automationHistory: (before = null) => request('/api/automation/history' + (before === null ? '' : '?before=' + number(before))),
@@ -172,6 +173,10 @@ export function createDashboardApi({ fetch, navigate = path => globalThis.locati
     managedCase: channelId => request(`/api/cases/manage?channelId=${channel(channelId)}`),
     caseDelivery: (after = null) => request('/api/cases/delivery' + (after === null ? '' : '?after=' + deliveryIssue(after))),
     changeCaseDelivery: body => request('/api/cases/delivery/change', body),
+    onboardingHelp: (after = null) => request('/api/shuttle/help' + (after === null ? '' : '?after=' + channel(after))),
+    resolveOnboardingHelp: body => request('/api/shuttle/help/resolve', body),
+    onboardingDelivery: (after = null) => request('/api/shuttle/delivery' + (after === null ? '' : '?after=' + deliveryIssue(after))),
+    changeOnboardingDelivery: body => request('/api/shuttle/delivery/change', body),
     reviewModeration: userId => request(`/api/moderation/review?userId=${channel(userId)}`),
     retryModeration: body => request('/api/moderation/retry', { ...body, userId: channel(body.userId) }),
     caseQueue(filter = 'active', after = null) {

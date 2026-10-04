@@ -8,7 +8,7 @@ import { inTransaction } from './transaction.js';
 import { registerCasePolicy } from './case-records.js';
 import { createOnboardingCaseAccess } from './onboarding-case-access.js';
 import { getSession, getDefinition, getPublication, saveSession, requestOnboardingScreen } from './onboarding-records.js';
-import { receipt, saveReceipt } from './receipts.js';
+import { readReceipt, receipt, saveReceipt } from './receipts.js';
 
 /** Staff assistance metadata only; resolving help never advances progress or changes roles. */
 export function createOnboardingAssistanceStore({ pool, clock, authorize, policy }) {
@@ -23,7 +23,7 @@ export function createOnboardingAssistanceStore({ pool, clock, authorize, policy
   }
   async function request(client, guildId, requestId) {
     requireId(requestId);
-    const row = (await client.query(`SELECT h.user_id, h.session_id, r.type, s.current AS session_current FROM sophie_core.shuttle_help_requests h
+    const row = (await client.query(`SELECT h.user_id, h.session_id, h.status, h.revision, r.type, s.current AS session_current FROM sophie_core.shuttle_help_requests h
       JOIN sophie_core.sessions s ON s.id = h.session_id AND s.guild_id = h.guild_id AND s.user_id = h.user_id
       JOIN sophie_core.shuttle_cases b ON b.session_id = h.session_id AND b.guild_id = h.guild_id AND b.user_id = h.user_id
       JOIN sophie_core.case_reservations r ON r.id = b.case_id AND r.guild_id = h.guild_id AND r.user_id = h.user_id
@@ -50,11 +50,18 @@ export function createOnboardingAssistanceStore({ pool, clock, authorize, policy
         return { state: 'ready', guildId, entries: page, next: rows.length > 5 ? page.at(-1).requestId : null };
       });
     },
-    async describeOnboardingHelp({ actor, guildId, requestId }) {
+    async describeOnboardingHelp({ actor, guildId, requestId, interactionId = null, expectedRevision }) {
+      if (interactionId !== null) requireInteger(expectedRevision, 0, 2_147_483_646);
       return inTransaction(pool, async client => {
-        await access(actor, guildId); await registerCasePolicy(client, fixed);
+        await access(actor, guildId);
         const row = await request(client, guildId, requestId);
         await access(actor, guildId, row.user_id);
+        if (interactionId !== null) {
+          const previous = await readReceipt(client, guildId, operatorGrant(actor).userId, interactionId, { action: 'shuttle.help.resolve', requestId, expectedRevision });
+          if (previous) { await access(actor, guildId, row.user_id); return { duplicate: true, resumed: previous.resumed ?? false }; }
+          requireCondition(row.status === 'open' && row.revision === expectedRevision, 'STALE_SHUTTLE_HELP');
+        }
+        await registerCasePolicy(client, fixed);
         return { userId: row.user_id };
       });
     },
@@ -64,16 +71,16 @@ export function createOnboardingAssistanceStore({ pool, clock, authorize, policy
         await access(actor, member.guildId);
         const found = await request(client, member.guildId, requestId);
         requireCondition(found.user_id === member.userId, 'MEMBER_MISMATCH');
-        const session = await getSession(client, found.session_id, member.guildId, member.userId);
-        const definition = await getDefinition(client, session.definitionId, session.definitionVersion);
-        const bound = await binding(client, member, session);
         await access(actor, member.guildId, member.userId);
-        const current = (await client.query(`SELECT status, revision FROM sophie_core.shuttle_help_requests
-          WHERE guild_id = $1 AND interaction_id = $2 FOR UPDATE`, [member.guildId, requestId])).rows[0];
         const grant = operatorGrant(actor);
         const previous = await receipt(client, member.guildId, grant.userId, interactionId,
           { action: 'shuttle.help.resolve', requestId, expectedRevision });
-        if (previous) return { duplicate: true, resumed: previous.resumed ?? false };
+        if (previous) { await access(actor, member.guildId, member.userId); return { duplicate: true, resumed: previous.resumed ?? false }; }
+        const session = await getSession(client, found.session_id, member.guildId, member.userId);
+        const definition = await getDefinition(client, session.definitionId, session.definitionVersion);
+        const bound = await binding(client, member, session);
+        const current = (await client.query(`SELECT status, revision FROM sophie_core.shuttle_help_requests
+          WHERE guild_id = $1 AND interaction_id = $2 FOR UPDATE`, [member.guildId, requestId])).rows[0];
         requireCondition(current.status === 'open' && current.revision === expectedRevision, 'STALE_SHUTTLE_HELP');
         const live = found.session_current && bound.row.state === 'open' && definition.status === 'published' &&
           session.eligibilityEpoch === member.eligibilityEpoch && bound.plan.presenceEpoch === member.presenceEpoch;

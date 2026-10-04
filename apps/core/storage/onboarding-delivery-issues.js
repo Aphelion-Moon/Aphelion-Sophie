@@ -9,7 +9,7 @@ import { createOnboardingCaseAccess } from './onboarding-case-access.js';
 import { getSession } from './onboarding-records.js';
 import { onboardingDeliverySourceJoins } from './onboarding-delivery-source.js';
 import { createOnboardingMessageRecovery, isOnboardingMessageJob, onboardingArtifact } from './onboarding-artifact-recovery.js';
-import { receipt, saveReceipt } from './receipts.js';
+import { readReceipt, receipt, saveReceipt } from './receipts.js';
 import { caseCandidateIds, selectedCaseChannel, chooseOnboardingCaseChannel } from './case-channel-selection.js';
 
 const issueJoins = `JOIN sophie_core.outbox o ON o.guild_id = i.guild_id AND o.operation_id = i.operation_id AND o.user_id = i.user_id
@@ -17,6 +17,13 @@ const issueJoins = `JOIN sophie_core.outbox o ON o.guild_id = i.guild_id AND o.o
   JOIN sophie_core.case_provisions p ON p.case_id = r.id AND p.guild_id = r.guild_id`;
 const issueScope = `o.kind IN ('whitelist.grant', 'whitelist.reconcile', 'case.provision', 'shuttle.render', 'shuttle.alert') AND r.type = 'shuttle' AND i.session_id = s.id`;
 const labels = Object.freeze({ 'whitelist.grant': 'grant', 'whitelist.reconcile': 'reconcile', 'case.provision': 'case', 'shuttle.render': 'screen', 'shuttle.alert': 'alert' });
+function recoveryRequest(issueId, expectedRevision, action, resultId = null) {
+  requireOnboardingIssueId(issueId); requireInteger(expectedRevision, 0, 2_147_483_645);
+  requireCondition(['recheck', 'adopt_message', 'select_channel'].includes(action), 'SHUTTLE_RECOVERY_KIND_INVALID');
+  if (action === 'recheck') requireCondition(resultId === null, 'SHUTTLE_RECOVERY_KIND_INVALID'); else requireId(resultId);
+  return { action: { recheck: 'shuttle.issue.recheck', adopt_message: 'shuttle.message.recover', select_channel: 'shuttle.channel.choose' }[action], issueId, expectedRevision,
+    ...(action === 'adopt_message' ? { messageId: resultId } : action === 'select_channel' ? { channelId: resultId } : {}) };
+}
 const needsMessage = (job, artifact) => isOnboardingMessageJob(job.kind) && artifact.create_started && artifact.message_id === null &&
   (job.kind !== 'shuttle.alert' || job.effect.revision === artifact.revision);
 
@@ -34,23 +41,22 @@ export function createOnboardingDeliveryIssueStore({ pool, clock, authorize, pol
   }
   async function issue(client, guildId, issueId) {
     requireOnboardingIssueId(issueId);
-    const row = (await client.query(`SELECT i.*, o.kind, o.effect, r.state AS case_state, r.channel_id
+    const row = (await client.query(`SELECT i.*, o.kind, o.effect, o.status AS job_status, o.fence, r.state AS case_state, r.channel_id
       FROM sophie_core.shuttle_delivery_issues i ${issueJoins}
       WHERE i.guild_id = $1 AND i.id = $2 AND ${issueScope}`, [guildId, issueId])).rows[0];
     requireCondition(row, 'SHUTTLE_ISSUE_NOT_FOUND'); return row;
   }
   async function change({ actor, interactionId, issueId, expectedRevision, observation, proof = null, message = null, resultId = null }, action) {
-    requireOnboardingIssueId(issueId); requireInteger(expectedRevision, 0, 2_147_483_645);
-    if (action !== 'recheck') requireId(resultId);
+    const intent = recoveryRequest(issueId, expectedRevision, action, resultId);
     return memberOperation(observation, async (client, member) => {
-      await access(actor, member.guildId); await registerCasePolicy(client, fixed);
+      await access(actor, member.guildId);
       const found = await issue(client, member.guildId, issueId);
       requireCondition(found.user_id === member.userId, 'MEMBER_MISMATCH');
+      await access(actor, member.guildId, member.userId);
       const grant = operatorGrant(actor);
-      const previous = await receipt(client, member.guildId, grant.userId, interactionId,
-        { action: { recheck: 'shuttle.issue.recheck', adopt_message: 'shuttle.message.recover', select_channel: 'shuttle.channel.choose' }[action], issueId, expectedRevision,
-          ...(action === 'adopt_message' ? { messageId: resultId } : action === 'select_channel' ? { channelId: resultId } : {}) });
-      if (previous) return { duplicate: true };
+      const previous = await receipt(client, member.guildId, grant.userId, interactionId, intent);
+      if (previous) { await access(actor, member.guildId, member.userId); return { duplicate: true }; }
+      await registerCasePolicy(client, fixed);
       const job = (await client.query(`SELECT * FROM sophie_core.outbox WHERE guild_id = $1 AND operation_id = $2 FOR UPDATE`,
         [member.guildId, found.operation_id])).rows[0];
       const current = (await client.query('SELECT revision, parked_fence FROM sophie_core.shuttle_delivery_issues WHERE id = $1 FOR UPDATE', [issueId])).rows[0];
@@ -75,6 +81,7 @@ export function createOnboardingDeliveryIssueStore({ pool, clock, authorize, pol
       // invalidates old leases now; global pause, backoff and Gateway gates are untouched.
       await client.query(`UPDATE sophie_core.outbox SET status = 'ready', available_at = clock_timestamp(), attempts = 0,
         fence = fence + 1, last_error_code = NULL WHERE guild_id = $1 AND operation_id = $2`, [member.guildId, found.operation_id]);
+      await access(actor, member.guildId, member.userId); requireFreshObservation(member.observation, clock());
       await saveReceipt(client, member.guildId, interactionId, { issueId, revision: current.revision + 1 });
       return { duplicate: false };
     });
@@ -105,10 +112,18 @@ export function createOnboardingDeliveryIssueStore({ pool, clock, authorize, pol
         return { state: 'ready', guildId, entries, next: rows.length > 5 ? entries.at(-1).issueId : null };
       });
     },
-    async describeOnboardingDeliveryIssue({ actor, guildId, issueId }) {
+    async describeOnboardingDeliveryIssue({ actor, guildId, issueId, interactionId = null, expectedRevision, action, resultId = null }) {
+      const intent = interactionId === null ? null : recoveryRequest(issueId, expectedRevision, action, resultId);
       return inTransaction(pool, async client => {
-        await access(actor, guildId); await registerCasePolicy(client, fixed);
+        await access(actor, guildId);
         const row = await issue(client, guildId, issueId);
+        await access(actor, guildId, row.user_id);
+        if (intent !== null) {
+          const previous = await readReceipt(client, guildId, operatorGrant(actor).userId, interactionId, intent);
+          if (previous) { await access(actor, guildId, row.user_id); return { duplicate: true }; }
+          requireCondition(row.job_status === 'parked' && row.revision === expectedRevision && row.fence === row.parked_fence, 'STALE_SHUTTLE_ISSUE');
+        }
+        await registerCasePolicy(client, fixed);
         const bound = await caseAccess.describeBinding(client, { guildId, userId: row.user_id }, { id: row.session_id });
         const artifact = await onboardingArtifact(client, row, bound);
         await access(actor, guildId, row.user_id);

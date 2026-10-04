@@ -1,8 +1,10 @@
 import { ContractError, requireCondition } from '../../../contracts/validation.js';
+import { createOnboardingStaffOperations } from './onboarding-staff-operations.js';
 
 /** Fresh Staff authority for both execution and the later private response. */
 export function createOnboardingDeliveryIssues({ authorization, discord, channels, store, enabled, screenMessages = null, alertMessages = null }) {
   requireCondition(typeof enabled === 'function', 'DELIVERY_GATE_REQUIRED');
+  const operations = createOnboardingStaffOperations({ store, discord, channels, screenMessages, alertMessages, enabled });
   async function principal(envelope) {
     const actor = await authorization.resolveActor(envelope);
     requireCondition(envelope.guildId === discord.guildId && envelope.targetId === envelope.userId &&
@@ -21,27 +23,14 @@ export function createOnboardingDeliveryIssues({ authorization, discord, channel
       try {
         const actor = await principal(envelope);
         if (envelope.command === 'shuttle.issues') return 'shuttle_issue_queue';
-        const source = await store.describeOnboardingDeliveryIssue({ actor, guildId: envelope.guildId, issueId: envelope.issueId });
         const recovery = envelope.command === 'shuttle.message.recover';
         const selection = envelope.command === 'shuttle.channel.choose';
-        if (recovery) requireCondition(['shuttle.render', 'shuttle.alert'].includes(source.kind), 'SHUTTLE_RECOVERY_KIND_INVALID');
-        if (selection) requireCondition(source.kind === 'case.provision' && source.candidateIds.includes(envelope.selectedChannelId), 'SHUTTLE_CHANNEL_CHOICE_INVALID');
-        const proof = source.kind === 'whitelist.grant' || recovery || selection ? await channels.inspect(source.plan, selection ? envelope.selectedChannelId : source.channelId) : null;
-        let message = null;
-        if (recovery) {
-          const adapter = source.kind === 'shuttle.render' ? screenMessages : alertMessages;
-          requireCondition(typeof adapter?.inspect === 'function', 'SHUTTLE_VERIFIER_REQUIRED');
-          message = await adapter.inspect({ plan: source.plan, channelId: source.channelId, messageId: envelope.messageId,
-            ...(source.kind === 'shuttle.render' ? { screenId: source.recordId } : { alertId: source.recordId }) });
-        }
-        const observation = await discord.observe(source.userId);
-        if (await enabled() !== true) return 'disabled';
-        const apply = recovery ? store.recoverOnboardingMessage : selection ? store.chooseOnboardingChannel : store.recheckOnboardingDeliveryIssue;
-        await apply({ actor, interactionId: envelope.interactionId, issueId: envelope.issueId,
-          expectedRevision: envelope.expectedRevision, observation, proof,
-          ...(recovery ? { message, resultId: envelope.messageId } : selection ? { resultId: envelope.selectedChannelId } : {}) });
+        await operations.repair({ actor, guildId: envelope.guildId, interactionId: envelope.interactionId, issueId: envelope.issueId,
+          expectedRevision: envelope.expectedRevision, action: recovery ? 'adopt_message' : selection ? 'select_channel' : 'recheck',
+          resultId: recovery ? envelope.messageId : selection ? envelope.selectedChannelId : null });
         return recovery ? 'shuttle_recovery_recorded' : selection ? 'shuttle_channel_recorded' : 'shuttle_issue_recorded';
       } catch (error) {
+        if (error instanceof ContractError && error.code === 'SHUTTLE_STAFF_DISABLED') return 'disabled';
         if (error instanceof ContractError && ['STALE_SHUTTLE_ISSUE', 'SHUTTLE_ISSUE_NOT_FOUND'].includes(error.code)) return 'shuttle_issue_stale';
         if (error instanceof ContractError && error.code === 'SHUTTLE_MESSAGE_ID_REQUIRED') return 'shuttle_issue_message_needed';
         if (error instanceof ContractError && ['SHUTTLE_CHANNEL_CHOICE_INVALID', 'CASE_CHANNEL_ALREADY_BOUND'].includes(error.code)) return 'shuttle_channel_rejected';

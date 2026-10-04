@@ -1,5 +1,40 @@
 # Verification and release limits
 
+## Shuttle assistance and delivery dashboard — 4 October 2026
+
+The local schema069 candidate adds authenticated `/shuttle-assistance` and
+`/shuttle-delivery` pages for existing Staff operations. Five-entry metadata queues
+use explicit reviewed confirmation, current Shuttle authority, CSRF and exact
+receipt replay. Commands and HTTP share assistance/recovery operations and the
+same opaque channel/screen/alert proof issuers. Replay checks precede policy and
+external evidence reads, including in the transactional path. Help resolution
+does not advance progress or grant Whitelist; workers still verify delivery.
+
+Passed: 31 focused checks and 87 Shuttle assistance/pause/recovery/selection
+database scenarios. SH01–SH06 cover OAuth resolution, Muzzled denial, replay after
+policy/channel changes, both message types, retained-channel selection, role
+recheck and authority loss during proof. RT24 verifies the composed OAuth return
+paths, paused-run resolution and exact recovery after a lost screen POST response.
+Synthetic browser checks confirm numeric pagination, keyboard confirmation,
+lost-response exact retry, message adoption, channel choice and access-loss
+clearing. The preview and browser tab stopped; no browser errors were observed.
+
+The standard composed run passed the other 23 scenarios but failed P19-RT22's
+final no-fault assertion with one `AI_TURN_UNAVAILABLE`. Its exclusion, receipt
+and no-delivery assertions passed. An isolated diagnostic and all 24 composed
+scenarios then passed with temporary synthetic exception logging outside the
+repository. The intermittent fault was not reproduced or fixed; its original
+failure remains an evidence gap. No AI assertion or production logging was changed.
+
+Initial validation also found an outdated assistance cleanup/control fixture,
+missing migration registration and an omitted browser session flag. These were
+corrected without weakening assertions. Schema069 changes only fixed OAuth
+return paths; no new capability grant, dependency or live service change.
+Installed source remains 5f60a24/schema066. Deployment, actual worker/provider
+qualification, owner publications/consent and independent live acceptance remain
+open. Source hashes, exact runs, corrections and rollback are recorded at
+GitHub/.agent_docs/aphelion-sophie/shuttle-dashboard-2026-10-04/verification.json.
+
 ## Ordinary ticket delivery recovery dashboard — 4 October 2026
 
 The local /case-delivery page lists only parked-case metadata for current responders.

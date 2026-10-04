@@ -2,38 +2,41 @@ import { DashboardFailure } from './api.js';
 
 const id = value => typeof value === 'string' && /^[1-9][0-9]{0,19}$/.test(value);
 const issueId = value => typeof value === 'string' && /^[a-f0-9]{32}$/.test(value);
-function validPage(page, guildId) {
+function validPage(page, guildId, shuttle) {
   return page?.state === 'ready' && page.guildId === guildId && Array.isArray(page.entries) && page.entries.length <= 5 &&
     new Set(page.entries.map(row => row.issueId)).size === page.entries.length &&
     (page.next === null || issueId(page.next) && page.next === page.entries.at(-1)?.issueId) && page.entries.every(row =>
       issueId(row.issueId) && id(row.userId) && (row.channelId === null || id(row.channelId)) &&
       Number.isSafeInteger(row.revision) && row.revision >= 0 && row.revision <= 2_147_483_646 &&
-      ['pending', 'open', 'closing', 'closed', 'failed'].includes(row.caseState) && typeof row.caseType === 'string' && /^[a-z-]{1,40}$/.test(row.caseType) &&
-      ['case', 'intake', 'reply'].includes(row.kind) && ['permissions', 'attempts', 'uncertain', 'review'].includes(row.reason) &&
+      ['pending', 'open', 'closing', 'closed', 'failed'].includes(row.caseState) && (shuttle || typeof row.caseType === 'string' && /^[a-z-]{1,40}$/.test(row.caseType)) &&
+      (shuttle ? ['case', 'grant', 'reconcile', 'screen', 'alert'] : ['case', 'intake', 'reply']).includes(row.kind) &&
+      (shuttle ? ['permissions', 'roles', 'attempts', 'delivery', 'review'] : ['permissions', 'attempts', 'uncertain', 'review']).includes(row.reason) &&
       [row.attempted, row.recheckable, row.needsMessageId].every(value => typeof value === 'boolean') &&
-      (!row.needsMessageId || ['intake', 'reply'].includes(row.kind) && !row.recheckable) && (row.kind !== 'reply' || issueId(row.replyId)) &&
+      (!row.needsMessageId || (shuttle ? ['screen', 'alert'] : ['intake', 'reply']).includes(row.kind) && !row.recheckable) && (row.kind !== 'reply' || issueId(row.replyId)) &&
       (row.channelChoice === null || row.kind === 'case' && typeof row.channelChoice?.required === 'boolean' &&
         (!row.channelChoice.required || !row.recheckable) && Number.isSafeInteger(row.channelChoice.total) && row.channelChoice.total >= 2 &&
         Array.isArray(row.channelChoice.candidates) && row.channelChoice.candidates.length === Math.min(row.channelChoice.total, 5) &&
         new Set(row.channelChoice.candidates).size === row.channelChoice.candidates.length && row.channelChoice.candidates.every(id)));
 }
 
-export function createDeliveryController({ api, onChange, newRequestId }) {
+export function createDeliveryController({ api, onChange, newRequestId, scope = 'case' }) {
+  if (!['case', 'shuttle'].includes(scope)) throw new DashboardFailure('invalid');
+  const shuttle = scope === 'shuttle', maxRevision = shuttle ? 2_147_483_645 : 2_147_483_644;
   let state = { phase: 'loading', identity: null, busy: false, page: null, after: null, review: null,
     confirmed: false, pending: null, dirty: false, error: null, notice: null }, generation = 0;
   const snapshot = () => structuredClone(state), emit = () => onChange(snapshot());
   const clearReview = () => { state.review = null; state.confirmed = false; state.dirty = false; };
   const clear = () => { state.page = null; state.after = null; state.pending = null; clearReview(); };
   async function load(active) {
-    const page = await api.caseDelivery(state.after); if (!active()) return;
-    if (!validPage(page, state.identity.guildId)) throw new DashboardFailure('unavailable'); state.page = page;
+    const page = await (shuttle ? api.onboardingDelivery : api.caseDelivery)(state.after); if (!active()) return;
+    if (!validPage(page, state.identity.guildId, shuttle)) throw new DashboardFailure('unavailable'); state.page = page;
   }
   async function run(work) {
     if (state.busy) return;
     const token = ++generation, active = () => token === generation; state.busy = true; state.error = null; emit();
     try {
       const identity = await api.session(); if (!active()) return;
-      if (identity.canRecoverCases !== true) throw new DashboardFailure('denied');
+      if (identity[shuttle ? 'canManageOnboarding' : 'canRecoverCases'] !== true) throw new DashboardFailure('denied');
       if (state.identity && (state.identity.userId !== identity.userId || state.identity.guildId !== identity.guildId)) {
         clear(); state.identity = identity; state.phase = 'ready'; state.notice = 'Your account changed. Refresh the queue before reviewing a repair.'; return;
       }
@@ -49,7 +52,7 @@ export function createDeliveryController({ api, onChange, newRequestId }) {
     } finally { if (active()) { state.busy = false; emit(); } }
   }
   async function submit(active) {
-    const result = await api.changeCaseDelivery(state.pending); if (!active()) return;
+    const result = await (shuttle ? api.changeOnboardingDelivery : api.changeCaseDelivery)(state.pending); if (!active()) return;
     if (result.recorded !== true || typeof result.duplicate !== 'boolean') throw new DashboardFailure('unavailable');
     state.pending = null; clearReview(); state.after = null;
     state.notice = 'Repair recorded. Sophie will check current access and the delivery result. Delivery is not yet confirmed.'; await load(active);
@@ -63,7 +66,7 @@ export function createDeliveryController({ api, onChange, newRequestId }) {
     },
     review(selected, action, resultId = null) {
       if (state.busy || state.pending) return;
-      const entry = state.page?.entries.find(row => row.issueId === selected); if (!entry || entry.revision > 2_147_483_644) return;
+      const entry = state.page?.entries.find(row => row.issueId === selected); if (!entry || entry.revision > maxRevision) return;
       if (!(action === 'recheck' && entry.recheckable && resultId === null || action === 'adopt_message' && entry.needsMessageId && id(resultId) ||
         action === 'select_channel' && entry.channelChoice?.required && entry.channelChoice.total <= 500 && entry.channelChoice.candidates.includes(resultId))) {
         state.error = 'Select an available repair and, when needed, a valid exact message ID.'; emit(); return;

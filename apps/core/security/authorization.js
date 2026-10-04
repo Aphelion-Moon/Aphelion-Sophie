@@ -100,7 +100,7 @@ export function createCoreAuthorization({ principals, discord, authorityStore, p
       requireCondition(await isAuthorityCurrent() === true, 'AUTHORITY_UNCERTAIN');
       requireCondition(await stamp() === version, 'OBSERVATION_INVALIDATED'); requireFreshObservation(observation, clock());
       return { guildId: principal.guildId, userId: principal.userId, capabilities,
-        canManageCases: manageable.length > 0, canCreateContacts: manageable.includes('staff-contact') };
+        canManageCases: manageable.length > 0, canManageOnboarding: manageable.includes('shuttle'), canCreateContacts: manageable.includes('staff-contact') };
     },
     async resolveActor(proof) {
       const principal = await principals.resolvePrincipal(proof);

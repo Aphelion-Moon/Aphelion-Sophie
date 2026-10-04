@@ -26,8 +26,8 @@ async function signedHttp(address, signed) {
   });
 }
 export async function runStagingRuntimeSuite(cluster, run) {
-  async function fixture({ dashboard = true, automaticWorkers = false, ready = true, answers = false, automation = false, automationIngress = false, unavailableAi = false, unavailableAiLifecycle = false, qualifiedAi = false, knowledgeOnly = false, knowledgeAdministration = null } = {}) {
-    const f = await onboardingWorkflow(cluster, { extraCapabilities: { 'case.forms.publish': [LEAD],
+  async function fixture({ helpPauses = false, dashboard = true, automaticWorkers = false, ready = true, answers = false, automation = false, automationIngress = false, unavailableAi = false, unavailableAiLifecycle = false, qualifiedAi = false, knowledgeOnly = false, knowledgeAdministration = null } = {}) {
+    const f = await onboardingWorkflow(cluster, { helpPauses, extraCapabilities: { 'case.forms.publish': [LEAD],
       'member.mute': [STAFF, LEAD], 'member.unmute': [STAFF, LEAD], ...(answers ? { 'answers.publish': [STAFF] } : {}), ...(automation ? { 'automation.publish': [STAFF] } : {}) } });
     if (qualifiedAi) {
       // Preserve prior observation ordering while letting both heartbeat freshness
@@ -83,7 +83,7 @@ export async function runStagingRuntimeSuite(cluster, run) {
   await run('RT01 runtime database privileges reject the owner and accept the restricted core identity', async () => {
     await cluster.adminPool.query('GRANT USAGE ON SCHEMA sophie_migrations TO sophie_test_core');
     await cluster.adminPool.query('GRANT SELECT ON sophie_migrations.applied TO sophie_test_core');
-    const result = await checkRuntimeDatabase(cluster.corePool); assert.ok(result.checkedTables > 0); assert.equal(result.migrations, 68);
+    const result = await checkRuntimeDatabase(cluster.corePool); assert.ok(result.checkedTables > 0); assert.equal(result.migrations, 69);
     await assert.rejects(checkRuntimeDatabase(cluster.adminPool), /RUNTIME_DATABASE_PRIVILEGES_INVALID/);
     const client = await cluster.adminPool.connect(); await client.query('BEGIN');
     try {
@@ -443,6 +443,44 @@ export async function runStagingRuntimeSuite(cluster, run) {
     assert.equal((await f.rows('sessions'))[0].state.status, 'complete'); assert.ok(f.discord.state.members.get(USER).includes(WHITELIST));
     assert.deepEqual(f.faults, []);
   });
+  await scenario('RT24 composed OAuth Shuttle help and message recovery use shared authority, receipts and proof issuers', async f => {
+    const start = await dashboardHttp(f.addresses.dashboard, '/auth/start?returnTo=%2Fshuttle-assistance');
+    const state = new URL(start.headers.location).searchParams.get('state'), cookie = start.headers['set-cookie'][0].split(';')[0];
+    const done = await dashboardHttp(f.addresses.dashboard, `/auth/callback?state=${state}&code=${f.oauth.issueCode(OTHER)}`, { headers: { Cookie: cookie } });
+    assert.equal(done.headers.location, '/shuttle-assistance');
+    const session = done.headers['set-cookie'].find(value => value.startsWith(`${DASHBOARD_COOKIES.session}=`)).split(';')[0];
+    const status = await dashboardHttp(f.addresses.dashboard, '/auth/session', { headers: { Cookie: session } }); assert.equal(status.body.canManageOnboarding, true);
+    for (const path of ['/shuttle-assistance', '/shuttle-delivery']) assert.equal((await dashboardBytes(f.addresses.dashboard, path, { headers: { Cookie: session } })).status, 200);
+    const headers = { Cookie: session, Origin: f.config.dashboard.origin, 'Content-Type': 'application/json', 'X-CSRF-Token': status.body.csrfToken };
+    const get = path => dashboardHttp(f.addresses.dashboard, path, { headers: { Cookie: session } });
+    const post = (path, body) => dashboardHttp(f.addresses.dashboard, path, { method: 'POST', headers, body: JSON.stringify(body) });
+    f.discord.state.afterWrite = call => { if (call.method === 'POST' && call.path.endsWith('/messages')) {
+      f.discord.state.afterWrite = null; throw new Error('SYNTHETIC_LOST_SCREEN_RESPONSE');
+    } };
+    await f.send(f.identities.payload({ member: { user: { id: USER } }, data: { type: 1, name: 'whitelist', options: [{ type: 1, name: 'start' }] } }));
+    await waitForGateway(async () => { await f.runtime.runOnce(); return (await f.current())?.create_started; });
+    const screen = await f.current(); assert.equal(screen.message_id, null);
+    const message = [...f.discord.state.messages.values()].find(row => row.components?.some(part => part.components?.some(button => button.custom_id?.startsWith(`sophie:shuttle:v1:${screen.id}:`)))); assert.ok(message);
+    await f.pool.query("UPDATE sophie_core.outbox SET available_at = '-infinity' WHERE kind = 'shuttle.render' AND status = 'ready'");
+    await f.runtime.runOnce();
+    const issues = await get('/api/shuttle/delivery'); assert.equal(issues.status, 200);
+    const issue = issues.body.entries.find(row => row.kind === 'screen'); assert.ok(issue?.needsMessageId);
+    const recovery = { issueId: issue.issueId, expectedRevision: issue.revision, action: 'adopt_message', resultId: message.id, requestId: '9'.repeat(64), confirmed: true };
+    assert.deepEqual((await post('/api/shuttle/delivery/change', recovery)).body, { recorded: true, duplicate: false });
+    await f.runtime.runOnce(); assert.equal((await f.current()).ready, true);
+    const offset = f.discord.state.calls.length;
+    assert.deepEqual((await post('/api/shuttle/delivery/change', recovery)).body, { recorded: true, duplicate: true });
+    assert.equal(f.discord.state.calls.slice(offset).some(call => call.path.includes('/channels/')), false);
+    await f.send(f.control(await f.current(), 'help'));
+    await waitForGateway(async () => (await f.rows('shuttle_help_requests')).length === 1);
+    const queue = await get('/api/shuttle/help'); assert.equal(queue.status, 200); assert.equal(queue.body.entries[0].paused, true);
+    const entry = queue.body.entries[0], help = { helpId: entry.requestId, expectedRevision: entry.revision, requestId: '8'.repeat(64), confirmed: true };
+    const before = await f.session(); assert.deepEqual((await post('/api/shuttle/help/resolve', help)).body, { recorded: true, duplicate: false, resumed: true });
+    assert.equal((await f.session()).stepIndex, before.stepIndex); assert.equal((await f.session()).helpPaused, false);
+    assert.deepEqual((await post('/api/shuttle/help/resolve', help)).body, { recorded: true, duplicate: true, resumed: true });
+    f.discord.state.members.set(OTHER, []); assert.equal((await get('/api/shuttle/help')).status, 403); assert.equal((await post('/api/shuttle/delivery/change', recovery)).status, 403);
+    assert.deepEqual(f.faults, []);
+  }, { helpPauses: true });
   await scenario('RT08 Gateway guild unavailability closes command and worker gates', async f => {
     f.peer.connections[0].send(gatewayEvent(3, 'GUILD_DELETE', { id: GUILD, unavailable: true }));
     await waitForGateway(async () => !(await f.runtime.status()).current);

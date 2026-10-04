@@ -103,7 +103,8 @@ export function createAdministrationLane({ configuration, pool, token, fetch, cl
     createCaseReplyDispatcher({ outbox, store: replyDelivery, roles, messages: replyMessages, enabled }),
     createAutomationDispatcher({outbox,store:automationDelivery,messages:automationMessages,enabled}),
     createOnboardingCleanup({ store, roles, enabled, clock })];
-  return { transport, roles, channels, authorization, store, intakeStore, replyStore, issueStore, intakeMessages: answers, replyMessages, commands, workers, caseIntake, automationRecovery,
+  return { transport, roles, channels, authorization, store, intakeStore, replyStore, issueStore, intakeMessages: answers, replyMessages,
+    screenMessages: screens, alertMessages: alerts, commands, workers, caseIntake, automationRecovery,
     responseAdapters: { onboardingNavigation: createOnboardingNavigation({ ...common, channels }), onboardingAssistance: assistance,
       onboardingDeliveryIssues: deliveryIssues, caseLifecycle, caseStaff, caseIntake, caseContacts, caseDeliveryIssues, publicAnswers, caseAnswers, knowledgeLookup } };
 }

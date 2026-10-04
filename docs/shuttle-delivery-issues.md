@@ -20,10 +20,27 @@ Duplicate signed interactions return the retained outcome after current authoriz
 
 ## Schema, verification and rollback
 
+The authenticated `/shuttle-delivery` dashboard page now exposes these existing
+Staff recovery operations through a five-entry metadata queue and explicit
+review/confirmation. It shares the command operation and trusted channel,
+screen and alert proof issuers. Exact receipts are checked with current Staff
+authority before external observations, including after a policy change or loss
+of the original channel/message. Transactional replay checks remain in place.
+The browser cannot submit an actor, guild, proof, message content or arbitrary
+outbox operation. Recheck, exact message adoption and retained-channel selection
+record intent; the worker alone confirms delivery. No unidentified message is
+resent. Only the first five retained candidates are displayed; another candidate
+within the existing limit can be selected with `/whitelist choose` in Discord.
+
+Migration 069 extends only the OAuth return-path allowlist. Rollback must retain
+the applied migration ledger, receipts, audits and unresolved effects and use
+schema-compatible code. No dependency, licence, permission grant or live-service
+change is included. Executed focused and composed results are in verification.
+
 Migration `013-shuttle-delivery-issues.sql` adds retained issue identities and per-action audits. It backfills only existing bound parked role jobs without replaying them or changing effects. Migration-generated opaque handles are routing identifiers, not credentials. A collision or incompatible row aborts migration. Existing SQL files remain unchanged. Core receives the existing SELECT/INSERT/UPDATE privileges only; the knowledge identity cannot read these records.
 
 The new contract checks cover signed closed routing, bounded metadata/pagination and explicit adapter injection. R01–R17 exercise current Staff authority, duplicate/competing actions, lost permissions, Muzzled/loss/pause/withdrawal guards, possible role effects, closed-case compensation, earned entitlement, exact channel proofs, leases, barriers, transaction rollback, retained cursors, database isolation, real loopback HTTP and migration backfill. S21 checks persisted issues, audits, duplicate receipts, possible effects and delivery pause across an actual isolated database restart. Execution counts and outcomes are recorded in [verification](verification.md); this test specification alone does not claim those checks passed.
 
 Rollback requires stopping commands and workers, preserving migration 013, issue/audit/receipt records and unfinished effects, and restoring code compatible with the applied migration ledger. Do not delete history, clear possible-send markers, replay unknown creates or downgrade to a migrator that rejects the retained schema.
 
-Recovery of known late cases and exact own-messages is documented separately. [Canonical duplicate-channel selection](shuttle-channel-selection.md) now retains an audited choice and requires fresh worker verification. Unidentified results, other ticket operations, dashboard parity, production composition and live Discord authorization/role checks remain open. The owner's actual Shuttle copy remains unpublished, and this development slice does not pass a production release gate.
+Recovery of known late cases and exact own-messages is documented separately. [Canonical duplicate-channel selection](shuttle-channel-selection.md) now retains an audited choice and requires fresh worker verification. Unidentified results, other ticket operations, production composition and live Discord authorization/role checks remain open. The owner's actual Shuttle copy remains unpublished, and this development slice does not pass a production release gate.
