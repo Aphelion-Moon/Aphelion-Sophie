@@ -1,9 +1,10 @@
 # AI on the Test Discord Server — operator runbook
 
-Status (30 September 2026): schema 064 and source commit `7a152ca` are installed on WUFF for the
-Test Discord Server, using the `aphelion-sophie` Discord application. PostgreSQL, tunnel, supervisor
-and core are running with a current Gateway. The worker is stopped. Public dashboard/login/denial
-and current AI JavaScript checks passed; the owner already holds the configured test Head Admin role.
+Status (4 October 2026): read-only service/trust inspection confirms installed source `7a152ca`,
+expired installation and independent-journal receipts, no installed processing policy, and all five
+Sophie staging services stopped. Schema 064 is the last recorded database version; this inspection
+did not start PostgreSQL or query it. The current local candidate requires migrations 065 and 066.
+The September 30 dashboard, Gateway and operator-role observations below are historical.
 No live AI processing is cleared. Starting the worker is an owner action through the dashboard. Do not paste
 the provider key, Discord token or trust-file contents into chat, logs or Git.
 
@@ -29,7 +30,26 @@ and `sophie_stage_knowledge` (read-only knowledge), plus `sophie_stage_knowledge
 SELECT/INSERT/UPDATE). The owner and admin logins are maintenance-only. Policy version 2 adds the
 approved AI/editor capabilities for the existing configured Head Admin role; other grants and role ownership remain unchanged.
 
-## Daily: renew the installation receipts
+## Prepare the schema066 update
+
+The current candidate adds exact-notice consent receipts, identifier redaction, default deletion on
+departure and explicit retention. Before deployment, review the concrete proposal and evidence in
+`GitHub/.agent_docs/aphelion-sophie/test-readiness-2026-10-04/`. Record separate authorization for the
+pinned source, migrations, grants, receipt renewal and Sophie service starts. Keep member processing
+held, the worker stopped and publications unchanged during this update.
+
+Use the maintenance identity to migrate only `sophie_stage_bot` after checking the existing migration
+checksums and preserving a verified recovery point. In addition to its existing grants, the AI control
+role needs SELECT/INSERT on `sophie_ai.request_tombstones`, SELECT/INSERT/DELETE on
+`sophie_ai.effect_erasure`, and DELETE on `sophie_ai.consents` and `sophie_ai.request_receipts`.
+Core gains no AI-schema access or DELETE privilege. Installed control qualification now rejects any
+missing privilege in this delta with `AI_DATABASE_PRIVILEGES_MISSING` before composing the service.
+
+Preserve the independent journal's bytes and identity; verify its ACL, integrity, capacity and exclusion
+from database restores. Renew its receipt separately from installation trust. Do not rerun a provisioning
+helper that would recreate a missing journal. A missing or corrupt journal is a recovery hold.
+
+## Renew the installation receipts
 
 The owner-approved September 30 repair is installed. Worker read/execute access to `services\worker`
 and metadata access to `services` are now present; the other reviewed descriptors are unchanged.
@@ -39,7 +59,9 @@ runtime configuration digest, four actual service-child identities, recovered su
 physical-stop qualification are still open. Evidence is in
 `GitHub/.agent_docs/aphelion-sophie/repair-deployment-verification-2026-09-30.json`.
 
-Trust files expire 24 hours after issue by design. From an elevated PowerShell:
+Trust files expire 24 hours after issue by design. The established renewal entry point is below.
+It redeploys the current commit and restarts services: run it only after the approved migration/grant
+steps and independent-journal review, with confirmed service/child quiescence and a clean pinned checkout.
 
 ```powershell
 pwsh -File C:\Aphelion\Sophie\staging\renewal\renew-installation.ps1
@@ -55,22 +77,26 @@ The assembler retains `knowledge-editor.json`, `preference-journal.json` and any
 `processing-policy.json` from the protected staging directory. The independent journal has its own
 qualification expiry; renewing installation trust does not extend that evidence automatically.
 After rechecking its ACL and database-restore exclusion, explicitly renew its receipt before expiry.
-Current installation trust expires 1 October at 14:45 Warsaw time. The independent preference-journal
-receipt expires earlier, at 12:54 Warsaw time, and was not extended by renewal.
+The recorded installation trust expired 1 October at 14:45 Warsaw time. The independent journal
+receipt expired at 12:54 Warsaw time and was not extended by renewal. October 4 metadata confirms
+these expiries. Renewed timestamps must follow fresh evidence, not merely the passage of time.
 
 ## Enabling AI on one test channel
 
 1. Record DS-01 evidence before clearing real message processing. The protected core installation accepts
-   an optional `processingPolicy`: schemaVersion 1, provider `deepseek`, domain `public`, explicit `approved`,
-   nonzero evidenceHash, validUntil, noticeRevision (at least 2), and reviewed noticeText. Missing, unapproved,
-   expired or unqualified policy denies processing and opt-in. Renewal must retain this reviewed policy;
+   an optional `processingPolicy`: schemaVersion 2, provider `deepseek`, domain `public`, explicit `approved`,
+   nonzero evidenceHash, validUntil, noticeRevision (at least 2), and exact reviewed noticeText (at most
+   8000 characters). Its review must be `accepted` and bind actual processor-agreement, Discord
+   service-provider, retention/deletion and international-transfer evidence hashes. Drafts and legacy
+   schema1 receipts cannot authorise remote processing. Missing, unapproved, expired or unqualified
+   policy denies processing and opt-in. Renewal must retain this reviewed policy;
    never manufacture clearance from possession of an API key. It does not approve memory or restricted data.
    The owner reported disabling “Improve the model for everyone” on September 30. Base Terms 4.3
    names the switch and includes APIs; the Open Platform incorporates those terms and shares the account.
    This supports the improvement-use opt-out interpretation, but supplies no fixed API retention/deletion
    commitment. The downstream-user exclusion in Privacy Policy/Open Platform 5.5 still applies.
    The owner reports an EU-based operation. The unsent provider enquiry at
-   `GitHub/.agent_docs/aphelion-sophie/provider-eu-enquiry-2026-09-30.json` requests applicable API
+   `GitHub/.agent_docs/aphelion-sophie/test-readiness-2026-10-04/provider-enquiry-DRAFT.json` requests applicable API
    processor terms, retention/deletion commitments, subprocessors and international-transfer safeguards.
    A member disclosure does not create those provider commitments or install processing clearance.
 2. Review the effective capability policy. Grant the chosen operator role `ai.control`,
@@ -112,11 +138,18 @@ provisioned outside database restore bundles and readable/writable only by core 
 SYSTEM and Administrators. Missing/truncated/unqualified journals stay unavailable and are never
 recreated at startup. Remote preference use remains separately disabled.
 
+Before enabling the candidate, exercise default departure deletion and separately saved retention with
+synthetic accounts. Check rejoin requires fresh consent, pending cleanup holds new processing, dependent
+effects are removed only after acknowledgement, and uncertain spending stays pending. Retention keeps
+local saved data within existing expiry limits and never preserves temporary context or active consent.
+Use the updated notice and retention annex; provider copies and backups need their own factual schedules.
+
 ## Rollback
 
 Disable AI and stop only Sophie’s affected services. Preserve retained database state, credentials,
-receipts and the independent preference journal. After applying 064, repair forward with schema-064
-compatible code; the old schema-063 package is no longer a runtime rollback. Cold copies and encrypted
+receipts and the independent preference journal. After applying 066, prefer a schema066-compatible
+forward repair with AI disabled. Older code is not a compatible runtime rollback. Do not restore a
+pre-deletion snapshot as live data or discard the new erasure/replay markers. Cold copies and encrypted
 bundles are retained recovery evidence and must remain quarantined if restored. They are not automatic
 live rollback targets. Do not restore old Discord roles, reactivate approvals or erase uncertain effects.
 

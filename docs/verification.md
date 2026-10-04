@@ -1,5 +1,45 @@
 # Verification and release limits
 
+## AI test preparation and installed privilege preflight — 4 October 2026
+
+Installed AI control qualification now checks every schema066 privilege addition before service
+composition. Missing tombstone/erasure access or consent/request deletion rights fails with
+`AI_DATABASE_PRIVILEGES_MISSING`, rather than surfacing later during admission or cleanup. Ten focused
+installation checks and 93 isolated AI/database scenarios passed. New AI-D11 uses a restricted role,
+revokes each of the seven required grants individually, verifies rejection, and verifies acceptance
+with the exact delta restored. The owned database cluster stopped. This does not replace installed
+role checks or exercise live Discord/provider effects. Prior 90-unit/20-staging evidence remains
+bound to its earlier candidate; those unchanged suites were not rerun for this startup check.
+
+The notice and operator retention annex now describe best-effort redaction, default departure
+deletion, separate explicit retention, fresh rejoin consent, pending external cleanup, minimal markers,
+backup/provider limits and the existing privacy contact after departure. Exact draft text is 7058
+characters, within the runtime's 8000-character limit. Personality and budget drafts pass their
+runtime contracts; draft processing remains denied. Official Flash prices were rechecked against
+the current public pricing page and match the conservative peak rates. No price validity, provider
+acceptance, source publication or member consent was invented. A 40-case results template preserves
+the historical question set's source bindings and requires fresh source review and actual answers.
+
+Read-only installed metadata at 14:49 UTC (16:49 Warsaw) confirms all five Sophie services are stopped,
+installed release `sophie-deepseek-7a152ca`, expired installation and journal receipts, and no installed
+processing policy. The existing journal is present; only its metadata/hash/ACL were inspected, not
+member records. Schema064 remains the last database observation because PostgreSQL was not started.
+The current worker setup `-WhatIf` passed its registration/wrapper/firewall checks. This is configured
+scope evidence, not a worker-child file/network denial test. No service, grant, trust or journal changed.
+
+The concrete deployment proposal lists schema065/066, exact grant SQL, preservation/rollback limits,
+renewal steps, current source/profile hashes and separate owner-led worker/chat acceptance. The old
+protected assembler points to September evidence; its evidence directory must be updated after fresh
+readback, before any authorized renewal. The runbook now reflects schema2 accepted evidence and the
+current stopped/expired state. Evidence and review artifacts are in
+`GitHub/.agent_docs/aphelion-sophie/test-readiness-2026-10-04/verification.json`.
+
+The updated text and JSON are the canonical draft review outputs. The Word copy remains visually
+unverified: the configured document bundle has no LibreOffice renderer, matching the prior diagnosed
+failure. Provider terms, factual/legal retention and transfer annexes, publication and explicitly
+authorized staging deployment remain open. There was no provider correspondence, paid request,
+worker startup, member processing, new dependency or permission change in this preparation.
+
 ## Departure deletion, consent navigation and request preparation — 4 October 2026
 
 The schema066 candidate deletes member-specific AI data on confirmed departure by default.

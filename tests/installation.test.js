@@ -168,6 +168,7 @@ test('AI-INST07 installed composition carries approved notices, independent pref
   core.pipes.installation.configuration={...core.pipes.installation.configuration,core:options};let input;
   const createPool=configuration=>({async query(sql){
     if(sql.includes('restore_name'))return {rows:[{restore_name:false,quarantined:false}]};
+    if(sql.includes('privacy_access'))return {rows:[{privacy_access:true}]};
     if(sql.includes('rolsuper'))return {rows:[{rolsuper:false,rolcreatedb:false,rolcreaterole:false,rolreplication:false,rolbypassrls:false,core:false,
       ai:configuration.user==='sophie_stage_control',knowledge:configuration.user.includes('knowledge')||configuration.user.includes('editor')}]};
     return {rows:[{schema_create:false,knowledge_write:configuration.user==='sophie_stage_editor'}]};

@@ -34,6 +34,14 @@ export async function requireInstalledAiDatabase(pool,kind) {
          has_table_privilege(c.oid,'DELETE') OR has_table_privilege(c.oid,'TRUNCATE') OR
          has_table_privilege(c.oid,'REFERENCES') OR has_table_privilege(c.oid,'TRIGGER') END)) AS knowledge_write`)).rows[0];
   requireCondition(privileges?.schema_create===false && privileges.knowledge_write===(kind==='knowledge-owner'),'AI_DATABASE_IDENTITY_INVALID');
+  if(kind==='control') {
+    // Schema066 migration and its operator-owned grants are separate steps. Fail before admission/cleanup.
+    const access=(await pool.query(`SELECT bool_and(has_table_privilege(current_user,table_name,privilege)) AS privacy_access
+      FROM (VALUES ('sophie_ai.request_tombstones','SELECT'),('sophie_ai.request_tombstones','INSERT'),
+        ('sophie_ai.effect_erasure','SELECT'),('sophie_ai.effect_erasure','INSERT'),('sophie_ai.effect_erasure','DELETE'),
+        ('sophie_ai.consents','DELETE'),('sophie_ai.request_receipts','DELETE')) required(table_name,privilege)`)).rows[0];
+    requireCondition(access?.privacy_access===true,'AI_DATABASE_PRIVILEGES_MISSING');
+  }
 }
 
 /** Public lookup and optional administration use distinct knowledge-only database identities. */

@@ -1,6 +1,6 @@
 {
   "schema_version": 2,
-  "revision": "2026-10-04-departure-privacy",
+  "revision": "2026-10-04-test-readiness",
   "reference_plan_version": "1.1",
   "source": "Sophie-Implementation-Plans-v1.1/backlog.json",
   "owner_decisions": "docs/decisions/0001-owner-policy.md",
@@ -1337,9 +1337,9 @@
   ],
   "checkpoint": {
     "summary": "Deterministic administration, Whitelist onboarding, protected editors, role/permission configuration and the configurable staging host are implemented.",
-    "recorded_baseline": "Source ce46b9f plus local schema066 candidate. Last recorded installed staging remains source7a152ca/schema064 on 30 September; no live inspection or deployment in this pass.",
-    "current_work": "Schema066 records confirmed departure and cleanup epochs in core authority and adds a default-off retention choice protected by the independent journal. AI cleanup is durable, bounded and independent of inference; deleted preferences/consents/resolved activity cannot silently return from an older consistent restore. Cross-member effects and uncertain costs remain pending until resolved. Retention never restores active consent. Consent pages/exact lookup expose every historical choice; absent withdrawals are no-ops. Accepted DeepSeek request serialization is reused for byte accounting and dispatch. Local candidate only. Qualify schema066 and narrow AI-control grants, journal health/capacity, matching notice and retention annex, and changed worker source. Unknown effects/charges require resolution before deletion completes. Selective/inconsistent restores are not qualified. Provider commitments, live Discord/member acceptance and deployment remain separate gates; free-form redaction is best effort.",
-    "evidence_note": "90 focused unit checks, 92 isolated AI/database scenarios, 20 composed staging scenarios, synthetic browser pagination/withdrawal/retention checks, and 554 source checks passed; owned clusters and preview stopped. Final cleanup queries are covered by the final AI/database run. Source-bound evidence: GitHub/.agent_docs/aphelion-sophie/dispatch-iteration-2026-10-04/verification.json. No new end-to-end performance measurement."
+    "recorded_baseline": "Source9f924f6 plus installed-grant preflight candidate. Read-only4October metadata confirms installed7a152ca, all Sophie services stopped, expired trust/journal receipts and no processing policy. Schema064 is last recorded; no database inspection or service start.",
+    "current_work": "Installed AI control qualification checks all seven schema066 grant additions before composing the service. Updated the exact notice and retention annex, prepared held personality/budget drafts, a source-linked 40-case results template and a concrete deployment/qualification proposal. The runbook now requires schema2 accepted processing evidence and records current stopped services and expired receipts. Review actual provider commitments and remaining factual/legal retention/transfer inputs; approve the pinned source/schema065-066/grant/receipt renewal and staging service starts. Keep worker stopped and processing held. Refresh protected assembler evidence references and independently verify the existing journal before receipt renewal. Then complete owner publications, current member consent and actual worker/Discord/answer/latency acceptance. Word layout QA is blocked by the missing bundled LibreOffice renderer; text/JSON drafts are available.",
+    "evidence_note": "10 installation checks and 93 isolated AI/database scenarios passed; AI-D11 rejects each missing grant under an actual restricted database role. Cluster stopped. Read-only service/trust/journal metadata and Setup-InferenceAccount -WhatIf passed; no actual worker denial or Discord/provider test. The 7058-character draft notice fits the runtime limit and draft processing remains held. Source-bound evidence: GitHub/.agent_docs/aphelion-sophie/test-readiness-2026-10-04/verification.json."
   },
   "milestones": [
     {
@@ -2675,6 +2675,16 @@
       "implemented": "Schema066 records confirmed departure and cleanup epochs in core authority and adds a default-off retention choice protected by the independent journal. AI cleanup is durable, bounded and independent of inference; deleted preferences/consents/resolved activity cannot silently return from an older consistent restore. Cross-member effects and uncertain costs remain pending until resolved. Retention never restores active consent. Consent pages/exact lookup expose every historical choice; absent withdrawals are no-ops. Accepted DeepSeek request serialization is reused for byte accounting and dispatch.",
       "evidence": "90 focused unit checks, 92 isolated AI/database scenarios, 20 composed staging scenarios, synthetic browser pagination/withdrawal/retention checks, and 554 source checks passed; owned clusters and preview stopped. Final cleanup queries are covered by the final AI/database run. Source-bound evidence: GitHub/.agent_docs/aphelion-sophie/dispatch-iteration-2026-10-04/verification.json. No new end-to-end performance measurement.",
       "remaining": "Local candidate only. Qualify schema066 and narrow AI-control grants, journal health/capacity, matching notice and retention annex, and changed worker source. Unknown effects/charges require resolution before deletion completes. Selective/inconsistent restores are not qualified. Provider commitments, live Discord/member acceptance and deployment remain separate gates; free-form redaction is best effort."
+    },
+    {
+      "title": "AI test preparation and required deletion privilege preflight",
+      "tasks": [
+        "P23",
+        "P25"
+      ],
+      "implemented": "Installed AI control qualification checks all seven schema066 grant additions before composing the service. Updated the exact notice and retention annex, prepared held personality/budget drafts, a source-linked 40-case results template and a concrete deployment/qualification proposal. The runbook now requires schema2 accepted processing evidence and records current stopped services and expired receipts.",
+      "evidence": "10 installation checks and 93 isolated AI/database scenarios passed; AI-D11 rejects each missing grant under an actual restricted database role. Cluster stopped. Read-only service/trust/journal metadata and Setup-InferenceAccount -WhatIf passed; no actual worker denial or Discord/provider test. The 7058-character draft notice fits the runtime limit and draft processing remains held. Source-bound evidence: GitHub/.agent_docs/aphelion-sophie/test-readiness-2026-10-04/verification.json.",
+      "remaining": "Review actual provider commitments and remaining factual/legal retention/transfer inputs; approve the pinned source/schema065-066/grant/receipt renewal and staging service starts. Keep worker stopped and processing held. Refresh protected assembler evidence references and independently verify the existing journal before receipt renewal. Then complete owner publications, current member consent and actual worker/Discord/answer/latency acceptance. Word layout QA is blocked by the missing bundled LibreOffice renderer; text/JSON drafts are available."
     }
   ],
   "next_steps": [
@@ -2690,7 +2700,7 @@
         "P25",
         "P32"
       ],
-      "work": "Review provider commitments and exact notices, including default deletion on departure and explicit retention. Separately authorize schema066/source deployment with narrow AI-control grants and renew independent-journal/worker qualification. Exercise real Discord departure, rejoin, cleanup and provider acceptance before activation. Existing installed observations remain the 30 September record.",
+      "work": "Review the prepared notice, retention annex and deployment-proposal.json in GitHub/.agent_docs/aphelion-sophie/test-readiness-2026-10-04. Resolve provider/factual inputs separately; authorize the pinned schema066 source/grants/receipt renewal and staging service starts. All Sophie services are currently stopped and receipts expired. Keep worker/member processing held until owner publications and actual worker/Discord acceptance.",
       "exit_evidence": "Build-bound installed identity/ACL/network and synthetic boot/transport/stop results; effective operator permissions and accessible dashboard. Real-member AI acceptance and reviewed knowledge answers remain explicit open gates."
     },
     {
@@ -2791,14 +2801,14 @@
       {
         "id": "DS-01",
         "title": "Provider and data-use clearance",
-        "implementation": "Draft agreement/disclosure packet and schema2 protected processing evidence support; exact notice-bound consent receipts, export and outage-safe withdrawal implemented locally. Coherent notice checks now fence asynchronous metadata and control changes; unbound remote notices cannot offer or save opt-in. Consent navigation is paged with exact self-only lookup, and departure cleanup/restore holds block new consent and processing.",
+        "implementation": "Draft agreement/disclosure packet and schema2 protected processing evidence support; exact notice-bound consent receipts, export and outage-safe withdrawal implemented locally. Coherent notice checks now fence asynchronous metadata and control changes; unbound remote notices cannot offer or save opt-in. Consent navigation is paged with exact self-only lookup, and departure cleanup/restore holds block new consent and processing. Updated draft notice and factual implementation annex for schema066; 7058 characters, not published.",
         "qualification": "4 October schema066 candidate: 90 focused unit checks, 92 AI/database scenarios and 20 composed staging scenarios passed, plus synthetic browser checks. No legal/provider clearance or live migration established.",
         "sai": [
           "SAI-00",
           "SAI-12",
           "SAI-14"
         ],
-        "remaining": "Obtain actual provider commitments and transfer/retention evidence; finish factual retention, eligibility and provider annexes before notice publication. Review final notice and operator publications, approve deployment of schema065/source separately, then complete existing worker and Discord acceptance gates. Draft documents and hashes are not legal clearance. Match the notice and retention annex to default AI-data deletion on departure; retained-data requests still use the existing operator contact route."
+        "remaining": "Obtain actual provider commitments and transfer/retention evidence; finish factual retention, eligibility and provider annexes before notice publication. Review final notice and operator publications, approve deployment of schema065/066 and the committed source separately, then complete existing worker and Discord acceptance gates. Draft documents and hashes are not legal clearance. Match the notice and retention annex to default AI-data deletion on departure; retained-data requests still use the existing operator contact route."
       },
       {
         "id": "DS-02",
@@ -2828,8 +2838,8 @@
       {
         "id": "DS-04",
         "title": "Windows worker and transport",
-        "implementation": "Owner-selected OS-account worker isolation, manifest enforcement and protected installation composition; supports narrowly scoped public processing policy and independent preference-journal receipt.",
-        "qualification": "Installed on WUFF 29 September: worker/supervisor/core virtual accounts, service DACL, ACL scope and 4 egress block rules captured as receipts hashed into the release evidence; 701-entry package manifest enforced at startup (tamper and missing-file cases observed failing closed). 573/573 repository tests pass on the host with the supervisor installed. No worker boot or provider call yet.",
+        "implementation": "Owner-selected OS-account worker isolation, manifest enforcement and protected installation composition; supports narrowly scoped public processing policy and independent preference-journal receipt. Installed preflight rejects any missing schema066 grant addition.",
+        "qualification": "Installed on WUFF 29 September: worker/supervisor/core virtual accounts, service DACL, ACL scope and 4 egress block rules captured as receipts hashed into the release evidence; 701-entry package manifest enforced at startup (tamper and missing-file cases observed failing closed). 573/573 repository tests pass on the host with the supervisor installed. No worker boot or provider call yet. 4October:10 focused installation tests,93 isolated AI/database checks and read-only setup -WhatIf passed. Metadata confirms all five services stopped and expired receipts; no live worker acceptance.",
         "sai": [
           "SAI-04",
           "SAI-05",

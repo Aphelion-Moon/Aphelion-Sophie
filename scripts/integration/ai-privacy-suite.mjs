@@ -7,9 +7,30 @@ import { createPreferenceJournal, initializePreferenceJournal } from '../../apps
 import { createAiAdmission } from '../../apps/core/storage/ai-admission.js';
 import { createAiIngress } from '../../apps/core/discord/ai-ingress.js';
 import { DEFAULT_AI_BUDGET } from '../../modules/assistant/budget.js';
+import { requireInstalledAiDatabase } from '../../apps/core/runtime/installed.js';
 
 export async function runAiPrivacySuite(cluster,run) {
   const {adminPool:admin,corePool:pool}=cluster,guildId='929',actor={guildId,userId:'202',capabilityEpoch:1,policyVersion:1};
+  await run('AI-D11 installed control rejects any missing schema066 deletion grant',async()=>{
+    await admin.query('CREATE ROLE sophie_test_departure_control NOLOGIN');
+    await admin.query('GRANT USAGE ON SCHEMA sophie_ai TO sophie_test_departure_control');
+    const grants=[['request_tombstones','SELECT'],['request_tombstones','INSERT'],['effect_erasure','SELECT'],
+      ['effect_erasure','INSERT'],['effect_erasure','DELETE'],['consents','DELETE'],['request_receipts','DELETE']];
+    for(const [table,privilege] of grants) await admin.query(`GRANT ${privilege} ON sophie_ai.${table} TO sophie_test_departure_control`);
+    const client=await admin.connect();
+    async function inspect(){await client.query('BEGIN');try{
+      await client.query('SET LOCAL ROLE sophie_test_departure_control');await requireInstalledAiDatabase(client,'control');
+    }finally{await client.query('ROLLBACK');}}
+    try {
+      await inspect();
+      for(const [table,privilege] of grants){
+        await admin.query(`REVOKE ${privilege} ON sophie_ai.${table} FROM sophie_test_departure_control`);
+        await assert.rejects(inspect(),/AI_DATABASE_PRIVILEGES_MISSING/);
+        await admin.query(`GRANT ${privilege} ON sophie_ai.${table} TO sophie_test_departure_control`);
+      }
+      await inspect();
+    }finally{client.release();}
+  });
   await admin.query('GRANT SELECT,INSERT,UPDATE,DELETE ON sophie_ai.consents,sophie_ai.request_receipts,sophie_ai.request_tombstones,sophie_ai.effect_erasure,sophie_ai.response_preferences TO sophie_test_core');
   await admin.query('INSERT INTO sophie_core.capability_policies(guild_id,version,policy) VALUES($1,1,$2)',[guildId,{guildId,version:1}]);
   await admin.query('INSERT INTO sophie_core.actor_authority(guild_id,user_id,capability_epoch,policy_version,observation) VALUES($1,$2,1,1,$3)',[guildId,actor.userId,{guildId,userId:actor.userId,present:true}]);
