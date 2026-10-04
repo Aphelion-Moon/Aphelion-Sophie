@@ -1,5 +1,29 @@
 # Verification and release limits
 
+## Pinned schema069 staging review packet — 4 October 2026
+
+A local source archive now binds candidate `335a3f2` to 512 exact Git file hashes,
+excluding runtime binaries, credentials and agent tooling. Read-only inspection
+verified the installed core/supervisor manifests against trust and all 488 selected
+baseline source paths. CRLF-only differences in text are recorded; migration and
+binary bytes remain exact. The live database remains schema066 with its 66 matching
+checksums and AI disabled; the worker service is stopped. No installed state changed.
+
+A fresh disposable schema066-to069 check preserves four login flows, an active
+session and grants, verifies all migration/guard checks, and is idempotent. Only
+the four new fixed return paths become valid; external/unknown paths stay rejected.
+The cluster stopped. Existing application evidence retains its original source
+bindings; no full suite, live client, provider or actual worker qualification was
+rerun for packaging. The earlier intermittent AI fault remains unresolved.
+
+The exact deployment review proposes preservation, migrations067–069 without new
+grants, pinned source installation, fresh receipt evidence and affected staging
+service restarts, while keeping the worker stopped and AI/publications unchanged.
+This is a reviewable proposal, not authorization or deployment. The older binary
+requires schema066; any database rollback remains separately gated by current
+deletion/revocation history. Packet and evidence:
+GitHub/.agent_docs/aphelion-sophie/candidate-335a3f2-2026-10-04/deployment-review.md and verification.json.
+
 ## Maintenance procedure preparation — 4 October 2026
 
 P35 now has a review draft covering dependency/API/provider/model revalidation,
