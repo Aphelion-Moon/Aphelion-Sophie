@@ -1,5 +1,18 @@
 # Verification and release limits
 
+## Approved schema069 staging deployment — 4 October 2026
+
+Approved pinned 335a3f2/schema069 deployment: 512 exact source hashes and all 69 migration checksums verified; 77 original rows in 103 tables and all grants preserved. Four service-child identities, loopback listeners, current Gateway, recovered supervisor, 18 local/public route checks and 2 asset checks passed. Tunnel unchanged; worker stopped; processing policy absent and AI disabled. Independent journal bytes/identity and configured ACL/firewall scope unchanged. Source-bound report: GitHub/.agent_docs/aphelion-sophie/deployment-335a3f2-2026-10-04/verification.json.
+
+Fresh protected preservation: `D:\Backups\sophie-staging\schema069-335a3f2-20261004`. The three migrations change only the OAuth return-path constraint. Runtime, dependencies and credentials were retained. Installation trust and the journal receipt bind fresh configured identity/ACL/firewall and journal checks; actual worker denial tests were not run.
+
+A PowerShell path-helper error stopped source installation before the first copy; its local runner was corrected and resumed after the already successful migration. A later dashboard assertion failed without recording the unexpected status. The initial report is retained; direct inspection and a focused HTTP rerun passed. This does not establish the transient cause.
+
+Actual worker file/network denials and physical stop, provider terms and factual privacy annexes, approved publications, current tester consent, private Discord/client acceptance and measured AI latency remain separate gates. Journal receipt expires 5 October at 20:54 Warsaw; installation trust at 21:54. Renewal requires fresh evidence. The initial dashboard assertion failed with an unrecorded status; a focused rerun passed, but its cause is unproven. The earlier P19 runtime fault also remains unexplained.
+
+Earlier entries below record their then-current installed state; this section is the current baseline.
+
+
 ## Pinned schema069 staging review packet — 4 October 2026
 
 A local source archive now binds candidate `335a3f2` to 512 exact Git file hashes,

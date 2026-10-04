@@ -805,3 +805,10 @@ This approval does not authorize worker startup, provider correspondence or paid
 source publication, member processing, production/game-service changes or a host reboot. Actual worker
 file/network denial, physical stop, Discord privacy/answer acceptance and measured latency remain open.
 Evidence: `GitHub/.agent_docs/aphelion-sophie/deployment-5f60a24-2026-10-04/verification.json`.
+
+
+### Pinned schema069 deployment and delegated export scope — 4 October 2026
+
+After reviewing the pinned 335a3f2/schema069 deployment packet, the owner said, “Approved, proceed. Decide scope for me.” This authorizes that exact staging update, retaining the stopped worker, disabled processing, current publications and privacy gates. It does not supply DeepSeek contractual facts or authorize worker/provider/member processing. The scoped deployment and preservation evidence is in `GitHub/.agent_docs/aphelion-sophie/deployment-335a3f2-2026-10-04/verification.json`.
+
+The owner also delegated the larger-export scope. The selected implementation is paged single-channel parts, keeping existing content exclusions and per-part count/byte limits. Each part requires explicit review and confirmation under current case, child and session authority. A continuation advances both retained streams without repeating an exhausted stream. Parts are current ledger views, not a globally frozen or complete-history archive. Multi-channel aggregation, attachment bytes and public artifact links remain outside this scope. This authorizes local implementation, not deployment of the subsequent export changes.

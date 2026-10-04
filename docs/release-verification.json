@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
-  "baseline": "335a3f267b35",
-  "recordedAt": "2026-10-04T19:30:20.027Z",
+  "baseline": "17ffc814a8f1",
+  "recordedAt": "2026-10-04T20:01:36.285Z",
   "productionReady": false,
   "context": "Single-sheet human release ledger. Synthetic content only. Record commit, environment/guild, schema, config/capability versions and actor fixture; include runtime/model/source generation hashes when applicable.",
   "resultsPolicy": "Not run is not a pass. Record actual outcome, evidence location, reviewer, date and run context. Optional tracks require separate activation approval. Sheet results never activate production.",
@@ -59,7 +59,7 @@
       "id": "SAI-G6",
       "title": "Operational release",
       "implementation": "incomplete",
-      "qualification": "Pinned 5f60a24/schema066 installed manifest/source/grant/journal/configured-ACL/child-identity/control/dashboard checks pass on 4 October. Actual worker boot/denials/stop, latency and selected release acceptance remain open.",
+      "qualification": "Approved pinned 335a3f2/schema069 deployment: 512 exact source hashes and all 69 migration checksums verified; 77 original rows in 103 tables and all grants preserved. Four service-child identities, loopback listeners, current Gateway, recovered supervisor, 18 local/public route checks and 2 asset checks passed. Tunnel unchanged; worker stopped; processing policy absent and AI disabled. Independent journal bytes/identity and configured ACL/firewall scope unchanged. Source-bound report: GitHub/.agent_docs/aphelion-sophie/deployment-335a3f2-2026-10-04/verification.json. Actual worker execution/denials/stop and measured AI performance remain unrun.",
       "data_clearance": "capability-specific gates open",
       "activation": "Staging preparation installed; no real-member AI activation or production approval."
     }
@@ -67,9 +67,9 @@
   "sources": {
     "scripts/build-release-verification.mjs": "a026bfe403ef56e5b9d6619c16053f4755843a60ac75a3caa13a7a34eb22c917",
     "docs/acceptance-cases.json": "045704422b90f0d73c6912223b4a5ed2c1d39a7f1d40d7d1cbb4448599629a6c",
-    "docs/workplan.json": "f2fe5e614f4b46dc7232be243b64150249a1afd466248db825d8196d3a72ec75",
-    "docs/decisions/0001-owner-policy.md": "b412a3d246194aef85b8317c686f3ccc1769cc4b75c5c174c4565ac7ebcb3fbc",
-    "docs/verification.md": "afd5cab1395dc9a1a7fbe447a0218b61bd50ad7d1c7afdcb6e25c470a31a5f2a",
+    "docs/workplan.json": "513a84cb98a634ce38f6984c62e2c814cc56d71084eca310c14542379a631013",
+    "docs/decisions/0001-owner-policy.md": "316a46dac21a8759742bf67a087eaf3a16f8695b2b84cac1f37cd37c118defce",
+    "docs/verification.md": "1e62d812ce4268921fcb1ad5a64630405675101e444fe9badfa437d66a41e0cc",
     "Sophie-Implementation-Plans-v1.1/01-REQUIREMENTS-AND-DECISIONS.md": "2afa92bd13e889c4b3bd37d327255aaacf5ed9df3bf18b781b8444a9186c8dd9"
   },
   "requirements": [
