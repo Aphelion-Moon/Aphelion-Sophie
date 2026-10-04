@@ -1,6 +1,6 @@
 {
   "schema_version": 2,
-  "revision": "2026-10-04-staging-schema066",
+  "revision": "2026-10-04-moderation-recovery",
   "reference_plan_version": "1.1",
   "source": "Sophie-Implementation-Plans-v1.1/backlog.json",
   "owner_decisions": "docs/decisions/0001-owner-policy.md",
@@ -553,15 +553,16 @@
       "suggested_owner": "Repository maintainer; separate human review where required",
       "guardrail": "No privileged-role restoration or external-bot role interference.",
       "status": "in_progress",
-      "implementation_note": "Crew join reconciliation, ordered mute/unmute, restrictive intent, current moderator reauthorization, competing decisions and late-result inspection are tested. Ordered Gateway wire ingestion schedules role inspection and preserves replayed revocations; a native loopback join triggers Crew delivery. Live capability/ID mapping, effective channel permissions and moderation retry UI remain open. Permission candidate editor and per-type responder contracts are implemented locally at schema 045; approval does not activate a live policy. See docs/permission-configuration.md.",
+      "implementation_note": "Crew join reconciliation, ordered mute/unmute, restrictive intent, current moderator reauthorization, competing decisions and late-result inspection are tested. Ordered Gateway wire ingestion schedules role inspection and preserves replayed revocations; a native loopback join triggers Crew delivery. Reviewed moderation recovery is now a local schema067 candidate: current actor/original grant checks, action/eligibility/job fencing and exact retry receipts. Twenty-one focused unit checks, M01–M20 and twenty-one composed runtime scenarios pass; synthetic browser confirmation and expired-decision checks pass. Live capability/ID mapping and effective channel permissions remain open. Permission candidate editor and per-type responder contracts are implemented locally at schema 045; approval does not activate a live policy. See docs/permission-configuration.md.",
       "completed_scope": [
         "Crew/Muzzled reconciliation, durable mute/unmute, ownership boundaries and loss/departure invalidation.",
         "Permission candidates preserve Crew/Muzzled/Whitelist and external role ownership; role remapping and live activation need separately reviewed migration.",
         "Sealing is bound to the held reviewed permission candidate and exact inventory, requires confirmation and current bot authority, and prevents preparation cancellation after effects begin.",
-        "Reviewed policy versions and actor epochs advance without rewriting history. Old saved grants and old configuration are denied. Capability-only application leaves case policies/provisions and Discord audiences unchanged."
+        "Reviewed policy versions and actor epochs advance without rewriting history. Old saved grants and old configuration are denied. Capability-only application leaves case policies/provisions and Discord audiences unchanged.",
+        "Reviewed /moderation status and explicit retry for one member, using current target capability, original moderator authority, action/eligibility/job fences and exact durable receipts; uncertain dispatch is retained for current-role inspection. Migration067 extends the OAuth return allowlist only; installed staging remains schema066."
       ],
       "remaining_scope": [
-        "Moderation retry UI, any approved cosmetic-role allowlist, actual capability mapping and live channel permissions."
+        "Authorized deployment and private live acceptance of moderation recovery; any approved cosmetic-role allowlist, actual capability mapping and effective channel permissions."
       ]
     },
     {
@@ -1338,8 +1339,8 @@
   "checkpoint": {
     "summary": "Deterministic administration, Whitelist onboarding, protected editors, role/permission configuration and the configurable staging host are implemented.",
     "recorded_baseline": "Owner-approved pinned 5f60a24/schema066 is installed. At 15:18 UTC on 4 October, PostgreSQL, tunnel, supervisor and core run under distinct expected child identities; worker stopped. Processing policy absent, AI disabled and publications unchanged. Trust and independent-journal receipts renewed against fresh configuration/journal evidence.",
-    "current_work": "The scoped source/schema/grant/receipt update is complete. Provider commitments and factual notice/retention/transfer annexes, owner publications, current tester consent, actual worker file/network denial and physical stop, Discord privacy/departure/answer acceptance and measured latency remain open. Worker stays stopped and processing denied. Journal receipt expires 5 October at 16:13 Warsaw; installation trust at 17:14. Renewal requires fresh evidence. Word draft layout remains unverified; canonical text/JSON are available.",
-    "evidence_note": "Approved staging deployment: 66 migration checksums and actual runtime database identities passed; 72 original rows across 101 tables preserved; exactly seven grants added. 485 mirrored files plus three root files match pinned 5f60a24. Four service-child identities, loopback listeners, current Gateway, recovered supervisor and 12 dashboard checks passed. Journal bytes/identity preserved; configured ACL/firewall evidence renewed. Source-bound report: GitHub/.agent_docs/aphelion-sophie/deployment-5f60a24-2026-10-04/verification.json. Prior 10 installation checks and 93 isolated AI/database scenarios remain source-bound evidence; application suites were not rerun for this deployment."
+    "current_work": "Reviewed moderation recovery is implemented and verified locally as a schema067 candidate. Installed staging remains5f60a24/schema066 with AI processing denied and worker stopped. Next safe work is composed AI exclusion evidence using synthetic data; provider commitments, exact owner publications, current consent, actual worker isolation/stop and Discord acceptance remain gated.",
+    "evidence_note": "Approved staging deployment: 66 migration checksums and actual runtime database identities passed; 72 original rows across 101 tables preserved; exactly seven grants added. 485 mirrored files plus three root files match pinned 5f60a24. Four service-child identities, loopback listeners, current Gateway, recovered supervisor and 12 dashboard checks passed. Journal bytes/identity preserved; configured ACL/firewall evidence renewed. Source-bound report: GitHub/.agent_docs/aphelion-sophie/deployment-5f60a24-2026-10-04/verification.json. Prior 10 installation checks and 93 isolated AI/database scenarios remain source-bound evidence; application suites were not rerun for this deployment. Local P15 candidate: 21 focused checks, M01–M20 and 21 composed staging scenarios pass; browser confirmation and expired-decision checks pass. Candidate evidence: GitHub/.agent_docs/aphelion-sophie/moderation-recovery-2026-10-04/verification.json."
   },
   "milestones": [
     {
@@ -1363,7 +1364,7 @@
       ],
       "implemented": "Current-policy role delivery, fresh Shuttle after access loss, ordered Gateway revocations, duplicate handling and late-effect compensation.",
       "evidence": "[Role commands](command-authorization.md), [Gateway](gateway-continuity.md); D01–D14, M01–M14, A01–A14, G01–G17.",
-      "remaining": "Remaining moderation recovery UI, approved live IDs/capabilities and effective permissions."
+      "remaining": "Authorized live acceptance of reviewed moderation recovery, approved role IDs/capabilities and effective permissions."
     },
     {
       "title": "Private Shuttle experience",
@@ -2695,9 +2696,28 @@
       "implemented": "Preserved and verified the stopped installation/database recovery point, applied 065/066 and the seven narrow AI-control grants, installed pinned 5f60a24 and refreshed protected assembler evidence references, journal receipt and installation trust. Started only Sophie PostgreSQL, tunnel, supervisor and core. Runtime/credentials and journal bytes unchanged; worker stopped and processing disabled.",
       "evidence": "Approved staging deployment: 66 migration checksums and actual runtime database identities passed; 72 original rows across 101 tables preserved; exactly seven grants added. 485 mirrored files plus three root files match pinned 5f60a24. Four service-child identities, loopback listeners, current Gateway, recovered supervisor and 12 dashboard checks passed. Journal bytes/identity preserved; configured ACL/firewall evidence renewed. Source-bound report: GitHub/.agent_docs/aphelion-sophie/deployment-5f60a24-2026-10-04/verification.json.",
       "remaining": "Provider commitments and factual notice/retention/transfer annexes, owner publications, current tester consent, actual worker file/network denial and physical stop, Discord privacy/departure/answer acceptance and measured latency remain open. Worker stays stopped and processing denied. Journal receipt expires 5 October at 16:13 Warsaw; installation trust at 17:14. Renewal requires fresh evidence. Word draft layout remains unverified; canonical text/JSON are available."
+    },
+    {
+      "title": "Reviewed moderation recovery dashboard",
+      "tasks": [
+        "P05",
+        "P08",
+        "P15"
+      ],
+      "implemented": "Bounded member-specific delivery review, explicit confirmed retry, current actor/original moderator checks, action/eligibility/job fencing and idempotent retry receipts. Preserves uncertain dispatch and requires fresh moderation after departure/rejoin. Schema067 extends the fixed OAuth return allowlist; no grants/dependencies changed.",
+      "evidence": "21 focused unit checks, M01–M20 and 21 composed staging scenarios pass, including RT21 OAuth/CSRF/current-role recovery. Synthetic browser confirmation and expired-decision checks pass; isolated clusters and preview stopped. GitHub/.agent_docs/aphelion-sophie/moderation-recovery-2026-10-04/verification.json.",
+      "remaining": "Local candidate only; installed5f60a24/schema066 unchanged. Authorized deployment, live capability/role/client acceptance and production gates remain open."
     }
   ],
   "next_steps": [
+    {
+      "title": "Complete offline composed AI exclusion evidence",
+      "tasks": [
+        "P19"
+      ],
+      "work": "Exercise the available AI lane with a qualified synthetic worker and synthetic protected/excluded channel paths. Keep one public positive control so exclusions cannot pass merely because AI is unavailable. Do not start the installed worker or process real member data.",
+      "exit_evidence": "Source-bound Gateway/admission/worker exclusion evidence, explicit tested boundaries and remaining actual worker/file/network and full release gates."
+    },
     {
       "title": "Resolve provider terms and complete owner-led worker/chat acceptance",
       "tasks": [

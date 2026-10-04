@@ -32,6 +32,8 @@ const assets = [
   ['/ticket-forms', '../../dashboard/ticket-forms.html', 'text/html; charset=utf-8'],
   ['/cases', '../../dashboard/cases.html', 'text/html; charset=utf-8'],
   ['/manage-cases', '../../dashboard/manage-cases.html', 'text/html; charset=utf-8'],
+  ['/moderation', '../../dashboard/moderation.html', 'text/html; charset=utf-8'],
+  ...['moderation-app', 'moderation-controller', 'moderation-view'].map(name => [`/dashboard/${name}.js`, `../../dashboard/${name}.js`, 'text/javascript; charset=utf-8']),
   ['/contact-entry', '../../dashboard/contact-entry.html', 'text/html; charset=utf-8'],
   ['/contacts', '../../dashboard/contacts.html', 'text/html; charset=utf-8'],
   ['/case-labels', '../../dashboard/case-labels.html', 'text/html; charset=utf-8'],

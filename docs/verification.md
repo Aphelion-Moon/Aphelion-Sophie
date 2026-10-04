@@ -1,5 +1,26 @@
 # Verification and release limits
 
+## Reviewed moderation recovery candidate — 4 October 2026
+
+The new `/moderation` page reviews one member's current mute/unmute delivery and records
+an explicitly confirmed parked-job retry. Current actor and original moderator authority,
+action revision, eligibility epoch and job fence are checked; uncertain dispatch state is
+preserved. Exact receipts prevent repeated or concurrent retries from reopening a job twice.
+Migration 067 adds only the fixed OAuth return path and retains existing login flows.
+Installed staging remains pinned to `5f60a24`/schema066; this candidate is not deployed.
+
+Passed: 21 focused unit checks; M01–M20 on an isolated PostgreSQL cluster; and 21 composed
+staging scenarios, including RT21 through signed moderation, OAuth, CSRF, the actual store,
+worker and current-role revocation. The synthetic browser confirmed one explicit retry and
+no retry for expired decisions, with no browser errors. The database clusters and temporary
+preview stopped. No provider, live Discord, credentials, permissions or services changed.
+The final unknown/quarantined-code restriction passed M19 after the composed run.
+Migration-count expectations in the historical storage/upgrade suites were updated to 67;
+those broader suites were not run for this allowlist-only migration. Live permission/client
+acceptance and production release gates remain open. See
+[the recovery contract](command-authorization.md) and source-bound evidence at
+`GitHub/.agent_docs/aphelion-sophie/moderation-recovery-2026-10-04/verification.json`.
+
 ## Approved schema066 staging deployment — 4 October 2026
 
 Pinned `5f60a24099daa0031100dd626068fca6500e053b` is installed as `sophie-deepseek-5f60a24`.

@@ -92,6 +92,7 @@ export function createDashboardApi({ fetch, navigate = path => globalThis.locati
       if (value.canEditAnswers !== undefined && typeof value.canEditAnswers !== 'boolean') throw new DashboardFailure('unavailable');
       if (value.canEditPermissions !== undefined && typeof value.canEditPermissions !== 'boolean') throw new DashboardFailure('unavailable');
       if (value.canEditAutomation !== undefined && typeof value.canEditAutomation !== 'boolean') throw new DashboardFailure('unavailable');
+      if (value.canRecoverModeration !== undefined && typeof value.canRecoverModeration !== 'boolean') throw new DashboardFailure('unavailable');
       for (const key of ['canControlAi', 'canEditPersonality', 'canEditKnowledge', 'aiAvailable', 'knowledgeAvailable']) if (value[key] !== undefined && typeof value[key] !== 'boolean') throw new DashboardFailure('unavailable');
       for (const group of document?.querySelectorAll('.nav-group') ?? []) {
         const links = [...group.querySelectorAll('a')];
@@ -99,7 +100,7 @@ export function createDashboardApi({ fetch, navigate = path => globalThis.locati
         group.hidden = links.every(link => link.hidden);
       }
       csrf = value.csrfToken; return { userId: value.userId, guildId: value.guildId, canEditOnboarding: value.canEditOnboarding, canEditForms: value.canEditForms, canEditPermissions: value.canEditPermissions === true, canEditAnswers: value.canEditAnswers === true, canEditAutomation: value.canEditAutomation === true,
-        canEditKnowledge: value.canEditKnowledge === true, canControlAi: value.canControlAi === true, canEditPersonality: value.canEditPersonality === true, aiAvailable: value.aiAvailable === true, knowledgeAvailable: value.knowledgeAvailable === true };
+        canEditKnowledge: value.canEditKnowledge === true, canControlAi: value.canControlAi === true, canEditPersonality: value.canEditPersonality === true, aiAvailable: value.aiAvailable === true, knowledgeAvailable: value.knowledgeAvailable === true, canRecoverModeration: value.canRecoverModeration === true };
     },
     automation: () => request('/api/automation'),
     automationHistory: (before = null) => request('/api/automation/history' + (before === null ? '' : '?before=' + number(before))),
@@ -167,6 +168,8 @@ export function createDashboardApi({ fetch, navigate = path => globalThis.locati
     caseLabels: (channelId, before = null) => request(`/api/cases/labels?channelId=${channel(channelId)}${before === null ? '' : `&before=${number(before)}`}`),
     saveCaseLabels: body => request('/api/cases/labels/save', { ...body, channelId: channel(body.channelId) }),
     managedCase: channelId => request(`/api/cases/manage?channelId=${channel(channelId)}`),
+    reviewModeration: userId => request(`/api/moderation/review?userId=${channel(userId)}`),
+    retryModeration: body => request('/api/moderation/retry', { ...body, userId: channel(body.userId) }),
     caseQueue(filter = 'active', after = null) {
       if (!['active', 'closed', 'failed'].includes(filter)) throw new DashboardFailure('invalid', 400);
       return request(`/api/cases/queue?filter=${filter}${after === null ? '' : `&after=${ledger(after)}`}`);

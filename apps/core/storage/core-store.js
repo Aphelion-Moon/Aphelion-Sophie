@@ -3,6 +3,7 @@ import { setMuteIntent, requireOnboardingEligibility, planMemberChange } from '.
 import { operatorGrant, validateOperatorGrant } from '../../../contracts/operator-grant.js';
 import { advanceOnboarding, backOnboarding, confirmWhitelist, requireGrantDelivery, retryWhitelist, startOnboarding, validateDefinition, nextOnboardingScreen, previousOnboardingScreen } from '../../../modules/onboarding/index.js';
 import { createMemberOperation, lockMember, saveMember } from './members.js';
+import { createModerationRecovery } from './moderation-recovery.js';
 import { receipt, saveReceipt } from './receipts.js';
 import { createCaseParticipantStore } from './case-participants.js';
 import { createCaseStore } from './case-store.js';
@@ -84,6 +85,7 @@ export function createCoreStore({ pool, clock, authorize, authorizeRecorded = as
   }
 
   return Object.freeze({
+    ...createModerationRecovery({ pool, clock, authorize, authorizeRecorded }),
     ...createCaseParticipantStore({ pool, clock, authorize, resolveCaseParticipant, authorizeCaseParticipant, policy: casePolicy }),
     ...createCaseStaffStore({ pool, clock, authorize, authorizeRecorded, resolveCaseResponder, policy: casePolicy }),
     ...createCaseLabels({ pool, clock, authorize }),

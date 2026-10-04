@@ -74,7 +74,7 @@ export async function runStagingRuntimeSuite(cluster, run) {
   await run('RT01 runtime database privileges reject the owner and accept the restricted core identity', async () => {
     await cluster.adminPool.query('GRANT USAGE ON SCHEMA sophie_migrations TO sophie_test_core');
     await cluster.adminPool.query('GRANT SELECT ON sophie_migrations.applied TO sophie_test_core');
-    const result = await checkRuntimeDatabase(cluster.corePool); assert.ok(result.checkedTables > 0); assert.equal(result.migrations, 66);
+    const result = await checkRuntimeDatabase(cluster.corePool); assert.ok(result.checkedTables > 0); assert.equal(result.migrations, 67);
     await assert.rejects(checkRuntimeDatabase(cluster.adminPool), /RUNTIME_DATABASE_PRIVILEGES_INVALID/);
     const client = await cluster.adminPool.connect(); await client.query('BEGIN');
     try {
@@ -97,6 +97,36 @@ export async function runStagingRuntimeSuite(cluster, run) {
     await f.send(f.identities.payload({ data: { type: 1, name: 'unmute', options: [{ name: 'member', type: 6, value: USER }] } }));
     for (let index = 0; index < 4; index++) await f.runtime.runOnce();
     assert.equal(f.discord.state.members.get(USER).includes(MUZZLED), false); assert.ok(f.discord.state.members.get(USER).includes(CREW));
+    assert.deepEqual(f.faults, []);
+  });
+  await scenario('RT21 authenticated moderation recovery requeues a reviewed decision and checks current authority', async f => {
+    assert.equal((await f.send(f.identities.payload())).body.type, 5);
+    const job = (await f.rows('outbox')).find(row => row.kind === 'member.reconcile' && row.effect.actionRevision !== null);
+    assert.ok(job);
+    await f.pool.query("UPDATE sophie_core.outbox SET status='parked', last_error_code='BOT_PERMISSION_MISSING' WHERE operation_id=$1", [job.operation_id]);
+    const start = await dashboardHttp(f.addresses.dashboard, '/auth/start?returnTo=%2Fmoderation');
+    assert.equal(start.status, 303, JSON.stringify({ response: start.body, faults: f.faults }));
+    const state = new URL(start.headers.location).searchParams.get('state'), cookie = start.headers['set-cookie'][0].split(';')[0];
+    const done = await dashboardHttp(f.addresses.dashboard, `/auth/callback?state=${state}&code=${f.oauth.issueCode(OTHER)}`, { headers: { Cookie: cookie } });
+    assert.equal(done.headers.location, '/moderation');
+    const session = done.headers['set-cookie'].find(value => value.startsWith(`${DASHBOARD_COOKIES.session}=`)).split(';')[0];
+    const status = await dashboardHttp(f.addresses.dashboard, '/auth/session', { headers: { Cookie: session } });
+    assert.equal(status.body.canRecoverModeration, true);
+    assert.equal((await dashboardBytes(f.addresses.dashboard, '/moderation', { headers: { Cookie: session } })).status, 200);
+    const review = await dashboardHttp(f.addresses.dashboard, `/api/moderation/review?userId=${USER}`, { headers: { Cookie: session } });
+    assert.equal(review.status, 200); assert.equal(review.body.hold, null);
+    const parked = review.body.jobs.find(row => row.operationId === job.operation_id); assert.equal(parked.retryAllowed, true);
+    const body = JSON.stringify({ userId: USER, operationId: job.operation_id, expectedFence: parked.fence,
+      expectedActionRevision: review.body.actionRevision, expectedEligibilityEpoch: review.body.eligibilityEpoch, requestId: '6'.repeat(64), confirmed: true });
+    const headers = { Cookie: session, Origin: f.config.dashboard.origin, 'Content-Type': 'application/json' };
+    assert.equal((await dashboardHttp(f.addresses.dashboard, '/api/moderation/retry', { method: 'POST', headers, body })).status, 403);
+    headers['X-CSRF-Token'] = status.body.csrfToken;
+    const retried = await dashboardHttp(f.addresses.dashboard, '/api/moderation/retry', { method: 'POST', headers, body });
+    assert.equal(retried.status, 200); assert.deepEqual(retried.body, { recorded: true, duplicate: false });
+    for (let index = 0; index < 4; index++) await f.runtime.runOnce();
+    assert.ok(f.discord.state.members.get(USER).includes(MUZZLED)); assert.equal(f.discord.state.members.get(USER).includes(CREW), false);
+    f.discord.state.members.set(OTHER, []);
+    assert.equal((await dashboardHttp(f.addresses.dashboard, `/api/moderation/review?userId=${USER}`, { headers: { Cookie: session } })).status, 403);
     assert.deepEqual(f.faults, []);
   });
   await scenario('RT04 combined private ticket request provisions a channel and captures synthetic observations', async f => {

@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { createCoreStore } from '../../apps/core/storage/core-store.js';
 import { createOutbox } from '../../apps/core/storage/outbox.js';
 import { createMembershipDispatcher } from '../../apps/core/discord/dispatcher.js';
+import { createModerationRecoveryHttp } from '../../apps/core/http/moderation-recovery.js';
 import { GUILD, USER, NOW, moderator, observation } from '../../tests/fixtures/domain.js';
 import { simulatedDiscord, CREW, MUZZLED, WHITELIST, BYOND_ROLE } from '../../tests/fixtures/discord.js';
 
@@ -11,13 +12,22 @@ export async function runMemberDeliverySuite(cluster, run) {
   const admin = cluster.adminPool;
   let sequence = 600000000000000000n;
   const nextId = () => String(++sequence);
-  let allowed, operatorChecks, discord, store, outbox, dispatcher;
+  let allowed, currentAllowed, operatorChecks, discord, store, outbox, dispatcher;
   const readMember = async () => (await admin.query('SELECT state FROM sophie_core.members WHERE guild_id = $1 AND user_id = $2', [GUILD, USER])).rows[0].state;
   const jobs = async () => (await admin.query('SELECT * FROM sophie_core.outbox ORDER BY created_at, operation_id')).rows;
   const writes = () => discord.state.calls.filter(call => call.method !== 'GET');
   const observed = () => discord.roles.observe(USER);
   const roles = () => discord.state.members.get(USER);
   const request = async muted => store[muted ? 'requestMute' : 'requestUnmute']({ actor: moderator, interactionId: nextId(), observation: await observed() });
+  const review = () => observed().then(observation => store.reviewModeration({ actor: moderator, observation }));
+  const retryInput = (page, job = page.jobs.find(row => row.status === 'parked')) => ({ operationId: job.operationId, expectedFence: job.fence,
+    expectedActionRevision: page.actionRevision, expectedEligibilityEpoch: page.eligibilityEpoch });
+  const retry = async (page, interactionId = nextId()) => store.retryModeration({ actor: moderator, observation: await observed(), interactionId, ...retryInput(page) });
+  async function park() {
+    const job = await outbox.claim('parked-worker', 30_000, ['member.reconcile']);
+    await store.inspectMemberReconciliation({ claim: job.claim, observation: await observed() });
+    await outbox.park(job.claim, 'BOT_PERMISSION_MISSING'); return job;
+  }
   const concurrentRequest = muted => store[muted ? 'requestMute' : 'requestUnmute']({ actor: moderator, interactionId: nextId(),
     observation: observation({ crew: roles().includes(CREW), muzzled: roles().includes(MUZZLED), whitelist: roles().includes(WHITELIST) }) });
   async function drain() {
@@ -30,12 +40,12 @@ export async function runMemberDeliverySuite(cluster, run) {
   }
   const scenario = async (name, work) => run(name, async () => {
     await admin.query("UPDATE sophie_core.discord_backoff SET until_at = '-infinity', paused = false");
-    await admin.query(`TRUNCATE sophie_core.case_reply_events, sophie_core.case_replies, sophie_core.case_label_changes, sophie_core.case_notes, sophie_core.case_direct_notices, sophie_core.case_attachment_jobs, sophie_core.case_attachment_attempts, sophie_core.case_attachment_capacity, sophie_core.case_message_observations, sophie_core.case_capture_gaps, sophie_core.case_capture_channels, sophie_core.case_participant_actions, sophie_core.case_participants, sophie_core.case_form_editor_actions, sophie_core.case_form_drafts, sophie_core.case_delivery_actions, sophie_core.case_delivery_issues, sophie_core.case_intake_messages, sophie_core.case_intakes, sophie_core.case_form_slots, sophie_core.case_form_actions, sophie_core.case_forms, sophie_core.shuttle_editor_actions, sophie_core.shuttle_draft_revisions, sophie_core.dashboard_sessions, sophie_core.dashboard_login_flows, sophie_core.dashboard_auth_limits, sophie_core.dashboard_auth_policies, sophie_core.case_inspection_sweeps, sophie_core.case_staff_actions, sophie_core.case_lifecycle_actions, sophie_core.shuttle_delivery_rechecks, sophie_core.shuttle_delivery_issues, sophie_core.shuttle_alerts, sophie_core.shuttle_help_resolutions, sophie_core.shuttle_screens, sophie_core.shuttle_help_requests, sophie_core.shuttle_publications, sophie_core.shuttle_cases, sophie_core.gateway_members, sophie_core.gateway_lifecycle, sophie_core.member_actions, sophie_core.outbox, sophie_core.receipts, sophie_core.sessions,
+    await admin.query(`TRUNCATE sophie_core.case_answer_reviews, sophie_core.case_reply_events, sophie_core.case_replies, sophie_core.case_label_changes, sophie_core.case_notes, sophie_core.case_direct_notices, sophie_core.case_attachment_jobs, sophie_core.case_attachment_attempts, sophie_core.case_attachment_capacity, sophie_core.case_message_observations, sophie_core.case_capture_gaps, sophie_core.case_capture_channels, sophie_core.case_participant_actions, sophie_core.case_participants, sophie_core.case_form_editor_actions, sophie_core.case_form_drafts, sophie_core.case_delivery_actions, sophie_core.case_delivery_issues, sophie_core.case_intake_messages, sophie_core.case_intakes, sophie_core.case_form_slots, sophie_core.case_form_actions, sophie_core.case_forms, sophie_core.shuttle_editor_actions, sophie_core.shuttle_draft_revisions, sophie_core.dashboard_sessions, sophie_core.dashboard_login_flows, sophie_core.dashboard_auth_limits, sophie_core.dashboard_auth_policies, sophie_core.case_inspection_sweeps, sophie_core.case_staff_actions, sophie_core.case_lifecycle_actions, sophie_core.shuttle_delivery_rechecks, sophie_core.shuttle_delivery_issues, sophie_core.shuttle_alerts, sophie_core.shuttle_help_resolutions, sophie_core.shuttle_screens, sophie_core.shuttle_help_requests, sophie_core.shuttle_publications, sophie_core.shuttle_cases, sophie_core.gateway_members, sophie_core.gateway_lifecycle, sophie_core.member_actions, sophie_core.outbox, sophie_core.receipts, sophie_core.sessions,
       sophie_core.members, sophie_core.definitions, sophie_core.case_provisions, sophie_core.case_channels, sophie_core.case_policies,
       sophie_core.case_reservations, sophie_core.case_budgets, sophie_core.case_exclusions`);
-    allowed = true; operatorChecks = 0;
+    allowed = true; currentAllowed = true; operatorChecks = 0;
     discord = simulatedDiscord();
-    store = createCoreStore({ pool, clock: () => NOW, authorize: async () => true,
+    store = createCoreStore({ pool, clock: () => NOW, authorize: async () => currentAllowed,
       authorizeRecorded: async (capability, grant, scope) => {
         operatorChecks++;
         return allowed && ['member.mute', 'member.unmute'].includes(capability) &&
@@ -203,5 +213,75 @@ export async function runMemberDeliverySuite(cluster, run) {
     const deniedDispatcher = createMembershipDispatcher({ outbox, store: deniedStore, discord: discord.roles, enabled: () => true });
     assert.deepEqual(await deniedDispatcher.runOnce('unconfigured-worker'), { status: 'operator_required', code: 'OPERATION_DENIED' });
     assert.deepEqual(roles(), [BYOND_ROLE]);
+  });
+
+  await scenario('M15 reviewed HTTP retry preserves uncertainty and records an exact idempotent receipt', async () => {
+    await request(true); await park();
+    const http = createModerationRecoveryHttp({ store, discord: discord.roles, enabled: () => true,
+      auth: { authenticate: async () => ({ proof: {} }), resolvePrincipal: async () => moderator },
+      authorization: { resolveActor: async () => moderator, authorize: async () => currentAllowed } });
+    const page = await http.execute({ path: '/api/moderation/review', method: 'GET', query: new URLSearchParams({ userId: USER }), body: null, credentials: {} });
+    assert.equal(page.jobs[0].retryAllowed, true); assert.equal(page.actorId, moderator.userId);
+    const body = { userId: USER, ...retryInput(page), requestId: 'a'.repeat(64), confirmed: true };
+    const send = () => http.execute({ path: '/api/moderation/retry', method: 'POST', query: new URLSearchParams(), body, credentials: {} });
+    assert.deepEqual(await send(), { recorded: true, duplicate: false });
+    let job = (await jobs())[0]; assert.equal(job.dispatch_started, true); assert.equal(job.status, 'ready');
+    assert.equal(Number(job.fence), body.expectedFence + 1); assert.equal(Number(job.attempts), 0);
+    assert.deepEqual(await send(), { recorded: true, duplicate: true });
+    await drain(); assert.deepEqual(new Set(roles()), new Set([BYOND_ROLE, MUZZLED]));
+    const count = writes().length; assert.deepEqual(await send(), { recorded: true, duplicate: true });
+    assert.equal(writes().length, count); assert.equal((await jobs())[0].status, 'done');
+    assert.equal(Number((await admin.query("SELECT count(*) FROM sophie_core.receipts WHERE interaction_id LIKE 'dashboard.%'")).rows[0].count), 1);
+  });
+
+  await scenario('M16 stale decision and job-fence reviews cannot reopen parked delivery', async () => {
+    await request(true); await park(); const page = await review();
+    await admin.query('UPDATE sophie_core.outbox SET fence=fence+1 WHERE operation_id=$1', [page.jobs[0].operationId]);
+    await assert.rejects(retry(page), /MODERATION_REVIEW_STALE/);
+    const fresh = await review(); await request(false);
+    await assert.rejects(retry(fresh), /MODERATION_REVIEW_STALE/);
+    assert.equal((await jobs()).find(job => job.operation_id === page.jobs[0].operationId).status, 'parked');
+    assert.equal((await review()).jobs.some(job => job.operationId === page.jobs[0].operationId), false);
+  });
+
+  await scenario('M17 current and original moderator revocation both deny retry without changing the job', async () => {
+    await request(true); await park(); const page = await review();
+    currentAllowed = false; await assert.rejects(review(), /OPERATION_DENIED/); await assert.rejects(retry(page), /OPERATION_DENIED/);
+    currentAllowed = true; allowed = false;
+    assert.equal((await review()).hold, 'moderator_unavailable'); await assert.rejects(retry(page), /MODERATION_REVIEW_STALE/);
+    assert.equal((await jobs())[0].status, 'parked'); assert.equal(writes().length, 0);
+  });
+
+  await scenario('M18 departure and rejoin require a fresh decision rather than a stale retry', async () => {
+    await request(true); await park(); const page = await review();
+    discord.state.members.delete(USER); await assert.rejects(retry(page), /MODERATION_REVIEW_STALE/);
+    discord.state.members.set(USER, [BYOND_ROLE]); const fresh = await review();
+    assert.equal(fresh.hold, 'decision_expired'); assert.ok(fresh.jobs.every(job => !job.retryAllowed));
+    await assert.rejects(retry(page), /MODERATION_REVIEW_STALE/); assert.equal(writes().length, 0);
+  });
+
+  await scenario('M19 reviewed retry rejects unknown or quarantined failures and non-member jobs', async () => {
+    await request(true); await park(); const page = await review();
+    for (const code of [null, 'UNREVIEWED_FAILURE', 'RESTORE_QUARANTINED']) {
+      await admin.query('UPDATE sophie_core.outbox SET last_error_code=$2 WHERE operation_id=$1', [page.jobs[0].operationId, code]);
+      const current = await review(); assert.equal(current.jobs[0].reason, null); assert.equal(current.jobs[0].retryAllowed, false);
+      await assert.rejects(retry(page), /MODERATION_REVIEW_STALE/);
+      assert.equal((await jobs())[0].status, 'parked'); assert.equal(Number((await jobs())[0].fence), page.jobs[0].fence);
+    }
+    await admin.query("UPDATE sophie_core.outbox SET last_error_code='BOT_PERMISSION_MISSING' WHERE operation_id=$1", [page.jobs[0].operationId]);
+    await admin.query(`UPDATE sophie_core.outbox SET kind='whitelist.reconcile', effect=jsonb_set(effect,'{kind}','"whitelist.reconcile"')
+      WHERE operation_id=$1`, [page.jobs[0].operationId]);
+    await assert.rejects(retry(page), /MODERATION_REVIEW_STALE/);
+    assert.equal((await jobs())[0].status, 'parked'); assert.equal(writes().length, 0);
+  });
+
+  await scenario('M20 concurrent exact retries only reopen the job once and changed payloads collide', async () => {
+    await request(true); await park(); const page = await review(), interactionId = nextId();
+    const input = { actor: moderator, observation: await observed(), interactionId, ...retryInput(page) };
+    const results = await Promise.all([store.retryModeration(input), store.retryModeration(input)]);
+    assert.deepEqual(results.map(result => result.duplicate).sort(), [false, true]);
+    assert.equal(Number((await jobs())[0].fence), page.jobs[0].fence + 1);
+    await assert.rejects(store.retryModeration({ actor: moderator, observation: await observed(), interactionId,
+      ...retryInput(page), expectedFence: page.jobs[0].fence + 1 }), /INTERACTION_ID_COLLISION/);
   });
 }

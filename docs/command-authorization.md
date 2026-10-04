@@ -38,9 +38,37 @@ The closed command union also includes `/shuttle issues`, its specific delivery 
 
 `apps/core/discord/interaction-http.js` binds IPv4 loopback only. It has bounded headers/body/read time, rejects duplicate signature headers and compressed inputs, and admits one active command without a waiting backlog. It sends the ephemeral deferred acknowledgement before Discord/database work. This follows the [interaction response deadline and callback contract](https://docs.discord.com/developers/interactions/receiving-and-responding). Signed PINGs work without enabling command delivery.
 
-The handler invokes the shared store methods through the real authorizer. `interaction-response.js` edits only that verified interaction's original response, using fixed status text, bounded private navigation/queue metadata and suppressed mentions. [Staff assistance](shuttle-assistance.md) reauthorizes and reads its queue again at response time; no conversation content is included. “Request recorded” confirms a durable request, not a completed role change. Failed or uncertain storage and response delivery use stable errors without raw URLs/tokens. A failed reply never rolls back an already committed moderation decision. Operator status/retry UI and durable user-facing role completion notices are still required.
+The handler invokes the shared store methods through the real authorizer. `interaction-response.js` edits only that verified interaction's original response, using fixed status text, bounded private navigation/queue metadata and suppressed mentions. [Staff assistance](shuttle-assistance.md) reauthorizes and reads its queue again at response time; no conversation content is included. “Request recorded” confirms a durable request, not a completed role change. Failed or uncertain storage and response delivery use stable errors without raw URLs/tokens. A failed reply never rolls back an already committed moderation decision. The reviewed status/retry screen is implemented below; durable user-facing role completion notices remain separate.
 
 These files do not select a public hostname, expose a public listener, configure TLS, register Discord commands or activate a bot. Discord supports one chosen interaction ingress mode per application; the production choice and compatibility check remain open. The HTTP boundary and current Gateway supervisor use native Node APIs without a Discord SDK. Oceanic has not been adopted or added as a dependency.
+
+## Reviewed dashboard recovery — 4 October 2026
+
+`/moderation` shows up to twenty current reconciliation jobs for one entered member ID.
+The current actor must have the existing mute or unmute capability for that target and
+decision. Retrying a parked job requires explicit review and confirmation, the same action
+revision, eligibility epoch and job fence, and current authority for the original moderator.
+A departure/rejoin or revoked original grant requires a new `/mute` or `/unmute` decision.
+
+The exact retry has a durable receipt and increments the job fence once. It preserves any
+uncertain prior dispatch so the worker observes current roles before continuing. This
+screen creates no new moderation decision, grants no capability and has no Whitelist or
+external-role restoration path. Account changes, hidden pages and lost access clear the
+review; an uncertain save retains the same request identity. “Retry recorded” does not
+claim successful role delivery.
+
+Migration 067 only adds `/moderation` to the fixed OAuth return-path constraint; existing
+flows remain valid. No dependency, runtime grant or capability-policy change is required.
+This is a local candidate; installed staging remains pinned to `5f60a24` and schema066.
+
+Twenty-one focused unit checks, M01–M20 and twenty-one composed staging scenarios pass.
+M15–M20 cover duplicate/concurrent retry, stale reviews, current/original authority loss,
+departure/rejoin, unknown/quarantined failure codes and wrong-job rejection. RT21 exercises signed moderation, OAuth return,
+CSRF denial, reviewed recovery and current-role revocation through the real runtime.
+A synthetic browser check confirms explicit confirmation, one recorded retry and no retry
+for an expired decision. Both isolated database clusters and the browser fixture stopped.
+Source-bound evidence is in
+`GitHub/.agent_docs/aphelion-sophie/moderation-recovery-2026-10-04/verification.json`.
 
 ## Evidence and remaining work
 
