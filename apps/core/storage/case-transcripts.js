@@ -39,7 +39,7 @@ export function createCaseTranscripts({ pool, authorization, roles, childAccess,
   async function read({ actor, caseToken, channelId = null, after = null, gapsAfter = null }, exportPolicy = null) {
     if (exportPolicy !== null) {
       validateTranscriptExportPolicy(exportPolicy);
-      requireCondition(exportPolicy.enabled && after === null && gapsAfter === null, 'CASE_EXPORT_DISABLED');
+      requireCondition(exportPolicy.enabled, 'CASE_EXPORT_DISABLED');
     }
     const pageSize = exportPolicy?.maxObservations ?? TRANSCRIPT_PAGE_SIZE, gapSize = exportPolicy?.maxGaps ?? TRANSCRIPT_GAP_PAGE_SIZE;
     requireCaseToken(caseToken); if (channelId !== null) requireId(channelId);
@@ -82,17 +82,22 @@ export function createCaseTranscripts({ pool, authorization, roles, childAccess,
         AND NOT EXISTS (SELECT 1 FROM sophie_core.case_capture_gaps WHERE guild_id = $1 AND (channel_id IS NULL OR channel_id = $2) AND closed_at_ms IS NULL)
         AS capture_available`, [row.guild_id, row.channel_id, ...(position ?? [null, null, null]), pageSize + 1,
       gapPosition?.[0] ?? null, gapSize + 1])).rows[0];
-    if (exportPolicy !== null) requireCondition(data.observations.length <= pageSize && data.gaps.length <= gapSize, 'CASE_EXPORT_TOO_LARGE');
     const observations = data.observations.slice(0, pageSize), gaps = data.gaps.slice(0, gapSize);
     const last = observations.at(-1);
+    const observationEnd = last ? transcriptCursor(caseToken, row.channel_id, [last.continuity_epoch, last.sequence, last.message_id]) : after;
+    const gapEnd = gaps.length ? transcriptCursor(caseToken, row.channel_id, [gaps.at(-1).token]) : gapsAfter;
     const result = { caseToken, channelId: row.channel_id, completeHistory: false, captureAvailable: data.capture_available,
       html: renderTranscript({ observations, gaps, captureAvailable: data.capture_available }),
-      next: data.observations.length > pageSize ? transcriptCursor(caseToken, row.channel_id, [last.continuity_epoch, last.sequence, last.message_id]) : null,
-      gapsNext: data.gaps.length > gapSize ? transcriptCursor(caseToken, row.channel_id, [gaps.at(-1).token]) : null };
+      next: data.observations.length > pageSize ? observationEnd : null,
+      gapsNext: data.gaps.length > gapSize ? gapEnd : null };
     await authorize(actor, row); await exportAudience(); await unchanged();
     if (childProof !== null) await childAccess.verify(childProof, scope);
     await current();
-    if (exportPolicy !== null) return { ...result, caseId: row.id, observations: observations.length, gaps: gaps.length,
+    if (exportPolicy !== null) return { ...result, after, gapsAfter,
+      // Keep the exhausted stream's last position while advancing the other stream.
+      // A null start cursor must never replace that position and repeat earlier rows.
+      continuation: result.next !== null || result.gapsNext !== null ? { after: observationEnd, gapsAfter: gapEnd } : null,
+      caseId: row.id, observations: observations.length, gaps: gaps.length,
       authorityHash: createHash('sha256').update(JSON.stringify([actor.userId, row])).digest('hex') };
     return { ...result, page: { observations: observations.map(transcriptObservation), gaps: data.gaps.slice(0, gapSize) } };
   }

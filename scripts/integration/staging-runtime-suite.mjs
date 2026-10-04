@@ -568,7 +568,7 @@ export async function runStagingRuntimeSuite(cluster, run) {
     const status = await dashboardHttp(f.addresses.dashboard, '/auth/session', { headers: { Cookie: session } });
     assert.equal(status.body.canEditForms, false);
     const headers = { Cookie: session, Origin: f.config.dashboard.origin, 'X-CSRF-Token': status.body.csrfToken, 'Content-Type': 'application/json' };
-    const scope = { caseToken: provision.operation_token, channelId: row.channel_id };
+    const scope = { caseToken: provision.operation_token, channelId: row.channel_id, after: null, gapsAfter: null };
     const review = await dashboardHttp(f.addresses.dashboard, '/api/cases/export/review', { method: 'POST', headers, body: JSON.stringify(scope) });
     assert.equal(review.status, 200); assert.equal(review.body.observations, 1);
     const download = await dashboardBytes(f.addresses.dashboard, '/api/cases/export/download', { method: 'POST', headers,

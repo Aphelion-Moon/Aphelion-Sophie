@@ -12,26 +12,28 @@ export function createCaseExports({ pool, transcripts, readPolicy }) {
     const policy = structuredClone(await readPolicy()); validateTranscriptExportPolicy(policy);
     requireCondition(policy.enabled, 'CASE_EXPORT_DISABLED');
     const snapshot = await transcripts.prepareExport(request, policy);
-    const body = transcriptExportDocument(snapshot.html), bytes = Buffer.byteLength(body);
+    const body = transcriptExportDocument(snapshot.html, snapshot.continuation !== null), bytes = Buffer.byteLength(body);
     requireCondition(bytes <= policy.maxBytes, 'CASE_EXPORT_TOO_LARGE');
     const contentHash = hash(body), policyHash = hash(JSON.stringify(policy));
-    const reviewHash = hash(JSON.stringify([contentHash, policyHash, snapshot.authorityHash]));
+    const scope = [snapshot.caseToken, snapshot.channelId, snapshot.after, snapshot.gapsAfter, snapshot.continuation];
+    const reviewHash = hash(JSON.stringify([contentHash, policyHash, snapshot.authorityHash, scope]));
     requireCondition(hash(JSON.stringify(await readPolicy())) === policyHash, 'CASE_EXPORT_POLICY_CHANGED');
     return { policy, policyHash, snapshot, body, bytes, contentHash, reviewHash };
   }
   function review(result) {
-    return { caseToken: result.snapshot.caseToken, channelId: result.snapshot.channelId, reviewHash: result.reviewHash,
+    return { caseToken: result.snapshot.caseToken, channelId: result.snapshot.channelId,
+      after: result.snapshot.after, gapsAfter: result.snapshot.gapsAfter, continuation: result.snapshot.continuation, reviewHash: result.reviewHash,
       policyVersion: result.policy.version, sha256: result.contentHash, bytes: result.bytes,
       observations: result.snapshot.observations, gaps: result.snapshot.gaps, completeHistory: false,
-      includes: 'Selected channel observations and gaps; attachment status only.',
+      includes: 'One part of the selected channel observations and gaps; attachment status only.',
       excludes: 'Other channels, Staff notes, form answers and file bytes.' };
   }
   return Object.freeze({
     async review(request) { return review(await prepare(request)); },
-    async confirm({ actor, caseToken, channelId, requestId, reviewHash, confirmed }) {
+    async confirm({ actor, caseToken, channelId, after = null, gapsAfter = null, requestId, reviewHash, confirmed }) {
       requireExportHash(requestId); requireExportHash(reviewHash);
       requireCondition(confirmed === true, 'CASE_EXPORT_CONFIRMATION_REQUIRED');
-      const request = { actor, caseToken, channelId }, result = await prepare(request);
+      const request = { actor, caseToken, channelId, after, gapsAfter }, result = await prepare(request);
       requireCondition(result.reviewHash === reviewHash, 'CASE_EXPORT_REVIEW_STALE');
       // This table records an authorized generation attempt, not a successful download.
       // No Discord request occurs while holding its transaction/unique-key lock.
@@ -53,7 +55,7 @@ export function createCaseExports({ pool, transcripts, readPolicy }) {
       // Re-read and reauthorize after the audit commit too; logout/revocation or changed bytes suppress delivery.
       const final = await prepare(request);
       requireCondition(final.reviewHash === reviewHash, 'CASE_EXPORT_REVIEW_STALE');
-      return { ...review(final), requestId, filename: `sophie-transcript-${caseToken}-${final.snapshot.channelId}.html`, body: final.body };
+      return { ...review(final), requestId, filename: `sophie-transcript-${caseToken}-${final.snapshot.channelId}-${reviewHash}.html`, body: final.body };
     },
   });
 }

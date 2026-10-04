@@ -25,8 +25,9 @@
         <div class="actions"><input id="channel-id" type="text" inputmode="numeric" pattern="[1-9][0-9]{0,19}" maxlength="20" required aria-describedby="channel-hint"><button id="open" class="primary" type="submit">Open record</button><button id="refresh" type="button">Refresh access</button></div>
       </form>
       <button id="retry-download" hidden>Retry confirmed download</button>
+      <button id="next-export" hidden>Review next export part</button>
       <section id="record" class="panel case-panel" hidden>
-        <div class="section-heading"><div><h2>Retained observations</h2><p id="channel-label" class="muted"></p></div><button id="review-export">Review export</button></div>
+        <div class="section-heading"><div><h2>Retained observations</h2><p id="channel-label" class="muted"></p></div><button id="review-export">Review export from this position</button></div>
         <p>Partial record only. History before capture is unavailable. Edits contain only observed fields; deletions do not erase earlier observations.</p>
         <p id="capture" class="muted"></p>
         <p class="muted">Attachments show status only. Retained files are quarantined and unscanned; file downloads are unavailable.</p>
@@ -35,9 +36,10 @@
       </section>
       <section id="export-review" class="panel case-panel" aria-labelledby="export-heading" hidden>
         <h2 id="export-heading" tabindex="-1">Review transcript export</h2>
-        <p>This exports all retained observations and gaps for the selected channel, within the supported size limit. It does not claim complete history.</p>
+        <p>This exports one bounded part of the selected channel, starting at your current observation and gap positions. Reopen the channel to export from the beginning.</p>
+        <p>Each part is a current view, not a frozen archive. Later observations or gap changes may require a new export from the beginning. History remains partial.</p>
         <p>Includes attachment status. Excludes other channels, Staff notes, form answers and file bytes.</p>
-        <p id="export-counts"></p><p id="export-hash" class="muted case-hash"></p>
+        <p id="export-counts"></p><p id="export-more"></p><p id="export-hash" class="muted case-hash"></p>
         <p>Anyone you share the downloaded file with can read it. Later access changes cannot recall a saved copy.</p>
         <label><input id="export-confirmed" type="checkbox"> I have reviewed this scope and want to download the file.</label>
         <div class="actions"><button id="download" class="primary" disabled>Confirm and download</button><button id="cancel-export">Cancel</button></div>

@@ -13,10 +13,13 @@ export function requireExportHash(value) {
 }
 
 /** No external styles, scripts, links, media or active retained markup. */
-export function transcriptExportDocument(fragment) {
+export function transcriptExportDocument(fragment, more = false) {
   return '<!doctype html><html lang="en"><head><meta charset="utf-8">' +
     '<meta http-equiv="Content-Security-Policy" content="default-src &#39;none&#39;; base-uri &#39;none&#39;; form-action &#39;none&#39;">' +
     '<meta name="referrer" content="no-referrer"><title>Sophie retained observations</title></head><body>' +
-    '<p>Confirmed export of one selected channel ledger. Other channels, Staff notes, form answers and file bytes are not included.</p>' +
+    '<p>Confirmed export of one part of a selected channel ledger. Other channels, Staff notes, form answers and file bytes are not included.</p>' +
+    '<p>Each part is a current view, not a frozen archive. Later observations or gap changes may require a new export from the beginning.</p>' +
+    (more ? '<p>More retained records remain after this part. Review and confirm the next part separately.</p>' :
+      '<p>No further retained records were found after this part at review time. This does not establish complete history.</p>') +
     fragment + '</body></html>';
 }

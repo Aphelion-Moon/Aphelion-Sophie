@@ -5,7 +5,7 @@ export function createCaseView({ document, controller }) {
   element('open-channel').addEventListener('submit', event => { event.preventDefault(); controller.open(element('channel-id').value.trim()); });
   for (const [id, work] of [['logout', () => controller.logout()], ['gate-retry', () => controller.checkAccess()],
     ['refresh', () => controller.checkAccess()], ['next-observations', () => controller.next('observations')], ['next-gaps', () => controller.next('gaps')],
-    ['review-export', () => controller.review()], ['cancel-export', () => controller.cancelReview()], ['retry-download', () => controller.retry()],
+    ['review-export', () => controller.review()], ['next-export', () => controller.nextExport()], ['cancel-export', () => controller.cancelReview()], ['retry-download', () => controller.retry()],
     ['download', () => controller.confirm(element('export-confirmed').checked)]]) element(id).addEventListener('click', work);
   element('export-confirmed').addEventListener('change', () => { element('download').disabled = !element('export-confirmed').checked || controller.snapshot().busy; });
   const text = (id, value) => { element(id).textContent = value ?? ''; };
@@ -23,8 +23,9 @@ export function createCaseView({ document, controller }) {
     text('gate-title', state.phase === 'loading' ? 'Loading your workspace…' : 'Sign in to read a case');
     text('error', state.error); element('error').hidden = !state.error;
     text('notice', state.notice); element('notice').hidden = !state.notice;
-    for (const id of ['open', 'refresh', 'gate-retry', 'logout', 'review-export', 'cancel-export', 'retry-download', 'channel-id', 'export-confirmed']) element(id).disabled = state.busy;
+    for (const id of ['open', 'refresh', 'gate-retry', 'logout', 'review-export', 'next-export', 'cancel-export', 'retry-download', 'channel-id', 'export-confirmed']) element(id).disabled = state.busy;
     element('retry-download').hidden = !state.pending;
+    element('next-export').hidden = !state.nextExport || !!state.pending || !!state.review;
     element('record').hidden = !state.page;
     text('channel-label', state.page ? `Channel ${state.page.channelId}` : '');
     text('capture', state.page ? `Current capture: ${state.page.captureAvailable ? 'available' : 'unavailable or unverified'}. Reconnection does not establish complete history.` : '');
@@ -37,6 +38,8 @@ export function createCaseView({ document, controller }) {
     if (changedReview) element('export-confirmed').checked = false;
     reviewHash = state.review?.reviewHash ?? null;
     text('export-counts', state.review ? `${state.review.observations} observations · ${state.review.gaps} gaps · ${state.review.bytes} bytes · Policy version ${state.review.policyVersion}` : '');
+    text('export-more', state.review ? (state.review.continuation ? 'More records remain after this part. Continue with a separate review and confirmation.' :
+      'No further records were found after this part at review time. This does not establish complete history.') : '');
     text('export-hash', state.review ? `SHA-256: ${state.review.sha256}` : '');
     element('download').disabled = state.busy || !state.review || !element('export-confirmed').checked;
     if (changedReview && state.review) element('export-heading').focus();

@@ -22,7 +22,7 @@ export function createDashboardApi({ fetch, navigate = path => globalThis.locati
       response.status === 400 ? 'invalid' : response.status === 404 ? 'missing' : 'unavailable', response.status);
     try {
       if (download) {
-        const filename = `sophie-transcript-${body.caseToken}-${body.channelId}.html`;
+        const filename = `sophie-transcript-${body.caseToken}-${body.channelId}-${body.reviewHash}.html`;
         const length = Number(response.headers.get('content-length'));
         if (response.headers.get('content-type') !== 'text/html; charset=utf-8' ||
             response.headers.get('content-disposition') !== `attachment; filename="${filename}"` ||
@@ -197,8 +197,10 @@ export function createDashboardApi({ fetch, navigate = path => globalThis.locati
       return request(`/api/cases/transcript?caseToken=${ledger(caseToken)}&channelId=${channel(channelId)}` +
         (after === null ? '' : `&after=${cursor(after)}`) + (gapsAfter === null ? '' : `&gapsAfter=${cursor(gapsAfter)}`));
     },
-    exportReview: ({ caseToken, channelId }) => request('/api/cases/export/review', { caseToken: ledger(caseToken), channelId: channel(channelId) }),
-    exportDownload: body => request('/api/cases/export/download', { ...body, caseToken: ledger(body.caseToken), channelId: channel(body.channelId) }, true, true),
+    exportReview: ({ caseToken, channelId, after = null, gapsAfter = null }) => request('/api/cases/export/review', {
+      caseToken: ledger(caseToken), channelId: channel(channelId), after: after === null ? null : cursor(after), gapsAfter: gapsAfter === null ? null : cursor(gapsAfter) }),
+    exportDownload: body => request('/api/cases/export/download', { ...body, caseToken: ledger(body.caseToken), channelId: channel(body.channelId),
+      after: body.after === null ? null : cursor(body.after), gapsAfter: body.gapsAfter === null ? null : cursor(body.gapsAfter) }, true, true),
     async logout() { await request('/auth/logout', undefined, true); csrf = null; navigate('/login'); },
   });
 }

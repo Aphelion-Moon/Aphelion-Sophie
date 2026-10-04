@@ -1,5 +1,16 @@
 # Verification and release limits
 
+## Paged single-channel exports — 4 October 2026
+
+Local paged single-channel transcript exports retain the existing per-part limits and exclusions, bind exact input/continuation positions into review hashes, preserve exhausted-stream positions, and require explicit review/confirmation for each part. Distinct filenames and exact retries retain the existing audit without a migration. The browser rechecks account identity after fetch and preserves uncertain retries across routine access refresh. No AI case data path was added.
+
+16 focused unit checks and 22 isolated PostgreSQL/HTTP scenarios passed, including 105 observations and both stream-exhaustion orders. Composed RT10 member export, P19-RT22 AI case exclusion, and an initially misselected RT14 maintenance scenario passed; every synthetic cluster stopped. Nine controller checks reran after the final access-refresh correction. Synthetic browser review, unchecked confirmation, uncertain download/retry, next-part and final handoff passed. Source-bound report: GitHub/.agent_docs/aphelion-sophie/paged-exports-2026-10-04/verification.json.
+
+The browser run preceded the final uncertain-retry/access-refresh correction; the final controller suite covers that change. The screenshot and browser-controller hash are retained separately. The synthetic preview process and tab were closed. No production member/case data, provider request, new dependency, migration or grant was involved.
+
+Export candidate is local and not deployed; staging stays pinned to 335a3f2/schema069. Parts are current views, not a globally frozen/full-history archive. Byte-oversized parts still fail explicitly. Private client acceptance, saved-file receipt, multi-channel/archive selection, attachment downloads/scanning and independent recovery remain open. Actual worker isolation/stop, provider terms, approved publications, consent and measured AI latency remain gated.
+
+
 ## Approved schema069 staging deployment — 4 October 2026
 
 Approved pinned 335a3f2/schema069 deployment: 512 exact source hashes and all 69 migration checksums verified; 77 original rows in 103 tables and all grants preserved. Four service-child identities, loopback listeners, current Gateway, recovered supervisor, 18 local/public route checks and 2 asset checks passed. Tunnel unchanged; worker stopped; processing policy absent and AI disabled. Independent journal bytes/identity and configured ACL/firewall scope unchanged. Source-bound report: GitHub/.agent_docs/aphelion-sophie/deployment-335a3f2-2026-10-04/verification.json.

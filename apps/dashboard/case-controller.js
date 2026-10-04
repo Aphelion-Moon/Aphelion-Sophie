@@ -11,11 +11,11 @@ const messages = {
 
 /** Ephemeral reader state. Every operation rechecks identity; content never enters browser storage. */
 export function createCaseController({ api, onChange, newRequestId, downloadFile }) {
-  let state = { phase: 'loading', identity: null, busy: false, page: null, selection: null, review: null, pending: null, error: null, notice: null };
+  let state = { phase: 'loading', identity: null, busy: false, page: null, selection: null, review: null, pending: null, nextExport: null, error: null, notice: null };
   let generation = 0;
   const snapshot = () => structuredClone(state);
   const emit = () => onChange(snapshot());
-  const clear = () => { state.page = null; state.review = null; state.pending = null; };
+  const clear = () => { state.page = null; state.review = null; state.pending = null; state.nextExport = null; };
   async function run(work) {
     if (state.busy) return;
     const current = ++generation;
@@ -32,10 +32,10 @@ export function createCaseController({ api, onChange, newRequestId, downloadFile
       await work(active);
     } catch (error) {
       if (!active()) return;
-      const pending = state.pending;
+      const pending = state.pending, nextExport = state.nextExport;
       clear();
       // A lost download response can follow a committed audit. Retry that exact request only.
-      if (['connection', 'unavailable'].includes(error.kind)) state.pending = pending;
+      if (pending && ['connection', 'unavailable'].includes(error.kind)) { state.pending = pending; state.nextExport = nextExport; }
       if (error.kind === 'denied') { state.identity = null; state.selection = null; state.phase = 'denied'; }
       state.error = messages[error.kind] ?? messages.unavailable;
     } finally { if (active()) { state.busy = false; emit(); } }
@@ -48,10 +48,30 @@ export function createCaseController({ api, onChange, newRequestId, downloadFile
     state.selection = { ...selection, caseToken: page.caseToken }; state.page = page;
   }
   async function deliver(active) {
+    const identity = state.identity;
     const file = await api.exportDownload(state.pending);
     if (!active()) return;
+    const current = await api.session();
+    if (!active()) return;
+    if (current.userId !== identity.userId || current.guildId !== identity.guildId) {
+      clear(); state.selection = null; state.identity = current; state.phase = 'ready';
+      state.notice = 'Your account changed. Open a channel for this account.'; return;
+    }
     downloadFile(file); state.pending = null; state.review = null;
-    state.notice = 'The download was handed to your browser. This does not confirm that the file was saved.';
+    state.notice = 'The download was handed to your browser. This does not confirm that the file was saved. ' +
+      (state.nextExport ? 'More records remain; review the next export part to continue.' : 'No further records were found after this part at review time.');
+  }
+  async function reviewPart(selection, active) {
+    state.review = null;
+    const review = await api.exportReview(selection);
+    if (!active()) return;
+    const cursor = value => value === null || typeof value === 'string' && /^[A-Za-z0-9_-]{1,320}$/.test(value);
+    const next = review.continuation;
+    if (review.caseToken !== selection.caseToken || review.channelId !== selection.channelId || review.completeHistory !== false ||
+        review.after !== selection.after || review.gapsAfter !== selection.gapsAfter || !/^[a-f0-9]{64}$/.test(review.reviewHash) ||
+        next !== null && (!next || !cursor(next.after) || !cursor(next.gapsAfter) ||
+          next.after === selection.after && next.gapsAfter === selection.gapsAfter)) throw new DashboardFailure('unavailable');
+    state.review = review;
   }
   return Object.freeze({ snapshot,
     start: () => run(async () => {}),
@@ -67,30 +87,43 @@ export function createCaseController({ api, onChange, newRequestId, downloadFile
     },
     review() {
       if (!state.page || state.pending) return;
-      const { caseToken, channelId } = state.page;
+      const selection = { ...state.selection };
       return run(async active => {
-        state.review = null;
-        const review = await api.exportReview({ caseToken, channelId });
-        if (!active()) return;
-        if (review.caseToken !== caseToken || review.channelId !== channelId || review.completeHistory !== false ||
-            !/^[a-f0-9]{64}$/.test(review.reviewHash)) throw new DashboardFailure('unavailable');
-        state.review = review;
+        state.nextExport = null; await reviewPart(selection, active);
       });
+    },
+    nextExport() {
+      if (!state.nextExport || state.pending) return;
+      const selection = { ...state.nextExport };
+      return run(async active => { state.review = null; state.page = null; emit(); await load(selection, active);
+        if (active()) await reviewPart(selection, active); });
     },
     confirm(confirmed) {
       if (confirmed !== true || !state.review || state.pending) return;
-      const { caseToken, channelId, reviewHash } = state.review;
+      const { caseToken, channelId, after, gapsAfter, continuation, reviewHash } = state.review;
       return run(async active => {
-        state.pending = { caseToken, channelId, reviewHash, requestId: newRequestId(), confirmed: true };
+        state.pending = { caseToken, channelId, after, gapsAfter, reviewHash, requestId: newRequestId(), confirmed: true };
+        state.nextExport = continuation === null ? null : { caseToken, channelId, ...continuation };
         state.review = null; await deliver(active);
       });
     },
     retry() { if (state.pending) return run(deliver); },
     cancelReview() { if (!state.busy) { state.review = null; emit(); } },
     checkAccess() {
-      return run(async active => { const selection = state.selection; clear(); emit(); if (selection) await load(selection, active); });
+      return run(async active => {
+        const selection = state.selection;
+        // Refresh content and authority without losing an uncertain download's
+        // exact retry. The common error path still clears it on denial or conflict.
+        state.page = null; state.review = null; emit();
+        if (selection) await load(selection, active); else clear();
+      });
     },
-    suspend() { ++generation; clear(); state.busy = false; state.error = null; state.notice = null; emit(); },
+    suspend() {
+      // Like selection, a completed continuation is position metadata only. Every
+      // resumption reauthorizes; pending downloads and all retained content are cleared.
+      const nextExport = state.pending ? null : state.nextExport;
+      ++generation; clear(); state.nextExport = nextExport; state.busy = false; state.error = null; state.notice = null; emit();
+    },
     async logout() {
       ++generation; clear(); state.selection = null; state.identity = null; state.phase = 'signed-out'; state.busy = true; emit();
       const current = generation;

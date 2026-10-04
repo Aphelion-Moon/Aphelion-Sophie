@@ -1,6 +1,6 @@
 {
   "schema_version": 2,
-  "revision": "2026-10-04-staging-schema069",
+  "revision": "2026-10-04-paged-single-channel-exports",
   "reference_plan_version": "1.1",
   "source": "Sophie-Implementation-Plans-v1.1/backlog.json",
   "owner_decisions": "docs/decisions/0001-owner-policy.md",
@@ -209,7 +209,7 @@
       "suggested_owner": "Repository maintainer; separate human review where required",
       "guardrail": "Treat external delivery as at-least-once; no exactly-once claim.",
       "status": "in_progress",
-      "implementation_note": "Thirty-three migrations are implemented; the running staging host is still on 032. Local control-history capture and restored-history checks extend quarantined file acquisition, authenticated reads/exports and read-only artifact inventory. Independent durability, recovery activation, repair/alerts and production identities remain open. 4 October local candidate: bounded metadata-only vault scan and retained-slot ownership guards verified; see docs/attachment-operations.md. No live vault scan or deployment.",
+      "implementation_note": "Thirty-three migrations are implemented; the running staging host is still on 032. Local control-history capture and restored-history checks extend quarantined file acquisition, authenticated reads/exports and read-only artifact inventory. Independent durability, recovery activation, repair/alerts and production identities remain open. 4 October local candidate: bounded metadata-only vault scan and retained-slot ownership guards verified; see docs/attachment-operations.md. No live vault scan or deployment. Local paged single-channel transcript exports retain the existing per-part limits and exclusions, bind exact input/continuation positions into review hashes, preserve exhausted-stream positions, and require explicit review/confirmation for each part. Distinct filenames and exact retries retain the existing audit without a migration. The browser rechecks account identity after fetch and preserves uncertain retries across routine access refresh. No AI case data path was added. See GitHub/.agent_docs/aphelion-sophie/paged-exports-2026-10-04/verification.json.",
       "completed_scope": [
         "Thirty verified migrations through retained conversations and attachment acquisition; transactions, receipts, leases, compensation, retained audits and synthetic failure/restart checks.",
         "Core-only create/update/delete observations, child-channel provenance and interruption/permission gaps; cursor/content atomicity and restart/replay evidence.",
@@ -452,7 +452,7 @@
       "suggested_owner": "Repository maintainer; separate human review where required",
       "guardrail": "No public permanent transcript links or AI ingestion.",
       "status": "in_progress",
-      "implementation_note": "Capture, quarantined acquisition, authenticated reads and confirmed bounded exports now have a browser reader for all current readers. Current-authorized channel lookup and browser lifecycle/confirmation checks pass offline and in synthetic Chromium. File downloads, artifact operations and live case/recovery acceptance remain open. A staging-only read-only operator tool now inventories metadata/accounting and checks one retained file against its pinned hash. 4 October local candidate: bounded metadata-only vault scan and retained-slot ownership guards verified; see docs/attachment-operations.md. No live vault scan or deployment.",
+      "implementation_note": "Capture, quarantined acquisition, authenticated reads and confirmed bounded exports now have a browser reader for all current readers. Current-authorized channel lookup and browser lifecycle/confirmation checks pass offline and in synthetic Chromium. File downloads, artifact operations and live case/recovery acceptance remain open. A staging-only read-only operator tool now inventories metadata/accounting and checks one retained file against its pinned hash. 4 October local candidate: bounded metadata-only vault scan and retained-slot ownership guards verified; see docs/attachment-operations.md. No live vault scan or deployment. Local paged single-channel transcript exports retain the existing per-part limits and exclusions, bind exact input/continuation positions into review hashes, preserve exhausted-stream positions, and require explicit review/confirmation for each part. Distinct filenames and exact retries retain the existing audit without a migration. The browser rechecks account identity after fetch and preserves uncertain retries across routine access refresh. No AI case data path was added. See GitHub/.agent_docs/aphelion-sophie/paged-exports-2026-10-04/verification.json.",
       "completed_scope": [
         "Immutable core message observations with atomic Gateway cursor commits, duplicate/lost-acknowledgement handling, known-case/child routing, bounded inert payloads, field-loss markers, indefinite retention and restart.",
         "Retained initial-history, disconnect, Identify, guild, sequence, permission and rejected-payload gaps; successful replay never certifies complete history.",
@@ -465,7 +465,7 @@
         "Local read-only whole-vault metadata scan reports bounded flat-directory classifications without following links, reading bodies or changing files/capacity. Inventory and backup reject cross-job retained slots and mismatched recorded sizes before reading content. Six focused checks, CA01–CA23/AO01–AO08 and RB01–RB11 pass; clusters stopped."
       ],
       "remaining_scope": [
-        "Owner-approved file-download/scanning policy; larger-case/multi-channel export design; controlled hash-verified downloads; reviewed requeue/repair and orphan disposition, larger-vault operational qualification, capacity alert thresholds, Windows ACLs and independent restoration."
+        "Owner-approved file-download/scanning policy; multi-channel/frozen-archive export design; controlled hash-verified downloads; reviewed requeue/repair and orphan disposition, larger-vault operational qualification, capacity alert thresholds, Windows ACLs and independent restoration."
       ]
     },
     {
@@ -1378,8 +1378,8 @@
   "checkpoint": {
     "summary": "Deterministic administration, Whitelist onboarding, protected editors, role/permission configuration and the configurable staging host are implemented.",
     "recorded_baseline": "Owner-approved pinned 335a3f2/schema069 is installed. At 19:56 UTC on 4 October, PostgreSQL, tunnel, supervisor and core run under the expected separate child identities. Worker stopped; processing policy absent; AI disabled; existing publications and member choices preserved.",
-    "current_work": "Approved staging deployment is complete. Owner delegated larger export scope: implement paged single-channel parts with existing exclusions, bounded per-part limits and explicit current-access review/confirmation. Export changes stay local until separately deployed. Actual worker file/network denials and physical stop, provider terms and factual privacy annexes, approved publications, current tester consent, private Discord/client acceptance and measured AI latency remain separate gates. Journal receipt expires 5 October at 20:54 Warsaw; installation trust at 21:54. Renewal requires fresh evidence. The initial dashboard assertion failed with an unrecorded status; a focused rerun passed, but its cause is unproven. The earlier P19 runtime fault also remains unexplained.",
-    "evidence_note": "Approved pinned 335a3f2/schema069 deployment: 512 exact source hashes and all 69 migration checksums verified; 77 original rows in 103 tables and all grants preserved. Four service-child identities, loopback listeners, current Gateway, recovered supervisor, 18 local/public route checks and 2 asset checks passed. Tunnel unchanged; worker stopped; processing policy absent and AI disabled. Independent journal bytes/identity and configured ACL/firewall scope unchanged. Source-bound report: GitHub/.agent_docs/aphelion-sophie/deployment-335a3f2-2026-10-04/verification.json."
+    "current_work": "Local paged single-channel transcript exports retain the existing per-part limits and exclusions, bind exact input/continuation positions into review hashes, preserve exhausted-stream positions, and require explicit review/confirmation for each part. Distinct filenames and exact retries retain the existing audit without a migration. The browser rechecks account identity after fetch and preserves uncertain retries across routine access refresh. No AI case data path was added. Export candidate is local and not deployed; staging stays pinned to 335a3f2/schema069. Parts are current views, not a globally frozen/full-history archive. Byte-oversized parts still fail explicitly. Private client acceptance, saved-file receipt, multi-channel/archive selection, attachment downloads/scanning and independent recovery remain open. Actual worker isolation/stop, provider terms, approved publications, consent and measured AI latency remain gated.",
+    "evidence_note": "Approved pinned 335a3f2/schema069 deployment: 512 exact source hashes and all 69 migration checksums verified; 77 original rows in 103 tables and all grants preserved. Four service-child identities, loopback listeners, current Gateway, recovered supervisor, 18 local/public route checks and 2 asset checks passed. Tunnel unchanged; worker stopped; processing policy absent and AI disabled. Independent journal bytes/identity and configured ACL/firewall scope unchanged. Source-bound report: GitHub/.agent_docs/aphelion-sophie/deployment-335a3f2-2026-10-04/verification.json. 16 focused unit checks and 22 isolated PostgreSQL/HTTP scenarios passed, including 105 observations and both stream-exhaustion orders. Composed RT10 member export, P19-RT22 AI case exclusion, and an initially misselected RT14 maintenance scenario passed; every synthetic cluster stopped. Nine controller checks reran after the final access-refresh correction. Synthetic browser review, unchecked confirmation, uncertain download/retry, next-part and final handoff passed. Source-bound report: GitHub/.agent_docs/aphelion-sophie/paged-exports-2026-10-04/verification.json."
   },
   "milestones": [
     {
@@ -2871,6 +2871,17 @@
       "implemented": "Preserved a fresh stopped database/package/configuration recovery point with independent journal. Applied only 067–069 without new grants, installed exact 335a3f2 archive, pinned protected assembler commit/evidence, renewed journal receipt and trust, restarted core/supervisor after quiescence and Gateway lease expiry. No shared-ancestor ACL, firewall, service registration, credential, publication or processing-policy change.",
       "evidence": "Approved pinned 335a3f2/schema069 deployment: 512 exact source hashes and all 69 migration checksums verified; 77 original rows in 103 tables and all grants preserved. Four service-child identities, loopback listeners, current Gateway, recovered supervisor, 18 local/public route checks and 2 asset checks passed. Tunnel unchanged; worker stopped; processing policy absent and AI disabled. Independent journal bytes/identity and configured ACL/firewall scope unchanged. Source-bound report: GitHub/.agent_docs/aphelion-sophie/deployment-335a3f2-2026-10-04/verification.json.",
       "remaining": "Actual worker file/network denials and physical stop, provider terms and factual privacy annexes, approved publications, current tester consent, private Discord/client acceptance and measured AI latency remain separate gates. Journal receipt expires 5 October at 20:54 Warsaw; installation trust at 21:54. Renewal requires fresh evidence. The initial dashboard assertion failed with an unrecorded status; a focused rerun passed, but its cause is unproven. The earlier P19 runtime fault also remains unexplained."
+    },
+    {
+      "title": "Paged single-channel exports and exact browser retries",
+      "tasks": [
+        "P06",
+        "P12",
+        "P19"
+      ],
+      "implemented": "Local paged single-channel transcript exports retain the existing per-part limits and exclusions, bind exact input/continuation positions into review hashes, preserve exhausted-stream positions, and require explicit review/confirmation for each part. Distinct filenames and exact retries retain the existing audit without a migration. The browser rechecks account identity after fetch and preserves uncertain retries across routine access refresh. No AI case data path was added.",
+      "evidence": "16 focused unit checks and 22 isolated PostgreSQL/HTTP scenarios passed, including 105 observations and both stream-exhaustion orders. Composed RT10 member export, P19-RT22 AI case exclusion, and an initially misselected RT14 maintenance scenario passed; every synthetic cluster stopped. Nine controller checks reran after the final access-refresh correction. Synthetic browser review, unchecked confirmation, uncertain download/retry, next-part and final handoff passed. Source-bound report: GitHub/.agent_docs/aphelion-sophie/paged-exports-2026-10-04/verification.json.",
+      "remaining": "Export candidate is local and not deployed; staging stays pinned to 335a3f2/schema069. Parts are current views, not a globally frozen/full-history archive. Byte-oversized parts still fail explicitly. Private client acceptance, saved-file receipt, multi-channel/archive selection, attachment downloads/scanning and independent recovery remain open. Actual worker isolation/stop, provider terms, approved publications, consent and measured AI latency remain gated."
     }
   ],
   "next_steps": [
@@ -2883,7 +2894,7 @@
         "P17",
         "P27"
       ],
-      "work": "The approved 335a3f2/schema069 staging update is complete. Complete local paged single-channel exports under the delegated scope. Before AI testing, resolve factual provider/privacy inputs, publications and consent, and separately qualify actual worker isolation/stop and private client behavior.",
+      "work": "The approved 335a3f2/schema069 staging deployment and delegated local paged-export implementation are complete. Export deployment needs a separately reviewed candidate. For AI testing, resolve provider/privacy facts, approved publications and current consent, then qualify actual worker isolation/stop and private client behavior.",
       "exit_evidence": "Authorized operation receipt, unchanged retained data/grants/publications, matching source/schema/service identities and safe dashboard checks. Independent client and AI gates remain open."
     },
     {

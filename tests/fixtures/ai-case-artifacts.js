@@ -67,7 +67,7 @@ export async function exerciseExcludedCaseArtifacts(f, sendMessage) {
   const transcript = await get(transcriptPath);
   assert.equal(transcript.status, 200); assert.ok(transcript.body.html.includes('EXCLUDED_SENTINEL_MESSAGE'));
   assert.ok(transcript.body.html.includes('EXCLUDED_SENTINEL_FILE')); assert.equal(transcript.body.html.includes('EXCLUDED_SENTINEL_NOTE'), false);
-  const scope = { caseToken: provision.operation_token, channelId };
+  const scope = { caseToken: provision.operation_token, channelId, after: null, gapsAfter: null };
   const review = await post('/api/cases/export/review', scope);
   assert.equal(review.status, 200); assert.equal(review.body.observations, 1);
   const exported = await dashboardBytes(f.addresses.dashboard, '/api/cases/export/download', { method: 'POST', headers,
