@@ -2,6 +2,7 @@ import { readFile } from 'node:fs/promises';
 import { createHash } from 'node:crypto';
 import { requireCondition } from '../../../contracts/validation.js';
 import { DASHBOARD_GROUPS, dashboardPageAllowed } from '../../../contracts/dashboard-navigation.js';
+import { canonicalBrandProfile } from '../../../contracts/brand-profile.js';
 
 export const DASHBOARD_CSP = "default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self'; connect-src 'self'; form-action 'self'; frame-ancestors 'none'; base-uri 'none'; object-src 'none'";
 const assets = [
@@ -59,7 +60,9 @@ export async function createDashboardPresentation() {
     files.set(path, { contentType, bytes });
   }
   const manifest = JSON.parse(await readFile(new URL('../../../Sophie-Visual-Assets-v1/asset-manifest.json', import.meta.url), 'utf8'));
-  const avatar = manifest.assets.find(asset => asset.id === 'sophie.avatar.neon-chibi-v1'), bytes = files.get('/dashboard/sophie-avatar.png').bytes;
+  const profile = JSON.parse(await readFile(new URL('../../../Sophie-Visual-Assets-v1/brand-profile.json', import.meta.url), 'utf8'));
+  const brand = canonicalBrandProfile(profile, manifest);
+  const avatar = manifest.assets.find(asset => asset.id === brand.assets.avatar), bytes = files.get('/dashboard/sophie-avatar.png').bytes;
   requireCondition(avatar?.bytes === bytes.length && createHash('sha256').update(bytes).digest('hex') === avatar.sha256, 'DASHBOARD_ASSET_INVALID');
   return Object.freeze({ get(path, session = null) {
     const asset = files.get(path); if (!asset || !asset.contentType.startsWith('text/html') || path === '/login') return asset ?? null;

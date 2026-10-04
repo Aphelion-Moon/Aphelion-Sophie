@@ -1,6 +1,6 @@
 # Current implementation workplan
 
-Revision: 2026-10-04-ai-destination-revocation. Official DeepSeek Flash is the selected provider. Local models are historical, explicitly selected alternatives only; no automatic fallback. Continue the DS workstream with synthetic data; full readiness and activation remain open.
+Revision: 2026-10-04-brand-profile-contract. Official DeepSeek Flash is the selected provider. Local models are historical, explicitly selected alternatives only; no automatic fallback. Continue the DS workstream with synthetic data; full readiness and activation remain open.
 
 All production release gates remain open; pure and isolated database checks are not full application acceptance.
 
@@ -175,6 +175,7 @@ Milestone entries preserve their checkpoint evidence. Current next steps and own
 | Reviewed moderation recovery dashboard (P05, P08, P15) | Bounded member-specific delivery review, explicit confirmed retry, current actor/original moderator checks, action/eligibility/job fencing and idempotent retry receipts. Preserves uncertain dispatch and requires fresh moderation after departure/rejoin. Schema067 extends the fixed OAuth return allowlist; no grants/dependencies changed. | 21 focused unit checks, M01–M20 and 21 composed staging scenarios pass, including RT21 OAuth/CSRF/current-role recovery. Synthetic browser confirmation and expired-decision checks pass; isolated clusters and preview stopped. GitHub/.agent_docs/aphelion-sophie/moderation-recovery-2026-10-04/verification.json. | Local candidate only; installed5f60a24/schema066 unchanged. Authorized deployment, live capability/role/client acceptance and production gates remain open. |
 | Available synthetic AI Gateway exclusion evidence (P19) | Composed staging/Gateway scenario with enabled synthetic qualification and consent, a public positive control and protected/permanent/moved/thread exclusion sentinels. No production code change in this milestone. | 22 composed staging scenarios pass, including P19-RT22 and final RT21 moderation recovery; cluster stopped. No protected source fetch, extra knowledge/model call, AI request/effect/provider attempt or Discord write. Source-bound evidence: GitHub/.agent_docs/aphelion-sophie/ai-exclusion-2026-10-04/verification.json. | Installed worker/OS/network qualification, full authenticated artifact-route exclusion and T22–T26 release acceptance. Local schema067 candidate remains undeployed; installed5f60a24/schema066 and processing gates unchanged. |
 | Read-only vault inventory and retained-slot ownership (P06, P12, P26) | Bounded staging scan enumerates opaque flat-directory metadata and reports whole-vault counts without file-body reads, recursion, link following or mutations. Cross-job retained slots and recorded-size mismatches fail closed before file verification or backup selection. No additional migration/grant/dependency change. | Six focused file tests, 31 isolated attachment/operations scenarios and 11 isolated recovery scenarios pass; both clusters stopped. AO06–AO08 cover classification/links/limits/selection races and RB11 rejects a cross-job slot before a backup manifest. GitHub/.agent_docs/aphelion-sophie/attachment-inventory-2026-10-04/verification.json. | Local undeployed candidate. No real vault scanned. Repair/requeue/deletion/download policy, larger-vault limits, alert thresholds and live operational acceptance remain open. |
+| Fixed shared Sophie brand-profile contract (P36) | Dashboard startup and repository checks validate fixed identity, approved local asset references, original metadata and static presentation boundaries. Preserved profiles/manifests/PNGs remain unchanged. P20–P22/P39 records reconciled with existing direct-lookup and installed knowledge evidence. | Nine focused brand/dashboard tests and repository asset/source checks; GitHub/.agent_docs/aphelion-sophie/brand-profile-2026-10-04/verification.json. | Local candidate only. Package the existing brand-profile.json with the core dashboard. Owner distribution/publication, any derivative review and independent live/accessibility acceptance remain open. |
 
 ## Next implementation sequence
 
@@ -201,7 +202,7 @@ These are bounded next steps within the task dependencies below. An unresolved l
 
 ## Task status
 
-Status counts: 1 complete; 29 in progress; 10 planned, not started. These are full-task statuses, not a percentage of code or release readiness.
+Status counts: 1 complete; 30 in progress; 9 planned, not started. These are full-task statuses, not a percentage of code or release readiness.
 
 An in-progress task can contain several verified milestones and still have unfinished implementation or acceptance. Acceptance IDs below link requirements to tasks; they do not assert that those specifications have passed.
 
@@ -246,7 +247,7 @@ An in-progress task can contain several verified milestones and still have unfin
 | P36 — Import Sophie identity and source assets | in_progress | P03, P04 |
 | P37 — Apply Sophie branding to interfaces and static copy | in_progress | P36, P08, P09, P13, P17 |
 | P38 — Review identity consistency and non-AI presentation | planned_not_started | P37, P19 |
-| P39 — Validate and activate direct knowledge independently of AI | planned_not_started | P19, P21, P22, P26 |
+| P39 — Validate and activate direct knowledge independently of AI | in_progress | P19, P21, P22, P26 |
 
 ## P00 — Freeze scope and deployment inputs
 
@@ -857,7 +858,7 @@ Status: **in_progress**. Phase: Knowledge. Priority: P0.
 
 Depends on: P03, P06, P19. Acceptance: T23, T27, T28.
 
-Durable Policies snapshots, fenced manual refresh, source-bound review/publication and dashboard structured review implemented; service deployment and unattended synchronization incomplete
+Fixed Policies collection, immutable snapshots, fenced manual/serialized refresh and source-bound publication review are implemented; installed knowledge-only composition has metadata-only refresh evidence. Reviewed publication and live source/lookup acceptance remain open.
 
 Implemented scope:
 
@@ -867,6 +868,7 @@ Implemented scope:
 - Owner approved parse5 8.0.1 and indirect entities 8.1.0; exact package hashes and notices recorded.
 - Migration059 stores immutable bounded snapshots/extracts, fenced jobs and receipt input hashes. Source changes revoke old document epochs; review hashes bind source generations, including reversions. Currentness verifies stored integrity and five-minute source freshness.
 - Manual publisher source review safely renders structured text and retains wiki binding/attribution across edits. Refresh does not publish and cannot occupy the administrative HTTP request slot.
+- Native composition supplies serialized fixed-source refresh with cancellation. The installed knowledge-only editor and read identity are isolated; a Policies refresh reached ready without automatic publication. Evidence remains bound to its recorded installed source.
 
 Remaining scope:
 
@@ -886,12 +888,13 @@ Status: **in_progress**. Phase: Knowledge. Priority: P0.
 
 Depends on: P20. Acceptance: T27, T28, T29, T34.
 
-Approved public lexical/alias retrieval, source revision/hash/expiry checks and attributed member dashboard lookup are implemented. Source withdrawal and fresh member authorization are rechecked before returning results. MediaWiki import/sync, Discord /lookup, reviewed source extracts and the 40-question launch gate remain open.
+Model-independent dashboard and signed Discord /lookup share reviewed lexical/alias retrieval, source authority/revision/hash/expiry checks and fresh member/context checks. Reviewed source publications, live command/lookup acceptance and the 40-question release gate remain open.
 
 Implemented scope:
 
 - Approved public lexical/alias retrieval, authority labels, revision/hash/expiry checks and attributed citations implemented.
 - Member dashboard direct lookup on Public answers, independent of inference and AI opt-in.
+- Signed /lookup rechecks membership, non-case channel/parent and source validity before returning an attributed private response. Synthetic current-member direct lookup works with AI unavailable.
 
 Remaining scope:
 
@@ -911,11 +914,12 @@ Status: **in_progress**. Phase: Knowledge. Priority: P1.
 
 Depends on: P08, P20, P21. Acceptance: T28, T29, T42.
 
-Separate knowledge identity, reviewed public publication, catalogue/editor, source invalidation and removal of all stored plaintext revisions on withdrawal. Source synchronization/health, production service/identity wiring, external restore watermark, permitted source collection and live acceptance remain open.
+Separate knowledge identity, public publication/catalogue/editor, fixed Policies refresh and source invalidation are implemented. Knowledge-only editor composition is installed and isolated; owner publication and operational invalidation/recovery/live acceptance remain open.
 
 Implemented scope:
 
 - Separate knowledge identity, reviewed public publication, catalogue/editor, source invalidation and removal of all stored plaintext revisions on withdrawal.
+- Installed knowledge-only editor composition and fixed Policies refresh have source-bound identity/metadata evidence; refresh has no publication authority.
 
 Remaining scope:
 
@@ -1195,15 +1199,16 @@ Status: **in_progress**. Phase: Foundation. Priority: P1.
 
 Depends on: P03, P04. Acceptance: T49.
 
-The dashboard serves the exact manifest-selected avatar with byte/hash verification; all original PNGs and source manifests remain unchanged. The complete shared brand-profile/identity configuration contract, optimized-export provenance and production distribution review remain open.
+The shared bounded brand-profile contract validates the fixed Sophie identity, four selected original masters, provenance fields and static presentation boundaries. Dashboard startup and repository verification use it; original artwork and manifests are unchanged. Publication/distribution and any future derivative review remain open.
 
 Implemented scope:
 
 - Four original assets remain byte-identical; dashboard loads the manifest-selected avatar with hash checks.
+- Dashboard startup and repository checking validate both preserved profile/manifest pairs against the fixed identity and original master hashes, dimensions, transparency and paths. Nine focused contract/dashboard checks pass; no presentation or inference capability change.
 
 Remaining scope:
 
-- Complete shared brand-profile contract, any derivative provenance, and publication/distribution review.
+- Owner publication/distribution review and explicit provenance/visual acceptance for any future derivatives. No identity editor or new artwork is approved by the fixed launch contract.
 
 Full task deliverables:
 
@@ -1255,11 +1260,20 @@ Boundary: Artwork review is not a production benchmark or legal certification. D
 
 ## P39 — Validate and activate direct knowledge independently of AI
 
-Status: **planned_not_started**. Phase: Knowledge. Priority: P0.
+Status: **in_progress**. Phase: Knowledge. Priority: P0.
 
 Depends on: P19, P21, P22, P26. Acceptance: T23, T27, T28, T29, T34, T35, T47.
 
-No direct knowledge connector or lookup is implemented. This independent G3 task prevents optional AI work from becoming a prerequisite for direct lookup or administration.
+Dashboard and signed Discord direct lookup, reviewed-source authority checks, fixed Policies connector/refresh and separate knowledge-only composition are implemented independently of inference. Synthetic member lookup with AI unavailable passes; independent G3, source publications, 40-question acceptance and live activation remain open.
+
+Implemented scope:
+
+- Model-independent shared dashboard/Discord lookup and restricted public knowledge storage are implemented. Synthetic composed scenarios prove direct lookup with AI unavailable.
+- Installed knowledge-only editor/read identities and fixed-source refresh have recorded source-bound evidence; no model or automatic publication prerequisite.
+
+Remaining scope:
+
+- Owner-reviewed current Policies extracts and separate Discord rules publication; complete source-bound 40-question G3, invalidation/recovery and destination/member acceptance before operator-approved direct-lookup activation.
 
 Full task deliverables:
 

@@ -1,6 +1,7 @@
 import { createHash } from 'node:crypto';
 import { readFile, readdir, realpath } from 'node:fs/promises';
 import { isAbsolute, relative, resolve, posix } from 'node:path';
+import { canonicalBrandProfile } from '../../contracts/brand-profile.js';
 
 export const sha256 = bytes => createHash('sha256').update(bytes).digest('hex');
 
@@ -105,7 +106,7 @@ export async function verifyReferencePackage(root) {
 
 export async function verifyAssetManifest(base) {
   const manifest = JSON.parse(await readFile(resolve(base, 'asset-manifest.json'), 'utf8'));
-  if (manifest.assets.length !== 4 || new Set(manifest.assets.map(asset => asset.id)).size !== 4) throw new Error('INVALID_ASSET_SET');
+  canonicalBrandProfile(JSON.parse(await readFile(resolve(base, 'brand-profile.json'), 'utf8')), manifest);
   const allowedRoot = await realpath(resolve(base, 'assets/sophie/neon-chibi-v1'));
   for (const asset of manifest.assets) {
     const path = await realpath(resolve(base, asset.path));

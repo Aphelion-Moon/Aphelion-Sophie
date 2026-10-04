@@ -1,5 +1,21 @@
 # Verification and release limits
 
+## Shared brand-profile contract — 4 October 2026
+
+Dashboard startup and repository asset checks now validate the fixed Sophie identity and
+four approved original masters through one bounded contract. Changed roles, identities,
+hashes, dimensions, transparency, paths and generation settings reject. The existing
+actual-byte and PNG checks remain; both original packs are unchanged.
+
+Nine focused brand/dashboard checks pass. Repository verification checks the source
+contracts and both asset packs. The core dashboard package must include the existing
+visual-pack brand-profile.json alongside its manifest and avatar. No dependency, schema,
+permission, artwork, UI appearance or installed service changed. Publication/distribution,
+future derivative provenance and independent live/accessibility acceptance remain open.
+Source-bound evidence: GitHub/.agent_docs/aphelion-sophie/brand-profile-2026-10-04/verification.json.
+P20–P22/P39 were reconciled with already recorded direct-lookup/import/editor evidence;
+this documentation correction does not close G3 or the 40-question knowledge gate.
+
 ## Late answer after destination restriction — 4 October 2026
 
 P19-RT22 now also admits a public turn and holds a schema-valid reply in the synthetic
