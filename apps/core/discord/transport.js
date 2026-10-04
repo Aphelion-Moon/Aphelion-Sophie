@@ -8,6 +8,7 @@ import { stagingRolePayload, stagingChannelPayload } from './staging-resources.j
 import { ticketDirectNotice } from '../../../modules/tickets/direct-notice.js';
 import { automationPayload, automationEmoji } from '../../../modules/automation/delivery.js';
 import { validateAiMessagePayload } from '../../../modules/assistant/output.js';
+import { contactStaffControl } from '../../../modules/tickets/intake.js';
 
 /** Stable errors never retain tokens, URLs, response bodies or the original fetch error. */
 export class DiscordError extends Error {
@@ -137,6 +138,7 @@ export function createDiscordTransport({ guildId, token, fetch, clock, enabled }
     async createAiMessage(channelId, messageId, payload, deadline) {
       requireId(channelId); requireId(messageId); validateAiMessagePayload(payload);
       return request('POST', `/channels/${channelId}/messages`, 'automation-create', { ...payload,
+        components: [contactStaffControl()],
         nonce: messageId, enforce_nonce: true, message_reference: { message_id: messageId, channel_id: channelId, fail_if_not_exists: true } }, true, deadline);
     },
     async indicateAiTyping(channelId, deadline) {

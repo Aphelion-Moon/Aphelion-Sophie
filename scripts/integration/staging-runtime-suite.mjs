@@ -16,6 +16,9 @@ import { DASHBOARD_COOKIES } from '../../contracts/dashboard-auth.js';
 import { automationDocument, automationEvent, PUBLIC_CHANNEL, SECOND_CHANNEL } from '../../tests/fixtures/automation.js';
 import { qualifiedGatewayAi } from '../../tests/fixtures/ai-exclusion.js';
 import { exerciseExcludedCaseArtifacts, assertNoCaseSentinelsInAiStorage } from '../../tests/fixtures/ai-case-artifacts.js';
+import { createCaseFormStore } from '../../apps/core/storage/case-forms.js';
+import { syntheticCaseForm, syntheticCaseValues, intakeSubmitPayload } from '../../tests/fixtures/case-intake.js';
+import { contactStaffControl } from '../../modules/tickets/intake.js';
 
 async function signedHttp(address, signed) {
   return new Promise((resolve, reject) => {
@@ -236,6 +239,42 @@ export async function runStagingRuntimeSuite(cluster, run) {
     assert.equal([...f.discord.state.messages.values()].filter(message => message.embeds?.[0]?.footer?.text === `sophie:staff-reply:v1:${pendingReply.id}`).length, 1);
     assert.equal((await f.runtime.status()).productionReady, false); assert.deepEqual(f.faults, []);
   });
+  await scenario('P24-RT25 Contact staff opens blank member intake without transferring its AI source or requiring a worker', async f => {
+    f.discord.state.members.set(OTHER, [LEAD]);
+    const forms = createCaseFormStore({ pool: f.pool, authorize: f.authorization.authorize, guildId: GUILD });
+    await forms.publishCaseForm({ actor: await f.actor(OTHER), version: 1, form: syntheticCaseForm() });
+    const source = 'SYNTHETIC_AI_SOURCE_MUST_NOT_ENTER_CASE', sourceId = '777777777777777777';
+    const click = customId => f.send(f.identities.payload({ type: 3, member: { user: { id: USER } },
+      message: { id: sourceId, content: source }, data: { component_type: 2, custom_id: customId } }));
+    const control = contactStaffControl().components[0].custom_id;
+    const panel = await click(control); assert.equal(panel.body.type, 4); assert.equal(panel.body.data.flags, 64);
+    const buttons = panel.body.data.components.flatMap(row => row.components); assert.equal(buttons.length, 6);
+    assert.equal((await f.rows('case_form_slots')).length, 0); assert.equal((await f.rows('case_reservations')).length, 0);
+    const selected = buttons.find(button => button.custom_id.endsWith(':admin-help')).custom_id;
+    f.discord.state.members.delete(USER);
+    assert.equal((await click(control)).body.data.components, undefined);
+    assert.equal((await click(selected)).body.type, 4); assert.equal((await f.rows('case_form_slots')).length, 0);
+    f.discord.state.members.set(USER, [CREW]);
+    const modal = await click(selected); assert.equal(modal.body.type, 9);
+    for (const field of modal.body.data.components) {
+      assert.equal(field.component.value, undefined); assert.equal(field.component.values, undefined);
+      assert.equal(field.component.options?.some(option => option.default === true) ?? false, false);
+    }
+    assert.equal(JSON.stringify(modal).includes(source), false);
+    const formToken = modal.body.data.custom_id.split(':').at(-1), values = syntheticCaseValues();
+    values[0].value = 'ONLY_SYNTHETIC_MEMBER_ENTERED_FORM_TEXT';
+    assert.equal((await f.send(intakeSubmitPayload(f.identities, formToken, values, { member: { user: { id: USER } } }))).body.type, 5);
+    const intakes = await f.rows('case_intakes'); assert.equal(intakes.length, 1);
+    assert.equal(JSON.stringify(intakes).includes(values[0].value), true);
+    for (const table of ['case_form_slots', 'case_intakes', 'case_reservations', 'case_message_observations', 'outbox']) {
+      const stored = JSON.stringify(await f.rows(table));
+      assert.equal(stored.includes(source), false, `${table} must not retain the AI message`);
+      assert.equal(stored.includes(sourceId), false, `${table} must not retain its source message ID`);
+    }
+    assert.equal((await f.runtime.status()).current, true);
+    assert.ok(f.faults.includes('AI_CONTROL_UNAVAILABLE'));
+    assert.ok(f.faults.every(code => code === 'AI_CONTROL_UNAVAILABLE'));
+  }, { unavailableAi: true, dashboard: false });
   await scenario('RT05 dashboard assets and OAuth use the composed current-authority configuration APIs', async f => {
     const html = await dashboardBytes(f.addresses.dashboard, '/'); assert.equal(html.status, 303);
     assert.equal(html.headers.location, '/login?returnTo=%2F');

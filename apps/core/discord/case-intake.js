@@ -21,6 +21,13 @@ export function createCaseIntake({ authorization, verifier, discord, channels, s
     return actor;
   }
   return Object.freeze({
+    async panel(envelope, { isCurrent }) {
+      try {
+        if (!isCurrent() || await enabled() !== true) return false;
+        await actorFor(envelope, ['ticket.panel']);
+        return isCurrent() && await enabled() === true && isCurrent();
+      } catch { return false; }
+    },
     async prepare(envelope, { isCurrent }) {
       if (!isCurrent() || await enabled() !== true) return { status: 'disabled' };
       try {

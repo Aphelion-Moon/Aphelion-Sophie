@@ -1,7 +1,7 @@
 import { defaultSystemText } from '../../../contracts/system-messages.js';
 import { createServer } from 'node:http';
 import { requireCondition, requireInteger } from '../../../contracts/validation.js';
-import { caseFormModal } from '../../../modules/tickets/intake.js';
+import { caseFormModal, ticketEntryPanel } from '../../../modules/tickets/intake.js';
 
 const MAX_BODY = 262_144;
 const messages = {"disabled":"initial.disabled","busy":"initial.busy","denied":"initial.denied","unavailable":"initial.unavailable","ticket_busy":"initial.ticket_busy","ticket_form_unavailable":"initial.ticket_form_unavailable"};
@@ -51,17 +51,24 @@ export function createInteractionHttpServer({ verifier, commands, respond, enabl
     catch { fault('SYSTEM_WORDING_UNAVAILABLE'); }
     finally { clearTimeout(wordingTimer); }
     const opensModal = (envelope.command === 'ticket.begin' && envelope.caseType !== 'quick-help') || envelope.command === 'ticket.contact.confirm';
-    // The modal availability check belongs inside its initial-response deadline too.
-    if (stopping || (!opensModal && await enabled() !== true)) { send(response, 200, message(text(messages.disabled))); return; }
+    const ticketPanel = envelope.command === 'ticket.panel';
+    // Ticket initial responses include availability checks in their response deadline.
+    if (stopping || (!opensModal && !ticketPanel && await enabled() !== true)) { send(response, 200, message(text(messages.disabled))); return; }
     // One active command: no unbounded in-memory backlog and no concurrent member reads
     // through the same serial transport. Durable role work is separate in PostgreSQL.
     if (reserved) { send(response, 200, message(text(messages.busy))); return; }
     reserved = true;
-    if (envelope.command === 'shuttle.panel') {
+    if (ticketPanel || envelope.command === 'shuttle.panel') {
       let live = true, timer;
       const isCurrent = () => live && !stopping && !response.destroyed && performance.now() < initialDeadline;
       response.once('close', () => { live = false; });
-      const task = Promise.resolve().then(() => onboardingPanel?.prepare(envelope, { isCurrent })).catch(() => null)
+      const task = Promise.resolve().then(async () => {
+        if (ticketPanel) {
+          if (!isCurrent() || await enabled() !== true || !isCurrent()) return null;
+          return await caseIntake?.panel?.(envelope, { isCurrent }) === true ? { ...ticketEntryPanel(text), flags: 64 } : null;
+        }
+        return onboardingPanel?.prepare(envelope, { isCurrent });
+      }).catch(() => null)
         .finally(() => { running.delete(task); reserved = false; });
       running.add(task);
       try {

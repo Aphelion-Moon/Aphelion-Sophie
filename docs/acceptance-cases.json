@@ -207,8 +207,8 @@
       "id": "T26",
       "title": "No hidden ticket AI paths",
       "area": "AI exclusion",
-      "procedure": "Inspect case UI, feedback export, scheduled jobs, traces and error handling; launch Contact staff from an AI conversation.",
-      "expected": "No AI case control or data path exists; staff contact opens a blank ordinary form with no chat transfer or generated text.",
+      "procedure": "Inspect case UI, feedback export, scheduled jobs, traces and error handling; launch Contact staff from an AI conversation, choose an ordinary form category, and test copied clicks, departure, disabled administration and expired responses. Check Quick Help separately against its existing no-form policy.",
+      "expected": "No AI case control or data path exists. Core-owned staff contact shows only the public category chooser privately; selected ordinary forms are blank with no chat, source message or generated field transfer. Quick Help keeps its no-form entry. Current membership and normal intake authorization remain required.",
       "status": "specified_not_run"
     },
     {

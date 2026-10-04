@@ -360,6 +360,8 @@ test('SAI AT-12/13 transport fixes destination/nonce, refuses unsafe mentions an
   assert.equal(calls[0].url, 'https://discord.com/api/v10/channels/202/messages');
   assert.deepEqual(sent.message_reference, { message_id: '303', channel_id: '202', fail_if_not_exists: true });
   assert.equal(sent.enforce_nonce, true); assert.equal(sent.nonce, '303'); assert.deepEqual(sent.allowed_mentions.parse, []);
+  assert.deepEqual(sent.components, [{ type: 1, components: [{ type: 2, style: 2, label: 'Contact staff', custom_id: 'sophie:ticket:v1:panel' }] }]);
+  await assert.rejects(transport.createAiMessage('202', '303', { ...payload, components: sent.components }, 16000), /AI_OUTPUT_INVALID/);
   await assert.rejects(transport.createAiMessage('202', '303', { ...payload, allowed_mentions: { parse: ['everyone'] } }, 16000));
   now = 16000; await assert.rejects(transport.createAiMessage('202', '303', payload, 16000), /AI_DEADLINE_EXPIRED/);
   assert.equal(calls.length, 1);

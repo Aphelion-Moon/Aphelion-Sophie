@@ -5,6 +5,7 @@ import { CASE_TYPES } from './index.js';
 export const PUBLIC_CASE_TYPES = Object.freeze(CASE_TYPES.filter(type => type.publicEntry).map(type => type.id));
 export const INTAKE_CASE_TYPES = Object.freeze([...PUBLIC_CASE_TYPES, 'player-report', 'staff-contact']);
 export const FORM_CASE_TYPES = Object.freeze(INTAKE_CASE_TYPES.filter(type => type !== 'quick-help'));
+export const TICKET_ENTRY_CONTROL = 'sophie:ticket:v1:panel';
 /** A reported identity is retained context only, never a case participant or authorization target. */
 export function requireCaseSubject(caseType, subjectId) {
   requireCondition(INTAKE_CASE_TYPES.includes(caseType) && (subjectId === null || caseType === 'player-report'), 'INVALID_CASE_SUBJECT');
@@ -96,10 +97,16 @@ export function caseFormPresentation(form) {
 
 export function parseCaseIntakeControl(value) {
   requireCondition(typeof value === 'string', 'INVALID_CASE_INTAKE_CONTROL');
+  if (value === TICKET_ENTRY_CONTROL) return { command: 'ticket.panel' };
   const open = /^sophie:ticket:v1:open:([a-z-]+)$/.exec(value);
   if (open) { requireCondition(PUBLIC_CASE_TYPES.includes(open[1]), 'INVALID_PUBLIC_CASE_TYPE'); return { command: 'ticket.begin', caseType: open[1] }; }
   const status = /^sophie:ticket:v1:status:([a-f0-9]{48})$/.exec(value);
   requireCondition(status !== null, 'INVALID_CASE_INTAKE_CONTROL'); return { command: 'ticket.destination', caseToken: status[1] };
+}
+
+/** Core-owned navigation only: no category, source message or generated form data. */
+export function contactStaffControl() {
+  return { type: 1, components: [{ type: 2, style: 2, label: 'Contact staff', custom_id: TICKET_ENTRY_CONTROL }] };
 }
 
 /** Static buttons; visibility/custom IDs confer no creation or case-read authority. */

@@ -1,5 +1,25 @@
 # Verification and release limits
 
+## Blank Contact staff entry — 4 October 2026
+
+Core now attaches one fixed Contact staff button to validated AI replies. The
+model cannot supply components or select a case type. A signed click checks
+current membership and returns the existing six-category chooser privately,
+within the initial-response deadline. Selecting a category uses the existing
+freshly authorized intake route: ordinary forms are blank, and Quick Help keeps
+its existing no-form behavior. The separate Staff-created contact flow is unchanged.
+
+54 focused checks pass for transport restrictions, source-message removal,
+private routing, membership loss, blank fields and expired requests, including
+existing Shuttle panel checks. Two composed runtime scenarios pass: P24-RT25
+stores only explicitly submitted synthetic form answers while the AI lane is
+unavailable, and RT15 retains the authorized public Onboarding panel. The
+disposable cluster stopped. No schema, grant, dependency, installed service or
+provider change was made. Independent Discord/client acceptance and the rest of
+T26 remain open; this candidate is undeployed.
+
+Evidence: GitHub/.agent_docs/aphelion-sophie/contact-staff-2026-10-04/verification.json.
+
 ## Current release-review inputs — 4 October 2026
 
 The release ledger generator now follows the selected DeepSeek provider and

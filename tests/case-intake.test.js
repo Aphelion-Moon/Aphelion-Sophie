@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { randomBytes } from 'node:crypto';
-import { canonicalCaseForm, canonicalCaseAnswers, parseCaseFormSubmission, caseFormModal, parseCaseIntakeControl, ticketEntryPanel, ticketDestinationReply } from '../modules/tickets/intake.js';
+import { canonicalCaseForm, canonicalCaseAnswers, parseCaseFormSubmission, caseFormModal, parseCaseIntakeControl, ticketEntryPanel, ticketDestinationReply, contactStaffControl } from '../modules/tickets/intake.js';
 import { syntheticCaseForm, syntheticCaseValues, intakeSubmitPayload, intakeBeginPayload } from './fixtures/case-intake.js';
 import { syntheticInteractions } from './fixtures/interactions.js';
 import { requireConfiguredCapability, validateCapabilityPolicy } from '../platform/authorization/actor-policy.js';
@@ -72,6 +72,18 @@ test('public ticket buttons and slash entry accept exactly the six owner-defined
   for (const button of buttons) { const route = parseCaseIntakeControl(button.custom_id); assert.equal(route.command, 'ticket.begin');
     const envelope = f.verifier.verify(f.signed(intakeBeginPayload(f, route.caseType))); assert.equal(envelope.caseType, route.caseType); }
   assert.throws(() => parseCaseIntakeControl('sophie:ticket:v1:open:player-report')); assert.throws(() => parseCaseIntakeControl('sophie:ticket:v1:open:shuttle'));
+});
+
+test('T26 Contact staff carries only fixed navigation; signed routing discards the AI source message', () => {
+  const f = syntheticInteractions(), control = contactStaffControl().components[0];
+  assert.deepEqual(parseCaseIntakeControl(control.custom_id), { command: 'ticket.panel' });
+  assert.throws(() => parseCaseIntakeControl(`${control.custom_id}:admin-help`));
+  const sourceId = '777777777777777777', sourceText = 'SYNTHETIC_AI_CHAT_MUST_NOT_TRANSFER';
+  const envelope = f.mint({ type: 3, message: { id: sourceId, content: sourceText, components: [contactStaffControl()] },
+    data: { component_type: 2, custom_id: control.custom_id } });
+  assert.equal(envelope.command, 'ticket.panel'); assert.equal(envelope.targetId, envelope.userId);
+  assert.equal(JSON.stringify(envelope).includes(sourceId), false); assert.equal(JSON.stringify(envelope).includes(sourceText), false);
+  assert.equal(envelope.caseType, undefined); assert.equal(envelope.formToken, undefined);
 });
 test('ticket navigation shows only verified fixed Discord destinations and distinguishes requests from readiness', () => {
   const pending = ticketDestinationReply({ state: 'preparing', caseToken: token }); assert.match(pending.content, /still being prepared/);

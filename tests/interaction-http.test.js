@@ -2,6 +2,10 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createInteractionHttpServer } from '../apps/core/discord/interaction-http.js';
 import { syntheticInteractions } from './fixtures/interactions.js';
+import { createCaseIntake } from '../apps/core/discord/case-intake.js';
+import { contactStaffControl } from '../modules/tickets/intake.js';
+import { syntheticCaseForm } from './fixtures/case-intake.js';
+import { GUILD } from './fixtures/domain.js';
 
 async function setup(options = {}) {
   const signed = syntheticInteractions();
@@ -73,4 +77,75 @@ test('T24 execution and response failures emit stable codes, never the underlyin
     await (await fixture.request()).json(); await fixture.server.drain();
     assert.deepEqual(fixture.faults, ['INTERACTION_EXECUTION_UNAVAILABLE', 'INTERACTION_RESPONSE_UNAVAILABLE']);
   } finally { await fixture.server.close(); }
+});
+
+test('T26 Contact staff returns a private chooser, rechecks membership and opens only a blank selected form', async () => {
+  let present = true, enabled = true;
+  const forms = [], actor = {}, observation = {}, source = 'SYNTHETIC_AI_CHAT_MUST_NOT_TRANSFER';
+  const caseIntake = createCaseIntake({ enabled: () => enabled, verifier: { takeCaseFormSubmission() { assert.fail('No form submitted'); } },
+    authorization: { resolveActor: async envelope => {
+      assert.equal(JSON.stringify(envelope).includes(source), false);
+      if (!present) throw Error('Synthetic departed member'); return actor;
+    } }, discord: { guildId: GUILD, observe: async () => observation }, store: {
+      beginCaseForm: async input => { forms.push(input); return { form: syntheticCaseForm(input.caseType), token: 'a'.repeat(48) }; },
+    } });
+  const fixture = await setup({ caseIntake, enabled: () => enabled });
+  const click = customId => fixture.request(fixture.signed.payload({ type: 3,
+    message: { id: '777777777777777777', content: source }, data: { component_type: 2, custom_id: customId } }));
+  try {
+    const contact = contactStaffControl().components[0].custom_id;
+    const chooser = await (await click(contact)).json();
+    assert.equal(chooser.type, 4); assert.equal(chooser.data.flags, 64); assert.deepEqual(chooser.data.allowed_mentions, { parse: [] });
+    const buttons = chooser.data.components.flatMap(row => row.components); assert.equal(buttons.length, 6);
+    assert.equal(forms.length, 0); assert.equal(JSON.stringify(chooser).includes(source), false);
+    const category = buttons.find(button => button.custom_id.endsWith(':admin-help')).custom_id;
+    present = false;
+    assert.equal((await (await click(contact)).json()).data.components, undefined);
+    assert.equal((await (await click(category)).json()).type, 4); assert.equal(forms.length, 0);
+    present = true;
+    const modal = await (await click(category)).json(); assert.equal(modal.type, 9); assert.equal(forms.length, 1);
+    for (const field of modal.data.components) {
+      assert.equal(field.component.value, undefined); assert.equal(field.component.values, undefined);
+      assert.equal(field.component.options?.some(option => option.default === true) ?? false, false);
+    }
+    assert.equal(JSON.stringify(modal).includes(source), false);
+    assert.deepEqual(Object.keys(forms[0]).sort(), ['actor', 'caseType', 'interactionId', 'isCurrent', 'observation', 'subjectId']);
+    assert.equal(forms[0].actor, actor); assert.equal(forms[0].observation, observation); assert.equal(forms[0].subjectId, null);
+    enabled = false; assert.equal((await (await click(contact)).json()).data.components, undefined);
+    assert.deepEqual(fixture.calls, []); assert.deepEqual(fixture.replies, []); assert.deepEqual(fixture.faults, []);
+  } finally { await fixture.server.close(); }
+});
+
+test('T26 slow availability or membership cannot deliver a late Contact staff chooser', async () => {
+  for (const delayed of ['availability', 'membership']) {
+    let release;
+    const pending = new Promise(resolve => { release = resolve; });
+    const enabled = async () => { if (delayed === 'availability') await pending; return true; };
+    const caseIntake = createCaseIntake({ enabled, verifier: { takeCaseFormSubmission() {} },
+      authorization: { resolveActor: async () => { if (delayed === 'membership') await pending; return {}; } }, discord: { guildId: GUILD } });
+    const fixture = await setup({ caseIntake, enabled, initialBudgetMs: 50 });
+    try {
+      const response = await fixture.request(fixture.signed.payload({ type: 3, message: { id: '777777777777777777' },
+        data: { component_type: 2, custom_id: contactStaffControl().components[0].custom_id } }));
+      const body = await response.json(); assert.equal(body.type, 4); assert.equal(body.data.flags, 64); assert.equal(body.data.components, undefined);
+      release(); await fixture.server.drain();
+      assert.deepEqual(fixture.calls, []); assert.deepEqual(fixture.replies, []); assert.deepEqual(fixture.faults, []);
+    } finally { release(); await fixture.server.close(); }
+  }
+});
+
+test('Shuttle panel preserves disabled-before-busy ordering and readiness outage reporting', async () => {
+  let release, mode = 'enabled', panels = 0;
+  const pending = new Promise(resolve => { release = resolve; });
+  const fixture = await setup({ commands: { execute: () => pending },
+    enabled: () => { if (mode === 'outage') throw Error('Synthetic readiness outage'); return mode === 'enabled'; },
+    onboardingPanel: { prepare: async () => { panels++; return {}; } } });
+  const panel = () => fixture.request(fixture.signed.payload({ data: { type: 1, name: 'whitelist', options: [{ type: 1, name: 'panel' }] } }));
+  try {
+    assert.equal((await (await fixture.request()).json()).type, 5);
+    mode = 'disabled'; const disabled = await (await panel()).json();
+    assert.equal(disabled.type, 4); assert.match(disabled.data.content, /disabled/);
+    mode = 'outage'; assert.equal((await panel()).status, 503);
+    assert.equal(panels, 0); assert.deepEqual(fixture.faults, ['INTERACTION_TRANSPORT_INVALID']);
+  } finally { release('recorded'); await fixture.server.close(); }
 });
