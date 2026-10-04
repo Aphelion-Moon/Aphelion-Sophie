@@ -1,6 +1,6 @@
 # Current implementation workplan
 
-Revision: 2026-10-04-qualified-ai-exclusion. Official DeepSeek Flash is the selected provider. Local models are historical, explicitly selected alternatives only; no automatic fallback. Continue the DS workstream with synthetic data; full readiness and activation remain open.
+Revision: 2026-10-04-vault-inventory. Official DeepSeek Flash is the selected provider. Local models are historical, explicitly selected alternatives only; no automatic fallback. Continue the DS workstream with synthetic data; full readiness and activation remain open.
 
 All production release gates remain open; pure and isolated database checks are not full application acceptance.
 
@@ -12,9 +12,9 @@ Deterministic administration, Whitelist onboarding, protected editors, role/perm
 
 Recorded baseline: Owner-approved pinned 5f60a24/schema066 is installed. At 15:18 UTC on 4 October, PostgreSQL, tunnel, supervisor and core run under distinct expected child identities; worker stopped. Processing policy absent, AI disabled and publications unchanged. Trust and independent-journal receipts renewed against fresh configuration/journal evidence.
 
-Current work: Local schema067 moderation recovery and composed AI Gateway exclusion evidence are complete. Installed staging remains5f60a24/schema066, AI processing denied and worker stopped. Continue concrete safe local backlog work; provider commitments, owner publications/current consent, actual worker isolation/stop and live Discord acceptance remain gated.
+Current work: Local schema067 candidate now includes reviewed moderation recovery, qualified synthetic Gateway exclusion evidence, read-only vault metadata inventory and retained-slot ownership guards. Installed5f60a24/schema066 was not changed. Continue only concrete remaining local work; provider/publication/consent, actual worker isolation/stop, artifact repair/download/deletion policy and live acceptance remain gated.
 
-Approved staging deployment: 66 migration checksums and actual runtime database identities passed; 72 original rows across 101 tables preserved; exactly seven grants added. 485 mirrored files plus three root files match pinned 5f60a24. Four service-child identities, loopback listeners, current Gateway, recovered supervisor and 12 dashboard checks passed. Journal bytes/identity preserved; configured ACL/firewall evidence renewed. Source-bound report: GitHub/.agent_docs/aphelion-sophie/deployment-5f60a24-2026-10-04/verification.json. Prior 10 installation checks and 93 isolated AI/database scenarios remain source-bound evidence; application suites were not rerun for this deployment. Local P15 candidate: 21 focused checks, M01–M20 and 21 composed staging scenarios pass; browser confirmation and expired-decision checks pass. Candidate evidence: GitHub/.agent_docs/aphelion-sophie/moderation-recovery-2026-10-04/verification.json. P19-RT22 now proves available synthetic AI Gateway exclusion with a public positive control; 22 composed staging scenarios pass on the final recovery restriction. GitHub/.agent_docs/aphelion-sophie/ai-exclusion-2026-10-04/verification.json.
+Approved staging deployment: 66 migration checksums and actual runtime database identities passed; 72 original rows across 101 tables preserved; exactly seven grants added. 485 mirrored files plus three root files match pinned 5f60a24. Four service-child identities, loopback listeners, current Gateway, recovered supervisor and 12 dashboard checks passed. Journal bytes/identity preserved; configured ACL/firewall evidence renewed. Source-bound report: GitHub/.agent_docs/aphelion-sophie/deployment-5f60a24-2026-10-04/verification.json. Prior 10 installation checks and 93 isolated AI/database scenarios remain source-bound evidence; application suites were not rerun for this deployment. Local P15 candidate: 21 focused checks, M01–M20 and 21 composed staging scenarios pass; browser confirmation and expired-decision checks pass. Candidate evidence: GitHub/.agent_docs/aphelion-sophie/moderation-recovery-2026-10-04/verification.json. P19-RT22 now proves available synthetic AI Gateway exclusion with a public positive control; 22 composed staging scenarios pass on the final recovery restriction. GitHub/.agent_docs/aphelion-sophie/ai-exclusion-2026-10-04/verification.json. Vault milestone: six focused file checks, 31 attachment/operations and 11 recovery scenarios pass; clusters stopped. GitHub/.agent_docs/aphelion-sophie/attachment-inventory-2026-10-04/verification.json. Remaining migration-count expectations now use67; unselected suites were not run merely for count updates.
 
 ## Selected AI workstream
 
@@ -174,6 +174,7 @@ Milestone entries preserve their checkpoint evidence. Current next steps and own
 | Approved schema066 staging deployment and receipt renewal (P23, P25) | Preserved and verified the stopped installation/database recovery point, applied 065/066 and the seven narrow AI-control grants, installed pinned 5f60a24 and refreshed protected assembler evidence references, journal receipt and installation trust. Started only Sophie PostgreSQL, tunnel, supervisor and core. Runtime/credentials and journal bytes unchanged; worker stopped and processing disabled. | Approved staging deployment: 66 migration checksums and actual runtime database identities passed; 72 original rows across 101 tables preserved; exactly seven grants added. 485 mirrored files plus three root files match pinned 5f60a24. Four service-child identities, loopback listeners, current Gateway, recovered supervisor and 12 dashboard checks passed. Journal bytes/identity preserved; configured ACL/firewall evidence renewed. Source-bound report: GitHub/.agent_docs/aphelion-sophie/deployment-5f60a24-2026-10-04/verification.json. | Provider commitments and factual notice/retention/transfer annexes, owner publications, current tester consent, actual worker file/network denial and physical stop, Discord privacy/departure/answer acceptance and measured latency remain open. Worker stays stopped and processing denied. Journal receipt expires 5 October at 16:13 Warsaw; installation trust at 17:14. Renewal requires fresh evidence. Word draft layout remains unverified; canonical text/JSON are available. |
 | Reviewed moderation recovery dashboard (P05, P08, P15) | Bounded member-specific delivery review, explicit confirmed retry, current actor/original moderator checks, action/eligibility/job fencing and idempotent retry receipts. Preserves uncertain dispatch and requires fresh moderation after departure/rejoin. Schema067 extends the fixed OAuth return allowlist; no grants/dependencies changed. | 21 focused unit checks, M01–M20 and 21 composed staging scenarios pass, including RT21 OAuth/CSRF/current-role recovery. Synthetic browser confirmation and expired-decision checks pass; isolated clusters and preview stopped. GitHub/.agent_docs/aphelion-sophie/moderation-recovery-2026-10-04/verification.json. | Local candidate only; installed5f60a24/schema066 unchanged. Authorized deployment, live capability/role/client acceptance and production gates remain open. |
 | Available synthetic AI Gateway exclusion evidence (P19) | Composed staging/Gateway scenario with enabled synthetic qualification and consent, a public positive control and protected/permanent/moved/thread exclusion sentinels. No production code change in this milestone. | 22 composed staging scenarios pass, including P19-RT22 and final RT21 moderation recovery; cluster stopped. No protected source fetch, extra knowledge/model call, AI request/effect/provider attempt or Discord write. Source-bound evidence: GitHub/.agent_docs/aphelion-sophie/ai-exclusion-2026-10-04/verification.json. | Installed worker/OS/network qualification, full authenticated artifact-route exclusion and T22–T26 release acceptance. Local schema067 candidate remains undeployed; installed5f60a24/schema066 and processing gates unchanged. |
+| Read-only vault inventory and retained-slot ownership (P06, P12, P26) | Bounded staging scan enumerates opaque flat-directory metadata and reports whole-vault counts without file-body reads, recursion, link following or mutations. Cross-job retained slots and recorded-size mismatches fail closed before file verification or backup selection. No additional migration/grant/dependency change. | Six focused file tests, 31 isolated attachment/operations scenarios and 11 isolated recovery scenarios pass; both clusters stopped. AO06–AO08 cover classification/links/limits/selection races and RB11 rejects a cross-job slot before a backup manifest. GitHub/.agent_docs/aphelion-sophie/attachment-inventory-2026-10-04/verification.json. | Local undeployed candidate. No real vault scanned. Repair/requeue/deletion/download policy, larger-vault limits, alert thresholds and live operational acceptance remain open. |
 
 ## Next implementation sequence
 
@@ -404,7 +405,7 @@ Status: **in_progress**. Phase: Foundation. Priority: P0.
 
 Depends on: P01, P04. Acceptance: T15, T16, T36.
 
-Thirty-three migrations are implemented; the running staging host is still on 032. Local control-history capture and restored-history checks extend quarantined file acquisition, authenticated reads/exports and read-only artifact inventory. Independent durability, recovery activation, repair/alerts and production identities remain open.
+Thirty-three migrations are implemented; the running staging host is still on 032. Local control-history capture and restored-history checks extend quarantined file acquisition, authenticated reads/exports and read-only artifact inventory. Independent durability, recovery activation, repair/alerts and production identities remain open. 4 October local candidate: bounded metadata-only vault scan and retained-slot ownership guards verified; see docs/attachment-operations.md. No live vault scan or deployment.
 
 Implemented scope:
 
@@ -421,6 +422,7 @@ Implemented scope:
 - Additive migration 048 retains explicit routing/overwrite metadata in owner-only inventory revisions, preserved by encrypted quarantine restore. A held 047 operation/generation survives migration unchanged.
 - Additive schema 049 retains seal plans/effects and sealed-observation hashes; encrypted quarantine recovery preserves the journal, exclusions and held runtime barrier. Exact schema-048 inventory survives upgrade.
 - Schema 050 retains application journals, pre/post control hashes, base configuration sections and job references. Confirmed discovered channels enter the capture registry with explicit gaps; maintenance entry records existing capture interruption immediately. Recovery keeps the barrier held.
+- Local read-only whole-vault metadata scan reports bounded flat-directory classifications without following links, reading bodies or changing files/capacity. Inventory and backup reject cross-job retained slots and mismatched recorded sizes before reading content. Six focused checks, CA01–CA23/AO01–AO08 and RB01–RB11 pass; clusters stopped.
 
 Remaining scope:
 
@@ -605,7 +607,7 @@ Status: **in_progress**. Phase: Administration. Priority: P0.
 
 Depends on: P06, P11. Acceptance: T10, T11, T12, T35, T57.
 
-Capture, quarantined acquisition, authenticated reads and confirmed bounded exports now have a browser reader for all current readers. Current-authorized channel lookup and browser lifecycle/confirmation checks pass offline and in synthetic Chromium. File downloads, artifact operations and live case/recovery acceptance remain open. A staging-only read-only operator tool now inventories metadata/accounting and checks one retained file against its pinned hash.
+Capture, quarantined acquisition, authenticated reads and confirmed bounded exports now have a browser reader for all current readers. Current-authorized channel lookup and browser lifecycle/confirmation checks pass offline and in synthetic Chromium. File downloads, artifact operations and live case/recovery acceptance remain open. A staging-only read-only operator tool now inventories metadata/accounting and checks one retained file against its pinned hash. 4 October local candidate: bounded metadata-only vault scan and retained-slot ownership guards verified; see docs/attachment-operations.md. No live vault scan or deployment.
 
 Implemented scope:
 
@@ -617,10 +619,11 @@ Implemented scope:
 - Owner-approved current-reader export audience is composed into the staging host; RT10 verifies member OAuth review/confirmed attachment delivery.
 - Authenticated channel-ID selection, text-only observation/gap pages and explicit browser export review/confirmation for all current readers; identity/access clearing, hidden-page late-response suppression and exact uncertain-download retry.
 - Read-only staging operator inventory: bounded guild job/attempt metadata and whole-vault accounting/pause diagnostics, plus one retained-file size/hash verification with current-selection recheck; no content output, repair, deletion or download grant.
+- Local read-only whole-vault metadata scan reports bounded flat-directory classifications without following links, reading bodies or changing files/capacity. Inventory and backup reject cross-job retained slots and mismatched recorded sizes before reading content. Six focused checks, CA01–CA23/AO01–AO08 and RB01–RB11 pass; clusters stopped.
 
 Remaining scope:
 
-- Owner-approved file-download policy; larger-case/multi-channel export design; controlled hash-verified file downloads; complete filesystem inventory, reviewed requeue/repair and orphan reconciliation, capacity alerts, Windows ACLs and independent restoration.
+- Owner-approved file-download/scanning policy; larger-case/multi-channel export design; controlled hash-verified downloads; reviewed requeue/repair and orphan disposition, larger-vault operational qualification, capacity alert thresholds, Windows ACLs and independent restoration.
 
 Full task deliverables:
 
@@ -1005,7 +1008,7 @@ Status: **in_progress**. Phase: Administration. Priority: P0.
 
 Depends on: P06, P07, P12. Acceptance: T35, T37, T38, T39, T58.
 
-Encrypted snapshot/file bundles and quarantined restore are verified locally. Owner selected D:\Backups as local backup parent; directory exists on healthy NTFS, with no backup executed in this update. Independent copy/key custody, latest-state replay, activation/rollback and production service qualification remain open.
+Encrypted snapshot/file bundles and quarantined restore are verified locally. Owner selected D:\Backups as local backup parent; directory exists on healthy NTFS, with no backup executed in this update. Independent copy/key custody, latest-state replay, activation/rollback and production service qualification remain open. 4 October local candidate: bounded metadata-only vault scan and retained-slot ownership guards verified; see docs/attachment-operations.md. No live vault scan or deployment.
 
 Implemented scope:
 
@@ -1014,6 +1017,7 @@ Implemented scope:
 - Owner-only ledger of selected control metadata committed with state changes; routine observations are excluded, rollback is atomic, and format-2 backup/restore verifies its snapshot hash.
 - Isolated migration/recovery evidence includes retained schema-048 inventories and schema-049 sealed effects. No live upgrade or release-gate approval.
 - Exact schema-049 seal records survive migration050 unchanged; encrypted quarantine restore retains applied policies, application history, migrated provisions and pending reconciliation. Staging stays at046.
+- Local read-only whole-vault metadata scan reports bounded flat-directory classifications without following links, reading bodies or changing files/capacity. Inventory and backup reject cross-job retained slots and mismatched recorded sizes before reading content. Six focused checks, CA01–CA23/AO01–AO08 and RB01–RB11 pass; clusters stopped.
 
 Remaining scope:
 

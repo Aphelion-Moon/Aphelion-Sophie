@@ -1,5 +1,24 @@
 # Verification and release limits
 
+## Read-only vault inventory and retained-slot ownership — 4 October 2026
+
+The local attachment operator now has a bounded `scan` mode. It compares flat-directory
+metadata with all recorded attempts in the selected vault and returns counts only. It
+does not follow directories/links, read file bodies, hash content or modify files/records.
+Truncation leaves missing counts unknown; changed database selection rejects the report.
+Both single-file verification and encrypted backup selection now reject a retained slot
+owned by a different job or a mismatched recorded size before reading its contents.
+
+Passed: six focused file checks; 31 isolated attachment/operations scenarios (CA01–CA23,
+AO01–AO08); and 11 isolated recovery scenarios (RB01–RB11), including encrypted restore and
+cross-job ownership rejection. Both clusters stopped. The initial attachment run exposed
+an old schema066 expectation; remaining current migration-count assertions were updated
+to 67 in `d330cd9`. Unrelated integration suites were not rerun for that count correction.
+No live vault, service, credential, grant, dependency or additional schema change occurred.
+Repair/requeue/deletion/download policy, capacity alerts and actual operational acceptance
+remain open. See [operator scope](attachment-operations.md) and source-bound evidence:
+`GitHub/.agent_docs/aphelion-sophie/attachment-inventory-2026-10-04/verification.json`.
+
 ## Qualified synthetic Gateway exclusion — 4 October 2026
 
 P19-RT22 exercises the composed staging host and loopback WebSocket ingress with an available

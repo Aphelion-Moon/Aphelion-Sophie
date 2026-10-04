@@ -139,5 +139,12 @@ export async function runRecoverySuite(cluster, run) {
     try { await assert.rejects(createRecoveryBundle(options), /BACKUP_GUILD_MISMATCH/); }
     finally { await f.admin.query("DELETE FROM sophie_core.case_budgets WHERE guild_id = '99'"); }
   });
+  await run('RB11 a retained slot owned by another job cannot enter a backup manifest', async () => {
+    await f.addFile(); assert.equal((await f.attachmentWorker.runOnce('recovery-ownership-fixture')).status, 'retained');
+    const other = (await f.jobs()).at(-1);
+    await f.admin.query('UPDATE sophie_core.case_attachment_jobs SET retained_slot=$2 WHERE token=$1', [original.token, other.retained_slot]);
+    try { await assert.rejects(createRecoveryBundle(options), /BACKUP_ATTACHMENT_SELECTION_INVALID/); }
+    finally { await f.admin.query('UPDATE sophie_core.case_attachment_jobs SET retained_slot=$2 WHERE token=$1', [original.token, original.retained_slot]); }
+  });
   key.fill(0);
 }

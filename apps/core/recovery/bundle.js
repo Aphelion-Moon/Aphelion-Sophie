@@ -31,11 +31,12 @@ async function tables(client, guildId) {
 }
 async function retainedFiles(client) {
   const rows = (await client.query(`SELECT j.retained_slot AS slot, j.retained_sha256 AS sha256,
-    j.retained_bytes::text AS bytes, a.vault_id AS "vaultId"
-    FROM sophie_core.case_attachment_jobs j JOIN sophie_core.case_attachment_attempts a ON a.slot = j.retained_slot
+    j.retained_bytes::text AS bytes, a.vault_id AS "vaultId", j.token, a.job_token, a.bytes::text AS expected_bytes
+    FROM sophie_core.case_attachment_jobs j LEFT JOIN sophie_core.case_attachment_attempts a ON a.slot = j.retained_slot
     WHERE j.status = 'retained' ORDER BY j.retained_slot LIMIT 10001`)).rows;
   requireCondition(rows.length <= 10000, 'BACKUP_MANIFEST_LIMIT');
-  return rows.map(row => ({ ...row, bytes: Number(row.bytes) }));
+  requireCondition(rows.every(row => row.job_token === row.token && row.expected_bytes === row.bytes), 'BACKUP_ATTACHMENT_SELECTION_INVALID');
+  return rows.map(({ slot, sha256, bytes, vaultId }) => ({ slot, sha256, bytes: Number(bytes), vaultId }));
 }
 async function selectedVaults(roots) {
   requireCondition(Array.isArray(roots) && roots.length <= 32, 'BACKUP_VAULTS_INVALID');

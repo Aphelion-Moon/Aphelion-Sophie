@@ -11,9 +11,9 @@ const report = value => process.stdout.write(`${JSON.stringify(value)}\n`);
 let pool, client;
 try {
   const [mode, ...args] = process.argv.slice(2), options = {};
-  requireCondition(['inventory', 'verify'].includes(mode) && args.length % 2 === 0, 'ATTACHMENT_OPERATIONS_ARGUMENTS_INVALID');
+  requireCondition(['inventory', 'scan', 'verify'].includes(mode) && args.length % 2 === 0, 'ATTACHMENT_OPERATIONS_ARGUMENTS_INVALID');
   for (let index = 0; index < args.length; index += 2) {
-    requireCondition(['--config', '--database', '--vault', '--confirm-guild', ...(mode === 'inventory' ? ['--after'] : ['--job'])].includes(args[index]) &&
+    requireCondition(['--config', '--database', '--vault', '--confirm-guild', ...(mode === 'inventory' ? ['--after'] : mode === 'verify' ? ['--job'] : [])].includes(args[index]) &&
       !Object.hasOwn(options, args[index]) && typeof args[index + 1] === 'string' && args[index + 1].length > 0, 'ATTACHMENT_OPERATIONS_ARGUMENTS_INVALID');
     options[args[index]] = args[index + 1];
   }
@@ -28,7 +28,8 @@ try {
   await checkRuntimeDatabase(client);
   const vault = await createAttachmentVault({ root: options['--vault'], clock: Date.now, readOnly: true });
   const inventory = createAttachmentInventory({ pool: client, guildId: configuration.mapping.guildId, vault });
-  report({ environment: 'staging', productionReady: false, ...(mode === 'inventory' ? await inventory.page(options['--after'] ?? null) : await inventory.verify(options['--job'])) });
+  report({ environment: 'staging', productionReady: false, ...(mode === 'inventory' ? await inventory.page(options['--after'] ?? null) :
+    mode === 'scan' ? await inventory.scan() : await inventory.verify(options['--job'])) });
 } catch (error) {
   report({ fault: error instanceof ContractError ? error.code : 'ATTACHMENT_OPERATIONS_UNAVAILABLE' }); process.exitCode = 1;
 } finally { client?.release(); await pool?.end(); }

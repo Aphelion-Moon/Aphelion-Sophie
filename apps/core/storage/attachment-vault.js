@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto';
-import { open, mkdir, realpath, lstat, link, unlink } from 'node:fs/promises';
+import { open, opendir, mkdir, realpath, lstat, link, unlink } from 'node:fs/promises';
 import { resolve, isAbsolute } from 'node:path';
 import { requireAttachmentToken, attachmentTypes } from '../../../contracts/case-attachment.js';
 import { ContractError, requireCondition, requireInteger } from '../../../contracts/validation.js';
@@ -38,9 +38,11 @@ export async function createAttachmentVault({ root, clock, readOnly = false }) {
   const directoryStat = await lstat(root);
   requireCondition(directoryStat.isDirectory() && !directoryStat.isSymbolicLink(), 'ATTACHMENT_VAULT_INVALID');
   const vaultId = createHash('sha256').update(process.platform === 'win32' ? directory.toLowerCase() : directory).digest('hex');
-  async function path(slot, extension) {
-    requireAttachmentToken(slot);
+  async function currentDirectory() {
     requireCondition(await realpath(root) === directory && !(await lstat(root)).isSymbolicLink(), 'ATTACHMENT_VAULT_INVALID');
+  }
+  async function path(slot, extension) {
+    requireAttachmentToken(slot); await currentDirectory();
     return resolve(directory, `${slot}.${extension}`);
   }
   function proof(slot, result) {
@@ -48,6 +50,30 @@ export async function createAttachmentVault({ root, clock, readOnly = false }) {
   }
   return Object.freeze({
     vaultId,
+    async scanEntries(limit = 10000) {
+      requireInteger(limit, 1, 10000);
+      const files = []; let unexpected = 0, vanished = 0, visited = 0, complete = true;
+      try {
+        await currentDirectory();
+        for await (const entry of await opendir(directory)) {
+          if (visited === limit) { complete = false; break; }
+          visited++;
+          const match = /^([a-f0-9]{48})\.(blob|part)$/.exec(entry.name);
+          if (!match) { unexpected++; continue; }
+          let stat;
+          try { stat = await lstat(resolve(directory, entry.name), { bigint: true }); }
+          catch (error) { if (error.code === 'ENOENT') { vanished++; complete = false; continue; } throw error; }
+          // Never recurse or follow a link, including one disguised as an opaque slot.
+          if (!stat.isFile() || stat.isSymbolicLink()) { unexpected++; continue; }
+          files.push({ slot: match[1], kind: match[2], bytes: stat.size.toString() });
+        }
+        await currentDirectory();
+        return { files, unexpected, vanished, visited, complete };
+      } catch (error) {
+        if (error instanceof ContractError) throw error;
+        throw new ContractError('ATTACHMENT_STORAGE_UNAVAILABLE');
+      }
+    },
     async write(slot, reference, chunks) {
       requireCondition(!readOnly, 'ATTACHMENT_VAULT_READ_ONLY');
       let handle, temporary, created = false;

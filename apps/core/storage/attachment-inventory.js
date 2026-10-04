@@ -7,7 +7,7 @@ export function createAttachmentInventory({ pool, guildId, vault }) {
   requireCondition(typeof vault?.vaultId === 'string' && /^[a-f0-9]{64}$/.test(vault.vaultId), 'ATTACHMENT_VAULT_INVALID');
   async function retained(token) {
     return (await pool.query(`SELECT j.token, j.status, j.fence, j.retained_slot, j.retained_sha256,
-      j.retained_bytes::text, a.vault_id, a.media_type, a.bytes::text AS expected_bytes
+      j.retained_bytes::text, a.job_token, a.vault_id, a.media_type, a.bytes::text AS expected_bytes
       FROM sophie_core.case_attachment_jobs j LEFT JOIN sophie_core.case_attachment_attempts a ON a.slot = j.retained_slot
       WHERE j.guild_id = $1 AND j.token = $2`, [guildId, token])).rows[0];
   }
@@ -42,10 +42,40 @@ export function createAttachmentInventory({ pool, guildId, vault }) {
           accountingMatches: result.reserved_bytes === result.attempt_bytes, paused: result.paused, coolingDown: result.cooling_down },
         filesystemScanned: false, repaired: false };
     },
+    async scan() {
+      requireCondition(typeof vault.scanEntries === 'function', 'ATTACHMENT_VAULT_INVALID');
+      const selection = async () => (await pool.query(`WITH slots AS (
+        SELECT a.slot, a.bytes::text, j.status = 'retained' AND j.retained_slot = a.slot AS retained
+        FROM sophie_core.case_attachment_attempts a JOIN sophie_core.case_attachment_jobs j ON j.token = a.job_token
+        WHERE a.vault_id = $1 ORDER BY a.slot LIMIT 10001
+      ) SELECT COALESCE((SELECT jsonb_agg(to_jsonb(s) ORDER BY s.slot) FROM slots s), '[]'::jsonb) AS slots,
+        EXISTS (SELECT 1 FROM sophie_core.case_attachment_jobs j JOIN sophie_core.case_attachment_attempts a ON a.slot = j.retained_slot
+          WHERE a.vault_id = $1 AND (a.job_token <> j.token OR a.bytes <> j.retained_bytes)) AS invalid`, [vault.vaultId])).rows[0];
+      const before = await selection();
+      requireCondition(!before.invalid, 'ATTACHMENT_INVENTORY_SELECTION_INVALID');
+      requireCondition(before.slots.length <= 10000, 'ATTACHMENT_INVENTORY_LIMIT');
+      const entries = await vault.scanEntries(), slots = new Map(before.slots.map(row => [row.slot, row]));
+      requireCondition(JSON.stringify(await selection()) === JSON.stringify(before), 'ATTACHMENT_INVENTORY_CHANGED');
+      const found = new Set(), counts = { retainedBlobs: 0, otherAttemptBlobs: 0, unreferencedBlobs: 0,
+        partialFiles: 0, sizeMismatches: 0, unexpectedEntries: entries.unexpected, vanishedEntries: entries.vanished };
+      for (const file of entries.files) {
+        if (file.kind === 'part') { counts.partialFiles++; continue; }
+        const attempt = slots.get(file.slot);
+        if (!attempt) counts.unreferencedBlobs++;
+        else {
+          found.add(file.slot); counts[attempt.retained ? 'retainedBlobs' : 'otherAttemptBlobs']++;
+          if (file.bytes !== attempt.bytes) counts.sizeMismatches++;
+        }
+      }
+      return { guildId, vaultId: vault.vaultId, scope: 'whole-vault', filesystemScanned: true,
+        complete: entries.complete, observation: 'point-in-time', visitedEntries: entries.visited,
+        counts: { ...counts, missingRetainedBlobs: entries.complete ? before.slots.filter(row => row.retained && !found.has(row.slot)).length : null },
+        contentsChecked: false, downloadable: false, repaired: false };
+    },
     async verify(token) {
       requireAttachmentToken(token);
       const row = await retained(token);
-      requireCondition(row && row.status === 'retained' && row.vault_id === vault.vaultId && row.expected_bytes === row.retained_bytes,
+      requireCondition(row && row.job_token === row.token && row.status === 'retained' && row.vault_id === vault.vaultId && row.expected_bytes === row.retained_bytes,
         'ATTACHMENT_INVENTORY_SELECTION_INVALID');
       let integrity;
       try {
