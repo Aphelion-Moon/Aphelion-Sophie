@@ -783,3 +783,25 @@ backups, Discord copies or the provider.
 Schema066, its narrowly scoped AI control grants, independent-journal health, matching notice and
 retention annex, and worker/Discord acceptance require separate deployment qualification. This
 decision authorizes the local implementation, not live migration, privilege changes or activation.
+
+### Prepared schema066 staging update approved — 4 October 2026
+
+The owner replied **Approved, proceed.** to the prepared staging proposal in
+`GitHub/.agent_docs/aphelion-sophie/test-readiness-2026-10-04/deployment-proposal.json`.
+This authorizes deployment of pinned commit `5f60a24099daa0031100dd626068fca6500e053b`,
+migrations 065/066, the seven listed AI-control grants, independent-journal and installation
+receipt renewal, and starts of Sophie's PostgreSQL, tunnel, supervisor and core services.
+The worker must remain stopped, processing disabled and publications unchanged.
+
+The scoped update was applied and verified. A protected, hash-verified cold recovery point was
+preserved before mutation; its separate journal copy must never overwrite current deletion history
+during database recovery. All 72 original rows across 101 tables were preserved by the migrations.
+Only the seven approved grants were added; actual core, control and knowledge identities qualified.
+Fresh configured identity/ACL/firewall evidence replaced the assembler's September evidence reference.
+Journal bytes and identity were preserved. Installed package, service-child identity, loopback
+listeners, recovered supervisor, current Gateway and anonymous dashboard checks passed.
+
+This approval does not authorize worker startup, provider correspondence or paid requests, notice or
+source publication, member processing, production/game-service changes or a host reboot. Actual worker
+file/network denial, physical stop, Discord privacy/answer acceptance and measured latency remain open.
+Evidence: `GitHub/.agent_docs/aphelion-sophie/deployment-5f60a24-2026-10-04/verification.json`.

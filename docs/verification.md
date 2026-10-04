@@ -1,5 +1,43 @@
 # Verification and release limits
 
+## Approved schema066 staging deployment — 4 October 2026
+
+Pinned `5f60a24099daa0031100dd626068fca6500e053b` is installed as `sophie-deepseek-5f60a24`.
+The owner approved the prepared migration/grant/receipt/service-start scope. Before mutation, the
+stopped database, package, trust, service definitions and protected configuration were copied and
+hash-verified in `D:\Backups\sophie-staging\schema066-5f60a24-20261004`. The independent journal was
+preserved separately; this is a local recovery point, not an off-host restore qualification.
+
+Migrations 065/066 and all migration checksums passed against the actual staging database. Server-side
+fingerprints confirm preservation of 72 existing rows across 101 tables. Exactly seven approved
+AI-control table privileges were added, with no previous grants removed. Actual core qualification
+checked 71 tables and 66 migrations; control, read-only knowledge and knowledge-editor checks passed.
+
+Both installed trust files and their complete package manifest verified. All 485 mirrored source files
+and the three root package/licence files match the pinned checkout; reviewed Node 24.19.0 executable
+and licence hashes match. Runtime/database/Discord configuration remained unchanged apart from the
+journal receipt. Current configured identities, ACLs and firewall evidence are bound into the renewed
+receipt. The journal header, checksum chain, capacity, identity and ACL passed; its bytes are unchanged.
+Installation trust expires **5 October 2026 at 15:14:36 UTC (17:14 Warsaw)**; the independent journal
+receipt expires earlier, **14:13:20 UTC (16:13 Warsaw)**. Renewal requires fresh evidence again.
+
+At 15:18 UTC, PostgreSQL, tunnel, supervisor and core were running under their distinct expected child
+identities; the worker remained stopped with no child. Four application/database listeners were owned
+by the expected processes on loopback only. Wrapper configuration, qualified ACLs and firewall scope
+were unchanged. Gateway authority was current and leased; authenticated supervisor inspection showed
+recovered/empty state and completed quiescence. Twelve loopback/public dashboard checks passed,
+including anonymous denials and asset hashes. The service verification script initially assumed
+cloudflared lived beneath the Sophie directory; checking its preserved configuration corrected that
+assumption and confirmed its existing Program Files executable and proper service identity.
+
+AI remains disabled, no processing policy is installed, and configuration/personality revisions remain
+zero. No publication, worker startup, provider request or member AI acceptance occurred. Actual worker
+access/egress denial and physical stop, provider commitments, approved publications/current consent,
+Discord privacy/answer acceptance and end-to-end latency remain separate gates. Prior unit/database
+test evidence remains bound to the same source; application suites were not rerun for this deployment.
+The documentation commit records these results and is not a second package deployment. Source-bound
+evidence: `GitHub/.agent_docs/aphelion-sophie/deployment-5f60a24-2026-10-04/verification.json`.
+
 ## AI test preparation and installed privilege preflight — 4 October 2026
 
 Installed AI control qualification now checks every schema066 privilege addition before service

@@ -1,10 +1,11 @@
 # AI on the Test Discord Server — operator runbook
 
-Status (4 October 2026): read-only service/trust inspection confirms installed source `7a152ca`,
-expired installation and independent-journal receipts, no installed processing policy, and all five
-Sophie staging services stopped. Schema 064 is the last recorded database version; this inspection
-did not start PostgreSQL or query it. The current local candidate requires migrations 065 and 066.
-The September 30 dashboard, Gateway and operator-role observations below are historical.
+Status (4 October 2026, 15:18 UTC): the owner-approved update is installed at pinned source `5f60a24`,
+schema 066. PostgreSQL, tunnel, supervisor and core are running; the AI worker is stopped. Gateway,
+installed package, actual service-child identities and 12 loopback/public dashboard checks passed.
+No processing policy is installed and AI remains disabled. Trust expires 5 October at 17:14 Warsaw;
+the separately renewed journal receipt expires earlier, at 16:13 Warsaw. Both need fresh evidence
+before later renewal. The September 30 operator-role observations remain historical.
 No live AI processing is cleared. Starting the worker is an owner action through the dashboard. Do not paste
 the provider key, Discord token or trust-file contents into chat, logs or Git.
 
@@ -23,24 +24,26 @@ core, because its Gateway ownership lease fails closed (`GATEWAY_OWNER_ACTIVE`) 
 Setup is reproducible with `ops/windows/Setup-StagingServices.ps1` and `ops/windows/Setup-InferenceAccount.ps1`.
 Both are idempotent and support `-WhatIf`.
 
-Database `sophie_stage_bot` was created fresh for the new application, now with migrations 001–064. The
+Database `sophie_stage_bot` was created fresh for the new application, now with migrations 001–066. The
 earlier staging data is retained, renamed and fenced as `sophie_stage_archive_20260929`, plus encrypted
 bundles in `D:\Backups`. Runtime identities are `sophie_stage_core`, `sophie_stage_control` (AI tables only)
 and `sophie_stage_knowledge` (read-only knowledge), plus `sophie_stage_knowledge_editor` (knowledge-only
 SELECT/INSERT/UPDATE). The owner and admin logins are maintenance-only. Policy version 2 adds the
 approved AI/editor capabilities for the existing configured Head Admin role; other grants and role ownership remain unchanged.
 
-## Prepare the schema066 update
+## Applied schema066 update
 
-The current candidate adds exact-notice consent receipts, identifier redaction, default deletion on
-departure and explicit retention. Before deployment, review the concrete proposal and evidence in
-`GitHub/.agent_docs/aphelion-sophie/test-readiness-2026-10-04/`. Record separate authorization for the
-pinned source, migrations, grants, receipt renewal and Sophie service starts. Keep member processing
-held, the worker stopped and publications unchanged during this update.
+The installed source adds exact-notice consent receipts, identifier redaction, default deletion on
+departure and explicit retention. The owner approved the concrete proposal in
+`GitHub/.agent_docs/aphelion-sophie/test-readiness-2026-10-04/`. Source `5f60a24`, migrations 065/066,
+the exact grants below, receipt renewal and Sophie service starts were applied. Member processing
+remains held, the worker stopped and publications unchanged. Results are recorded in
+`GitHub/.agent_docs/aphelion-sophie/deployment-5f60a24-2026-10-04/verification.json`.
 
-Use the maintenance identity to migrate only `sophie_stage_bot` after checking the existing migration
-checksums and preserving a verified recovery point. In addition to its existing grants, the AI control
-role needs SELECT/INSERT on `sophie_ai.request_tombstones`, SELECT/INSERT/DELETE on
+The maintenance identity migrated only `sophie_stage_bot` after checking existing migration
+checksums and preserving a verified cold recovery point. All 72 original rows across 101 tables
+were preserved. In addition to its existing grants, AI control received SELECT/INSERT on
+`sophie_ai.request_tombstones`, SELECT/INSERT/DELETE on
 `sophie_ai.effect_erasure`, and DELETE on `sophie_ai.consents` and `sophie_ai.request_receipts`.
 Core gains no AI-schema access or DELETE privilege. Installed control qualification now rejects any
 missing privilege in this delta with `AI_DATABASE_PRIVILEGES_MISSING` before composing the service.
@@ -51,13 +54,12 @@ helper that would recreate a missing journal. A missing or corrupt journal is a 
 
 ## Renew the installation receipts
 
-The owner-approved September 30 repair is installed. Worker read/execute access to `services\worker`
-and metadata access to `services` are now present; the other reviewed descriptors are unchanged.
-Setup rejects drifted service/firewall configuration before mutation. Manifest verification, unchanged
-runtime configuration digest, four actual service-child identities, recovered supervisor state and
-12 dashboard checks passed. The worker remains stopped; actual worker file/network denial and
-physical-stop qualification are still open. Evidence is in
-`GitHub/.agent_docs/aphelion-sophie/repair-deployment-verification-2026-09-30.json`.
+The October 4 deployment retained the reviewed worker access to `services\worker` and metadata access
+to `services`. Setup rejects drifted service/firewall configuration before mutation. Current package,
+configuration, service-child identities, recovered supervisor state and dashboard checks passed;
+qualified descriptors/firewall scope stayed unchanged. The protected assembler now points to fresh
+`qualification\evidence-20261004-5f60a24` configured identity/ACL/firewall evidence. This does not prove
+actual worker file/network denial or physical stop; those checks remain open with the worker stopped.
 
 Trust files expire 24 hours after issue by design. The established renewal entry point is below.
 It redeploys the current commit and restarts services: run it only after the approved migration/grant
@@ -77,9 +79,13 @@ The assembler retains `knowledge-editor.json`, `preference-journal.json` and any
 `processing-policy.json` from the protected staging directory. The independent journal has its own
 qualification expiry; renewing installation trust does not extend that evidence automatically.
 After rechecking its ACL and database-restore exclusion, explicitly renew its receipt before expiry.
-The recorded installation trust expired 1 October at 14:45 Warsaw time. The independent journal
-receipt expired at 12:54 Warsaw time and was not extended by renewal. October 4 metadata confirms
-these expiries. Renewed timestamps must follow fresh evidence, not merely the passage of time.
+Current installation trust expires **5 October 2026 at 15:14:36 UTC (17:14 Warsaw)**. The independent
+journal receipt expires **14:13:20 UTC (16:13 Warsaw)** and is not extended by installation renewal.
+Its existing bytes/identity were verified and preserved. Renewed timestamps must follow fresh evidence,
+not merely the passage of time. The protected recovery point is
+`D:\Backups\sophie-staging\schema066-5f60a24-20261004`; its separate journal copy must never replace
+current journal history during a database restore. Later documentation commits do not change the
+installed source pin; review the exact next commit before any further deployment.
 
 ## Enabling AI on one test channel
 

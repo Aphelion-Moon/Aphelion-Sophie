@@ -1,6 +1,6 @@
 {
   "schema_version": 2,
-  "revision": "2026-10-04-test-readiness",
+  "revision": "2026-10-04-staging-schema066",
   "reference_plan_version": "1.1",
   "source": "Sophie-Implementation-Plans-v1.1/backlog.json",
   "owner_decisions": "docs/decisions/0001-owner-policy.md",
@@ -1337,9 +1337,9 @@
   ],
   "checkpoint": {
     "summary": "Deterministic administration, Whitelist onboarding, protected editors, role/permission configuration and the configurable staging host are implemented.",
-    "recorded_baseline": "Source9f924f6 plus installed-grant preflight candidate. Read-only4October metadata confirms installed7a152ca, all Sophie services stopped, expired trust/journal receipts and no processing policy. Schema064 is last recorded; no database inspection or service start.",
-    "current_work": "Installed AI control qualification checks all seven schema066 grant additions before composing the service. Updated the exact notice and retention annex, prepared held personality/budget drafts, a source-linked 40-case results template and a concrete deployment/qualification proposal. The runbook now requires schema2 accepted processing evidence and records current stopped services and expired receipts. Review actual provider commitments and remaining factual/legal retention/transfer inputs; approve the pinned source/schema065-066/grant/receipt renewal and staging service starts. Keep worker stopped and processing held. Refresh protected assembler evidence references and independently verify the existing journal before receipt renewal. Then complete owner publications, current member consent and actual worker/Discord/answer/latency acceptance. Word layout QA is blocked by the missing bundled LibreOffice renderer; text/JSON drafts are available.",
-    "evidence_note": "10 installation checks and 93 isolated AI/database scenarios passed; AI-D11 rejects each missing grant under an actual restricted database role. Cluster stopped. Read-only service/trust/journal metadata and Setup-InferenceAccount -WhatIf passed; no actual worker denial or Discord/provider test. The 7058-character draft notice fits the runtime limit and draft processing remains held. Source-bound evidence: GitHub/.agent_docs/aphelion-sophie/test-readiness-2026-10-04/verification.json."
+    "recorded_baseline": "Owner-approved pinned 5f60a24/schema066 is installed. At 15:18 UTC on 4 October, PostgreSQL, tunnel, supervisor and core run under distinct expected child identities; worker stopped. Processing policy absent, AI disabled and publications unchanged. Trust and independent-journal receipts renewed against fresh configuration/journal evidence.",
+    "current_work": "The scoped source/schema/grant/receipt update is complete. Provider commitments and factual notice/retention/transfer annexes, owner publications, current tester consent, actual worker file/network denial and physical stop, Discord privacy/departure/answer acceptance and measured latency remain open. Worker stays stopped and processing denied. Journal receipt expires 5 October at 16:13 Warsaw; installation trust at 17:14. Renewal requires fresh evidence. Word draft layout remains unverified; canonical text/JSON are available.",
+    "evidence_note": "Approved staging deployment: 66 migration checksums and actual runtime database identities passed; 72 original rows across 101 tables preserved; exactly seven grants added. 485 mirrored files plus three root files match pinned 5f60a24. Four service-child identities, loopback listeners, current Gateway, recovered supervisor and 12 dashboard checks passed. Journal bytes/identity preserved; configured ACL/firewall evidence renewed. Source-bound report: GitHub/.agent_docs/aphelion-sophie/deployment-5f60a24-2026-10-04/verification.json. Prior 10 installation checks and 93 isolated AI/database scenarios remain source-bound evidence; application suites were not rerun for this deployment."
   },
   "milestones": [
     {
@@ -2685,6 +2685,16 @@
       "implemented": "Installed AI control qualification checks all seven schema066 grant additions before composing the service. Updated the exact notice and retention annex, prepared held personality/budget drafts, a source-linked 40-case results template and a concrete deployment/qualification proposal. The runbook now requires schema2 accepted processing evidence and records current stopped services and expired receipts.",
       "evidence": "10 installation checks and 93 isolated AI/database scenarios passed; AI-D11 rejects each missing grant under an actual restricted database role. Cluster stopped. Read-only service/trust/journal metadata and Setup-InferenceAccount -WhatIf passed; no actual worker denial or Discord/provider test. The 7058-character draft notice fits the runtime limit and draft processing remains held. Source-bound evidence: GitHub/.agent_docs/aphelion-sophie/test-readiness-2026-10-04/verification.json.",
       "remaining": "Review actual provider commitments and remaining factual/legal retention/transfer inputs; approve the pinned source/schema065-066/grant/receipt renewal and staging service starts. Keep worker stopped and processing held. Refresh protected assembler evidence references and independently verify the existing journal before receipt renewal. Then complete owner publications, current member consent and actual worker/Discord/answer/latency acceptance. Word layout QA is blocked by the missing bundled LibreOffice renderer; text/JSON drafts are available."
+    },
+    {
+      "title": "Approved schema066 staging deployment and receipt renewal",
+      "tasks": [
+        "P23",
+        "P25"
+      ],
+      "implemented": "Preserved and verified the stopped installation/database recovery point, applied 065/066 and the seven narrow AI-control grants, installed pinned 5f60a24 and refreshed protected assembler evidence references, journal receipt and installation trust. Started only Sophie PostgreSQL, tunnel, supervisor and core. Runtime/credentials and journal bytes unchanged; worker stopped and processing disabled.",
+      "evidence": "Approved staging deployment: 66 migration checksums and actual runtime database identities passed; 72 original rows across 101 tables preserved; exactly seven grants added. 485 mirrored files plus three root files match pinned 5f60a24. Four service-child identities, loopback listeners, current Gateway, recovered supervisor and 12 dashboard checks passed. Journal bytes/identity preserved; configured ACL/firewall evidence renewed. Source-bound report: GitHub/.agent_docs/aphelion-sophie/deployment-5f60a24-2026-10-04/verification.json.",
+      "remaining": "Provider commitments and factual notice/retention/transfer annexes, owner publications, current tester consent, actual worker file/network denial and physical stop, Discord privacy/departure/answer acceptance and measured latency remain open. Worker stays stopped and processing denied. Journal receipt expires 5 October at 16:13 Warsaw; installation trust at 17:14. Renewal requires fresh evidence. Word draft layout remains unverified; canonical text/JSON are available."
     }
   ],
   "next_steps": [
@@ -2700,8 +2710,8 @@
         "P25",
         "P32"
       ],
-      "work": "Review the prepared notice, retention annex and deployment-proposal.json in GitHub/.agent_docs/aphelion-sophie/test-readiness-2026-10-04. Resolve provider/factual inputs separately; authorize the pinned schema066 source/grants/receipt renewal and staging service starts. All Sophie services are currently stopped and receipts expired. Keep worker/member processing held until owner publications and actual worker/Discord acceptance.",
-      "exit_evidence": "Build-bound installed identity/ACL/network and synthetic boot/transport/stop results; effective operator permissions and accessible dashboard. Real-member AI acceptance and reviewed knowledge answers remain explicit open gates."
+      "work": "The approved pinned 5f60a24/schema066 staging update is complete; use the running dashboard for owner review. Resolve provider/factual inputs using the prepared notice and retention annex. Complete exact owner publications, separately authorized worker isolation/stop checks, current member consent and actual worker/Discord acceptance before processing. Keep the independent journal and trust receipts current through reviewed renewals; no automatic source redeployment or member activation.",
+      "exit_evidence": "Current installed package, identities, configured ACL/firewall scope, Gateway and anonymous dashboard checks are recorded. Still needed: actual worker file/network denials and child termination, accepted provider evidence/publications/current consent, live privacy/departure/answer tests and measured end-to-end latency."
     },
     {
       "title": "Privately verify deployed configuration and apply workflow",
@@ -2885,13 +2895,13 @@
         "id": "DS-08",
         "title": "Assistant context and explicit memory",
         "implementation": "Local self-service preferences with independent journal, epoch/quarantine, authenticated export/deletion/expiry; remote preference use remains off. Temporary context now redacts common identifiers and eligible identity aliases, preserves original question detection, rejects async invalidation races and uses cached byte counts. Pending metadata and admissions are fenced against invalidation; context cannot be refilled by an older admission. Departure now deletes personal AI data by default; explicit saved retention preserves local data without reenrolling the member. Durable cleanup and journal fences cover restart, rejoin, restore, dependent effects and unresolved spending. Minimal deletion/replay markers remain after erasure.",
-        "qualification": "4 October departure candidate: 90 focused checks, 92 isolated AI/database scenarios, 20 staging scenarios and synthetic browser checks passed. Prior source-bound redaction/context timings remain historical; no new latency or anonymity claim.",
+        "qualification": "4 October departure candidate: 90 focused checks, 92 isolated AI/database scenarios, 20 staging scenarios and synthetic browser checks passed. Prior source-bound redaction/context timings remain historical; no new latency or anonymity claim. Approved pinned 5f60a24/schema066 deployment: actual database privileges and journal integrity/ACL/receipt passed; bytes preserved. Worker and member acceptance remain unrun.",
         "sai": [
           "SAI-02",
           "SAI-10",
           "SAI-11"
         ],
-        "remaining": "Independent journal explicitly provisioned with protected core-only ACL and installed receipt30September. Journal evidence expires independently of renewed installation trust. Actual worker open denial, remote preference and named restricted-context acceptance remain separately gated. Qualify schema066 deletion grants, journal health/capacity and actual departure cleanup. Unknown external effects and spending hold erasure pending until resolved; backups/provider copies follow their own reviewed retention."
+        "remaining": "Journal independently qualified on 4 October; receipt expires 5 October at 16:13 Warsaw before installation trust at 17:14. Actual worker open denial, operational restore/export and departure cleanup, remote preference and named restricted-context acceptance remain separately gated. Unknown external effects and spending hold erasure pending until resolved; backups/provider copies follow their own reviewed retention."
       },
       {
         "id": "DS-09",
@@ -2959,7 +2969,7 @@
         "id": "SAI-G3",
         "title": "Explicit personal memory",
         "implementation": "Local member-saved reply length and language preferences with self inspection, replacement, export action, deletion and 90-day expiry; independent restore watermark fails closed",
-        "qualification": "Offline lifecycle/export/restore evidence and installed protected journal receipt exist; actual worker denial and operational restore/export acceptance remain open.",
+        "qualification": "Offline lifecycle/export/restore evidence plus current installed schema066 grants and independently renewed journal integrity/ACL/receipt. Actual worker denial and operational restore/export/departure acceptance remain open.",
         "data_clearance": "Two explicit preference types selected; external processing not cleared",
         "activation": "off"
       },
@@ -2983,7 +2993,7 @@
         "id": "SAI-G6",
         "title": "Operational release",
         "implementation": "incomplete",
-        "qualification": "7a152ca installed manifest/configuration/ACL/child-identity/control/dashboard checks pass. Actual worker boot/denials/stop, latency and selected release acceptance remain open.",
+        "qualification": "Pinned 5f60a24/schema066 installed manifest/source/grant/journal/configured-ACL/child-identity/control/dashboard checks pass on 4 October. Actual worker boot/denials/stop, latency and selected release acceptance remain open.",
         "data_clearance": "capability-specific gates open",
         "activation": "Staging preparation installed; no real-member AI activation or production approval."
       }
