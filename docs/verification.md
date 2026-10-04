@@ -1,5 +1,22 @@
 # Verification and release limits
 
+## Late answer after destination restriction — 4 October 2026
+
+P19-RT22 now also admits a public turn and holds a schema-valid reply in the synthetic
+worker. A loopback `CHANNEL_UPDATE` moves its destination into the protected ticket
+category. After the journal accepts that event, the worker signal is aborted before the
+turn deadline. The worker deliberately returns its reply late; the receipt remains
+cancelled, with no additional Discord write, output message or AI effect. Earlier public
+controls, authenticated artifact exclusions and restricted knowledge checks still pass.
+
+All 22 composed staging scenarios pass; the isolated cluster stopped. Repository checks
+pass for 562 source files, 31 reference checksums and eight asset copies. No application
+behavior, schema, live service, provider request or permission changed. Evidence:
+`GitHub/.agent_docs/aphelion-sophie/ai-destination-revocation-2026-10-04/verification.json`.
+This proves synthetic cancellation and late-result rejection, not physical worker stopping
+or actual OS/file/network isolation. Provider/notice/publication/consent gates and independent
+live release acceptance remain open; installed AI processing stays disabled.
+
 ## Authenticated case-artifact exclusion — 4 October 2026
 
 Expanded P19-RT22 passes through the composed dashboard, signed commands and loopback
@@ -23,8 +40,8 @@ assumptions; the final run uses real elapsed time and confirmed delivery. No app
 behavior, dependency, schema, installed service or live permission changed. The source-bound
 report is `GitHub/.agent_docs/aphelion-sophie/ai-artifact-exclusion-2026-10-04/verification.json`.
 This is attachment **metadata** and transcript-HTML evidence, not file-byte download
-acceptance. The separate AI-to-Staff control, destination-revocation coverage, actual worker
-OS/file/network denials and physical stop, provider clearance and complete T22–T26 remain
+acceptance. The separate AI-to-Staff control, actual worker OS/file/network denials and
+physical stop, provider clearance and complete T22–T26 remain
 open. The installed source remains `5f60a24`/schema066 with live AI processing disabled.
 
 ## Read-only vault inventory and retained-slot ownership — 4 October 2026

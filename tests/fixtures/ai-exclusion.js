@@ -3,12 +3,23 @@ import { aiDigest } from '../../apps/core/storage/ai-controls.js';
 import { canonicalAiConfiguration, defaultParticipation } from '../../modules/assistant/participation.js';
 import { canonicalPersonality, DRAFT_PERSONALITY } from '../../modules/assistant/personality.js';
 import { createKnowledgeLibrary } from '../../apps/knowledge/library.js';
+import { validateAiOutput } from '../../modules/assistant/output.js';
 import { GUILD, USER, OTHER } from './domain.js';
 import { PUBLIC_CHANNEL } from './automation.js';
 
 /** Synthetic qualification only. Uses the disposable test database, never an installed worker or provider. */
 export async function qualifiedGatewayAi({ cluster, configuration, discord, clock }) {
   const admin = cluster.adminPool, checked = new Map(), calls = { knowledge: [], lookups: [], worker: [], qualification: 0 };
+  let heldReply = null;
+  function holdNextReply() {
+    assert.equal(heldReply, null);
+    let release;
+    const gate = new Promise(resolve => { release = resolve; });
+    const reply = validateAiOutput({ kind: 'reply', text: 'Synthetic late public answer', purpose: 'conversation', support: 'current_conversation', citations: [] },
+      { outcomes: ['reply'], answerOnly: false, sources: [], emojiKeys: [] });
+    const held = { gate, reply, signal: null, started: false, finished: false }; heldReply = held;
+    return { release, started: () => held.started, aborted: () => held.signal?.aborted === true, finished: () => held.finished };
+  }
   const channels = [
     { id: PUBLIC_CHANNEL, type: 0, parent_id: null },
     { id: '911', type: 0, parent_id: configuration.casePolicy.categoryId, excluded: true },
@@ -85,13 +96,18 @@ export async function qualifiedGatewayAi({ cluster, configuration, discord, cloc
     } catch (error) { await client.query('ROLLBACK'); throw error; }
     finally { client.release(); }
   }
-  return { probe: { channels, checked, calls, qualifyCase }, adapters: {
+  return { probe: { channels, checked, calls, qualifyCase, holdNextReply }, adapters: {
     aiControlPool: controlPool,
     // This fixture has no saved preferences. Journal durability and OS access are separate tests.
     aiPreferenceJournal: { read: async () => 0, advance: async () => assert.fail('No preference changes expected') },
-    aiWorker: { current: async () => { calls.qualification++; return true; }, generate: async payload => {
+    aiWorker: { current: async () => { calls.qualification++; return true; }, generate: async (payload, context) => {
       calls.worker.push(structuredClone(payload)); assert.equal(payload.boundary.channelId, PUBLIC_CHANNEL);
-      assert.equal(JSON.stringify(payload).replaceAll('\\', '').includes('EXCLUDED_SENTINEL'), false); return { kind: 'silent' };
+      assert.equal(JSON.stringify(payload).replaceAll('\\', '').includes('EXCLUDED_SENTINEL'), false);
+      const held = heldReply; heldReply = null;
+      if (held === null) return { kind: 'silent' };
+      held.signal = context.signal; held.started = true;
+      // Deliberately ignore abort until released, modeling a physically late worker result.
+      await held.gate; held.finished = true; return held.reply;
     } },
     aiKnowledge: { lookup: async (text, request) => {
       assert.equal(text.replaceAll('\\', '').includes('EXCLUDED_SENTINEL'), false);

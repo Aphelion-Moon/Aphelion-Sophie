@@ -540,7 +540,7 @@ export async function runStagingRuntimeSuite(cluster, run) {
     assert.equal(stops,1);
   });
 
-  await scenario('P19-RT22 qualified AI excludes Gateway cases and authenticated forms, notes and transcript artifacts', async f => {
+  await scenario('P19-RT22 qualified AI excludes case artifacts and cancels a late answer after destination restriction', async f => {
     const { channels, checked, calls } = f.aiProbe;
     let sequence = 2, messageId = 970;
     const sendMessage = async (channelId, content, extra = {}) => {
@@ -573,11 +573,30 @@ export async function runStagingRuntimeSuite(cluster, run) {
     excludedIds.push(await exerciseExcludedCaseArtifacts(f, sendMessage));
     const secondPublicId = await sendMessage(PUBLIC_CHANNEL, 'public beacon');
     await waitForGateway(async () => (await cluster.adminPool.query('SELECT state FROM sophie_ai.request_receipts WHERE guild_id=$1 AND message_id=$2', [GUILD, secondPublicId])).rows[0]?.state === 'silent');
+    const secondIntervalStart = f.clock.now;
+    await waitForGateway(() => f.clock.now - secondIntervalStart >= 15000, 20000);
+    const held = f.aiProbe.holdNextReply(); let lateId;
+    const writesBeforeRestriction = f.discord.state.calls.filter(call => call.method !== 'GET').length;
+    try {
+      lateId = await sendMessage(PUBLIC_CHANNEL, 'Tell me about the public beacon');
+      await waitForGateway(held.started);
+      assert.equal((await cluster.adminPool.query('SELECT state FROM sophie_ai.request_receipts WHERE guild_id=$1 AND message_id=$2', [GUILD, lateId])).rows[0]?.state, 'admitted');
+      const destination = f.discord.state.channels.get(PUBLIC_CHANNEL); destination.parent_id = f.config.casePolicy.categoryId;
+      f.peer.connections[0].send(gatewayEvent(++sequence, 'CHANNEL_UPDATE', destination));
+      await waitForGateway(async () => Number((await f.rows('gateway_lifecycle'))[0].sequence) === sequence);
+      await waitForGateway(held.aborted);
+      assert.ok(f.clock.now < calls.worker.at(-1).local.deadline - 1000, 'Restriction must cancel the turn before deadline expiry');
+    } finally { held.release(); }
+    await waitForGateway(held.finished);
+    await waitForGateway(async () => (await cluster.adminPool.query('SELECT state FROM sophie_ai.request_receipts WHERE guild_id=$1 AND message_id=$2', [GUILD, lateId])).rows[0]?.state === 'cancelled');
     await f.runtime.stop(); // Drains AI work; queued handoffs cannot escape the assertions below.
-    assert.equal(calls.worker.length, 2); assert.equal(calls.knowledge.length, 2); assert.equal(calls.qualification, 2);
+    assert.equal(calls.worker.length, 3); assert.equal(calls.knowledge.length, 3); assert.equal(calls.qualification, 3);
+    assert.equal(f.discord.state.calls.filter(call => call.method !== 'GET').length, writesBeforeRestriction);
+    assert.equal([...f.discord.state.messages.values()].some(message => message.content === 'Synthetic late public answer'), false);
     assert.deepEqual(calls.lookups.map(call => call.sources), [1, 0, 0]);
     const receipts = (await cluster.adminPool.query('SELECT * FROM sophie_ai.request_receipts WHERE guild_id=$1', [GUILD])).rows;
-    assert.deepEqual(receipts.map(row => row.message_id).sort(), [publicId, secondPublicId].sort()); assert.ok(receipts.every(row => row.state === 'silent'));
+    assert.deepEqual(receipts.map(row => row.message_id).sort(), [publicId, secondPublicId, lateId].sort());
+    assert.ok(receipts.every(row => row.state === (row.message_id === lateId ? 'cancelled' : 'silent')));
     assert.equal((await cluster.adminPool.query('SELECT 1 FROM sophie_ai.effects WHERE guild_id=$1', [GUILD])).rowCount, 0);
     assert.equal((await cluster.adminPool.query('SELECT 1 FROM sophie_ai.provider_attempts WHERE guild_id=$1', [GUILD])).rowCount, 0);
     assert.equal((await f.rows('outbox')).some(row => JSON.stringify(row).includes('EXCLUDED_SENTINEL')), false);
