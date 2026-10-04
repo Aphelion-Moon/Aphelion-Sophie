@@ -9,7 +9,7 @@ import { PUBLIC_CHANNEL } from './automation.js';
 
 /** Synthetic qualification only. Uses the disposable test database, never an installed worker or provider. */
 export async function qualifiedGatewayAi({ cluster, configuration, discord, clock }) {
-  const admin = cluster.adminPool, checked = new Map(), calls = { knowledge: [], lookups: [], worker: [], qualification: 0 };
+  const admin = cluster.adminPool, checked = new Map(), admissions = new Map(), calls = { knowledge: [], lookups: [], worker: [], qualification: 0 };
   let heldReply = null;
   function holdNextReply() {
     assert.equal(heldReply, null);
@@ -59,7 +59,18 @@ export async function qualifiedGatewayAi({ cluster, configuration, discord, cloc
     return result;
   }
   const controlPool = { query: (text, values) => query(admin, text, values), async connect() {
-    const client = await admin.connect(); return { query: (text, values) => query(client, text, values), release: () => client.release() };
+    const client = await admin.connect(); let messageId = null, committed = false, errorCode = null;
+    return { async query(text, values) {
+      // This exact duplicate lookup belongs to admit(), before it reads any source content.
+      if (text === 'SELECT 1 FROM sophie_ai.request_receipts WHERE guild_id=$1 AND message_id=$2') messageId = values[1];
+      try { const result = await query(client, text, values); if (text === 'COMMIT') committed = true; return result; }
+      catch (error) { errorCode = error.code ?? error.name; throw error; }
+    }, release(discard) {
+      client.release(discard);
+      // A qualification query is only an intermediate observation. Later fixture
+      // mutations must wait until this transaction has released its admission lock.
+      if (messageId !== null) admissions.set(messageId, { committed, errorCode });
+    } };
   } };
   // A real, restricted knowledge identity makes an empty case search meaningful.
   await admin.query('GRANT USAGE ON SCHEMA sophie_knowledge TO sophie_test_knowledge');
@@ -96,7 +107,7 @@ export async function qualifiedGatewayAi({ cluster, configuration, discord, cloc
     } catch (error) { await client.query('ROLLBACK'); throw error; }
     finally { client.release(); }
   }
-  return { probe: { channels, checked, calls, qualifyCase, holdNextReply }, adapters: {
+  return { probe: { channels, checked, admissions, calls, qualifyCase, holdNextReply }, adapters: {
     aiControlPool: controlPool,
     // This fixture has no saved preferences. Journal durability and OS access are separate tests.
     aiPreferenceJournal: { read: async () => 0, advance: async () => assert.fail('No preference changes expected') },

@@ -617,7 +617,7 @@ export async function runStagingRuntimeSuite(cluster, run) {
   });
 
   await scenario('P19-RT22 qualified AI excludes case artifacts and cancels a late answer after destination restriction', async f => {
-    const { channels, checked, calls } = f.aiProbe;
+    const { channels, checked, admissions, calls } = f.aiProbe;
     let sequence = 2, messageId = 970;
     const sendMessage = async (channelId, content, extra = {}) => {
       const message = { id: String(++messageId), guild_id: GUILD, channel_id: channelId, type: 0, author: { id: USER, bot: false },
@@ -625,7 +625,9 @@ export async function runStagingRuntimeSuite(cluster, run) {
       f.discord.state.messages.set(message.id, structuredClone(message));
       const before = checked.get(channelId) ?? 0;
       f.peer.connections[0].send(gatewayEvent(++sequence, 'MESSAGE_CREATE', message));
-      await waitForGateway(() => (checked.get(channelId) ?? 0) > before);
+      await waitForGateway(() => admissions.has(message.id));
+      assert.deepEqual(admissions.get(message.id), { committed: true, errorCode: null });
+      assert.ok((checked.get(channelId) ?? 0) > before, 'Every sentinel must reach its qualification check');
       return message.id;
     };
     const publicId = await sendMessage(PUBLIC_CHANNEL, 'public beacon');

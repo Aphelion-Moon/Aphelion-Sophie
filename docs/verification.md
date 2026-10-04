@@ -1,5 +1,23 @@
 # Verification and release limits
 
+## Completed-admission AI exclusion probe — 4 October 2026
+
+P19-RT22 now waits for the synthetic admission transaction to commit and release
+its client before the next fixture mutation. The earlier qualification-query
+counter is retained as an additional assertion. Query errors and rolled-back
+admissions fail the check; all existing sentinel, receipt, cancellation,
+no-delivery and no-fault assertions remain intact. This changes only the test
+fixture and scenario, with no production AI, schema or permission change.
+
+The targeted composed scenario passed both with temporary external diagnostic
+logging and without instrumentation; both disposable clusters stopped. The
+original `AI_TURN_UNAVAILABLE` from the earlier full run remains unexplained.
+Read-only review found no reproducible runtime defect and rejected the initial
+multiple-admission-overlap hypothesis because the admissions share a transaction
+lock. The stronger completion boundary is test evidence, not a demonstrated fix
+for the original fault. Full-suite and live worker/provider checks were not rerun.
+Source-bound evidence: GitHub/.agent_docs/aphelion-sophie/ai-admission-diagnostic-2026-10-04/verification.json.
+
 ## Shuttle assistance and delivery dashboard — 4 October 2026
 
 The local schema069 candidate adds authenticated `/shuttle-assistance` and

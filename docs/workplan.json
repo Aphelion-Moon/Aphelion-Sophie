@@ -1,6 +1,6 @@
 {
   "schema_version": 2,
-  "revision": "2026-10-04-shuttle-staff-dashboard",
+  "revision": "2026-10-04-ai-admission-completion",
   "reference_plan_version": "1.1",
   "source": "Sophie-Implementation-Plans-v1.1/backlog.json",
   "owner_decisions": "docs/decisions/0001-owner-policy.md",
@@ -301,10 +301,11 @@
         "Owner feedback fixes: quiet authoring access refresh, coalesced focus checks, grouped service navigation, explicit Shuttle screens and local safe Markdown previews. 70 focused checks and synthetic browser save/review/publication/removal, sign-out clearing and return-page checks pass. See docs/dashboard-feedback.md.",
         "Saved permission review shows aggregate retained open/read-only/sealed cases, invitation status and queued/in-flight/parked work without exposing case identities or contents.",
         "Searchable shared System wording editor with Markdown preview, defaults, placeholders, durable revisions and quiet focus checks. Onboarding names in configuration navigation and code.",
-        "Authenticated /case-delivery page and metadata-only API share ordinary ticket recheck, exact message adoption and retained-channel selection with signed commands. Current case authority, fresh opaque proofs, stable retry receipts and private-state clearing remain enforced; no AI or private-content read route. Schema068 adds only the login return path. Offline HTTP/database/browser evidence is recorded."
+        "Authenticated /case-delivery page and metadata-only API share ordinary ticket recheck, exact message adoption and retained-channel selection with signed commands. Current case authority, fresh opaque proofs, stable retry receipts and private-state clearing remain enforced; no AI or private-content read route. Schema068 adds only the login return path. Offline HTTP/database/browser evidence is recorded.",
+        "Authenticated Shuttle assistance and delivery queues share current authority, exact receipts and trusted proofs with signed commands. Reviewed help resolution preserves progress and eligibility; delivery workers verify repairs. Schema069 adds only fixed login return paths; HTTP/database and synthetic browser checks pass."
       ],
       "remaining_scope": [
-        "Shuttle assistance/delivery controls and other remaining Staff/configuration screens; independent live authentication/client and full accessibility acceptance."
+        "Other approved Staff/configuration work, independent live authentication/client and full accessibility acceptance. Ticket and Shuttle assistance/delivery dashboard parity is implemented locally."
       ]
     },
     {
@@ -382,7 +383,7 @@
         "Verified root candidates and discovered descendants retain immutable case provenance and permanent exclusions for conversation capture."
       ],
       "remaining_scope": [
-        "Unidentified or uninspectable external results, final forms, archive placement, attachment operations and confirmed transcript exports/downloads; contact dashboard parity remains in P17."
+        "Unidentified or uninspectable external results, final forms, archive placement, attachment operations and confirmed transcript exports/downloads; independent live acceptance of the implemented Staff-contact dashboard."
       ]
     },
     {
@@ -647,10 +648,11 @@
         "Signed Discord /answer list and /answer show share the curated public library with current member authorization at response time. Full approved text/source/revision, bounded pagination, withdrawal and departure are verified. Eighteen focused command/registration/reply checks, eight bootstrap checks and RT01–RT11 pass offline.",
         "Approved public answers can be selected explicitly in the case-reply browser and shared confirmed API. Migration 039 retains source name/revision/hash and exact text. Atomic publication checks reject stale new selections; exact prior receipts survive withdrawal without duplicating replies. Current case authority, final revocation, source races, migration preservation, encrypted restore and browser privacy/retry are verified offline.",
         "Discord /ticket answer provides full approved-text review and explicit Confirm/Cancel through the shared reply transaction. Migration 040 retains author-bound metadata and source identity. Ten-minute expiry, five-review capacity, current grant/case/audience/publication checks, concurrent clicks, lost-commit exact retry and encrypted restore are verified offline.",
-        "Authenticated /case-delivery page and metadata-only API share ordinary ticket recheck, exact message adoption and retained-channel selection with signed commands. Current case authority, fresh opaque proofs, stable retry receipts and private-state clearing remain enforced; no AI or private-content read route. Schema068 adds only the login return path. Offline HTTP/database/browser evidence is recorded."
+        "Authenticated /case-delivery page and metadata-only API share ordinary ticket recheck, exact message adoption and retained-channel selection with signed commands. Current case authority, fresh opaque proofs, stable retry receipts and private-state clearing remain enforced; no AI or private-content read route. Schema068 adds only the login return path. Offline HTTP/database/browser evidence is recorded.",
+        "Authenticated Shuttle assistance and delivery queues share current authority, exact receipts and trusted proofs with signed commands. Reviewed help resolution preserves progress and eligibility; delivery workers verify repairs. Schema069 adds only fixed login return paths; HTTP/database and synthetic browser checks pass."
       ],
       "remaining_scope": [
-        "Shuttle assistance/delivery dashboard parity, controlled downloads and independent live acceptance. Unidentifiable message results remain operator review; no blind resend."
+        "Controlled downloads and independent live acceptance of implemented ticket and Shuttle dashboard workflows. Unidentifiable message results remain operator review; no blind resend."
       ]
     },
     {
@@ -1359,8 +1361,8 @@
   "checkpoint": {
     "summary": "Deterministic administration, Whitelist onboarding, protected editors, role/permission configuration and the configurable staging host are implemented.",
     "recorded_baseline": "Owner-approved pinned 5f60a24/schema066 is installed. At 15:18 UTC on 4 October, PostgreSQL, tunnel, supervisor and core run under distinct expected child identities; worker stopped. Processing policy absent, AI disabled and publications unchanged. Trust and independent-journal receipts renewed against fresh configuration/journal evidence.",
-    "current_work": "Local schema069 candidate includes reviewed moderation, ordinary ticket and Shuttle assistance/delivery controls, bounded vault inventory, shared brand-profile validation and synthetic AI boundary evidence. Installed5f60a24/schema066 is unchanged. Investigate the one intermittent P19-RT22 admission-path fault without relaxing assertions. Provider/publication/consent, actual worker isolation/stop, artifact repair/download/deletion policy and live acceptance remain gated.",
-    "evidence_note": "Approved staging deployment: 66 migration checksums and actual runtime database identities passed; 72 original rows across 101 tables preserved; exactly seven grants added. 485 mirrored files plus three root files match pinned 5f60a24. Four service-child identities, loopback listeners, current Gateway, recovered supervisor and 12 dashboard checks passed. Journal bytes/identity preserved; configured ACL/firewall evidence renewed. Source-bound report: GitHub/.agent_docs/aphelion-sophie/deployment-5f60a24-2026-10-04/verification.json. Prior 10 installation checks and 93 isolated AI/database scenarios remain source-bound evidence; application suites were not rerun for this deployment. Local P15 candidate: 21 focused checks, M01–M20 and 21 composed staging scenarios pass; browser confirmation and expired-decision checks pass. Candidate evidence: GitHub/.agent_docs/aphelion-sophie/moderation-recovery-2026-10-04/verification.json. P19-RT22 now proves available synthetic AI Gateway exclusion with a public positive control; 22 composed staging scenarios pass on the final recovery restriction. GitHub/.agent_docs/aphelion-sophie/ai-exclusion-2026-10-04/verification.json. Vault milestone: six focused file checks, 31 attachment/operations and 11 recovery scenarios pass; clusters stopped. GitHub/.agent_docs/aphelion-sophie/attachment-inventory-2026-10-04/verification.json. Remaining migration-count expectations now use67; unselected suites were not run merely for count updates. Expanded P19-RT22 artifact milestone: all 22 composed staging scenarios pass with actual authenticated case routes and a real restricted knowledge store; cluster stopped. Source-bound report: GitHub/.agent_docs/aphelion-sophie/ai-artifact-exclusion-2026-10-04/verification.json. Final P19-RT22 candidate also cancels a valid late worker reply after destination restriction, with no Discord write/effect; all 22 composed scenarios pass and cluster stopped. Evidence: GitHub/.agent_docs/aphelion-sophie/ai-destination-revocation-2026-10-04/verification.json. Ordinary recovery dashboard: 27 focused checks, 71 intake/recovery and 23 composed staging scenarios pass; clusters stopped. Synthetic browser repair, exact retry, keyboard confirmation, denial clearing and corrected pagination checked. Source-bound report: GitHub/.agent_docs/aphelion-sophie/case-delivery-dashboard-2026-10-04/verification.json. Current migration assertions now use68; unrelated suites were not rerun only for count changes. Shuttle dashboard: 31 focused checks, 87 database scenarios, RT24 composed OAuth/proof/receipt checks and synthetic browser flows pass. The full24 diagnostic rerun passes, but the original P19-RT22 fault is not considered fixed. Migration069 only adds login return paths. Source-bound report: GitHub/.agent_docs/aphelion-sophie/shuttle-dashboard-2026-10-04/verification.json."
+    "current_work": "Local schema069 includes reviewed moderation, ticket and Shuttle controls, bounded vault inventory, shared brand-profile validation and synthetic AI boundary evidence. P19-RT22 now verifies completed admission before fixture mutation; its earlier intermittent fault remains unexplained. Installed5f60a24/schema066 is unchanged. Remaining worker/provider/publication/consent, artifact recovery/download policy and independent live acceptance require their recorded inputs.",
+    "evidence_note": "Approved staging deployment: 66 migration checksums and actual runtime database identities passed; 72 original rows across 101 tables preserved; exactly seven grants added. 485 mirrored files plus three root files match pinned 5f60a24. Four service-child identities, loopback listeners, current Gateway, recovered supervisor and 12 dashboard checks passed. Journal bytes/identity preserved; configured ACL/firewall evidence renewed. Source-bound report: GitHub/.agent_docs/aphelion-sophie/deployment-5f60a24-2026-10-04/verification.json. Prior 10 installation checks and 93 isolated AI/database scenarios remain source-bound evidence; application suites were not rerun for this deployment. Local P15 candidate: 21 focused checks, M01–M20 and 21 composed staging scenarios pass; browser confirmation and expired-decision checks pass. Candidate evidence: GitHub/.agent_docs/aphelion-sophie/moderation-recovery-2026-10-04/verification.json. P19-RT22 now proves available synthetic AI Gateway exclusion with a public positive control; 22 composed staging scenarios pass on the final recovery restriction. GitHub/.agent_docs/aphelion-sophie/ai-exclusion-2026-10-04/verification.json. Vault milestone: six focused file checks, 31 attachment/operations and 11 recovery scenarios pass; clusters stopped. GitHub/.agent_docs/aphelion-sophie/attachment-inventory-2026-10-04/verification.json. Remaining migration-count expectations now use67; unselected suites were not run merely for count updates. Expanded P19-RT22 artifact milestone: all 22 composed staging scenarios pass with actual authenticated case routes and a real restricted knowledge store; cluster stopped. Source-bound report: GitHub/.agent_docs/aphelion-sophie/ai-artifact-exclusion-2026-10-04/verification.json. Final P19-RT22 candidate also cancels a valid late worker reply after destination restriction, with no Discord write/effect; all 22 composed scenarios pass and cluster stopped. Evidence: GitHub/.agent_docs/aphelion-sophie/ai-destination-revocation-2026-10-04/verification.json. Ordinary recovery dashboard: 27 focused checks, 71 intake/recovery and 23 composed staging scenarios pass; clusters stopped. Synthetic browser repair, exact retry, keyboard confirmation, denial clearing and corrected pagination checked. Source-bound report: GitHub/.agent_docs/aphelion-sophie/case-delivery-dashboard-2026-10-04/verification.json. Current migration assertions now use68; unrelated suites were not rerun only for count changes. Shuttle dashboard: 31 focused checks, 87 database scenarios, RT24 composed OAuth/proof/receipt checks and synthetic browser flows pass. The full24 diagnostic rerun passes, but the original P19-RT22 fault is not considered fixed. Migration069 only adds login return paths. Source-bound report: GitHub/.agent_docs/aphelion-sophie/shuttle-dashboard-2026-10-04/verification.json. Completed-admission P19-RT22 passed once with external diagnostic logging and once without instrumentation; both clusters stopped. No production AI change or proven fix for the earlier fault. Evidence: GitHub/.agent_docs/aphelion-sophie/ai-admission-diagnostic-2026-10-04/verification.json."
   },
   "milestones": [
     {
@@ -2780,18 +2782,19 @@
       "implemented": "Bounded metadata queues, reviewed help resolution/resumption and delivery repairs under existing Shuttle authority. Commands and HTTP share receipt-first operations, trusted proof issuers and fenced transactions. Migration069 adds two fixed login return paths only.",
       "evidence": "31 focused checks; 87 Shuttle database scenarios; RT24 composed OAuth/CSRF, paused-help and uncertain-screen recovery. All24 runtime scenarios passed a diagnostic rerun. Browser confirms keyboard confirmation, numeric pagination, exact retry, message/channel repair and access-loss clearing. Clusters, preview and tab stopped; see shuttle-dashboard-2026-10-04/verification.json.",
       "remaining": "Undeployed. Original intermittent P19-RT22 AI_TURN_UNAVAILABLE remains unreproduced despite a passing isolated and full diagnostic run; no AI assertion was relaxed. Live worker/provider/publication/consent and independent release acceptance remain open."
-    }
-  ],
-  "next_steps": [
+    },
     {
-      "title": "Diagnose intermittent composed AI admission fault",
+      "title": "Completed-admission AI exclusion probe",
       "tasks": [
         "P19",
         "P27"
       ],
-      "work": "Preserve the standard-run P19-RT22 fault and passing isolated/full diagnostic reruns. The qualification query counter precedes admission completion; a timing/admission-lock hypothesis remains unproven. Capture a reproducible exception cause or a faithful completion boundary before changing assertions or runtime behavior. No provider or live worker action is needed for this synthetic investigation.",
-      "exit_evidence": "Source-bound reproduction or a bounded evidence report that distinguishes the original fault from successful reruns. Preserve exclusion, receipt and no-delivery assertions."
-    },
+      "implemented": "The synthetic exclusion scenario waits for the admission transaction to commit and release before fixture mutation, retaining its qualification counter and every existing exclusion, receipt, cancellation and no-fault assertion. No production AI, schema or authority change.",
+      "evidence": "Targeted P19-RT22 passed with external diagnostic logging and in an uninstrumented run; both disposable clusters stopped. Read-only review found no reproducible production defect. See ai-admission-diagnostic-2026-10-04/verification.json.",
+      "remaining": "Original intermittent AI_TURN_UNAVAILABLE remains unexplained, not fixed. Actual worker isolation/stop, provider/notice/publication/consent and independent live acceptance remain open."
+    }
+  ],
+  "next_steps": [
     {
       "title": "Qualify actual worker isolation and stopping under approved operator scope",
       "tasks": [
