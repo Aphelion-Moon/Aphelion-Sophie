@@ -1,11 +1,12 @@
 # AI on the Test Discord Server — operator runbook
 
-Status (4 October 2026, 15:18 UTC): the owner-approved update is installed at pinned source `5f60a24`,
-schema 066. PostgreSQL, tunnel, supervisor and core are running; the AI worker is stopped. Gateway,
-installed package, actual service-child identities and 12 loopback/public dashboard checks passed.
-No processing policy is installed and AI remains disabled. Trust expires 5 October at 17:14 Warsaw;
-the separately renewed journal receipt expires earlier, at 16:13 Warsaw. Both need fresh evidence
-before later renewal. The September 30 operator-role observations remain historical.
+Status (4 October 2026): the owner-approved update is installed at pinned source `335a3f2`,
+schema 069. PostgreSQL, tunnel, supervisor and core are running; the AI worker is stopped. The
+deployment verified Gateway readiness, installed hashes, four service-child identities, 18 local/public
+routes and two assets. Read-only inspection at 20:34 UTC reconfirmed the source, all migration checksums
+and disabled AI state. No processing policy is installed. Trust expires 5 October at 21:54 Warsaw;
+the independent journal receipt expires earlier, at 20:54 Warsaw. Both need fresh evidence before renewal.
+The paged-export candidate `2c5d356` is prepared but not deployed. Earlier operator observations remain historical.
 No live AI processing is cleared. Starting the worker is an owner action through the dashboard. Do not paste
 the provider key, Discord token or trust-file contents into chat, logs or Git.
 
@@ -24,14 +25,23 @@ core, because its Gateway ownership lease fails closed (`GATEWAY_OWNER_ACTIVE`) 
 Setup is reproducible with `ops/windows/Setup-StagingServices.ps1` and `ops/windows/Setup-InferenceAccount.ps1`.
 Both are idempotent and support `-WhatIf`.
 
-Database `sophie_stage_bot` was created fresh for the new application, now with migrations 001–066. The
+Database `sophie_stage_bot` was created fresh for the new application, now with migrations 001–069. The
 earlier staging data is retained, renamed and fenced as `sophie_stage_archive_20260929`, plus encrypted
 bundles in `D:\Backups`. Runtime identities are `sophie_stage_core`, `sophie_stage_control` (AI tables only)
 and `sophie_stage_knowledge` (read-only knowledge), plus `sophie_stage_knowledge_editor` (knowledge-only
 SELECT/INSERT/UPDATE). The owner and admin logins are maintenance-only. Policy version 2 adds the
 approved AI/editor capabilities for the existing configured Head Admin role; other grants and role ownership remain unchanged.
 
-## Applied schema066 update
+## Applied updates
+
+The current `335a3f2` deployment added migrations 067–069, allowing the fixed moderation, case-delivery
+and Shuttle recovery return paths. All 77 original rows across 103 tables and all grants were preserved.
+The 512 selected source files match the pinned Git bytes. It added no AI processing clearance or worker
+activation. Evidence: `GitHub/.agent_docs/aphelion-sophie/deployment-335a3f2-2026-10-04/verification.json`.
+The initial post-start HTTP assertion failed with an unrecorded status; a focused rerun passed. Its cause
+remains unexplained. Future operational checks must record unexpected status codes without response bodies.
+
+The earlier schema066 privacy update below remains part of the installed build and records its original grants.
 
 The installed source adds exact-notice consent receipts, identifier redaction, default deletion on
 departure and explicit retention. The owner approved the concrete proposal in
@@ -58,32 +68,27 @@ The October 4 deployment retained the reviewed worker access to `services\worker
 to `services`. Setup rejects drifted service/firewall configuration before mutation. Current package,
 configuration, service-child identities, recovered supervisor state and dashboard checks passed;
 qualified descriptors/firewall scope stayed unchanged. The protected assembler now points to fresh
-`qualification\evidence-20261004-5f60a24` configured identity/ACL/firewall evidence. This does not prove
+`qualification\evidence-20261004-335a3f2` configured identity/ACL/firewall evidence. This does not prove
 actual worker file/network denial or physical stop; those checks remain open with the worker stopped.
 
-Trust files expire 24 hours after issue by design. The established renewal entry point is below.
-It redeploys the current commit and restarts services: run it only after the approved migration/grant
-steps and independent-journal review, with confirmed service/child quiescence and a clean pinned checkout.
-
-```powershell
-pwsh -File C:\Aphelion\Sophie\staging\renewal\renew-installation.ps1
-```
-
-It resyncs `package\source` from the committed repository (it refuses to run with uncommitted changes),
-rewrites the manifest and both trust files with fresh keys, re-locks them, and restarts the supervisor
-and core with the lease wait. The Discord credentials it reads live in `staging\renewal`, readable only
-by SYSTEM, Administrators and the operator. A renewal also redeploys the current commit, so review what
-is committed before running it.
+Trust files expire 24 hours after issue by design. The legacy protected helper
+`C:\Aphelion\Sophie\staging\renewal\renew-installation.ps1` copies repository source and restarts services.
+Its pre-mutation guard now requires a clean checkout of exactly
+`335a3f267b357612dbdc08affc1eefe7da35034f`; the newer working checkout is rejected before any service stop.
+Do not remove that guard to renew from a later HEAD. Use a reviewed runner bound to the approved source
+archive, with fresh evidence, confirmed child quiescence and the Gateway lease wait. A source change
+requires its own deployment authorization. The protected assembler is also pinned to `335a3f2`.
+Credentials remain in the existing protected staging directory and must never enter the review packet.
 
 The assembler retains `knowledge-editor.json`, `preference-journal.json` and any separately approved
 `processing-policy.json` from the protected staging directory. The independent journal has its own
 qualification expiry; renewing installation trust does not extend that evidence automatically.
 After rechecking its ACL and database-restore exclusion, explicitly renew its receipt before expiry.
-Current installation trust expires **5 October 2026 at 15:14:36 UTC (17:14 Warsaw)**. The independent
-journal receipt expires **14:13:20 UTC (16:13 Warsaw)** and is not extended by installation renewal.
+Current installation trust expires **5 October 2026 at 19:54:15 UTC (21:54 Warsaw)**. The independent
+journal receipt expires **18:54:14 UTC (20:54 Warsaw)** and is not extended by installation renewal.
 Its existing bytes/identity were verified and preserved. Renewed timestamps must follow fresh evidence,
 not merely the passage of time. The protected recovery point is
-`D:\Backups\sophie-staging\schema066-5f60a24-20261004`; its separate journal copy must never replace
+`D:\Backups\sophie-staging\schema069-335a3f2-20261004`; its separate journal copy must never replace
 current journal history during a database restore. Later documentation commits do not change the
 installed source pin; review the exact next commit before any further deployment.
 
@@ -153,8 +158,8 @@ Use the updated notice and retention annex; provider copies and backups need the
 ## Rollback
 
 Disable AI and stop only Sophie’s affected services. Preserve retained database state, credentials,
-receipts and the independent preference journal. After applying 066, prefer a schema066-compatible
-forward repair with AI disabled. Older code is not a compatible runtime rollback. Do not restore a
+receipts and the independent preference journal. After applying 069, prefer a schema069-compatible
+forward repair with AI disabled. The older schema066 build is not a compatible runtime rollback. Do not restore a
 pre-deletion snapshot as live data or discard the new erasure/replay markers. Cold copies and encrypted
 bundles are retained recovery evidence and must remain quarantined if restored. They are not automatic
 live rollback targets. Do not restore old Discord roles, reactivate approvals or erase uncertain effects.

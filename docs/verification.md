@@ -1,5 +1,15 @@
 # Verification and release limits
 
+## AI test and source-update preparation — 4 October 2026
+
+Prepared the exact 2c5d356 source-only/schema069 export candidate and guarded operator entry point; corrected current staging/runbook/release-checklist references. Prepared an inactive fixed-target worker OS probe and proposed no-provider lifecycle/identity/stop procedure.
+
+Read-only installed 335 checks match 512 source files and 69 migration hashes; the 512-entry archive and 741 installer/support/dependency files are hash-bound. Fourteen operator scripts pass syntax checks; default and missing-approval paths perform no deployment. Thirteen synthetic probe checks pass. Host inspection found the existing public Sophie ingress on TCP 80; one operator control connected without application data. Reports: GitHub/.agent_docs/aphelion-sophie/candidate-2c5d356-2026-10-04/verification.json and worker-os-qualification-2026-10-04/verification.json.
+
+No source deployment or worker trial was executed. Separate source-update and worker-trial approvals, fresh endpoint/identity bindings, provider facts, publications/consent, actual Windows denial/stop, private client acceptance and measured AI latency remain open. The initial metadata mismatch was local CRLF in migration069; pinned Git, installed bytes and the database hash agree. The failed report is retained. Preparation did not freshly requalify all grants, ACL/firewall descriptors or publication rows; the inactive deployment sequence requires those checks before trust renewal/restart. Existing unexplained P19 and post-start HTTP failures remain unresolved.
+
+The worker fixture binds installed 335a3f2 and must be rebound if another source is deployed. It always reports the OS gate unpassed. Its trial requires the exact endpoint, script/request hashes, actual service SID and physical process-exit observations. Protected file/network operations were injected in the 13 synthetic checks; the separate ingress discovery used only an operator TCP connection. Existing export application evidence is reused; no application suite or performance benchmark was rerun for preparation/documentation.
+
 ## Paged single-channel exports — 4 October 2026
 
 Local paged single-channel transcript exports retain the existing per-part limits and exclusions, bind exact input/continuation positions into review hashes, preserve exhausted-stream positions, and require explicit review/confirmation for each part. Distinct filenames and exact retries retain the existing audit without a migration. The browser rechecks account identity after fetch and preserves uncertain retries across routine access refresh. No AI case data path was added.
