@@ -1,5 +1,32 @@
 # Verification and release limits
 
+## Authenticated case-artifact exclusion — 4 October 2026
+
+Expanded P19-RT22 passes through the composed dashboard, signed commands and loopback
+Gateway with enabled synthetic AI qualification. The case workflow saves, reviews and
+publishes a form, confirms and submits a Staff contact, waits for actual private intake
+delivery, appends/reads a Staff note, captures a message with attachment metadata and
+reads/reviews/downloads its authorized transcript HTML. Notes remain outside transcripts.
+A standalone member command in the public channel opens an unfilled ordinary form.
+
+A real restricted knowledge library returns a seeded public source but no case-ID or
+transcript-link result. Public AI controls before and after the private workflows both
+reach the synthetic worker and settle silent. No excluded source-message fetch, case-content
+knowledge/model call, AI receipt, effect or provider attempt occurs. Every AI/knowledge
+table is checked for raw and Markdown-escaped sentinels; the knowledge database identity
+is denied the four case-content tables. Default member intervals and the actual database
+intake retry are respected, so unrelated rate limits cannot substitute for exclusion.
+
+All 22 composed staging scenarios pass and the isolated cluster stopped. Initial fixture
+attempts exposed escaped rendering, deferred intake delivery and inconsistent fixed-clock
+assumptions; the final run uses real elapsed time and confirmed delivery. No application
+behavior, dependency, schema, installed service or live permission changed. The source-bound
+report is `GitHub/.agent_docs/aphelion-sophie/ai-artifact-exclusion-2026-10-04/verification.json`.
+This is attachment **metadata** and transcript-HTML evidence, not file-byte download
+acceptance. The separate AI-to-Staff control, destination-revocation coverage, actual worker
+OS/file/network denials and physical stop, provider clearance and complete T22–T26 remain
+open. The installed source remains `5f60a24`/schema066 with live AI processing disabled.
+
 ## Read-only vault inventory and retained-slot ownership — 4 October 2026
 
 The local attachment operator now has a bounded `scan` mode. It compares flat-directory

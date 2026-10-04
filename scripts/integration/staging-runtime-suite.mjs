@@ -15,6 +15,7 @@ import { CREW, MUZZLED, WHITELIST } from '../../tests/fixtures/discord.js';
 import { DASHBOARD_COOKIES } from '../../contracts/dashboard-auth.js';
 import { automationDocument, automationEvent, PUBLIC_CHANNEL, SECOND_CHANNEL } from '../../tests/fixtures/automation.js';
 import { qualifiedGatewayAi } from '../../tests/fixtures/ai-exclusion.js';
+import { exerciseExcludedCaseArtifacts, assertNoCaseSentinelsInAiStorage } from '../../tests/fixtures/ai-case-artifacts.js';
 
 async function signedHttp(address, signed) {
   return new Promise((resolve, reject) => {
@@ -28,6 +29,12 @@ export async function runStagingRuntimeSuite(cluster, run) {
   async function fixture({ dashboard = true, automaticWorkers = false, ready = true, answers = false, automation = false, automationIngress = false, unavailableAi = false, unavailableAiLifecycle = false, qualifiedAi = false, knowledgeOnly = false, knowledgeAdministration = null } = {}) {
     const f = await onboardingWorkflow(cluster, { extraCapabilities: { 'case.forms.publish': [LEAD],
       'member.mute': [STAFF, LEAD], 'member.unmute': [STAFF, LEAD], ...(answers ? { 'answers.publish': [STAFF] } : {}), ...(automation ? { 'automation.publish': [STAFF] } : {}) } });
+    if (qualifiedAi) {
+      // Preserve prior observation ordering while letting both heartbeat freshness
+      // and the default member interval advance on the same real elapsed time.
+      const origin = f.clock.now, startedAt = Date.now();
+      Object.defineProperty(f.clock, 'now', { get: () => origin + Date.now() - startedAt });
+    }
     const clock = () => f.clock.now, identities = syntheticInteractions({ clock }), oauth = simulatedOAuth(), replies = [], faults = [];
     const config = stagingConfiguration(identities.publicKeyHex); if (!dashboard) config.dashboard = null;
     if (answers) config.capabilityPolicy.grants['answers.publish'] = [STAFF];
@@ -43,7 +50,7 @@ export async function runStagingRuntimeSuite(cluster, run) {
       if (url.includes('/webhooks/')) { replies.push(JSON.parse(options.body)); return new Response(null, { status: 200 }); }
       return f.discord.fetch(url, options);
     };
-    const qualified = qualifiedAi ? await qualifiedGatewayAi({ cluster, configuration: config, discord: f.discord }) : null;
+    const qualified = qualifiedAi ? await qualifiedGatewayAi({ cluster, configuration: config, discord: f.discord, clock }) : null;
     const ai = qualified?.adapters ?? (unavailableAi ? { aiControlPool: { query: async () => { throw Error('synthetic control outage'); }, connect: async () => { throw Error('synthetic control outage'); } },
       aiWorker: { current: async () => assert.fail('unavailable control store must prevent worker qualification'), generate: async () => assert.fail('no AI ingestion') },
       aiKnowledge: { lookup: async () => assert.fail('no knowledge ingestion'), current: async () => assert.fail('no knowledge ingestion'), currentReferences: async () => assert.fail('no knowledge ingestion') } } :
@@ -533,21 +540,26 @@ export async function runStagingRuntimeSuite(cluster, run) {
     assert.equal(stops,1);
   });
 
-  await scenario('P19-RT22 an available qualified AI lane excludes protected and permanently excluded Gateway contexts', async f => {
+  await scenario('P19-RT22 qualified AI excludes Gateway cases and authenticated forms, notes and transcript artifacts', async f => {
     const { channels, checked, calls } = f.aiProbe;
     let sequence = 2, messageId = 970;
-    const sendMessage = async (channelId, content) => {
+    const sendMessage = async (channelId, content, extra = {}) => {
       const message = { id: String(++messageId), guild_id: GUILD, channel_id: channelId, type: 0, author: { id: USER, bot: false },
-        content, mentions: [{ id: f.config.mapping.botUserId }], attachments: [], embeds: [], timestamp: new Date(f.clock.now).toISOString() };
+        content, mentions: [{ id: f.config.mapping.botUserId }], attachments: [], embeds: [], timestamp: new Date(f.clock.now).toISOString(), ...extra };
       f.discord.state.messages.set(message.id, structuredClone(message));
       const before = checked.get(channelId) ?? 0;
       f.peer.connections[0].send(gatewayEvent(++sequence, 'MESSAGE_CREATE', message));
       await waitForGateway(() => (checked.get(channelId) ?? 0) > before);
       return message.id;
     };
-    const publicId = await sendMessage(PUBLIC_CHANNEL, 'Synthetic public positive control');
+    const publicId = await sendMessage(PUBLIC_CHANNEL, 'public beacon');
     await waitForGateway(async () => (await cluster.adminPool.query('SELECT state FROM sophie_ai.request_receipts WHERE guild_id=$1 AND message_id=$2', [GUILD, publicId])).rows[0]?.state === 'silent');
     assert.equal(calls.worker.length, 1); assert.equal(calls.knowledge.length, 1); assert.equal(calls.qualification, 1);
+    assert.equal(calls.knowledge[0].sources, 1);
+    // Expire the member interval before the negative probes. A recent public
+    // request must not supply an unrelated quota reason to reject a sentinel.
+    const intervalStart = f.clock.now;
+    await waitForGateway(() => f.clock.now - intervalStart >= 15000, 20000);
     const excludedIds = [];
     for (const channel of channels.filter(value => value.id !== PUBLIC_CHANNEL)) {
       excludedIds.push(await sendMessage(channel.id, `EXCLUDED_SENTINEL_${channel.id}`));
@@ -557,15 +569,23 @@ export async function runStagingRuntimeSuite(cluster, run) {
     f.peer.connections[0].send(gatewayEvent(++sequence, 'CHANNEL_UPDATE', moved));
     await waitForGateway(async () => Number((await f.rows('gateway_lifecycle'))[0].sequence) === sequence);
     excludedIds.push(await sendMessage('911', 'EXCLUDED_SENTINEL_MOVED'));
+    assert.equal(f.discord.state.calls.some(call => call.method !== 'GET'), false);
+    excludedIds.push(await exerciseExcludedCaseArtifacts(f, sendMessage));
+    const secondPublicId = await sendMessage(PUBLIC_CHANNEL, 'public beacon');
+    await waitForGateway(async () => (await cluster.adminPool.query('SELECT state FROM sophie_ai.request_receipts WHERE guild_id=$1 AND message_id=$2', [GUILD, secondPublicId])).rows[0]?.state === 'silent');
     await f.runtime.stop(); // Drains AI work; queued handoffs cannot escape the assertions below.
-    assert.equal(calls.worker.length, 1); assert.equal(calls.knowledge.length, 1); assert.equal(calls.qualification, 1);
+    assert.equal(calls.worker.length, 2); assert.equal(calls.knowledge.length, 2); assert.equal(calls.qualification, 2);
+    assert.deepEqual(calls.lookups.map(call => call.sources), [1, 0, 0]);
     const receipts = (await cluster.adminPool.query('SELECT * FROM sophie_ai.request_receipts WHERE guild_id=$1', [GUILD])).rows;
-    assert.deepEqual(receipts.map(row => row.message_id), [publicId]); assert.equal(receipts[0].state, 'silent');
+    assert.deepEqual(receipts.map(row => row.message_id).sort(), [publicId, secondPublicId].sort()); assert.ok(receipts.every(row => row.state === 'silent'));
     assert.equal((await cluster.adminPool.query('SELECT 1 FROM sophie_ai.effects WHERE guild_id=$1', [GUILD])).rowCount, 0);
     assert.equal((await cluster.adminPool.query('SELECT 1 FROM sophie_ai.provider_attempts WHERE guild_id=$1', [GUILD])).rowCount, 0);
     assert.equal((await f.rows('outbox')).some(row => JSON.stringify(row).includes('EXCLUDED_SENTINEL')), false);
     assert.equal(f.discord.state.calls.some(call => excludedIds.some(id => call.path.endsWith(`/messages/${id}`))), false);
-    assert.equal(f.discord.state.calls.some(call => call.method !== 'GET'), false);
+    await assertNoCaseSentinelsInAiStorage(cluster.adminPool);
+    for (const table of ['case_intakes', 'case_notes', 'case_message_observations', 'case_attachment_jobs']) {
+      await assert.rejects(cluster.knowledgePool.query(`SELECT * FROM sophie_core.${table}`), error => error.code === '42501');
+    }
     assert.deepEqual(f.faults, []);
-  }, { qualifiedAi: true, dashboard: false });
+  }, { qualifiedAi: true });
 }
