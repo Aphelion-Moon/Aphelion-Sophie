@@ -53,6 +53,7 @@ import { createCaseRepliesHttp } from '../http/case-replies.js';
 import { createCaseLabels } from '../storage/case-labels.js';
 import { createCaseLabelsHttp } from '../http/case-labels.js';
 import { createCaseManagementHttp } from '../http/case-management.js';
+import { createCaseDeliveryIssuesHttp } from '../http/case-delivery-issues.js';
 import { createModerationRecoveryHttp } from '../http/moderation-recovery.js';
 import { createContactNavigationHttp } from '../http/contact-navigation.js';
 import { createContactEntryHttp } from '../http/contact-entry.js';
@@ -166,10 +167,12 @@ export async function createStagingRuntime({ configuration, pool, aiControlPool 
       channels: createAutomationChannels({ transport: browser.transport }) }) });
     const labels = createCaseLabelsHttp({ auth, authorization, labels: createCaseLabels({ pool, authorize: authorization.authorize, clock }) });
     const management = createCaseManagementHttp({ auth, authorization, store: browser.store, discord: roles, limits: fixed.limits, enabled });
+    const caseDelivery = createCaseDeliveryIssuesHttp({ auth, authorization, store: browser.issueStore, discord: roles,
+      channels: browser.channels, messages: browser.intakeMessages, replyMessages: browser.replyMessages, enabled });
     const moderation = createModerationRecoveryHttp({ auth, authorization, store: browser.store, discord: roles, enabled });
     const contactNavigation = createContactNavigationHttp({ auth, authorization, store: browser.intakeStore, discord: roles, channels: browser.channels, enabled });
     const contactEntry = createContactEntryHttp({ auth, authorization, store: browser.intakeStore, discord: roles, channels: browser.channels, enabled });
-    dashboard = createDashboardAuthHttpServer({ configuration: fixed.dashboard, auth, authorization, ai, knowledge, knowledgeLookup, enabled, onFault: fault, transcripts, caseExports, notes, replies, answers, automation, permissions, labels, management, moderation, contactEntry, contactNavigation,
+    dashboard = createDashboardAuthHttpServer({ configuration: fixed.dashboard, auth, authorization, ai, knowledge, knowledgeLookup, enabled, onFault: fault, transcripts, caseExports, notes, replies, answers, automation, permissions, labels, management, moderation, caseDelivery, contactEntry, contactNavigation,
       wording: createSystemWordingHttp({ auth, authorization, store: createSystemWordingStore({ pool, authorize: authorization.authorize, guildId: fixed.mapping.guildId, definitionId: fixed.definitionId }) }),
       authoring: createOnboardingAuthoringHttp({ auth, authorization, store: createOnboardingAuthoringStore({ pool, authorize: authorization.authorize,
         guildId: fixed.mapping.guildId, definitionId: fixed.definitionId }) }),

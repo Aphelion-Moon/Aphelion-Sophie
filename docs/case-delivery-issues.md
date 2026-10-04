@@ -28,12 +28,34 @@ For duplicate channels, selection uses the same constrained operation as Shuttle
 
 Closed or departed cases cannot resume answer delivery through repair. Muzzled alone does not prevent ordinary support recovery and does not change Crew, Whitelist or Shuttle state. Provisioning rechecks preserve the existing lifecycle intent and use the normal case worker's current-policy restrictions. Repairs do not reopen cases, publish content, override admissions or restore roles.
 
+## Authenticated dashboard parity
+
+The optional /case-delivery page uses current Staff visibility and the same recovery operation
+as signed commands. GET /api/cases/delivery returns at most five metadata entries with a
+32-hex issue cursor. POST /api/cases/delivery/change accepts only an issue/revision, one
+repair action, its exact message or retained-channel ID when needed, a stable request ID and
+explicit confirmation. Actor, guild, membership, channel proofs and message bodies are never
+accepted from the browser. OAuth, CSRF and current case authority are checked on each action.
+
+The browser reviews the exact selection, clears stale/private state and retains the same
+request while an uncertain result is retried. Hiding or leaving the page clears the local
+review and pending request; returning requires fresh access. Committed actions still cannot
+be duplicated with an old issue revision. A changed account cannot submit a prior review.
+Only five retained channel candidates are displayed; Discord's existing command can select
+another retained candidate within the established bound. Neither interface makes a Discord
+write during selection or interprets recording as confirmed delivery.
+
+Migration068 adds this fixed page to the OAuth return-path allowlist. It changes no grants,
+case data or recovery state. The core package includes the new page and its fixed scripts.
+Focused unit/HTTP, Y24–Y27 and composed RT23 evidence is recorded in [verification](verification.md).
+The implementation remains a local candidate, without live publication or client acceptance.
+
 ## Persistence and evidence
 
 Migration `023-case-delivery-issues.sql` adds `case_delivery_issues` and `case_delivery_actions`. Parking and issue creation share a transaction, including attempt exhaustion. Re-parking a newer fence advances the retained issue revision. Source joins bind the job's effect, guild, requester and case; Shuttle and unbound jobs cannot create ordinary issue records. Migration backfill retains only matching parked work without replaying it or inventing actions. Core has SELECT/INSERT/UPDATE; knowledge has no access and core has no DELETE.
 
 Four contract tests cover signed bounded routing, closed presentation, pagination controls and explicit adapter injection. Y01–Y23 cover current audiences, requester/forged authority denial, exact message adoption, stale/duplicate/concurrent requests, final authority loss, changed/missing messages, ACL drift, Muzzled/departure/policy changes, transactional audit and parking failures, candidate sealing and immutable destinations, fresh proofs, pause/cooldown/fence preservation, metadata exclusion, precise pagination, signed loopback HTTP, migration backfill and lost commit acknowledgement. S31 exercises retained issue/audit/receipt/message identity across an isolated database restart with recreated authorization and delivery services. Actual full-suite execution results belong in [verification](verification.md).
 
-Form authoring, participants and [conversation observations](case-conversations.md) are implemented separately. Remaining work includes unresolved or uninspectable external results, final copy, restricted notes, attachment acquisition and authenticated transcripts, dashboard parity, production composition, OS identity isolation, independent restore and live Discord permission/client checks. Rechecking cannot establish that an unidentifiable POST never happened. Previously confirmed messages are not continuously archived or monitored by this slice.
+Form authoring, participants and [conversation observations](case-conversations.md) are implemented separately. Remaining work includes unresolved or uninspectable external results, final copy, Shuttle dashboard parity, controlled file downloads, production qualification, OS identity isolation, independent restore and live Discord permission/client checks. Rechecking cannot establish that an unidentifiable POST never happened. Previously confirmed messages are not continuously archived or monitored by this slice.
 
-Rollback: stop recovery ingress and delivery, preserve migration 023, every issue/action/receipt, original effects, fences, selected candidate sets and message identities, and use compatible code. Do not clear unknown attempts, delete duplicate channels, reset authority epochs or downgrade to a migrator that rejects the retained schema. No production service, database, Discord state or source asset was changed.
+Rollback: stop recovery ingress and delivery, preserve migrations 023 and 068, every issue/action/receipt, original effects, fences, selected candidate sets and message identities, and use compatible code. Do not clear unknown attempts, delete duplicate channels, reset authority epochs or downgrade to a migrator that rejects the retained schema. No production service, database, Discord state or source asset was changed.

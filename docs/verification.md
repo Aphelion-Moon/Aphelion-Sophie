@@ -1,5 +1,31 @@
 # Verification and release limits
 
+## Ordinary ticket delivery recovery dashboard — 4 October 2026
+
+The local /case-delivery page lists only parked-case metadata for current responders.
+Explicit reviews cover recheck, exact Sophie message adoption and retained-channel selection.
+HTTP and signed commands share receipt preflight before external reads, current case authority,
+trusted opaque proofs and the existing fenced transaction. Repairs record intent; ordinary
+workers still verify delivery or seal other channel candidates before confirming access.
+
+Passed: 27 focused checks, 71 intake/recovery scenarios and 23 composed staging scenarios;
+both isolated clusters stopped. RT23 uses actual synthetic OAuth/CSRF, the new return path,
+a parked Staff reply, exact message adoption and receipt replay with one final message.
+Y24–Y27 cover Head Admin exclusion, channel selection and authority loss during proof reads.
+An initial RT23 fixture missed the API path prefix; the fixture and embed lookup were corrected.
+Read-only review caught the 32/48-hex cursor mismatch; the client validator was fixed and its
+actual browser pagination verified. Focused checks also cover immediate reauthorization after
+hidden-page clearing and expected audience/continuity conflicts. These final client/error-map
+fixes were validated with focused checks; the database scenarios were not repeated for them.
+
+Synthetic browser checks confirm three repair types, keyboard review focus, a lost-response
+exact retry and access-loss clearing. Preview and tab stopped. Migration068 only extends the
+OAuth return-path allowlist; existing current-count assertions were updated, without rerunning
+unrelated suites. No live service, permission, credential, dependency, provider or member data
+changed. Installed source remains 5f60a24/schema066; this schema068 candidate is not deployed.
+Shuttle dashboard parity, final copy and independent live/accessibility acceptance remain open.
+Evidence: GitHub/.agent_docs/aphelion-sophie/case-delivery-dashboard-2026-10-04/verification.json.
+
 ## Shared brand-profile contract — 4 October 2026
 
 Dashboard startup and repository asset checks now validate the fixed Sophie identity and

@@ -38,6 +38,7 @@ export function createDashboardApi({ fetch, navigate = path => globalThis.locati
   const number = value => { if (!Number.isSafeInteger(value) || value < 1 || value > 2_147_483_647) throw new DashboardFailure('invalid', 400); return value; };
   const category = value => { if (!['admin-help', 'staff-report', 'tech-support', 'database-support', 'head-admin-contact', 'player-report', 'staff-contact'].includes(value)) throw new DashboardFailure('invalid', 400); return value; };
   const channel = value => { if (typeof value !== 'string' || !/^[1-9][0-9]{0,19}$/.test(value)) throw new DashboardFailure('invalid', 400); return value; };
+  const deliveryIssue = value => { if (typeof value !== 'string' || !/^[a-f0-9]{32}$/.test(value)) throw new DashboardFailure('invalid', 400); return value; };
   const ledger = value => { if (typeof value !== 'string' || !/^[a-f0-9]{48}$/.test(value)) throw new DashboardFailure('invalid', 400); return value; };
   const answer = value => { if (typeof value !== 'string' || !/^[a-z][a-z0-9-]{0,39}$/.test(value)) throw new DashboardFailure('invalid', 400); return value; };
   const cursor = value => { if (typeof value !== 'string' || !/^[A-Za-z0-9_-]{1,320}$/.test(value)) throw new DashboardFailure('invalid', 400); return value; };
@@ -92,6 +93,7 @@ export function createDashboardApi({ fetch, navigate = path => globalThis.locati
       if (value.canEditAnswers !== undefined && typeof value.canEditAnswers !== 'boolean') throw new DashboardFailure('unavailable');
       if (value.canEditPermissions !== undefined && typeof value.canEditPermissions !== 'boolean') throw new DashboardFailure('unavailable');
       if (value.canEditAutomation !== undefined && typeof value.canEditAutomation !== 'boolean') throw new DashboardFailure('unavailable');
+      if (value.canRecoverCases !== undefined && typeof value.canRecoverCases !== 'boolean') throw new DashboardFailure('unavailable');
       if (value.canRecoverModeration !== undefined && typeof value.canRecoverModeration !== 'boolean') throw new DashboardFailure('unavailable');
       for (const key of ['canControlAi', 'canEditPersonality', 'canEditKnowledge', 'aiAvailable', 'knowledgeAvailable']) if (value[key] !== undefined && typeof value[key] !== 'boolean') throw new DashboardFailure('unavailable');
       for (const group of document?.querySelectorAll('.nav-group') ?? []) {
@@ -100,7 +102,7 @@ export function createDashboardApi({ fetch, navigate = path => globalThis.locati
         group.hidden = links.every(link => link.hidden);
       }
       csrf = value.csrfToken; return { userId: value.userId, guildId: value.guildId, canEditOnboarding: value.canEditOnboarding, canEditForms: value.canEditForms, canEditPermissions: value.canEditPermissions === true, canEditAnswers: value.canEditAnswers === true, canEditAutomation: value.canEditAutomation === true,
-        canEditKnowledge: value.canEditKnowledge === true, canControlAi: value.canControlAi === true, canEditPersonality: value.canEditPersonality === true, aiAvailable: value.aiAvailable === true, knowledgeAvailable: value.knowledgeAvailable === true, canRecoverModeration: value.canRecoverModeration === true };
+        canEditKnowledge: value.canEditKnowledge === true, canControlAi: value.canControlAi === true, canEditPersonality: value.canEditPersonality === true, aiAvailable: value.aiAvailable === true, knowledgeAvailable: value.knowledgeAvailable === true, canRecoverModeration: value.canRecoverModeration === true, canRecoverCases: value.canRecoverCases === true };
     },
     automation: () => request('/api/automation'),
     automationHistory: (before = null) => request('/api/automation/history' + (before === null ? '' : '?before=' + number(before))),
@@ -168,6 +170,8 @@ export function createDashboardApi({ fetch, navigate = path => globalThis.locati
     caseLabels: (channelId, before = null) => request(`/api/cases/labels?channelId=${channel(channelId)}${before === null ? '' : `&before=${number(before)}`}`),
     saveCaseLabels: body => request('/api/cases/labels/save', { ...body, channelId: channel(body.channelId) }),
     managedCase: channelId => request(`/api/cases/manage?channelId=${channel(channelId)}`),
+    caseDelivery: (after = null) => request('/api/cases/delivery' + (after === null ? '' : '?after=' + deliveryIssue(after))),
+    changeCaseDelivery: body => request('/api/cases/delivery/change', body),
     reviewModeration: userId => request(`/api/moderation/review?userId=${channel(userId)}`),
     retryModeration: body => request('/api/moderation/retry', { ...body, userId: channel(body.userId) }),
     caseQueue(filter = 'active', after = null) {

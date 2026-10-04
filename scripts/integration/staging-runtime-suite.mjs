@@ -83,7 +83,7 @@ export async function runStagingRuntimeSuite(cluster, run) {
   await run('RT01 runtime database privileges reject the owner and accept the restricted core identity', async () => {
     await cluster.adminPool.query('GRANT USAGE ON SCHEMA sophie_migrations TO sophie_test_core');
     await cluster.adminPool.query('GRANT SELECT ON sophie_migrations.applied TO sophie_test_core');
-    const result = await checkRuntimeDatabase(cluster.corePool); assert.ok(result.checkedTables > 0); assert.equal(result.migrations, 67);
+    const result = await checkRuntimeDatabase(cluster.corePool); assert.ok(result.checkedTables > 0); assert.equal(result.migrations, 68);
     await assert.rejects(checkRuntimeDatabase(cluster.adminPool), /RUNTIME_DATABASE_PRIVILEGES_INVALID/);
     const client = await cluster.adminPool.connect(); await client.query('BEGIN');
     try {
@@ -137,6 +137,44 @@ export async function runStagingRuntimeSuite(cluster, run) {
     f.discord.state.members.set(OTHER, []);
     assert.equal((await dashboardHttp(f.addresses.dashboard, `/api/moderation/review?userId=${USER}`, { headers: { Cookie: session } })).status, 403);
     assert.deepEqual(f.faults, []);
+  });
+  await scenario('RT23 authenticated delivery recovery adopts one exact uncertain Staff reply and never resends it', async f => {
+    await f.send(f.identities.payload({ member: { user: { id: USER } }, data: { type: 1, name: 'ticket',
+      options: [{ type: 1, name: 'open', options: [{ type: 3, name: 'type', value: 'quick-help' }] }] } }));
+    for (let index = 0; index < 5; index++) await f.runtime.runOnce();
+    const row = (await f.rows('case_reservations')).find(item => item.type === 'quick-help'); assert.equal(row.state, 'open');
+    const replyText = 'Synthetic dashboard recovery reply';
+    await f.send(f.identities.payload({ member: { user: { id: OTHER } }, data: { type: 1, name: 'ticket', options: [{ type: 1, name: 'reply', options: [
+      { type: 3, name: 'case', value: `${row.id}@${row.version}` }, { type: 3, name: 'text', value: replyText }, { type: 5, name: 'confirm', value: true },
+    ] }] } }));
+    f.discord.state.afterWrite = call => { if (call.path.endsWith(`/channels/${row.channel_id}/messages`)) { f.discord.state.afterWrite = null; throw new Error('SYNTHETIC_LOST_RESPONSE'); } };
+    await f.runtime.runOnce();
+    await f.pool.query("UPDATE sophie_core.outbox SET available_at='-infinity' WHERE kind='case.reply' AND status='ready'");
+    await f.runtime.runOnce();
+    const issue = (await f.rows('case_delivery_issues')).find(item => item.case_id === row.id); assert.ok(issue);
+    const reply = (await f.rows('case_replies'))[0], message = [...f.discord.state.messages.values()].find(value => value.embeds?.some(embed => embed.description === replyText)); assert.ok(message);
+    assert.equal(reply.message_id, null); assert.equal(reply.create_started, true);
+    const start = await dashboardHttp(f.addresses.dashboard, '/auth/start?returnTo=%2Fcase-delivery'); assert.equal(start.status, 303);
+    const state = new URL(start.headers.location).searchParams.get('state'), cookie = start.headers['set-cookie'][0].split(';')[0];
+    const done = await dashboardHttp(f.addresses.dashboard, `/auth/callback?state=${state}&code=${f.oauth.issueCode(OTHER)}`, { headers: { Cookie: cookie } });
+    assert.equal(done.headers.location, '/case-delivery');
+    const session = done.headers['set-cookie'].find(value => value.startsWith(`${DASHBOARD_COOKIES.session}=`)).split(';')[0];
+    const status = await dashboardHttp(f.addresses.dashboard, '/auth/session', { headers: { Cookie: session } }); assert.equal(status.body.canRecoverCases, true);
+    assert.equal((await dashboardBytes(f.addresses.dashboard, '/case-delivery', { headers: { Cookie: session } })).status, 200);
+    const queue = await dashboardHttp(f.addresses.dashboard, '/api/cases/delivery', { headers: { Cookie: session } });
+    assert.equal(queue.status, 200); assert.equal(queue.body.entries[0].kind, 'reply'); assert.equal(queue.body.entries[0].needsMessageId, true);
+    assert.equal(JSON.stringify(queue.body).includes(replyText), false);
+    const body = JSON.stringify({ issueId: issue.id, expectedRevision: issue.revision, action: 'adopt_message', resultId: message.id, requestId: '7'.repeat(64), confirmed: true });
+    const headers = { Cookie: session, Origin: f.config.dashboard.origin, 'Content-Type': 'application/json' };
+    const send = () => dashboardHttp(f.addresses.dashboard, '/api/cases/delivery/change', { method: 'POST', headers, body });
+    assert.equal((await send()).status, 403); headers['X-CSRF-Token'] = status.body.csrfToken;
+    const repaired = await send(); assert.equal(repaired.status, 200); assert.deepEqual(repaired.body, { recorded: true, duplicate: false });
+    await f.runtime.runOnce(); assert.equal((await f.rows('case_replies'))[0].state, 'confirmed');
+    const calls = f.discord.state.calls.length; assert.deepEqual((await send()).body, { recorded: true, duplicate: true });
+    assert.equal(f.discord.state.calls.slice(calls).some(call => /\/channels\//.test(call.path)), false);
+    assert.equal((await f.rows('case_delivery_actions')).length, 1);
+    assert.equal([...f.discord.state.messages.values()].filter(value => value.embeds?.some(embed => embed.description === replyText)).length, 1);
+    f.discord.state.members.set(OTHER, []); assert.equal((await send()).status, 403); assert.deepEqual(f.faults, []);
   });
   await scenario('RT04 combined private ticket request provisions a channel and captures synthetic observations', async f => {
     const response = await f.send(f.identities.payload({ member: { user: { id: USER } }, data: { type: 1, name: 'ticket',

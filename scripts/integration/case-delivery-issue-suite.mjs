@@ -13,10 +13,25 @@ import { parkedOnboardingMessage } from '../../tests/fixtures/onboarding-recover
 import { GUILD, USER, OTHER, STAFF, LEAD } from '../../tests/fixtures/domain.js';
 import { CREW, MUZZLED } from '../../tests/fixtures/discord.js';
 import { casePolicy } from '../../tests/fixtures/cases.js';
+import { dashboardServices } from '../../tests/fixtures/dashboard-auth.js';
+import { dashboardConfiguration } from '../../tests/fixtures/oauth.js';
+import { createCaseDeliveryIssuesHttp } from '../../apps/core/http/case-delivery-issues.js';
 
 export async function runCaseDeliveryIssueSuite(cluster, run) {
   const scenario = (name, work) => run(name, async () => work(await caseIssueWorkflow(cluster)));
   const posts = f => f.discord.state.calls.filter(call => call.method === 'POST' && /\/messages$/.test(call.path));
+  async function browser(f, options = {}) {
+    const d = dashboardServices(f), session = await d.login(OTHER);
+    const { csrfToken } = await d.auth.authenticate({ token: session.token });
+    const { issueStore } = caseIssueServices(f, { authorize: d.dashboardAuthorization.authorize });
+    const http = createCaseDeliveryIssuesHttp({ auth: d.auth, authorization: d.dashboardAuthorization, store: issueStore,
+      discord: f.discord.roles, channels: f.discord.channels, messages: f.intakeMessages, enabled: () => f.clock.enabled, ...options });
+    const credentials = { token: session.token, csrfToken, origin: dashboardConfiguration.origin };
+    return { list: (after = null) => http.execute({ path: '/api/cases/delivery', method: 'GET', body: null,
+      query: new URLSearchParams(after === null ? {} : { after }), credentials }),
+    change: (issue, action, resultId = null, requestId = 'd'.repeat(64)) => http.execute({ path: '/api/cases/delivery/change', method: 'POST',
+      query: new URLSearchParams(), credentials, body: { issueId: issue.id, expectedRevision: issue.revision, action, resultId, requestId, confirmed: true } }) };
+  }
 
   await scenario('Y01 parked intake records one current issue and recovering the exact message permits worker confirmation without another first POST', async f => {
     const { issue, message } = await parkIntake(f), view = await f.issueQueue();
@@ -298,5 +313,46 @@ export async function runCaseDeliveryIssueSuite(cluster, run) {
     await recordCaseDeliveryIssue(f.admin, { guildId: GUILD, operationId }); assert.equal((await f.rows('case_delivery_issues')).length, 1);
     assert.equal((await f.issueQueue()).entries.length, 1);
     assert.equal(await f.executeIssue(recheckPayload(f, (await f.rows('shuttle_delivery_issues'))[0])), 'denied');
+  });
+  await scenario('Y24 authenticated dashboard adoption shares durable exact receipts without repeat external inspection', async f => {
+    const { issue, message } = await parkIntake(f), b = await browser(f), page = await b.list();
+    assert.equal(page.entries[0].needsMessageId, true); assert.equal(JSON.stringify(page).includes('embeds'), false);
+    await assert.rejects(b.change(issue, 'recheck'), /CASE_ISSUE_MESSAGE_REQUIRED/);
+    assert.deepEqual(await b.change(issue, 'adopt_message', message.id), { recorded: true, duplicate: false });
+    await f.drain(f.cases); await f.drain(f.intakeWorker); const calls = f.discord.state.calls.length;
+    assert.deepEqual(await b.change(issue, 'adopt_message', message.id), { recorded: true, duplicate: true });
+    assert.equal(f.discord.state.calls.slice(calls).some(call => /\/channels\//.test(call.path)), false);
+    await assert.rejects(b.change(issue, 'adopt_message', f.nextId()), /INTERACTION_ID_COLLISION/);
+    assert.equal((await f.rows('case_delivery_actions')).length, 1); assert.equal((await b.list()).entries.length, 0); assert.equal(posts(f).length, 3);
+  });
+  await scenario('Y25 dashboard recovery keeps Head Admin issues private and rejects revoked Staff before adoption', async f => {
+    const { issue, message } = await parkIntake(f, 'head-admin-contact'); f.discord.state.members.set(OTHER, [STAFF]);
+    const b = await browser(f); assert.equal((await b.list()).entries.length, 0);
+    await assert.rejects(b.change(issue, 'adopt_message', message.id), /OPERATION_DENIED/);
+    await assert.rejects(b.list(issue.id), /STALE_CASE_ISSUE_QUEUE/);
+    f.discord.state.members.set(OTHER, [LEAD]); assert.equal((await b.list()).entries.length, 1);
+    f.discord.state.members.set(OTHER, [CREW]); await assert.rejects(b.change(issue, 'adopt_message', message.id), /OPERATION_DENIED/);
+    assert.equal((await f.rows('case_delivery_actions')).length, 0);
+  });
+  await scenario('Y26 dashboard selection requires a retained channel and leaves sealing and opening to normal workers', async f => {
+    const { issue, original, duplicate } = await duplicateOrdinaryCase(f), b = await browser(f);
+    assert.equal((await b.list()).entries[0].channelChoice.required, true);
+    const calls = f.discord.state.calls.length;
+    await assert.rejects(b.change(issue, 'select_channel', '999'), /SHUTTLE_CHANNEL_CHOICE_INVALID/);
+    assert.equal(f.discord.state.calls.slice(calls).some(call => call.path.includes('/channels/999')), false);
+    assert.deepEqual(await b.change(issue, 'select_channel', original.id), { recorded: true, duplicate: false });
+    assert.equal(f.discord.state.calls.slice(calls).some(call => call.method !== 'GET'), false);
+    await f.drain(f.cases); const row = (await f.rows('case_reservations'))[0]; assert.equal(row.channel_id, original.id); assert.equal(row.state, 'open');
+    const closed = f.discord.state.channels.get(duplicate.id); assert.ok(closed.permission_overwrites.every(overwrite => overwrite.id !== USER || overwrite.allow === '0'));
+    assert.equal((await f.rows('case_delivery_actions')).length, 1);
+  });
+  await scenario('Y27 loss of Staff authority during dashboard evidence inspection rolls back repair intent', async f => {
+    const { issue, message } = await parkIntake(f), b = await browser(f, { messages: { async inspect(args) {
+      const proof = await f.intakeMessages.inspect(args); f.discord.state.members.set(OTHER, [CREW]); return proof;
+    } } });
+    await assert.rejects(b.change(issue, 'adopt_message', message.id), /OPERATION_DENIED/);
+    assert.equal((await f.rows('case_delivery_actions')).length, 0);
+    assert.equal((await f.rows('case_intake_messages')).find(row => row.ordinal === 1).message_id, null);
+    assert.equal((await f.rows('outbox')).find(row => row.operation_id === issue.operation_id).status, 'parked');
   });
 }
