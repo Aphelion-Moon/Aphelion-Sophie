@@ -54,7 +54,9 @@ remain open. Other command/API equivalence requirements are not certified by thi
 Dashboard queue, assignment, close/reopen and participant controls now use the
 existing case services with reviewed versions and exact retries. T05 and P08/P11/P17
 include the focused offline evidence in `docs/case-management.md`;
-remaining Shuttle/moderation parity and live multi-account checks are still open.
+Shuttle/moderation dashboard parity is now implemented locally through schema069;
+deployment and independent live multi-account checks remain open. The current
+workplan and source-bound reports supersede the worksheet's historical checkpoint.
 
 Initial Staff-contact creation is now implemented offline in
 `docs/contact-entry-dashboard.md`: review selected member IDs, confirm access,

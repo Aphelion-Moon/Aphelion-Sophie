@@ -1,6 +1,6 @@
 # Current implementation workplan
 
-Revision: 2026-10-04-ai-admission-completion. Official DeepSeek Flash is the selected provider. Local models are historical, explicitly selected alternatives only; no automatic fallback. Continue the DS workstream with synthetic data; full readiness and activation remain open.
+Revision: 2026-10-04-static-identity-review. Official DeepSeek Flash is the selected provider. Local models are historical, explicitly selected alternatives only; no automatic fallback. Continue the DS workstream with synthetic data; full readiness and activation remain open.
 
 All production release gates remain open; pure and isolated database checks are not full application acceptance.
 
@@ -12,7 +12,7 @@ Deterministic administration, Whitelist onboarding, protected editors, role/perm
 
 Recorded baseline: Owner-approved pinned 5f60a24/schema066 is installed. At 15:18 UTC on 4 October, PostgreSQL, tunnel, supervisor and core run under distinct expected child identities; worker stopped. Processing policy absent, AI disabled and publications unchanged. Trust and independent-journal receipts renewed against fresh configuration/journal evidence.
 
-Current work: Local schema069 includes reviewed moderation, ticket and Shuttle controls, bounded vault inventory, shared brand-profile validation and synthetic AI boundary evidence. P19-RT22 now verifies completed admission before fixture mutation; its earlier intermittent fault remains unexplained. Installed5f60a24/schema066 is unchanged. Remaining worker/provider/publication/consent, artifact recovery/download policy and independent live acceptance require their recorded inputs.
+Current work: Local schema069 includes reviewed moderation, ticket and Shuttle controls, bounded vault inventory, shared brand-profile validation and synthetic AI boundary evidence. P19-RT22 now verifies completed admission before fixture mutation; its earlier intermittent fault remains unexplained. Installed5f60a24/schema066 is unchanged. Remaining worker/provider/publication/consent, artifact recovery/download policy and independent live acceptance require their recorded inputs. A local fixed-asset placement preview now has developer reflow, alpha, keyboard, quiet-mode and missing-image evidence; owner visual/distribution approval remains open.
 
 Approved staging deployment: 66 migration checksums and actual runtime database identities passed; 72 original rows across 101 tables preserved; exactly seven grants added. 485 mirrored files plus three root files match pinned 5f60a24. Four service-child identities, loopback listeners, current Gateway, recovered supervisor and 12 dashboard checks passed. Journal bytes/identity preserved; configured ACL/firewall evidence renewed. Source-bound report: GitHub/.agent_docs/aphelion-sophie/deployment-5f60a24-2026-10-04/verification.json. Prior 10 installation checks and 93 isolated AI/database scenarios remain source-bound evidence; application suites were not rerun for this deployment. Local P15 candidate: 21 focused checks, M01–M20 and 21 composed staging scenarios pass; browser confirmation and expired-decision checks pass. Candidate evidence: GitHub/.agent_docs/aphelion-sophie/moderation-recovery-2026-10-04/verification.json. P19-RT22 now proves available synthetic AI Gateway exclusion with a public positive control; 22 composed staging scenarios pass on the final recovery restriction. GitHub/.agent_docs/aphelion-sophie/ai-exclusion-2026-10-04/verification.json. Vault milestone: six focused file checks, 31 attachment/operations and 11 recovery scenarios pass; clusters stopped. GitHub/.agent_docs/aphelion-sophie/attachment-inventory-2026-10-04/verification.json. Remaining migration-count expectations now use67; unselected suites were not run merely for count updates. Expanded P19-RT22 artifact milestone: all 22 composed staging scenarios pass with actual authenticated case routes and a real restricted knowledge store; cluster stopped. Source-bound report: GitHub/.agent_docs/aphelion-sophie/ai-artifact-exclusion-2026-10-04/verification.json. Final P19-RT22 candidate also cancels a valid late worker reply after destination restriction, with no Discord write/effect; all 22 composed scenarios pass and cluster stopped. Evidence: GitHub/.agent_docs/aphelion-sophie/ai-destination-revocation-2026-10-04/verification.json. Ordinary recovery dashboard: 27 focused checks, 71 intake/recovery and 23 composed staging scenarios pass; clusters stopped. Synthetic browser repair, exact retry, keyboard confirmation, denial clearing and corrected pagination checked. Source-bound report: GitHub/.agent_docs/aphelion-sophie/case-delivery-dashboard-2026-10-04/verification.json. Current migration assertions now use68; unrelated suites were not rerun only for count changes. Shuttle dashboard: 31 focused checks, 87 database scenarios, RT24 composed OAuth/proof/receipt checks and synthetic browser flows pass. The full24 diagnostic rerun passes, but the original P19-RT22 fault is not considered fixed. Migration069 only adds login return paths. Source-bound report: GitHub/.agent_docs/aphelion-sophie/shuttle-dashboard-2026-10-04/verification.json. Completed-admission P19-RT22 passed once with external diagnostic logging and once without instrumentation; both clusters stopped. No production AI change or proven fix for the earlier fault. Evidence: GitHub/.agent_docs/aphelion-sophie/ai-admission-diagnostic-2026-10-04/verification.json.
 
@@ -179,6 +179,7 @@ Milestone entries preserve their checkpoint evidence. Current next steps and own
 | Ordinary ticket delivery recovery dashboard (P08, P17, P27) | Metadata-only bounded queue and explicitly reviewed repair controls at /case-delivery. Browser and signed Discord commands share receipt-first recovery, current case authority and trusted exact-message/channel proofs. Migration068 extends only OAuth return paths; no dependency or capability changes. | 27 focused checks; 71 B/X/Y intake/recovery and 23 composed runtime scenarios pass with stopped clusters. Synthetic browser confirms review/focus/keyboard flow, lost-response exact retry, denial clearing and corrected 32-hex pagination. GitHub/.agent_docs/aphelion-sophie/case-delivery-dashboard-2026-10-04/verification.json. | Undeployed candidate. Shuttle dashboard parity, controlled file downloads, final copy and independent live/client/accessibility acceptance remain open. No unidentified message is resent. |
 | Shuttle assistance and delivery dashboard (P08, P14, P16, P17, P27) | Bounded metadata queues, reviewed help resolution/resumption and delivery repairs under existing Shuttle authority. Commands and HTTP share receipt-first operations, trusted proof issuers and fenced transactions. Migration069 adds two fixed login return paths only. | 31 focused checks; 87 Shuttle database scenarios; RT24 composed OAuth/CSRF, paused-help and uncertain-screen recovery. All24 runtime scenarios passed a diagnostic rerun. Browser confirms keyboard confirmation, numeric pagination, exact retry, message/channel repair and access-loss clearing. Clusters, preview and tab stopped; see shuttle-dashboard-2026-10-04/verification.json. | Undeployed. Original intermittent P19-RT22 AI_TURN_UNAVAILABLE remains unreproduced despite a passing isolated and full diagnostic run; no AI assertion was relaxed. Live worker/provider/publication/consent and independent release acceptance remain open. |
 | Completed-admission AI exclusion probe (P19, P27) | The synthetic exclusion scenario waits for the admission transaction to commit and release before fixture mutation, retaining its qualification counter and every existing exclusion, receipt, cancellation and no-fault assertion. No production AI, schema or authority change. | Targeted P19-RT22 passed with external diagnostic logging and in an uninstrumented run; both disposable clusters stopped. Read-only review found no reproducible production defect. See ai-admission-diagnostic-2026-10-04/verification.json. | Original intermittent AI_TURN_UNAVAILABLE remains unexplained, not fixed. Actual worker isolation/stop, provider/notice/publication/consent and independent live acceptance remain open. |
+| Static Sophie placement review preparation (P29, P37, P38) | Local-only review surface validates all four original assets and presents contained banner, small/circular avatar, paired alpha surfaces and narrow live-text fallback. The installed dashboard and original artwork are unchanged. | All 11 placements loaded; developer review at desktop and 320 CSS pixels, light/dark alpha, keyboard focus, quiet mode and missing-image fallbacks passed. Preview process/listener and tab stopped; no console errors observed. See brand-review-2026-10-04/verification.json. | Owner placement/distribution approval, independent accessibility/browser-zoom and Discord upload qualification, final product placement and integrated T51 acceptance remain open. |
 
 ## Next implementation sequence
 
@@ -205,7 +206,7 @@ These are bounded next steps within the task dependencies below. An unresolved l
 
 ## Task status
 
-Status counts: 1 complete; 30 in progress; 9 planned, not started. These are full-task statuses, not a percentage of code or release readiness.
+Status counts: 1 complete; 31 in progress; 8 planned, not started. These are full-task statuses, not a percentage of code or release readiness.
 
 An in-progress task can contain several verified milestones and still have unfinished implementation or acceptance. Acceptance IDs below link requirements to tasks; they do not assert that those specifications have passed.
 
@@ -249,7 +250,7 @@ An in-progress task can contain several verified milestones and still have unfin
 | P35 — Establish maintenance and upgrade cadence | planned_not_started | P31 |
 | P36 — Import Sophie identity and source assets | in_progress | P03, P04 |
 | P37 — Apply Sophie branding to interfaces and static copy | in_progress | P36, P08, P09, P13, P17 |
-| P38 — Review identity consistency and non-AI presentation | planned_not_started | P37, P19 |
+| P38 — Review identity consistency and non-AI presentation | in_progress | P37, P19 |
 | P39 — Validate and activate direct knowledge independently of AI | in_progress | P19, P21, P22, P26 |
 
 ## P00 — Freeze scope and deployment inputs
@@ -497,7 +498,7 @@ Implemented scope:
 
 Remaining scope:
 
-- Other approved Staff/configuration work, independent live authentication/client and full accessibility acceptance. Ticket and Shuttle assistance/delivery dashboard parity is implemented locally.
+- Independent live authentication/client, owner workflow/presentation review and full accessibility acceptance of the implemented dashboard.
 
 Full task deliverables:
 
@@ -1252,11 +1253,19 @@ Boundary: No AI inside cases, mascot chat widget, rewritten admission rules, uns
 
 ## P38 — Review identity consistency and non-AI presentation
 
-Status: **planned_not_started**. Phase: Administration. Priority: P1.
+Status: **in_progress**. Phase: Administration. Priority: P1.
 
 Depends on: P37, P19. Acceptance: T49, T50, T51.
 
-Independent identity/asset release review has not started. Asset hash checks and synthetic editor previews are preparatory evidence only; they do not approve the full administration presentation.
+Local static placement review uses the four unchanged source PNGs with fixed profile/hash validation, circular/small previews, paired light/dark alpha surfaces and narrow live-text fallback. Developer browser checks cover 320 CSS-pixel reflow, keyboard quiet mode and failed-image recovery. No product page or installed service was changed; independent identity/asset release approval remains outstanding.
+
+Implemented scope:
+
+- Source-bound local preview and developer browser evidence for original image loading/proportions, small/circular crop limits, light/dark alpha, narrow live-text fallback, keyboard focus, quiet mode and missing images. See GitHub/.agent_docs/aphelion-sophie/brand-review-2026-10-04/verification.json.
+
+Remaining scope:
+
+- Owner approval of proposed placement and distribution; independent full accessibility/browser-zoom and Discord upload checks; integrated deterministic-case T51 evidence and versioned administration release approval.
 
 Full task deliverables:
 

@@ -1,5 +1,26 @@
 # Verification and release limits
 
+## Static identity placement review — 4 October 2026
+
+A local review surface outside the product now presents all four original Sophie
+assets, with a contained banner, 32/48/64-pixel circular avatars, a square avatar,
+light/dark alpha surfaces and a narrow wordmark fallback. Startup validates the
+fixed brand profile and every source PNG hash. The original artwork and installed
+dashboard are unchanged; no new production asset route or editable identity was added.
+
+Developer browser checks passed for 320 CSS-pixel reflow without horizontal
+overflow, live-text fallback, keyboard quiet mode with a visible focus outline,
+and failed-image recovery. All 11 image placements loaded, with source dimensions
+matching the manifest; character and wordmark alpha were inspected on both surfaces.
+Circular avatar crops visibly clip ear tips as documented. No console errors were
+observed. The temporary tab and loopback preview stopped, and the viewport override
+was reset. This is partial T49/T50 preparation; browser zoom, independent accessibility,
+owner placement/distribution approval and Discord upload acceptance remain open.
+The preview has no case/model interface and denies network connections by CSP;
+it does not substitute for the full T51 case/Onboarding acceptance run.
+
+Evidence and screenshots: GitHub/.agent_docs/aphelion-sophie/brand-review-2026-10-04/verification.json.
+
 ## Completed-admission AI exclusion probe — 4 October 2026
 
 P19-RT22 now waits for the synthetic admission transaction to commit and release

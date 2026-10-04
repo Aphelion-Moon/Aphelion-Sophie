@@ -1,6 +1,6 @@
 {
   "schema_version": 2,
-  "revision": "2026-10-04-ai-admission-completion",
+  "revision": "2026-10-04-static-identity-review",
   "reference_plan_version": "1.1",
   "source": "Sophie-Implementation-Plans-v1.1/backlog.json",
   "owner_decisions": "docs/decisions/0001-owner-policy.md",
@@ -305,7 +305,7 @@
         "Authenticated Shuttle assistance and delivery queues share current authority, exact receipts and trusted proofs with signed commands. Reviewed help resolution preserves progress and eligibility; delivery workers verify repairs. Schema069 adds only fixed login return paths; HTTP/database and synthetic browser checks pass."
       ],
       "remaining_scope": [
-        "Other approved Staff/configuration work, independent live authentication/client and full accessibility acceptance. Ticket and Shuttle assistance/delivery dashboard parity is implemented locally."
+        "Independent live authentication/client, owner workflow/presentation review and full accessibility acceptance of the implemented dashboard."
       ]
     },
     {
@@ -1318,8 +1318,14 @@
       ],
       "suggested_owner": "Repository maintainer; separate human review where required",
       "guardrail": "Artwork review is not a production benchmark or legal certification. Do not block human administration on local-model readiness.",
-      "status": "planned_not_started",
-      "implementation_note": "Independent identity/asset release review has not started. Asset hash checks and synthetic editor previews are preparatory evidence only; they do not approve the full administration presentation."
+      "status": "in_progress",
+      "implementation_note": "Local static placement review uses the four unchanged source PNGs with fixed profile/hash validation, circular/small previews, paired light/dark alpha surfaces and narrow live-text fallback. Developer browser checks cover 320 CSS-pixel reflow, keyboard quiet mode and failed-image recovery. No product page or installed service was changed; independent identity/asset release approval remains outstanding.",
+      "completed_scope": [
+        "Source-bound local preview and developer browser evidence for original image loading/proportions, small/circular crop limits, light/dark alpha, narrow live-text fallback, keyboard focus, quiet mode and missing images. See GitHub/.agent_docs/aphelion-sophie/brand-review-2026-10-04/verification.json."
+      ],
+      "remaining_scope": [
+        "Owner approval of proposed placement and distribution; independent full accessibility/browser-zoom and Discord upload checks; integrated deterministic-case T51 evidence and versioned administration release approval."
+      ]
     },
     {
       "id": "P39",
@@ -1361,7 +1367,7 @@
   "checkpoint": {
     "summary": "Deterministic administration, Whitelist onboarding, protected editors, role/permission configuration and the configurable staging host are implemented.",
     "recorded_baseline": "Owner-approved pinned 5f60a24/schema066 is installed. At 15:18 UTC on 4 October, PostgreSQL, tunnel, supervisor and core run under distinct expected child identities; worker stopped. Processing policy absent, AI disabled and publications unchanged. Trust and independent-journal receipts renewed against fresh configuration/journal evidence.",
-    "current_work": "Local schema069 includes reviewed moderation, ticket and Shuttle controls, bounded vault inventory, shared brand-profile validation and synthetic AI boundary evidence. P19-RT22 now verifies completed admission before fixture mutation; its earlier intermittent fault remains unexplained. Installed5f60a24/schema066 is unchanged. Remaining worker/provider/publication/consent, artifact recovery/download policy and independent live acceptance require their recorded inputs.",
+    "current_work": "Local schema069 includes reviewed moderation, ticket and Shuttle controls, bounded vault inventory, shared brand-profile validation and synthetic AI boundary evidence. P19-RT22 now verifies completed admission before fixture mutation; its earlier intermittent fault remains unexplained. Installed5f60a24/schema066 is unchanged. Remaining worker/provider/publication/consent, artifact recovery/download policy and independent live acceptance require their recorded inputs. A local fixed-asset placement preview now has developer reflow, alpha, keyboard, quiet-mode and missing-image evidence; owner visual/distribution approval remains open.",
     "evidence_note": "Approved staging deployment: 66 migration checksums and actual runtime database identities passed; 72 original rows across 101 tables preserved; exactly seven grants added. 485 mirrored files plus three root files match pinned 5f60a24. Four service-child identities, loopback listeners, current Gateway, recovered supervisor and 12 dashboard checks passed. Journal bytes/identity preserved; configured ACL/firewall evidence renewed. Source-bound report: GitHub/.agent_docs/aphelion-sophie/deployment-5f60a24-2026-10-04/verification.json. Prior 10 installation checks and 93 isolated AI/database scenarios remain source-bound evidence; application suites were not rerun for this deployment. Local P15 candidate: 21 focused checks, M01–M20 and 21 composed staging scenarios pass; browser confirmation and expired-decision checks pass. Candidate evidence: GitHub/.agent_docs/aphelion-sophie/moderation-recovery-2026-10-04/verification.json. P19-RT22 now proves available synthetic AI Gateway exclusion with a public positive control; 22 composed staging scenarios pass on the final recovery restriction. GitHub/.agent_docs/aphelion-sophie/ai-exclusion-2026-10-04/verification.json. Vault milestone: six focused file checks, 31 attachment/operations and 11 recovery scenarios pass; clusters stopped. GitHub/.agent_docs/aphelion-sophie/attachment-inventory-2026-10-04/verification.json. Remaining migration-count expectations now use67; unselected suites were not run merely for count updates. Expanded P19-RT22 artifact milestone: all 22 composed staging scenarios pass with actual authenticated case routes and a real restricted knowledge store; cluster stopped. Source-bound report: GitHub/.agent_docs/aphelion-sophie/ai-artifact-exclusion-2026-10-04/verification.json. Final P19-RT22 candidate also cancels a valid late worker reply after destination restriction, with no Discord write/effect; all 22 composed scenarios pass and cluster stopped. Evidence: GitHub/.agent_docs/aphelion-sophie/ai-destination-revocation-2026-10-04/verification.json. Ordinary recovery dashboard: 27 focused checks, 71 intake/recovery and 23 composed staging scenarios pass; clusters stopped. Synthetic browser repair, exact retry, keyboard confirmation, denial clearing and corrected pagination checked. Source-bound report: GitHub/.agent_docs/aphelion-sophie/case-delivery-dashboard-2026-10-04/verification.json. Current migration assertions now use68; unrelated suites were not rerun only for count changes. Shuttle dashboard: 31 focused checks, 87 database scenarios, RT24 composed OAuth/proof/receipt checks and synthetic browser flows pass. The full24 diagnostic rerun passes, but the original P19-RT22 fault is not considered fixed. Migration069 only adds login return paths. Source-bound report: GitHub/.agent_docs/aphelion-sophie/shuttle-dashboard-2026-10-04/verification.json. Completed-admission P19-RT22 passed once with external diagnostic logging and once without instrumentation; both clusters stopped. No production AI change or proven fix for the earlier fault. Evidence: GitHub/.agent_docs/aphelion-sophie/ai-admission-diagnostic-2026-10-04/verification.json."
   },
   "milestones": [
@@ -2792,6 +2798,17 @@
       "implemented": "The synthetic exclusion scenario waits for the admission transaction to commit and release before fixture mutation, retaining its qualification counter and every existing exclusion, receipt, cancellation and no-fault assertion. No production AI, schema or authority change.",
       "evidence": "Targeted P19-RT22 passed with external diagnostic logging and in an uninstrumented run; both disposable clusters stopped. Read-only review found no reproducible production defect. See ai-admission-diagnostic-2026-10-04/verification.json.",
       "remaining": "Original intermittent AI_TURN_UNAVAILABLE remains unexplained, not fixed. Actual worker isolation/stop, provider/notice/publication/consent and independent live acceptance remain open."
+    },
+    {
+      "title": "Static Sophie placement review preparation",
+      "tasks": [
+        "P29",
+        "P37",
+        "P38"
+      ],
+      "implemented": "Local-only review surface validates all four original assets and presents contained banner, small/circular avatar, paired alpha surfaces and narrow live-text fallback. The installed dashboard and original artwork are unchanged.",
+      "evidence": "All 11 placements loaded; developer review at desktop and 320 CSS pixels, light/dark alpha, keyboard focus, quiet mode and missing-image fallbacks passed. Preview process/listener and tab stopped; no console errors observed. See brand-review-2026-10-04/verification.json.",
+      "remaining": "Owner placement/distribution approval, independent accessibility/browser-zoom and Discord upload qualification, final product placement and integrated T51 acceptance remain open."
     }
   ],
   "next_steps": [
