@@ -1,5 +1,24 @@
 # Verification and release limits
 
+## Qualified synthetic Gateway exclusion — 4 October 2026
+
+P19-RT22 exercises the composed staging host and loopback WebSocket ingress with an available
+synthetic AI worker, enabled publications, qualification rows and current explicit synthetic
+consent. A public positive control reaches knowledge lookup and the worker, then settles silent.
+Six protected or excluded contexts and a subsequent moved-channel event reach qualification
+inspection but produce no source-message fetches, further knowledge/worker calls, AI receipts,
+provider attempts or effects. The covered boundaries are permanent root exclusions, excluded
+parents, child threads, moved retained exclusions and the protected category fallback.
+The host drains pending work before final assertions; bounded ingress cannot silently skip a
+sentinel. No synthetic sentinel enters outbox metadata and no Discord write occurs.
+
+All 22 composed staging scenarios pass, including the final moderation failure-code restriction;
+the isolated cluster stopped. This fixture uses synthetic qualification and a zero-preference
+journal adapter. It does not qualify the installed worker, OS/database identity separation,
+provider transport, all authenticated form/note/transcript/file routes or full T22–T26 acceptance.
+Installed `5f60a24`/schema066, services, publications and privacy gates remain unchanged.
+Source-bound evidence: `GitHub/.agent_docs/aphelion-sophie/ai-exclusion-2026-10-04/verification.json`.
+
 ## Reviewed moderation recovery candidate — 4 October 2026
 
 The new `/moderation` page reviews one member's current mute/unmute delivery and records
