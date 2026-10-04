@@ -1,15 +1,16 @@
 # Human release verification
 
-The single worksheet in `outputs/release-readiness-01a0bb90/Sophie-production-verification.xlsx`
-consolidates the current human decisions, tests and implementation prerequisites.
+The original worksheet in `outputs/release-readiness-01a0bb90/Sophie-production-verification.xlsx`
+preserves the human review checkpoint from 20 September. The current source ledger
+is `docs/release-verification.json`; regeneration does not update that workbook.
 It has 117 rows: 60 acceptance specifications, eight decision areas, six release
 gates, four immediate human checks and all 39 unfinished workplan tasks. The
 acceptance rows also map all 18 numbered requirements. These are overlapping
 evidence views, not 117 independent defects or an estimate of remaining effort.
 
-Start with H01–H04 and the D rows. Use the existing Quick Help cases for saved-link
-DM, welcome-notice recheck and private-browser export checks. Do not create more
-requests at the two-case limit. Ordinary-member privacy checks need consenting
+Start with H01–H04 and the D rows. Select current synthetic cases for saved-link
+DM, welcome-notice recheck and private-browser export checks; historical case/job
+counts predate the test-guild reset. Respect current quotas. Ordinary-member privacy checks need consenting
 accounts without owner/Administrator bypass. Never put credentials, real case
 content, admission evidence or private-browser cookies in this workbook.
 
@@ -32,9 +33,22 @@ Rows show the unresolved production details separately from these decisions.
 `node scripts/build-release-verification.mjs`. The script checks unique row IDs,
 all 60 test specifications and the full R01–R18 mapping. It does not import human
 results from an edited workbook; preserve completed human work and reconcile it
-by stable IDs before making a later edition. The current workbook is an initial
-release ledger with **zero full release passes**, not a retest of every partial
-milestone or a production-ready claim.
+by stable IDs before making a later edition. The generator refuses to overwrite a
+JSON ledger containing a result other than Not run, or any actual outcome,
+evidence, reviewer, date or run context. Use `node scripts/build-release-verification.mjs --output <new-json-path>`
+to prepare a fresh baseline, then have the reviewer reconcile the old evidence by
+stable ID and exact build. Prior passes are never carried into a new build automatically.
+The original workbook was issued with **zero full release passes**. Preserve any
+later human entries; generating the JSON does not inspect or replace them and
+does not establish production readiness.
+
+The October ledger retains 117 stable row IDs, all 60 acceptance specifications
+and R01–R18 coverage. Current T31–T33/T52 and G4 follow the selected DeepSeek path;
+local model checks apply only if that alternative is separately selected. The
+R10 mapping retains its original reference title alongside the effective owner
+decision. The unchanged reference pack remains historical evidence. Each SAI-G
+capability is carried from the current workplan with separate implementation,
+qualification, data-clearance and activation states. None is a release pass.
 
 The audit also corrected stale preflight and verification text that claimed live
 test-guild/Gateway/OAuth setup did not exist. Production preflight still exits 2,

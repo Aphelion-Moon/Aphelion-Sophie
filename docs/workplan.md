@@ -1,6 +1,6 @@
 # Current implementation workplan
 
-Revision: 2026-10-04-static-identity-review. Official DeepSeek Flash is the selected provider. Local models are historical, explicitly selected alternatives only; no automatic fallback. Continue the DS workstream with synthetic data; full readiness and activation remain open.
+Revision: 2026-10-04-release-review-inputs. Official DeepSeek Flash is the selected provider. Local models are historical, explicitly selected alternatives only; no automatic fallback. Continue the DS workstream with synthetic data; full readiness and activation remain open.
 
 All production release gates remain open; pure and isolated database checks are not full application acceptance.
 
@@ -12,7 +12,7 @@ Deterministic administration, Whitelist onboarding, protected editors, role/perm
 
 Recorded baseline: Owner-approved pinned 5f60a24/schema066 is installed. At 15:18 UTC on 4 October, PostgreSQL, tunnel, supervisor and core run under distinct expected child identities; worker stopped. Processing policy absent, AI disabled and publications unchanged. Trust and independent-journal receipts renewed against fresh configuration/journal evidence.
 
-Current work: Local schema069 includes reviewed moderation, ticket and Shuttle controls, bounded vault inventory, shared brand-profile validation and synthetic AI boundary evidence. P19-RT22 now verifies completed admission before fixture mutation; its earlier intermittent fault remains unexplained. Installed5f60a24/schema066 is unchanged. Remaining worker/provider/publication/consent, artifact recovery/download policy and independent live acceptance require their recorded inputs. A local fixed-asset placement preview now has developer reflow, alpha, keyboard, quiet-mode and missing-image evidence; owner visual/distribution approval remains open.
+Current work: Local schema069 includes reviewed moderation, ticket and Shuttle controls, bounded vault inventory, shared brand-profile validation and synthetic AI boundary evidence. P19-RT22 now verifies completed admission before fixture mutation; its earlier intermittent fault remains unexplained. Installed5f60a24/schema066 is unchanged. Remaining worker/provider/publication/consent, artifact recovery/download policy and independent live acceptance require their recorded inputs. A local fixed-asset placement preview now has developer reflow, alpha, keyboard, quiet-mode and missing-image evidence; owner visual/distribution approval remains open. Release-review inputs now follow selected-provider decisions and current implementation; the generator protects human results and preserves original R10 wording for traceability.
 
 Approved staging deployment: 66 migration checksums and actual runtime database identities passed; 72 original rows across 101 tables preserved; exactly seven grants added. 485 mirrored files plus three root files match pinned 5f60a24. Four service-child identities, loopback listeners, current Gateway, recovered supervisor and 12 dashboard checks passed. Journal bytes/identity preserved; configured ACL/firewall evidence renewed. Source-bound report: GitHub/.agent_docs/aphelion-sophie/deployment-5f60a24-2026-10-04/verification.json. Prior 10 installation checks and 93 isolated AI/database scenarios remain source-bound evidence; application suites were not rerun for this deployment. Local P15 candidate: 21 focused checks, M01–M20 and 21 composed staging scenarios pass; browser confirmation and expired-decision checks pass. Candidate evidence: GitHub/.agent_docs/aphelion-sophie/moderation-recovery-2026-10-04/verification.json. P19-RT22 now proves available synthetic AI Gateway exclusion with a public positive control; 22 composed staging scenarios pass on the final recovery restriction. GitHub/.agent_docs/aphelion-sophie/ai-exclusion-2026-10-04/verification.json. Vault milestone: six focused file checks, 31 attachment/operations and 11 recovery scenarios pass; clusters stopped. GitHub/.agent_docs/aphelion-sophie/attachment-inventory-2026-10-04/verification.json. Remaining migration-count expectations now use67; unselected suites were not run merely for count updates. Expanded P19-RT22 artifact milestone: all 22 composed staging scenarios pass with actual authenticated case routes and a real restricted knowledge store; cluster stopped. Source-bound report: GitHub/.agent_docs/aphelion-sophie/ai-artifact-exclusion-2026-10-04/verification.json. Final P19-RT22 candidate also cancels a valid late worker reply after destination restriction, with no Discord write/effect; all 22 composed scenarios pass and cluster stopped. Evidence: GitHub/.agent_docs/aphelion-sophie/ai-destination-revocation-2026-10-04/verification.json. Ordinary recovery dashboard: 27 focused checks, 71 intake/recovery and 23 composed staging scenarios pass; clusters stopped. Synthetic browser repair, exact retry, keyboard confirmation, denial clearing and corrected pagination checked. Source-bound report: GitHub/.agent_docs/aphelion-sophie/case-delivery-dashboard-2026-10-04/verification.json. Current migration assertions now use68; unrelated suites were not rerun only for count changes. Shuttle dashboard: 31 focused checks, 87 database scenarios, RT24 composed OAuth/proof/receipt checks and synthetic browser flows pass. The full24 diagnostic rerun passes, but the original P19-RT22 fault is not considered fixed. Migration069 only adds login return paths. Source-bound report: GitHub/.agent_docs/aphelion-sophie/shuttle-dashboard-2026-10-04/verification.json. Completed-admission P19-RT22 passed once with external diagnostic logging and once without instrumentation; both clusters stopped. No production AI change or proven fix for the earlier fault. Evidence: GitHub/.agent_docs/aphelion-sophie/ai-admission-diagnostic-2026-10-04/verification.json.
 
@@ -180,6 +180,7 @@ Milestone entries preserve their checkpoint evidence. Current next steps and own
 | Shuttle assistance and delivery dashboard (P08, P14, P16, P17, P27) | Bounded metadata queues, reviewed help resolution/resumption and delivery repairs under existing Shuttle authority. Commands and HTTP share receipt-first operations, trusted proof issuers and fenced transactions. Migration069 adds two fixed login return paths only. | 31 focused checks; 87 Shuttle database scenarios; RT24 composed OAuth/CSRF, paused-help and uncertain-screen recovery. All24 runtime scenarios passed a diagnostic rerun. Browser confirms keyboard confirmation, numeric pagination, exact retry, message/channel repair and access-loss clearing. Clusters, preview and tab stopped; see shuttle-dashboard-2026-10-04/verification.json. | Undeployed. Original intermittent P19-RT22 AI_TURN_UNAVAILABLE remains unreproduced despite a passing isolated and full diagnostic run; no AI assertion was relaxed. Live worker/provider/publication/consent and independent release acceptance remain open. |
 | Completed-admission AI exclusion probe (P19, P27) | The synthetic exclusion scenario waits for the admission transaction to commit and release before fixture mutation, retaining its qualification counter and every existing exclusion, receipt, cancellation and no-fault assertion. No production AI, schema or authority change. | Targeted P19-RT22 passed with external diagnostic logging and in an uninstrumented run; both disposable clusters stopped. Read-only review found no reproducible production defect. See ai-admission-diagnostic-2026-10-04/verification.json. | Original intermittent AI_TURN_UNAVAILABLE remains unexplained, not fixed. Actual worker isolation/stop, provider/notice/publication/consent and independent live acceptance remain open. |
 | Static Sophie placement review preparation (P29, P37, P38) | Local-only review surface validates all four original assets and presents contained banner, small/circular avatar, paired alpha surfaces and narrow live-text fallback. The installed dashboard and original artwork are unchanged. | All 11 placements loaded; developer review at desktop and 320 CSS pixels, light/dark alpha, keyboard focus, quiet mode and missing-image fallbacks passed. Preview process/listener and tab stopped; no console errors observed. See brand-review-2026-10-04/verification.json. | Owner placement/distribution approval, independent accessibility/browser-zoom and Discord upload qualification, final product placement and integrated T51 acceptance remain open. |
+| Current release-review inputs and result preservation (P04, P23, P27, P32) | Updated selected-provider T31-T33/T52 and P23/P32 scope, current implementation/acceptance distinctions, effective R10 with historical reference retained, and separate SAI-G metadata. Generator refuses human-result overwrite and supports a fresh output path. Existing XLSX remains untouched. | Two focused generator checks cover all stable IDs/gates and byte-preserving refusal for every human-result field; 117 rows, 60 specifications and 18 requirement mappings regenerate without a release pass. See release-review-2026-10-04/verification.json. | Independent human evidence reconciliation and all provider/privacy/publication/consent/worker/live release gates remain open. Historical workbook values were not read, imported or replaced. |
 
 ## Next implementation sequence
 
@@ -961,11 +962,11 @@ Remaining scope:
 
 Full task deliverables:
 
-- Model/runtime hash and licence lock
-- CPU-only llama.cpp hardening and measured limits
-- Cold/warm latency/memory/load benchmark report
+- Exact selected provider/model, runtime/release/profile and approved dependency lock
+- Worker isolation, fixed provider egress, credential custody and measured budget/queue/deadline limits; local CPU inference only if separately selected
+- Cold/warm full-turn latency, physical cancellation/stop and representative host-load qualification
 
-Boundary: No cloud fallback, auto-download or claimed unmeasured throughput.
+Boundary: No automatic provider/model fallback, auto-download or claimed unmeasured throughput. Provider/privacy clearance and actual worker qualification remain separate.
 
 ## P24 — Implement non-ticket knowledge assistant
 
@@ -1062,6 +1063,7 @@ Implemented scope:
 - 28 focused bootstrap/Discord/case-channel contracts and RT01–RT10 pass on live-bootstrap fixes; owned test cluster stopped. Separate live REST report verifies isolated resource setup only.
 - 406 unit tests; 88 focused Onboarding/wording, 67 intake, 20 recovery/upgrade and 14 composed-runtime scenarios; ten synthetic browser checks. No live upgrade or human acceptance.
 - Y24–Y27 exercise authenticated ordinary repair receipts, Head Admin exclusion, retained-candidate selection and authority loss during proof acquisition. Composed RT23 exercises actual OAuth/CSRF, new-page return, private Staff-reply adoption, worker confirmation and exact duplicate replay without resending. P19-RT22 remains passing on the same composed run.
+- Current release-review generator preserves all 117 row IDs, 60 acceptance IDs and 18 requirement mappings; selected-provider acceptance, separate SAI-G states and current remaining scope replace superseded local-only/status assumptions. Nonblank human JSON results cannot be overwritten; the existing workbook remains untouched.
 
 Remaining scope:
 
@@ -1141,7 +1143,7 @@ Boundary: Do not remove old ticket access while open cases still need it.
 
 ## P32 — Activate separately approved non-ticket AI
 
-Status: **planned_not_started**. Phase: Local AI. Priority: P1.
+Status: **planned_not_started**. Phase: Non-ticket AI. Priority: P1.
 
 Depends on: P28, P31, P39. Acceptance: T22, T29, T32, T34, T48, T52.
 
@@ -1150,8 +1152,8 @@ Not implemented. Reference-pack acceptance requirements still apply.
 Full task deliverables:
 
 - Source/AI channel approvals and final source freshness check
-- Scoped rollout and disable/fallback test
-- Published local-processing notice
+- Scoped rollout, disable and administration-independence test; no automatic provider/model fallback
+- Published exact processing notice and reviewed provider evidence with current individual consent
 
 Boundary: AI remains off until G4 and operator approval; direct lookup has its own G3 activation under P39.
 

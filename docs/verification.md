@@ -1,5 +1,26 @@
 # Verification and release limits
 
+## Current release-review inputs — 4 October 2026
+
+The release ledger generator now follows the selected DeepSeek provider and
+current implementation evidence. T31–T33/T52 and P23/P32 no longer require the
+superseded local-only implementation; a separately selected local alternative
+retains its artifact/CPU/egress checks. R10 keeps its original reference title
+beside the effective owner decision. All 60 acceptance IDs, 18 requirement
+mappings and 117 review row IDs remain. Separate SAI-G capability states are
+copied from the workplan; all human results start as Not run and no gate is closed.
+
+The generator refuses to overwrite nonblank human results or an unrecognized
+existing document. A fresh `--output` path supports review of a new baseline
+without erasing or reusing prior approvals. Two focused checks verify selected
+provider/gate coverage and byte-preserving refusal for every human-result field.
+The JSON ledger was regenerated with source hashes, including the generator.
+The original XLSX was untouched. No application/database/live/provider checks
+were needed for this tooling and specification change; their existing evidence
+and unresolved release limits remain source-bound.
+
+Evidence: GitHub/.agent_docs/aphelion-sophie/release-review-2026-10-04/verification.json.
+
 ## Static identity placement review — 4 October 2026
 
 A local review surface outside the product now presents all four original Sophie
