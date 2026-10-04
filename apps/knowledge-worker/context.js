@@ -1,5 +1,6 @@
 import { requireCondition, requireInteger } from '../../contracts/validation.js';
 import { validateAiComparison, firstChangedAiComparison } from './prompt-contract.js';
+import { redactAiIdentifiers } from './redaction.js';
 
 /** Disposable bounded context. Every source must be reauthorized by core before it is returned. */
 export function createAiContext({ clock = Date.now, maxLanes = 100, setTimer = setTimeout, clearTimer = clearTimeout }) {
@@ -23,9 +24,13 @@ export function createAiContext({ clock = Date.now, maxLanes = 100, setTimer = s
     const id = key(request), lane = lanes.get(id) ?? { messages: [] };
     lane.messages = lane.messages.filter(item => item.request.messageId !== stored.messageId);
     stored.contextRevision = ++revision;
-    lane.messages.push({ request: stored, expiresAt });
+    const entry = { request: stored, expiresAt };
+    // Count each immutable record once; include the JSON array's separators in the lane limit.
+    const bytes = Buffer.byteLength(JSON.stringify(entry), 'utf8');
+    lane.messages.push({ ...entry, bytes });
     lane.messages = lane.messages.slice(-countLimit(request));
-    while (lane.messages.length && Buffer.byteLength(JSON.stringify(lane.messages), 'utf8') > 65536) lane.messages.shift();
+    let totalBytes = 2 + Math.max(0, lane.messages.length - 1) + lane.messages.reduce((sum, item) => sum + item.bytes, 0);
+    while (lane.messages.length && totalBytes > 65536) totalBytes -= lane.messages.shift().bytes + 1;
     pruneDiagnostic(lane);
     lanes.delete(id); if (lane.messages.length) lanes.set(id, lane);
     while (lanes.size > maxLanes) lanes.delete(lanes.keys().next().value);
@@ -64,8 +69,10 @@ export function createAiContext({ clock = Date.now, maxLanes = 100, setTimer = s
       prune();
       if (request.profile.contextMessages === 0 || !request.decision.context) return;
       requireCondition(typeof request.text === 'string' && request.text.length <= 4000, 'AI_INPUT_INVALID');
+      const text = redactAiIdentifiers(request.text);
+      requireCondition(text.length <= 4000, 'AI_INPUT_INVALID');
       const stored = { guildId: request.guildId, channelId: request.channelId, userId: request.userId, messageId: request.messageId,
-        receivedAt: request.receivedAt, inputRevision: request.inputRevision, binding: structuredClone(request.binding), text: request.text,
+        receivedAt: request.receivedAt, inputRevision: request.inputRevision, binding: structuredClone(request.binding), text,
         expiresAt: request.receivedAt + lifetime(request) };
       insert(request, stored, stored.expiresAt);
     },
@@ -74,6 +81,8 @@ export function createAiContext({ clock = Date.now, maxLanes = 100, setTimer = s
       if (countLimit(request) === 0 || !request.decision.context) return;
       requireCondition(typeof id === 'string' && /^[1-9][0-9]{0,19}$/.test(id) && typeof text === 'string' && text.length <= 1600,
         'AI_REPLY_CONTEXT_INVALID');
+      text = redactAiIdentifiers(text);
+      requireCondition(text.length <= 1600, 'AI_REPLY_CONTEXT_INVALID');
       const dependencies = new Map(), knowledge = new Map();
       for (const item of [{ ...request, expiresAt: request.receivedAt + lifetime(request) }, ...history]) {
         for (const original of item.kind === 'assistant' ? item.dependencies : [item]) {
@@ -140,9 +149,11 @@ export function createAiContext({ clock = Date.now, maxLanes = 100, setTimer = s
         if (!await authorize(item.request)) { lane.messages = lane.messages.filter(candidate => candidate !== item);pruneDiagnostic(lane); continue; }
         // The lane may have been invalidated while awaiting the fresh source authorization.
         if (lanes.get(id) !== lane || !lane.messages.includes(item) || item.expiresAt <= clock()) return [];
-        result.push(structuredClone(item.request));
+        result.push(item);
       }
-      return result.slice(-countLimit(request));
+      // A later authorization can invalidate an earlier result without removing the whole lane.
+      if (lanes.get(id) !== lane || result.some(item => !lane.messages.includes(item) || item.expiresAt <= clock())) return [];
+      return result.slice(-countLimit(request)).map(item => structuredClone(item.request));
     },
     invalidate({ channelId = null, userId = null, messageId = null } = {}) {
       for (const [id, lane] of lanes) {

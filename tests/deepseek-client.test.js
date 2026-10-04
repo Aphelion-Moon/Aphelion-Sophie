@@ -6,6 +6,7 @@ import { createMeteredAiWorker } from '../apps/core/runtime/ai-provider.js';
 import { aiBudgetPeriods, aiUsageCostNanos, DEFAULT_AI_BUDGET } from '../modules/assistant/budget.js';
 import { buildAiPrompt } from '../apps/knowledge-worker/prompt.js';
 import { DRAFT_PERSONALITY } from '../modules/assistant/personality.js';
+import { redactAiIdentifiers } from '../apps/knowledge-worker/redaction.js';
 
 const key = 'synthetic-test-key-not-a-secret';
 const output = { kind: 'reply', text: 'Hello!', purpose: 'conversation', support: 'current_conversation', citations: [] };
@@ -57,6 +58,62 @@ test('SAI AT-03 public cache shares only within a channel/authority/release boun
   const reactive = prompt({ outcomes: ['react','silent'] });
   assert.deepEqual(original.messages.slice(0, 7), reactive.messages.slice(0, 7));
   assert.notDeepEqual(original.messages[7], reactive.messages[7]);
+  const otherWorker = fixture(); await otherWorker.generate(original);
+  assert.notEqual(f.calls[0].body.user_id, otherWorker.calls[0].body.user_id, 'a new worker must not reuse the provider-visible pseudonym');
+  assert.equal(f.client.profileHash, otherWorker.client.profileHash, 'the release profile describes the policy, not a private random seed');
+});
+
+test('DS-08 direct-identifier redaction covers structured identifiers without claiming free-text anonymity', () => {
+  const identifiers = ['<@123456789012345678>', '<@!123456789012345678>', '<@&123456789012345678>', '<#123456789012345678>',
+    '<:nickname:123456789012345678>', '<a:nickname:123456789012345678>', '</command:123456789012345678>',
+    '123456789012345678', 'alice+test@example.invalid', 'https://example.invalid/people/alice?token=private',
+    'www.example.invalid/alice', 'example.invalid/people/alice', '//example.invalid/path', '@alice_handle', '+31 (0)6 1234 5678', '203.0.113.42', '2001:db8::1234',
+    '::ffff:192.0.2.1', 'fe80::abcd%eth0', '12345678-abcd-abcd-abcd-123456789abc'];
+  for (const identifier of identifiers) {
+    const redacted = redactAiIdentifiers(`Before ${identifier} after`);
+    assert.equal(redacted.includes(identifier), false, identifier);
+    assert.ok(redacted.startsWith('Before ') && redacted.endsWith(' after'), identifier);
+    assert.equal(redactAiIdentifiers(redacted), redacted, 'a second egress pass is idempotent');
+  }
+  assert.equal(redactAiIdentifiers('Alice Smith and @alice_handle', ['Alice Smith']), '[member] and [handle]');
+  assert.equal(redactAiIdentifiers('A.*[B] says hi', ['A.*[B]']), '[member] says hi', 'aliases are literal, never executable patterns');
+  assert.equal(redactAiIdentifiers('１２３４５６７８９０１２３４５６７８'), '[id]');
+  assert.equal(redactAiIdentifiers('alice\u200b@example.invalid'), '[email]');
+  const ordinary = 'Use port 443, 12 items, 2026-10-04 at 12:30, 2026-10-04T12:30:00Z and version 1.2.3.';
+  assert.equal(redactAiIdentifiers(ordinary), ordinary);
+  const indirect = 'I am the only person with this unusual job in my village.';
+  assert.equal(redactAiIdentifiers(indirect), indirect, 'redaction cannot establish anonymity of personal facts');
+});
+
+test('DS-08 bounded token scanning handles long email and domain nonmatches', { timeout: 1000 }, () => {
+  const text = 'a'.repeat(32000);
+  for (const suffix of ['', '/profile']) assert.equal(redactAiIdentifiers(text + suffix, ['Alice']), text + suffix);
+  for (const suffix of ['@', '@invalid', '.invalid/profile']) assert.equal(redactAiIdentifiers(text + suffix, ['Alice']).includes(text), false);
+});
+
+test('DS-08 final provider projection redacts old context, replies, authoring and source text before captured HTTP dispatch', async () => {
+  const marker = 'synthetic.member@example.invalid', id = '123456789012345678';
+  const payload = prompt({ history: [{ userId: '404', text: `${marker} <@${id}>` }, { kind: 'assistant', text: `Earlier: ${marker}` }],
+    sources: [{ id: 'guide.r1.s0', text: `Published text can contain ${marker}.` }] });
+  const mutable = structuredClone(payload);
+  mutable.messages[0].content += `\nAuthored sample ${marker}`;
+  mutable.messages.at(-1).content = `Contact ${marker}, +31 6 1234 5678 or https://example.invalid/people/alice`;
+  mutable.requesterId = id; mutable.boundary.guildId = '223456789012345678'; mutable.boundary.channelId = '323456789012345678';
+  const f = fixture(); await f.generate(mutable);
+  const wire = JSON.stringify(f.calls[0].body);
+  for (const value of [marker, id, mutable.boundary.guildId, mutable.boundary.channelId, '+31 6 1234 5678', 'example.invalid/people/alice'])
+    assert.equal(wire.includes(value), false, value);
+  assert.ok(wire.includes('[email]') && wire.includes('[phone]') && wire.includes('[link]'));
+  assert.ok(mutable.messages[0].content.includes(marker), 'sanitization never mutates the source publication');
+  assert.equal(JSON.stringify(f.usage).includes(marker), false);
+});
+
+test('DS-08 identifier-bearing citation and emoji keys fail before a provider request', async () => {
+  const f = fixture(), id = '123456789012345678';
+  await assert.rejects(f.generate(prompt({ sources: [{ id, text: 'Synthetic public source' }] })), /AI_REMOTE_IDENTIFIER_REJECTED/);
+  const payload = structuredClone(prompt()); payload.outputContract.emojiKeys = [id];
+  await assert.rejects(f.generate(payload), /AI_REMOTE_IDENTIFIER_REJECTED/);
+  assert.equal(f.calls.length, 0);
 });
 
 test('SAI AT-03/12 cache layout stabilizes reviewed source order before history without changing relevance-based trimming', () => {

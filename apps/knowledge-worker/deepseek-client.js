@@ -2,6 +2,7 @@ import { createHash, createHmac, randomBytes } from 'node:crypto';
 import { requireCondition, requireId, requireInteger } from '../../contracts/validation.js';
 import { validateAiOutput } from '../../modules/assistant/output.js';
 import { createAiOutputSchema, validateAiPrompt, freezeAiMaterial } from './prompt-contract.js';
+import { AI_REDACTION_VERSION, redactAiIdentifiers } from './redaction.js';
 
 export const DEEPSEEK_MODEL = 'deepseek-flash';
 const endpoint = 'https://api.deepseek.com/chat/completions';
@@ -20,7 +21,8 @@ export function deepSeekUsage(value) {
 
 /** Release binding for the fixed request profile. It never includes the provider key. */
 export function deepSeekProfileHash({ acceptedFingerprints, maxPromptBytes = 16384, outputTokens = 384 }) {
-  return createHash('sha256').update(JSON.stringify({schema:1,provider:'deepseek',endpoint,model:DEEPSEEK_MODEL,
+  return createHash('sha256').update(JSON.stringify({schema:2,provider:'deepseek',endpoint,model:DEEPSEEK_MODEL,
+    redaction:AI_REDACTION_VERSION,cachePartition:'worker-private-hmac-v1',
     maxPromptBytes,outputTokens,thinking:false,stream:false,temperature:0.4,responseFormat:'json_object',acceptedFingerprints:[...new Set(acceptedFingerprints)].sort()})).digest('hex');
 }
 
@@ -33,7 +35,7 @@ export function createDeepSeekClient({ apiKey, fetchImpl = fetch, clock = Date.n
   requireCondition(Array.isArray(acceptedFingerprints) && acceptedFingerprints.length <= 16 && acceptedFingerprints.every(value =>
     typeof value === 'string' && /^[a-zA-Z0-9._-]{1,96}$/u.test(value)), 'AI_IDENTITY_POLICY_INVALID');
   const fingerprints = new Set(acceptedFingerprints), preparedTurns = new WeakSet(), consumed = new WeakSet();
-  const comparisonKey=randomBytes(32);
+  const comparisonKey=randomBytes(32), partitionKey=randomBytes(32);
   const compareHash=value=>createHmac('sha256',comparisonKey).update(JSON.stringify(value)).digest('hex');
   const profileHash = deepSeekProfileHash({ acceptedFingerprints, maxPromptBytes, outputTokens });
   let active = false, blockedUntil = 0, credentialBlocked = false, identityBlocked = false;
@@ -46,38 +48,47 @@ export function createDeepSeekClient({ apiKey, fetchImpl = fetch, clock = Date.n
       typeof releaseHash === 'string' && /^[a-f0-9]{64}$/u.test(releaseHash), 'AI_REMOTE_CONTEXT_INVALID');
     // Public conversation is shared only inside this qualified channel boundary.
     // A per-member cache key would repeatedly charge its identical approved prefix.
-    return createHmac('sha256', apiKey).update(JSON.stringify([workerDomain, boundary.guildId,
+    // The API credential is known to the provider and cannot be the secret for this pseudonym.
+    // Rotation on worker creation bounds linkage; same-worker channel grouping is intentional.
+    return createHmac('sha256', partitionKey).update(JSON.stringify([workerDomain, boundary.guildId,
       boundary.channelId, boundary.boundaryEpoch, boundary.continuity, releaseHash])).digest('hex');
   }
   function prepare(payload) {
     const started=clock();
     validateAiPrompt(payload);
-    const userId = scope(payload), { messages, outputContract, sourceMessages = [], trimGroups = [], contractMessageIndex } = payload;
+    const userId = scope(payload), { messages: inputMessages, outputContract, sourceMessages = [], trimGroups = [], contractMessageIndex } = payload;
+    const identifiers = [payload.requesterId, payload.boundary.guildId, payload.boundary.channelId];
+    // Independently sanitize all free text, including old history, examples and published source text.
+    // Structural citation/emoji keys cannot be rewritten without changing their meaning, so reject unsafe keys.
+    for (const value of [...outputContract.sourceIds, ...outputContract.emojiKeys])
+      requireCondition(redactAiIdentifiers(value, identifiers) === value, 'AI_REMOTE_IDENTIFIER_REJECTED');
+    const messages = inputMessages.map(({ role, content }, index) => ({ role,
+      content: index === contractMessageIndex ? content : redactAiIdentifiers(content, identifiers) }));
     const removed = new Set(); let group = 0;
     for (;;) {
       const sources = sourceMessages.filter(source => !removed.has(source.index)).map(source => ({ id: source.id }));
       const contract = { ...outputContract, sourceIds: sources.map(source => source.id) };
       const schema = createAiOutputSchema(contract);
-      if (schema.oneOf.length === 1) return prepared({ sources, contract, body: null, messages: [], blocks: [] },started);
+      if (schema.oneOf.length === 1) return prepared({ sources, contract, body: null, serialized: null, bytes: 0, messages: [], blocks: [] },started);
       const selected = messages.filter((_message, index) => !removed.has(index) && index !== contractMessageIndex).map(({ role, content }) => ({ role, content }));
       // DeepSeek JSON mode does not enforce JSON Schema. Describe it, then validate locally.
       selected.splice(selected.length - 1, 0, { role: 'system', content: `Return one JSON object matching this turn's schema. Silence is {"kind":"silent"}. No markdown or extra fields.\n${JSON.stringify(schema)}` });
       const body = { model: DEEPSEEK_MODEL, messages: selected, user_id: userId, thinking: { type: 'disabled' },
         stream: false, max_tokens: outputTokens, temperature: 0.4, response_format: { type: 'json_object' } };
-      if (Buffer.byteLength(JSON.stringify(body), 'utf8') <= maxPromptBytes) {
+      const serialized = JSON.stringify(body), bytes = Buffer.byteLength(serialized, 'utf8');
+      if (bytes <= maxPromptBytes) {
         const blocks = messages.flatMap((_message, index) => removed.has(index) || index === contractMessageIndex ? [] :
           [{ kind: payload.blocks?.[index]?.kind ?? (index === 0 ? 'authoring' : index === messages.length - 1 ? 'question' : 'history'),
             ...(sourceMessages.find(source => source.index === index) ? { id: sourceMessages.find(source => source.index === index).id } : {}) }]);
         blocks.splice(blocks.length - 1, 0, { kind: 'contract' });
-        return prepared({ sources, contract, body, messages: selected, blocks },started);
+        return prepared({ sources, contract, body, serialized, bytes, messages: selected, blocks },started);
       }
       requireCondition(group < trimGroups.length, 'AI_CONTEXT_LIMIT');
       for (const index of trimGroups[group++]) removed.add(index);
     }
   }
   function prepared(value,started) {
-    const serialized = value.body === null ? null : JSON.stringify(value.body);
-    const result = freezeAiMaterial({ ...value, serialized, bytes: serialized === null ? 0 : Buffer.byteLength(serialized, 'utf8'),
+    const result = freezeAiMaterial({ ...value,
       outputTokens, estimateQuality: 'conservative-byte-estimate',
       diagnostics: value.blocks.map((block, index) => ({ ...block, bytes: Buffer.byteLength(value.messages[index].content, 'utf8') })),
       comparison:{protocol:compareHash({...value.body,messages:undefined}),milliseconds:Math.max(0,Math.min(15000,clock()-started)),
