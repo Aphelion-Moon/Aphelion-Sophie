@@ -7,6 +7,7 @@ import { createCaseIntakeDispatcher } from '../../apps/core/discord/case-intake-
 import { migrateCore } from '../../apps/core/storage/migrate.js';
 import { GUILD, USER, OTHER, STAFF, LEAD } from '../../tests/fixtures/domain.js';
 import { CREW, MUZZLED } from '../../tests/fixtures/discord.js';
+import { restoreRuntimeGuards } from '../lib/runtime-guards.mjs';
 
 export async function runCaseIntakeDeliverySuite(cluster, run) {
   const scenario = (name, work) => run(name, async () => work(await intakeDeliveryWorkflow(cluster)));
@@ -232,7 +233,7 @@ export async function runCaseIntakeDeliverySuite(cluster, run) {
     await f.forms.withdrawCaseForm({ actor: await f.actor(OTHER), caseType: 'admin-help', version: 1, expectedHash: published.sha256, confirm: true });
     await f.admin.query("DELETE FROM sophie_core.outbox WHERE kind = 'case.intake'; DROP TABLE sophie_core.case_intake_messages; ALTER TABLE sophie_core.case_intakes DROP COLUMN delivery_format");
     await f.admin.query("DELETE FROM sophie_migrations.applied WHERE id = '022-case-intake-delivery.sql'");
-    await migrateCore(f.admin); await f.admin.query('GRANT SELECT, INSERT, UPDATE ON sophie_core.automation_recovery_actions, sophie_core.automation_delivery_events, sophie_core.automation_deliveries, sophie_core.automation_events, sophie_core.automation_cooldowns, sophie_core.case_intake_messages, sophie_core.case_direct_notices, sophie_core.case_replies, sophie_core.case_reply_events, sophie_core.case_answer_reviews TO sophie_test_core');
+    await migrateCore(f.admin); await restoreRuntimeGuards(f.admin); await f.admin.query('GRANT SELECT, INSERT, UPDATE ON sophie_core.automation_recovery_actions, sophie_core.automation_delivery_events, sophie_core.automation_deliveries, sophie_core.automation_events, sophie_core.automation_cooldowns, sophie_core.case_intake_messages, sophie_core.case_direct_notices, sophie_core.case_replies, sophie_core.case_reply_events, sophie_core.case_answer_reviews TO sophie_test_core');
     assert.equal((await pages(f)).length, 0); assert.equal((await jobs(f)).length, 1);
     assert.deepEqual((await f.rows('case_intakes'))[0], saved); await f.drain(f.intakeWorker);
     assert.equal((await pages(f)).every(row => row.state === 'confirmed'), true); assert.equal(posts(f).length, 3);
@@ -256,7 +257,7 @@ export async function runCaseIntakeDeliverySuite(cluster, run) {
     assert.equal(posts(f).length, 0);
     // Repair only this synthetic collision so later scenarios can use the upgraded schema.
     await f.admin.query('DELETE FROM sophie_core.outbox WHERE guild_id = $1 AND operation_id = $2', [GUILD, delivery.operation_id]);
-    await migrateCore(f.admin); await f.admin.query('GRANT SELECT, INSERT, UPDATE ON sophie_core.automation_recovery_actions, sophie_core.automation_delivery_events, sophie_core.automation_deliveries, sophie_core.automation_events, sophie_core.automation_cooldowns, sophie_core.case_intake_messages, sophie_core.case_direct_notices, sophie_core.case_replies, sophie_core.case_reply_events, sophie_core.case_answer_reviews TO sophie_test_core');
+    await migrateCore(f.admin); await restoreRuntimeGuards(f.admin); await f.admin.query('GRANT SELECT, INSERT, UPDATE ON sophie_core.automation_recovery_actions, sophie_core.automation_delivery_events, sophie_core.automation_deliveries, sophie_core.automation_events, sophie_core.automation_cooldowns, sophie_core.case_intake_messages, sophie_core.case_direct_notices, sophie_core.case_replies, sophie_core.case_reply_events, sophie_core.case_answer_reviews TO sophie_test_core');
     assert.equal((await jobs(f)).length, 1); assert.equal((await pages(f)).length, 0);
     await f.drain(f.intakeWorker); assert.equal(posts(f).length, 3);
   });

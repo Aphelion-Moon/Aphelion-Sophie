@@ -119,7 +119,8 @@ test('form transport uses closed same-origin routes, private CSRF and validated 
   const calls = [], api = createDashboardApi({ fetch: async (path, options) => { calls.push({ path, options }); return Response.json(path === '/auth/session' ?
     { userId: '123', guildId: '456', csrfToken: 'ab'.repeat(32), canEditOnboarding: false, canEditForms: true } : {}); } });
   assert.deepEqual(await api.session(), { userId: '123', guildId: '456', canEditOnboarding: false, canEditForms: true, canEditPermissions: false, canEditAnswers: false, canEditAutomation: false,
-    canEditKnowledge: false, canControlAi: false, canEditPersonality: false, aiAvailable: false, knowledgeAvailable: false });
+    canEditKnowledge: false, canControlAi: false, canEditPersonality: false, aiAvailable: false, knowledgeAvailable: false,
+    canRecoverModeration: false, canRecoverCases: false, canManageOnboarding: false });
   await api.formDraft('staff-report', 2); await api.formHistory('staff-report', 'drafts', 3); await api.formReview('staff-report', 2); await api.formPublication('staff-report', 1);
   await api.formSave({ caseType: 'staff-report' }); await api.formPublish({ caseType: 'staff-report' }); await api.formWithdraw({ caseType: 'staff-report' });
   assert.deepEqual(calls.slice(1).map(call => call.path), ['/api/ticket-forms/draft?caseType=staff-report&revision=2', '/api/ticket-forms/history?caseType=staff-report&kind=drafts&before=3',

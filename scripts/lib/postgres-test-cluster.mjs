@@ -3,6 +3,7 @@ import { resolve, relative, isAbsolute } from 'node:path';
 import { execFileSync, spawn } from 'node:child_process';
 import { randomBytes, randomUUID } from 'node:crypto';
 import { createServer } from 'node:net';
+import { getPriority, setPriority } from 'node:os';
 import pg from 'pg';
 import { sha256 } from './repository-checks.mjs';
 import { createDatabasePool } from '../../apps/core/storage/pool.js';
@@ -10,6 +11,8 @@ import { migrateCore } from '../../apps/core/storage/migrate.js';
 
 const root = resolve(import.meta.dirname, '../..');
 const safeEnv = Object.fromEntries(Object.entries(process.env).filter(([key]) => !/^PG/i.test(key)));
+// Windows tools by absolute path: a shell's PATH (Git Bash ships its own whoami.exe) must not choose them.
+const system32 = name => resolve(process.env.SystemRoot ?? 'C:/Windows', 'System32', name);
 function invoke(executable, args) {
   try { return execFileSync(executable, args,
     { encoding: 'utf8', windowsHide: true, timeout: 30_000, env: safeEnv, stdio: 'pipe' }); }
@@ -51,10 +54,10 @@ export async function createTestCluster() {
   const within = relative(await realpath(base), await realpath(directory));
   if (!within || within.startsWith('..') || isAbsolute(within)) throw new Error('TEST_PATH_ESCAPE');
   // Restrict only this new run directory, before writing passwords or database files.
-  const identity = invoke('whoami.exe', ['/user', '/fo', 'csv', '/nh']);
+  const identity = invoke(system32('whoami.exe'), ['/user', '/fo', 'csv', '/nh']);
   const sid = /S-1-[\d-]+/.exec(identity)?.[0];
   if (!sid) throw new Error('TEST_IDENTITY_UNKNOWN');
-  invoke('icacls.exe', [directory, '/inheritance:r', '/grant:r', `*${sid}:(OI)(CI)F`, '*S-1-5-18:(OI)(CI)F', '*S-1-5-32-544:(OI)(CI)F']);
+  invoke(system32('icacls.exe'), [directory, '/inheritance:r', '/grant:r', `*${sid}:(OI)(CI)F`, '*S-1-5-18:(OI)(CI)F', '*S-1-5-32-544:(OI)(CI)F']);
   const password = randomBytes(32).toString('hex');
   const corePassword = randomBytes(32).toString('hex');
   const knowledgePassword = randomBytes(32).toString('hex');
@@ -73,6 +76,14 @@ export async function createTestCluster() {
     await Promise.all([...pools].map(pool => pool.ended ? undefined : pool.end()));
     pools.clear();
   }
+  // pg_ctl does not pass on a lowered priority. A parallel shard runs below normal, so lower the postmaster to match
+  // before any connection exists; backends it starts later inherit it. A normal-priority run changes nothing.
+  async function matchPriority() {
+    const own = getPriority(0); if (own <= 0) return;
+    // The first line of postmaster.pid is the server's process ID.
+    const pid = Number.parseInt(await readFile(resolve(data, 'postmaster.pid'), 'utf8'), 10);
+    if (Number.isSafeInteger(pid) && pid > 0) setPriority(pid, own);
+  }
   async function stop() {
     await closePools();
     if (running) { await control(executable('pg_ctl'), ['-D', data, '-m', 'fast', '-w', 'stop']); running = false; }
@@ -82,7 +93,7 @@ export async function createTestCluster() {
   }
   try {
     running = true;
-    await control(executable('pg_ctl'), [...ctlOptions, 'start']);
+    await control(executable('pg_ctl'), [...ctlOptions, 'start']); await matchPriority();
     const bootstrap = new pg.Client({ ...configuration, database: 'postgres', ssl: false, connectionTimeoutMillis: 5_000 });
     try {
       await bootstrap.connect();
@@ -122,14 +133,15 @@ export async function createTestCluster() {
         // Fixture TRUNCATE churn can otherwise leave over 100,000 files to sync at shutdown.
         // Only between independent suites; never inside a scenario, and never relax durability.
         const client = await adminPool.connect();
-        try { await client.query("SET statement_timeout = '120s'"); await client.query('CHECKPOINT'); }
+        // Parallel shards share the disk, so a large checkpoint may take minutes; waiting longer keeps full durability.
+        try { await client.query("SET statement_timeout = '300s'"); await client.query('CHECKPOINT'); }
         finally { client.release(true); }
       },
       async restart() {
         await closePools();
         await control(executable('pg_ctl'), ['-D', data, '-m', 'fast', '-w', 'stop']); running = false;
         // Track startup before awaiting it so a lost acknowledgement still requires cleanup.
-        running = true; await control(executable('pg_ctl'), [...ctlOptions, 'start']);
+        running = true; await control(executable('pg_ctl'), [...ctlOptions, 'start']); await matchPriority();
         return { adminPool: newPool(configuration), corePool: newPool(coreConfiguration) };
       },
     };

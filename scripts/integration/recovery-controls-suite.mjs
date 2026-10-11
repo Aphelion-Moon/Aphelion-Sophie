@@ -12,13 +12,18 @@ export async function runRecoveryControlsSuite(cluster, run) {
   const count = async () => (await admin.query('SELECT count(*)::int AS count FROM sophie_control.events')).rows[0].count;
   await run('RC01 migration baselines existing authority metadata without changing source state and is repeatable', async () => {
     const member = await f.rows('members'), cases = await f.rows('case_reservations');
-    await admin.query('DROP SCHEMA sophie_control CASCADE');
-    await admin.query("DELETE FROM sophie_migrations.applied WHERE id = '033-recovery-controls.sql'");
+    // Dropping sophie_control also removes everything migrations 047-055 placed there, including every core table's
+    // write guard. Rewind 047-050 and 055 too, so the replay rebuilds them in order. Migration 052 also changed other core
+    // tables, so it stays applied; replaying 047 re-guards every existing core table, system_wording included.
+    await admin.query('DROP SCHEMA sophie_control CASCADE; DROP FUNCTION sophie_core.runtime_available(); DROP TABLE sophie_core.permission_applications');
+    await admin.query(`DELETE FROM sophie_migrations.applied WHERE id IN ('033-recovery-controls.sql', '047-runtime-maintenance.sql',
+      '048-permission-channel-inventory.sql', '049-permission-sealing.sql', '050-permission-policy-application.sql', '055-configuration-application.sql')`);
     assert.deepEqual(await migrateCore(admin), { migrations: 70 });
     const recorded = await count(); assert.ok(recorded > 0);
     assert.equal((await history('members')).every(row => row.operation === 'baseline'), true);
     assert.deepEqual(await f.rows('members'), member); assert.deepEqual(await f.rows('case_reservations'), cases);
     await migrateCore(admin); assert.equal(await count(), recorded);
+    await verifyCoreMigrations(admin);
   });
   await run('RC02 real membership saves record a Whitelist-loss epoch atomically and skip observation-only refreshes', async () => {
     // Resolve the trusted observation before handing it to the store.

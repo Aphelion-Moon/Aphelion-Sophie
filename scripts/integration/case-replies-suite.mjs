@@ -4,6 +4,7 @@ import { issuePayload, recheckPayload } from '../../tests/fixtures/case-delivery
 import { caseIssueQueueReply } from '../../modules/tickets/delivery-issues.js';
 import { enqueue } from '../../apps/core/storage/outbox.js';
 import { migrateCore } from '../../apps/core/storage/migrate.js';
+import { restoreRuntimeGuards } from '../lib/runtime-guards.mjs';
 import { ContractError } from '../../contracts/validation.js';
 import { createCaseReplyDispatcher } from '../../apps/core/discord/case-reply-dispatcher.js';
 import { createCaseReplyCommands } from '../../apps/core/discord/case-reply-commands.js';
@@ -274,6 +275,7 @@ export async function runCaseRepliesSuite(cluster, run) {
       ALTER TABLE sophie_core.outbox ADD CONSTRAINT outbox_kind_check CHECK
         (kind IN ('whitelist.grant','whitelist.reconcile','member.reconcile','case.provision','shuttle.render','shuttle.alert','case.intake','case.dm'))`);
     assert.deepEqual(await migrateCore(f.admin), { migrations: 70 });
+    await restoreRuntimeGuards(f.admin);
     await f.admin.query('GRANT SELECT, INSERT, UPDATE ON sophie_core.automation_recovery_actions, sophie_core.automation_delivery_events, sophie_core.automation_deliveries, sophie_core.automation_events, sophie_core.automation_cooldowns, sophie_core.case_replies, sophie_core.case_reply_events, sophie_core.case_answer_reviews TO sophie_test_core');
     assert.deepEqual(await f.rows('case_reservations'), reservations); assert.deepEqual(await f.rows('case_intakes'), intakes);
     assert.deepEqual(await f.rows('case_replies'), []); assert.deepEqual(await jobs(f), []);
@@ -605,6 +607,7 @@ export async function runCaseRepliesSuite(cluster, run) {
     await f.replies.request(f.request()); const before = await f.rows('case_replies');
     await f.admin.query("DROP TABLE sophie_core.case_answer_reviews; DELETE FROM sophie_migrations.applied WHERE id = '040-case-answer-reviews.sql'");
     assert.deepEqual(await migrateCore(f.admin),{migrations: 70}); assert.deepEqual(await f.rows('case_replies'),before);
+    await restoreRuntimeGuards(f.admin);
     await f.admin.query('GRANT SELECT,INSERT,UPDATE ON sophie_core.case_answer_reviews TO sophie_test_core');
     await assert.rejects(f.pool.query('DELETE FROM sophie_core.case_answer_reviews'),error => error.code === '42501');
     await publication(f); const review = await f.replies.prepareAnswerReview(reviewRequest(f));

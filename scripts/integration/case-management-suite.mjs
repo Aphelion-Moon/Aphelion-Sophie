@@ -101,7 +101,7 @@ export async function runCaseManagementSuite(cluster, run) {
     const results = await Promise.all([f.post(claim), f.post(close)]);
     assert.deepEqual(results.map(result => result.status).sort(), [200, 503]);
     const busy = results.findIndex(result => result.status === 503);
-    assert.equal(results[busy].body.error, 'Sign-in is busy. Please try again shortly.'); assert.deepEqual(f.errors, []);
+    assert.deepEqual(results[busy].body, { error: 'This operation is busy. Please try again shortly.', code: 'DASHBOARD_BUSY' }); assert.deepEqual(f.errors, []);
     assert.equal((await f.post([claim, close][busy])).status, 409); assert.deepEqual(f.errors, ['STALE_CASE_VERSION']);
     assert.equal((await f.rows('case_staff_actions')).length + (await f.rows('case_lifecycle_actions')).length, 1);
   });

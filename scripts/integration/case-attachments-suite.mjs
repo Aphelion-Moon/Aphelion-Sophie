@@ -12,6 +12,7 @@ import { createAttachmentSource } from '../../apps/core/discord/attachment-sourc
 import { createAttachmentWorker } from '../../apps/core/discord/attachment-worker.js';
 import { migrateCore } from '../../apps/core/storage/migrate.js';
 import { GUILD } from '../../tests/fixtures/domain.js';
+import { restoreRuntimeGuards } from '../lib/runtime-guards.mjs';
 
 /** Actual synthetic PostgreSQL and local files. No Discord CDN, existing case history or credentials. */
 export async function runCaseAttachmentsSuite(cluster, run) {
@@ -162,6 +163,7 @@ export async function runCaseAttachmentsSuite(cluster, run) {
     await f.admin.query(`DROP TABLE sophie_core.case_attachment_jobs, sophie_core.case_attachment_attempts, sophie_core.case_attachment_capacity;
       DELETE FROM sophie_migrations.applied WHERE id = '030-case-attachments.sql'`);
     assert.deepEqual(await migrateCore(f.admin), { migrations: 70 });
+    await restoreRuntimeGuards(f.admin);
     await f.admin.query('GRANT SELECT, INSERT, UPDATE ON sophie_core.case_attachment_jobs, sophie_core.case_attachment_attempts, sophie_core.case_attachment_capacity TO sophie_test_core');
     assert.deepEqual(await f.observations(), observations); assert.equal((await f.jobs())[0].status, 'pending');
     assert.equal((await f.attempts()).length, 0); assert.equal(f.fileState.requests.length, 0); await execute(f); await retained(f);

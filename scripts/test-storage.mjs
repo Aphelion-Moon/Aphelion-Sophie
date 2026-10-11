@@ -9,6 +9,7 @@ import { runSystemWordingSuite } from './integration/system-wording-suite.mjs';
 import { runStagingUpgradeSuite } from './integration/staging-upgrade-suite.mjs';
 import { runPermissionEditorSuite } from './integration/permission-editor-suite.mjs';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
+import { constants, setPriority } from 'node:os';
 import { resolve } from 'node:path';
 import { createTestCluster } from './lib/postgres-test-cluster.mjs';
 import { runRecoverySuite } from './integration/recovery-suite.mjs';
@@ -64,9 +65,44 @@ import { sha256, sourceFiles } from './lib/repository-checks.mjs';
 
 const root = resolve(import.meta.dirname, '..');
 const selected = process.argv.find(value => value.startsWith('--suite='))?.slice(8) ?? null;
-if (process.argv.slice(2).some(value => !['--record', '--suite=ai', '--suite=members', '--suite=onboarding-lifecycle', '--suite=staging-upgrade', '--suite=permissions', '--suite=configuration', '--suite=authorization', '--suite=dashboard-auth', '--suite=shuttle-authoring', '--suite=onboarding', '--suite=onboarding-staff', '--suite=system-wording', '--suite=automation-recovery', '--suite=automation-delivery', '--suite=automation-admission', '--suite=automation', '--suite=answers', '--suite=replies', '--suite=contact-navigation', '--suite=contact-entry', '--suite=management', '--suite=labels', '--suite=notes', '--suite=controls', '--suite=recovery', '--suite=transcripts', '--suite=staging', '--suite=exports', '--suite=attachment-operations', '--suite=intake', '--suite=direct-notices'].includes(value)) ||
+// Iteration aids: --keep-going reports every failing suite in one run; --from=<suite function> starts part-way. Neither
+// may be combined with --record, so recorded evidence always comes from an uninterrupted run.
+const keepGoing = process.argv.includes('--keep-going'), from = process.argv.find(value => value.startsWith('--from='))?.slice(7) ?? null;
+// --shard=i/n runs one of n disjoint suite groups on this process's own cluster (see test-storage-parallel.mjs).
+const shardArgument = process.argv.find(value => value.startsWith('--shard='))?.slice(8) ?? null, shard = shardArgument === null ? null : /^(\d+)\/(\d+)$/u.exec(shardArgument);
+if (shardArgument !== null && (!shard || Number(shard[1]) < 1 || Number(shard[1]) > Number(shard[2]) || Number(shard[2]) > 16)) throw new Error('STORAGE_SHARD_INVALID');
+if ((keepGoing || from !== null || shard !== null) && process.argv.includes('--record')) throw new Error('ITERATION_RUN_CANNOT_RECORD');
+if (shard !== null && from !== null) throw new Error('STORAGE_SHARD_INVALID');
+// Parallel shards run below normal priority; on Windows, initdb and PostgreSQL started from here inherit it.
+if (shard !== null) setPriority(0, constants.priority.PRIORITY_BELOW_NORMAL);
+if (from !== null && !/^run[A-Za-z]+Suite$/u.test(from)) throw new Error('UNKNOWN_STORAGE_SUITE_START');
+if (process.argv.slice(2).some(value => value !== '--keep-going' && !value.startsWith('--from=') && !value.startsWith('--shard=') && !['--record', '--suite=ai', '--suite=members', '--suite=onboarding-lifecycle', '--suite=staging-upgrade', '--suite=permissions', '--suite=configuration', '--suite=authorization', '--suite=dashboard-auth', '--suite=shuttle-authoring', '--suite=onboarding', '--suite=onboarding-staff', '--suite=system-wording', '--suite=automation-recovery', '--suite=automation-delivery', '--suite=automation-admission', '--suite=automation', '--suite=answers', '--suite=replies', '--suite=contact-navigation', '--suite=contact-entry', '--suite=management', '--suite=labels', '--suite=notes', '--suite=controls', '--suite=recovery', '--suite=transcripts', '--suite=staging', '--suite=exports', '--suite=attachment-operations', '--suite=intake', '--suite=direct-notices'].includes(value)) ||
     process.argv.filter(value => value.startsWith('--suite=')).length > 1) throw new Error('UNKNOWN_STORAGE_SUITE_ARGUMENT');
-const results = [];
+const results = [], failedSuites = [];
+// Some suites still rely on state an earlier suite leaves behind (for example sophie_ai grants), so shards are contiguous
+// slices of the normal order and these blocks are never split: each suite keeps the predecessors it has sequentially.
+const ORDERED_BLOCKS = [['runAiOperationsSuite', 'runStagingUpgradeSuite']];
+/** Deterministic contiguous groups balanced by recorded suite time; unknown suites count as one minute. */
+async function storageShards(names, count) {
+  let timings = {};
+  try { timings = JSON.parse(await readFile(resolve(root, '.local/storage-suite-timings.json'), 'utf8')); } catch { /* First run balances by count. */ }
+  const cost = name => Number.isSafeInteger(timings[name]) && timings[name] > 0 ? timings[name] : 60_000;
+  const units = [];
+  for (let index = 0; index < names.length;) {
+    const block = ORDERED_BLOCKS.find(([first]) => first === names[index]), last = block ? names.indexOf(block[1], index) : -1;
+    const next = last >= index ? last + 1 : index + 1; units.push(names.slice(index, next)); index = next;
+  }
+  const total = units.flat().reduce((sum, name) => sum + cost(name), 0), groups = [[]];
+  let load = 0;
+  for (const [position, unit] of units.entries()) {
+    const weight = unit.reduce((sum, name) => sum + cost(name), 0), left = units.length - position;
+    // Close the current shard once it reaches its share, while leaving at least one unit for each remaining shard.
+    if (groups.at(-1).length > 0 && groups.length < count && (load + weight / 2 > total * groups.length / count || left <= count - groups.length)) groups.push([]);
+    groups.at(-1).push(...unit); load += weight;
+  }
+  while (groups.length < count) groups.push([]);
+  return groups;
+}
 console.log('Starting isolated PostgreSQL synthetic checks (no existing database login).');
 const cluster = await createTestCluster();
 let cleanup = false;
@@ -89,9 +125,24 @@ try {
     'attachment-operations': [runCaseAttachmentsSuite, runAttachmentOperationsSuite],
     intake: [runCaseIntakeSuite, runCaseIntakeDeliverySuite, runCaseDeliveryIssueSuite],
     'direct-notices': [runCaseDirectNoticeSuite] };
-  for (const suite of selected === null ? suites : selectedSuites[selected]) { await suite(cluster, run); await cluster.checkpoint(); }
-  // Stateful restart checks run without added checkpoints inside the suite.
-  if (selected === null) await runStorageSuite(cluster, run);
+  let queue = selected === null ? [...suites, runStorageSuite] : selectedSuites[selected];
+  if (from !== null) { const start = queue.findIndex(suite => suite.name === from); if (start < 0) throw new Error('UNKNOWN_STORAGE_SUITE_START'); queue = queue.slice(start); }
+  if (shard !== null) { const groups = await storageShards(queue.map(suite => suite.name), Number(shard[2])); queue = queue.filter(suite => groups[Number(shard[1]) - 1].includes(suite.name)); }
+  for (const suite of queue) {
+    // Scenarios inside a suite share setup, so a failure ends that suite; --keep-going moves on to the next one.
+    const startedAt = Date.now();
+    try { await suite(cluster, run); }
+    catch (error) {
+      if (!keepGoing) throw error;
+      failedSuites.push(suite.name);
+      const frame = String(error.stack ?? '').split('\n').find(line => line.includes('/scripts/') || line.includes('/apps/') || line.includes('/tests/'))?.trim() ?? '';
+      console.error(`REASON ${suite.name} ${[error.code, error.message, error.detail].filter(Boolean).join(' | ').slice(0, 400)} ${frame}`);
+      console.error(`SKIPPED remaining scenarios of ${suite.name}`);
+    }
+    finally { console.log(`TIMING ${suite.name} ${Date.now() - startedAt}`); }
+    // Stateful restart checks run without added checkpoints inside the suite.
+    if (suite !== runStorageSuite) await cluster.checkpoint();
+  }
 } finally { await cluster.stop(); cleanup = true; }
 
 const inputs = ['apps/core/storage/migrations/070-ai-member-notes.sql', 'apps/core/storage/migrations/069-shuttle-staff-return-paths.sql', 'apps/dashboard/shuttle-assistance.html', 'apps/dashboard/shuttle-delivery.html', 'apps/core/storage/migrations/068-case-delivery-return-path.sql', 'apps/dashboard/case-delivery.html', 'apps/core/storage/migrations/067-moderation-return-path.sql', 'apps/core/storage/migrations/066-ai-departure-privacy.sql', 'apps/core/storage/migrations/065-ai-consent-receipts.sql', 'apps/core/storage/migrations/064-ai-activation.sql', 'apps/core/storage/migrations/063-ai-worker-operations.sql', 'apps/core/storage/migrations/062-ai-preferences.sql', 'apps/core/storage/migrations/061-ai-gathering.sql', 'apps/core/storage/migrations/060-ai-effects.sql', 'apps/core/storage/migrations/059-knowledge-imports.sql', 'apps/core/storage/migrations/058-ai-accounting.sql', 'apps/core/storage/migrations/057-ai-boundaries.sql', 'apps/core/storage/migrations/056-ai-controls.sql', 'apps/core/storage/migrations/055-configuration-application.sql', ...await sourceFiles(root), 'apps/dashboard/login.html', 'apps/core/storage/migrations/054-onboarding-channel-lifecycle.sql', 'contracts/system-messages.json', 'apps/dashboard/localizations.html', 'apps/core/storage/migrations/001-core.sql', 'apps/core/storage/migrations/002-discord-backoff.sql', 'apps/core/storage/migrations/003-member-actions.sql', 'apps/core/storage/migrations/004-actor-authority.sql', 'apps/core/storage/migrations/005-case-provisioning.sql', 'package.json', 'package-lock.json',
@@ -133,4 +184,5 @@ if (process.argv.includes('--record')) {
   await mkdir(resolve(root, 'docs/evidence'), { recursive: true });
   await writeFile(resolve(root, `docs/evidence/${selected === null ? 'storage' : selected}-verification.json`), `${JSON.stringify(report, null, 2)}\n`);
 }
-console.log(JSON.stringify({ ...report.tests, clusterStopped: cleanup, productionReady: false }, null, 2));
+console.log(JSON.stringify({ ...report.tests, clusterStopped: cleanup, productionReady: false, ...(keepGoing ? { failedSuites } : {}) }, null, 2));
+if (failedSuites.length > 0) process.exitCode = 1;

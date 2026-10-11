@@ -43,3 +43,14 @@ Log of agent mistakes: what happened, the root cause, and prevention.
 - **Prevention:** When one error message covers several checks, list every check that can produce it and
   eliminate each before naming a cause. Ask for the real failing request early, and build reproductions
   from it.
+
+## 2026-10-11 — Error classification used a variable from another function's scope
+
+- **What happened:** While scoping the Shuttle and case delivery recovery conflict codes to their own routes in
+  `apps/core/http/dashboard-auth.js`, the new check read `path`, which exists only inside the request handler,
+  from the server's error callback. Every failing dashboard request then threw inside its error handler and never
+  answered, so unit tests hung instead of failing. The change was not committed or deployed.
+- **Root cause:** A syntax check cannot detect an out-of-scope identifier, and the edit was made from a partial view
+  of a long function without confirming where the variable was declared.
+- **Prevention:** Before using a name inside a callback, find its declaration and confirm the enclosing scope. Run the
+  focused HTTP tests for the edited server, with a timeout, before starting the long suites.

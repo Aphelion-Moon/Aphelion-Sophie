@@ -16,7 +16,8 @@
     "demo": "node scripts/demo-onboarding.mjs",
     "docs:build": "node scripts/build-workplan.mjs",
     "content:build": "node scripts/build-onboarding-content.mjs",
-    "test:storage": "node scripts/test-storage.mjs"
+    "test:storage": "node scripts/test-storage.mjs",
+    "test:storage:fast": "node scripts/test-storage-parallel.mjs"
   },
   "dependencies": {
     "parse5": "8.0.1",

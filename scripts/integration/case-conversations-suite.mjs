@@ -12,6 +12,7 @@ import { APPLICATION } from '../../tests/fixtures/interactions.js';
 import { createGatewaySupervisor } from '../../apps/core/discord/gateway-supervisor.js';
 import { createLoopbackGateway, waitForGateway } from '../../tests/fixtures/gateway-server.js';
 import { discoveryResponse, SYNTHETIC_GATEWAY_TOKEN } from '../../tests/fixtures/gateway-supervisor.js';
+import { restoreRuntimeGuards } from '../lib/runtime-guards.mjs';
 
 /** Only authored synthetic conversation fixtures. No Discord history or real case data is read. */
 export async function runCaseConversationsSuite(cluster, run) {
@@ -220,6 +221,7 @@ export async function runCaseConversationsSuite(cluster, run) {
       ALTER TABLE sophie_core.gateway_lifecycle DROP COLUMN capture_enabled, DROP COLUMN capture_observed_at_ms;
       DELETE FROM sophie_migrations.applied WHERE id IN ('029-case-conversations.sql', '030-case-attachments.sql')`);
     assert.deepEqual(await migrateCore(f.admin), { migrations: 70 });
+    await restoreRuntimeGuards(f.admin);
     await f.admin.query('GRANT SELECT, INSERT, UPDATE ON sophie_core.case_message_observations, sophie_core.case_capture_gaps, sophie_core.case_capture_channels, sophie_core.case_attachment_jobs, sophie_core.case_attachment_attempts, sophie_core.case_attachment_capacity TO sophie_test_core');
     assert.deepEqual(await f.rows('case_reservations'), cases); assert.deepEqual(await f.rows('case_intakes'), intake);
     assert.equal((await f.observations()).length, 0);
