@@ -5,7 +5,8 @@ import { requireCondition } from '../../contracts/validation.js';
 export async function runInstalledRole(role,compose) {
   const lifetime=new AbortController(),abort=()=>lifetime.abort();let pipes,service,failed=false,timer,polling;
   const fatal=()=>{failed=true;abort();};
-  const onFault=()=>process.stderr.write('AI_INSTALLED_ROLE_FAULT\n');
+  // Fixed contract codes only, as in the catch below: never messages, paths, SQL or credentials.
+  const onFault=code=>process.stderr.write(`AI_INSTALLED_ROLE_FAULT${typeof code==='string' && /^[A-Z][A-Z0-9_]{2,63}$/u.test(code)?` ${code}`:''}\n`);
   process.once('SIGINT',abort);process.once('SIGTERM',abort);
   try {
     requireCondition(process.argv.length===2 || role==='core' && process.argv.length===3 && process.argv[2]==='start-installed','AI_INSTALLATION_ARGUMENTS_INVALID');
