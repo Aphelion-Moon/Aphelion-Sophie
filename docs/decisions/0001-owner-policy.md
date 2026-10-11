@@ -895,3 +895,26 @@ of the DS-01 evidence, approval of the notice text, or approval to migrate the s
 the installed provider key, renew trust, start services or the worker, or process member messages. Those
 follow the established reviewed-proposal and recorded-approval steps. No fabricated evidence receipt,
 consent or qualification is created. Tickets and onboarding remain excluded.
+
+### Mistral and member-notes staging deployment approved — 11 October 2026
+
+Shown the proposal in `GitHub/.agent_docs/aphelion-sophie/test-server-readiness-2026-10-11/deployment-proposal.md`
+and asked “Do you approve deploying `77b9d07` to staging as proposed, with the worker left stopped until
+your policy is accepted?”, the owner replied: “I've already sent the ZDR request to Mistral. I approve the
+policy edits and new deployment. Thank you.” This authorizes that exact staging update: pinned commit
+`77b9d076e247a14bdeb20ba14a264f9d6ad23705`, migration 070, replacement of the installed provider key with the
+owner's Mistral key, fresh source-bound trust for release `sophie-mistral-77b9d07` with accepted identity
+`mistral-small-2603`, journal receipt renewal, and starts of Sophie's PostgreSQL, tunnel, supervisor and
+core. It also approves the recorded Mistral and member-notes decisions and the drafted notice edits.
+
+It is not recorded as acceptance of a processing policy. The notice still has sixteen unfilled facts, two
+evidence files are still the owner's to supply, and acceptance is made by the owner running the policy
+builder with `--accept`. No policy was installed, so opt-in and channel activation remain unavailable.
+
+The scoped update was applied and verified the same day. A protected recovery point
+(`D:\Backups\sophie-staging\schema070-77b9d07-20261011`) was verified before mutation, including the previous
+provider credential and a separate journal copy that must never overwrite current deletion history. All
+111 rows across 103 tables were preserved, no grant was added, and the one source file the candidate
+deletes was removed from the package. The worker is stopped. This approval does not authorize worker
+start, publications, member processing, worker isolation trials, production or game-service changes, or
+a host reboot. Evidence: `GitHub/.agent_docs/aphelion-sophie/deployment-77b9d07-2026-10-11/verification.json`.

@@ -1,14 +1,14 @@
 # AI on the Test Discord Server — operator runbook
 
-Status (4 October 2026): the owner-approved update is installed at pinned source `335a3f2`,
-schema 069. PostgreSQL, tunnel, supervisor and core are running; the AI worker is stopped. The
-deployment verified Gateway readiness, installed hashes, four service-child identities, 18 local/public
-routes and two assets. Read-only inspection at 20:34 UTC reconfirmed the source, all migration checksums
-and disabled AI state. No processing policy is installed. Trust expires 5 October at 21:54 Warsaw;
-the independent journal receipt expires earlier, at 20:54 Warsaw. Both need fresh evidence before renewal.
-The paged-export candidate `2c5d356` is prepared but not deployed. Earlier operator observations remain historical.
+Status (11 October 2026): the owner-approved update is installed at pinned source `77b9d07`,
+schema 070, release `sophie-mistral-77b9d07`. PostgreSQL, tunnel, supervisor and core are running; the AI
+worker is stopped. The installed provider key is the owner's Mistral key. No processing policy is
+installed, so members cannot opt in and no channel can be enabled. Trust expires 12 October at 19:52
+Warsaw; the independent journal receipt expires earlier, at 18:52 Warsaw. Both need fresh evidence before
+renewal. Evidence: `GitHub/.agent_docs/aphelion-sophie/deployment-77b9d07-2026-10-11/verification.json`.
 No live AI processing is cleared. Starting the worker is an owner action through the dashboard. Do not paste
-the provider key, Discord token or trust-file contents into chat, logs or Git.
+the provider key, Discord token or trust-file contents into chat, logs or Git. Sections below that describe
+the 4 October builds are history.
 
 ## What is installed
 

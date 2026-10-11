@@ -1,5 +1,39 @@
 # Verification and release limits
 
+## Approved schema070 staging deployment — 11 October 2026
+
+Owner approval and scope: [decision](decisions/0001-owner-policy.md#mistral-and-member-notes-staging-deployment-approved--11-october-2026).
+Pinned `77b9d076e247a14bdeb20ba14a264f9d6ad23705` is installed on WUFF as `sophie-mistral-77b9d07`, schema 070.
+
+- **Before mutation:** all five Sophie services were already stopped. The 514 pinned files matched Git, the
+  512 installed files matched the previous trusted manifest and pinned `335a3f2`, and 212 dependency files
+  were copied from that verified installation. A recovery point was written and hash-verified under
+  `D:\Backups\sophie-staging\schema070-77b9d07-20261011` (cold database, package, trust, services,
+  qualification, renewal tooling, journal and the previous provider credential).
+- **Database:** 69 checksums verified, then migration 070 applied by the maintenance identity. The saved-settings
+  limit reads 8,192 bytes; 111 rows across 103 tables are unchanged; grants are unchanged; core, control,
+  knowledge and knowledge-editor identities qualify against the candidate. AI stays disabled.
+- **Source and key:** 30 files written, 514 verified, `apps/knowledge-worker/deepseek-client.js` removed.
+  The provider key was replaced in place from the owner's file with its access list unchanged; the value was
+  not printed or recorded.
+- **Trust:** fresh identity, access-list and firewall evidence in `qualification\evidence-20261011-77b9d07`;
+  journal bytes and identity unchanged and its receipt renewed; the protected assembler and legacy renewal
+  guard now pin this commit, the Mistral release name and accepted identity `mistral-small-2603`. No
+  processing policy is installed. Installation trust expires 12 October 17:52 UTC (19:52 Warsaw); the
+  journal receipt 16:52 UTC (18:52 Warsaw).
+- **After start:** PostgreSQL, tunnel, supervisor and core run under their own service identities with the
+  four loopback listeners; Gateway is current for the test guild; the worker is stopped; configured access
+  lists and firewall rules are unchanged; installed directories mirror the pinned source. The first
+  installed check failed one local dashboard route with a status the inherited script did not record; a
+  status-recording check then passed 24 of 24 routes and assets on both origins, and the full check passed
+  25 of 25 on rerun. The cause of the first failure is unexplained, as on 4 October.
+
+Not done: processing-policy acceptance, worker start, any publication (personality, participation, budget,
+channel), member processing, actual worker file/network denial and physical-stop trials, quality
+qualification. The installed worker service description still names the previous provider; it is cosmetic
+and was left unchanged to avoid altering a qualified service definition. Evidence:
+`GitHub/.agent_docs/aphelion-sophie/deployment-77b9d07-2026-10-11/`.
+
 ## Member notes and Mistral live check — 11 October 2026
 
 Owner decision: [member notes, key and test-server preparation](decisions/0001-owner-policy.md#member-notes-mistral-key-and-test-server-preparation--11-october-2026).
