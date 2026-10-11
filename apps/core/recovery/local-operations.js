@@ -5,6 +5,9 @@ import { createHash, randomBytes } from 'node:crypto';
 import { tmpdir } from 'node:os';
 import { ContractError, requireCondition } from '../../../contracts/validation.js';
 
+// Windows tools by absolute path, so PATH (or a shell such as Git Bash with its own whoami.exe) cannot substitute them.
+const system32 = name => resolve(process.env.SystemRoot ?? 'C:/Windows', 'System32', name);
+
 /** New operator-owned directories only; no recursive delete, inherited broad ACL or reused destination. */
 export async function createRecoveryDirectory(parent, prefix) {
   requireCondition(isAbsolute(parent) && /^[a-z-]{1,32}$/.test(prefix), 'RECOVERY_PATH_INVALID');
@@ -15,9 +18,9 @@ export async function createRecoveryDirectory(parent, prefix) {
   const within = relative(base, await realpath(directory));
   requireCondition(within && !within.startsWith('..') && !isAbsolute(within), 'RECOVERY_PATH_INVALID');
   try {
-    const identity = execFileSync('whoami.exe', ['/user', '/fo', 'csv', '/nh'], { windowsHide: true, encoding: 'utf8', stdio: 'pipe' });
+    const identity = execFileSync(system32('whoami.exe'), ['/user', '/fo', 'csv', '/nh'], { windowsHide: true, encoding: 'utf8', stdio: 'pipe' });
     const sid = /S-1-[\d-]+/.exec(identity)?.[0]; requireCondition(sid, 'RECOVERY_IDENTITY_UNKNOWN');
-    execFileSync('icacls.exe', [directory, '/inheritance:r', '/grant:r', `*${sid}:(OI)(CI)F`, '*S-1-5-18:(OI)(CI)F', '*S-1-5-32-544:(OI)(CI)F'],
+    execFileSync(system32('icacls.exe'), [directory, '/inheritance:r', '/grant:r', `*${sid}:(OI)(CI)F`, '*S-1-5-18:(OI)(CI)F', '*S-1-5-32-544:(OI)(CI)F'],
       { windowsHide: true, stdio: 'pipe' });
   } catch { throw new ContractError('RECOVERY_DIRECTORY_ACL_FAILED'); }
   return directory;
