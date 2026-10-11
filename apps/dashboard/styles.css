@@ -1098,3 +1098,14 @@ body:has(.service-nav) .editor-layout { grid-template-columns:minmax(180px,230px
 .ai-review-panel { border-color:var(--cyan); scroll-margin-top:80px; }
 .ai-footnote { padding:14px 20px; }
 @media(max-width:760px) { .ai-workspace fieldset.ai-row, .ai-workspace fieldset.ai-card.ai-grid { grid-template-columns:minmax(0,1fr); } }
+/* Setup checklist and worker progress: done, current and waiting steps read at a glance. */
+.ai-steps, .ai-progress { list-style:none; margin:0 0 16px; padding:0; display:grid; gap:6px; counter-reset:step; }
+.ai-steps li, .ai-progress li { counter-increment:step; display:flex; flex-wrap:wrap; align-items:center; gap:4px 12px; padding:10px 14px; border:1px solid var(--soft-border); border-radius:3px; background:var(--inset); color:var(--muted); }
+.ai-steps li::before, .ai-progress li::before { content:counter(step); display:inline-grid; place-items:center; width:24px; height:24px; border:1px solid var(--border); border-radius:50%; font-size:12px; flex-shrink:0; }
+.ai-steps li > span { margin-left:auto; font-size:12px; }
+.ai-steps li[data-state=done]::before, .ai-progress li[data-state=done]::before { content:'✓'; color:#0d1516; background:var(--cyan); border-color:var(--cyan); }
+.ai-steps li[data-state=current], .ai-progress li[data-state=current] { color:var(--text); border-color:var(--cyan); }
+.ai-steps li[data-state=current] > span { color:var(--cyan); font-weight:600; }
+.ai-progress li[data-state=current]::before { border-color:var(--cyan); border-top-color:transparent; animation:ai-spin 1s linear infinite; content:''; }
+@keyframes ai-spin { to { transform:rotate(360deg); } }
+@media(prefers-reduced-motion:reduce) { .ai-progress li[data-state=current]::before { animation:none; content:'…'; border-top-color:var(--cyan); } }

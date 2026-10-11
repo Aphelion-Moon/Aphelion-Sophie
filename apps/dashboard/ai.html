@@ -6,12 +6,13 @@
 <p id="notice" class="notice" role="status">Loading your workspace…</p><p id="error" class="error-box" role="alert" hidden></p><button id="retry" hidden>Reload</button>
 <noscript><p>This page needs JavaScript.</p></noscript><div id="workspace" class="ai-workspace" hidden>
 
-<section id="review" class="panel case-panel ai-review-panel" hidden><h2 id="review-heading" tabindex="-1">Review change</h2><p id="review-summary"></p><pre id="review-content" class="ai-review"></pre><p id="review-note" class="muted">This action does not activate AI. Current release, audience and processing approvals still apply.</p><div class="actions"><button id="publish" class="primary">Publish this version</button><button id="cancel-review">Return to editing</button></div></section>
+<section id="review" class="panel case-panel ai-review-panel" hidden><h2 id="review-heading" tabindex="-1">Review change</h2><p id="review-summary"></p><details id="review-details" open><summary>Exact values</summary><pre id="review-content" class="ai-review"></pre></details><p id="review-note" class="muted">This action does not activate AI. Current release, audience and processing approvals still apply.</p><div class="actions"><button id="publish" class="primary">Publish this version</button><button id="cancel-review">Return to editing</button></div></section>
 
 <section id="overview" class="panel case-panel" hidden><h2>Status</h2>
 <dl class="ai-status"><div><dt>AI processing</dt><dd id="overview-ai"></dd></div><div><dt>AI worker</dt><dd id="overview-worker"></dd></div><div><dt>Spending this month</dt><dd id="overview-spend"></dd></div></dl>
+<h3>Setup</h3><ol id="setup-steps" class="ai-steps"></ol>
 <div class="actions"><button id="disable-ai" class="danger">Disable AI now</button><span class="muted">Stops all AI processing at once. Administration keeps running.</span></div>
-<ul class="ai-toc" aria-label="Sections on this page"><li><a href="#personality">Character</a></li><li><a href="#participation">Channels and reactions</a></li><li><a href="#budget">Spending</a></li><li><a href="#activation">Go live</a></li><li><a href="#worker">AI worker</a></li><li><a href="#diagnostics">Request comparison</a></li></ul></section>
+<ul class="ai-toc" aria-label="Sections on this page"><li><a href="#personality">Character</a></li><li><a href="#participation">Channels and reactions</a></li><li><a href="#budget">Spending</a></li><li><a href="#worker">AI worker</a></li><li><a href="#activation">Go live</a></li><li><a href="#diagnostics">Request comparison</a></li></ul></section>
 
 <section id="personality" class="panel case-panel" hidden><h2>Character</h2><p class="section-intro">Who Sophie is and how she talks. Authored identity persists across restarts. Conversations do not rewrite it. Use synthetic examples only.</p>
 <label for="character-core">Character and conversational style</label><textarea id="character-core" rows="10" maxlength="4000"></textarea>
@@ -39,17 +40,20 @@
 <label for="hold-evidence">SHA-256 of the operator’s qualification evidence</label><input id="hold-evidence" maxlength="64" pattern="[a-f0-9]{64}">
 <div class="actions"><button id="review-spending-hold">Review hold clearance</button></div></fieldset></section>
 
-<section id="activation" class="panel case-panel" hidden><h2>Go live in a channel</h2><p class="section-intro">Turn on processing in one configured public channel. Members still opt in individually.</p>
-<label for="activation-channel">Configured channel</label><select id="activation-channel"></select>
-<p class="field-hint">Processing approval, the current worker, publications, budget and live audience must pass again when you confirm. Needs a ready worker.</p>
-<div class="actions"><button id="review-activation" class="primary">Review channel activation</button></div></section>
+<section id="worker" class="panel case-panel" hidden><h2>AI worker</h2><p class="section-intro">The separate process that runs the model. Starting it does not process any messages until a channel goes live.</p>
+<dl class="ai-status"><div><dt>Phase</dt><dd id="worker-phase"></dd></div><div><dt>Running release</dt><dd id="worker-revision"></dd></div></dl>
+<ol id="worker-progress" class="ai-progress" hidden><li data-phase="pending">Queued</li><li data-phase="draining">Stopping the previous worker</li><li data-phase="starting">Starting and checking the new worker</li><li data-phase="ready">Ready</li></ol>
+<p id="worker-state" role="status" aria-live="polite"></p><p id="worker-blocked" class="ai-callout" hidden></p>
+<div id="worker-release-field"><label for="worker-release">Release to start</label><select id="worker-release"></select></div><p id="worker-release-single" class="muted" hidden></p>
+<div class="actions"><button id="review-worker" class="primary">Start worker</button><button id="stop-worker" class="danger" hidden>Stop worker</button></div>
+<p id="worker-ack" class="muted ai-wrap"></p>
+<details><summary>What these actions do</summary><p>Starting or replacing first stops current AI work and confirms the previous worker has stopped, then starts and checks the selected release. Message processing stays disabled until a channel goes live. An acknowledgement records the worker seen at that time; it is not a live health guarantee.</p><p>Stopping confirms that the worker and any pending start have stopped. It does not retry a model request or clear uncertain charges.</p></details></section>
 
-<section id="worker" class="panel case-panel" hidden><h2>AI worker</h2><p class="section-intro">The separate process that runs the model. Operator task.</p>
-<dl class="ai-status"><div><dt>Phase</dt><dd id="worker-phase"></dd></div><div><dt>Revision</dt><dd id="worker-revision"></dd></div></dl>
-<p id="worker-state" class="muted"></p><p id="worker-ack" class="muted ai-wrap"></p>
-<label for="worker-release">Installed release</label><select id="worker-release"></select>
-<div class="actions"><button id="review-worker">Review worker replacement</button><button id="stop-worker" class="danger">Stop or recover AI worker</button></div>
-<details><summary>What these actions do</summary><p>Apply stops current AI work and replaces only the AI worker. Message processing stays disabled until its separate release and data-use checks pass. An acknowledgement records the worker seen at that time; it is not a live health guarantee.</p><p>Recovery first requires confirmation that the prior worker and any pending start have stopped. It does not retry a model request or clear uncertain charges.</p></details></section>
+<section id="activation" class="panel case-panel" hidden><h2>Go live in a channel</h2><p class="section-intro">Turn on processing in one configured public channel. Members still opt in individually.</p>
+<p id="activation-blocked" class="ai-callout" hidden></p>
+<label for="activation-channel">Configured channel</label><select id="activation-channel"></select>
+<p class="field-hint">Processing approval, the current worker, publications, budget and live audience must pass again when you confirm.</p>
+<div class="actions"><button id="review-activation" class="primary">Review channel activation</button></div></section>
 
 <section id="diagnostics" class="panel case-panel" hidden><h2>Request comparison</h2><p class="section-intro">Troubleshooting. Inspect the latest temporary preparation in an enabled public channel.</p>
 <label for="diagnostic-channel">Configured channel</label><select id="diagnostic-channel"></select><div class="actions"><button id="read-diagnostic">Inspect current comparison</button></div>
