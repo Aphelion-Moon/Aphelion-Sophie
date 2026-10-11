@@ -1,6 +1,6 @@
 import { requireCondition } from '../../contracts/validation.js';
-import { createDeepSeekClient } from './deepseek-client.js';
-import { createDeepSeekTransport } from './http-transport.js';
+import { createMistralClient } from './mistral-client.js';
+import { createMistralTransport } from './http-transport.js';
 import { createAiIpcWorker } from './ipc-server.js';
 import { canonicalAiWorkerIdentity } from './ipc-contract.js';
 import { createAiPipeListener, createAiWorkerQualification } from './worker-listener.js';
@@ -8,11 +8,11 @@ import { createAiInferenceDialer } from './inference-dialer.js';
 
 /** Launched under the independently provisioned inference identity. No core token, database or service manager access. */
 export function createAiWorkerRuntime({ identity, key, apiKey, acceptedFingerprints, qualified, revocationSignal, clock = Date.now,
-  transport = createDeepSeekTransport(), connectionMode = 'listen', onFault = ()=>{}, connectPipe }) {
+  transport = createMistralTransport(), connectionMode = 'listen', onFault = ()=>{}, connectPipe }) {
   const fixed = canonicalAiWorkerIdentity(identity);
   requireCondition(typeof qualified === 'function' && revocationSignal instanceof AbortSignal && typeof onFault==='function' &&
     ['listen','dial-host'].includes(connectionMode), 'TRUSTED_ADAPTERS_REQUIRED');
-  const client = createDeepSeekClient({apiKey,acceptedFingerprints,fetchImpl:transport.fetch,clock});
+  const client = createMistralClient({apiKey,acceptedFingerprints,fetchImpl:transport.fetch,clock});
   requireCondition(client.profileHash === fixed.profileHash,'AI_IPC_ADAPTER_INVALID');
   let stopped = false, closing = null; const lifetime=new AbortController();
   const qualification=createAiWorkerQualification({identity:fixed,qualified});

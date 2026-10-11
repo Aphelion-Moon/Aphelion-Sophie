@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
-  "baseline": "2c5d35627b1c",
-  "recordedAt": "2026-10-04T21:14:54.093Z",
+  "baseline": "b416ff1e48ad",
+  "recordedAt": "2026-10-11T17:37:48.231Z",
   "productionReady": false,
   "context": "Single-sheet human release ledger. Synthetic content only. Record commit, environment/guild, schema, config/capability versions and actor fixture; include runtime/model/source generation hashes when applicable.",
   "resultsPolicy": "Not run is not a pass. Record actual outcome, evidence location, reviewer, date and run context. Optional tracks require separate activation approval. Sheet results never activate production.",
@@ -65,11 +65,11 @@
     }
   ],
   "sources": {
-    "scripts/build-release-verification.mjs": "807a19b83d12969e981c53c6ee033871241e6a0aaef33233a3e71e044c63e61e",
+    "scripts/build-release-verification.mjs": "c770003979e53073146b2ba06b0853d9fb25ceb1f947eebdc381a05ae49b49ea",
     "docs/acceptance-cases.json": "045704422b90f0d73c6912223b4a5ed2c1d39a7f1d40d7d1cbb4448599629a6c",
-    "docs/workplan.json": "c72794b11487677789604bf89ff86f19eb494c324bd1bc55cd04f5289a6aa5b2",
-    "docs/decisions/0001-owner-policy.md": "316a46dac21a8759742bf67a087eaf3a16f8695b2b84cac1f37cd37c118defce",
-    "docs/verification.md": "9518af0e7d9b6e3d0cae4988f62a0795a3253be01424512d25cb2bd68f66f618",
+    "docs/workplan.json": "1afa32773030892a2e49551a8350bb83ed1d9d0d13cd34eed0a409f662052703",
+    "docs/decisions/0001-owner-policy.md": "6a87a3ce3b8796717f71367657c7c06ee5b0bd6d9123b9292dcb9e4f253fad73",
+    "docs/verification.md": "06238798cdeabca9767605d5949699e5ca5616063c6d1ed42f2b036e7a224e73",
     "Sophie-Implementation-Plans-v1.1/01-REQUIREMENTS-AND-DECISIONS.md": "2afa92bd13e889c4b3bd37d327255aaacf5ed9df3bf18b781b8444a9186c8dd9"
   },
   "requirements": [
@@ -174,7 +174,7 @@
       "id": "R10",
       "title": "Exact approved inference provider and runtime; no automatic fallback or prompt-containing telemetry",
       "referenceTitle": "Local CPU inference initially; no cloud fallback or telemetry containing prompts",
-      "decisionSource": "docs/decisions/0001-owner-policy.md#deepseek-flash-provider-selection--27-september-2026",
+      "decisionSource": "docs/decisions/0001-owner-policy.md#mistral-provider-trial--11-october-2026",
       "tests": [
         "T31",
         "T32",
@@ -389,7 +389,7 @@
       "kind": "Owner decision",
       "gate": "G4",
       "readiness": "Disabled track",
-      "prerequisite": "Official DeepSeek Flash is selected. Resolve DS-01 processing/deletion/transfer evidence, exact notice, approved sources, individual consent and separately authorized worker qualification.",
+      "prerequisite": "Mistral Small 4 (mistral-small-2603) on the official EU API is selected for trial; DeepSeek Flash is withdrawn. Resolve DS-01 processing/deletion/transfer evidence, exact notice, approved sources, individual consent and separately authorized worker qualification.",
       "operator": "Owner / operator",
       "procedure": "Review each SAI-G capability separately. Verify the pinned provider/model, runtime/release/profile, actual worker isolation and stop, budget/queue/deadline behavior, source-bound answer quality and measured end-to-end latency under representative host load.",
       "expected": "Only the exact reviewed capability/data scope activates. No automatic provider/model fallback; administration remains responsive. Redaction is minimisation, not proof of free-form anonymity or processing clearance.",
@@ -2358,11 +2358,11 @@
       "kind": "Build prerequisite",
       "gate": "G4",
       "readiness": "Disabled track",
-      "prerequisite": "Installed repair7a152ca verified. Qualify actual worker child identity/file/network denials, signed leases, physical stop and failed-start recovery; owner dashboard start remains pending. DS-01 processing/deletion/transfer commitments, actual full-turn timing, representative host load and selected feature acceptance remain open.",
+      "prerequisite": "Installed repair7a152ca verified. Qualify actual worker child identity/file/network denials, signed leases, physical stop and failed-start recovery; owner dashboard start remains pending. DS-01 processing/deletion/transfer commitments, actual full-turn timing, representative host load and selected feature acceptance remain open. Mistral: fresh DS-01 evidence, a first live call to confirm usage fields, reasoning_effort, message layout and latency, synthetic quality qualification, then a new pinned package.",
       "operator": "Developer / operator",
-      "procedure": "Installed repair7a152ca verified. Qualify actual worker child identity/file/network denials, signed leases, physical stop and failed-start recovery; owner dashboard start remains pending.; DS-01 processing/deletion/transfer commitments, actual full-turn timing, representative host load and selected feature acceptance remain open.",
+      "procedure": "Installed repair7a152ca verified. Qualify actual worker child identity/file/network denials, signed leases, physical stop and failed-start recovery; owner dashboard start remains pending.; DS-01 processing/deletion/transfer commitments, actual full-turn timing, representative host load and selected feature acceptance remain open.; Mistral: fresh DS-01 evidence, a first live call to confirm usage fields, reasoning_effort, message layout and latency, synthetic quality qualification, then a new pinned package.",
       "expected": "Complete the approved task scope and record evidence for T31, T32, T33. Do not treat a partial milestone as full task completion.",
-      "existing": "Workplan status: in_progress. Approved runtime installed inside Hyper-V only; both pinned models ran under four CPUs/8 GiB, ContainerUser, network none, no mounts/ports. Phi failed timing; Qwen2.5 completed small screens in 3.824–5.920 seconds but invented policy/authority. Exact count and prompt usage agreed. No full-turn, host-load, quality or live qualification. Later owner selection: official DeepSeek Flash supersedes active local-only exploration. The preserved local screens remain historical; Flash worker identity, transport and operational qualification are open. Authenticated bounded private-stream broker/worker foundation implemented; native service/transport and OS qualification incomplete.",
+      "existing": "Workplan status: in_progress. Approved runtime installed inside Hyper-V only; both pinned models ran under four CPUs/8 GiB, ContainerUser, network none, no mounts/ports. Phi failed timing; Qwen2.5 completed small screens in 3.824–5.920 seconds but invented policy/authority. Exact count and prompt usage agreed. No full-turn, host-load, quality or live qualification. Later owner selection: official DeepSeek Flash supersedes active local-only exploration. The preserved local screens remain historical; Flash worker identity, transport and operational qualification are open. Authenticated bounded private-stream broker/worker foundation implemented; native service/transport and OS qualification incomplete. 11 October: owner selected a Mistral trial; the worker client, single-origin transport, provider identity checks, default prices and notice wording now target mistral-small-2603 with a pinned-model identity gate. Synthetic verification only; no key, live call or deployment.",
       "source": "docs/workplan.json#P23",
       "result": "Not run",
       "actual": "",

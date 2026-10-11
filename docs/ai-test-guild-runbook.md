@@ -95,13 +95,13 @@ installed source pin; review the exact next commit before any further deployment
 ## Enabling AI on one test channel
 
 1. Record DS-01 evidence before clearing real message processing. The protected core installation accepts
-   an optional `processingPolicy`: schemaVersion 2, provider `deepseek`, domain `public`, explicit `approved`,
+   an optional `processingPolicy`: schemaVersion 2, provider `mistral`, domain `public`, explicit `approved`,
    nonzero evidenceHash, validUntil, noticeRevision (at least 2), and exact reviewed noticeText (at most
    8000 characters). Its review must be `accepted` and bind actual processor-agreement, Discord
    service-provider, retention/deletion and international-transfer evidence hashes. Drafts and legacy
    schema1 receipts cannot authorise remote processing. Missing, unapproved, expired or unqualified
    policy denies processing and opt-in. Renewal must retain this reviewed policy;
-   never manufacture clearance from possession of an API key. It does not approve memory or restricted data.
+   never manufacture clearance from possession of an API key. It does not approve restricted data; the notice must describe member-written notes before members can share them.
    The owner reported disabling “Improve the model for everyone” on September 30. Base Terms 4.3
    names the switch and includes APIs; the Open Platform incorporates those terms and shares the account.
    This supports the improvement-use opt-out interpretation, but supplies no fixed API retention/deletion
@@ -118,8 +118,8 @@ installed source pin; review the exact next commit before any further deployment
    Knowledge tests additionally need reviewed current source publications and the 40-question acceptance.
    Tickets, onboarding, their parent categories and child channels remain excluded.
 4. **Start the worker** from the dashboard AI page by selecting the installed release
-   (`sophie-deepseek-<commit>`). Core asks the supervisor for a fresh boot, and the supervisor starts
-   `aphelion-bot-ai-worker`. The worker reaches DeepSeek only on TCP 443, and only at public IPv4 addresses.
+   (`sophie-mistral-<commit>`). Core asks the supervisor for a fresh boot, and the supervisor starts
+   `aphelion-bot-ai-worker`. The worker reaches Mistral only on TCP 443, and only at public IPv4 addresses.
 5. Select the configured channel under **Enable a reviewed public channel**, review, then confirm. The
    maintenance identity verifies current authorization, actual worker acknowledgement, public channel
    audience, processing evidence, publication hashes and budget again before committing qualification
@@ -147,7 +147,7 @@ Preferences use optional `preferenceJournal` with id, evidenceHash and expiresAt
 configuration. Its fixed path is `C:\Aphelion\Sophie\preferences\watermarks.jsonl`, independently
 provisioned outside database restore bundles and readable/writable only by core plus the operator,
 SYSTEM and Administrators. Missing/truncated/unqualified journals stay unavailable and are never
-recreated at startup. Remote preference use remains separately disabled.
+recreated at startup. Saved settings and member-written notes reach inference only for a member who ticked the sharing switch, on that member's own turns in a consented channel. This needs migration 070 and the same journal; without the journal no memory is read.
 
 Before enabling the candidate, exercise default departure deletion and separately saved retention with
 synthetic accounts. Check rejoin requires fresh consent, pending cleanup holds new processing, dependent

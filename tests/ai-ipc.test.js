@@ -7,9 +7,9 @@ import { createAiIpcClient } from '../apps/core/runtime/ai-ipc.js';
 import { createMeteredAiWorker } from '../apps/core/runtime/ai-provider.js';
 import { createAiIpcWorker } from '../apps/knowledge-worker/ipc-server.js';
 import { createAiIpcChannel } from '../apps/knowledge-worker/ipc-channel.js';
-import { createDeepSeekClient } from '../apps/knowledge-worker/deepseek-client.js';
+import { createMistralClient, MISTRAL_MODEL } from '../apps/knowledge-worker/mistral-client.js';
 
-const key = Buffer.alloc(32,7), identity = {workerId:'1'.repeat(64),bootId:'2'.repeat(64),releaseHash:'3'.repeat(64),profileHash:'4'.repeat(64),provider:'deepseek',domain:'public'};
+const key = Buffer.alloc(32,7), identity = {workerId:'1'.repeat(64),bootId:'2'.repeat(64),releaseHash:'3'.repeat(64),profileHash:'4'.repeat(64),provider:'mistral',domain:'public'};
 const output = {kind:'reply',text:'Synthetic reply',purpose:'conversation',support:'current_conversation',citations:[]};
 const tick = () => new Promise(resolve=>setImmediate(resolve));
 const deferred = () => { let resolve; const promise = new Promise(done=>{resolve=done;}); return {promise,resolve}; };
@@ -18,8 +18,8 @@ const prompt = () => ({workerDomain:'public',releaseHash:identity.releaseHash,re
   local:{deadline:Date.now()+14000,messageId:'505',inputRevision:'a'.repeat(64),controlEpoch:1},
   messages:[{role:'system',content:'Synthetic policy'},{role:'user',content:'Synthetic hello'}],
   outputContract:{outcomes:['reply','silent'],answerOnly:false,sourceIds:[],emojiKeys:[]}});
-const response = (content = JSON.stringify(output)) => Response.json({model:'deepseek-flash',system_fingerprint:'synthetic-build',
-  usage:{prompt_tokens:100,completion_tokens:20,total_tokens:120,prompt_cache_hit_tokens:40,prompt_cache_miss_tokens:60},
+const response = (content = JSON.stringify(output)) => Response.json({model:MISTRAL_MODEL,
+  usage:{prompt_tokens:100,completion_tokens:20,total_tokens:120,prompt_tokens_details:{cached_tokens:40}},
   choices:[{finish_reason:'stop',message:{role:'assistant',content}}]});
 
 async function fixture({fetchImpl,generatePrepared,qualified = async()=>true,workerQualified=async()=>true,reserve = async()=>({}),dispatch = async()=>true,clientKey = key,clientIdentity,captureWire=false} = {}) {
@@ -28,10 +28,10 @@ async function fixture({fetchImpl,generatePrepared,qualified = async()=>true,wor
     if(captureWire){const write=socket.write.bind(socket);socket.write=(bytes,...rest)=>{wire.push(Buffer.from(bytes));return write(bytes,...rest);};}
     return socket;
   };
-  const raw = createDeepSeekClient({apiKey:'synthetic-provider-key-only-in-worker',acceptedFingerprints:['synthetic-build'],
+  const raw = createMistralClient({apiKey:'synthetic-provider-key-only-in-worker',acceptedFingerprints:[MISTRAL_MODEL],
     fetchImpl:async (...args)=>{events.push('network'); return fetchImpl ? fetchImpl(...args) : response();}});
   const actualIdentity = {...identity,profileHash:raw.profileHash};
-  const worker = createAiIpcWorker({identity:actualIdentity,key,qualified:workerQualified,adapter:{provider:'deepseek',profileHash:raw.profileHash,prepare(value){inputs.push(value); return raw.prepare(value);},generatePrepared:generatePrepared ?? raw.generatePrepared}});
+  const worker = createAiIpcWorker({identity:actualIdentity,key,qualified:workerQualified,adapter:{provider:'mistral',profileHash:raw.profileHash,prepare(value){inputs.push(value); return raw.prepare(value);},generatePrepared:generatePrepared ?? raw.generatePrepared}});
   const server = createServer(socket=>{void worker.accept(capture(socket));}); server.listen(0,'127.0.0.1'); await once(server,'listening');
   const client = createAiIpcClient({identity:clientIdentity ? {...actualIdentity,...clientIdentity} : actualIdentity,key:clientKey,qualified,connect:()=>capture(connect({host:'127.0.0.1',port:server.address().port}))});
   const metered = createMeteredAiWorker({worker:client,accounting:{
@@ -162,7 +162,7 @@ test('DS04-I10 the original cutoff terminates transport and keeps a dispatched c
 test('DS04-I11 output or usage preceding the acknowledged dispatch is rejected',async()=>{
   for(const earlyUsage of [false,true]) {
     const f=await fixture({generatePrepared:async(_turn,context)=>{
-      if(earlyUsage) await context.recordResponse({usage:{total_tokens:120},model:'deepseek-flash',fingerprint:'synthetic-build'});
+      if(earlyUsage) await context.recordResponse({usage:{total_tokens:120},model:MISTRAL_MODEL,fingerprint:null});
       return output;
     }});
     try {await assert.rejects(f.generate(),/AI_IPC_INVALID/);assert.deepEqual(f.events,['reserve','finish:false']);}

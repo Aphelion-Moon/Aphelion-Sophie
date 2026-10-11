@@ -27,7 +27,7 @@ test('release review follows the selected provider without closing or dropping a
   assert.equal(review.requirements.length, 18);
   assert.match(review.requirements.find(item => item.id === 'R10').referenceTitle, /Local CPU inference/);
   assert.match(review.requirements.find(item => item.id === 'R10').title, /approved inference provider/);
-  assert.match(rows.get('D07').prerequisite, /DeepSeek Flash/);
+  assert.match(rows.get('D07').prerequisite, /Mistral Small 4 \(mistral-small-2603\)/);
   assert.match(rows.get('T31').procedure, /provider\/model ID/);
   assert.match(rows.get('T32').expected, /does not establish anonymity/);
   assert.match(rows.get('T33').procedure, /provider latency\/outage\/cancellation/);

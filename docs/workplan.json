@@ -1,10 +1,10 @@
 {
   "schema_version": 2,
-  "revision": "2026-10-04-ai-test-and-source-update-preparation",
+  "revision": "2026-10-11-member-notes-and-mistral-live-check",
   "reference_plan_version": "1.1",
   "source": "Sophie-Implementation-Plans-v1.1/backlog.json",
   "owner_decisions": "docs/decisions/0001-owner-policy.md",
-  "schedule": "Official DeepSeek Flash is the selected provider. Local models are historical, explicitly selected alternatives only; no automatic fallback. Continue the DS workstream with synthetic data; full readiness and activation remain open.",
+  "schedule": "Mistral Small 4 (mistral-small-2603) on the official EU API is the selected provider for trial; DeepSeek Flash is withdrawn. Local models are historical, explicitly selected alternatives only; no automatic fallback. Continue the DS workstream with synthetic data; full readiness and activation remain open.",
   "release_status": "All production release gates remain open; pure and isolated database checks are not full application acceptance.",
   "tasks": [
     {
@@ -865,7 +865,7 @@
       "suggested_owner": "Repository maintainer; separate human review where required",
       "guardrail": "No automatic provider/model fallback, auto-download or claimed unmeasured throughput. Provider/privacy clearance and actual worker qualification remain separate.",
       "status": "in_progress",
-      "implementation_note": "Approved runtime installed inside Hyper-V only; both pinned models ran under four CPUs/8 GiB, ContainerUser, network none, no mounts/ports. Phi failed timing; Qwen2.5 completed small screens in 3.824–5.920 seconds but invented policy/authority. Exact count and prompt usage agreed. No full-turn, host-load, quality or live qualification. Later owner selection: official DeepSeek Flash supersedes active local-only exploration. The preserved local screens remain historical; Flash worker identity, transport and operational qualification are open. Authenticated bounded private-stream broker/worker foundation implemented; native service/transport and OS qualification incomplete.",
+      "implementation_note": "Approved runtime installed inside Hyper-V only; both pinned models ran under four CPUs/8 GiB, ContainerUser, network none, no mounts/ports. Phi failed timing; Qwen2.5 completed small screens in 3.824–5.920 seconds but invented policy/authority. Exact count and prompt usage agreed. No full-turn, host-load, quality or live qualification. Later owner selection: official DeepSeek Flash supersedes active local-only exploration. The preserved local screens remain historical; Flash worker identity, transport and operational qualification are open. Authenticated bounded private-stream broker/worker foundation implemented; native service/transport and OS qualification incomplete. 11 October: owner selected a Mistral trial; the worker client, single-origin transport, provider identity checks, default prices and notice wording now target mistral-small-2603 with a pinned-model identity gate. Synthetic verification only; no key, live call or deployment.",
       "completed_scope": [
         "Pinned Microsoft C++ runtime installed only inside the approved temporary worker; version/hash and containment evidence recorded.",
         "Actual Phi/Qwen synthetic screens, bounded negative-access checks and Zen 4 backend observation completed. Per-turn output grammar and evidence-trimming constraints implemented; 22 focused checks pass.",
@@ -873,7 +873,8 @@
       ],
       "remaining_scope": [
         "Installed repair7a152ca verified. Qualify actual worker child identity/file/network denials, signed leases, physical stop and failed-start recovery; owner dashboard start remains pending.",
-        "DS-01 processing/deletion/transfer commitments, actual full-turn timing, representative host load and selected feature acceptance remain open."
+        "DS-01 processing/deletion/transfer commitments, actual full-turn timing, representative host load and selected feature acceptance remain open.",
+        "Mistral: fresh DS-01 evidence, a first live call to confirm usage fields, reasoning_effort, message layout and latency, synthetic quality qualification, then a new pinned package."
       ]
     },
     {
@@ -3046,7 +3047,7 @@
           "SAI-12",
           "SAI-14"
         ],
-        "remaining": "Obtain actual provider commitments and transfer/retention evidence; finish factual retention, eligibility and provider annexes before notice publication. Review final notice and operator publications, approve deployment of schema065/066 and the committed source separately, then complete existing worker and Discord acceptance gates. Draft documents and hashes are not legal clearance. Match the notice and retention annex to default AI-data deletion on departure; retained-data requests still use the existing operator contact route."
+        "remaining": "Obtain actual provider commitments and transfer/retention evidence; finish factual retention, eligibility and provider annexes before notice publication. Review final notice and operator publications, approve deployment of schema065/066 and the committed source separately, then complete existing worker and Discord acceptance gates. Draft documents and hashes are not legal clearance. Match the notice and retention annex to default AI-data deletion on departure; retained-data requests still use the existing operator contact route. Mistral, 11 October: owner reports ZDR requested and awaiting review, training opt-out in force, 30-day default retention meanwhile. Open: paid plan and processing-agreement coverage, sub-processor review, ZDR outcome and proof, prompt caching under ZDR, public privacy policy, exact notice with any interim retention window, per-channel AI disclosure. Mapping: GitHub/.agent_docs/aphelion-sophie/mistral-port-2026-10-11/ds-01-mistral-evidence-status.md."
       },
       {
         "id": "DS-02",
@@ -3122,14 +3123,14 @@
       {
         "id": "DS-08",
         "title": "Assistant context and explicit memory",
-        "implementation": "Local self-service preferences with independent journal, epoch/quarantine, authenticated export/deletion/expiry; remote preference use remains off. Temporary context now redacts common identifiers and eligible identity aliases, preserves original question detection, rejects async invalidation races and uses cached byte counts. Pending metadata and admissions are fenced against invalidation; context cannot be refilled by an older admission. Departure now deletes personal AI data by default; explicit saved retention preserves local data without reenrolling the member. Durable cleanup and journal fences cover restart, rejoin, restore, dependent effects and unresolved spending. Minimal deletion/replay markers remain after erasure.",
+        "implementation": "Local self-service preferences with independent journal, epoch/quarantine, authenticated export/deletion/expiry; remote preference use remains off. Temporary context now redacts common identifiers and eligible identity aliases, preserves original question detection, rejects async invalidation races and uses cached byte counts. Pending metadata and admissions are fenced against invalidation; context cannot be refilled by an older admission. Departure now deletes personal AI data by default; explicit saved retention preserves local data without reenrolling the member. Durable cleanup and journal fences cover restart, rejoin, restore, dependent effects and unresolved spending. Minimal deletion/replay markers remain after erasure. 11 October: member-written notes (eight one-line notes, 200 characters) share the preference record; a separate member sharing switch gates inference use for that member only; migration 070; read-only trusted lookup; memory prompt block; turn recheck before dispatch and delivery.",
         "qualification": "4 October departure candidate: 90 focused checks, 92 isolated AI/database scenarios, 20 staging scenarios and synthetic browser checks passed. Prior source-bound redaction/context timings remain historical; no new latency or anonymity claim. Approved pinned 5f60a24/schema066 deployment: actual database privileges and journal integrity/ACL/receipt passed; bytes preserved. Worker and member acceptance remain unrun. Pinned335a3f2/schema069 deployment preserves all rows/grants and independently renewed journal bytes/identity/configured ACLs; no worker execution.",
         "sai": [
           "SAI-02",
           "SAI-10",
           "SAI-11"
         ],
-        "remaining": "Actual worker file/network denials and physical stop, provider terms and factual privacy annexes, approved publications, current tester consent, private Discord/client acceptance and measured AI latency remain separate gates. Journal receipt expires 5 October at 20:54 Warsaw; installation trust at 21:54. Renewal requires fresh evidence. The initial dashboard assertion failed with an unrecorded status; a focused rerun passed, but its cause is unproven. The earlier P19 runtime fault also remains unexplained."
+        "remaining": "Actual worker file/network denials and physical stop, provider terms and factual privacy annexes, approved publications, current tester consent, private Discord/client acceptance and measured AI latency remain separate gates. Journal receipt expires 5 October at 20:54 Warsaw; installation trust at 21:54. Renewal requires fresh evidence. The initial dashboard assertion failed with an unrecorded status; a focused rerun passed, but its cause is unproven. The earlier P19 runtime fault also remains unexplained. Member notes: notice text describing them, deployment of migration 070, synthetic-account acceptance on the test guild."
       },
       {
         "id": "DS-09",
@@ -3166,6 +3167,18 @@
           "SAI-15"
         ],
         "remaining": "Complete implemented/qualified/cleared/activated axes; explicit memory and named restricted domains remain visible."
+      },
+      {
+        "id": "DS-12",
+        "title": "Mistral provider port",
+        "implementation": "Replaced the DeepSeek client with a Mistral Small 4 client on the official EU endpoint: dated model ID, reasoning off, locally validated JSON mode, private channel-scoped prompt_cache_key, usage normalised to the existing accounting shape with uncredited cache use charged as uncached, and a pinned returned-model identity gate. Transport, IPC identity, worker release, processing policy and installation preparation accept only provider mistral. The provider is bound into consent.",
+        "qualification": "11 October: synthetic live check with the owner key confirmed usage fields, reasoning setting, message layout, exact model echo and sub-1.5-second latency; unit and isolated-database results are in docs/verification.md. Quality and host-load qualification not run.",
+        "sai": [
+          "SAI-04",
+          "SAI-05",
+          "SAI-12"
+        ],
+        "remaining": "Owner: processing-agreement and plan coverage, sub-processor review, ZDR outcome, prompt caching under ZDR, notice approval. Then replace the installed key and budget policy, deploy a reviewed pinned package and qualify the worker. If Mistral retains cached prefixes under ZDR, remove prompt_cache_key and requalify the profile."
       }
     ],
     "capabilities": [

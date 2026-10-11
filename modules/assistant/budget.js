@@ -1,8 +1,9 @@
 import { requireCondition, requireInteger, requireKeys } from '../../contracts/validation.js';
 
 export const DEFAULT_AI_BUDGET = Object.freeze({ monthlyLimitNanos: '20000000000', dailyLimitNanos: null,
-  timezone: 'Europe/Vienna', dailyAttempts: 2000, maxUnresolved: 4, priceRevision: 'deepseek-flash-2026-09-28',
-  priceValidUntil: null, hitNanos: 6, missNanos: 300, outputNanos: 1200 });
+  timezone: 'Europe/Vienna', dailyAttempts: 2000, maxUnresolved: 4, priceRevision: 'mistral-small-2603-2026-10-11',
+  // USD 0.15 input and 0.60 output per million tokens from the model card; cached input is billed at 10%.
+  priceValidUntil: null, hitNanos: 15, missNanos: 150, outputNanos: 600 });
 
 export function canonicalAiBudget(value) {
   requireKeys(value, Object.keys(DEFAULT_AI_BUDGET), 'AI_BUDGET_INVALID');

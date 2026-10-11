@@ -1,5 +1,82 @@
 # Verification and release limits
 
+## Member notes and Mistral live check — 11 October 2026
+
+Owner decision: [member notes, key and test-server preparation](decisions/0001-owner-policy.md#member-notes-mistral-key-and-test-server-preparation--11-october-2026).
+
+**Live check with the owner's key (synthetic prompts only).** Thirty-two requests to `mistral-small-2603`
+from this host across four runs, about 0.3–1.3 seconds each, all HTTP 200 with the exact model ID echoed. This settles the
+items the port left open: usage arrives as `prompt_tokens`, `completion_tokens`, `total_tokens` and
+`prompt_tokens_details.cached_tokens`, which is what the adapter credits (a repeat request reported 760 of
+792 prompt tokens cached); `reasoning_effort: "none"` is accepted; the mid-conversation system messages
+are accepted; no build fingerprint is returned. The full adapter over the real single-origin transport
+returned a validated reply. Outputs followed the schema, cited a supplied source, declined an unverified
+policy question and stayed silent on a pile-on request. This is a smoke check, not the 40-question quality
+qualification, and not a measurement under host load.
+
+**Member notes.** Migration 070 widens the saved-settings limit to 8,192 bytes; no new table or grant.
+`modules/assistant/preferences.js` validates notes; `apps/core/storage/ai-memory.js` is the read-only
+trusted lookup for the requester's own shared record; the prompt carries one `memory` block after the
+reusable prefix; turns recheck the saved version before dispatch and delivery; the preferences page gains
+the notes field and sharing switch. Live behaviour with synthetic notes: used for the author's own question,
+refused to another member, an instruction planted in a note ignored, "remember this" redirected to the
+preferences page, no claimed memory without notes, saved language honoured.
+
+Windows, Node.js 24.19.0, working tree on `codex/sophie-social-ai`:
+
+- `npm test`: 638 tests, 636 passed, 2 failed (the same unchanged `dashboard-editor` and `dashboard-forms`
+  session-shape assertions as below). Eight new `MEM-01`–`MEM-08` checks pass.
+- `node scripts/test-storage.mjs --suite=ai` against an isolated PostgreSQL: 94 scenarios passed, including
+  new `MEM-I01` (full-size notes, unshared notes never read, change/deletion/restore stop use, database
+  limit enforced). This run also exposed and corrected one stale expectation from the provider port (a
+  settled cost still computed at the former provider's prices).
+- Full `node scripts/test-storage.mjs`: 296 scenarios passed, then stopped at `CR43` (recovery bundle,
+  `RUNTIME_WRITE_GUARDS_INCOMPLETE`). The unmodified `b416ff1` in a separate worktree stops at the same
+  check after 295, so this predates the work; the one extra pass is `MEM-I01`. Reaching it required
+  correcting two migration counts that were already stale at `b416ff1` (54 and 63, now 70). Suites after
+  `CR43` did not run in either tree.
+- `npm run check` passed.
+
+Not done: any change to the installed staging host, its database, key or services; real member data;
+quality qualification; worker isolation and stop qualification. Replies already delivered are not
+withdrawn when a note is later deleted. Masking does not make free-text notes anonymous. Raw output:
+`GitHub/.agent_docs/aphelion-sophie/memory-2026-10-11/` and `mistral-live-check-2026-10-11/`.
+
+## Mistral provider port — 11 October 2026
+
+The owner selected a Mistral trial after the DeepSeek path was blocked on EU data-protection grounds
+([decision](decisions/0001-owner-policy.md#mistral-provider-trial--11-october-2026)). The worker now
+targets `mistral-small-2603` at `https://api.mistral.ai/v1/chat/completions`. The DeepSeek client and its
+test were replaced by `apps/knowledge-worker/mistral-client.js` and `tests/mistral-client.test.js`; the
+single-origin transport, IPC identity, worker release, processing policy, installation preparation,
+default prices, dashboard notice wording and service description follow. No dependency was added.
+
+Local, synthetic verification only, on Windows with Node.js 24.19.0 and uncommitted working-tree changes
+on `codex/sophie-social-ai` above `b416ff1`:
+
+- Thirteen focused AI/installation/release files: 155 passed, 0 failed.
+- `npm test`: 630 tests, 628 passed, 2 failed: one each in `tests/dashboard-editor.test.js` and
+  `tests/dashboard-forms.test.js` (session shape now carries `canManageOnboarding`, `canRecoverCases`,
+  `canRecoverModeration`). Those tests and the dashboard transport they exercise are unchanged by this work.
+- `npm run check` passed after regenerating `docs/workplan.md` and `docs/release-verification.json`.
+- Not run: the PostgreSQL integration suites under `scripts/integration` (two had provider strings updated)
+  and any Windows service, firewall or installed-package check.
+
+No provider key was used and no request left the machine. Unverified until a first live call: Mistral's
+usage field names (an uncredited cached count is charged as uncached input), acceptance of
+`reasoning_effort: "none"` and of mid-conversation system messages by this model, and latency inside the
+15-second ceiling. Answer quality, truthfulness and conduct are unqualified for this model. The identity
+gate compares the returned model ID only, which the owner accepted as weaker than a build fingerprint.
+DS-01 evidence, the notice, budget-policy replacement, packaging and deployment remain open. Raw output:
+`GitHub/.agent_docs/aphelion-sophie/mistral-port-2026-10-11/`.
+
+The owner's compliance handoff was recorded the same day
+([decision](decisions/0001-owner-policy.md#mistral-compliance-handoff-received--11-october-2026)). Reported,
+not verified here: ZDR requested and awaiting Mistral's review, training opt-out in force, 30-day default
+retention meanwhile. Checked against Mistral's ZDR documentation: `/v1/chat/completions` is covered on paid
+plans and stateful products are excluded. Whether cached prompt prefixes are retained under ZDR is
+unconfirmed. This is a documentation update; no code or test changed and the results above stand.
+
 ## AI test and source-update preparation — 4 October 2026
 
 Prepared the exact 2c5d356 source-only/schema069 export candidate and guarded operator entry point; corrected current staging/runbook/release-checklist references. Prepared an inactive fixed-target worker OS probe and proposed no-provider lifecycle/identity/stop procedure.

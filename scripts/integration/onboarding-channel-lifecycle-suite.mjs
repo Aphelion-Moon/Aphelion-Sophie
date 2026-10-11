@@ -129,7 +129,7 @@ export async function runOnboardingChannelLifecycleSuite(cluster, run) {
       }
       before.set(table,{columns:columns.map(c=>c.column_name),rows:(await db.query('SELECT * FROM sophie_core.'+table)).rows});
     }
-    assert.deepEqual(await migrateCore(db),{migrations:54}); assert.deepEqual(await verifyCoreMigrations(db),{migrations:54});
+    assert.deepEqual(await migrateCore(db),{migrations:70}); assert.deepEqual(await verifyCoreMigrations(db),{migrations:70});
     for (const [table, saved] of before) assert.deepEqual((await db.query('SELECT '+saved.columns.join(',')+' FROM sophie_core.'+table)).rows,saved.rows);
     const row = (await db.query("SELECT onboarding_retirement,onboarding_activity_ms FROM sophie_core.case_reservations WHERE type='shuttle'")).rows[0];
     assert.equal(row.onboarding_retirement,null); assert.ok(Number(row.onboarding_activity_ms) > 0);

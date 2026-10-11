@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { createDeepSeekClient, deepSeekUsage } from '../apps/knowledge-worker/deepseek-client.js';
+import { createMistralClient, mistralUsage, MISTRAL_MODEL } from '../apps/knowledge-worker/mistral-client.js';
 import { firstChangedAiBlock,firstChangedAiComparison,validateAiComparison } from '../apps/knowledge-worker/prompt-contract.js';
 import { createMeteredAiWorker } from '../apps/core/runtime/ai-provider.js';
 import { aiBudgetPeriods, aiUsageCostNanos, DEFAULT_AI_BUDGET } from '../modules/assistant/budget.js';
@@ -17,49 +17,52 @@ function prompt({ history = [], sources = [], answerOnly = false, outcomes = ['r
     boundary: { guildId: '101', channelId: '202', boundaryEpoch: 1, continuity: 'synthetic-epoch' } };
 }
 function completion(change = {}) {
-  return { model: 'deepseek-flash', system_fingerprint: 'synthetic-build', choices: [{ finish_reason: 'stop',
+  return { model: MISTRAL_MODEL, choices: [{ finish_reason: 'stop',
     message: { role: 'assistant', content: JSON.stringify(output) } }], usage: { prompt_tokens: 100, completion_tokens: 25,
-    total_tokens: 125, prompt_cache_hit_tokens: 64, prompt_cache_miss_tokens: 36, unsafe: 'never report' }, ...change };
+    total_tokens: 125, prompt_tokens_details: { cached_tokens: 64 }, unsafe: 'never report' }, ...change };
 }
 function fixture({ response = () => new Response('\n \n' + JSON.stringify(completion()), { headers: { 'content-type': 'application/json' } }), ...options } = {}) {
   let now = 1000; const calls = [], usage = [];
-  const client = createDeepSeekClient({ apiKey: key, clock: () => now, onUsage: value => usage.push(value),
-    acceptedFingerprints: ['synthetic-build'],
+  const client = createMistralClient({ apiKey: key, clock: () => now, onUsage: value => usage.push(value),
+    acceptedFingerprints: [MISTRAL_MODEL],
     fetchImpl: async (url, init) => { calls.push({ url, ...init, body: JSON.parse(init.body) }); return response(init); }, ...options });
   return { client, calls, usage, time: value => { now = value; }, generate: payload => client.generate(payload ?? prompt(), { signal: new AbortController().signal, deadline: now + 14000 }) };
 }
 
-test('SAI AT-04/12 Flash uses the fixed provider, non-thinking JSON, private cache partition and redacted usage', async () => {
+test('SAI AT-04/12 Mistral Small uses the fixed EU provider, reasoning off, JSON mode, private cache partition and redacted usage', async () => {
   const f = fixture(); assert.deepEqual(await f.generate(), output);
-  const call = f.calls[0]; assert.equal(call.url, 'https://api.deepseek.com/chat/completions');
+  const call = f.calls[0]; assert.equal(call.url, 'https://api.mistral.ai/v1/chat/completions'); assert.equal(call.body.model, 'mistral-small-2603');
   assert.equal(call.redirect, 'error'); assert.equal(call.headers.authorization, `Bearer ${key}`);
-  assert.deepEqual(Object.keys(call.body).sort(), ['max_tokens','messages','model','response_format','stream','temperature','thinking','user_id']);
-  assert.deepEqual(call.body.thinking, { type: 'disabled' }); assert.deepEqual(call.body.response_format, { type: 'json_object' });
-  assert.equal(call.body.max_tokens, 384); assert.equal(call.body.stream, false); assert.match(call.body.user_id, /^[a-f0-9]{64}$/u);
+  assert.deepEqual(Object.keys(call.body).sort(), ['max_tokens','messages','model','prompt_cache_key','reasoning_effort','response_format','stream','temperature']);
+  assert.equal(call.body.reasoning_effort, 'none'); assert.deepEqual(call.body.response_format, { type: 'json_object' });
+  assert.equal(call.body.max_tokens, 384); assert.equal(call.body.stream, false); assert.match(call.body.prompt_cache_key, /^[a-f0-9]{64}$/u);
   const wire = JSON.stringify(call.body); for (const forbidden of [key, 'requesterId', 'releaseHash', 'guildId', 'channelId', 'boundaryEpoch']) assert.equal(wire.includes(forbidden), false);
-  assert.deepEqual(f.usage, [{ model: 'deepseek-flash', fingerprint: 'synthetic-build', milliseconds: 0, prompt_tokens: 100,
+  assert.deepEqual(f.usage, [{ model: MISTRAL_MODEL, fingerprint: null, milliseconds: 0, prompt_tokens: 100,
     completion_tokens: 25, total_tokens: 125, prompt_cache_hit_tokens: 64, prompt_cache_miss_tokens: 36 }]);
 });
 
 test('DS-02 unqualified backend policy prevents even the first paid dispatch', async () => {
-  const f = fixture({ acceptedFingerprints: [] });
-  await assert.rejects(f.generate(), /AI_WORKER_UNAVAILABLE/);
-  assert.equal(f.calls.length, 0);
+  // An empty list, a mutable alias or another model never authorizes the pinned model.
+  for (const acceptedFingerprints of [[], ['mistral-small-latest'], ['mistral-large-2512']]) {
+    const f = fixture({ acceptedFingerprints });
+    await assert.rejects(f.generate(), /AI_WORKER_UNAVAILABLE/);
+    assert.equal(f.calls.length, 0);
+  }
 });
 
 test('SAI AT-03 public cache shares only within a channel/authority/release boundary; authored prefix remains stable', async () => {
   const f = fixture(), original = prompt(); await f.generate(original); await f.generate(original);
-  assert.equal(f.calls[0].body.user_id, f.calls[1].body.user_id);
-  await f.generate({ ...original, requesterId: '405' }); assert.equal(f.calls[0].body.user_id, f.calls.at(-1).body.user_id);
+  assert.equal(f.calls[0].body.prompt_cache_key, f.calls[1].body.prompt_cache_key);
+  await f.generate({ ...original, requesterId: '405' }); assert.equal(f.calls[0].body.prompt_cache_key, f.calls.at(-1).body.prompt_cache_key);
   for (const changed of [{ ...original, boundary: { ...original.boundary, channelId: '203' } },
     { ...original, boundary: { ...original.boundary, boundaryEpoch: 2 } }, { ...original, releaseHash: 'b'.repeat(64) }]) {
-    await f.generate(changed); assert.notEqual(f.calls[0].body.user_id, f.calls.at(-1).body.user_id);
+    await f.generate(changed); assert.notEqual(f.calls[0].body.prompt_cache_key, f.calls.at(-1).body.prompt_cache_key);
   }
   const reactive = prompt({ outcomes: ['react','silent'] });
   assert.deepEqual(original.messages.slice(0, 7), reactive.messages.slice(0, 7));
   assert.notDeepEqual(original.messages[7], reactive.messages[7]);
   const otherWorker = fixture(); await otherWorker.generate(original);
-  assert.notEqual(f.calls[0].body.user_id, otherWorker.calls[0].body.user_id, 'a new worker must not reuse the provider-visible pseudonym');
+  assert.notEqual(f.calls[0].body.prompt_cache_key, otherWorker.calls[0].body.prompt_cache_key, 'a new worker must not reuse the provider-visible pseudonym');
   assert.equal(f.client.profileHash, otherWorker.client.profileHash, 'the release profile describes the policy, not a private random seed');
 });
 
@@ -190,7 +193,7 @@ test('SAI AT-13 rate limits cool down without retries and credential failures re
 test('SAI AT-13 external abort cancels the HTTP call; deadline/size failures cannot return a late result', async () => {
   const controller = new AbortController(); let started;
   const began = new Promise(resolve => { started = resolve; });
-  const client = createDeepSeekClient({ apiKey: key, acceptedFingerprints: ['synthetic-build'], fetchImpl: async (_url, { signal }) => {
+  const client = createMistralClient({ apiKey: key, acceptedFingerprints: [MISTRAL_MODEL], fetchImpl: async (_url, { signal }) => {
     started(); return new Promise((_resolve, reject) => signal.addEventListener('abort', () => reject(Error('secret transport detail')), { once: true }));
   } });
   const job = client.generate(prompt(), { signal: controller.signal, deadline: Date.now() + 14000 });
@@ -250,13 +253,19 @@ test('DS-03 rejected and late output still reports valid paid usage before accep
 
 test('DS-03 missing, inconsistent and malformed usage remains unknown rather than a cheap success', () => {
   const valid = completion().usage;
-  for (const changed of [undefined, {}, { ...valid, total_tokens: 1 }, { ...valid, prompt_cache_hit_tokens: 65 },
-    { ...valid, completion_tokens: -1 }, { ...valid, prompt_tokens: '100' }, { ...valid, completion_tokens: 0.5 }]) assert.equal(deepSeekUsage(changed), null);
-  assert.equal(deepSeekUsage(valid).total_tokens, 125);
+  for (const changed of [undefined, {}, { ...valid, total_tokens: 1 },
+    { ...valid, completion_tokens: -1 }, { ...valid, prompt_tokens: '100' }, { ...valid, completion_tokens: 0.5 }]) assert.equal(mistralUsage(changed), null);
+  assert.deepEqual(mistralUsage(valid), { prompt_tokens: 100, completion_tokens: 25, total_tokens: 125, prompt_cache_hit_tokens: 64, prompt_cache_miss_tokens: 36 });
+  // An absent, malformed or impossible cached counter is charged as uncached input, never as a discount.
+  for (const details of [undefined, null, {}, { cached_tokens: 101 }, { cached_tokens: -1 }, { cached_tokens: 6.5 }, { cached_tokens: '64' }]) {
+    const usage = mistralUsage({ ...valid, prompt_tokens_details: details });
+    assert.equal(usage.prompt_cache_hit_tokens, 0); assert.equal(usage.prompt_cache_miss_tokens, 100);
+  }
+  assert.equal(mistralUsage({ ...valid, prompt_cache_hit_tokens: 100 }).prompt_cache_hit_tokens, 64, 'another provider\'s counter names are ignored');
 });
 
-test('DS-10 unknown fingerprints hold subsequent calls while preserving their spending receipt', async () => {
-  const f = fixture({ response: () => Response.json(completion({ system_fingerprint: 'unqualified-build' })) });
+test('DS-10 an unpinned returned model holds subsequent calls while preserving its spending receipt', async () => {
+  const f = fixture({ response: () => Response.json(completion({ model: 'mistral-small-latest' })) });
   await assert.rejects(f.generate()); assert.equal(f.usage.length, 1); assert.equal(f.client.status().identityBlocked, true);
   f.time(100000); await assert.rejects(f.generate()); assert.equal(f.calls.length, 1);
 });
@@ -280,6 +289,6 @@ test('DS-03 Vienna month boundaries and daylight-saving rollover use the named c
   assert.deepEqual(aiBudgetPeriods(Date.parse('2026-03-31T21:59:59Z')),{month:'2026-03',day:'2026-03-31'});
   assert.deepEqual(aiBudgetPeriods(Date.parse('2026-03-31T22:00:00Z')),{month:'2026-04',day:'2026-04-01'});
   assert.deepEqual(aiBudgetPeriods(Date.parse('2026-10-25T00:30:00Z')),aiBudgetPeriods(Date.parse('2026-10-25T01:30:00Z')));
-  assert.equal(aiUsageCostNanos(completion().usage,DEFAULT_AI_BUDGET),41184n);
-  assert.equal(aiUsageCostNanos({...completion().usage,total_tokens:0},DEFAULT_AI_BUDGET),null);
+  assert.equal(aiUsageCostNanos(mistralUsage(completion().usage),DEFAULT_AI_BUDGET),21360n);
+  assert.equal(aiUsageCostNanos({...mistralUsage(completion().usage),total_tokens:0},DEFAULT_AI_BUDGET),null);
 });

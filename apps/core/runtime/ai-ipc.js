@@ -23,7 +23,7 @@ export function createAiIpcClient({ identity, key, connect, qualified, clock = D
   }
   function discardPrepared(prepared) { const state = preparations.get(prepared); if (state) { state.signal?.removeEventListener('abort',state.abort); state.channel.close(); channels.delete(state.channel); preparations.delete(prepared); } }
   return Object.freeze({
-    provider:'deepseek', current, discardPrepared,
+    provider:'mistral', current, discardPrepared,
     async probe({signal}={}) {
       requireCondition(!stopped && !signal?.aborted && channels.size===0 && await qualified(fixed)===true,'AI_WORKER_NOT_QUALIFIED');
       const deadline=clock()+2000,channel=await openChannel(signal,deadline);

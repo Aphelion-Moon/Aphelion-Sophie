@@ -3,8 +3,9 @@ import { lookup as dnsLookup } from 'node:dns';
 import { Readable, Transform } from 'node:stream';
 import { requireCondition } from '../../contracts/validation.js';
 import { isPublicAiAddress } from './public-address.js';
+import { MISTRAL_ENDPOINT } from './mistral-client.js';
 
-const endpoint = 'https://api.deepseek.com/chat/completions';
+const endpoint = MISTRAL_ENDPOINT;
 
 /**
  * Resolves only to public IPv4 addresses. The worker's network path is direct (firewall-scoped to TCP 443),
@@ -24,7 +25,7 @@ export function publicAiLookup(resolve = dnsLookup) {
 }
 
 /** Worker-owned, single-origin transport. No redirects, retries, proxy inheritance or global dispatcher changes. */
-export function createDeepSeekTransport({ requestImpl = request, lookup = publicAiLookup() } = {}) {
+export function createMistralTransport({ requestImpl = request, lookup = publicAiLookup() } = {}) {
   requireCondition(typeof requestImpl === 'function' && typeof lookup === 'function', 'TRUSTED_ADAPTERS_REQUIRED');
   const agent = new Agent({ keepAlive:true, maxSockets:1, maxTotalSockets:1, maxFreeSockets:1,
     maxCachedSessions:0, timeout:15000, rejectUnauthorized:true, proxyEnv:{}, lookup, family:4, autoSelectFamily:false });

@@ -13,7 +13,7 @@ import { createServer, connect } from 'node:net';
 import { canonicalProcessingPolicy, createProcessingApproval } from '../modules/assistant/processing-policy.js';
 
 test('AI-INST06 processing authority and notice remain public-only, current and separately approved', async () => {
-  const policy={schemaVersion:2,review:acceptedReview(),provider:'deepseek',domain:'public',approved:true,evidenceHash:hash(),validUntil:NOW+1000,noticeRevision:3,noticeText:'Synthetic processing notice'};
+  const policy={schemaVersion:2,review:acceptedReview(),provider:'mistral',domain:'public',approved:true,evidenceHash:hash(),validUntil:NOW+1000,noticeRevision:3,noticeText:'Synthetic processing notice'};
   let qualified=true,now=NOW;
   const approval=createProcessingApproval({digest:installationHash,policy,qualified:async()=>qualified,clock:()=>now});
   assert.equal(await approval.current(),true);assert.equal((await approval.notice()).revision,3);
@@ -27,7 +27,7 @@ test('AI-INST06 processing authority and notice remain public-only, current and 
 
 test('AI-INST08 processing evidence expiring during qualification cannot approve a notice or admission', async () => {
   let now=NOW;
-  const policy={schemaVersion:2,review:acceptedReview(),provider:'deepseek',domain:'public',approved:true,evidenceHash:hash(),validUntil:NOW+1000,noticeRevision:3,noticeText:'Synthetic processing notice'};
+  const policy={schemaVersion:2,review:acceptedReview(),provider:'mistral',domain:'public',approved:true,evidenceHash:hash(),validUntil:NOW+1000,noticeRevision:3,noticeText:'Synthetic processing notice'};
   const approval=createProcessingApproval({digest:installationHash,policy,clock:()=>now,qualified:async()=>{now=policy.validUntil;return true;}});
   assert.equal(await approval.current(),false);
   now=NOW;assert.equal((await approval.notice()).approved,false);
@@ -39,7 +39,7 @@ const hash=()=>createHash('sha256').update(randomBytes(32)).digest('hex');
 const NOW=1_800_000_000_000;
 
 test('DS01-C01 drafts and legacy approvals cannot authorize processing; exact notice and evidence bind approval', async () => {
-  const policy={schemaVersion:2,review:acceptedReview(),provider:'deepseek',domain:'public',approved:true,evidenceHash:hash(),validUntil:NOW+1000,noticeRevision:3,noticeText:'Synthetic notice'};
+  const policy={schemaVersion:2,review:acceptedReview(),provider:'mistral',domain:'public',approved:true,evidenceHash:hash(),validUntil:NOW+1000,noticeRevision:3,noticeText:'Synthetic notice'};
   const approval=value=>createProcessingApproval({digest:installationHash,policy:value,qualified:async()=>true,clock:()=>NOW});
   const initial=approval(policy),binding=(await initial.notice()).binding;
   assert.equal((await initial.evidence()).evidenceHash,binding);
@@ -56,7 +56,7 @@ const files={'runtime/node.exe':'node','runtime/LICENSE':'licence','source/packa
 const manifestText=(entries=files)=>Object.entries(entries).map(([name,body])=>`${installationHash(body)} ${name}`).join('\n')+'\n';
 
 function fixture(role,{changes={},manifest=manifestText(),packageFiles=files}={}) {
-  const release={name:'synthetic-release',workerId:hash(),releaseHash:hash(),profileHash:hash(),provider:'deepseek',domain:'public',evidenceHash:hash()};
+  const release={name:'synthetic-release',workerId:hash(),releaseHash:hash(),profileHash:hash(),provider:'mistral',domain:'public',evidenceHash:hash()};
   const installationId=hash(),expires=NOW+3600000;
   const value={version:1,role,installationId,expires,manifest:installationHash(manifest),release,
     qualification:{installationId,releaseHash:release.releaseHash,profileHash:release.profileHash,expiresAt:expires,checks:{}},
@@ -115,11 +115,11 @@ test('AI-INST04 the qualification receipt must match the configured release, exp
 
 test('DS04-E01 provider lookups resolve only to public IPv4 addresses', async () => {
   for(const address of ['0.1.2.3','10.0.0.1','100.64.0.1','127.0.0.1','169.254.169.254','172.16.0.1','192.168.0.1','198.18.0.1','224.0.0.1',
-    '255.255.255.255','::1','::ffff:127.0.0.1','127.1','2130706433','api.deepseek.com'])
+    '255.255.255.255','::1','::ffff:127.0.0.1','127.1','2130706433','api.mistral.ai'])
     assert.equal(isPublicAiAddress(address),false,address);
   assert.equal(isPublicAiAddress('93.184.215.14'),true);
-  const lookup=answers=>publicAiLookup((hostname,options,callback)=>{assert.equal(hostname,'api.deepseek.com');assert.deepEqual(options,{family:4,all:true});callback(null,answers);});
-  const call=(answers,options={})=>new Promise(resolve=>lookup(answers)('api.deepseek.com',options,(error,...result)=>resolve({error,result})));
+  const lookup=answers=>publicAiLookup((hostname,options,callback)=>{assert.equal(hostname,'api.mistral.ai');assert.deepEqual(options,{family:4,all:true});callback(null,answers);});
+  const call=(answers,options={})=>new Promise(resolve=>lookup(answers)('api.mistral.ai',options,(error,...result)=>resolve({error,result})));
   assert.deepEqual((await call([{address:'93.184.215.14',family:4}])).result,['93.184.215.14',4]);
   assert.deepEqual((await call([{address:'93.184.215.14',family:4}],{all:true})).result,[[{address:'93.184.215.14',family:4}]]);
   for(const answers of [[],[{address:'127.0.0.1',family:4}],[{address:'93.184.215.14',family:4},{address:'10.0.0.1',family:4}]])
@@ -163,7 +163,7 @@ test('AI-INST07 installed composition carries approved notices, independent pref
   const database=user=>({host:'127.0.0.1',port:5432,database:'sophie_stage_ai',user,password:'synthetic'});
   const options={runtime:{mapping:{guildId:'101'}},database:database('sophie_stage_core'),ownerDatabase:database('sophie_stage_owner'),
     controlDatabase:database('sophie_stage_control'),knowledgeDatabase:database('sophie_stage_knowledge'),knowledgeOwnerDatabase:database('sophie_stage_editor'),
-    credentials:{token:'synthetic',clientSecret:'synthetic'},processingPolicy:{schemaVersion:2,review:acceptedReview(),provider:'deepseek',domain:'public',approved:true,evidenceHash:hash(),validUntil:Date.now()+3600000,noticeRevision:4,noticeText:'Synthetic notice'},
+    credentials:{token:'synthetic',clientSecret:'synthetic'},processingPolicy:{schemaVersion:2,review:acceptedReview(),provider:'mistral',domain:'public',approved:true,evidenceHash:hash(),validUntil:Date.now()+3600000,noticeRevision:4,noticeText:'Synthetic notice'},
     preferenceJournal:{id:hash(),evidenceHash:hash(),expiresAt:Number(core.pipes.installation.owner.expires)}};
   core.pipes.installation.configuration={...core.pipes.installation.configuration,core:options};let input;
   const createPool=configuration=>({async query(sql){

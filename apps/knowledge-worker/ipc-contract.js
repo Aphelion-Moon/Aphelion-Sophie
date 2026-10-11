@@ -5,7 +5,7 @@ const hash = value => typeof value === 'string' && /^[a-f0-9]{64}$/u.test(value)
 export function canonicalAiWorkerIdentity(value) {
   requireKeys(value,['workerId','bootId','releaseHash','profileHash','provider','domain'],'AI_IPC_IDENTITY_INVALID');
   requireCondition([value.workerId,value.bootId,value.releaseHash,value.profileHash].every(hash) &&
-    value.provider === 'deepseek' && value.domain === 'public','AI_IPC_IDENTITY_INVALID');
+    value.provider === 'mistral' && value.domain === 'public','AI_IPC_IDENTITY_INVALID');
   return freezeAiMaterial(structuredClone(value));
 }
 

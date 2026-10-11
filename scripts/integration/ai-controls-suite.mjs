@@ -242,7 +242,7 @@ export async function runAiControlsSuite(cluster, run) {
     assert.equal(await accounting.settle(token,reported,{model:'synthetic-model',fingerprint:'synthetic-build'}),true);
     assert.equal(await accounting.settle(token,reported),false);
     const balance=(await accounting.status()).balances.find(row=>row.period.length===7);
-    assert.equal(balance.reserved_nanos,'0'); assert.equal(balance.settled_nanos,'41184');
+    assert.equal(balance.reserved_nanos,'0'); assert.equal(balance.settled_nanos,'21360');
   });
   await run('DS03-03 crashes and missing usage retain reservations and cannot replay after expiry', async () => {
     await publishBudget();
@@ -315,7 +315,7 @@ export async function runAiControlsSuite(cluster, run) {
       const reviewed=await control.review({actor:operator,kind,expectedRevision:0,document:doc});
       await control.publish({actor:operator,kind,expectedRevision:0,document:doc,requestId:aiDigest({kind}),reviewSha256:reviewed.reviewSha256,confirmed:true});
     }
-    const release={name:'Synthetic',workerId:'a'.repeat(64),releaseHash:'b'.repeat(64),profileHash:'c'.repeat(64),evidenceHash:'d'.repeat(64),provider:'deepseek',domain:'public'};
+    const release={name:'Synthetic',workerId:'a'.repeat(64),releaseHash:'b'.repeat(64),profileHash:'c'.repeat(64),evidenceHash:'d'.repeat(64),provider:'mistral',domain:'public'};
     const activation=createAiActivation({pool:admin,guildId:operator.guildId,authorize:async(action,who)=>action==='ai.runtime.apply'&&who===operator&&authorized,
       inspectChannel:async()=>({eligible:true,restricted,checkedAt:Date.now(),audienceHash:'e'.repeat(64),continuity:'synthetic'}),
       approval:{evidence:async()=>approved?{evidenceHash:'f'.repeat(64),noticeRevision,validUntil:1799000000000}:null},

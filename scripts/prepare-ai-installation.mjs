@@ -8,7 +8,7 @@
 //   { "packageRoot": "...",             staged package containing source\ and runtime\
 //     "outputDirectory": "...",         receives trust\core.json and trust\supervisor.json (restricted folder)
 //     "release": { "name": "...", "workerId": "<sha256>", "releaseHash": "<sha256>" },
-//     "acceptedFingerprints": ["..."],  DeepSeek system fingerprints accepted by the worker
+//     "acceptedFingerprints": ["..."],  accepted returned model IDs; must name the pinned Mistral model
 //     "evidence": { "service-account-identity": "<file>", "file-acl-scope": "<file>", "firewall-egress-scope": "<file>" },
 //     "core": "<file>" }                core runtime block (runtime, databases, credentials); read, never printed
 //
@@ -18,7 +18,7 @@
 import { createHash, randomBytes } from 'node:crypto';
 import { mkdir, readFile, readdir, writeFile } from 'node:fs/promises';
 import { join, relative, sep } from 'node:path';
-import { deepSeekProfileHash } from '../apps/knowledge-worker/deepseek-client.js';
+import { mistralProfileHash } from '../apps/knowledge-worker/mistral-client.js';
 import { canonicalAiWorkerRelease } from '../modules/assistant/worker-release.js';
 import { installationChecks } from '../apps/installation/qualification.js';
 import { verifyInstallationManifest } from '../apps/installation/configuration.js';
@@ -53,10 +53,10 @@ const installationId = randomBytes(32).toString('hex'), expires = Date.now() + L
 const acceptedFingerprints = [...input.acceptedFingerprints];
 const checks = {};
 for (const name of installationChecks) checks[name] = sha256(await readFile(input.evidence[name]));
-const profileHash = deepSeekProfileHash({ acceptedFingerprints });
+const profileHash = mistralProfileHash({ acceptedFingerprints });
 const qualification = { installationId, releaseHash: input.release.releaseHash, profileHash, expiresAt: expires, checks };
 const release = canonicalAiWorkerRelease({ name: input.release.name, workerId: input.release.workerId, releaseHash: input.release.releaseHash,
-  profileHash, evidenceHash: sha256(JSON.stringify(qualification)), provider: 'deepseek', domain: 'public' });
+  profileHash, evidenceHash: sha256(JSON.stringify(qualification)), provider: 'mistral', domain: 'public' });
 const shared = { version: 1, installationId, expires, manifest: sha256(text), release, qualification, keys: { core: randomBytes(32).toString('hex') } };
 const core = JSON.parse(await readFile(input.core, 'utf8'));
 if(core.processingPolicy)core.processingPolicy=canonicalProcessingPolicy(core.processingPolicy);

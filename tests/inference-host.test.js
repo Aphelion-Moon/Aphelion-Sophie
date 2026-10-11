@@ -12,7 +12,7 @@ import { createAiSupervisorWorkerSlot } from '../apps/inference-host/worker-slot
 import { createAiSupervisorControlService } from '../apps/inference-host/control.js';
 import { createAiControlClient } from '../apps/ai-control/client.js';
 import { aiControlScope } from '../apps/ai-control/contract.js';
-import { createDeepSeekClient } from '../apps/knowledge-worker/deepseek-client.js';
+import { createMistralClient, MISTRAL_MODEL } from '../apps/knowledge-worker/mistral-client.js';
 import { createServer as createNetServer } from 'node:net';
 // The installed supervisor may already hold the default control port on this host.
 const port=await new Promise((resolve,reject)=>{const probe=createNetServer();probe.once('error',reject);probe.listen(0,'127.0.0.1',()=>{const {port}=probe.address();probe.close(()=>resolve(port));});});
@@ -20,9 +20,9 @@ const port=await new Promise((resolve,reject)=>{const probe=createNetServer();pr
 
 const native={skip:process.platform!=='win32',timeout:15000};
 const hash=()=>createHash('sha256').update(randomBytes(32)).digest('hex');
-const acceptedFingerprints=['synthetic-inference-host'],apiKey='synthetic-inference-host-provider-key';
-const profileHash=createDeepSeekClient({apiKey,acceptedFingerprints}).profileHash;
-const release=()=>({name:'synthetic-release',workerId:hash(),releaseHash:hash(),profileHash,provider:'deepseek',domain:'public',evidenceHash:hash()});
+const acceptedFingerprints=[MISTRAL_MODEL],apiKey='synthetic-inference-host-provider-key';
+const profileHash=createMistralClient({apiKey,acceptedFingerprints}).profileHash;
+const release=()=>({name:'synthetic-release',workerId:hash(),releaseHash:hash(),profileHash,provider:'mistral',domain:'public',evidenceHash:hash()});
 const identity=rel=>({workerId:rel.workerId,bootId:hash(),releaseHash:rel.releaseHash,profileHash:rel.profileHash,provider:rel.provider,domain:rel.domain});
 async function until(check,ms=3000){const deadline=Date.now()+ms;while(Date.now()<deadline){if(await check())return;await new Promise(resolve=>setTimeout(resolve,5));}assert.fail('CONDITION_TIMEOUT');}
 async function job(client,command,body) {

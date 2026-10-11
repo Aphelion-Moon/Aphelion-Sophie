@@ -1,6 +1,6 @@
 import { requireCondition, requireInteger, requireKeys } from '../../contracts/validation.js';
 
-const blockKinds=['authoring','example','evidence','history','contract','question'];
+const blockKinds=['authoring','example','evidence','history','memory','contract','question'];
 
 /** Ephemeral comparison fingerprints are keyed per worker boot and must never enter logs or persistence. */
 export function validateAiComparison(value) {
@@ -82,7 +82,7 @@ export function validateAiPrompt({ messages, trimGroups = [], outputContract, so
     source?.id === outputContract.sourceIds[i] && Number.isSafeInteger(source.index) && source.index > 0 && source.index < messages.length - 1 &&
     messages[source.index].role === 'user') && new Set(sourceMessages.map(source => source.index)).size === sourceMessages.length, 'AI_PROMPT_INVALID');
   if (blocks !== undefined) requireCondition(Array.isArray(blocks) && blocks.length === messages.length && blocks.every((block, index) =>
-    block && ['authoring', 'example', 'evidence', 'history', 'contract', 'question'].includes(block.kind) &&
+    block && blockKinds.includes(block.kind) &&
     Object.keys(block).every(key => key === 'kind' || key === 'id') &&
     (block.kind === 'evidence' ? sourceMessages.some(source => source.index === index && source.id === block.id) : !Object.hasOwn(block, 'id'))), 'AI_PROMPT_INVALID');
   requireCondition(Array.isArray(trimGroups) && trimGroups.length <= 44 && trimGroups.every(group => Array.isArray(group) &&

@@ -31,7 +31,7 @@
     4. Service DACL on aphelion-bot-ai-worker: the supervisor SID may query, start and stop it; nothing else.
     5. Outbound firewall block rules for the worker service: every TCP port except 443, all UDP,
        ICMPv4/ICMPv6. Loopback is not filtered by Windows Firewall, so the authenticated
-       127.0.0.1 inference channel to core keeps working. The DeepSeek transport additionally refuses
+       127.0.0.1 inference channel to core keeps working. The Mistral transport additionally refuses
        any non-public IPv4 answer in process (apps/knowledge-worker/http-transport.js).
 
   It does not start any service, write trust\*.json, place the provider key or change core/supervisor
@@ -162,7 +162,7 @@ if (-not $registered) {
         @"
 <service>
  <id>$ServiceId</id><name>Sophie AI worker</name>
- <description>DeepSeek inference worker. Started and stopped only by $SupervisorId; Manual startup.</description>
+ <description>Mistral inference worker. Started and stopped only by $SupervisorId; Manual startup.</description>
  <executable>$Node</executable>
  <arguments>"$Entrypoint"</arguments>
  <workingdirectory>$Source</workingdirectory>

@@ -8,6 +8,7 @@ import { createAiPrivacy } from '../storage/ai-privacy.js';
 import { createAiEffects } from '../storage/ai-effects.js';
 import { createAiMessages } from '../discord/ai-messages.js';
 import { createAiRuntime } from './ai.js';
+import { createAiMemory } from '../storage/ai-memory.js';
 import { createAiOperationsRuntime } from './ai-operations.js';
 import { createAiControlsHttp } from '../http/ai-controls.js';
 import { createAiKnowledgeHttp } from '../http/ai-knowledge.js';
@@ -114,6 +115,7 @@ export async function createStagingRuntime({ configuration, pool, aiControlPool 
   const principals = auth === null ? verifier : createCorePrincipals({ interactions: verifier, dashboard: auth });
   const createAiLane=worker=>createAiRuntime({ configuration: fixed, corePool: pool, controlPool: aiControlPool, worker, knowledge: aiKnowledge,
     observer, token, fetch, clock, enabled, onFault: fault,privacyCurrent:privacy.current,
+    memory: aiPreferenceJournal === null ? null : createAiMemory({ pool: aiControlPool, guildId: fixed.mapping.guildId, journal: aiPreferenceJournal, clock }),
     ...(aiApproval === null ? {} : { readNotice: aiApproval.notice }) });
   if(aiWorker!==null)aiRuntime=createAiLane(aiWorker);
   if(aiLifecycle!==null)aiRuntime=createAiOperationsRuntime({pool:aiControlPool,guildId:fixed.mapping.guildId,lifecycle:aiLifecycle,createRuntime:createAiLane,onFault:fault});

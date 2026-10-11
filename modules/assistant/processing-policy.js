@@ -5,7 +5,7 @@ const evidenceKeys = ['processorAgreement', 'discordServiceProviderTerms', 'rete
 /** Written only into protected installation configuration after the operator reviews the evidence. */
 export function canonicalProcessingPolicy(value) {
   requireKeys(value, ['schemaVersion', 'provider', 'domain', 'approved', 'evidenceHash', 'validUntil', 'noticeRevision', 'noticeText', ...(value?.schemaVersion === 2 ? ['review'] : [])], 'AI_PROCESSING_POLICY_INVALID');
-  requireCondition([1, 2].includes(value.schemaVersion) && value.provider === 'deepseek' && value.domain === 'public' && typeof value.approved === 'boolean', 'AI_PROCESSING_POLICY_INVALID');
+  requireCondition([1, 2].includes(value.schemaVersion) && value.provider === 'mistral' && value.domain === 'public' && typeof value.approved === 'boolean', 'AI_PROCESSING_POLICY_INVALID');
   requireCondition(typeof value.evidenceHash === 'string' && /^[a-f0-9]{64}$/u.test(value.evidenceHash) && value.evidenceHash !== '0'.repeat(64), 'AI_PROCESSING_POLICY_INVALID');
   requireInteger(value.validUntil, 1); requireInteger(value.noticeRevision, 2, 2147483646);
   requireCondition(typeof value.noticeText === 'string' && value.noticeText.trim().length > 0 && value.noticeText.length <= 8000, 'AI_PROCESSING_POLICY_INVALID');
@@ -24,7 +24,8 @@ export function createProcessingApproval({ policy = null, qualified, digest, clo
   // Qualification may wait on storage. Do not admit processing after the evidence expires during it.
   const current = async () => fixed?.schemaVersion === 2 && fixed.review.status === 'accepted' && fixed.approved === true && clock() < fixed.validUntil &&
     await qualified() === true && clock() < fixed.validUntil;
-  const binding = fixed?.schemaVersion === 2 ? digest(JSON.stringify([fixed.noticeRevision, fixed.noticeText, fixed.evidenceHash, ...evidenceKeys.map(key => fixed.review[key])])) : null;
+  // The provider is part of the consent binding: acceptance of one provider's notice never carries to another.
+  const binding = fixed?.schemaVersion === 2 ? digest(JSON.stringify([fixed.provider, fixed.noticeRevision, fixed.noticeText, fixed.evidenceHash, ...evidenceKeys.map(key => fixed.review[key])])) : null;
   return Object.freeze({ current,
     async notice() { return { revision: fixed?.noticeRevision ?? 2, text: fixed?.noticeText ?? 'AI message processing is awaiting operator review.', binding, approved: await current() }; },
     async evidence() { return await current() ? { evidenceHash: binding, noticeRevision: fixed.noticeRevision, validUntil: fixed.validUntil } : null; },

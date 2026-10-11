@@ -43,7 +43,7 @@ later human entries; generating the JSON does not inspect or replace them and
 does not establish production readiness.
 
 The October ledger retains 117 stable row IDs, all 60 acceptance specifications
-and R01–R18 coverage. Current T31–T33/T52 and G4 follow the selected DeepSeek path;
+and R01–R18 coverage. Current T31–T33/T52 and G4 follow the selected Mistral path;
 local model checks apply only if that alternative is separately selected. The
 R10 mapping retains its original reference title alongside the effective owner
 decision. The unchanged reference pack remains historical evidence. Each SAI-G

@@ -4,30 +4,44 @@ import { validateAiOutput } from '../../modules/assistant/output.js';
 import { createAiOutputSchema, validateAiPrompt, freezeAiMaterial } from './prompt-contract.js';
 import { AI_REDACTION_VERSION, redactAiIdentifiers } from './redaction.js';
 
-export const DEEPSEEK_MODEL = 'deepseek-flash';
-const endpoint = 'https://api.deepseek.com/chat/completions';
+// A dated identifier, never a mutable "-latest" alias. Changing it is a provider change that needs requalification.
+export const MISTRAL_MODEL = 'mistral-small-2603';
+export const MISTRAL_ENDPOINT = 'https://api.mistral.ai/v1/chat/completions';
+const endpoint = MISTRAL_ENDPOINT;
 
-/** Missing or inconsistent counters cannot release a conservative reservation. */
-export function deepSeekUsage(value) {
+/**
+ * Normalises Mistral usage into the accounting shape. Missing or inconsistent totals cannot release a
+ * conservative reservation. Mistral bills cached input at a discount but its documented usage object does not
+ * name a cached counter, so only a consistent OpenAI-style prompt_tokens_details.cached_tokens is credited;
+ * anything else is charged as uncached input, which can only overstate the cost.
+ */
+export function mistralUsage(value) {
   const usage = {};
-  for (const key of ['prompt_tokens', 'completion_tokens', 'total_tokens', 'prompt_cache_hit_tokens', 'prompt_cache_miss_tokens']) {
+  for (const key of ['prompt_tokens', 'completion_tokens', 'total_tokens']) {
     if (!Number.isSafeInteger(value?.[key]) || value[key] < 0 || value[key] > 2000000) return null;
     usage[key] = value[key];
   }
-  if (usage.prompt_tokens + usage.completion_tokens !== usage.total_tokens ||
-    usage.prompt_cache_hit_tokens + usage.prompt_cache_miss_tokens !== usage.prompt_tokens) return null;
+  if (usage.prompt_tokens + usage.completion_tokens !== usage.total_tokens) return null;
+  const cached = value.prompt_tokens_details?.cached_tokens;
+  usage.prompt_cache_hit_tokens = Number.isSafeInteger(cached) && cached >= 0 && cached <= usage.prompt_tokens ? cached : 0;
+  usage.prompt_cache_miss_tokens = usage.prompt_tokens - usage.prompt_cache_hit_tokens;
   return Object.freeze(usage);
 }
 
 /** Release binding for the fixed request profile. It never includes the provider key. */
-export function deepSeekProfileHash({ acceptedFingerprints, maxPromptBytes = 16384, outputTokens = 384 }) {
-  return createHash('sha256').update(JSON.stringify({schema:2,provider:'deepseek',endpoint,model:DEEPSEEK_MODEL,
-    redaction:AI_REDACTION_VERSION,cachePartition:'worker-private-hmac-v1',
-    maxPromptBytes,outputTokens,thinking:false,stream:false,temperature:0.4,responseFormat:'json_object',acceptedFingerprints:[...new Set(acceptedFingerprints)].sort()})).digest('hex');
+export function mistralProfileHash({ acceptedFingerprints, maxPromptBytes = 16384, outputTokens = 384 }) {
+  return createHash('sha256').update(JSON.stringify({schema:1,provider:'mistral',endpoint,model:MISTRAL_MODEL,
+    redaction:AI_REDACTION_VERSION,cachePartition:'worker-private-hmac-v1',identity:'pinned-model-id-v1',
+    maxPromptBytes,outputTokens,reasoning:'none',stream:false,temperature:0.4,responseFormat:'json_object',acceptedFingerprints:[...new Set(acceptedFingerprints)].sort()})).digest('hex');
 }
 
-/** Fixed remote provider. Only the inference identity receives this key; no SDK or fallback. */
-export function createDeepSeekClient({ apiKey, fetchImpl = fetch, clock = Date.now, onUsage = () => {}, maxPromptBytes = 16384, outputTokens = 384,
+/**
+ * Fixed remote provider. Only the inference identity receives this key; no SDK or fallback.
+ * Mistral reports no build fingerprint. The accepted identities are therefore exact returned model IDs:
+ * the worker runs only while the operator-approved list names the pinned model, and holds on any other
+ * returned model. This detects an alias or model substitution, not a silent rebuild behind the same ID.
+ */
+export function createMistralClient({ apiKey, fetchImpl = fetch, clock = Date.now, onUsage = () => {}, maxPromptBytes = 16384, outputTokens = 384,
   acceptedFingerprints = [] }) {
   requireCondition(typeof apiKey === 'string' && /^[a-zA-Z0-9_-]{16,256}$/u.test(apiKey), 'AI_WORKER_KEY_REQUIRED');
   requireCondition([fetchImpl, clock, onUsage].every(fn => typeof fn === 'function'), 'TRUSTED_ADAPTERS_REQUIRED');
@@ -37,7 +51,7 @@ export function createDeepSeekClient({ apiKey, fetchImpl = fetch, clock = Date.n
   const fingerprints = new Set(acceptedFingerprints), preparedTurns = new WeakSet(), consumed = new WeakSet();
   const comparisonKey=randomBytes(32), partitionKey=randomBytes(32);
   const compareHash=value=>createHmac('sha256',comparisonKey).update(JSON.stringify(value)).digest('hex');
-  const profileHash = deepSeekProfileHash({ acceptedFingerprints, maxPromptBytes, outputTokens });
+  const profileHash = mistralProfileHash({ acceptedFingerprints, maxPromptBytes, outputTokens });
   let active = false, blockedUntil = 0, credentialBlocked = false, identityBlocked = false;
   function scope({ boundary, workerDomain, releaseHash, requesterId, restricted }) {
     // Existing local/private qualifications do not authorize a remote restricted lane.
@@ -56,7 +70,7 @@ export function createDeepSeekClient({ apiKey, fetchImpl = fetch, clock = Date.n
   function prepare(payload) {
     const started=clock();
     validateAiPrompt(payload);
-    const userId = scope(payload), { messages: inputMessages, outputContract, sourceMessages = [], trimGroups = [], contractMessageIndex } = payload;
+    const cacheKey = scope(payload), { messages: inputMessages, outputContract, sourceMessages = [], trimGroups = [], contractMessageIndex } = payload;
     const identifiers = [payload.requesterId, payload.boundary.guildId, payload.boundary.channelId];
     // Independently sanitize all free text, including old history, examples and published source text.
     // Structural citation/emoji keys cannot be rewritten without changing their meaning, so reject unsafe keys.
@@ -71,9 +85,9 @@ export function createDeepSeekClient({ apiKey, fetchImpl = fetch, clock = Date.n
       const schema = createAiOutputSchema(contract);
       if (schema.oneOf.length === 1) return prepared({ sources, contract, body: null, serialized: null, bytes: 0, messages: [], blocks: [] },started);
       const selected = messages.filter((_message, index) => !removed.has(index) && index !== contractMessageIndex).map(({ role, content }) => ({ role, content }));
-      // DeepSeek JSON mode does not enforce JSON Schema. Describe it, then validate locally.
+      // JSON mode does not enforce this schema. Describe it, then validate locally.
       selected.splice(selected.length - 1, 0, { role: 'system', content: `Return one JSON object matching this turn's schema. Silence is {"kind":"silent"}. No markdown or extra fields.\n${JSON.stringify(schema)}` });
-      const body = { model: DEEPSEEK_MODEL, messages: selected, user_id: userId, thinking: { type: 'disabled' },
+      const body = { model: MISTRAL_MODEL, messages: selected, prompt_cache_key: cacheKey, reasoning_effort: 'none',
         stream: false, max_tokens: outputTokens, temperature: 0.4, response_format: { type: 'json_object' } };
       const serialized = JSON.stringify(body), bytes = Buffer.byteLength(serialized, 'utf8');
       if (bytes <= maxPromptBytes) {
@@ -101,7 +115,7 @@ export function createDeepSeekClient({ apiKey, fetchImpl = fetch, clock = Date.n
       requireCondition(preparedTurns.has(turn) && !consumed.has(turn), 'AI_PREPARATION_UNTRUSTED');
       requireCondition([beforeDispatch, recordDispatch, recordResponse, recordUndispatched].every(fn => typeof fn === 'function'), 'TRUSTED_ADAPTERS_REQUIRED');
       requireCondition(!signal.aborted && clock() < deadline, 'AI_DEADLINE_EXPIRED');
-      requireCondition(!active && !credentialBlocked && !identityBlocked && fingerprints.size > 0 && clock() >= blockedUntil, 'AI_WORKER_UNAVAILABLE');
+      requireCondition(!active && !credentialBlocked && !identityBlocked && fingerprints.has(MISTRAL_MODEL) && clock() >= blockedUntil, 'AI_WORKER_UNAVAILABLE');
       const { body, contract, sources, serialized } = turn;
       consumed.add(turn);
       if (body === null) return { kind: 'silent' };
@@ -131,16 +145,16 @@ export function createDeepSeekClient({ apiKey, fetchImpl = fetch, clock = Date.n
         }
         // Non-streaming provider keep-alives are whitespace; JSON.parse accepts them.
         const responseBody = JSON.parse(Buffer.concat(chunks).toString('utf8'));
-        const usage = deepSeekUsage(responseBody.usage);
+        const usage = mistralUsage(responseBody.usage);
         const model = typeof responseBody.model === 'string' && /^[a-zA-Z0-9._-]{1,96}$/u.test(responseBody.model) ? responseBody.model : null;
-        const fingerprint = typeof responseBody.system_fingerprint === 'string' && /^[a-zA-Z0-9._-]{1,96}$/u.test(responseBody.system_fingerprint) ? responseBody.system_fingerprint : null;
+        const fingerprint = null; // Not reported by this provider; see the identity note above.
         // Accounting precedes acceptance: malformed, truncated, late or unapproved output may still cost money.
         await recordResponse({ usage, model, fingerprint });
         try { onUsage({ model, fingerprint, milliseconds: clock() - started, ...usage }); } catch { /* Optional telemetry does not settle spending. */ }
-        if (model !== DEEPSEEK_MODEL || !fingerprints.has(fingerprint)) identityBlocked = true;
+        if (model !== MISTRAL_MODEL || !fingerprints.has(model)) identityBlocked = true;
         requireCondition(!identityBlocked, 'AI_IDENTITY_UNAPPROVED');
         requireCondition(!abort.aborted && clock() < deadline, 'AI_DEADLINE_EXPIRED');
-        requireCondition(responseBody.model === DEEPSEEK_MODEL && responseBody.choices?.length === 1 && responseBody.choices[0].finish_reason === 'stop', 'AI_FINAL_OUTPUT_REQUIRED');
+        requireCondition(responseBody.model === MISTRAL_MODEL && responseBody.choices?.length === 1 && responseBody.choices[0].finish_reason === 'stop', 'AI_FINAL_OUTPUT_REQUIRED');
         const message = responseBody.choices[0].message;
         requireCondition(message?.role === 'assistant' && typeof message.content === 'string' && message.content.length <= 8192 &&
           !message.tool_calls?.length && !message.function_call && !message.reasoning_content, 'AI_FINAL_OUTPUT_REQUIRED');
@@ -159,7 +173,7 @@ export function createDeepSeekClient({ apiKey, fetchImpl = fetch, clock = Date.n
       }
   }
   return Object.freeze({
-    provider: 'deepseek', profileHash,
+    provider: 'mistral', profileHash,
     prepare, generatePrepared,
     async generate(payload, context) { return generatePrepared(prepare(payload), context); },
     status() { return { active, credentialBlocked, identityBlocked, cooldownUntil: blockedUntil }; },

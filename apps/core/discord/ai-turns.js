@@ -4,7 +4,7 @@ import { buildAiPrompt } from '../../knowledge-worker/prompt.js';
 import { freezeAiMaterial } from '../../knowledge-worker/prompt-contract.js';
 
 /** Core owns delivery. No worker can choose a recipient, target message or operational indicator. */
-export function createAiTurns({ admission, scheduler, context, knowledge, messages, clock, onInvalidate = () => {} }) {
+export function createAiTurns({ admission, scheduler, context, knowledge, messages, clock, memory = null, onInvalidate = () => {} }) {
   const outstanding = new Map(), gatherings = new Map(); let stopped = false, generation = 0;
   function finishGather(entry) {
     clearTimeout(entry.timer); gatherings.delete(entry.rootId);
@@ -45,10 +45,12 @@ export function createAiTurns({ admission, scheduler, context, knowledge, messag
     return { ...root, text:combined.map(item=>item.text).join('\n'), fragments:combined };
   }
   const historyCurrent = (request, source) => context.current(source, item => admission.revalidateSource(item), items => knowledge.current(items, request));
-  async function current(request, sources = [], history = []) {
+  async function current(request, sources = [], history = [], saved = null) {
     if (stopped || clock() >= request.deadline || !await admission.revalidate(request)) return false;
     for (const fragment of request.fragments ?? []) if (fragment.messageId!==request.messageId && !await admission.revalidate(fragment)) return false;
     for (const source of history) if (!await historyCurrent(request, source)) return false;
+    // Notes the member edited, deleted or stopped sharing after preparation must not reach dispatch or delivery.
+    if (saved !== null && await memory.current(request.userId, saved) !== true) return false;
     return await knowledge.current(sources, request) === true && clock() < request.deadline;
   }
   async function run(request) {
@@ -60,32 +62,34 @@ export function createAiTurns({ admission, scheduler, context, knowledge, messag
       const dependencies = [...history,...(request.fragments ?? []).filter(item=>item.messageId!==request.messageId)
         .map(item=>({...item,expiresAt:item.receivedAt+Math.min(300000,item.profile.contextTtlMs)}))];
       const sources = await knowledge.lookup(request.text, request);
-      if (!await current(request, sources, history)) { await admission.settle(request, 'cancelled'); return { state: 'cancelled' }; }
+      // Only the requester's own shared notes; never another participant's.
+      const saved = memory === null ? null : await memory.read(request.userId);
+      if (!await current(request, sources, history, saved)) { await admission.settle(request, 'cancelled'); return { state: 'cancelled' }; }
       const generated = await scheduler.submit({ id: request.messageId, member: `${request.guildId}.${request.userId}`, channel: `${request.guildId}.${request.channelId}`, receivedAt: request.receivedAt,
         deadline: request.deadline, proactive: request.decision.proactive,
-        beforeDispatch: () => current(request, sources, history),
+        beforeDispatch: () => current(request, sources, history, saved),
         onPrepared: async comparison=>{
-          if(!await current(request,sources,history))return;
+          if(!await current(request, sources, history, saved))return;
           await context.comparePrepared(request,history,sources,comparison,admission.revalidateSource,
             items=>items.length===0?true:knowledge.currentReferences(items,request));
         },
         beforeExecute: async () => {
-          if (!await current(request, sources, history)) return false;
+          if (!await current(request, sources, history, saved)) return false;
           if (request.profile.typing && !request.decision.proactive && request.decision.outcomes.includes('reply')) {
             try { await messages.typing(request); } catch { /* An optional indicator failure cannot authorize or replay a response. */ }
           }
-          return current(request, sources, history);
+          return current(request, sources, history, saved);
         },
         payload: freezeAiMaterial({ workerDomain: request.binding.workerDomain, releaseHash: request.binding.releaseHash,
           requesterId: request.userId, restricted: request.binding.restricted,
           boundary: { guildId: request.guildId, channelId: request.channelId, continuity: request.binding.continuity, boundaryEpoch: request.binding.boundaryEpoch },
           local: { messageId: request.messageId, inputRevision: request.inputRevision, controlEpoch: request.binding.epoch,
             deadline: request.deadline, proactive: request.decision.proactive },
-          ...buildAiPrompt({ request, history, sources }) }) });
+          ...buildAiPrompt({ request, history, sources, memory: saved }) }) });
       if (generated.state !== 'completed') { const state = ['expired', 'cancelled'].includes(generated.state) ? generated.state : 'unavailable'; await admission.settle(request, state); return { state }; }
       const output = validateAiOutput(generated.result, { outcomes: request.decision.outcomes, answerOnly: request.decision.answerOnly,
         sources, emojiKeys: request.config.emojis.map(emoji => emoji.key) });
-      if (!await current(request, sources, history)) { await admission.settle(request, 'cancelled'); return { state: 'cancelled' }; }
+      if (!await current(request, sources, history, saved)) { await admission.settle(request, 'cancelled'); return { state: 'cancelled' }; }
       if (output.kind === 'silent') { await admission.settle(request, 'silent'); return { state: 'silent' }; }
       if (!await admission.beginDelivery(request)) { await admission.settle(request, 'cancelled'); return { state: 'cancelled' }; }
       // Deadline is propagated through the actual Discord request; no late-send queue or fallback destination.
@@ -93,16 +97,16 @@ export function createAiTurns({ admission, scheduler, context, knowledge, messag
       effect = output.kind === 'reply'
         ? await messages.reply(request, renderAiReply(output, sources), dependencies, sources)
         : await messages.react(request, request.config.emojis.find(emoji => emoji.key === output.emojiKey), dependencies, sources);
-      if (clock() >= request.deadline || !await current(request, sources, history)) {
+      if (clock() >= request.deadline || !await current(request, sources, history, saved)) {
         await messages.remove(request, effect); await admission.settle(request, 'cancelled', effect.id); return { state: 'cancelled' };
       }
       const state = output.kind === 'reply' ? 'delivered' : 'reacted'; await admission.settle(request, state, effect.id);
-      if (!await current(request, sources, history)) {
+      if (!await current(request, sources, history, saved)) {
         await messages.remove(request, effect); await admission.settle(request, 'cancelled', effect.id); return { state: 'cancelled' };
       }
       // Disposable continuity must not turn a confirmed delivery into an uncertain send.
       try {
-        if (output.kind === 'reply' && await current(request, sources, history)) context.rememberReply(request, { id: effect.id, text: output.text }, dependencies, sources);
+        if (output.kind === 'reply' && await current(request, sources, history, saved)) context.rememberReply(request, { id: effect.id, text: output.text }, dependencies, sources);
       } catch { /* Omit context if fresh authorization or bounded retention is unavailable. */ }
       return { state };
     } catch {

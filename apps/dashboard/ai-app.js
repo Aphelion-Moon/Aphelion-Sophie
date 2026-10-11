@@ -198,7 +198,7 @@ else {
     if(generation!==diagnosticGeneration || session!==identity || result.actorId!==session.userId || result.guildId!==session.guildId || el('diagnostic-channel').value!==channelId)return;
     const value=result.diagnostic;
     if(!value || value.expiresAt<=Date.now()){el('diagnostic-output').textContent='No current comparison is available.';return;}
-    const labels={authoring:'authored policy and character',example:'dialogue example',evidence:'approved evidence',history:'temporary conversation',contract:'output contract',question:'current question',protocol:'provider protocol or boundary'};
+    const labels={authoring:'authored policy and character',example:'dialogue example',evidence:'approved evidence',history:'temporary conversation',memory:'the member’s own saved notes',contract:'output contract',question:'current question',protocol:'provider protocol or boundary'};
     el('diagnostic-output').textContent=`${value.comparable?value.firstChangedBlock===null?'Prepared blocks are unchanged.':`First changed block: ${labels[value.firstChangedBlock]}.`:'No earlier eligible preparation is available for comparison.'} Preparation took ${value.preparationMilliseconds} ms. Ordered block sizes: ${value.blocks.map(block=>`${labels[block.kind]} (${block.bytes} bytes)`).join(', ')}.`;
     diagnosticTimer=setTimeout(()=>{clearDiagnostic();el('diagnostic-output').textContent='This comparison expired. Inspect again for current information.';},Math.max(1,Math.min(300000,value.expiresAt-Date.now())));
   }));

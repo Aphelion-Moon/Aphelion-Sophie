@@ -9,21 +9,21 @@ import { join } from 'node:path';
 import { createAiReversePipeClient } from '../apps/core/runtime/ai-reverse-pipe.js';
 import { createMeteredAiWorker } from '../apps/core/runtime/ai-provider.js';
 import { createAiWorkerRuntime } from '../apps/knowledge-worker/runtime.js';
-import { createDeepSeekClient } from '../apps/knowledge-worker/deepseek-client.js';
+import { createMistralClient, MISTRAL_MODEL } from '../apps/knowledge-worker/mistral-client.js';
 import { aiBootPipe, authenticateAiBootPipe } from '../apps/knowledge-worker/boot-pipe.js';
 import { AI_WORKER_ROOTS, aiWorkerFiles, locateAiWorkerBoot, loadAiWorkerBootstrap, readAiWorkerFile, signAiWorkerLease, createAiWorkerLease } from '../apps/knowledge-worker/bootstrap.js';
 
 const key=Buffer.alloc(32,7),leaseKey=Buffer.alloc(32,8),qualificationHash='6'.repeat(64),apiKey='synthetic-package-provider-key';
-const acceptedFingerprints=['synthetic-package'],native={skip:process.platform!=='win32',timeout:15000};
+const acceptedFingerprints=[MISTRAL_MODEL],native={skip:process.platform!=='win32',timeout:15000};
 const identity=()=>({workerId:randomBytes(32).toString('hex'),bootId:randomBytes(32).toString('hex'),releaseHash:'3'.repeat(64),
-  profileHash:createDeepSeekClient({apiKey,acceptedFingerprints}).profileHash,provider:'deepseek',domain:'public'});
+  profileHash:createMistralClient({apiKey,acceptedFingerprints}).profileHash,provider:'mistral',domain:'public'});
 const payload=identity=>({workerDomain:'public',releaseHash:identity.releaseHash,requesterId:'404',restricted:false,
   boundary:{guildId:'101',channelId:'202',continuity:'synthetic',boundaryEpoch:1},
   local:{deadline:Date.now()+14000,messageId:'505',inputRevision:'a'.repeat(64),controlEpoch:1},
   messages:[{role:'system',content:'Synthetic policy'},{role:'user',content:'Synthetic hello'}],
   outputContract:{outcomes:['reply','silent'],answerOnly:false,sourceIds:[],emojiKeys:[]}});
-const response=()=>new Response(JSON.stringify({model:'deepseek-flash',system_fingerprint:'synthetic-package',
-  usage:{prompt_tokens:100,completion_tokens:20,total_tokens:120,prompt_cache_hit_tokens:40,prompt_cache_miss_tokens:60},
+const response=()=>new Response(JSON.stringify({model:MISTRAL_MODEL,
+  usage:{prompt_tokens:100,completion_tokens:20,total_tokens:120,prompt_tokens_details:{cached_tokens:40}},
   choices:[{finish_reason:'stop',message:{role:'assistant',content:'{"kind":"silent"}'}}]}),{headers:{'content-type':'application/json'}});
 async function until(check){const deadline=Date.now()+2000;while(!check()&&Date.now()<deadline)await new Promise(resolve=>setTimeout(resolve,5));assert.ok(check());}
 async function fixture({fetchImpl,qualified=async()=>true}={}){

@@ -6,7 +6,7 @@ import { createAiOperationsRuntime } from '../../apps/core/runtime/ai-operations
 import { DEFAULT_AI_BUDGET } from '../../modules/assistant/budget.js';
 import { DRAFT_PERSONALITY } from '../../modules/assistant/personality.js';
 
-const release={name:'Synthetic Flash public',workerId:'1'.repeat(64),releaseHash:'2'.repeat(64),profileHash:'3'.repeat(64),evidenceHash:'4'.repeat(64),provider:'deepseek',domain:'public'};
+const release={name:'Synthetic Small public',workerId:'1'.repeat(64),releaseHash:'2'.repeat(64),profileHash:'3'.repeat(64),evidenceHash:'4'.repeat(64),provider:'mistral',domain:'public'};
 const deferred=()=>{let resolve;const promise=new Promise(done=>resolve=done);return {promise,resolve};};
 const tick=()=>new Promise(resolve=>setImmediate(resolve));
 
@@ -30,7 +30,7 @@ export async function runAiOperationsSuite(cluster,run) {
       async launch({identity,beforeStart}) {
         assert.equal(await beforeStart(),true);assert.equal(physical,false);physical=true;events.push('launch');launched++;
         if(flags.launchGate)await flags.launchGate.promise;
-        return {provider:'deepseek',probe:async()=>{events.push('probe');return flags.wrongAck?{...identity,bootId:'f'.repeat(64)}:identity;},
+        return {provider:'mistral',probe:async()=>{events.push('probe');return flags.wrongAck?{...identity,bootId:'f'.repeat(64)}:identity;},
           stop(){events.push('client-stop');}};
       }};
     const makeRuntime=()=>createAiOperationsRuntime({pool,guildId:actor.guildId,lifecycle,onFault:()=>events.push('fault'),

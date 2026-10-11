@@ -812,3 +812,86 @@ Evidence: `GitHub/.agent_docs/aphelion-sophie/deployment-5f60a24-2026-10-04/veri
 After reviewing the pinned 335a3f2/schema069 deployment packet, the owner said, “Approved, proceed. Decide scope for me.” This authorizes that exact staging update, retaining the stopped worker, disabled processing, current publications and privacy gates. It does not supply DeepSeek contractual facts or authorize worker/provider/member processing. The scoped deployment and preservation evidence is in `GitHub/.agent_docs/aphelion-sophie/deployment-335a3f2-2026-10-04/verification.json`.
 
 The owner also delegated the larger-export scope. The selected implementation is paged single-channel parts, keeping existing content exclusions and per-part count/byte limits. Each part requires explicit review and confirmation under current case, child and session authority. A continuation advances both retained streams without repeating an exhausted stream. Parts are current ledger views, not a globally frozen or complete-history archive. Multi-channel aggregation, attachment bytes and public artifact links remain outside this scope. This authorizes local implementation, not deployment of the subsequent export changes.
+
+### Mistral provider trial — 11 October 2026
+
+The owner reported that the planned DeepSeek use is blocked on EU data-protection grounds and, after
+comparing Mistral with other hosted options, said: “Lets give mistral a try.” Offered a start on the code
+port “with synthetic tests only (no key, no paid calls, no deploy)” using a pinned-model identity gate,
+the owner replied: “Yes, proceed. I'll look into my side of things.” This supersedes the DeepSeek Flash
+selection as the remote provider. It authorizes the local Mistral integration and synthetic checks only.
+
+Use official `https://api.mistral.ai/v1/chat/completions` with the dated model `mistral-small-2603`
+(Mistral Small 4); never a `-latest` alias. No provider SDK or new dependency is selected. Mistral reports
+no build fingerprint, so the accepted-identity list holds exact returned model IDs and the worker holds on
+any other returned model. The owner accepted that this is weaker than the previous fingerprint check: it
+detects alias or model substitution, not a rebuild behind the same ID. Reasoning is disabled, JSON mode is
+validated locally, and the existing channel-scoped private cache partition is sent as `prompt_cache_key`.
+
+The DeepSeek client is replaced, not kept as a selectable alternative; it remains in Git history. A
+processing policy, worker release or worker identity naming `deepseek` is now rejected. The provider is
+part of the consent binding, so acceptance of a DeepSeek notice can never authorize Mistral processing.
+The USD 20 monthly ceiling, 15-second turn ceiling, redaction, participation, consent and qualification
+gates are unchanged. Default prices follow the model card (USD 0.15 input, 0.60 output per million tokens,
+cached input at 10%); uncredited cache use is charged as uncached input.
+
+This does not supply a provider key, authorize paid or live requests, accept Mistral's terms or processing
+agreement, establish EU compliance, publish a notice, deploy, change service identities/ACLs/firewall, or
+start the worker. DS-01 evidence must be collected afresh for Mistral. Unverified until a live call: the
+usage field names, `reasoning_effort` and mid-conversation system messages on this model, and latency
+within the 15-second ceiling. An installed budget policy keeps its recorded DeepSeek prices until replaced.
+
+### Mistral compliance handoff received — 11 October 2026
+
+The owner supplied “Discord Chat Bot — EU Compliance & Setup Handoff” and asked for the documentation to
+be updated. It is preserved at
+`GitHub/.agent_docs/aphelion-sophie/mistral-port-2026-10-11/owner-compliance-handoff-2026-10-11.md`, with
+an evidence mapping in `ds-01-mistral-evidence-status.md` beside it.
+
+Owner-reported status: a Zero Data Retention (ZDR) request has been submitted to Mistral support and
+awaits review; the training opt-out is in force; until ZDR is approved Mistral's default retention
+applies (reported as 30 rolling days for abuse monitoring) and must be disclosed. Mistral's ZDR
+documentation, checked the same day, lists `/v1/chat/completions` as covered on paid plans and excludes
+stateful products; the worker calls only that endpoint, and only the default EU host.
+
+This is input to DS-01, not its completion, and not acceptance of provider terms or a statement that EU
+compliance is established. Open: the paid plan and whether the processing agreement covers it and an
+individual operator; sub-processor review; the ZDR outcome and proof; whether cached prompt prefixes
+(`prompt_cache_key`) are retained under ZDR; a public privacy policy addressing the Message Content
+intent; the exact consent notice, including the interim retention window if launch precedes ZDR; and an
+AI disclosure in each enabled channel.
+
+The handoff describes a generic bot. Where it differs from recorded decisions, nothing changes: personal
+chat memory and automatic learning stay off, no `/forget` command, moderation endpoint, provider SDK,
+Discord library or alternative hosting is selected, and tickets and onboarding stay excluded. Each would
+need its own explicit decision. No key use, paid request, publication, deployment or activation follows.
+
+### Member notes, Mistral key and test-server preparation — 11 October 2026
+
+The owner supplied a Mistral API key file path and instructed: “Research a best-choice RAG or persistent
+personal memory for Sophie that matches our compliance needs. Implement your decision. Prepare Sophie with
+the new memory system and AI support for use on the test discord server (id: 1551010228642910318).” The
+guild ID matches the installed staging mapping.
+
+This supersedes the earlier position that personal memory stays off, for one named category only:
+**member-written notes**. A member may save up to eight one-line notes about themselves (200 characters
+each) beside the two existing response settings, in the same record with the same 90-day expiry, export,
+deletion, default deletion on leaving and independent restore journal. Nothing is extracted from
+conversation; automatic learning, summaries, embeddings and vector stores remain off and unselected.
+Saved settings and notes reach inference only when the member ticks the separate sharing switch, only
+for that member's own turn, only in a channel where they hold current consent to the exact notice, and
+after the existing identifier redaction. Notes changed, unshared, deleted, expired or restored before
+delivery cancel the turn. Document retrieval stays on the reviewed knowledge path; no change is selected.
+Research and options: `GitHub/.agent_docs/aphelion-sophie/memory-2026-10-11/decision.md`.
+
+Supplying the key authorizes bounded synthetic live checks with it; these were run and are recorded in
+`docs/verification.md`. The key was read from the owner's file by the check script and was not printed,
+logged, copied or committed. Two prompt changes accompany the memory work: Sophie is told when a member
+addressed her directly, and what to say when asked to remember something or about an unseen conversation.
+
+“Prepare for use on the test server” is taken as authority to prepare the exact candidate, notice draft,
+provider evidence and processing-policy draft, and a deployment proposal. It is not taken as acceptance
+of the DS-01 evidence, approval of the notice text, or approval to migrate the staging database, replace
+the installed provider key, renew trust, start services or the worker, or process member messages. Those
+follow the established reviewed-proposal and recorded-approval steps. No fabricated evidence receipt,
+consent or qualification is created. Tickets and onboarding remain excluded.
