@@ -931,3 +931,20 @@ It was applied and verified the same day with PostgreSQL and the tunnel left run
 no migration, no key change and no processing policy. Evidence:
 `GitHub/.agent_docs/aphelion-sophie/deployment-66a69f8-2026-10-11/`. Worker start, publications, member
 processing, policy acceptance and game-service changes remain outside this approval.
+
+### Mistral processing policy accepted — 12 October 2026
+
+Shown a draft processing policy (provider `mistral`, domain `public`, notice revision 3) with evidence receipts for
+Mistral's Data Processing Addendum (effective 27 July 2026), Discord's Developer Terms of Service and Developer Policy
+(effective 8 July 2024), retention and deletion, and international transfers, and asked to accept now with Mistral's
+abuse-monitoring retention disclosed or to wait for its zero-data-retention answer, the owner replied: “Go ahead and
+finalize, get us live.” The owner had earlier stated: “I have already sent an inquiry to Mistral regarding zero data
+retention.”
+
+This accepts policy evidence hash `3ff06663603339f82984f73fe3618e47aa435d47a1a96fbcb5610d791412cf5c`, valid until
+10 January 2027, and authorizes installing it on staging with fresh trust for release `sophie-mistral-11c87c3`, a
+restart of core and supervisor, and channel activation of a reviewed public channel by the owner through the dashboard.
+Receipts are operator records of reviewed public documents, not legal opinions. Retention remains an open gap until
+Mistral confirms zero data retention; the notice and receipts must then be revised and re-accepted. Restricted
+channels, image or tool use, and production remain outside this approval. Evidence:
+`GitHub/.agent_docs/aphelion-sophie/processing-policy-2026-10-12/`.

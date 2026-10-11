@@ -26,7 +26,7 @@ export function createAiRuntime({ configuration, corePool, controlPool, worker, 
   const ingress = createAiIngress({ guildId: mapping.guildId, botUserId: mapping.botUserId, clock });
   let recovered = false;
   const admission = createAiAdmission({ pool: controlPool, guildId: mapping.guildId, ingress, ...observations, clock,
-    noticeRevision: worker.provider === 'mistral' ? 2 : 1, readNotice, privacyCurrent,
+    noticeRevision: worker.provider === 'mistral' ? 2 : 1, readNotice, privacyCurrent, trace: reason => onFault(`AI_ADMISSION_SKIPPED_${reason}`),
     inspectContext: async event => recovered ? observations.inspectContext(event) : null });
   const accounting = createAiAccounting({ pool: controlPool, guildId: mapping.guildId });
   const inference = worker.provider === 'mistral' ? createMeteredAiWorker({ worker, accounting }) : worker;

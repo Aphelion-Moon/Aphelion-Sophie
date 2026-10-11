@@ -8,11 +8,13 @@ import { aiReceiptHash } from './ai-privacy.js';
 
 /** Atomic metadata receipts and pacing. Content stays in the returned transient handoff only. */
 export function createAiAdmission({ pool, guildId, ingress, inspectContext, inspectMember, clock, noticeRevision = 1,
-  readNotice = async () => ({ revision: noticeRevision, binding: null, approved: noticeRevision === 1 }), privacyCurrent = async () => true }) {
+  readNotice = async () => ({ revision: noticeRevision, binding: null, approved: noticeRevision === 1 }), privacyCurrent = async () => true, trace = () => {} }) {
   requireInteger(noticeRevision, 1);
   requireCondition(ingress.guildId === guildId && [inspectContext, inspectMember, clock, readNotice].every(fn => typeof fn === 'function'), 'TRUSTED_ADAPTERS_REQUIRED');
   const gatherOwner = randomUUID();
   let generation = 0;
+  // Fixed reason codes only (never message text, IDs or names) so an operator can see why a message was not admitted.
+  const skip = reason => { try { trace(reason); } catch { /* Tracing never affects admission. */ } return null; };
   async function noticeMatches(consent) {
     const notice = await readNotice();
     if (notice?.approved !== true || !Number.isSafeInteger(notice.revision) || notice.revision < noticeRevision || notice.revision !== consent.notice_revision) return false;
@@ -21,28 +23,31 @@ export function createAiAdmission({ pool, guildId, ingress, inspectContext, insp
   }
   async function snapshot(client, event) {
     const version = generation;
-    if (!await privacyCurrent(event.userId,client===pool?null:client)) return null;
+    if (!await privacyCurrent(event.userId,client===pool?null:client)) return skip('PRIVACY_NOT_CURRENT');
     const state = (await client.query('SELECT * FROM sophie_ai.state WHERE guild_id=$1', [guildId])).rows[0];
-    if (!state || state.disabled) return null;
+    if (!state || state.disabled) return skip('AI_DISABLED');
     const rows = (await client.query(`SELECT kind,revision,document,sha256 FROM sophie_ai.publications WHERE guild_id=$1 AND
       ((kind='configuration' AND revision=$2) OR (kind='personality' AND revision=$3))`, [guildId, state.configuration_revision, state.personality_revision])).rows;
     const configuration = rows.find(row => row.kind === 'configuration'), personality = rows.find(row => row.kind === 'personality');
-    if (!configuration || !personality) return null;
+    if (!configuration || !personality) return skip('PUBLICATION_MISSING');
     const config = canonicalAiConfiguration(configuration.document), character = canonicalPersonality(personality.document);
     requireCondition(aiDigest(config) === configuration.sha256 && aiDigest(character) === personality.sha256, 'AI_PUBLICATION_CORRUPT');
     const channel = config.channels.find(row => row.channelId === event.channelId);
-    if (!config.enabled || !channel || channel.profile.mode === 'ignore') return null;
+    if (!config.enabled || !channel || channel.profile.mode === 'ignore') return skip('CHANNEL_NOT_CONFIGURED');
     const qualification = (await client.query('SELECT * FROM sophie_ai.qualifications WHERE guild_id=$1 AND channel_id=$2', [guildId, event.channelId])).rows[0];
-    if (!qualification?.active || !qualification.restore_ready || qualification.configuration_sha256 !== configuration.sha256 || qualification.personality_sha256 !== personality.sha256) return null;
+    if (!qualification?.active || !qualification.restore_ready || qualification.configuration_sha256 !== configuration.sha256 || qualification.personality_sha256 !== personality.sha256) return skip('QUALIFICATION_MISMATCH');
     const consent = (await client.query('SELECT * FROM sophie_ai.consents WHERE guild_id=$1 AND channel_id=$2 AND user_id=$3', [guildId, event.channelId, event.userId])).rows[0];
-    if (!consent?.enabled || !await noticeMatches(consent)) return null;
+    if (!consent?.enabled || !await noticeMatches(consent)) return skip(consent?.enabled ? 'NOTICE_MISMATCH' : 'NO_CONSENT');
     // These trusted core adapters read current exclusion/ACL/member metadata, never case content.
     const context = await inspectContext(event), member = await inspectMember(event);
-    if (!context?.eligible || !member?.eligible || context.audienceHash !== qualification.audience_sha256 ||
-      context.restricted !== qualification.restricted || typeof context.canReply !== 'boolean' || typeof context.canReact !== 'boolean' ||
+    if (!context?.eligible) return skip(context === null ? 'CONTEXT_UNAVAILABLE' : 'CONTEXT_INELIGIBLE');
+    if (!member?.eligible) return skip(member === null ? 'MEMBER_UNAVAILABLE' : 'MEMBER_INELIGIBLE');
+    if (context.audienceHash !== qualification.audience_sha256) return skip('AUDIENCE_CHANGED');
+    if (context.restricted !== qualification.restricted) return skip('RESTRICTION_CHANGED');
+    if (member.presenceEpoch !== Number(consent.presence_epoch)) return skip('PRESENCE_CHANGED');
+    if (typeof context.canReply !== 'boolean' || typeof context.canReact !== 'boolean' ||
       !Number.isSafeInteger(member.presenceEpoch) || !Number.isSafeInteger(member.accessEpoch) ||
-      typeof context.continuity !== 'string' || context.continuity.length === 0 || typeof context.messageRevision !== 'string' ||
-      member.presenceEpoch !== Number(consent.presence_epoch)) return null;
+      typeof context.continuity !== 'string' || context.continuity.length === 0 || typeof context.messageRevision !== 'string') return skip('OBSERVATION_INVALID');
     // Revalidation runs without the admission write lock. Do not return versions read before slow external observations.
     const latest = (await client.query(`SELECT s.epoch AS control_epoch,s.disabled,q.boundary_epoch,q.active,q.restore_ready,
       c.epoch AS consent_epoch,c.enabled,c.presence_epoch FROM sophie_ai.state s
@@ -51,11 +56,14 @@ export function createAiAdmission({ pool, guildId, ingress, inspectContext, insp
       WHERE s.guild_id=$1`, [guildId,event.channelId,event.userId])).rows[0];
     if (!latest || latest.disabled || !latest.active || !latest.restore_ready || !latest.enabled ||
       Number(latest.control_epoch) !== Number(state.epoch) || Number(latest.boundary_epoch) !== Number(qualification.boundary_epoch) ||
-      Number(latest.consent_epoch) !== Number(consent.epoch) || Number(latest.presence_epoch) !== Number(consent.presence_epoch)) return null;
+      Number(latest.consent_epoch) !== Number(consent.epoch) || Number(latest.presence_epoch) !== Number(consent.presence_epoch)) return skip('STATE_CHANGED');
     // Metadata and presence reads may outlive approval or a notice change.
-    if (!await noticeMatches(consent) || !await privacyCurrent(event.userId,client===pool?null:client) || version !== generation) return null;
+    if (!await noticeMatches(consent) || !await privacyCurrent(event.userId,client===pool?null:client) || version !== generation) return skip('CHANGED_DURING_OBSERVATION');
     const now = clock();
-    if ([context, member].some(value => !Number.isSafeInteger(value.checkedAt) || value.checkedAt > now || now - value.checkedAt > 5000)) return null;
+    if ([context, member].some(value => !Number.isSafeInteger(value.checkedAt) || value.checkedAt > now || now - value.checkedAt > 5000)) {
+      const oldest = Math.min(...[context, member].map(value => Number.isSafeInteger(value.checkedAt) ? value.checkedAt : now));
+      return skip(`OBSERVATION_STALE_${Math.min(99, Math.max(0, Math.floor((now - oldest) / 1000)))}S`);
+    }
     return { config, character, profile: channel.profile, deadline: event.receivedAt + config.deadlineMs,
       capabilities: { reply: context.canReply, react: context.canReact },
       binding: { epoch: Number(state.epoch), configurationHash: configuration.sha256, personalityHash: personality.sha256,
@@ -78,12 +86,13 @@ export function createAiAdmission({ pool, guildId, ingress, inspectContext, insp
           if (duplicate.rowCount) return null;
           if ((await client.query('SELECT 1 FROM sophie_ai.request_tombstones WHERE guild_id=$1 AND message_hash=$2',[guildId,aiReceiptHash(guildId,event.messageId)])).rowCount) return null;
           const initial = await snapshot(client, event);
-          if (!initial || version !== generation || clock() >= initial.deadline - 1000) return null;
-          const content = ingress.content(proof); if (content === null) return null;
+          if (!initial) return null;
+          if (version !== generation || clock() >= initial.deadline - 1000) return skip(version !== generation ? 'INVALIDATED' : 'DEADLINE_PASSED');
+          const content = ingress.content(proof); if (content === null) return skip('CONTENT_UNAVAILABLE');
           const decision = participationDecision(initial.profile, { addressed: content.addressed, question: content.question, directedToOther: content.directedToOther, now: clock() });
           decision.outcomes = decision.outcomes.filter(kind => kind === 'silent' || initial.capabilities[kind]);
           const inputRevision = aiDigest([event.messageId, content.inputRevision]);
-          if (inputRevision !== initial.binding.inputRevision) return null;
+          if (inputRevision !== initial.binding.inputRevision) return skip('MESSAGE_REVISION_MISMATCH');
           if (!decision.infer) return decision.context ? { ...event, inputRevision, ...initial, decision, text: content.text } : null;
           const bytes = Buffer.byteLength(content.text,'utf8'), gatherable = initial.profile.mode === 'conversational' && bytes <= 4096;
           const { inputRevision: _revision, ...scope } = initial.binding;
@@ -114,16 +123,17 @@ export function createAiAdmission({ pool, guildId, ingress, inspectContext, insp
             count(*) FILTER (WHERE state IN ('gathering','admitted','sending') AND deadline>clock_timestamp())::int AS waiting
             FROM sophie_ai.request_receipts WHERE guild_id=$1 AND received_at>clock_timestamp()-interval '1 hour'`, [guildId, event.channelId, event.userId])).rows[0];
           const now = clock(), profile = initial.profile;
-          if (quota.waiting >= 4 || quota.member_waiting > 0 || quota.member_last && now - quota.member_last.getTime() < profile.memberIntervalMs) return null;
-          if (decision.proactive && quota.channel_last && now - quota.channel_last.getTime() < profile.evaluationIntervalMs) return null;
+          if (quota.waiting >= 4 || quota.member_waiting > 0 || quota.member_last && now - quota.member_last.getTime() < profile.memberIntervalMs) return skip('MEMBER_PACING');
+          if (decision.proactive && quota.channel_last && now - quota.channel_last.getTime() < profile.evaluationIntervalMs) return skip('CHANNEL_PACING');
           if (decision.proactive && quota.hour >= profile.proactiveRepliesPerHour) decision.outcomes = decision.outcomes.filter(value => value !== 'reply');
           const recent = (await client.query(`SELECT max(updated_at) FILTER (WHERE state='delivered') AS reply_last,
             max(updated_at) FILTER (WHERE state='reacted') AS reaction_last FROM sophie_ai.request_receipts WHERE guild_id=$1 AND channel_id=$2 AND deadline>clock_timestamp()-interval '1 hour'`, [guildId, event.channelId])).rows[0];
           if (decision.proactive && recent.reply_last && now - recent.reply_last.getTime() < profile.replyIntervalMs) decision.outcomes = decision.outcomes.filter(value => value !== 'reply');
           if (recent.reaction_last && now - recent.reaction_last.getTime() < profile.reactionIntervalMs || initial.config.emojis.length === 0) decision.outcomes = decision.outcomes.filter(value => value !== 'react');
-          if (decision.outcomes.every(value => value === 'silent')) return null;
+          if (decision.outcomes.every(value => value === 'silent')) return skip('NO_PERMITTED_OUTCOME');
           const latest = await snapshot(client, event);
-          if (!latest || aiDigest(latest.binding) !== aiDigest(initial.binding) || clock() >= initial.deadline - 1000) return null;
+          if (!latest) return null;
+          if (aiDigest(latest.binding) !== aiDigest(initial.binding) || clock() >= initial.deadline - 1000) return skip(clock() >= initial.deadline - 1000 ? 'DEADLINE_PASSED' : 'BINDING_CHANGED');
           // Hash only the platform revision marker, not guessable personal message text.
           const gather = gatherable ? { rootId:event.messageId,owner:gatherOwner,until:event.receivedAt+1500,quietUntil:Math.min(clock()+750,event.receivedAt+1500) } : null;
           await client.query(`INSERT INTO sophie_ai.request_receipts(guild_id,message_id,channel_id,user_id,input_revision,state,deadline,proactive,received_at,
