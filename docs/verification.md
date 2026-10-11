@@ -16,8 +16,19 @@ sign-in cookie was wrong: a missing cookie and an unexpected parameter produce t
 
 Windows, Node.js 24.19.0: `node scripts/test-storage.mjs --suite=dashboard-auth` passed 19 scenarios,
 including four refused issuer variants followed by a successful redirect in Discord's real shape. Unit
-tests and the repository check are recorded with the commit. The fix is not installed until a separately
-approved source-only staging update. Evidence: `GitHub/.agent_docs/aphelion-sophie/signin-fix-2026-10-11/`.
+tests and the repository check are recorded with the commit. Evidence: `GitHub/.agent_docs/aphelion-sophie/signin-fix-2026-10-11/`.
+
+**Installed** under a separate [owner approval](decisions/0001-owner-policy.md#sign-in-fix-staging-deployment-approved--11-october-2026)
+as pinned `66a69f87af0fa29d6d9282ec4ee7c1f2fbbdcf7f`, release `sophie-mistral-66a69f8`, schema 070 unchanged.
+Core and supervisor were stopped and their children confirmed gone; PostgreSQL and the tunnel kept their
+process IDs. A protected copy of the package, trust, services, qualification, renewal tooling and journal
+is in `D:\Backups\sophie-staging\source-only-66a69f8-20261011`. Exactly one file was written; the other 513
+already matched. Fresh evidence is in `qualification\evidence-20261011-66a69f8`; the assembler and renewal
+guard pin this commit. After restart: 25 of 25 installed checks, service boundaries, and 24 of 24 dashboard
+routes and assets passed. Through the public address with an invalid test code, a callback in Discord's
+shape now reaches the code exchange and a wrong issuer is refused. Installation trust expires 12 October
+18:30 UTC (20:30 Warsaw); the journal receipt 17:30 UTC (19:30 Warsaw). The owner's own sign-in is not yet
+confirmed. Evidence: `GitHub/.agent_docs/aphelion-sophie/deployment-66a69f8-2026-10-11/`.
 
 ## Approved schema070 staging deployment — 11 October 2026
 

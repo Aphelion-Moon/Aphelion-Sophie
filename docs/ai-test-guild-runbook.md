@@ -1,11 +1,11 @@
 # AI on the Test Discord Server — operator runbook
 
-Status (11 October 2026): the owner-approved update is installed at pinned source `77b9d07`,
-schema 070, release `sophie-mistral-77b9d07`. PostgreSQL, tunnel, supervisor and core are running; the AI
+Status (11 October 2026): the owner-approved update is installed at pinned source `66a69f8`,
+schema 070, release `sophie-mistral-66a69f8` (the `77b9d07` Mistral and member-notes build plus the sign-in fix). PostgreSQL, tunnel, supervisor and core are running; the AI
 worker is stopped. The installed provider key is the owner's Mistral key. No processing policy is
-installed, so members cannot opt in and no channel can be enabled. Trust expires 12 October at 19:52
-Warsaw; the independent journal receipt expires earlier, at 18:52 Warsaw. Both need fresh evidence before
-renewal. Evidence: `GitHub/.agent_docs/aphelion-sophie/deployment-77b9d07-2026-10-11/verification.json`.
+installed, so members cannot opt in and no channel can be enabled. Trust expires 12 October at 20:30
+Warsaw; the independent journal receipt expires earlier, at 19:30 Warsaw. Both need fresh evidence before
+renewal. Evidence: `GitHub/.agent_docs/aphelion-sophie/deployment-66a69f8-2026-10-11/` and `deployment-77b9d07-2026-10-11/verification.json`.
 No live AI processing is cleared. Starting the worker is an owner action through the dashboard. Do not paste
 the provider key, Discord token or trust-file contents into chat, logs or Git. Sections below that describe
 the 4 October builds are history.

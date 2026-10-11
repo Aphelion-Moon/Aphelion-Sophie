@@ -1,6 +1,6 @@
 {
   "schema_version": 2,
-  "revision": "2026-10-11-schema070-mistral-staging-deployment",
+  "revision": "2026-10-11-signin-fix-staging-deployment",
   "reference_plan_version": "1.1",
   "source": "Sophie-Implementation-Plans-v1.1/backlog.json",
   "owner_decisions": "docs/decisions/0001-owner-policy.md",
@@ -1379,7 +1379,7 @@
   ],
   "checkpoint": {
     "summary": "Deterministic administration, Whitelist onboarding, protected editors, role/permission configuration and the configurable staging host are implemented.",
-    "recorded_baseline": "Owner-approved pinned 77b9d07/schema070 (release sophie-mistral-77b9d07) is installed. At 17:53 UTC on 11 October, PostgreSQL, tunnel, supervisor and core run under the expected separate child identities. Worker stopped; processing policy absent; AI disabled; Mistral key installed; no publications or member choices exist.",
+    "recorded_baseline": "Owner-approved pinned 66a69f8/schema070 (release sophie-mistral-66a69f8: Mistral provider, member notes and the dashboard sign-in fix) is installed. At 18:30 UTC on 11 October, PostgreSQL, tunnel, supervisor and core run under the expected separate child identities. Worker stopped; processing policy absent; AI disabled; Mistral key installed; no publications or member choices exist.",
     "current_work": "Prepared the exact 2c5d356 source-only/schema069 export candidate and guarded operator entry point; corrected current staging/runbook/release-checklist references. Prepared an inactive fixed-target worker OS probe and proposed no-provider lifecycle/identity/stop procedure. No source deployment or worker trial was executed. Separate source-update and worker-trial approvals, fresh endpoint/identity bindings, provider facts, publications/consent, actual Windows denial/stop, private client acceptance and measured AI latency remain open.",
     "evidence_note": "Read-only installed 335 checks match 512 source files and 69 migration hashes; the 512-entry archive and 741 installer/support/dependency files are hash-bound. Fourteen operator scripts pass syntax checks; default and missing-approval paths perform no deployment. Thirteen synthetic probe checks pass. Host inspection found the existing public Sophie ingress on TCP 80; one operator control connected without application data. Reports: GitHub/.agent_docs/aphelion-sophie/candidate-2c5d356-2026-10-04/verification.json and worker-os-qualification-2026-10-04/verification.json."
   },

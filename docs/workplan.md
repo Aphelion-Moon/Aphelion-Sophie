@@ -1,6 +1,6 @@
 # Current implementation workplan
 
-Revision: 2026-10-11-schema070-mistral-staging-deployment. Mistral Small 4 (mistral-small-2603) on the official EU API is the selected provider for trial; DeepSeek Flash is withdrawn. Local models are historical, explicitly selected alternatives only; no automatic fallback. Continue the DS workstream with synthetic data; full readiness and activation remain open.
+Revision: 2026-10-11-signin-fix-staging-deployment. Mistral Small 4 (mistral-small-2603) on the official EU API is the selected provider for trial; DeepSeek Flash is withdrawn. Local models are historical, explicitly selected alternatives only; no automatic fallback. Continue the DS workstream with synthetic data; full readiness and activation remain open.
 
 All production release gates remain open; pure and isolated database checks are not full application acceptance.
 
@@ -10,7 +10,7 @@ Source requirements remain in the preserved v1.1 pack. Current owner decisions o
 
 Deterministic administration, Whitelist onboarding, protected editors, role/permission configuration and the configurable staging host are implemented.
 
-Recorded baseline: Owner-approved pinned 77b9d07/schema070 (release sophie-mistral-77b9d07) is installed. At 17:53 UTC on 11 October, PostgreSQL, tunnel, supervisor and core run under the expected separate child identities. Worker stopped; processing policy absent; AI disabled; Mistral key installed; no publications or member choices exist.
+Recorded baseline: Owner-approved pinned 66a69f8/schema070 (release sophie-mistral-66a69f8: Mistral provider, member notes and the dashboard sign-in fix) is installed. At 18:30 UTC on 11 October, PostgreSQL, tunnel, supervisor and core run under the expected separate child identities. Worker stopped; processing policy absent; AI disabled; Mistral key installed; no publications or member choices exist.
 
 Current work: Prepared the exact 2c5d356 source-only/schema069 export candidate and guarded operator entry point; corrected current staging/runbook/release-checklist references. Prepared an inactive fixed-target worker OS probe and proposed no-provider lifecycle/identity/stop procedure. No source deployment or worker trial was executed. Separate source-update and worker-trial approvals, fresh endpoint/identity bindings, provider facts, publications/consent, actual Windows denial/stop, private client acceptance and measured AI latency remain open.
 

@@ -918,3 +918,16 @@ provider credential and a separate journal copy that must never overwrite curren
 deletes was removed from the package. The worker is stopped. This approval does not authorize worker
 start, publications, member processing, worker isolation trials, production or game-service changes, or
 a host reboot. Evidence: `GitHub/.agent_docs/aphelion-sophie/deployment-77b9d07-2026-10-11/verification.json`.
+
+### Sign-in fix staging deployment approved — 11 October 2026
+
+Told that dashboard sign-in failed because the callback handler refused Discord's `iss` parameter, that the
+fix was committed as `66a69f8`, changed one file and needed a restart of core and supervisor, and asked
+“Do you approve deploying `66a69f8` to staging?”, the owner replied: “Approved, proceed.” This authorizes
+that exact source-only update: pinned `66a69f87af0fa29d6d9282ec4ee7c1f2fbbdcf7f`, fresh evidence and trust for
+release `sophie-mistral-66a69f8`, journal receipt renewal, and a restart of Sophie's core and supervisor.
+
+It was applied and verified the same day with PostgreSQL and the tunnel left running, the worker stopped,
+no migration, no key change and no processing policy. Evidence:
+`GitHub/.agent_docs/aphelion-sophie/deployment-66a69f8-2026-10-11/`. Worker start, publications, member
+processing, policy acceptance and game-service changes remain outside this approval.
