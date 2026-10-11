@@ -12,14 +12,24 @@ export function createDashboardApi({ fetch, navigate = path => globalThis.locati
   async function request(path, body, post = body !== undefined, download = false, timeoutMs = 12000) {
     if (post && csrf === null) throw new DashboardFailure('denied', 403);
     let response;
-    try {
-      response = await fetch(path, { method: post ? 'POST' : 'GET', credentials: 'same-origin', mode: 'same-origin',
-        cache: 'no-store', redirect: 'error', signal: AbortSignal.timeout(timeoutMs),
-        headers: { Accept: download ? 'text/html' : 'application/json', ...(post ? { 'Content-Type': 'application/json', 'X-CSRF-Token': csrf } : {}) },
-        ...(body !== undefined ? { body: JSON.stringify(body) } : {}) });
-    } catch { throw new DashboardFailure('connection'); }
-    if (!response.ok) throw new DashboardFailure(response.status === 403 ? 'denied' : response.status === 409 ? 'conflict' :
-      response.status === 400 ? 'invalid' : response.status === 404 ? 'missing' : 'unavailable', response.status);
+    // The server refuses a second concurrent request before doing any work, so a busy reply is always safe to resend.
+    for (let attempt = 0; ; attempt++) {
+      try {
+        response = await fetch(path, { method: post ? 'POST' : 'GET', credentials: 'same-origin', mode: 'same-origin',
+          cache: 'no-store', redirect: 'error', signal: AbortSignal.timeout(timeoutMs),
+          headers: { Accept: download ? 'text/html' : 'application/json', ...(post ? { 'Content-Type': 'application/json', 'X-CSRF-Token': csrf } : {}) },
+          ...(body !== undefined ? { body: JSON.stringify(body) } : {}) });
+      } catch { throw new DashboardFailure('connection'); }
+      if (response.ok) break;
+      let code = null;
+      if (response.status === 503 && (response.headers.get('content-type') ?? '').startsWith('application/json')) {
+        try { const value = await response.json(); code = typeof value?.code === 'string' && /^[A-Z][A-Z0-9_]{2,63}$/u.test(value.code) ? value.code : null; } catch { /* No reason supplied. */ }
+      }
+      if (code === 'DASHBOARD_BUSY' && attempt < 4) { await new Promise(resolve => setTimeout(resolve, 300 * (attempt + 1))); continue; }
+      const failure = new DashboardFailure(response.status === 403 ? 'denied' : response.status === 409 ? 'conflict' :
+        response.status === 400 ? 'invalid' : response.status === 404 ? 'missing' : 'unavailable', response.status);
+      failure.code = code; throw failure;
+    }
     try {
       if (download) {
         const filename = `sophie-transcript-${body.caseToken}-${body.channelId}-${body.reviewHash}.html`;

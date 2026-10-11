@@ -37,13 +37,30 @@ function clear() {
   for(const id of ['worker-state','worker-ack'])if(el(id))el(id).textContent='';workerRevision=0;workerStopRequest=null;
   if (el('accept-notice')) el('accept-notice').checked = false;
 }
+const unapproved = 'No processing approval is installed on this server yet, so no channel can go live. Installing one is the separate provider and privacy clearance step.';
+const refusals = { AI_PROCESSING_UNAPPROVED: unapproved, AI_ACTIVATION_UNAVAILABLE: unapproved,
+  AI_WORKER_NOT_READY: 'The worker is not ready. Start it, then try again.',
+  AI_PUBLIC_CHANNEL_REQUIRED: 'This channel is not one Sophie may join: it is private, restricted or inside an excluded category.',
+  AI_PRICE_STALE: 'The budget’s reviewed price date is missing or expired, or the monthly ceiling is above $20. Update the budget first.',
+  AI_BUDGET_UNAVAILABLE: 'The budget is not published, or it is held for accounting review.',
+  AI_CHANNEL_UNAVAILABLE: 'This channel is not in the published channel list, or “Request AI enabled” is off. Publish the channel settings first.',
+  AI_WORKER_OPERATIONS_UNAVAILABLE: 'Worker controls are unavailable on this installation.' };
+// Errors appear at the top of the section the action came from, so a refusal is never off-screen.
 async function perform(work) {
   if (busy) return; busy = true; el('error').hidden = true;
+  const origin = document.activeElement?.closest?.('section.panel') ?? null;
   try { await work(); }
   catch (error) {
     if (error.kind === 'denied') { clear(); phase = 'denied'; }
-    el('error').textContent = error.kind === 'conflict' ? 'This version changed. Reload before editing again.' : error.kind === 'denied' ? 'Your access has changed. Sign in again or contact the publisher.' : 'The operation could not be confirmed. Reload to check current state before retrying.';
-    el('error').hidden = false; el('retry').hidden = false;
+    el('error').textContent = refusals[error.code] ?? (error.kind === 'conflict' ? 'This version changed. Reload before editing again.' : error.kind === 'denied' ? 'Your access has changed. Sign in again or contact the publisher.'
+      : error.kind === 'connection' ? 'The server did not answer in time. Check the current state before retrying.' : 'The operation could not be confirmed. Check the current state before retrying.');
+    if (!personal && (error.code === 'AI_PROCESSING_UNAPPROVED' || error.code === 'AI_ACTIVATION_UNAVAILABLE')) {
+      // A standing gate: the section keeps the explanation and the button stays off until the next load.
+      el('activation-blocked').textContent = unapproved; el('activation-blocked').hidden = false; el('review-activation').disabled = true;
+      el('activation-blocked').scrollIntoView({ block: 'nearest' }); return;
+    }
+    if (origin && !origin.hidden && !el('workspace').hidden) origin.querySelector('h2').after(el('error')); else el('notice').after(el('error'));
+    el('error').hidden = false; el('retry').hidden = false; el('error').scrollIntoView({ block: 'nearest' });
   } finally { busy = false; }
 }
 function field(parent, label, value, change, attributes = {}) {
@@ -236,7 +253,7 @@ async function watchWorker() {
       return;
     }
     // A transient read failure keeps watching; the slower cadence after two minutes limits load.
-    workerPoll = setTimeout(() => { void step(); }, Date.now() < fast ? 1500 : 5000);
+    workerPoll = setTimeout(() => { void step(); }, Date.now() < fast ? 3000 : 6000);
   };
   await step();
 }

@@ -137,3 +137,29 @@ test('T18 metadata read expiry cannot be hidden by stamping the response complet
   const roles = createDiscordRoles({ transport: rest, mapping, clock: () => now, readContinuity: () => 'synthetic' });
   await assert.rejects(roles.observe(USER), /MEMBERSHIP_STALE/);
 });
+
+test('T18 actor observations share only the bot identity check and always read member roles afresh', async () => {
+  let now = NOW, continuity = 'synthetic-continuity-1';
+  const { state, roles } = simulatedDiscord({ clock: () => now, readContinuity: () => continuity });
+  const identity = () => state.calls.filter(call => call.path === '/api/v10/users/@me').length;
+  const member = () => state.calls.filter(call => call.path === `/api/v10/guilds/${GUILD}/members/${USER}`).length;
+  await roles.observeActor(USER);
+  now += 1_000;
+  state.members.set(USER, []);
+  assert.deepEqual((await roles.observeActor(USER)).roleIds, [], 'a role removal is seen without a gateway event');
+  assert.equal(identity(), 1, 'the identity check is shared inside its window'); assert.equal(member(), 2);
+  await roles.observeActor(USER); await roles.observeActor(USER);
+  assert.equal(identity(), 1); assert.equal(member(), 4);
+  now += 1_000;
+  await roles.observeActor(USER);
+  assert.equal(identity(), 2, 'an expired identity check is repeated');
+  continuity = 'synthetic-continuity-2';
+  await roles.observeActor(USER);
+  assert.equal(identity(), 3, 'a gateway dispatch ends sharing');
+  let failing = true;
+  state.before = call => failing && call.path === '/api/v10/users/@me' ? (failing = false, response({ code: 0 }, 500)) : null;
+  continuity = 'synthetic-continuity-3';
+  await assert.rejects(roles.observeActor(USER), /DISCORD_UNAVAILABLE/);
+  await roles.observeActor(USER);
+  assert.equal(identity(), 5, 'a failed identity check is never shared');
+});

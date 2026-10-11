@@ -26,6 +26,9 @@ import { dashboardReturnPath, dashboardPageAllowed, dashboardSessionView } from 
 
 /** Fixed authenticated routes and presentation. Case reads stay inside core; TLS remains separate. */
 const DISCORD_ISSUER = 'https://discord.com';
+// Expected AI refusals whose stable code the dashboard may show; codes carry no member, message or credential data.
+const AI_REFUSALS = Object.freeze(['AI_PROCESSING_UNAPPROVED', 'AI_ACTIVATION_UNAVAILABLE', 'AI_WORKER_NOT_READY', 'AI_PUBLIC_CHANNEL_REQUIRED', 'AI_PRICE_STALE',
+  'AI_BUDGET_UNAVAILABLE', 'AI_CHANNEL_UNAVAILABLE', 'AI_WORKER_OPERATIONS_UNAVAILABLE']);
 
 export function createDashboardAuthHttpServer({ configuration, auth, authorization, ai = null, knowledge = null, knowledgeLookup = null, wording = null, authoring = null, formAuthoring = null, transcripts = null, caseExports = null, notes = null, replies = null, answers = null, automation = null, permissions = null, labels = null, management = null, moderation = null, caseDelivery = null, onboardingStaff = null, contactEntry = null, contactNavigation = null, presentation = null, enabled, onFault }) {
   validateDashboardAuth(configuration);
@@ -94,7 +97,7 @@ export function createDashboardAuthHttpServer({ configuration, auth, authorizati
     if (stopping || await enabled() !== true) { send(response, 503, { error: 'Sign-in is currently unavailable.' }); return; }
     // A bounded upstream source check must not occupy the administrative request slot.
     const sourceRefresh = path === '/api/ai/knowledge/refresh-policies';
-    if (sourceRefresh ? sourceReserved : reserved) { send(response, 503, { error: 'This operation is busy. Please try again shortly.' }); return; }
+    if (sourceRefresh ? sourceReserved : reserved) { send(response, 503, { error: 'This operation is busy. Please try again shortly.', code: 'DASHBOARD_BUSY' }); return; }
     if (sourceRefresh) sourceReserved = true; else reserved = true;
     try {
       if (!editing && !['/auth/callback','/auth/start'].includes(path)) requireCondition(url.search === '', 'DASHBOARD_REQUEST_INVALID');
@@ -169,12 +172,14 @@ export function createDashboardAuthHttpServer({ configuration, auth, authorizati
         'CONTACT_NAVIGATION_INPUT_INVALID', 'CONTACT_ENTRY_INPUT_INVALID', 'INVALID_CASE_FORM_TOKEN', 'INVALID_CASE_FORM_ANSWERS', 'INVALID_CONTACT_RECIPIENTS',
         'INVALID_CASE_REPLY', 'CASE_REPLY_INPUT_INVALID', 'CASE_REPLY_CONFIRMATION_REQUIRED', 'CASE_REPLY_REQUEST_INVALID', 'CASE_REPLY_CURSOR_INVALID'].includes(error.code);
       const limited = error instanceof ContractError && error.code === 'CASE_REPLY_LIMIT';
-      const expectedUnavailable = error instanceof ContractError && (/^WIKI_[A-Z_]+$/u.test(error.code) ||
+      const refusal = error instanceof ContractError && AI_REFUSALS.includes(error.code) ? error.code : null;
+      const expectedUnavailable = refusal !== null || error instanceof ContractError && (/^WIKI_[A-Z_]+$/u.test(error.code) ||
         ['SHUTTLE_STAFF_DISABLED','CASE_RECOVERY_DISABLED','AI_DELETION_PENDING','AI_PREFERENCE_JOURNAL_UNAVAILABLE','KNOWLEDGE_IMPORT_UNAVAILABLE','KNOWLEDGE_IMPORT_FAILED','KNOWLEDGE_IMPORT_BUSY','KNOWLEDGE_IMPORT_STALE','KNOWLEDGE_IMPORT_CAPACITY','KNOWLEDGE_IMPORT_CORRUPT','KNOWLEDGE_IMPORT_INVALID','KNOWLEDGE_EXTRACTOR_CHANGED'].includes(error.code));
       if (!denied && !conflict && !missing && !invalid && !limited && !expectedUnavailable) fault();
       if (!response.headersSent && !response.destroyed) send(response, denied ? 403 : limited ? 429 : conflict ? 409 : missing ? 404 : invalid ? 400 : 503,
         { error: denied ? 'Sign-in or request could not be verified.' : limited ? 'Reply queue or cooldown limit reached. Retry later using the same request.' : conflict ? 'This configuration changed. Reload and review it again.' :
-          missing ? 'Configuration was not found.' : invalid ? 'Check the configuration and request fields.' : 'This operation is currently unavailable.' });
+          missing ? 'Configuration was not found.' : invalid ? 'Check the configuration and request fields.' : 'This operation is currently unavailable.',
+        ...(refusal !== null && !denied && !limited && !conflict && !missing && !invalid ? { code: refusal } : {}) });
       else response.destroy();
     }).finally(() => running.delete(task));
     running.add(task);

@@ -10,6 +10,8 @@ function memberRoles(member, userId) {
   return [...member.roles];
 }
 
+export const IDENTITY_SHARE_MS = 1_500;
+
 /** Projects HTTP responses immediately to role metadata; ignores nicknames and profiles. */
 export function createDiscordRoles({ transport, mapping, clock, readContinuity }) {
   validateRoleMapping(mapping);
@@ -20,6 +22,19 @@ export function createDiscordRoles({ transport, mapping, clock, readContinuity }
   const mentionableRoles = new WeakMap();
   const stamp = async () => requireContinuityStamp(await readContinuity());
   const same = async expected => requireCondition(await stamp() === expected, 'OBSERVATION_INVALIDATED');
+  // The bot's own identity check carries no member authority, so actor observations made close together share one
+  // result. It never outlives IDENTITY_SHARE_MS and ends on any gateway dispatch, because the continuity stamp includes
+  // the gateway sequence. A failed check is never shared. Guild roles and member state are always read afresh.
+  let identity = null;
+  function confirmIdentity(version) {
+    const now = clock();
+    if (identity && identity.version === version && now >= identity.at && now - identity.at <= IDENTITY_SHARE_MS) return identity.promise;
+    const record = { version, at: now, promise: transport.getCurrentUser().then(value => {
+      requireCondition(value?.id === fixed.botUserId && value.bot === true, 'DISCORD_AUTHORIZATION_FAILED');
+    }) };
+    identity = record; record.promise.catch(() => { if (identity === record) identity = null; });
+    return record.promise;
+  }
   async function observe(userId) {
     requireId(userId);
     const version = await stamp();
@@ -52,8 +67,7 @@ export function createDiscordRoles({ transport, mapping, clock, readContinuity }
       requireId(userId);
       const version = await stamp();
       const observedAt = clock(); requireInteger(observedAt);
-      const identity = await transport.getCurrentUser();
-      requireCondition(identity?.id === fixed.botUserId && identity.bot === true, 'DISCORD_AUTHORIZATION_FAILED');
+      await confirmIdentity(version);
       const guild = await transport.getGuild();
       requireCondition(guild?.id === fixed.guildId, 'FOREIGN_GUILD'); requireId(guild.owner_id);
       const roles = await transport.getRoles();
