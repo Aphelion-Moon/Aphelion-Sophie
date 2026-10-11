@@ -25,6 +25,8 @@ import { sendDashboardAsset } from './dashboard-assets.js';
 import { dashboardReturnPath, dashboardPageAllowed, dashboardSessionView } from '../../../contracts/dashboard-navigation.js';
 
 /** Fixed authenticated routes and presentation. Case reads stay inside core; TLS remains separate. */
+const DISCORD_ISSUER = 'https://discord.com';
+
 export function createDashboardAuthHttpServer({ configuration, auth, authorization, ai = null, knowledge = null, knowledgeLookup = null, wording = null, authoring = null, formAuthoring = null, transcripts = null, caseExports = null, notes = null, replies = null, answers = null, automation = null, permissions = null, labels = null, management = null, moderation = null, caseDelivery = null, onboardingStaff = null, contactEntry = null, contactNavigation = null, presentation = null, enabled, onFault }) {
   validateDashboardAuth(configuration);
   requireCondition(typeof enabled === 'function' && typeof onFault === 'function', 'TRUSTED_ADAPTERS_REQUIRED');
@@ -112,9 +114,13 @@ export function createDashboardAuthHttpServer({ configuration, auth, authorizati
         send(response, 303, { status: 'redirect' }, { Location: result.location, 'Set-Cookie': dashboardCookie('login', result.binding, 300) });
       } else if (path === '/auth/callback') {
         const names = [...url.searchParams.keys()], cancelled = url.searchParams.has('error');
+        // Discord appends the RFC 9207 issuer to its redirects. Accept only that exact fixed issuer, at most
+        // once; any other extra parameter is still refused.
+        requireCondition(!names.includes('iss') || url.searchParams.get('iss') === DISCORD_ISSUER, 'DASHBOARD_LOGIN_INVALID');
+        const expected = names.filter(name => name !== 'iss');
         requireCondition(new Set(names).size === names.length && names.includes('state') &&
-          (cancelled ? names.includes('error') && names.every(name => ['state', 'error', 'error_description'].includes(name)) :
-            names.length === 2 && names.includes('code')), 'DASHBOARD_LOGIN_INVALID');
+          (cancelled ? names.includes('error') && expected.every(name => ['state', 'error', 'error_description'].includes(name)) :
+            expected.length === 2 && names.includes('code')), 'DASHBOARD_LOGIN_INVALID');
         const result = await auth.complete({ state: url.searchParams.get('state'), binding: cookies.login,
           code: url.searchParams.get('code'), previousToken: cookies.session, cancelled });
         const cleared = dashboardCookie('login', null, 0);

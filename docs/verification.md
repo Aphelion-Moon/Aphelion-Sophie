@@ -1,5 +1,24 @@
 # Verification and release limits
 
+## Dashboard sign-in fix — 11 October 2026
+
+After the schema070 deployment the owner could not sign in to the dashboard: every attempt ended with
+"Sign-in or request could not be verified." and no session had been issued since 30 September. The callback
+address the owner saved shows the cause: Discord now appends `iss=https://discord.com` (the RFC 9207
+issuer) to its redirect, and the callback handler refused anything other than exactly `code` and `state`.
+The handler now accepts `iss` at most once and only with that exact value; any other issuer, a repeated
+issuer and any other extra parameter are still refused before the sign-in is consumed.
+
+Checked first and ruled out: the public login redirect, the registered redirect address (read from Discord
+for Sophie's own application), cookie handling over HTTP/1.1 and HTTP/2 through the tunnel, and the callback
+path with a valid cookie and an invalid code. An earlier reading that the browser was returning without its
+sign-in cookie was wrong: a missing cookie and an unexpected parameter produce the same message.
+
+Windows, Node.js 24.19.0: `node scripts/test-storage.mjs --suite=dashboard-auth` passed 19 scenarios,
+including four refused issuer variants followed by a successful redirect in Discord's real shape. Unit
+tests and the repository check are recorded with the commit. The fix is not installed until a separately
+approved source-only staging update. Evidence: `GitHub/.agent_docs/aphelion-sophie/signin-fix-2026-10-11/`.
+
 ## Approved schema070 staging deployment — 11 October 2026
 
 Owner approval and scope: [decision](decisions/0001-owner-policy.md#mistral-and-member-notes-staging-deployment-approved--11-october-2026).

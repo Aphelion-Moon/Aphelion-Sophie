@@ -198,7 +198,12 @@ export async function runDashboardAuthSuite(cluster, run) {
       const start = await http(server, '/auth/start'); assert.equal(start.status, 303);
       const loginCookie = start.headers['set-cookie'][0], binding = loginCookie.split(';')[0], state = new URL(start.headers.location).searchParams.get('state');
       assert.match(loginCookie, /; Path=\/; HttpOnly; Secure; SameSite=Lax; Max-Age=300$/);
-      const callback = await http(server, `/auth/callback?state=${state}&code=${f.provider.issueCode()}`, { headers: { Cookie: binding } });
+      // Discord's redirect carries its issuer. Another issuer, a repeated issuer or an extra parameter is refused
+      // before the flow is consumed, so the genuine redirect that follows still succeeds.
+      for (const suffix of ['&iss=https%3A%2F%2Fother.example.test', '&iss=https%3A%2F%2Fdiscord.com%2F', '&iss=https%3A%2F%2Fdiscord.com&iss=https%3A%2F%2Fdiscord.com', '&iss=https%3A%2F%2Fdiscord.com&return=elsewhere'])
+        assert.equal((await http(server, `/auth/callback?code=synthetic-unused&state=${state}${suffix}`, { headers: { Cookie: binding } })).status, 403);
+      assert.equal(f.provider.state.calls.length, 0);
+      const callback = await http(server, `/auth/callback?code=${f.provider.issueCode()}&state=${state}&iss=https%3A%2F%2Fdiscord.com`, { headers: { Cookie: binding } });
       assert.equal(callback.status, 303); assert.equal(callback.headers.location, '/');
       const sessionCookie = callback.headers['set-cookie'].find(value => value.startsWith(`${DASHBOARD_COOKIES.session}=`));
       assert.match(sessionCookie, /; Path=\/; HttpOnly; Secure; SameSite=Lax; Max-Age=3600$/);

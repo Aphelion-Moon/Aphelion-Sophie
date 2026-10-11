@@ -30,3 +30,16 @@ Log of agent mistakes: what happened, the root cause, and prevention.
   searching them for values derived from the changed defaults.
 - **Prevention:** When a default changes, search every test and integration suite for values derived from
   it, and run the affected isolated-database suite before reporting the change as verified.
+
+## 2026-10-11 — Sign-in failure attributed to a missing cookie
+
+- **What happened:** The owner could not sign in to the dashboard. A reproduction showed that a callback
+  without the sign-in cookie returns the owner's exact error, and that was reported as the located cause,
+  with browser-side suggestions. The real cause was server-side: Discord adds an `iss` parameter to its
+  redirect and the callback handler refused any parameter beyond `code` and `state`.
+- **Root cause:** One matching reproduction was treated as the cause although several different checks
+  return the same message, and the test callback was hand-built with only two parameters instead of the
+  shape Discord really sends.
+- **Prevention:** When one error message covers several checks, list every check that can produce it and
+  eliminate each before naming a cause. Ask for the real failing request early, and build reproductions
+  from it.

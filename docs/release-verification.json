@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
-  "baseline": "77b9d076e247",
-  "recordedAt": "2026-10-11T17:55:05.799Z",
+  "baseline": "9b7d662935ae",
+  "recordedAt": "2026-10-11T18:26:17.642Z",
   "productionReady": false,
   "context": "Single-sheet human release ledger. Synthetic content only. Record commit, environment/guild, schema, config/capability versions and actor fixture; include runtime/model/source generation hashes when applicable.",
   "resultsPolicy": "Not run is not a pass. Record actual outcome, evidence location, reviewer, date and run context. Optional tracks require separate activation approval. Sheet results never activate production.",
@@ -69,7 +69,7 @@
     "docs/acceptance-cases.json": "045704422b90f0d73c6912223b4a5ed2c1d39a7f1d40d7d1cbb4448599629a6c",
     "docs/workplan.json": "fced7f960ad047d70400e02905a3da99ebaf8f6e3fd911bde9e24f3323520784",
     "docs/decisions/0001-owner-policy.md": "b366e4ecf3a0ed81490f33df01e95128dc42316ad6ebee9f94ed1c33b3449b71",
-    "docs/verification.md": "46ad4f91829423c255eed591db36022da2d7475741ee9d6b02d1a20dddd87fce",
+    "docs/verification.md": "fcf3d05645dbd8cbca769c6a215bd4b0b3bcbc489e6ef169bcc6c3629b8728bb",
     "Sophie-Implementation-Plans-v1.1/01-REQUIREMENTS-AND-DECISIONS.md": "2afa92bd13e889c4b3bd37d327255aaacf5ed9df3bf18b781b8444a9186c8dd9"
   },
   "requirements": [
