@@ -2,42 +2,59 @@
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Sophie AI · Community Services</title><link rel="stylesheet" href="/dashboard/styles.css"><script type="module" src="/dashboard/ai-app.js"></script></head>
 <body><a class="skip-link" href="#main">Skip to content</a><header class="topbar"><div class="identity"><img id="avatar" src="/dashboard/sophie-avatar.png" alt="" width="52" height="52"><div><strong>Sophie</strong><span>Community Services</span></div></div><div class="header-actions"><label class="quiet"><input id="quiet" type="checkbox"> Quiet mode</label><button id="logout" hidden>Sign out</button></div></header>
 <main id="main" tabindex="-1"><nav class="service-nav" aria-label="Community Services"><!-- service-navigation --></nav>
-<div class="page-heading"><div><p class="eyebrow">APHELION / COMMUNITY SERVICES</p><h1>Sophie AI</h1><p class="intro">Choose where Sophie joins in and how she sounds.</p></div></div>
-<p id="notice" class="notice" role="status">Loading your workspace…</p><p id="error" class="error-box" role="alert" hidden></p><button id="retry">Reload</button>
+<div class="page-heading"><div><p class="eyebrow">APHELION / COMMUNITY SERVICES</p><h1>Sophie AI</h1><p class="intro">Sophie’s character, the channels she joins, spending and the AI worker. Every change is reviewed before it is saved, and saving never switches AI on by itself.</p></div></div>
+<p id="notice" class="notice" role="status">Loading your workspace…</p><p id="error" class="error-box" role="alert" hidden></p><button id="retry" hidden>Reload</button>
 <noscript><p>This page needs JavaScript.</p></noscript><div id="workspace" class="ai-workspace" hidden>
-<section id="participation" class="panel case-panel" hidden><h2>Participation</h2><p id="active-state"></p><button id="disable-ai">Disable AI now</button>
-<p>Each member chooses whether Sophie may process their messages. Tickets and onboarding are always excluded. New channels and threads are ignored until explicitly configured and qualified.</p>
-<label><input id="desired-enabled" type="checkbox"> Request AI enabled</label><p class="muted">Saving a request does not activate an unqualified worker. Current release and audience checks must pass.</p>
+
+<section id="review" class="panel case-panel ai-review-panel" hidden><h2 id="review-heading" tabindex="-1">Review change</h2><p id="review-summary"></p><pre id="review-content" class="ai-review"></pre><p id="review-note" class="muted">This action does not activate AI. Current release, audience and processing approvals still apply.</p><div class="actions"><button id="publish" class="primary">Publish this version</button><button id="cancel-review">Return to editing</button></div></section>
+
+<section id="overview" class="panel case-panel" hidden><h2>Status</h2>
+<dl class="ai-status"><div><dt>AI processing</dt><dd id="overview-ai"></dd></div><div><dt>AI worker</dt><dd id="overview-worker"></dd></div><div><dt>Spending this month</dt><dd id="overview-spend"></dd></div></dl>
+<div class="actions"><button id="disable-ai" class="danger">Disable AI now</button><span class="muted">Stops all AI processing at once. Administration keeps running.</span></div>
+<ul class="ai-toc" aria-label="Sections on this page"><li><a href="#personality">Character</a></li><li><a href="#participation">Channels and reactions</a></li><li><a href="#budget">Spending</a></li><li><a href="#activation">Go live</a></li><li><a href="#worker">AI worker</a></li><li><a href="#diagnostics">Request comparison</a></li></ul></section>
+
+<section id="personality" class="panel case-panel" hidden><h2>Character</h2><p class="section-intro">Who Sophie is and how she talks. Authored identity persists across restarts. Conversations do not rewrite it. Use synthetic examples only.</p>
+<label for="character-core">Character and conversational style</label><textarea id="character-core" rows="10" maxlength="4000"></textarea>
+<h3>Dialogue examples</h3><p class="muted">Up to eight short exchanges that show her voice.</p><div id="examples"></div><button id="add-example">Add dialogue example</button>
+<div class="actions"><button id="review-personality" class="primary">Review character changes</button></div></section>
+
+<section id="participation" class="panel case-panel" hidden><h2>Channels and reactions</h2><p class="section-intro">Where Sophie joins in and how often. Tickets and onboarding are always excluded.</p>
+<p id="active-state" class="muted"></p>
+<label class="check-field"><input id="desired-enabled" type="checkbox"> Request AI enabled</label><p class="field-hint">Saving a request does not activate an unqualified worker. Current release and audience checks must pass.</p>
 <label for="deadline">Maximum complete-response time, seconds</label><input id="deadline" type="number" min="1" max="15" value="15">
-<div id="channels"></div><button id="add-channel">Add channel</button>
-<h3>Approved social reactions</h3><p>Choose up to 16 reactions Sophie may use. Operational status symbols are reserved. Custom emojis must belong to this server and be available when she reacts.</p><div id="emojis"></div><button id="add-emoji">Add reaction</button>
-<div class="actions"><button id="review-configuration" class="primary">Review participation changes</button></div>
+<h3>Channels</h3><p class="muted">New channels and threads are ignored until explicitly configured and qualified.</p><div id="channels"></div><button id="add-channel">Add channel</button>
+<h3>Approved social reactions</h3><p class="muted">Choose up to 16 reactions Sophie may use. Operational status symbols are reserved. Custom emojis must belong to this server and be available when she reacts.</p><div id="emojis"></div><button id="add-emoji">Add reaction</button>
+<details><summary>How participation works</summary><p>Each member chooses whether Sophie may process their messages. Tickets and onboarding are always excluded. New channels and threads are ignored until explicitly configured and qualified.</p><p>Restricted conversations need their own audience and worker qualification.</p></details>
+<div class="actions"><button id="review-configuration" class="primary">Review channel changes</button></div>
 </section>
-<section id="worker" class="panel case-panel" hidden><h2>AI worker</h2><p id="worker-state"></p><p id="worker-ack"></p>
-<p>Apply stops current AI work and replaces only the AI worker. Message processing stays disabled until its separate release and data-use checks pass. An acknowledgement records the worker seen at that time; it is not a live health guarantee.</p>
-<label for="worker-release">Installed release</label><select id="worker-release"></select>
-<button id="review-worker">Review worker replacement</button><button id="stop-worker">Stop or recover AI worker</button>
-<h3>Enable a reviewed public channel</h3><label for="activation-channel">Configured channel</label><select id="activation-channel"></select>
-<button id="review-activation">Review channel activation</button>
-<p>Processing approval, the current worker, publications, budget and live audience must pass again when you confirm. Members opt in separately.</p>
-<p>Recovery first requires confirmation that the prior worker and any pending start have stopped. It does not retry a model request or clear uncertain charges.</p></section>
-<section id="diagnostics" class="panel case-panel" hidden><h2>Request comparison</h2>
-<p>Inspect the latest temporary preparation in an enabled public channel. This compares the final request structure after trimming. It does not prove that a provider request was sent or explain a cache hit or miss.</p>
-<label for="diagnostic-channel">Configured channel</label><select id="diagnostic-channel"></select><button id="read-diagnostic">Inspect current comparison</button>
-<p id="diagnostic-output" role="status"></p><p>Comparisons expire with their conversation sources. Message text and comparison fingerprints are never displayed or saved here.</p></section>
-<section id="budget" class="panel case-panel" hidden><h2>Spending</h2><p id="budget-state"></p><div id="unresolved-spending"></div>
-<label for="monthly-budget">Monthly ceiling, USD</label><input id="monthly-budget" type="number" min="1" max="9999" step="1" value="20">
-<p>Calendar months use Europe/Vienna. There is no separate daily money cap. The technical limit is 2,000 attempts per day. At 80% of the money ceiling, optional proactive calls stop first.</p>
-<p>Reservations use conservative estimates. Unknown charges remain reserved. These figures are not a reconciled provider invoice or an exact currency guarantee.</p>
-<label for="price-valid-until">Reviewed price valid until (ISO date and time with timezone)</label><input id="price-valid-until" type="text" placeholder="2026-10-01T00:00:00Z" maxlength="40">
-<p>Current candidate rates per million tokens: $0.006 cached input, $0.30 uncached input and $1.20 output. Leave the review date empty to keep paid calls paused.</p>
-<button id="review-budget" class="primary">Review budget publication</button>
+
+<section id="budget" class="panel case-panel" hidden><h2>Spending</h2><p id="budget-state" class="muted"></p><ul id="budget-balances" class="ai-list"></ul><div id="unresolved-spending"></div>
+<div class="ai-grid"><div><label for="monthly-budget">Monthly ceiling, USD</label><input id="monthly-budget" type="number" min="1" max="9999" step="1" value="20"></div>
+<div><label for="price-valid-until">Reviewed price valid until</label><input id="price-valid-until" type="text" placeholder="2026-10-01T00:00:00Z" maxlength="40"><p class="field-hint">ISO date and time with timezone. Leave empty to keep paid calls paused.</p></div></div>
+<p id="budget-rates" class="muted"></p>
+<details><summary>How spending is counted</summary><p>Calendar months use Europe/Vienna. There is no separate daily money cap. The technical limit is 2,000 attempts per day. At 80% of the money ceiling, optional proactive calls stop first.</p><p>Reservations use conservative estimates. Unknown charges remain reserved. These figures are not a reconciled provider invoice or an exact currency guarantee. An unreviewed or expired price pauses paid calls.</p><p>Resolved attempt details expire after 90 days; daily totals after 90 days and monthly totals after 400 days once unreferenced. Unresolved charges and replay receipts remain.</p></details>
+<div class="actions"><button id="review-budget" class="primary">Review budget changes</button></div>
 <fieldset id="spending-hold" hidden><legend>Clear an accounting hold</legend>
 <p>First reconcile every pending attempt and record review of the price and reservation estimate that caused the overrun. Clearing this hold keeps all charges and budget limits.</p>
 <label for="hold-evidence">SHA-256 of the operator’s qualification evidence</label><input id="hold-evidence" maxlength="64" pattern="[a-f0-9]{64}">
-<button id="review-spending-hold">Review hold clearance</button></fieldset></section>
-<section id="personality" class="panel case-panel" hidden><h2>Personality</h2><p>Authored identity persists across restarts. Conversations do not rewrite it. Use synthetic examples only.</p>
-<label for="character-core">Character and conversational style</label><textarea id="character-core" rows="10" maxlength="4000"></textarea><div id="examples"></div><button id="add-example">Add dialogue example</button><div class="actions"><button id="review-personality" class="primary">Review personality publication</button></div></section>
-<section id="review" class="panel case-panel" hidden><h2>Review change</h2><p id="review-summary"></p><pre id="review-content" class="ai-review"></pre><p>This action does not activate AI. Current release, audience and processing approvals still apply.</p><button id="publish" class="primary">Publish this version</button><button id="cancel-review">Return to editing</button></section>
-<section class="panel case-panel"><h2>Learning and privacy</h2><p>Personal chat memory, automatic learning and feedback collection are off. Temporary conversation context is limited to its approved channel and opted-in sources. Sophie’s authored identity and approved knowledge are separate from personal memory.</p><p>Restricted conversations need their own audience and worker qualification. No cloud provider or file tools are enabled by these settings.</p><a href="/ai-preferences">Manage your own processing consent</a></section>
+<div class="actions"><button id="review-spending-hold">Review hold clearance</button></div></fieldset></section>
+
+<section id="activation" class="panel case-panel" hidden><h2>Go live in a channel</h2><p class="section-intro">Turn on processing in one configured public channel. Members still opt in individually.</p>
+<label for="activation-channel">Configured channel</label><select id="activation-channel"></select>
+<p class="field-hint">Processing approval, the current worker, publications, budget and live audience must pass again when you confirm. Needs a ready worker.</p>
+<div class="actions"><button id="review-activation" class="primary">Review channel activation</button></div></section>
+
+<section id="worker" class="panel case-panel" hidden><h2>AI worker</h2><p class="section-intro">The separate process that runs the model. Operator task.</p>
+<dl class="ai-status"><div><dt>Phase</dt><dd id="worker-phase"></dd></div><div><dt>Revision</dt><dd id="worker-revision"></dd></div></dl>
+<p id="worker-state" class="muted"></p><p id="worker-ack" class="muted ai-wrap"></p>
+<label for="worker-release">Installed release</label><select id="worker-release"></select>
+<div class="actions"><button id="review-worker">Review worker replacement</button><button id="stop-worker" class="danger">Stop or recover AI worker</button></div>
+<details><summary>What these actions do</summary><p>Apply stops current AI work and replaces only the AI worker. Message processing stays disabled until its separate release and data-use checks pass. An acknowledgement records the worker seen at that time; it is not a live health guarantee.</p><p>Recovery first requires confirmation that the prior worker and any pending start have stopped. It does not retry a model request or clear uncertain charges.</p></details></section>
+
+<section id="diagnostics" class="panel case-panel" hidden><h2>Request comparison</h2><p class="section-intro">Troubleshooting. Inspect the latest temporary preparation in an enabled public channel.</p>
+<label for="diagnostic-channel">Configured channel</label><select id="diagnostic-channel"></select><div class="actions"><button id="read-diagnostic">Inspect current comparison</button></div>
+<p id="diagnostic-output" role="status"></p>
+<details><summary>About this comparison</summary><p>This compares the final request structure after trimming. It does not prove that a provider request was sent or explain a cache hit or miss.</p><p>Comparisons expire with their conversation sources. Message text and comparison fingerprints are never displayed or saved here.</p></details></section>
+
+<details class="panel ai-footnote"><summary>Learning and privacy</summary><p>Personal chat memory, automatic learning and feedback collection are off. Temporary conversation context is limited to its approved channel and opted-in sources. Sophie’s authored identity and approved knowledge are separate from personal memory.</p><p>Restricted conversations need their own audience and worker qualification. No cloud provider or file tools are enabled by these settings.</p><p><a href="/ai-preferences">Manage your own processing consent</a></p></details>
 </div></main></body></html>

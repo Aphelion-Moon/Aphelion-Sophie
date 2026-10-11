@@ -26,10 +26,11 @@ function clear() {
   preferences?.clear();
   el('workspace').hidden = true; changed(); consentRows = []; consentNext = null; configuration.channels = []; configuration.emojis = []; character = { core: '', examples: [] };
   if (el('more-consents')) el('more-consents').hidden = true;
-  for (const id of ['channels', 'emojis', 'examples', 'consents', 'unresolved-spending','worker-release']) el(id)?.replaceChildren();
+  for (const id of ['channels', 'emojis', 'examples', 'consents', 'unresolved-spending','worker-release','budget-balances']) el(id)?.replaceChildren();
+  for (const id of ['overview-ai','overview-worker','overview-spend','worker-phase','worker-revision']) if (el(id)) el(id).textContent = '';
   for (const id of ['character-core', 'consent-channel']) if (el(id)) el(id).value = '';
   for (const id of ['monthly-budget', 'price-valid-until', 'hold-evidence']) if (el(id)) el(id).value = '';
-  if (el('budget-state')) el('budget-state').textContent = '';
+  for (const id of ['budget-state', 'budget-rates']) if (el(id)) el(id).textContent = '';
   for(const id of ['worker-state','worker-ack'])if(el(id))el(id).textContent='';workerRevision=0;workerStopRequest=null;
   if (el('accept-notice')) el('accept-notice').checked = false;
 }
@@ -39,56 +40,62 @@ async function perform(work) {
   catch (error) {
     if (error.kind === 'denied') { clear(); phase = 'denied'; }
     el('error').textContent = error.kind === 'conflict' ? 'This version changed. Reload before editing again.' : error.kind === 'denied' ? 'Your access has changed. Sign in again or contact the publisher.' : 'The operation could not be confirmed. Reload to check current state before retrying.';
-    el('error').hidden = false;
+    el('error').hidden = false; el('retry').hidden = false;
   } finally { busy = false; }
 }
 function field(parent, label, value, change, attributes = {}) {
-  const wrapper = document.createElement('label'); wrapper.textContent = label;
-  const input = document.createElement(attributes.multiline ? 'textarea' : 'input');
+  const wrapper = document.createElement('label'), input = document.createElement(attributes.multiline ? 'textarea' : 'input');
   for (const [key, item] of Object.entries(attributes)) if (key !== 'multiline') input.setAttribute(key, String(item));
   if (attributes.type === 'checkbox') input.checked = value; else input.value = value;
   input.addEventListener('input', () => { change(attributes.type === 'checkbox' ? input.checked : attributes.type === 'number' ? Number(input.value) : input.value); changed(); });
-  wrapper.append(input); parent.append(wrapper); return input;
+  if (attributes.type === 'checkbox') { wrapper.className = 'check-field'; wrapper.append(input, ` ${label}`); } else wrapper.append(label, input);
+  parent.append(wrapper); return input;
 }
 function channels() {
   el('channels').replaceChildren();
   configuration.channels.forEach((channel, index) => {
-    const box = document.createElement('fieldset'), legend = document.createElement('legend'); legend.textContent = `Channel ${index + 1}`; box.append(legend);
-    field(box, 'Channel ID', channel.channelId, value => { channel.channelId = value; }, { maxlength: 20, inputmode: 'numeric' });
+    const box = document.createElement('fieldset'), legend = document.createElement('legend'), heading = () => { legend.textContent = channel.channelId ? `Channel ${channel.channelId}` : `New channel ${index + 1}`; };
+    heading(); box.className = 'ai-card'; box.append(legend);
+    const basics = document.createElement('div'); basics.className = 'ai-grid'; box.append(basics);
+    field(basics, 'Channel ID', channel.channelId, value => { channel.channelId = value; heading(); }, { maxlength: 20, inputmode: 'numeric' });
     const label = document.createElement('label'); label.textContent = 'Participation mode'; const select = document.createElement('select');
     for (const mode of AI_MODES) { const option = document.createElement('option'); option.value = mode; option.textContent = names[mode]; select.append(option); }
-    select.value = channel.profile.mode; select.addEventListener('change', () => { channel.profile.mode = select.value; if (select.value === 'reactive') channel.profile.reactions = true; changed(); channels(); }); label.append(select); box.append(label);
-    for (const [key, title, min, max] of [['evaluationIntervalMs', 'Minimum seconds between proactive model turns', 15, 3600], ['replyIntervalMs', 'Minimum seconds between proactive replies', 15, 3600], ['reactionIntervalMs', 'Minimum seconds between reactions', 15, 3600], ['memberIntervalMs', 'Minimum seconds between a member’s requests', 1, 3600], ['proactiveRepliesPerHour', 'Maximum proactive replies per hour', 0, 60], ['contextMessages', 'Maximum temporary items, including Sophie’s replies', 0, 12], ['contextTtlMs', 'Temporary context lifetime, seconds', 10, 300]]) {
-      const scale = key.endsWith('Ms') ? 1000 : 1;
-      field(box, title, channel.profile[key] / scale, value => { channel.profile[key] = value * scale; }, { type: 'number', min, max, step: 1 });
-    }
+    select.value = channel.profile.mode; select.addEventListener('change', () => { channel.profile.mode = select.value; if (select.value === 'reactive') channel.profile.reactions = true; changed(); channels(); }); label.append(select); basics.append(label);
     field(box, 'Allow approved social reactions', channel.profile.reactions, value => { channel.profile.reactions = value; }, { type: 'checkbox' });
     field(box, 'Show brief typing when an addressed request starts', channel.profile.typing, value => { channel.profile.typing = value; }, { type: 'checkbox' });
     field(box, 'Quiet hours: wait to be addressed', channel.profile.quietHours !== null, value => { channel.profile.quietHours = value ? { startMinute: 1320, endMinute: 480, utcOffsetMinutes: 0 } : null; channels(); }, { type: 'checkbox' });
     if (channel.profile.quietHours) {
-      const quiet = channel.profile.quietHours, time = minute => `${String(Math.floor(minute / 60)).padStart(2, '0')}:${String(minute % 60).padStart(2, '0')}`;
-      for (const [key, title] of [['startMinute', 'Quiet hours start'], ['endMinute', 'Quiet hours end']]) field(box, title, time(quiet[key]), value => { const [hour, minute] = value.split(':').map(Number); quiet[key] = hour * 60 + minute; }, { type: 'time', required: true });
-      field(box, 'UTC offset, minutes (fixed; adjust for daylight saving)', quiet.utcOffsetMinutes, value => { quiet.utcOffsetMinutes = value; }, { type: 'number', min: -720, max: 840, step: 15 });
+      const quiet = channel.profile.quietHours, time = minute => `${String(Math.floor(minute / 60)).padStart(2, '0')}:${String(minute % 60).padStart(2, '0')}`, hours = document.createElement('div'); hours.className = 'ai-grid'; box.append(hours);
+      for (const [key, title] of [['startMinute', 'Quiet hours start'], ['endMinute', 'Quiet hours end']]) field(hours, title, time(quiet[key]), value => { const [hour, minute] = value.split(':').map(Number); quiet[key] = hour * 60 + minute; }, { type: 'time', required: true });
+      field(hours, 'UTC offset, minutes (fixed; adjust for daylight saving)', quiet.utcOffsetMinutes, value => { quiet.utcOffsetMinutes = value; }, { type: 'number', min: -720, max: 840, step: 15 });
     }
-    const remove = document.createElement('button'); remove.textContent = 'Remove channel from draft'; remove.addEventListener('click', () => { configuration.channels.splice(index, 1); changed(); channels(); }); box.append(remove); el('channels').append(box);
+    // Pacing limits keep their saved values; they are folded away only to keep each channel readable.
+    const pacing = document.createElement('details'), summary = document.createElement('summary'), limits = document.createElement('div');
+    summary.textContent = 'Pacing and context limits'; limits.className = 'ai-grid'; pacing.append(summary, limits); box.append(pacing);
+    for (const [key, title, min, max] of [['evaluationIntervalMs', 'Minimum seconds between proactive model turns', 15, 3600], ['replyIntervalMs', 'Minimum seconds between proactive replies', 15, 3600], ['reactionIntervalMs', 'Minimum seconds between reactions', 15, 3600], ['memberIntervalMs', 'Minimum seconds between a member’s requests', 1, 3600], ['proactiveRepliesPerHour', 'Maximum proactive replies per hour', 0, 60], ['contextMessages', 'Maximum temporary items, including Sophie’s replies', 0, 12], ['contextTtlMs', 'Temporary context lifetime, seconds', 10, 300]]) {
+      const scale = key.endsWith('Ms') ? 1000 : 1;
+      field(limits, title, channel.profile[key] / scale, value => { channel.profile[key] = value * scale; }, { type: 'number', min, max, step: 1 });
+    }
+    const remove = document.createElement('button'); remove.className = 'text-button ai-remove'; remove.textContent = 'Remove channel from draft'; remove.addEventListener('click', () => { configuration.channels.splice(index, 1); changed(); channels(); }); box.append(remove); el('channels').append(box);
   });
 }
 function emojis() {
   el('emojis').replaceChildren();
   configuration.emojis.forEach((emoji, index) => {
-    const box = document.createElement('fieldset');
+    const box = document.createElement('fieldset'), legend = document.createElement('legend'); legend.className = 'visually-hidden'; legend.textContent = `Reaction ${index + 1}`; box.className = 'ai-row'; box.append(legend);
     field(box, 'Reaction label (for example, friendly_wave)', emoji.key, value => { emoji.key = value; }, { maxlength: 80 });
     field(box, 'Unicode emoji or custom emoji name', emoji.name, value => { emoji.name = value; }, { maxlength: 32 });
     field(box, 'Custom emoji ID (leave empty for Unicode)', emoji.id ?? '', value => { emoji.id = value.trim() || null; }, { maxlength: 20, inputmode: 'numeric' });
-    const remove = document.createElement('button'); remove.textContent = 'Remove reaction'; remove.addEventListener('click', () => { configuration.emojis.splice(index, 1); changed(); emojis(); }); box.append(remove); el('emojis').append(box);
+    const remove = document.createElement('button'); remove.className = 'text-button'; remove.textContent = 'Remove reaction'; remove.addEventListener('click', () => { configuration.emojis.splice(index, 1); changed(); emojis(); }); box.append(remove); el('emojis').append(box);
   });
 }
 function examples() {
   el('examples').replaceChildren();
   character.examples.forEach((example, index) => {
-    const box = document.createElement('fieldset'); field(box, 'Synthetic member message', example.member, value => { example.member = value; }, { multiline: true, maxlength: 600 });
+    const box = document.createElement('fieldset'), legend = document.createElement('legend'); legend.textContent = `Example ${index + 1}`; box.className = 'ai-card ai-grid'; box.append(legend);
+    field(box, 'Synthetic member message', example.member, value => { example.member = value; }, { multiline: true, maxlength: 600 });
     field(box, 'Sophie’s example reply', example.sophie, value => { example.sophie = value; }, { multiline: true, maxlength: 600 });
-    const remove = document.createElement('button'); remove.textContent = 'Remove example'; remove.addEventListener('click', () => { character.examples.splice(index, 1); changed(); examples(); }); box.append(remove); el('examples').append(box);
+    const remove = document.createElement('button'); remove.className = 'text-button ai-remove'; remove.textContent = 'Remove example'; remove.addEventListener('click', () => { character.examples.splice(index, 1); changed(); examples(); }); box.append(remove); el('examples').append(box);
   });
 }
 async function consents(append = false) {
@@ -103,11 +110,13 @@ async function consents(append = false) {
     : 'External AI processing is awaiting current provider and operator approval. New opt-ins are unavailable; you can still opt out.';
   el('opt-in').disabled = current.optInAvailable !== true;
   el('accept-notice').disabled = current.optInAvailable !== true;
+  if (consentRows.length === 0) { const empty = document.createElement('li'); empty.className = 'muted'; empty.textContent = 'You have not opted in to any channel.'; el('consents').append(empty); }
   for (const row of consentRows) {
-    const p = document.createElement('p'); p.textContent = `Channel ${row.channelId}: ${row.enabled ? 'opted in' : 'opted out'} · revision ${row.epoch} `;
+    const item = document.createElement('li'), name = document.createElement('span'), state = document.createElement('span');
+    name.textContent = `Channel ${row.channelId}`; state.className = row.enabled ? 'badge ai-on' : 'badge'; state.textContent = row.enabled ? 'Opted in' : 'Opted out'; name.append(' ', state); item.append(name);
     if (row.enabled) { const button = document.createElement('button'); button.textContent = 'Opt out'; button.addEventListener('click', () => perform(async () => {
       await api.aiConsent({ channelId: row.channelId, enabled: false, expectedEpoch: row.epoch, acceptedNoticeRevision: noticeRevision }); await consents(); notice('Opted out. Pending use is invalidated.');
-    })); p.append(button); } el('consents').append(p);
+    })); item.append(button); } el('consents').append(item);
   }
 }
 async function load() {
@@ -118,18 +127,21 @@ async function load() {
     if (session.canControlAi) {
       const current = await api.aiPublication('configuration'); configuration = current.publication?.document ?? configuration; configurationRevision = current.publication?.revision ?? 0;
       el('participation').hidden = false; el('desired-enabled').checked = configuration.enabled; el('deadline').value = configuration.deadlineMs / 1000;
-      el('active-state').textContent = `Saved participation revision ${configurationRevision}. ${current.disabled ? 'AI is disabled.' : 'Activation requires current qualification.'}`; channels(); emojis();
+      el('active-state').textContent = `Saved revision ${configurationRevision}.`; channels(); emojis();
+      el('overview').hidden = false; el('overview-ai').textContent = current.disabled ? 'Disabled' : 'Allowed where each channel and member qualifies';
       const savedBudget = await api.aiPublication('budget'); budget = savedBudget.publication?.document ?? { ...DEFAULT_AI_BUDGET }; budgetRevision = savedBudget.publication?.revision ?? 0;
       const spending = await api.aiBudget(); el('budget').hidden = false;
       const worker=await api.aiWorker();
       if(worker.actorId!==session.userId || worker.guildId!==session.guildId)throw Object.assign(Error(),{kind:'denied'});
-      workerRevision=worker.desiredRevision;el('worker').hidden=false;el('worker-release').replaceChildren();
+      workerRevision=worker.desiredRevision;el('worker').hidden=false;el('activation').hidden=false;el('worker-release').replaceChildren();
       el('activation-channel').replaceChildren();
       for(const channel of configuration.channels.filter(row=>row.profile.mode!=='ignore')){const option=document.createElement('option');option.value=channel.channelId;option.textContent=channel.channelId;el('activation-channel').append(option);}
       el('review-activation').disabled=worker.phase!=='ready'||el('activation-channel').options.length===0;
       for(const candidate of worker.candidates){const option=document.createElement('option');option.value=candidate.id;option.textContent=candidate.release.name;el('worker-release').append(option);}
       el('review-worker').disabled=!worker.available || worker.historyFull || worker.candidates.length===0;el('stop-worker').disabled=!worker.available;
-      el('worker-state').textContent=`Desired worker revision ${worker.desiredRevision}; active revision ${worker.activeRevision??'none'}. Phase: ${worker.phase}. ${worker.disabled?'AI processing is disabled.':''} ${worker.available?'':'No lifecycle adapter is registered.'}`;
+      el('worker-phase').textContent=el('overview-worker').textContent=worker.available?worker.phase:`${worker.phase} (no lifecycle adapter)`;
+      el('worker-revision').textContent=`Desired ${worker.desiredRevision}, active ${worker.activeRevision??'none'}`;
+      el('worker-state').textContent=`${worker.disabled?'AI processing is disabled.':''} ${worker.available?'':'No lifecycle adapter is registered.'}`.trim();
       if(worker.historyFull)el('worker-state').textContent+=' Worker request history is full. Apply is paused; stop and recovery remain available.';
       el('worker-ack').textContent=worker.acknowledged?`Last acknowledged release: ${worker.acknowledged.releaseHash}; boot: ${worker.acknowledged.bootId}. Recorded ${worker.observedAt}.`:'No worker acknowledgement is recorded.';
       clearDiagnostic();el('diagnostics').hidden=false;el('diagnostic-channel').replaceChildren();
@@ -141,11 +153,18 @@ async function load() {
       el('monthly-budget').value = String(BigInt(budget.monthlyLimitNanos) / 1000000000n);
       el('price-valid-until').value = budget.priceValidUntil === null ? '' : new Date(budget.priceValidUntil).toISOString();
       const dollars = value => (Number(value) / 1000000000).toFixed(6);
-      el('budget-state').textContent = `Budget revision ${budgetRevision}. ${spending.policy?.held ? 'Paid inference is held for accounting review.' : 'Europe/Vienna calendar; conservative peak-price accounting.'} ` +
-        spending.balances.map(row => `${row.period}: $${dollars(row.settled_nanos)} settled, $${dollars(row.reserved_nanos)} reserved (including uncertainty), ${row.attempts} attempts.`).join(' ') +
-        ` Unresolved across all periods: ${spending.unresolved.attempts} attempts, $${dollars(spending.unresolved.nanos)}. An unreviewed or expired price pauses paid calls.` +
-        ` Resolved attempt details expire after 90 days; daily totals after 90 days and monthly totals after 400 days once unreferenced. Unresolved charges and replay receipts remain.` +
+      el('budget-state').textContent = `Saved revision ${budgetRevision}. ${spending.policy?.held ? 'Paid inference is held for accounting review.' : 'Europe/Vienna calendar; conservative peak-price accounting.'}` +
+        (budget.priceValidUntil === null || budget.priceValidUntil <= Date.now() ? ' The price review is missing or expired, so paid calls are paused.' : '') +
         (spending.capacityHeld ? ' Paid calls are paused at accounting storage capacity.' : '');
+      // Rates come from the saved budget (nanodollars per token), so provider changes cannot leave stale copy behind.
+      const perMillion = nanos => `$${(nanos / 1000).toFixed(3).replace(/0$/u, '')}`;
+      el('budget-rates').textContent = `Saved rates per million tokens: ${perMillion(budget.hitNanos)} cached input, ${perMillion(budget.missNanos)} uncached input and ${perMillion(budget.outputNanos)} output.`;
+      el('budget-balances').replaceChildren();
+      const balance = (title, text) => { const item = document.createElement('li'), name = document.createElement('strong'); name.textContent = title; item.append(name, document.createTextNode(text)); el('budget-balances').append(item); };
+      for (const row of spending.balances) balance(row.period.length === 7 ? `Month ${row.period}` : `Day ${row.period}`, `$${dollars(row.settled_nanos)} settled · $${dollars(row.reserved_nanos)} reserved (including uncertainty) · ${row.attempts} attempts`);
+      balance('Unresolved, all periods', `${spending.unresolved.attempts} attempts · $${dollars(spending.unresolved.nanos)}`);
+      const month = spending.balances.find(row => row.period.length === 7);
+      el('overview-spend').textContent = `$${month ? (Number(BigInt(month.settled_nanos) + BigInt(month.reserved_nanos)) / 1e9).toFixed(2) : '0.00'} of $${el('monthly-budget').value}${spending.policy?.held ? ' · held' : ''}`;
       el('unresolved-spending').replaceChildren();
       for (const attempt of spending.pending) {
         const row = document.createElement('fieldset'), label = document.createElement('label'), confirmation = document.createElement('input'), button = document.createElement('button');
@@ -155,13 +174,18 @@ async function load() {
         const requestId = [...crypto.getRandomValues(new Uint8Array(32))].map(value => value.toString(16).padStart(2, '0')).join('');
         button.addEventListener('click', () => perform(async () => { if (!confirmation.checked) return;
           await api.aiResolveSpending({messageId:attempt.messageId,fence:attempt.fence,requestId,confirmed:true}); await load(); notice('Full reservation accounted for. No generation was replayed.'); }));
-        row.append(label,button); el('unresolved-spending').append(row);
+        row.className = 'ai-card'; row.append(label,button); el('unresolved-spending').append(row);
       }
     }
     if (session.canEditPersonality) { const current = await api.aiPublication('personality'); character = current.publication?.document ?? structuredClone(DRAFT_PERSONALITY); personalityRevision = current.publication?.revision ?? 0;
       el('personality').hidden = false; el('character-core').value = character.core; examples(); }
   }
-  pending = null; pendingRequestId = null; dirty = false; phase = 'ready'; el('workspace').hidden = false; el('review') && (el('review').hidden = true); notice('Current saved state loaded.');
+  pending = null; pendingRequestId = null; dirty = false; phase = 'ready'; el('workspace').hidden = false; el('retry').hidden = true; el('review') && (el('review').hidden = true); notice('Current saved state loaded.');
+}
+// The review panel sits at the top of the workspace; bring it into view wherever the request started.
+function showReview(summary, content, action, activates = false) {
+  el('review-summary').textContent = summary; el('review-content').textContent = content; el('publish').textContent = action;
+  el('review-note').hidden = activates; el('review').hidden = false; el('review-heading').focus({ preventScroll: true }); el('review').scrollIntoView({ block: 'start' });
 }
 async function review(kind) {
   if (kind === 'budget' && !/^[1-9][0-9]{0,3}$/.test(el('monthly-budget').value)) throw Error('AI_BUDGET_INVALID');
@@ -172,9 +196,7 @@ async function review(kind) {
   const candidate = { kind, expectedRevision: kind === 'configuration' ? configurationRevision : kind === 'budget' ? budgetRevision : personalityRevision, document };
   const result = await api.aiReview(candidate); pending = { ...candidate, reviewSha256: result.reviewSha256 };
   pendingRequestId = [...crypto.getRandomValues(new Uint8Array(32))].map(value => value.toString(16).padStart(2, '0')).join('');
-  el('review-summary').textContent = `Publish ${kind} revision ${candidate.expectedRevision + 1}. Review the exact saved values below.`;
-  el('review-content').textContent = JSON.stringify(document, null, 2); el('review').hidden = false;
-  el('publish').textContent = 'Publish this version';
+  showReview(`Publish ${{ configuration: 'channel and reaction', budget: 'budget', personality: 'character' }[kind]} revision ${candidate.expectedRevision + 1}. Review the exact saved values below.`, JSON.stringify(document, null, 2), 'Publish this version');
 }
 el('retry').addEventListener('click', () => perform(load));
 el('logout').addEventListener('click', () => perform(async () => { await api.logout(); clear(); phase = 'denied'; }));
@@ -205,8 +227,7 @@ else {
   el('review-worker').addEventListener('click',()=>perform(async()=>{
     const candidate={candidateId:el('worker-release').value,expectedRevision:workerRevision};
     const result=await api.aiReviewWorker(candidate);pending={...candidate,reviewSha256:result.reviewSha256,operation:'applyWorker'};pendingRequestId=requestId();
-    el('review-summary').textContent='Stop current AI work and apply this registered worker release. Processing stays disabled. Other services continue.';
-    el('review-content').textContent=JSON.stringify(result,null,2);el('review').hidden=false;el('publish').textContent='Apply AI worker';
+    showReview('Stop current AI work and apply this registered worker release. Processing stays disabled. Other services continue.',JSON.stringify(result,null,2),'Apply AI worker');
   }));
   el('stop-worker').addEventListener('click',()=>perform(async()=>{
     workerStopRequest??=requestId();await api.aiStopWorker({requestId:workerStopRequest});workerStopRequest=null;
@@ -215,17 +236,14 @@ else {
   el('review-activation').addEventListener('click',()=>perform(async()=>{
     const channelId=el('activation-channel').value,result=await api.aiReviewActivation({channelId});
     pending={channelId,reviewSha256:result.reviewSha256,operation:'activate'};pendingRequestId=requestId();
-    el('review-summary').textContent='Enable processing in this public channel after confirming the current approval, publications, budget, worker and audience. Each member must opt in.';
-    el('review-content').textContent=JSON.stringify(result,null,2);el('review').hidden=false;el('publish').textContent='Enable this channel';
+    showReview('Enable processing in this public channel after confirming the current approval, publications, budget, worker and audience. Each member must opt in.',JSON.stringify(result,null,2),'Enable this channel',true);
   }));
   el('review-spending-hold').addEventListener('click', () => perform(async () => {
     const candidate = { expectedRevision: budgetRevision, evidenceHash: el('hold-evidence').value.trim() };
     const result = await api.aiReviewSpendingHold(candidate);
     pending = { ...candidate, reviewSha256: result.reviewSha256, operation: 'clearSpendingHold' };
     pendingRequestId = [...crypto.getRandomValues(new Uint8Array(32))].map(value => value.toString(16).padStart(2, '0')).join('');
-    el('review-summary').textContent = 'Confirm that the accounting overrun was investigated and the price and reservation estimate requalified. Clear this hold without changing charges or limits.';
-    el('review-content').textContent = JSON.stringify(candidate, null, 2); el('review').hidden = false;
-    el('publish').textContent = 'Clear this accounting hold';
+    showReview('Confirm that the accounting overrun was investigated and the price and reservation estimate requalified. Clear this hold without changing charges or limits.', JSON.stringify(candidate, null, 2), 'Clear this accounting hold');
   }));
   for (const id of ['character-core', 'desired-enabled', 'deadline', 'monthly-budget', 'price-valid-until', 'hold-evidence']) el(id).addEventListener('input', changed);
   el('cancel-review').addEventListener('click', () => { pending = null; el('review').hidden = true; });
