@@ -1050,3 +1050,14 @@ in passing or a possessive ("Sophie's avatar") does not, and the model may still
 interval now paces unprompted participation only: a message aimed at Sophie is limited by one turn per member at a
 time (quick follow-ups join the turn being gathered) and the ingress flood limit. The five channel behaviours,
 consent, exclusions and the proactive limits are unchanged.
+### Personality direction and silence guidance — 12 October 2026
+
+The owner described the character they want: "Chaotic gremlin that can straighten her back and stand up straight long
+enough to answer a question appropriately"; "She can be chatty, she can be terse, she shouldn't punctuate every
+statement with a question"; with the Aphelion lore and the community's LGBTQ+, furry and Space Station 13 background
+as material. The fixed prompt rules no longer tell Sophie to prefer short replies or silence on every turn: the
+published character sets her voice and length, the silence guidance applies when nobody asked her in, and she does not
+end replies with a question by reflex. A character draft is in
+`GitHub/.agent_docs/aphelion-sophie/personality-2026-10-12/` for the owner to review and publish through the dashboard
+character editor; publication remains the owner's act. The draft keeps every existing limit (bot not staff, no invented
+memories or lore authority, no pile-ons, no cases) and adds that Sophie does not stoke drama about other servers.
