@@ -78,6 +78,11 @@ export function createMistralClient({ apiKey, fetchImpl = fetch, clock = Date.no
       requireCondition(redactAiIdentifiers(value, identifiers) === value, 'AI_REMOTE_IDENTIFIER_REJECTED');
     const messages = inputMessages.map(({ role, content }, index) => ({ role,
       content: index === contractMessageIndex ? content : redactAiIdentifiers(content, identifiers) }));
+    // The prompt's contract message also carries per-turn guidance: citation rules and, for a member who addressed
+    // Sophie, that she should reply. Its JSON contract is rebuilt below after trimming; the guidance must still reach
+    // the model, or the only concrete outcome it is shown is silence.
+    const contractLines = Number.isSafeInteger(contractMessageIndex) ? String(inputMessages[contractMessageIndex]?.content ?? '').split('\n') : [];
+    const guidance = contractLines[0] === 'Permitted outcomes and citation IDs:' ? contractLines.slice(2).join('\n').trim() : '';
     const removed = new Set(); let group = 0;
     for (;;) {
       const sources = sourceMessages.filter(source => !removed.has(source.index)).map(source => ({ id: source.id }));
@@ -86,7 +91,7 @@ export function createMistralClient({ apiKey, fetchImpl = fetch, clock = Date.no
       if (schema.oneOf.length === 1) return prepared({ sources, contract, body: null, serialized: null, bytes: 0, messages: [], blocks: [] },started);
       const selected = messages.filter((_message, index) => !removed.has(index) && index !== contractMessageIndex).map(({ role, content }) => ({ role, content }));
       // JSON mode does not enforce this schema. Describe it, then validate locally.
-      selected.splice(selected.length - 1, 0, { role: 'system', content: `Return one JSON object matching this turn's schema. Silence is {"kind":"silent"}. No markdown or extra fields.\n${JSON.stringify(schema)}` });
+      selected.splice(selected.length - 1, 0, { role: 'system', content: `${guidance ? `${guidance}\n` : ''}Return one JSON object matching this turn's schema. Silence is {"kind":"silent"}. No markdown or extra fields.\n${JSON.stringify(schema)}` });
       const body = { model: MISTRAL_MODEL, messages: selected, prompt_cache_key: cacheKey, reasoning_effort: 'none',
         stream: false, max_tokens: outputTokens, temperature: 0.4, response_format: { type: 'json_object' } };
       const serialized = JSON.stringify(body), bytes = Buffer.byteLength(serialized, 'utf8');

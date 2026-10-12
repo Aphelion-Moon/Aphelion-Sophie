@@ -47,7 +47,7 @@ export function createAiControlsHttp({ auth, authorization, controls }) {
     }
     if (path === '/api/ai/consents/export') operation = 'exportConsents';
     const { proof } = await auth.authenticate({ ...credentials, method });
-    const actor = await authorization.resolveActor(proof);
+    const actor = await authorization.resolveActor(proof, { reuse: true });
     const result = await controls[operation]({ ...fields, actor });
     await auth.resolvePrincipal(proof);
     if(path==='/api/ai/preferences/export'){

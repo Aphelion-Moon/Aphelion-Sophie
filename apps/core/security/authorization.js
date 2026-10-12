@@ -14,10 +14,28 @@ export function createCoreAuthorization({ principals, discord, authorityStore, p
   const caseRoles = { staff: fixed.staff, leadOps: fixed.leadOps, ...(fixed.responders ? { responders: fixed.responders } : {}) };
   const actors = new WeakMap();
   const stamp = async () => requireContinuityStamp(await readContinuity());
-  async function current(userId, withPresence = false) {
+  // Owner decision, 12 October 2026: dashboard views (GET) may reuse the same member's most recent present-member role
+  // observation for up to VIEW_REUSE_MS while the Gateway continuity stamp, which includes the Gateway sequence, is
+  // unchanged. Only principal resolution and the VIEW_REUSE_CAPABILITIES below may reuse it; case, contact, permission
+  // and automation reads, every action, commands and moderation targets always read Discord afresh. A reused
+  // observation is never recorded again, so stored authority cannot move backwards.
+  const VIEW_REUSE_MS = 1_500, VIEW_REUSE_CAPABILITIES = ['ai.control', 'ai.personality.publish', 'ai.knowledge.publish', 'ai.self', 'answers.read'];
+  const recent = new Map();
+  function reusable(userId, version) {
+    const saved = recent.get(userId), now = clock();
+    return saved && saved.version === version && now >= saved.observation.observedAt && now - saved.observation.observedAt <= VIEW_REUSE_MS ? saved : null;
+  }
+  async function current(userId, withPresence = false, view = false) {
     requireCondition(await isAuthorityCurrent() === true, 'AUTHORITY_UNCERTAIN');
     const version = await stamp();
     await authorityStore.registerPolicy(fixed);
+    const saved = view && !withPresence ? reusable(userId, version) : null;
+    if (saved) {
+      requireFreshObservation(saved.observation, clock());
+      requireCondition(await isAuthorityCurrent() === true, 'AUTHORITY_UNCERTAIN');
+      requireCondition(await stamp() === version, 'OBSERVATION_INVALIDATED');
+      return { observation: saved.observation, ...saved.recorded, version };
+    }
     const observation = await discord.observeActor(userId);
     validateActorObservation(observation, clock());
     requireCondition(observation.guildId === fixed.guildId, 'FOREIGN_GUILD');
@@ -27,12 +45,20 @@ export function createCoreAuthorization({ principals, discord, authorityStore, p
     requireCondition(await isAuthorityCurrent() === true, 'AUTHORITY_UNCERTAIN');
     requireCondition(await stamp() === version, 'OBSERVATION_INVALIDATED');
     requireFreshObservation(observation, clock());
+    // Only a fully validated present-member observation, still bound to its stamp, can serve a later view. An absence
+    // is never reused, so it cannot outlive a rejoin.
+    recent.delete(userId);
+    if (!withPresence && observation.present && !observation.bot) {
+      recent.set(userId, { version, observation, recorded });
+      if (recent.size > 64) recent.delete(recent.keys().next().value);
+    }
     return { observation, ...recorded, version };
   }
-  async function check(capability, grant, scope) {
+  async function check(capability, grant, scope, view = false) {
     validateOperatorGrant(grant);
     requireCondition(grant.guildId === fixed.guildId && (scope.guildId === undefined || scope.guildId === fixed.guildId), 'OPERATION_DENIED');
-    const { observation, grant: latest, version, presenceEpoch } = await current(grant.userId, capability === 'case.read');
+    const { observation, grant: latest, version, presenceEpoch } = await current(grant.userId, capability === 'case.read',
+      view && VIEW_REUSE_CAPABILITIES.includes(capability));
     requireCondition(latest.capabilityEpoch === grant.capabilityEpoch && latest.policyVersion === grant.policyVersion, 'CAPABILITY_REVOKED');
     requireCondition(observation.present && !observation.bot, 'OPERATION_DENIED');
     if (['shuttle.self', 'case.create', 'ai.self'].includes(capability)) {
@@ -81,6 +107,7 @@ export function createCoreAuthorization({ principals, discord, authorityStore, p
     async dashboardAccess(proof) {
       const principal = await principals.resolvePrincipal(proof);
       requireCondition(principal.guildId === fixed.guildId, 'FOREIGN_GUILD');
+      // Navigation hints always read Discord: one fresh check per page load, which later AI views can then reuse.
       const { observation, version } = await current(principal.userId);
       requireCondition(observation.present && !observation.bot, 'OPERATION_DENIED');
       const capabilities = {};
@@ -102,13 +129,16 @@ export function createCoreAuthorization({ principals, discord, authorityStore, p
       return { guildId: principal.guildId, userId: principal.userId, capabilities,
         canManageCases: manageable.length > 0, canManageOnboarding: manageable.includes('shuttle'), canCreateContacts: manageable.includes('staff-contact') };
     },
-    async resolveActor(proof) {
+    /** `reuse` is passed only by AI dashboard routes, whose capability checks reuse the same observation; any other
+     * route resolves afresh so its later fresh capability check cannot meet a stale grant. */
+    async resolveActor(proof, { reuse = false } = {}) {
       const principal = await principals.resolvePrincipal(proof);
       requireCondition(principal.guildId === fixed.guildId, 'FOREIGN_GUILD');
-      const { observation, grant } = await current(principal.userId);
+      const view = proof.view === true && reuse === true;
+      const { observation, grant } = await current(principal.userId, false, view);
       requireCondition(observation.present && !observation.bot, 'OPERATION_DENIED');
       const actor = Object.freeze(grant);
-      actors.set(actor, { createdAt: clock(), proof });
+      actors.set(actor, { createdAt: clock(), proof, view });
       return actor;
     },
     async authorize(capability, actor, scope) {
@@ -120,7 +150,7 @@ export function createCoreAuthorization({ principals, discord, authorityStore, p
           const principal = await principals.resolvePrincipal(held.proof);
           requireCondition(principal.guildId === actor.guildId && principal.userId === actor.userId, 'UNTRUSTED_PRINCIPAL');
         };
-        await currentPrincipal(); const result = await check(capability, actor, scope); await currentPrincipal(); return result;
+        await currentPrincipal(); const result = await check(capability, actor, scope, held.view === true); await currentPrincipal(); return result;
       });
     },
     async authorizeRecorded(capability, grant, scope) {
