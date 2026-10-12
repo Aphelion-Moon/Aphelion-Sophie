@@ -9,7 +9,7 @@ import { aiDigest } from '../storage/ai-controls.js';
  */
 export function createAiObservations({ pool, transport, guildState, authorityStore, capabilityPolicy, mapping, protectedCategoryId, observer, clock,
   trace = () => {}, wait = ms => new Promise(resolve => setTimeout(resolve, ms)) }) {
-  requireCondition(guildState && ['ready', 'session', 'guild', 'roles', 'channel', 'member', 'rememberMember', 'emoji', 'message'].every(name => typeof guildState[name] === 'function'), 'TRUSTED_ADAPTERS_REQUIRED');
+  requireCondition(guildState && ['accept', 'ready', 'session', 'revision', 'guild', 'roles', 'channel', 'member', 'rememberMember', 'emoji', 'message'].every(name => typeof guildState[name] === 'function'), 'TRUSTED_ADAPTERS_REQUIRED');
   const members = new WeakMap();
   let generation = 0;
   const guildId = mapping.guildId, botUserId = mapping.botUserId;
@@ -43,6 +43,26 @@ export function createAiObservations({ pool, transport, guildState, authoritySto
     return (await pool.query('SELECT 1 FROM sophie_core.case_exclusions WHERE guild_id=$1 AND channel_id=ANY($2::text[]) LIMIT 1',
       [guildId, [channelId, ...(parentId ? [parentId] : [])]])).rowCount > 0;
   }
+  // A resumed Gateway session replays missed events but never resends GUILD_CREATE, so a core process that started by
+  // resuming has an empty projection. It is hydrated once over REST (one guild read with roles, emojis and owner, one
+  // channel list; members are read lazily) while the Gateway is current. A guild event that arrives during the reads
+  // retries, so the older REST snapshot never overwrites it; a new session (READY) abandons the attempt.
+  let hydrating = null;
+  function hydrate() {
+    hydrating ??= (async () => {
+      for (let attempt = 0; attempt < 3 && !guildState.ready(); attempt++) {
+        const session = guildState.session(), revision = guildState.revision();
+        if (typeof await observer.readAiContinuity() !== 'string') return;
+        const [guild, channels] = await Promise.all([patient(() => transport.getGuild(), 'GUILD'), patient(() => transport.getGuildChannels(), 'CHANNELS')]);
+        if (guildState.ready() || guildState.session() !== session) return;
+        if (guildState.revision() !== revision) continue;
+        requireCondition(guild?.id === guildId && Array.isArray(guild.roles) && Array.isArray(channels), 'AI_GUILD_SNAPSHOT_INVALID');
+        guildState.accept({ op: 0, t: 'GUILD_CREATE', s: 0, d: { id: guild.id, owner_id: guild.owner_id, roles: guild.roles, emojis: guild.emojis ?? [], channels, members: [] } });
+        try { trace('AI_GUILD_STATE_HYDRATED'); } catch { /* Diagnostics only. */ }
+      }
+    })().finally(() => { hydrating = null; });
+    return hydrating;
+  }
   // The Gateway must be current (journal lease and guild availability) and the projection must belong to the same session.
   async function gatewayCurrent(session) { return guildState.ready() && guildState.session() === session && typeof await observer.readAiContinuity() === 'string'; }
   async function isCurrent(observation, channelId) {
@@ -50,8 +70,10 @@ export function createAiObservations({ pool, transport, guildState, authoritySto
   }
   async function inspect(event) {
     requireCondition(event.guildId === guildId, 'FOREIGN_GUILD'); requireId(event.channelId); requireId(event.userId);
+    if (await excluded(event.channelId)) return null;
+    if (!guildState.ready()) await hydrate();
     const version = generation, session = guildState.session();
-    if (await excluded(event.channelId) || !await gatewayCurrent(session)) return null;
+    if (!await gatewayCurrent(session)) return null;
     const raw = guildState.channel(event.channelId), guild = guildState.guild(), roles = guildState.roles();
     if (raw?.id !== event.channelId || raw.type !== 0 || guild?.id !== guildId || await excluded(raw.id, raw.parentId)) return null;
     requireId(guild.ownerId); validateOverwrites(raw.overwrites);
