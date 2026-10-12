@@ -120,7 +120,10 @@ export function createAiAccounting({ pool, guildId }) {
     },
     async maintain() { return inTransaction(pool, async client => { await lock(client); return maintain(client); }); },
     async expire() { return inTransaction(pool, async client => {
-      await lock(client); await expire(client);
+      // Called every second by the AI refresh. Skip this cycle rather than hold a pooled connection waiting behind an
+      // admission; status() and every reservation still take the lock and expire first, so nothing relies on this pass.
+      if (!(await client.query('SELECT pg_try_advisory_xact_lock(182745,56) AS locked')).rows[0].locked) return;
+      await expire(client);
       if (Date.now() >= nextMaintenance) { await maintain(client); nextMaintenance = Date.now() + 60000; }
     }); },
     async status() {

@@ -96,7 +96,10 @@ export function createAiWorkerJournal({pool,guildId}) {
   return Object.freeze({
     async read(){return (await pool.query('SELECT * FROM sophie_ai.worker_state WHERE guild_id=$1',[guildId])).rows[0]??null;},
     async claim(owner) {
-      return transaction(async client=>{
+      // Polled every 500 ms on the shared four-connection control pool: never hold a connection waiting behind an
+      // admission's Discord observations. A contended lock means "nothing claimed now"; the next tick retries.
+      return inTransaction(pool,async client=>{
+        if(!(await client.query('SELECT pg_try_advisory_xact_lock(182745,56) AS locked')).rows[0].locked)return null;
         const row=(await client.query('SELECT * FROM sophie_ai.worker_state WHERE guild_id=$1 FOR UPDATE',[guildId])).rows[0];
         if(!row || row.phase!=='pending' || row.owner)return null;
         const request=(await client.query('SELECT * FROM sophie_ai.worker_requests WHERE guild_id=$1 AND revision=$2',[guildId,row.desired_revision])).rows[0];
