@@ -55,7 +55,7 @@ test('DS04-I01 authenticated private-stream turn preserves dispatch/settlement o
     assert.equal(comparison.blocks.at(-1).kind,'question');
     assert.deepEqual(f.events,['reserve','dispatch','network','settle','finish:true']);
     assert.equal(Object.hasOwn(f.inputs[0],'local'),false); assert.equal(Object.hasOwn(f.inputs[0],'token'),false);
-    await tick(); assert.equal(f.worker.status().active,false);
+    await tick(); assert.equal(f.worker.status().active,0);
   } finally {await f.close();}
 });
 
@@ -71,7 +71,7 @@ test('DS04-I03 post-reservation revocation prevents provider handoff and release
   try {
     await assert.rejects(f.generate(prompt(),{beforeDispatch:async()=>current}),/AI_WORKER_UNAVAILABLE/);
     assert.deepEqual(f.events,['reserve','dispatch','finish:false']);
-    await tick(); assert.equal(f.worker.status().active,false);
+    await tick(); assert.equal(f.worker.status().active,0);
   } finally {await f.close();}
 });
 
@@ -80,7 +80,7 @@ test('DS04-I04 denied budget and zero-byte silence discard prepared state withou
     const f=await fixture({reserve:async()=>null}); try {
       const payload=prompt(); if(silent) payload.outputContract.outcomes=['silent'];
       if(silent) assert.deepEqual(await f.generate(payload),{kind:'silent'}); else await assert.rejects(f.generate(payload),/AI_BUDGET_UNAVAILABLE/);
-      await tick(); await tick(); assert.equal(f.worker.status().active,false);
+      await tick(); await tick(); assert.equal(f.worker.status().active,0);
       assert.deepEqual(f.events,silent?[]:['reserve']);
     } finally {await f.close();}
   }
@@ -99,10 +99,12 @@ test('DS04-I06 cancellation retains uncertain dispatch and holds the physical wo
   try {
     const pending=f.generate(prompt(),{signal:abort.signal}); await entered.promise; abort.abort();
     await assert.rejects(pending,/AI_IPC_CLOSED/); await tick();
-    assert.equal(networkSignal.aborted,true); assert.equal(f.worker.status().active,true);
+    assert.equal(networkSignal.aborted,true); assert.equal(f.worker.status().active,1);
     assert.deepEqual(f.events,['reserve','dispatch','network','finish:true']);
-    await assert.rejects(f.generate(),/AI_WORKER_UNAVAILABLE/); assert.equal(f.events.filter(value=>value==='network').length,1);
-    held.resolve(); await tick(); await tick();
+    // The cancelled request still holds its slot; with two slots one more turn is admitted and a third is refused.
+    const second=f.generate(); await tick(); await tick();
+    await assert.rejects(f.generate(),/AI_WORKER_UNAVAILABLE/);
+    held.resolve(); await second; await tick(); await tick(); assert.equal(f.events.filter(value=>value==='network').length,2);
   } finally {held.resolve(); await f.close();}
 });
 

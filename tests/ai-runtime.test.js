@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createAiScheduler } from '../apps/knowledge-worker/scheduler.js';
-import { createLlamaClient, createAiOutputSchema } from '../apps/knowledge-worker/llama-client.js';
+import { createAiOutputSchema } from '../apps/knowledge-worker/prompt-contract.js';
 import { buildAiPrompt } from '../apps/knowledge-worker/prompt.js';
 import { DRAFT_PERSONALITY } from '../modules/assistant/personality.js';
 
@@ -75,50 +75,6 @@ test('DS-06 queued channels receive turns before a previously served channel', a
   held.resolve();await Promise.all([first,repeated,other]);assert.deepEqual(started,['a','c','b']);
 });
 
-function llamaFixture({ count = { object: 'response.input_tokens', input_tokens: 3 }, response = { choices: [{ finish_reason: 'stop', message: { role: 'assistant', content: '{"kind":"silent"}', reasoning_content: 'must not deliver' } }] } } = {}) {
-  const calls = [];
-  const client = createLlamaClient({ endpoint: 'http://127.0.0.1:12345', apiKey: 'synthetic'.repeat(8), modelId: 'reviewed-model',
-    fetchImpl: async (url, options) => {
-      const body = JSON.parse(options.body); calls.push({ path: url.pathname, body, redirect: options.redirect });
-      const value = url.pathname === '/v1/chat/completions/input_tokens' ? count : response;
-      return new Response(JSON.stringify(value), { headers: { 'content-type': 'application/json' } });
-    } });
-  const generate = () => client.generate({ outputContract: { outcomes: ['reply','silent'], answerOnly: false, sourceIds: [], emojiKeys: [] }, messages: [{ role: 'system', content: 'Sophie' }, { role: 'user', content: 'Synthetic hello' }] },
-    { signal: new AbortController().signal, deadline: Date.now() + 14000 });
-  return { calls, generate };
-}
-
-test('SAI AT-12 local adapter counts the runtime template and parses only final structured output', async () => {
-  const f = llamaFixture(); assert.deepEqual(await f.generate(), { kind: 'silent' });
-  assert.deepEqual(f.calls.map(call => call.path), ['/v1/chat/completions/input_tokens', '/v1/chat/completions']);
-  assert.deepEqual(f.calls[0].body, f.calls[1].body);
-  assert.equal(f.calls.at(-1).body.stream, false); assert.equal(f.calls.at(-1).body.cache_prompt, false);
-  assert.equal(f.calls.at(-1).body.reasoning_effort, 'none');
-  assert.deepEqual(f.calls.at(-1).body.chat_template_kwargs, { enable_thinking: false });
-  assert.equal(f.calls.every(call => call.redirect === 'error'), true);
-});
-
-test('SAI AT-12 input over budget is refused before generation; truncation/tools/raw fallback are rejected', async () => {
-  const large = llamaFixture({ count: { object: 'response.input_tokens', input_tokens: 4000 } }); await assert.rejects(large.generate(), /AI_CONTEXT_LIMIT/);
-  assert.equal(large.calls.length, 1);
-  for (const count of [{}, { input_tokens: 1 }, { object: 'response.input_tokens', input_tokens: '1' },
-    ...[0, -1, 1.5, Number.MAX_SAFE_INTEGER + 1].map(input_tokens => ({ object: 'response.input_tokens', input_tokens }))]) {
-    const invalid = llamaFixture({ count }); await assert.rejects(invalid.generate(), /AI_TOKENIZER_INVALID/);
-    assert.equal(invalid.calls.length, 1);
-  }
-  for (const choice of [
-    { finish_reason: 'length', message: { role: 'assistant', content: '{"kind":"silent"}' } },
-    { finish_reason: 'stop', message: { role: 'assistant', content: '<think>secret</think>hello' } },
-    { finish_reason: 'stop', message: { role: 'assistant', content: '{"kind":"silent"}', tool_calls: [{}] } },
-  ]) await assert.rejects(llamaFixture({ response: { choices: [choice] } }).generate());
-});
-
-test('SAI AT-04 local runtime endpoint cannot become arbitrary egress or credential forwarding', () => {
-  for (const endpoint of ['https://api.example.test/', 'https://10.0.0.1.evil.example/', 'https://192.168.1.1.attacker.test/', 'http://10.0.0.1/', 'http://localhost:1234/', 'http://127.0.0.1:1234/other', 'http://user:secret@127.0.0.1/']) {
-    assert.throws(() => createLlamaClient({ endpoint, apiKey: 'synthetic'.repeat(8), modelId: 'model' }), /AI_WORKER_ENDPOINT_INVALID/);
-  }
-});
-
 test('SAI AT-12 output grammar cannot offer speech, unknown citations or emoji outside the admitted turn', () => {
   const contract = { outcomes: ['react','silent'], answerOnly: false, sourceIds: [], emojiKeys: ['celebrate'] };
   const reaction = createAiOutputSchema(contract);
@@ -133,37 +89,3 @@ test('SAI AT-12 output grammar cannot offer speech, unknown citations or emoji o
   }
 });
 
-test('SAI AT-12 over-budget context drops whole old messages and retains the policy and current question', async () => {
-  const prompt = buildAiPrompt({ request: { character: DRAFT_PERSONALITY, decision: { outcomes: ['reply','silent'], answerOnly: false }, config: { emojis: [] },
-    userId: '1', text: 'Current question must remain complete' }, history: [{ userId: '2', text: 'Old conversation '.repeat(300) }], sources: [] });
-  const original = structuredClone(prompt); let finalMessages, attempts = 0, tooLarge;
-  const client = createLlamaClient({ endpoint: 'http://127.0.0.1:12345', apiKey: 'synthetic'.repeat(8), modelId: 'reviewed-model',
-    fetchImpl: async (url, options) => {
-      const body = JSON.parse(options.body);
-      if (url.pathname === '/v1/chat/completions/input_tokens') { attempts++; tooLarge = body.messages.some(item => item.content.includes('Old conversation'));
-        return Response.json({ object: 'response.input_tokens', input_tokens: tooLarge ? 4100 : 1000 }); }
-      finalMessages = body.messages; return Response.json({ choices: [{ finish_reason: 'stop', message: { role: 'assistant', content: '{"kind":"silent"}' } }] });
-    } });
-  assert.deepEqual(await client.generate(prompt,{ signal: new AbortController().signal, deadline: Date.now()+14000 }),{ kind: 'silent' });
-  assert.equal(attempts,2); assert.deepEqual(prompt,original);
-  assert.deepEqual(finalMessages[0],original.messages[0]); assert.deepEqual(finalMessages.at(-1),original.messages.at(-1));
-  assert.equal(finalMessages.some(item => item.content.includes('Old conversation')),false);
-  await assert.rejects(client.generate({ ...prompt, trimGroups: [[0]] },{ signal: new AbortController().signal, deadline: Date.now()+14000 }),/AI_PROMPT_INVALID/);
-});
-
-test('SAI AT-12 evidence removed to fit the prompt cannot remain an allowed citation', async () => {
-  const prompt = buildAiPrompt({ request: { character: { ...DRAFT_PERSONALITY, examples: [] }, decision: { outcomes: ['reply','silent'], answerOnly: true },
-    config: { emojis: [] }, userId: '1', text: 'Which door?' }, history: [], sources: [{ id: 'guide.r1.s0', text: 'Synthetic source evidence' }] });
-  let generated;
-  const client = createLlamaClient({ endpoint: 'http://127.0.0.1:12345', apiKey: 'synthetic'.repeat(8), modelId: 'reviewed-model', contextTokens: 512,
-    fetchImpl: async (url, options) => {
-      const body = JSON.parse(options.body);
-      if (url.pathname.endsWith('/input_tokens')) return Response.json({ object: 'response.input_tokens',
-        input_tokens: body.messages.some(message => message.content.includes('Synthetic source evidence')) ? 600 : 100 });
-      generated = body; return Response.json({ choices: [{ finish_reason: 'stop', message: { role: 'assistant', content: '{"kind":"silent"}' } }] });
-    } });
-  assert.deepEqual(await client.generate(prompt, { signal: new AbortController().signal, deadline: Date.now() + 14000 }), { kind: 'silent' });
-  assert.equal(generated.messages.some(message => message.content.includes('Synthetic source evidence')), false);
-  assert.deepEqual(generated.response_format.json_schema.schema.oneOf.map(branch => branch.properties.kind.const), ['silent']);
-  await assert.rejects(client.generate({ ...prompt, sourceMessages: [] }, { signal: new AbortController().signal, deadline: Date.now() + 14000 }), /AI_PROMPT_INVALID/);
-});

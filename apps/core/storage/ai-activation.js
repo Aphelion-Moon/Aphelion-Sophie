@@ -45,6 +45,21 @@ export function createAiActivation({ pool, guildId, authorize, inspectChannel, a
       audienceHash: observed.audienceHash, continuity: observed.continuity };
   }
   return Object.freeze({
+    /**
+     * Go live persists across restarts and deployments (owner decision, 12 October 2026): active channel qualifications
+     * follow the installed worker release. Nothing else changes: a disabled state stays disabled, and audience, consent,
+     * notice and budget are still checked on every turn. Runs at start-up, before any turn.
+     */
+    async rebind(release) {
+      const fixed = canonicalAiWorkerRelease(release);
+      const changed = await inTransaction(pool, async client => {
+        await client.query('SELECT pg_advisory_xact_lock(182745,56)');
+        return (await client.query(`UPDATE sophie_ai.qualifications SET release_sha256=$2,evidence_sha256=$3 WHERE guild_id=$1 AND active
+          AND worker_domain=$4 AND (release_sha256<>$2 OR evidence_sha256<>$3)`, [guildId, fixed.releaseHash, fixed.evidenceHash, fixed.domain])).rowCount;
+      });
+      if (changed) invalidate();
+      return changed;
+    },
     async reviewActivation({ actor, channelId }) {
       requireId(channelId);
       return transaction(actor, async client => { const request = await candidate(client, actor, channelId); return { ...request, reviewSha256: aiDigest(request) }; });

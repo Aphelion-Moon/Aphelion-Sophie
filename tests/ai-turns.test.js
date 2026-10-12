@@ -402,23 +402,20 @@ test('SAI AT-07 dashboard session preserves explicit AI access flags and denies 
   session.aiAvailable = 'yes'; await assert.rejects(api.session(), /unavailable/);
 });
 
-test('DS09 operator HTTP accepts only fixed lifecycle inputs and suppresses responses after session revocation', async () => {
+test('DS09 worker status is read-only: lifecycle routes are gone and responses stop after session revocation', async () => {
   const actor={userId:'123',guildId:'101'},proof={},calls=[];let current=true;
-  const controls=Object.fromEntries(['workerStatus','reviewWorker','applyWorker','stopWorker'].map(operation=>[operation,async input=>{
-    assert.equal(input.actor,actor);calls.push(operation);return {queued:true};
-  }]));
+  const controls={workerStatus:async input=>{assert.equal(input.actor,actor);calls.push('workerStatus');return {connected:true,phase:'ready'};}};
   const http=createAiControlsHttp({auth:{authenticate:async()=>({proof}),resolvePrincipal:async()=>{if(!current)throw Error('SESSION_REVOKED');}},
     authorization:{resolveActor:async received=>{assert.equal(received,proof);return actor;}},controls});
-  const input={method:'POST',query:new URLSearchParams(),credentials:{},path:'/api/ai/apply-worker',
-    body:{candidateId:'a'.repeat(64),expectedRevision:0,reviewSha256:'b'.repeat(64),requestId:'c'.repeat(64),confirmed:true}};
-  await assert.rejects(http.execute({...input,body:{...input.body,command:'arbitrary'}}),/AI_INPUT_INVALID/);
-  await assert.rejects(http.execute({...input,body:{...input.body,actor:{userId:'999'}}}),/AI_INPUT_INVALID/);
+  for(const path of ['/api/ai/review-worker','/api/ai/apply-worker','/api/ai/stop-worker'])
+    await assert.rejects(http.execute({method:'POST',query:new URLSearchParams(),credentials:{},path,body:{requestId:'d'.repeat(64)}}),/AI_INPUT_INVALID/);
+  const input={method:'GET',query:new URLSearchParams(),credentials:{},path:'/api/ai/worker',body:null};
+  await assert.rejects(http.execute({...input,query:new URLSearchParams({command:'arbitrary'})}),/AI_INPUT_INVALID/);
   assert.deepEqual(calls,[]);
-  assert.equal((await http.execute(input)).actorId,actor.userId);
-  current=false;await assert.rejects(http.execute({...input,path:'/api/ai/stop-worker',body:{requestId:'d'.repeat(64)}}),/SESSION_REVOKED/);
-  assert.deepEqual(calls,['applyWorker','stopWorker']);
+  const status=await http.execute(input);assert.equal(status.actorId,actor.userId);assert.equal(status.connected,true);
+  current=false;await assert.rejects(http.execute(input),/SESSION_REVOKED/);
+  assert.deepEqual(calls,['workerStatus','workerStatus']);
 });
-
 test('SAI AT-07/19 typing is brief, fixed to an admitted addressed turn, and a revocation while typing stops delivery', async () => {
   const calls = []; let now = 1000;
   const messages = createAiMessages({ botUserId: '505', clock: () => now, canReact: async () => false,

@@ -82,9 +82,22 @@ export function createAiRuntime({ configuration, corePool, controlPool, worker, 
     diagnostics:channelId=>stopped?null:turns.diagnostics({guildId:mapping.guildId,channelId}),
     async start() {
       requireCondition(timer === null && !stopped, 'AI_RUNTIME_ALREADY_STARTED');
-      await refresh(); schedule();
+      // The worker connection listens for the worker service, which connects on its own; turns that arrive before it does
+      // end as unavailable without disabling AI (owner decision, 12 October 2026).
+      await worker.start?.(); await refresh(); schedule();
     },
     async stop() { stopped = true; clearTimeout(timer); invalidate(); await gateway.stop(); await worker.stop?.(); await refreshing; },
     status() { return { ...scheduler.status(), stopped, qualification: 'per-request-required' }; },
+    /** Live connection state for the dashboard: whether the worker is connected now, never a launch request. */
+    workerStatus() {
+      const inbox = worker.inboxStatus?.() ?? null;
+      return { connected: !stopped && inbox?.connected === true, release: worker.release ? { name: worker.release.name, releaseHash: worker.release.releaseHash } : null,
+        observedAt: Number.isSafeInteger(inbox?.connectedAt) ? new Date(inbox.connectedAt).toISOString() : null };
+    },
+    /** The installed release, only while the worker answers a probe with the matching identity (Go-live precondition). */
+    async qualifiedRelease() {
+      if (stopped || !worker.release || typeof worker.probe !== 'function') return null;
+      try { await worker.probe({ signal: AbortSignal.timeout(5000) }); return stopped ? null : worker.release; } catch { return null; }
+    },
   });
 }

@@ -1,21 +1,31 @@
 import { createHash } from 'node:crypto';
 import { open } from 'node:fs/promises';
 import { win32 } from 'node:path';
-import { readAiWorkerFile } from '../knowledge-worker/bootstrap.js';
 import { requireCondition, requireKeys } from '../../contracts/validation.js';
 
 const code='AI_INSTALLATION_INVALID';
 const hash=value=>typeof value==='string' && /^[a-f0-9]{64}$/u.test(value) && value!=='0'.repeat(64);
 export const installationHash=value=>createHash('sha256').update(value).digest('hex');
 export const INSTALLATION_ROOT='C:\\Aphelion\\Sophie';
-const MAXIMUM_LIFETIME=86400000;
-const entrypoints=Object.freeze({core:'source/apps/core/installed.mjs',supervisor:'source/apps/inference-host/installed.mjs'});
+const entrypoints=Object.freeze({core:'source/apps/core/installed.mjs',worker:'source/apps/knowledge-worker/main.mjs'});
 const required=Object.freeze(['runtime/node.exe','runtime/LICENSE','source/package.json','source/apps/knowledge-worker/main.mjs']);
 
 export function installationPaths(role,root=INSTALLATION_ROOT) {
   requireCondition(Object.hasOwn(entrypoints,role),code);
   return Object.freeze({configuration:win32.join(root,'trust',`${role}.json`),packageRoot:win32.join(root,'package'),
-    manifest:win32.join(root,'package','source','installation.manifest')});
+    manifest:win32.join(root,'package','source','installation.manifest'),provider:win32.join(root,'provider','api-key.txt')});
+}
+
+/** Bounded UTF-8 read of one regular file; never follows a size the caller did not allow. */
+export async function readInstallationFile(path,limit) {
+  const file=await open(path,'r');
+  try {
+    requireCondition((await file.stat()).isFile(),code);
+    const bytes=Buffer.alloc(limit+1);let length=0;
+    while(length<bytes.length){const result=await file.read(bytes,length,bytes.length-length,null);if(result.bytesRead===0)break;length+=result.bytesRead;}
+    requireCondition(length>0 && length<=limit,code);
+    return new TextDecoder('utf8',{fatal:true}).decode(bytes.subarray(0,length));
+  } finally {await file.close();}
 }
 
 async function hashFile(path,limit) {
@@ -28,7 +38,7 @@ async function hashFile(path,limit) {
   } finally {await file.close();}
 }
 
-/** Recomputes every package file hash. OS ACLs protect the package; this detects drift from the qualified release. */
+/** Recomputes every package file hash. OS ACLs protect the package; this detects drift from the installed release. */
 export async function verifyInstallationManifest({role,text,packageRoot,hash:digest=hashFile}) {
   requireCondition(typeof text==='string' && text.endsWith('\n'),'AI_MANIFEST_INVALID');
   const seen=new Set();let total=0;
@@ -44,22 +54,22 @@ export async function verifyInstallationManifest({role,text,packageRoot,hash:dig
 }
 
 /**
- * One operator-written JSON file per role under trust\, readable only by that role's service SID.
- * Only core receives Discord/database settings; only the supervisor receives provider fingerprints.
- * Expiry is bounded to 24 hours, matching the qualification receipt lifetime.
+ * One operator-written JSON file per role under trust\, readable only by that role's service SID. Only core receives
+ * Discord/database settings; only the worker receives the accepted provider model IDs. Both hold the channel key.
+ * Integrity is checked when the role starts (every package file against the installed manifest); there is no expiry
+ * and no daily renewal (owner decision, 12 October 2026).
  */
-export async function loadInstallationConfiguration(role,{root=INSTALLATION_ROOT,read=readAiWorkerFile,hash:digest=hashFile,now=Date.now()}={}) {
+export async function loadInstallationConfiguration(role,{root=INSTALLATION_ROOT,read=readInstallationFile,hash:digest=hashFile}={}) {
   const paths=installationPaths(role,root),value=JSON.parse(await read(paths.configuration,65536));
-  requireKeys(value,['version','role','installationId','expires','manifest','release','qualification','keys',role==='core'?'core':'acceptedFingerprints'],code);
-  requireCondition(value.version===1 && value.role===role && hash(value.installationId) && hash(value.manifest) &&
-    Number.isSafeInteger(value.expires) && value.expires>now && value.expires-now<=MAXIMUM_LIFETIME,code);
-  requireKeys(value.keys,['core'],code);requireCondition(hash(value.keys.core),code);
-  if(role==='supervisor')requireCondition(Array.isArray(value.acceptedFingerprints),code);
+  requireKeys(value,['version','role','installationId','manifest','release','qualification','keys',role==='core'?'core':'acceptedFingerprints'],code);
+  requireCondition(value.version===2 && value.role===role && hash(value.installationId) && hash(value.manifest),code);
+  requireKeys(value.keys,['channel'],code);requireCondition(hash(value.keys.channel),code);
+  if(role==='worker')requireCondition(Array.isArray(value.acceptedFingerprints),code);
   else requireCondition(value.core!==null && typeof value.core==='object' && !Array.isArray(value.core),code);
   const manifest=await read(paths.manifest,1048576);
   requireCondition(installationHash(manifest)===value.manifest,'AI_PACKAGE_CHANGED');
   await verifyInstallationManifest({role,text:manifest,packageRoot:paths.packageRoot,hash:digest});
-  const owner=Object.freeze({version:'1',role,installation:value.installationId,expires:String(value.expires)});
-  const {version:_version,role:_role,expires:_expires,manifest:_manifest,...configuration}=value;
+  const owner=Object.freeze({version:'2',role,installation:value.installationId});
+  const {version:_version,role:_role,manifest:_manifest,...configuration}=value;
   return Object.freeze({paths,owner,configuration:Object.freeze(configuration)});
 }

@@ -58,9 +58,6 @@ export function createDashboardApi({ fetch, navigate = path => globalThis.locati
       if(typeof channelId!=='string' || !/^[1-9][0-9]{0,19}$/u.test(channelId))throw new DashboardFailure('invalid',400);
       return request(`/api/ai/diagnostics?channelId=${channelId}`);
     },
-    aiReviewWorker:body=>request('/api/ai/review-worker',body),
-    aiApplyWorker:body=>request('/api/ai/apply-worker',body),
-    aiStopWorker:body=>request('/api/ai/stop-worker',body),
     aiReviewActivation:body=>request('/api/ai/review-activation',body),
     aiActivate:body=>request('/api/ai/activate',body),
     aiPreferences: () => request('/api/ai/preferences'),

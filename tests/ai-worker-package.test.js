@@ -1,8 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { randomBytes } from 'node:crypto';
-import { connect } from 'node:net';
-import { once } from 'node:events';
+import { createServer, connect } from 'node:net';
 import { mkdtemp, writeFile, unlink, rmdir } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -10,11 +9,11 @@ import { createAiReversePipeClient } from '../apps/core/runtime/ai-reverse-pipe.
 import { createMeteredAiWorker } from '../apps/core/runtime/ai-provider.js';
 import { createAiWorkerRuntime } from '../apps/knowledge-worker/runtime.js';
 import { createMistralClient, MISTRAL_MODEL } from '../apps/knowledge-worker/mistral-client.js';
-import { aiBootPipe, authenticateAiBootPipe } from '../apps/knowledge-worker/boot-pipe.js';
-import { AI_WORKER_ROOTS, aiWorkerFiles, locateAiWorkerBoot, loadAiWorkerBootstrap, readAiWorkerFile, signAiWorkerLease, createAiWorkerLease } from '../apps/knowledge-worker/bootstrap.js';
+import { authenticateAiBootPipe } from '../apps/knowledge-worker/boot-pipe.js';
+import { readInstallationFile } from '../apps/installation/configuration.js';
 
-const key=Buffer.alloc(32,7),leaseKey=Buffer.alloc(32,8),qualificationHash='6'.repeat(64),apiKey='synthetic-package-provider-key';
-const acceptedFingerprints=[MISTRAL_MODEL],native={skip:process.platform!=='win32',timeout:15000};
+const key=Buffer.alloc(32,7),apiKey='synthetic-package-provider-key';
+const acceptedFingerprints=[MISTRAL_MODEL],native={skip:process.platform!=='win32',timeout:20000};
 const identity=()=>({workerId:randomBytes(32).toString('hex'),bootId:randomBytes(32).toString('hex'),releaseHash:'3'.repeat(64),
   profileHash:createMistralClient({apiKey,acceptedFingerprints}).profileHash,provider:'mistral',domain:'public'});
 const payload=identity=>({workerDomain:'public',releaseHash:identity.releaseHash,requesterId:'404',restricted:false,
@@ -25,162 +24,119 @@ const payload=identity=>({workerDomain:'public',releaseHash:identity.releaseHash
 const response=()=>new Response(JSON.stringify({model:MISTRAL_MODEL,
   usage:{prompt_tokens:100,completion_tokens:20,total_tokens:120,prompt_tokens_details:{cached_tokens:40}},
   choices:[{finish_reason:'stop',message:{role:'assistant',content:'{"kind":"silent"}'}}]}),{headers:{'content-type':'application/json'}});
-async function until(check){const deadline=Date.now()+2000;while(!check()&&Date.now()<deadline)await new Promise(resolve=>setTimeout(resolve,5));assert.ok(check());}
+async function until(check,ms=4000){const deadline=Date.now()+ms;while(!check()&&Date.now()<deadline)await new Promise(resolve=>setTimeout(resolve,5));assert.ok(check());}
+// An ephemeral loopback port per fixture, so these tests never meet a live Sophie core on the fixed channel port.
+const freePort=()=>new Promise(resolve=>{const probe=createServer();probe.listen(0,'127.0.0.1',()=>{const {port}=probe.address();probe.close(()=>resolve(port));});});
+const portPipes=port=>({
+  createPipeServer:callback=>{const server=createServer(callback),listen=server.listen.bind(server);server.listen=()=>listen(port,'127.0.0.1');return server;},
+  connectPipe:()=>connect(port,'127.0.0.1')});
+const metered=(broker,events=[])=>createMeteredAiWorker({worker:broker,accounting:{reserve:async()=>({}),dispatch:async()=>true,
+  settle:async()=>{events.push('settled');return true;},finish:async(_token,possible)=>{events.push(possible);}}});
 async function fixture({fetchImpl,qualified=async()=>true}={}){
-  const fixed=identity(),revocation=new AbortController();let calls=0,stopped=false;
+  const fixed=identity(),revocation=new AbortController(),port=await freePort(),{createPipeServer,connectPipe}=portPipes(port);let calls=0,stopped=false;
   const transport={fetch:async(...args)=>{calls++;return fetchImpl?fetchImpl(...args):response();},status:()=>({calls,stopped}),stop:async()=>{stopped=true;}};
-  const broker=createAiReversePipeClient({identity:fixed,key,qualified,revocationSignal:revocation.signal});
-  const worker=createAiWorkerRuntime({identity:fixed,key,apiKey,acceptedFingerprints,qualified,revocationSignal:revocation.signal,transport,connectionMode:'dial-host'});
-  await broker.start();
-  return {fixed,broker,worker,transport,revocation,async close(){await worker.stop();await broker.stop();}};
+  const broker=()=>createAiReversePipeClient({identity:fixed,key,qualified,revocationSignal:revocation.signal,createPipeServer});
+  const value={fixed,port,broker:broker(),transport,revocation,connectPipe,
+    worker:createAiWorkerRuntime({identity:fixed,key,apiKey,acceptedFingerprints,qualified,revocationSignal:revocation.signal,transport,connectPipe}),
+    async replaceBroker(){await value.broker.stop();value.broker=broker();await value.broker.start();},
+    async close(){await value.worker.stop();await value.broker.stop();}};
+  await value.broker.start();
+  return value;
 }
 
-test('DS04-P01 reverse native pipe probes and handles distinct metered turns without replay',native,async()=>{
-  const f=await fixture(),settled=[];
-  const metered=createMeteredAiWorker({worker:f.broker,accounting:{reserve:async()=>({}),dispatch:async()=>true,
-    settle:async()=>{settled.push(true);return true;},finish:async()=>{}}});
+test('DS04-P01 the worker channel probes and handles distinct metered turns without replay',native,async()=>{
+  const f=await fixture(),events=[],worker=metered(f.broker,events);
   try {
-    await f.worker.start();assert.equal(f.worker.status().listener.phase,'waiting');assert.equal(f.worker.status().worker.connections,0);
+    await f.worker.start();await until(()=>f.broker.inboxStatus().available===2);
     assert.deepEqual(await f.broker.probe(),f.fixed);assert.equal(f.transport.status().calls,0);
     for(let n=0;n<3;n++){
       const request=payload(f.fixed);
-      assert.deepEqual(await metered.generate(request,{signal:new AbortController().signal,deadline:request.local.deadline,beforeDispatch:async()=>true}),{kind:'silent'});
+      assert.deepEqual(await worker.generate(request,{signal:new AbortController().signal,deadline:request.local.deadline,beforeDispatch:async()=>true}),{kind:'silent'});
     }
-    assert.equal(settled.length,3);assert.equal(f.transport.status().calls,3);
+    assert.equal(events.filter(event=>event==='settled').length,3);assert.equal(f.transport.status().calls,3);
     await f.worker.stop();await until(()=>f.broker.inboxStatus().connections===0);assert.equal(f.worker.status().transport.stopped,true);
   } finally {await f.close();}
 });
 
-test('DS04-P02 cancellation while waiting for a worker neither consumes its later connection nor admits concurrent opens',native,async()=>{
+test('RB-P01b two turns generate at once over separate authenticated connections',native,async()=>{
+  let inside=0,peak=0,release;const gate=new Promise(resolve=>{release=resolve;});
+  const f=await fixture({fetchImpl:async()=>{inside++;peak=Math.max(peak,inside);if(inside===2)release();await gate;inside--;return response();}});
+  const worker=metered(f.broker);
+  try {
+    await f.worker.start();await until(()=>f.broker.inboxStatus().available===2);
+    const turns=[payload(f.fixed),payload(f.fixed)].map(request=>worker.generate(request,{signal:new AbortController().signal,deadline:request.local.deadline,beforeDispatch:async()=>true}));
+    assert.deepEqual(await Promise.all(turns),[{kind:'silent'},{kind:'silent'}]);assert.equal(peak,2);
+  } finally {await f.close();}
+});
+
+test('DS04-P02 cancellation while waiting for a worker does not consume its later connection',native,async()=>{
   const f=await fixture(),abort=new AbortController();
   try {
-    const pending=assert.rejects(f.broker.probe({signal:abort.signal}),/AI_WORKER|AI_IPC/);await until(()=>f.broker.inboxStatus().waiting);
-    await assert.rejects(f.broker.probe(),/AI_IPC_BUSY/);abort.abort();await pending;
-    assert.equal(f.broker.inboxStatus().waiting,false);await f.worker.start();assert.deepEqual(await f.broker.probe(),f.fixed);
+    const pending=assert.rejects(f.broker.probe({signal:abort.signal}),/AI_WORKER|AI_IPC/);await until(()=>f.broker.inboxStatus().waiting===1);
+    abort.abort();await pending;
+    assert.equal(f.broker.inboxStatus().waiting,0);await f.worker.start();assert.deepEqual(await f.broker.probe(),f.fixed);
   } finally {await f.close();}
 });
 
 test('DS04-P03 an incorrect profile is never admitted to the inference inbox',native,async()=>{
   const f=await fixture();
   try {
-    const socket=connect(aiBootPipe(f.fixed,'inference'));socket.on('error',()=>{});
+    const socket=f.connectPipe();socket.on('error',()=>{});
     await assert.rejects(authenticateAiBootPipe({stream:socket,key,identity:{...f.fixed,profileHash:'9'.repeat(64)},
       side:'worker',purpose:'inference',signal:new AbortController().signal}),/AI_EGRESS_UNAVAILABLE/);
-    await until(()=>f.broker.inboxStatus().connections===0);assert.equal(f.broker.inboxStatus().available,false);
+    await until(()=>f.broker.inboxStatus().connections===0);assert.equal(f.broker.inboxStatus().available,0);
+    const wrongKey=f.connectPipe();wrongKey.on('error',()=>{});
+    await assert.rejects(authenticateAiBootPipe({stream:wrongKey,key:Buffer.alloc(32,9),identity:f.fixed,
+      side:'worker',purpose:'inference',signal:new AbortController().signal}),/AI_EGRESS_UNAVAILABLE/);
     assert.equal(f.transport.status().calls,0);
   } finally {await f.close();}
 });
 
-test('DS04-P04 revoked boot closes in-flight inference and preserves uncertain accounting',native,async()=>{
+test('DS04-P04 revocation closes in-flight inference and preserves uncertain accounting',native,async()=>{
   let entered;const ready=new Promise(resolve=>entered=resolve);
   const f=await fixture({fetchImpl:async(_url,options)=>{entered();await new Promise(resolve=>options.signal.addEventListener('abort',resolve,{once:true}));throw Error('synthetic cancelled');}});
-  const events=[],metered=createMeteredAiWorker({worker:f.broker,accounting:{reserve:async()=>({}),dispatch:async()=>true,
-    settle:async()=>{events.push('settled');return true;},finish:async(_token,possible)=>events.push(possible)}});
+  const events=[],worker=metered(f.broker,events);
   try {
     await f.worker.start();const request=payload(f.fixed);
-    const failed=assert.rejects(metered.generate(request,{signal:new AbortController().signal,deadline:request.local.deadline,beforeDispatch:async()=>true}),/AI_IPC|AI_WORKER/);
+    const failed=assert.rejects(worker.generate(request,{signal:new AbortController().signal,deadline:request.local.deadline,beforeDispatch:async()=>true}),/AI_IPC|AI_WORKER/);
     await ready;f.revocation.abort();await failed;await f.worker.stop();await f.broker.stop();
     assert.deepEqual(events,[true]);assert.equal(f.transport.status().calls,1);assert.equal(f.broker.inboxStatus().connections,0);
     assert.equal(await f.broker.current(request),false);
   } finally {await f.close();}
 });
 
-test('DS04-P05 losing the idle host inbox stops the worker rather than silently reconnecting to a replacement',native,async()=>{
+test('RB-P05 the worker survives a core restart: it keeps retrying and reconnects to the new core',native,async()=>{
   const f=await fixture();
-  try {await f.worker.start();await f.broker.stop();await until(()=>f.worker.status().stopped);await f.worker.stop();assert.equal(f.transport.status().stopped,true);}
-  finally {await f.close();}
+  try {
+    await f.worker.start();await until(()=>f.broker.inboxStatus().available===2);
+    await f.broker.stop();await new Promise(resolve=>setTimeout(resolve,300));
+    assert.equal(f.worker.status().stopped,false,'a core restart is not a reason for the worker to exit');
+    await f.replaceBroker();await until(()=>f.broker.inboxStatus().available>0,8000);
+    assert.deepEqual(await f.broker.probe(),f.fixed);
+  } finally {await f.close();}
+});
+
+test('RB-P05b losing installation qualification stops the worker',native,async()=>{
+  let qualified=true;const f=await fixture({qualified:async()=>qualified});
+  try {
+    await f.worker.start();await until(()=>f.broker.inboxStatus().available===2);
+    qualified=false;await f.broker.stop();await until(()=>f.worker.status().stopped,8000);assert.equal(f.transport.status().stopped,true);
+  } finally {await f.close();}
 });
 
 test('DS04-P06 stop releases a pending broker connection without a worker process',native,async()=>{
   const f=await fixture();
   try {
-    const pending=assert.rejects(f.broker.probe(),/AI_WORKER|AI_IPC/);await until(()=>f.broker.inboxStatus().waiting);await f.broker.stop();await pending;
-    const socket=connect(aiBootPipe(f.fixed,'inference'));await once(socket,'error');
+    const pending=assert.rejects(f.broker.probe(),/AI_WORKER|AI_IPC/);await until(()=>f.broker.inboxStatus().waiting===1);await f.broker.stop();await pending;
+    const socket=f.connectPipe();await new Promise(resolve=>socket.once('error',resolve));
   } finally {await f.close();}
 });
 
-const boot=()=>({version:1,identity:identity(),qualificationHash,ipcKey:key.toString('hex'),leaseKey:leaseKey.toString('hex'),acceptedFingerprints});
-test('DS04-P07 fixed bootstrap paths and distinct credentials reject unregistered data and unsafe key profiles',async()=>{
-  const value=boot(),reads=[],bootId=value.identity.bootId,files=aiWorkerFiles(bootId);
-  // The worker reads exactly the host paths the supervisor publishes to, never a container mount.
-  assert.equal(files.bootstrap,`C:\\Aphelion\\Sophie\\state\\boots\\${bootId}\\boot.json`);
-  assert.equal(files.lease,`C:\\Aphelion\\Sophie\\state\\boots\\${bootId}\\lease.json`);
-  assert.equal(files.provider,'C:\\Aphelion\\Sophie\\provider\\api-key.txt');
-  const loaded=await loadAiWorkerBootstrap({bootId,read:async(path,limit)=>{reads.push([path,limit]);return path===files.bootstrap?JSON.stringify(value):apiKey;}});
-  assert.deepEqual(reads,[[files.bootstrap,8192],[files.provider,512]]);assert.deepEqual(loaded.identity,value.identity);
-  for(const change of [{extra:'unregistered'}, {leaseKey:value.ipcKey}, {version:2}, {qualificationHash:'bad'}, {acceptedFingerprints:['bad name']}, {acceptedFingerprints:[]}])
-    await assert.rejects(loadAiWorkerBootstrap({bootId,read:async()=>JSON.stringify({...value,...change})}),/AI_BOOT_INVALID/);
-  await assert.rejects(loadAiWorkerBootstrap({bootId,read:async path=>path===files.bootstrap?JSON.stringify(value):'short'}),/AI_BOOT_INVALID/);
-  // A boot file published under another boot's directory is rejected.
-  await assert.rejects(loadAiWorkerBootstrap({bootId:identity().bootId,read:async path=>path.endsWith('boot.json')?JSON.stringify(value):apiKey}),/AI_BOOT_INVALID/);
-  await assert.rejects(loadAiWorkerBootstrap({bootId:'..',read:async()=>JSON.stringify(value)}),/AI_BOOT_INVALID/);
-});
-
-test('DS04-P07b worker locates exactly one published boot directory and rejects ambiguous boot roots',async()=>{
-  const entry=(name,{directory=true,link=false}={})=>({name,isDirectory:()=>directory,isSymbolicLink:()=>link});
-  const bootId=identity().bootId,listed=[];
-  assert.equal(await locateAiWorkerBoot({list:async path=>{listed.push(path);return [entry(bootId)];}}),bootId);
-  assert.deepEqual(listed,[AI_WORKER_ROOTS.boots]);
-  for(const entries of [[],[entry(bootId),entry(identity().bootId)],[entry(bootId,{directory:false})],[entry(bootId,{link:true})],[entry('not-a-boot')]])
-    await assert.rejects(locateAiWorkerBoot({list:async()=>entries}),/AI_BOOT_INVALID/);
-});
-
-test('DS04-P08 mounted-file reader rejects oversized and invalid UTF-8 contents before parsing',async()=>{
-  const dir=await mkdtemp(join(tmpdir(),'sophie-package-')),path=join(dir,'boot.json');
+test('DS04-P08 installation file reader rejects oversized and invalid UTF-8 contents before parsing',async()=>{
+  const dir=await mkdtemp(join(tmpdir(),'sophie-package-')),path=join(dir,'worker.json');
   try {
-    await writeFile(path,Buffer.alloc(8193,65));await assert.rejects(readAiWorkerFile(path,8192),/AI_BOOT_INVALID/);
-    await writeFile(path,Buffer.from([255,254,128]));await assert.rejects(readAiWorkerFile(path,8192));
+    await writeFile(path,Buffer.alloc(8193,65));await assert.rejects(readInstallationFile(path,8192),/AI_INSTALLATION_INVALID/);
+    await writeFile(path,Buffer.from([255,254,128]));await assert.rejects(readInstallationFile(path,8192));
+    await writeFile(path,'{"ok":true}');assert.equal(await readInstallationFile(path,8192),'{"ok":true}');
   } finally {await unlink(path);await rmdir(dir);}
-});
-
-function leaseFixture(){
-  const fixed=identity();let wall=100000,mono=0,reads=0;
-  const make=(sequence=1,changes={})=>signAiWorkerLease({identity:fixed,qualificationHash,key:leaseKey,sequence,issuedAt:wall,expiresAt:wall+5000,...changes});
-  let record=make(),reader=async()=>JSON.stringify(record);
-  const lease=createAiWorkerLease({identity:fixed,qualificationHash,key:leaseKey,clock:()=>wall,monotonic:()=>mono,read:async(path,limit)=>{
-    assert.equal(path,aiWorkerFiles(fixed.bootId).lease);assert.equal(limit,2048);reads++;return reader();
-  }});
-  return {lease,make,get record(){return record;},set record(value){record=value;},advance(ms){wall+=ms;mono+=ms;},
-    setReader(value){reader=value;},rollback(){wall-=10000;mono+=6000;},reads:()=>reads};
-}
-
-test('DS04-P09 signed lease renews only for the exact boot/evidence and rejects replay or modification',async()=>{
-  for(const mode of ['replay','same-sequence','tamper','boot','evidence']){
-    const f=leaseFixture();
-    try {
-      await f.lease.start();assert.equal(await f.lease.current(),true);const first=f.record;f.advance(100);f.record=f.make(2);
-      assert.equal(await f.lease.current(),true);
-      if(mode==='replay')f.record=first;
-      if(mode==='same-sequence')f.record=f.make(2,{expiresAt:f.record.expiresAt-1});
-      if(mode==='tamper')f.record={...f.record,expiresAt:f.record.expiresAt+1};
-      if(mode==='boot')f.record=f.make(3,{identity:identity()});
-      if(mode==='evidence')f.record=f.make(3,{qualificationHash:'b'.repeat(64)});
-      assert.equal(await f.lease.current(),false);assert.equal(f.lease.signal.aborted,true);
-      f.record=f.make(4);assert.equal(await f.lease.current(),false);
-    } finally {f.lease.stop();}
-  }
-});
-
-test('DS04-P10 monotonic expiry cannot be extended by a wall-clock rollback or a late fresh sequence',async()=>{
-  const f=leaseFixture();
-  try {
-    await f.lease.start();f.rollback();f.record=f.make(2);assert.equal(await f.lease.current(),false);
-    // Poll refresh must also reject the expired generation when the event loop resumes.
-    await until(()=>f.lease.signal.aborted);
-  } finally {f.lease.stop();}
-});
-
-test('DS04-P11 a hung initial lease read expires and its later result cannot revive the worker',{timeout:5000},async()=>{
-  const f=leaseFixture();let release;f.setReader(()=>new Promise(resolve=>release=resolve));
-  try {await assert.rejects(f.lease.start(),/AI_LEASE_INVALID/);assert.equal(f.lease.signal.aborted,true);release(JSON.stringify(f.record));assert.equal(await f.lease.current(),false);}
-  finally {f.lease.stop();}
-});
-
-test('DS04-P12 one pending lease read is shared and explicit stop releases all its callers',async()=>{
-  const f=leaseFixture();let release;
-  try {
-    await f.lease.start();f.setReader(()=>new Promise(resolve=>release=resolve));
-    const one=f.lease.current(),two=f.lease.current();assert.equal(f.reads(),2);f.lease.stop();
-    assert.deepEqual(await Promise.all([one,two]),[false,false]);release(JSON.stringify(f.record));assert.equal(await f.lease.current(),false);
-  } finally {f.lease.stop();}
 });

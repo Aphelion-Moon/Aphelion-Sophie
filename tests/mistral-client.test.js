@@ -209,10 +209,14 @@ test('SAI AT-13 external abort cancels the HTTP call; deadline/size failures can
   const client = createMistralClient({ apiKey: key, acceptedFingerprints: [MISTRAL_MODEL], fetchImpl: async (_url, { signal }) => {
     started(); return new Promise((_resolve, reject) => signal.addEventListener('abort', () => reject(Error('secret transport detail')), { once: true }));
   } });
+  // Two requests may be in flight; a third is refused rather than queued.
   const job = client.generate(prompt(), { signal: controller.signal, deadline: Date.now() + 14000 });
+  const second = client.generate(prompt(), { signal: controller.signal, deadline: Date.now() + 14000 });
   await began; await assert.rejects(client.generate(prompt(), { signal: new AbortController().signal, deadline: Date.now() + 14000 }), /AI_WORKER_UNAVAILABLE/u);
-  controller.abort(); await assert.rejects(job, /^Error: AI_DEADLINE_EXPIRED$/u);
-  assert.equal(client.status().active, false);
+  controller.abort(); await assert.rejects(job, /^Error: AI_DEADLINE_EXPIRED$/u); await assert.rejects(second, /^Error: AI_DEADLINE_EXPIRED$/u);
+  assert.equal(client.status().active, 0);
+  // A cancelled request is not a provider failure: the next request is not paused.
+  assert.equal(client.status().cooldownUntil <= Date.now(), true);
   const late = fixture({ response: () => { late.time(15001); return Response.json(completion()); } });
   await assert.rejects(late.generate(), /AI_DEADLINE_EXPIRED/u);
   const large = fixture({ response: () => new Response(' '.repeat(65537), { headers: { 'content-type': 'application/json' } }) });

@@ -15,6 +15,7 @@ export function createAiGateway({ ingress, turns, onFault }) {
       if(edit && turns.prepareEdit?.(edit)!==true){turns.invalidate(edit);return null;}
       if (payload.t==='MESSAGE_DELETE') turns.invalidate({ channelId: raw.channel_id, messageId: raw.id });
       else if (payload.t === 'MESSAGE_DELETE_BULK') for (const id of Array.isArray(raw.ids) ? raw.ids.slice(0, 100) : []) turns.invalidate({ channelId: raw.channel_id, messageId: id });
+      else if (/^(?:CHANNEL|THREAD)_(?:UPDATE|DELETE)$/u.test(payload.t) && typeof raw.id === 'string') turns.cancelChannel?.(raw.id);
       if (reserved.size + pending.size >= 4) {if(edit)turns.invalidate(edit);return null;}
       const proof = ingress.prepare(payload);
       if (proof !== null) reserved.set(proof,edit);else if(edit)turns.invalidate(edit);

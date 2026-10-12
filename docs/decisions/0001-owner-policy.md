@@ -1000,3 +1000,43 @@ worker restart itself. Fix the paperwork and the reply timing as well."
   second, and not while a message is being handled, so periodic checks no longer exhaust Discord's five reads per
   second and starve new messages. Explicit withdrawals (opt-out, departure, message edit or delete) still mark the
   reply for cleanup and are removed at once; a definite "no longer current" result is removed on its next check.
+
+### AI stack rebuild: Gateway state, two checks, plain worker service, persistent Go live — 12 October 2026
+
+After Sophie stopped answering follow-up messages, the owner asked for an audit of the whole AI stack against other
+projects (`GitHub/.agent_docs/aphelion-sophie/ai-stack-audit-2026-10-12.md`). Shown the four recommended decisions,
+the owner replied: "Implement all recommended decisions, and any additional fixes or improvements that you stumble on
+along the way." This supersedes the "Reply re-verification pacing" bullet above, the "qualification expiry remains at
+most 24 hours" rule, and the worker start/stop operations of 30 September and 12 October.
+
+1. **Turns read Gateway state and check authorization exactly twice.** Core keeps an in-memory projection of roles,
+   channels, members, emojis and message revisions from Gateway events (`apps/core/discord/guild-state.js`); a READY
+   resets it, a RESUMED keeps it, and observations are refused while the Gateway is not current. A member the Gateway
+   has not described is read once over REST and then kept current by events. The checks are admission (request,
+   fragments; history as it is read) and one pre-delivery check over every dependency, with `beginDelivery`
+   re-checking the request atomically. No Discord REST read happens per turn for a known member. Rule 3 of `AGENTS.md`
+   is unchanged: Gateway state is current, pushed state, not an old snapshot, and access-granting paths
+   (Whitelist, cases, Shuttle, moderation) keep their own fresh reads.
+2. **Delivered replies are not re-verified.** A sent reply is withdrawn only by an explicit event: opt-out (now an
+   explicit withdrawal committed with the consent change), departure, or an edit or delete of a message it drew on.
+   A reply that lands after the deadline is kept. Disabling AI or withdrawing a knowledge source no longer deletes
+   earlier replies.
+3. **The worker is an ordinary service.** The supervisor service, its control protocol, boot and lease files, the
+   worker start/stop queue and the unused local-inference code are removed. The worker runs alongside core under its
+   own account, reads its own trust file and the provider key, and connects to core over the loopback channel with a
+   per-installation key (two concurrent turns). It retries while core restarts and WinSW restarts it if it exits.
+   Trust and journal receipts no longer expire: integrity is checked against the installed manifest when each role
+   starts. Only core holds the Discord token; only the worker holds the provider key.
+4. **Go live persists.** Nothing re-disables AI on a restart. At start-up, active channel qualifications follow the
+   installed worker release through the owner database role, so a deployment does not require a new Go live; a
+   disable stays in force, and audience, consent, notice and budget are still checked on every turn.
+
+Fixes found on the way: any member, role or channel event cancelled every in-flight turn and opened a fresh context
+lane, so Sophie forgot conversations; an untargeted invalidation (consent change, AI disable, knowledge publication,
+Gateway disconnect) wiped all context and marked every delivered reply in the guild for deletion; one failed or
+cancelled turn paused the provider for five seconds and dropped the next members' turns; inference ran one turn at a
+time across the whole server; the AI page denied every owner after a successful load (fixed earlier the same day).
+
+Not authorized by this entry: production, game-service changes, a host reboot, new dependencies, restricted channels,
+or a change to consent, notice, budget, retention or ticket exclusion. The staging conversion (retire the supervisor
+service, upgrade the worker wrapper, write `trust\worker.json`) is a deployment the operator runs.

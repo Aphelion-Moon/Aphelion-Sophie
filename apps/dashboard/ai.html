@@ -40,14 +40,10 @@
 <label for="hold-evidence">SHA-256 of the operator’s qualification evidence</label><input id="hold-evidence" maxlength="64" pattern="[a-f0-9]{64}">
 <div class="actions"><button id="review-spending-hold">Review hold clearance</button></div></fieldset></section>
 
-<section id="worker" class="panel case-panel" hidden><h2>AI worker</h2><p class="section-intro">The separate process that runs the model. Starting it does not process any messages until a channel goes live.</p>
-<dl class="ai-status"><div><dt>Phase</dt><dd id="worker-phase"></dd></div><div><dt>Running release</dt><dd id="worker-revision"></dd></div></dl>
-<ol id="worker-progress" class="ai-progress" hidden><li data-phase="pending">Queued</li><li data-phase="draining">Stopping the previous worker</li><li data-phase="starting">Starting and checking the new worker</li><li data-phase="ready">Ready</li></ol>
-<p id="worker-state" role="status" aria-live="polite"></p><p id="worker-blocked" class="ai-callout" hidden></p>
-<div id="worker-release-field"><label for="worker-release">Release to start</label><select id="worker-release"></select></div><p id="worker-release-single" class="muted" hidden></p>
-<div class="actions"><button id="review-worker" class="primary">Start worker</button><button id="stop-worker" class="danger" hidden>Stop worker</button></div>
-<p id="worker-ack" class="muted ai-wrap"></p>
-<details><summary>What these actions do</summary><p>Starting or replacing first stops current AI work and confirms the previous worker has stopped, then starts and checks the selected release. Message processing stays disabled until a channel goes live. An acknowledgement records the worker seen at that time; it is not a live health guarantee.</p><p>Stopping confirms that the worker and any pending start have stopped. It does not retry a model request or clear uncertain charges.</p></details></section>
+<section id="worker" class="panel case-panel" hidden><h2>AI worker</h2>
+<dl class="ai-status"><div><dt>Status</dt><dd id="worker-phase"></dd></div><div><dt>Running release</dt><dd id="worker-revision"></dd></div></dl>
+<p id="worker-state" role="status" aria-live="polite"></p>
+<p class="section-intro">The AI worker is a separate service that runs the model. It starts together with Sophie and connects by itself. This panel only shows its status; connecting does not process any messages until a channel goes live.</p></section>
 
 <section id="activation" class="panel case-panel" hidden><h2>Go live in a channel</h2><p class="section-intro">Turn on processing in one configured public channel. Members still opt in individually.</p>
 <p id="activation-blocked" class="ai-callout" hidden></p>

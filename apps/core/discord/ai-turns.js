@@ -168,6 +168,15 @@ export function createAiTurns({ admission, scheduler, context, knowledge, messag
       const task = run(request); outstanding.set(request.messageId, { request, task });
       try { return await task; } finally { outstanding.delete(request.messageId); }
     },
+    /**
+     * A change to one channel (moved, re-permissioned, deleted) stops the turns running there, so a channel that became
+     * restricted or a case channel does not keep a provider call going; the pre-delivery check would refuse the reply
+     * anyway. Other channels, context and delivered replies are untouched.
+     */
+    cancelChannel(channelId) {
+      for (const [id, { request }] of outstanding) if (request.channelId === channelId) scheduler.cancel(id);
+      for (const entry of [...gatherings.values()]) if ([...entry.fragments.values()].some(item => item.channelId === channelId)) { entry.cancelled = true; finishGather(entry); }
+    },
     /** True while any message is gathering or running; background rechecks yield Discord capacity to it. */
     active: () => outstanding.size > 0 || gatherings.size > 0,
     invalidate(filter = {}) {

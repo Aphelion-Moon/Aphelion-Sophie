@@ -6,15 +6,15 @@
 //
 // input.json:
 //   { "packageRoot": "...",             staged package containing source\ and runtime\
-//     "outputDirectory": "...",         receives trust\core.json and trust\supervisor.json (restricted folder)
+//     "outputDirectory": "...",         receives trust\core.json and trust\worker.json (restricted folder)
 //     "release": { "name": "...", "workerId": "<sha256>", "releaseHash": "<sha256>" },
 //     "acceptedFingerprints": ["..."],  accepted returned model IDs; must name the pinned Mistral model
 //     "evidence": { "service-account-identity": "<file>", "file-acl-scope": "<file>", "firewall-egress-scope": "<file>" },
 //     "core": "<file>" }                core runtime block (runtime, databases, credentials); read, never printed
 //
-// Output files contain the control key and, for core, Discord/database credentials. Keep outputDirectory
+// Output files contain the core/worker channel key and, for core, Discord/database credentials. Keep outputDirectory
 // outside Git, copy the files into C:\Aphelion\Sophie\trust, then rerun ops/windows/Setup-InferenceAccount.ps1
-// so each file is readable only by its own service SID. Receipts expire after 24 hours by design.
+// so each file is readable only by its own service SID. Trust does not expire; a new release writes new files.
 import { createHash, randomBytes } from 'node:crypto';
 import { mkdir, readFile, readdir, writeFile } from 'node:fs/promises';
 import { join, relative, sep } from 'node:path';
@@ -25,7 +25,6 @@ import { verifyInstallationManifest } from '../apps/installation/configuration.j
 import { canonicalProcessingPolicy } from '../modules/assistant/processing-policy.js';
 
 const sha256 = bytes => createHash('sha256').update(bytes).digest('hex');
-const LIFETIME = 86400000;
 
 async function manifest(packageRoot) {
   const lines = [];
@@ -45,23 +44,23 @@ const [inputPath] = process.argv.slice(2);
 if (!inputPath) { console.error('usage: node scripts/prepare-ai-installation.mjs <input.json>'); process.exit(2); }
 const input = JSON.parse(await readFile(inputPath, 'utf8'));
 const text = await manifest(input.packageRoot);
-for (const role of ['core', 'supervisor']) await verifyInstallationManifest({ role, text, packageRoot: input.packageRoot,
+for (const role of ['core', 'worker']) await verifyInstallationManifest({ role, text, packageRoot: input.packageRoot,
   hash: async path => { const bytes = await readFile(path); return { sha256: sha256(bytes), size: bytes.length }; } });
 await writeFile(join(input.packageRoot, 'source', 'installation.manifest'), text, { flag: 'w' });
 
-const installationId = randomBytes(32).toString('hex'), expires = Date.now() + LIFETIME;
+const installationId = randomBytes(32).toString('hex');
 const acceptedFingerprints = [...input.acceptedFingerprints];
 const checks = {};
 for (const name of installationChecks) checks[name] = sha256(await readFile(input.evidence[name]));
 const profileHash = mistralProfileHash({ acceptedFingerprints });
-const qualification = { installationId, releaseHash: input.release.releaseHash, profileHash, expiresAt: expires, checks };
+const qualification = { installationId, releaseHash: input.release.releaseHash, profileHash, checks };
 const release = canonicalAiWorkerRelease({ name: input.release.name, workerId: input.release.workerId, releaseHash: input.release.releaseHash,
   profileHash, evidenceHash: sha256(JSON.stringify(qualification)), provider: 'mistral', domain: 'public' });
-const shared = { version: 1, installationId, expires, manifest: sha256(text), release, qualification, keys: { core: randomBytes(32).toString('hex') } };
+const shared = { version: 2, installationId, manifest: sha256(text), release, qualification, keys: { channel: randomBytes(32).toString('hex') } };
 const core = JSON.parse(await readFile(input.core, 'utf8'));
 if(core.processingPolicy)core.processingPolicy=canonicalProcessingPolicy(core.processingPolicy);
 
 await mkdir(join(input.outputDirectory, 'trust'), { recursive: true });
 await writeFile(join(input.outputDirectory, 'trust', 'core.json'), JSON.stringify({ ...shared, role: 'core', core }) + '\n', { flag: 'wx' });
-await writeFile(join(input.outputDirectory, 'trust', 'supervisor.json'), JSON.stringify({ ...shared, role: 'supervisor', acceptedFingerprints }) + '\n', { flag: 'wx' });
-console.log(JSON.stringify({ release, expiresAt: new Date(expires).toISOString(), manifestEntries: text.split('\n').length - 1 }, null, 2));
+await writeFile(join(input.outputDirectory, 'trust', 'worker.json'), JSON.stringify({ ...shared, role: 'worker', acceptedFingerprints }) + '\n', { flag: 'wx' });
+console.log(JSON.stringify({ release, manifestEntries: text.split('\n').length - 1 }, null, 2));

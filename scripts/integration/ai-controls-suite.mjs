@@ -365,6 +365,16 @@ export async function runAiControlsSuite(cluster, run) {
     assert.equal((await control.current({actor:operator,kind:'configuration'})).disabled,true);
     await assert.rejects(pool.query('UPDATE sophie_ai.qualifications SET active=true'),error=>error.code==='42501');
     await assert.rejects(pool.query('DELETE FROM sophie_ai.activation_receipts'),error=>error.code==='42501');
+    // RB-A01: Go live persists across deployments. Active qualifications follow the installed release; nothing else changes,
+    // and an owner's disable stays in force.
+    const deployed={...release,name:'Synthetic next',releaseHash:'1'.repeat(64),evidenceHash:'2'.repeat(64)};
+    const before=(await admin.query('SELECT * FROM sophie_ai.qualifications WHERE guild_id=$1',[operator.guildId])).rows[0];
+    assert.equal(await activation.rebind(deployed),1);assert.equal(await activation.rebind(deployed),0);
+    const after=(await admin.query('SELECT * FROM sophie_ai.qualifications WHERE guild_id=$1',[operator.guildId])).rows[0];
+    assert.equal(after.release_sha256,deployed.releaseHash);assert.equal(after.evidence_sha256,deployed.evidenceHash);
+    for(const column of ['boundary_epoch','audience_sha256','configuration_sha256','personality_sha256','active','restricted'])assert.equal(String(after[column]),String(before[column]),column);
+    assert.equal((await control.current({actor:operator,kind:'configuration'})).disabled,true);
+    await assert.rejects(activation.rebind({...deployed,releaseHash:'bad'}),/AI_WORKER_RELEASE_INVALID|INVALID/);
   });
   await run('DS01-C02 exact notice receipts reject stale acceptance and survive provider outage and withdrawal', async () => {
     const member={...actor,guildId:'929'},channelId='303';

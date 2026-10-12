@@ -173,11 +173,12 @@ test('DS06-E02 only a complete committed edit reaches replacement; rejected or p
   await bridge.stop();
 });
 
-test('RB-03 member, role and channel events cancel nothing; a bulk delete invalidates each named message', async () => {
-  const ingress = createAiIngress({ guildId: '101', botUserId: '505', clock: () => 1000 }), invalidations = [];
-  const bridge = createAiGateway({ ingress, turns: { handle: async () => {}, invalidate: filter => invalidations.push(filter ?? {}), stop: async () => {} }, onFault: () => assert.fail('unexpected fault') });
-  for (const t of ['GUILD_MEMBER_UPDATE', 'GUILD_ROLE_UPDATE', 'CHANNEL_UPDATE', 'GUILD_UPDATE']) bridge.prepare({ t, d: { guild_id: '101', id: '101', user: { id: '450' } } });
-  assert.deepEqual(invalidations, []);
+test('RB-03 member and role events cancel nothing, a channel change stops only that channel, a bulk delete names each message', async () => {
+  const ingress = createAiIngress({ guildId: '101', botUserId: '505', clock: () => 1000 }), invalidations = [], cancelled = [];
+  const bridge = createAiGateway({ ingress, turns: { handle: async () => {}, invalidate: filter => invalidations.push(filter ?? {}), cancelChannel: id => cancelled.push(id), stop: async () => {} }, onFault: () => assert.fail('unexpected fault') });
+  for (const t of ['GUILD_MEMBER_UPDATE', 'GUILD_ROLE_UPDATE', 'GUILD_UPDATE']) bridge.prepare({ t, d: { guild_id: '101', id: '101', user: { id: '450' } } });
+  bridge.prepare({ t: 'CHANNEL_UPDATE', d: { guild_id: '101', id: '202' } });
+  assert.deepEqual(invalidations, []); assert.deepEqual(cancelled, ['202']);
   bridge.prepare({ t: 'MESSAGE_DELETE_BULK', d: { guild_id: '101', channel_id: '202', ids: ['301', '302'] } });
   assert.deepEqual(invalidations, [{ channelId: '202', messageId: '301' }, { channelId: '202', messageId: '302' }]); await bridge.stop();
 });

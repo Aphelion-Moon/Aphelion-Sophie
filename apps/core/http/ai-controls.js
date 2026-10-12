@@ -3,7 +3,7 @@ import { requireCondition, requireId, requireKeys } from '../../../contracts/val
 export const AI_ROUTES = Object.freeze({ '/api/ai/publication': 'GET', '/api/ai/review': 'POST', '/api/ai/publish': 'POST',
   '/api/ai/disable': 'POST', '/api/ai/consents': 'GET', '/api/ai/consents/export': 'GET', '/api/ai/consent': 'POST', '/api/ai/budget': 'GET', '/api/ai/resolve-spending': 'POST',
   '/api/ai/review-spending-hold': 'POST', '/api/ai/clear-spending-hold': 'POST',
-  '/api/ai/worker':'GET','/api/ai/review-worker':'POST','/api/ai/apply-worker':'POST','/api/ai/stop-worker':'POST',
+  '/api/ai/worker':'GET',
   '/api/ai/review-activation':'POST', '/api/ai/activate':'POST',
   '/api/ai/diagnostics':'GET','/api/ai/overview':'GET','/api/ai/preferences':'GET','/api/ai/preferences/export':'GET', '/api/ai/save-preferences':'POST', '/api/ai/delete-preferences':'POST','/api/ai/save-retention':'POST' });
 
@@ -31,7 +31,6 @@ export function createAiControlsHttp({ auth, authorization, controls, trace = ()
       const keys = { review: ['kind', 'expectedRevision', 'document'], publish: ['kind', 'expectedRevision', 'document', 'requestId', 'reviewSha256', 'confirmed'],
         disable: [], consent: ['channelId', 'enabled', 'expectedEpoch', 'acceptedNoticeRevision'], 'resolve-spending':['messageId','fence','requestId','confirmed'],
         'review-spending-hold': ['expectedRevision','evidenceHash'], 'clear-spending-hold': ['expectedRevision','evidenceHash','reviewSha256','requestId','confirmed'],
-        'review-worker':['candidateId','expectedRevision'],'apply-worker':['candidateId','expectedRevision','reviewSha256','requestId','confirmed'],'stop-worker':['requestId'],
         'review-activation':['channelId'], activate:['channelId','reviewSha256','requestId','confirmed'],
         'save-preferences':['expectedEpoch','settings','confirmed'], 'delete-preferences':['expectedEpoch','confirmed'],'save-retention':['expectedEpoch','retainOnLeave','confirmed'] };
       const optionalBinding = operation === 'consent' && body && Object.hasOwn(body, 'acceptedNoticeBinding') ? ['acceptedNoticeBinding'] : [];
@@ -42,9 +41,6 @@ export function createAiControlsHttp({ auth, authorization, controls, trace = ()
       if (operation === 'save-preferences') operation = 'savePreferences';
       if (operation === 'save-retention') operation = 'saveRetention';
       if (operation === 'delete-preferences') operation = 'deletePreferences';
-      if (operation === 'review-worker') operation = 'reviewWorker';
-      if (operation === 'apply-worker') operation = 'applyWorker';
-      if (operation === 'stop-worker') operation = 'stopWorker';
       if (operation === 'review-activation') operation = 'reviewActivation';
     }
     if (path === '/api/ai/consents/export') operation = 'exportConsents';

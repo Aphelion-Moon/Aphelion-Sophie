@@ -9,7 +9,6 @@ import { createAiEffects } from '../storage/ai-effects.js';
 import { createAiMessages } from '../discord/ai-messages.js';
 import { createAiRuntime } from './ai.js';
 import { createAiMemory } from '../storage/ai-memory.js';
-import { createAiOperationsRuntime } from './ai-operations.js';
 import { createAiControlsHttp } from '../http/ai-controls.js';
 import { createAiKnowledgeHttp } from '../http/ai-knowledge.js';
 import { createKnowledgeLookupHttp } from '../http/knowledge-lookup.js';
@@ -73,7 +72,7 @@ import { runtimeDatabaseAvailable } from '../storage/runtime-maintenance.js';
 import { createGuildState } from '../discord/guild-state.js';
 
 /** Explicit staging host. Construction starts no listener, connection, registration, migration or service. */
-export async function createStagingRuntime({ configuration, pool, aiControlPool = null, aiPreferenceJournal = null, aiWorker = null, aiLifecycle = null, aiKnowledge = null, aiKnowledgeAdmin = null, aiKnowledgeAdminFactory = null, aiApproval = null, aiActivationPool = null, aiRestoreCurrent = async () => false, token, clientSecret = null, fetch, connect, clock = Date.now, random = Math.random, onFault, configurationApplyEnabled = false }) {
+export async function createStagingRuntime({ configuration, pool, aiControlPool = null, aiPreferenceJournal = null, aiWorker = null, aiKnowledge = null, aiKnowledgeAdmin = null, aiKnowledgeAdminFactory = null, aiApproval = null, aiActivationPool = null, aiRestoreCurrent = async () => false, token, clientSecret = null, fetch, connect, clock = Date.now, random = Math.random, onFault, configurationApplyEnabled = false }) {
   validateStagingRuntime(configuration); const fixed = structuredClone(configuration);
   requireCondition(typeof onFault === 'function', 'TRUSTED_ADAPTERS_REQUIRED');
   await requireUnquarantinedDatabase(pool);
@@ -89,8 +88,8 @@ export async function createStagingRuntime({ configuration, pool, aiControlPool 
     maintenanceObserved = true; fault('RUNTIME_MAINTENANCE_ACTIVE'); return false;
   };
   const transport = createDiscordTransport({ guildId: fixed.mapping.guildId, token, fetch, clock, enabled: databaseActive });
-  requireCondition((aiWorker===null || aiLifecycle===null) && (aiWorker===null && aiLifecycle===null || aiKnowledge!==null && aiControlPool!==null), 'AI_ADAPTERS_REQUIRED');
-  let aiRuntime = null;
+  requireCondition(aiWorker===null || aiKnowledge!==null && aiControlPool!==null, 'AI_ADAPTERS_REQUIRED');
+  let aiRuntime = null, activationRebind = null;
   const privacyEffects=aiControlPool===null?null:createAiEffects({pool:aiControlPool,guildId:fixed.mapping.guildId,clock});
   const privacyMessages=privacyEffects===null?null:createAiMessages({transport,botUserId:fixed.mapping.botUserId,effects:privacyEffects,clock,canReact:async()=>false});
   const privacy=aiControlPool===null?null:createAiPrivacy({pool:aiControlPool,guildId:fixed.mapping.guildId,journal:aiPreferenceJournal,
@@ -98,7 +97,7 @@ export async function createStagingRuntime({ configuration, pool, aiControlPool 
     removeEffect:effect=>privacyMessages.remove({guildId:fixed.mapping.guildId,channelId:effect.channel_id},{messageId:effect.message_id,owner:effect.owner,id:effect.receipt_id})});
   const preferenceExpiry=privacy===null?null:createAiPreferenceExpiry({pool:aiControlPool,guildId:fixed.mapping.guildId,onFault:()=>fault('AI_CONTROL_UNAVAILABLE'),maintainPrivacy:privacy.maintain});
   // One Gateway projection outlives worker runtimes: it must see every dispatch, including while no worker runs.
-  const guildState = aiWorker === null && aiLifecycle===null ? null : createGuildState({ guildId: fixed.mapping.guildId, botUserId: fixed.mapping.botUserId });
+  const guildState = aiWorker === null ? null : createGuildState({ guildId: fixed.mapping.guildId, botUserId: fixed.mapping.botUserId });
   const aiGateway = guildState === null ? null : { prepare: payload => { guildState.accept(payload); return aiRuntime?.prepare(payload) ?? null; },
     committed: (proof, accepted) => aiRuntime?.committed(proof, accepted), invalidate: () => aiRuntime?.invalidate() };
   const journal = createGatewayJournal({ pool, mapping: fixed.mapping, clock,
@@ -120,7 +119,6 @@ export async function createStagingRuntime({ configuration, pool, aiControlPool 
     memory: aiPreferenceJournal === null ? null : createAiMemory({ pool: aiControlPool, guildId: fixed.mapping.guildId, journal: aiPreferenceJournal, clock }),
     ...(aiApproval === null ? {} : { readNotice: aiApproval.notice }) });
   if(aiWorker!==null)aiRuntime=createAiLane(aiWorker);
-  if(aiLifecycle!==null)aiRuntime=createAiOperationsRuntime({pool:aiControlPool,guildId:fixed.mapping.guildId,lifecycle:aiLifecycle,createRuntime:createAiLane,onFault:fault});
   const readSystemText = createSystemWordingReader({ pool, guildId: fixed.mapping.guildId });
   const lane = () => createAdministrationLane({ configuration: fixed, pool, token, fetch, clock, enabled, observer, principals, verifier, onFault: fault, readSystemText, knowledge:aiKnowledge });
   const requests = lane(), delivery = lane();
@@ -143,10 +141,11 @@ export async function createStagingRuntime({ configuration, pool, aiControlPool 
       guildId: fixed.mapping.guildId, authorize: authorization.authorize, inspectChannel: qualificationObservations.inspectChannel,
       approval: aiApproval, workerRelease: () => aiRuntime?.qualifiedRelease?.() ?? null, restoreCurrent: aiRestoreCurrent, clock,
       invalidate: () => aiRuntime?.invalidate() });
+    activationRebind = activation === null ? null : activation.rebind;
     const knowledgeLookup = aiKnowledge === null ? null : createKnowledgeLookupHttp({ auth, authorization, knowledge: aiKnowledge, clock });
     const ai = aiControlPool === null ? null : createAiControlsHttp({ auth, authorization, trace: fault, controls: { ...createAiControls({
       pool: aiControlPool, guildId: fixed.mapping.guildId, authorize: authorization.authorize, preferenceJournal:aiPreferenceJournal, privacyCurrent:privacy.current,clock,
-      workerCatalogue:aiLifecycle===null?[]:aiRuntime.catalogue,workerOperationsAvailable:aiLifecycle!==null,
+      workerStatus:()=>aiRuntime?.workerStatus?.()??{connected:false,release:null,observedAt:null},
       readDiagnostic:channelId=>aiRuntime?.diagnostics(channelId)??null,
       ...(aiApproval === null ? {} : { readNotice: aiApproval.notice }),
       memberPresence: actor => authorization.aiMemberPresence(actor),
@@ -227,7 +226,9 @@ export async function createStagingRuntime({ configuration, pool, aiControlPool 
         dashboardListening = dashboardAddress !== null;
         requireCondition(!stopping, 'RUNTIME_STOPPED');
         gatewayTask = gateway.start(owner).then(result => { if (!stopping) { stopping = true; clearTimeout(timer); fault('RUNTIME_GATEWAY_HALTED'); } return result; });
-        if(aiRuntime)try {await aiRuntime.start();}catch{fault('AI_WORKER_OPERATIONS_UNAVAILABLE');}
+        // Go live persists across restarts and deployments: active channels follow the installed release.
+        if(aiRuntime && aiWorker?.release)try {await activationRebind?.(aiWorker.release);}catch{fault('AI_QUALIFICATION_REBIND_UNAVAILABLE');}
+        if(aiRuntime)try {await aiRuntime.start();}catch{fault('AI_WORKER_CONNECTION_UNAVAILABLE');}
         preferenceExpiry?.start();
         if (automaticWorkers) schedule();
         return { interactions: interactionAddress, dashboard: dashboardAddress };

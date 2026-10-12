@@ -7,7 +7,7 @@ import { syntheticInteractions } from '../../tests/fixtures/interactions.js';
 import { stagingConfiguration } from '../../tests/fixtures/staging.js';
 import { createLoopbackGateway, waitForGateway } from '../../tests/fixtures/gateway-server.js';
 import { discoveryResponse, SYNTHETIC_GATEWAY_TOKEN } from '../../tests/fixtures/gateway-supervisor.js';
-import { gatewayEvent, readyEvent, guildEvent } from '../../tests/fixtures/gateway.js';
+import { gatewayEvent, readyEvent, stateGuildEvent } from '../../tests/fixtures/gateway.js';
 import { simulatedOAuth, syntheticClientSecret } from '../../tests/fixtures/oauth.js';
 import { dashboardHttp, dashboardBytes } from '../../tests/fixtures/dashboard-http.js';
 import { GUILD, USER, OTHER, LEAD, STAFF } from '../../tests/fixtures/domain.js';
@@ -29,7 +29,7 @@ async function signedHttp(address, signed) {
   });
 }
 export async function runStagingRuntimeSuite(cluster, run) {
-  async function fixture({ helpPauses = false, dashboard = true, automaticWorkers = false, ready = true, answers = false, automation = false, automationIngress = false, unavailableAi = false, unavailableAiLifecycle = false, qualifiedAi = false, knowledgeOnly = false, knowledgeAdministration = null } = {}) {
+  async function fixture({ helpPauses = false, dashboard = true, automaticWorkers = false, ready = true, answers = false, automation = false, automationIngress = false, unavailableAi = false, unavailableAiWorker = false, qualifiedAi = false, knowledgeOnly = false, knowledgeAdministration = null } = {}) {
     const f = await onboardingWorkflow(cluster, { helpPauses, extraCapabilities: { 'case.forms.publish': [LEAD],
       'member.mute': [STAFF, LEAD], 'member.unmute': [STAFF, LEAD], ...(answers ? { 'answers.publish': [STAFF] } : {}), ...(automation ? { 'automation.publish': [STAFF] } : {}) } });
     if (qualifiedAi) {
@@ -44,7 +44,7 @@ export async function runStagingRuntimeSuite(cluster, run) {
     if (automation) config.capabilityPolicy.grants['automation.publish'] = [STAFF];
     if (automationIngress) config.automationEnabled = true;
     const peer = await createLoopbackGateway({ onPacket(packet, connection) {
-      if (packet.op === 2 && ready) { connection.send(readyEvent()); connection.send(guildEvent()); }
+      if (packet.op === 2 && ready) { connection.send(readyEvent()); connection.send(stateGuildEvent(f.discord.state)); }
       if (packet.op === 6 && ready) connection.send(gatewayEvent(packet.sequence + 1, 'RESUMED', {}));
     } });
     const fetch = async (url, options) => {
@@ -57,9 +57,10 @@ export async function runStagingRuntimeSuite(cluster, run) {
     const ai = qualified?.adapters ?? (unavailableAi ? { aiControlPool: { query: async () => { throw Error('synthetic control outage'); }, connect: async () => { throw Error('synthetic control outage'); } },
       aiWorker: { current: async () => assert.fail('unavailable control store must prevent worker qualification'), generate: async () => assert.fail('no AI ingestion') },
       aiKnowledge: { lookup: async () => assert.fail('no knowledge ingestion'), current: async () => assert.fail('no knowledge ingestion'), currentReferences: async () => assert.fail('no knowledge ingestion') } } :
-      unavailableAiLifecycle ? { aiControlPool: { query: async () => { throw Error('synthetic control outage'); }, connect: async () => { throw Error('synthetic control outage'); } },
-        aiLifecycle: { releases: [], qualified: async () => false, quiesce: async () => assert.fail('unowned lifecycle must not stop a service'), launch: async () => assert.fail('unowned lifecycle must not launch') },
-        aiKnowledge: { lookup: async () => assert.fail('no AI ingestion'), current: async () => true } } :
+      unavailableAiWorker ? { aiControlPool: { query: async () => { throw Error('synthetic control outage'); }, connect: async () => { throw Error('synthetic control outage'); } },
+        // The worker connection cannot listen (its port is taken, for example); core never starts or stops the worker service.
+        aiWorker: { start: async () => { throw Error('AI_WORKER_UNAVAILABLE'); }, stop: async () => {}, current: async () => assert.fail('no AI ingestion'), generate: async () => assert.fail('no AI ingestion') },
+        aiKnowledge: { lookup: async () => assert.fail('no AI ingestion'), current: async () => true, currentReferences: async () => true } } :
       knowledgeOnly ? { aiKnowledge: { lookup: async query => { assert.equal(query, 'synthetic topic'); return []; }, current: async () => true } } : {});
     const createHost = () => createStagingRuntime({ configuration: config, pool: f.pool, ...ai,
       aiKnowledgeAdminFactory:knowledgeAdministration===null?null:()=>knowledgeAdministration,token: SYNTHETIC_GATEWAY_TOKEN,
@@ -615,14 +616,14 @@ export async function runStagingRuntimeSuite(cluster, run) {
     assert.ok(f.faults.every(code => ['AI_CONTROL_UNAVAILABLE','AI_TURN_UNAVAILABLE'].includes(code)));
   }, { unavailableAi: true, dashboard: false });
 
-  await scenario('DS09-RT19 unavailable worker coordination leaves signed administration running', async f => {
-    assert.ok(f.faults.includes('AI_WORKER_OPERATIONS_UNAVAILABLE'));
+  await scenario('DS09-RT19 an unavailable worker connection leaves signed administration running', async f => {
+    assert.ok(f.faults.includes('AI_WORKER_CONNECTION_UNAVAILABLE'));
     assert.equal((await f.runtime.status()).current,true);
     assert.equal((await f.send(f.identities.payload())).body.type,5);
     for (let index = 0; index < 4; index++) await f.runtime.runOnce();
     assert.ok(f.discord.state.members.get(USER).includes(MUZZLED));
-    assert.ok(f.faults.every(code => ['AI_CONTROL_UNAVAILABLE','AI_WORKER_OPERATIONS_UNAVAILABLE'].includes(code)));
-  }, { unavailableAiLifecycle: true, dashboard: false });
+    assert.ok(f.faults.every(code => ['AI_CONTROL_UNAVAILABLE','AI_WORKER_CONNECTION_UNAVAILABLE'].includes(code)));
+  }, { unavailableAiWorker: true, dashboard: false });
 
   await scenario('DS07-RT18 a member can use public knowledge lookup without any AI worker or control store', async f => {
     const start = await dashboardHttp(f.addresses.dashboard, '/auth/start');

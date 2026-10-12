@@ -2,19 +2,19 @@ import { requireCondition, requireKeys } from '../../contracts/validation.js';
 import { createAiIpcChannel } from './ipc-channel.js';
 import { canonicalAiWorkerIdentity, validateAiWorkerPayload } from './ipc-contract.js';
 
-/** One prepared/in-flight turn. The host supplies the private transport; no listener, credentials or service provisioning here. */
-export function createAiIpcWorker({ identity, key, adapter, qualified = async()=>false, clock = Date.now }) {
+/** Prepared/in-flight turns, at most maxActive at once. The host supplies the private transport; no listener, credentials or service provisioning here. */
+export function createAiIpcWorker({ identity, key, adapter, qualified = async()=>false, clock = Date.now, maxActive = 2 }) {
   const fixed = canonicalAiWorkerIdentity(identity), connections = new Set();
   requireCondition(Buffer.isBuffer(key) && key.length === 32,'AI_IPC_CONFIGURATION_INVALID');
   requireCondition(typeof qualified === 'function','TRUSTED_ADAPTERS_REQUIRED');
   requireCondition(adapter?.provider === fixed.provider && adapter.profileHash === fixed.profileHash &&
     ['prepare','generatePrepared'].every(name => typeof adapter[name] === 'function'),'AI_IPC_ADAPTER_INVALID');
-  let active = false, stopping = false;
+  let active = 0, stopping = false;
   return Object.freeze({
     accept(stream) {
       if (stopping || connections.size >= 4) { stream.destroy(); return Promise.resolve(); }
       const channel = createAiIpcChannel({stream,key,side:'worker',clock}); let ownsSlot = false;
-      const release = () => { if (ownsSlot) { active = false; ownsSlot = false; } };
+      const release = () => { if (ownsSlot) { active--; ownsSlot = false; } };
       const task = (async () => {
         try {
           requireKeys(await channel.receive('challenge'),[],'AI_IPC_INVALID');
@@ -31,7 +31,7 @@ export function createAiIpcWorker({ identity, key, adapter, qualified = async()=
           requireCondition(request.kind==='prepare','AI_IPC_INVALID');const input=request.body;
           requireKeys(input,['deadline','payload'],'AI_IPC_PAYLOAD_INVALID');
           channel.tighten(input.deadline); validateAiWorkerPayload(input.payload,fixed);
-          requireCondition(!active && !stopping,'AI_IPC_BUSY'); active = true; ownsSlot = true;
+          requireCondition(active < maxActive && !stopping,'AI_IPC_BUSY'); active++; ownsSlot = true;
           const prepared = await adapter.prepare(input.payload);
           requireCondition(!channel.signal.aborted,'AI_IPC_CLOSED');
           await channel.send('prepared',{bytes:prepared.bytes,outputTokens:prepared.outputTokens,contract:prepared.contract,comparison:prepared.comparison??null});

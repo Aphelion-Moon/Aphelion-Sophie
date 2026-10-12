@@ -2,8 +2,9 @@
 #Requires -Version 7
 <#
 .SYNOPSIS
-  Registers Sophie's AI worker as its own WinSW service under a virtual service account, scopes its
-  file and network access, and lets the supervisor service start/stop it. Supports -WhatIf.
+  Registers Sophie's AI worker as its own WinSW service under a virtual service account and scopes its
+  file and network access. The worker runs alongside core and connects to it by itself; there is no
+  supervisor service (owner decision, 12 October 2026). Supports -WhatIf.
 
 .DESCRIPTION
   Follows the layout already present on the staging host: pinned WinSW 2.12.0 wrappers under
@@ -13,29 +14,29 @@
   What it changes (each step is idempotent and reported):
     1. services\worker\aphelion-bot-ai-worker.{exe,xml}: a byte-identical copy of the existing wrapper
        (hash-checked against the other three) running package\source\apps\knowledge-worker\main.mjs
-       as NT SERVICE\aphelion-bot-ai-worker, Manual start, no failure restart.
+       as NT SERVICE\aphelion-bot-ai-worker, Manual start (started with core), restarted by WinSW if it exits.
+       A worker registered under the earlier supervisor-era configuration is upgraded in place.
     2. File access for the worker SID, added without removing existing entries:
-         C:\Aphelion, Sophie, package, state, services list/traverse/read-attributes, this folder only
+         C:\Aphelion, Sophie, package, trust, services list/traverse/read-attributes, this folder only
                                                      (the missing ancestor metadata access is what made
                                                      the 28 September relay trial fail with lstat EPERM)
          package\runtime, package\source              read and execute, inherited
          services\worker                              read and execute, inherited (WinSW and its XML)
-         state\boots                                  read, inherited (the supervisor writes)
          logs\worker                                  modify (WinSW writes logs as the service account)
        provider\ is replaced with a protected ACL: SYSTEM, Administrators and the worker (read) only.
-       The worker SID never receives trust\, the core database or the Discord token.
+       The worker SID never receives core.json, the core database or the Discord token.
     3. Per-role trust files, when present: trust\core.json readable only by aphelion-bot,
-       trust\supervisor.json readable only by aphelion-bot-ai-supervisor. Both trust directory
-       entries are otherwise inheritable to every role, so without this each role can read the
-       other's control key.
-    4. Service DACL on aphelion-bot-ai-worker: the supervisor SID may query, start and stop it; nothing else.
+       trust\worker.json readable only by aphelion-bot-ai-worker. Without protected ACLs each role could
+       read the other's file through inherited trust directory entries.
+    4. Service DACL on aphelion-bot-ai-worker: SYSTEM and Administrators only (the supervisor-era grant is removed).
     5. Outbound firewall block rules for the worker service: every TCP port except 443, all UDP,
        ICMPv4/ICMPv6. Loopback is not filtered by Windows Firewall, so the authenticated
        127.0.0.1 inference channel to core keeps working. The Mistral transport additionally refuses
        any non-public IPv4 answer in process (apps/knowledge-worker/http-transport.js).
 
-  It does not start any service, write trust\*.json, place the provider key or change core/supervisor
-  wrappers. Qualification (whoami/icacls/firewall denial evidence) is a separate recorded step.
+  It does not start, stop or remove any service, write trust\*.json, place the provider key or change the core
+  wrapper. Retiring a supervisor service is a separate deployment step. Qualification (whoami/icacls/firewall
+  denial evidence) is a separate recorded step.
 #>
 [CmdletBinding(SupportsShouldProcess)]
 param(
@@ -47,7 +48,6 @@ $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
 
 $ServiceId = 'aphelion-bot-ai-worker'
-$SupervisorId = 'aphelion-bot-ai-supervisor'
 $CoreId = 'aphelion-bot'
 $Node = Join-Path $InstallRoot 'package\runtime\node.exe'
 $Source = Join-Path $InstallRoot 'package\source'
@@ -88,6 +88,8 @@ function Set-ProtectedAcl {
     if ($PSCmdlet.ShouldProcess($Path, 'Replace with protected ACL')) { Set-Acl -LiteralPath $Path -AclObject $acl; Write-Host "  * $Path" }
 }
 
+# 'current' when the wrapper already has the reviewed configuration, 'legacy' when it has the reviewed supervisor-era one
+# (Manual, no failure restart), which this script upgrades. Anything else stops for operator review.
 function Assert-WorkerService {
     param($Registration, [xml]$Configuration, [string]$ExpectedWrapperHash)
     if ($Registration.StartName -ne "NT SERVICE\$ServiceId" -or
@@ -100,9 +102,12 @@ function Assert-WorkerService {
         $service.arguments -ne "`"$Entrypoint`"" -or $service.workingdirectory -ne $Source -or
         $service.serviceaccount.domain -ne 'NT SERVICE' -or $service.serviceaccount.user -ne $ServiceId -or
         $service.startmode -ne 'Manual' -or $service.stoptimeout -ne '10 sec' -or
-        $service.stopparentprocessfirst -ne 'true' -or @($service.onfailure).Count -ne 1 -or $service.onfailure.action -ne 'none') {
+        $service.stopparentprocessfirst -ne 'true' -or @($service.onfailure).Count -ne 1) {
         throw 'Existing worker wrapper configuration differs from the reviewed configuration; repair requires operator review.'
     }
+    if ($service.onfailure.action -eq 'restart' -and $service.onfailure.delay -eq '10 sec') { return 'current' }
+    if ($service.onfailure.action -eq 'none') { return 'legacy' }
+    throw 'Existing worker failure action differs from the reviewed configuration; repair requires operator review.'
 }
 
 function Assert-WorkerFirewallRule {
@@ -126,21 +131,22 @@ $rules = @(
 )
 
 Write-Host 'Checking preconditions...'
-foreach ($path in @($Node, $Entrypoint, (Join-Path $InstallRoot 'state\boots'), (Join-Path $InstallRoot 'provider'), (Join-Path $InstallRoot 'trust'))) {
+foreach ($path in @($Node, $Entrypoint, (Join-Path $InstallRoot 'provider'), (Join-Path $InstallRoot 'trust'))) {
     if (-not (Test-Path -LiteralPath $path)) { throw "Missing $path" }
 }
-$wrappers = @('core\aphelion-bot.exe', 'supervisor\aphelion-bot-ai-supervisor.exe') | ForEach-Object { Join-Path $InstallRoot "services\$_" }
+$wrappers = @('core\aphelion-bot.exe') | ForEach-Object { Join-Path $InstallRoot "services\$_" }
 foreach ($existing in $wrappers) {
     if ((Get-FileHash -LiteralPath $existing -Algorithm SHA256).Hash -ne $WrapperSha256) { throw "Wrapper hash mismatch: $existing" }
 }
-$supervisorSid = Get-ServiceSid $SupervisorId
 $coreSid = Get-ServiceSid $CoreId
 
 # Validate existing objects before any writes. A familiar display name is not evidence of the rule's scope.
 $registered = Get-CimInstance Win32_Service -Filter "Name='$ServiceId'"
+$registration = $null
 if ($registered) {
     $configuration = [xml](Get-Content -LiteralPath (Join-Path $ServiceDirectory "$ServiceId.xml") -Raw)
-    Assert-WorkerService $registered $configuration (Get-FileHash -LiteralPath $Wrapper -Algorithm SHA256).Hash
+    $registration = Assert-WorkerService $registered $configuration (Get-FileHash -LiteralPath $Wrapper -Algorithm SHA256).Hash
+    if ($registration -eq 'legacy' -and $registered.State -ne 'Stopped') { throw 'Stop the worker service before upgrading its configuration.' }
 }
 foreach ($rule in $rules) {
     $existingRules = @(Get-NetFirewallRule -DisplayName $rule.Name -ErrorAction SilentlyContinue)
@@ -153,27 +159,29 @@ foreach ($rule in $rules) {
     }
 }
 
+$workerXml = @"
+<service>
+ <id>$ServiceId</id><name>Sophie AI worker</name>
+ <description>Mistral inference worker. Runs alongside Sophie core and connects to it; Manual startup, restarted if it exits.</description>
+ <executable>$Node</executable>
+ <arguments>"$Entrypoint"</arguments>
+ <workingdirectory>$Source</workingdirectory>
+ <serviceaccount><domain>NT SERVICE</domain><user>$ServiceId</user></serviceaccount>
+ <startmode>Manual</startmode><stoptimeout>10 sec</stoptimeout><stopparentprocessfirst>true</stopparentprocessfirst>
+ <onfailure action="restart" delay="10 sec"/>
+ <env name="NODE_OPTIONS" value=""/><env name="NODE_PATH" value=""/>
+ <env name="HTTP_PROXY" value=""/><env name="HTTPS_PROXY" value=""/><env name="ALL_PROXY" value=""/>
+ <logpath>$LogDirectory</logpath><log mode="roll-by-size"><sizeThreshold>1024</sizeThreshold><keepFiles>2</keepFiles></log>
+</service>
+"@
+
 Write-Host "Registering $ServiceId..."
 if (-not $registered) {
     if ($PSCmdlet.ShouldProcess($ServiceDirectory, 'Create wrapper directory and configuration')) {
         New-Item -ItemType Directory -Force -Path $ServiceDirectory, $LogDirectory | Out-Null
         Copy-Item -LiteralPath $wrappers[0] -Destination $Wrapper
         if ((Get-FileHash -LiteralPath $Wrapper -Algorithm SHA256).Hash -ne $WrapperSha256) { throw 'Copied wrapper hash mismatch' }
-        @"
-<service>
- <id>$ServiceId</id><name>Sophie AI worker</name>
- <description>Mistral inference worker. Started and stopped only by $SupervisorId; Manual startup.</description>
- <executable>$Node</executable>
- <arguments>"$Entrypoint"</arguments>
- <workingdirectory>$Source</workingdirectory>
- <serviceaccount><domain>NT SERVICE</domain><user>$ServiceId</user></serviceaccount>
- <startmode>Manual</startmode><stoptimeout>10 sec</stoptimeout><stopparentprocessfirst>true</stopparentprocessfirst>
- <onfailure action="none"/>
- <env name="NODE_OPTIONS" value=""/><env name="NODE_PATH" value=""/>
- <env name="HTTP_PROXY" value=""/><env name="HTTPS_PROXY" value=""/><env name="ALL_PROXY" value=""/>
- <logpath>$LogDirectory</logpath><log mode="roll-by-size"><sizeThreshold>1024</sizeThreshold><keepFiles>2</keepFiles></log>
-</service>
-"@ | Set-Content -LiteralPath (Join-Path $ServiceDirectory "$ServiceId.xml") -Encoding utf8NoBOM
+        $workerXml | Set-Content -LiteralPath (Join-Path $ServiceDirectory "$ServiceId.xml") -Encoding utf8NoBOM
     }
     if ($PSCmdlet.ShouldProcess($ServiceId, 'Install WinSW service')) {
         & $Wrapper install
@@ -182,19 +190,24 @@ if (-not $registered) {
 } else {
     Write-Host "  = already registered as $($registered.StartName) ($($registered.PathName))"
     if ($registered.StartName -ne "NT SERVICE\$ServiceId") { throw "Unexpected service account $($registered.StartName)" }
+    if ($registration -eq 'legacy' -and $PSCmdlet.ShouldProcess($ServiceId, 'Upgrade supervisor-era wrapper configuration (restart on failure)')) {
+        $workerXml | Set-Content -LiteralPath (Join-Path $ServiceDirectory "$ServiceId.xml") -Encoding utf8NoBOM
+        & $Wrapper refresh
+        if ($LASTEXITCODE -ne 0) { throw "WinSW refresh failed ($LASTEXITCODE)" }
+        Write-Host '  * upgraded wrapper configuration'
+    }
 }
 if ($WhatIfPreference -and -not $registered) { Write-Host 'WhatIf: the remaining steps need the registered service SID.'; return }
 $workerSid = Get-ServiceSid $ServiceId
 
 Write-Host 'Granting worker file access...'
 $metadata = [System.Security.AccessControl.FileSystemRights]'ListDirectory, ReadAttributes, ReadExtendedAttributes, Traverse, ReadPermissions, Synchronize'
-foreach ($path in @('C:\Aphelion', $InstallRoot, (Join-Path $InstallRoot 'package'), (Join-Path $InstallRoot 'state'), (Join-Path $InstallRoot 'logs'), (Join-Path $InstallRoot 'services'))) {
+foreach ($path in @('C:\Aphelion', $InstallRoot, (Join-Path $InstallRoot 'package'), (Join-Path $InstallRoot 'trust'), (Join-Path $InstallRoot 'logs'), (Join-Path $InstallRoot 'services'))) {
     Add-Grant -Path $path -Sid $workerSid -Rights $metadata -Inheritance 'None'
 }
 foreach ($path in @((Join-Path $InstallRoot 'package\runtime'), $Source, $ServiceDirectory)) {
     Add-Grant -Path $path -Sid $workerSid -Rights 'ReadAndExecute, Synchronize' -Inheritance 'ContainerInherit, ObjectInherit'
 }
-Add-Grant -Path (Join-Path $InstallRoot 'state\boots') -Sid $workerSid -Rights 'Read, Synchronize' -Inheritance 'ContainerInherit, ObjectInherit'
 if (Test-Path -LiteralPath $LogDirectory) {
     Add-Grant -Path $LogDirectory -Sid $workerSid -Rights 'Modify, Synchronize' -Inheritance 'ContainerInherit, ObjectInherit'
 }
@@ -207,15 +220,15 @@ $preferenceDirectory = Join-Path $InstallRoot 'preferences'
 if (Test-Path -LiteralPath $preferenceDirectory) {
     Set-ProtectedAcl -Path $preferenceDirectory -Grants @{ $coreSid = 'Modify, Synchronize' } -Inheritance 'ContainerInherit, ObjectInherit'
 }
-foreach ($role in @(@{ File = 'core.json'; Sid = $coreSid }, @{ File = 'supervisor.json'; Sid = $supervisorSid })) {
+foreach ($role in @(@{ File = 'core.json'; Sid = $coreSid }, @{ File = 'worker.json'; Sid = $workerSid })) {
     $path = Join-Path $InstallRoot "trust\$($role.File)"
     if (Test-Path -LiteralPath $path) { Set-ProtectedAcl -Path $path -Grants @{ $role.Sid = 'Read, Synchronize' } -Inheritance 'None' }
     else { Write-Host "  - $path not written yet; rerun after writing it" }
 }
 
-Write-Host 'Allowing the supervisor to query/start/stop the worker service...'
-# SY/BA keep their defaults; the supervisor gets query-status/config, start, stop, interrogate and read-control.
-$sddl = "D:(A;;CCLCSWRPWPDTLOCRRC;;;SY)(A;;CCDCLCSWRPWPDTLOCRSDRCWDWO;;;BA)(A;;CCLCSWRPWPLORC;;;$supervisorSid)"
+Write-Host 'Restricting control of the worker service to SYSTEM and Administrators...'
+# No other identity starts or stops the worker; the supervisor-era grant is removed.
+$sddl = 'D:(A;;CCLCSWRPWPDTLOCRRC;;;SY)(A;;CCDCLCSWRPWPDTLOCRSDRCWDWO;;;BA)'
 if ($PSCmdlet.ShouldProcess($ServiceId, "sc.exe sdset $sddl")) {
     & sc.exe sdset $ServiceId $sddl | Out-Null
     if ($LASTEXITCODE -ne 0) { throw "sc.exe sdset failed ($LASTEXITCODE)" }
@@ -232,7 +245,7 @@ foreach ($rule in $rules) {
 Write-Host @"
 
 Done. Readback before qualification:
-  icacls "$InstallRoot\trust" "$InstallRoot\provider" "$InstallRoot\state\boots"
+  icacls "$InstallRoot\trust" "$InstallRoot\trust\worker.json" "$InstallRoot\provider"
   sc.exe qc $ServiceId ; sc.exe sdshow $ServiceId
   Get-NetFirewallRule -DisplayName 'Sophie AI worker*' | Get-NetFirewallServiceFilter
 Remaining operator steps: docs/ai-test-guild-runbook.md
