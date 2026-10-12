@@ -48,6 +48,7 @@ export function createAiRuntime({ configuration, corePool, controlPool, worker, 
     onInvalidate: filter => { observations.clear(); void effects.invalidate(filter).catch(() => onFault('AI_CONTROL_UNAVAILABLE')); } });
   const gateway = createAiGateway({ ingress, turns, onFault });
   let timer = null, stopped = false, fingerprint = null, refreshing = Promise.resolve();
+  const EFFECT_UNVERIFIED_MS = 30_000, unverified = new Map();
   function invalidate() { observations.clear(); gateway.invalidate(); }
   // Accounting expiry shares the AI advisory lock, which admission holds across its Discord observations. Waiting out
   // lock_timeout (55P03) there is contention, not a control failure: defer to the next cycle instead of invalidating the
@@ -64,11 +65,21 @@ export function createAiRuntime({ configuration, corePool, controlPool, worker, 
       if (state?.disabled !== false || next !== fingerprint || !await enabled()) invalidate();
       fingerprint = next; await admission.expire(); await expireUnlessContended(() => accounting.expire());
       for (const effect of await effects.pending()) {
-        let current = effect.state === 'confirmed';
+        const key = `${effect.message_id}.${effect.owner}`;
+        let current = effect.state === 'confirmed', unverifiable = false;
         try {
           for (const source of effect.dependencies) if (current && !await admission.revalidateEffect(source)) current = false;
           if (current) current = await knowledge.currentReferences(effect.sources, { guildId: mapping.guildId, deadline: clock() + 5000 });
-        } catch { current = false; }
+        } catch { current = false; unverifiable = effect.state === 'confirmed'; }
+        // A check that could not run (Discord busy or rate-limited while the turn finishes its own checks) is not a
+        // revocation. Retry for up to EFFECT_UNVERIFIED_MS, then remove. A definite "no longer current" and every
+        // explicit withdrawal (opt-out, departure, edit or delete, which mark the effect for cleanup) still remove at once.
+        if (unverifiable) {
+          const since = unverified.get(key) ?? clock(); unverified.delete(key); unverified.set(key, since);
+          if (unverified.size > 64) unverified.delete(unverified.keys().next().value);
+          if (clock() - since < EFFECT_UNVERIFIED_MS) { onFault('AI_EFFECT_CHECK_DEFERRED'); continue; }
+        }
+        unverified.delete(key);
         if (!current) try {
           await messages.remove({ guildId: mapping.guildId, channelId: effect.channel_id }, { messageId: effect.message_id, owner: effect.owner, id: effect.receipt_id });
         } catch { onFault('AI_EFFECT_RECONCILIATION_UNAVAILABLE'); }

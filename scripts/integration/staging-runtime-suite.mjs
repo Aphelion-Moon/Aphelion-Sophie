@@ -723,6 +723,6 @@ export async function runStagingRuntimeSuite(cluster, run) {
       await assert.rejects(cluster.knowledgePool.query(`SELECT * FROM sophie_core.${table}`), error => error.code === '42501');
     }
     // Admission skips and settled turn outcomes are diagnostics reported on the fault channel, not faults.
-    assert.deepEqual(f.faults.filter(code => !/^AI_(?:ADMISSION_SKIPPED_[A-Z0-9_]+|TURN_(?:ADMITTED|SILENT|CANCELLED|DELIVERED|REACTED)_[A-Z0-9_]+|EXPIRY_DEFERRED)$/u.test(code)), []);
+    assert.deepEqual(f.faults.filter(code => !/^AI_(?:ADMISSION_SKIPPED_[A-Z0-9_]+|TURN_(?:ADMITTED|SILENT|CANCELLED|DELIVERED|REACTED)_[A-Z0-9_]+|EXPIRY_DEFERRED|EFFECT_CHECK_DEFERRED)$/u.test(code)), []);
   }, { qualifiedAi: true });
 }
