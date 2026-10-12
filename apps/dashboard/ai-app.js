@@ -155,7 +155,8 @@ async function load() {
       aiDisabled = current.disabled; el('overview').hidden = false; el('overview-ai').textContent = current.disabled ? 'Disabled' : 'Allowed where each channel and member qualifies';
       const savedBudget = part(overview.budgetPublication); budget = savedBudget.publication?.document ?? { ...DEFAULT_AI_BUDGET }; budgetRevision = savedBudget.publication?.revision ?? 0;
       const spending = part(overview.budget); el('budget').hidden = false;
-      workerSnapshot=part(overview.worker);
+      // Core stamps the actor on the overview, not on each part; the worker check needs it on the snapshot.
+      workerSnapshot={...part(overview.worker),actorId:overview.actorId,guildId:overview.guildId};
       el('activation-channel').replaceChildren();
       for(const channel of configuration.channels.filter(row=>row.profile.mode!=='ignore')){const option=document.createElement('option');option.value=channel.channelId;option.textContent=channel.channelId;el('activation-channel').append(option);}
       clearDiagnostic();el('diagnostics').hidden=false;el('diagnostic-channel').replaceChildren();
@@ -278,7 +279,8 @@ async function review(kind) {
   showReview(`Publish ${{ configuration: 'channel and reaction', budget: 'budget', personality: 'character' }[kind]} revision ${candidate.expectedRevision + 1}. Review the exact saved values below.`, JSON.stringify(document, null, 2), 'Publish this version',
     { anchor: { configuration: 'participation', budget: 'budget', personality: 'personality' }[kind] });
 }
-el('retry').addEventListener('click', () => perform(load));
+// A denied page reloads fully so an expired session reaches sign-in instead of retrying the same cookie.
+el('retry').addEventListener('click', () => phase === 'denied' ? location.reload() : perform(load));
 el('logout').addEventListener('click', () => perform(async () => { await api.logout(); clear(); phase = 'denied'; }));
 if (personal) el('more-consents').addEventListener('click', () => perform(async () => { if (consentNext !== null) await consents(true); }));
 if (personal) el('opt-in').addEventListener('click', () => perform(async () => {
