@@ -125,7 +125,9 @@ export function createAiAdmission({ pool, guildId, ingress, inspectContext, insp
             count(*) FILTER (WHERE state IN ('gathering','admitted','sending') AND deadline>clock_timestamp())::int AS waiting
             FROM sophie_ai.request_receipts WHERE guild_id=$1 AND received_at>clock_timestamp()-interval '1 hour'`, [guildId, event.channelId, event.userId])).rows[0];
           const now = clock(), profile = initial.profile;
-          if (quota.waiting >= 4 || quota.member_waiting > 0 || quota.member_last && now - quota.member_last.getTime() < profile.memberIntervalMs) return skip('MEMBER_PACING');
+          // The member interval paces unprompted participation only. A message aimed at Sophie (mention, reply or her name)
+          // is limited by one turn in flight per member and the ingress flood limit, so a quick follow-up still gets an answer.
+          if (quota.waiting >= 4 || quota.member_waiting > 0 || decision.proactive && quota.member_last && now - quota.member_last.getTime() < profile.memberIntervalMs) return skip('MEMBER_PACING');
           if (decision.proactive && quota.channel_last && now - quota.channel_last.getTime() < profile.evaluationIntervalMs) return skip('CHANNEL_PACING');
           if (decision.proactive && quota.hour >= profile.proactiveRepliesPerHour) decision.outcomes = decision.outcomes.filter(value => value !== 'reply');
           const recent = (await client.query(`SELECT max(updated_at) FILTER (WHERE state='delivered') AS reply_last,

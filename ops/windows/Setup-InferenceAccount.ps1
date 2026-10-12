@@ -214,6 +214,11 @@ foreach ($path in @('C:\Aphelion', $InstallRoot, (Join-Path $InstallRoot 'packag
 foreach ($path in @((Join-Path $InstallRoot 'package\runtime'), $Source, $ServiceDirectory)) {
     Add-Grant -Path $path -Sid $workerSid -Rights 'ReadAndExecute, Synchronize' -Inheritance 'ContainerInherit, ObjectInherit'
 }
+# Files with their own protected ACLs (Node's runtime licence notices, for example) do not inherit the grants above, but
+# the worker verifies every package file against the manifest when it starts.
+foreach ($file in Get-ChildItem -LiteralPath (Join-Path $InstallRoot 'package') -Recurse -File -Force | Where-Object { (Get-Acl -LiteralPath $_.FullName).AreAccessRulesProtected }) {
+    Add-Grant -Path $file.FullName -Sid $workerSid -Rights 'Read, Synchronize' -Inheritance 'None'
+}
 if (Test-Path -LiteralPath $LogDirectory) {
     Add-Grant -Path $LogDirectory -Sid $workerSid -Rights 'Modify, Synchronize' -Inheritance 'ContainerInherit, ObjectInherit'
 }
