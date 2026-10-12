@@ -385,6 +385,21 @@ export async function runAiControlsSuite(cluster, run) {
     for(const column of ['boundary_epoch','audience_sha256','configuration_sha256','personality_sha256','active','restricted'])assert.equal(String(after[column]),String(before[column]),column);
     assert.equal((await control.current({actor:operator,kind:'configuration'})).disabled,true);
     await assert.rejects(activation.rebind({...deployed,releaseHash:'bad'}),/AI_WORKER_RELEASE_INVALID|INVALID/);
+    // RB-A02: Go live also follows a new publication, for channels the published configuration still lists.
+    await admin.query(`INSERT INTO sophie_ai.qualifications(guild_id,channel_id,boundary_epoch,audience_sha256,worker_domain,release_sha256,
+      evidence_sha256,configuration_sha256,personality_sha256,restricted,active,restore_ready) SELECT guild_id,'399',1,audience_sha256,worker_domain,release_sha256,
+      evidence_sha256,configuration_sha256,personality_sha256,false,true,true FROM sophie_ai.qualifications WHERE guild_id=$1 AND channel_id=$2`,[operator.guildId,channelId]);
+    const character={...DRAFT_PERSONALITY,core:'A synthetic chaotic gremlin who stands up straight for real questions.'};
+    const reviewedCharacter=await control.review({actor:operator,kind:'personality',expectedRevision:1,document:character});
+    await control.publish({actor:operator,kind:'personality',expectedRevision:1,document:character,requestId:aiDigest({kind:'personality',revision:2}),reviewSha256:reviewedCharacter.reviewSha256,confirmed:true});
+    const published=(await control.current({actor:operator,kind:'personality'})).publication.sha256;
+    assert.equal(await activation.follow(),1);assert.equal(await activation.follow(),0);
+    const rows=Object.fromEntries((await admin.query('SELECT channel_id,personality_sha256,release_sha256,boundary_epoch FROM sophie_ai.qualifications WHERE guild_id=$1',[operator.guildId])).rows.map(row=>[row.channel_id,row]));
+    assert.equal(rows[channelId].personality_sha256,published,'the live channel follows the new character');
+    assert.equal(rows[channelId].release_sha256,deployed.releaseHash);assert.equal(String(rows[channelId].boundary_epoch),String(after.boundary_epoch));
+    assert.notEqual(rows['399'].personality_sha256,published,'a channel the configuration does not list is left as it is');
+    assert.equal((await control.current({actor:operator,kind:'configuration'})).disabled,true,'a disable stays in force');
+    await admin.query("DELETE FROM sophie_ai.qualifications WHERE guild_id=$1 AND channel_id='399'",[operator.guildId]);
   });
   await run('DS01-C02 exact notice receipts reject stale acceptance and survive provider outage and withdrawal', async () => {
     const member={...actor,guildId:'929'},channelId='303';

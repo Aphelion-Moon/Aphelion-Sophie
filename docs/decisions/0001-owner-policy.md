@@ -1065,3 +1065,9 @@ The owner then corrected the draft's safe-for-work line: "One reason I selected 
 that"; "She can be freaky if she wants to be"; "The entire server is age restricted and ID check's at the door." The
 draft now allows crude, suggestive and explicit adult talk, and keeps two limits: nothing sexual involving minors or
 characters presented as minors, and no sexual content aimed at someone who did not invite it (dropped at once on request).
+
+After publishing the new character, Sophie refused every message (`QUALIFICATION_MISMATCH`): Go live bound each channel to the
+character and configuration published at activation, and the earlier persistence rule covered releases only. Offered to
+make Go live follow publications, the owner replied: "Yeah go ahead please, thank you." At start-up and after every
+control change, active channels now follow the published character and configuration (owner database role), provided the
+configuration still lists the channel with a mode other than ignore; a disable stays in force.
