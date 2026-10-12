@@ -142,7 +142,7 @@ export async function createStagingRuntime({ configuration, pool, aiControlPool 
       approval: aiApproval, workerRelease: () => aiRuntime?.qualifiedRelease?.() ?? null, restoreCurrent: aiRestoreCurrent, clock,
       invalidate: () => aiRuntime?.invalidate() });
     const knowledgeLookup = aiKnowledge === null ? null : createKnowledgeLookupHttp({ auth, authorization, knowledge: aiKnowledge, clock });
-    const ai = aiControlPool === null ? null : createAiControlsHttp({ auth, authorization, controls: { ...createAiControls({
+    const ai = aiControlPool === null ? null : createAiControlsHttp({ auth, authorization, trace: fault, controls: { ...createAiControls({
       pool: aiControlPool, guildId: fixed.mapping.guildId, authorize: authorization.authorize, preferenceJournal:aiPreferenceJournal, privacyCurrent:privacy.current,clock,
       workerCatalogue:aiLifecycle===null?[]:aiRuntime.catalogue,workerOperationsAvailable:aiLifecycle!==null,
       readDiagnostic:channelId=>aiRuntime?.diagnostics(channelId)??null,

@@ -197,6 +197,8 @@ export function createDashboardAuthHttpServer({ configuration, auth, authorizati
       const expectedUnavailable = refusal !== null || error instanceof ContractError && (/^WIKI_[A-Z_]+$/u.test(error.code) ||
         ['SHUTTLE_STAFF_DISABLED','CASE_RECOVERY_DISABLED','AI_DELETION_PENDING','AI_PREFERENCE_JOURNAL_UNAVAILABLE','KNOWLEDGE_IMPORT_UNAVAILABLE','KNOWLEDGE_IMPORT_FAILED','KNOWLEDGE_IMPORT_BUSY','KNOWLEDGE_IMPORT_STALE','KNOWLEDGE_IMPORT_CAPACITY','KNOWLEDGE_IMPORT_CORRUPT','KNOWLEDGE_IMPORT_INVALID','KNOWLEDGE_EXTRACTOR_CHANGED'].includes(error.code));
       if (!denied && !conflict && !missing && !invalid && !limited && !expectedUnavailable) fault(error);
+      // AI page refusals report their fixed code, so "access changed" on that page can be diagnosed.
+      if (denied && route.startsWith('/api/ai/')) { try { onFault(`DASHBOARD_DENIED_${error.code}`); } catch { /* Diagnostics only. */ } }
       if (!response.headersSent && !response.destroyed) send(response, denied ? 403 : limited ? 429 : conflict ? 409 : missing ? 404 : invalid ? 400 : 503,
         { error: denied ? 'Sign-in or request could not be verified.' : limited ? 'Reply queue or cooldown limit reached. Retry later using the same request.' : conflict ? 'This configuration changed. Reload and review it again.' :
           missing ? 'Configuration was not found.' : invalid ? 'Check the configuration and request fields.' : 'This operation is currently unavailable.',
