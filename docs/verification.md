@@ -2,7 +2,7 @@
 
 ## First working AI replies on the Test Discord Server — 11 and 12 October 2026
 
-**Installed now:** pinned `214e13a554614cd141e323c39d2c42ddaf9a0259`, release `sophie-mistral-214e13a`, schema 070
+**Installed now:** pinned `c1f908497a804bbfb187316113bfd2d06ed99d4a`, release `sophie-mistral-c1f9084`, schema 070
 unchanged, owner-accepted processing policy (notice revision 3, evidence hash `3ff06663…cf5c`) retained. Pins live on
 branch `staging/admission-trace`: each is the previous pin plus only the changed runtime files from
 `codex/sophie-social-ai`, so `package.json` and dependencies never drift. Every deployment below used the same
@@ -25,6 +25,7 @@ Evidence for each: `GitHub/.agent_docs/aphelion-sophie/deployment-<pin>-<date>/`
 | `f8850d1` | Addressed-turn guidance reaches Mistral; AI page views reuse a 1.5 s role observation |
 | `d8fc757` | An unverifiable reply check defers (30 s) instead of deleting the reply; reply shape shown to the model |
 | `214e13a` | Worker self-restart; replies re-verified every 10 s and not during a turn; dashboard request queue and one-request AI page load |
+| `c1f9084` | Concurrent dashboard and AI role observations no longer fail `OBSERVATION_OUT_OF_ORDER` (owner saw lost dashboard access); dashboard faults name their code |
 
 **Root causes found with fixed-code diagnostics** (no message text or identifiers logged). Last night the worker was
 quiesced by the supervisor five minutes after start (one late readiness heartbeat) while the database still showed

@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "baseline": "214e13a55461",
+  "baseline": "c1f908497a80",
   "recordedAt": "2026-10-12T12:17:55.907Z",
   "productionReady": false,
   "context": "Single-sheet human release ledger. Synthetic content only. Record commit, environment/guild, schema, config/capability versions and actor fixture; include runtime/model/source generation hashes when applicable.",
@@ -393,7 +393,7 @@
       "operator": "Owner / operator",
       "procedure": "Review each SAI-G capability separately. Verify the pinned provider/model, runtime/release/profile, actual worker isolation and stop, budget/queue/deadline behavior, source-bound answer quality and measured end-to-end latency under representative host load.",
       "expected": "Only the exact reviewed capability/data scope activates. No automatic provider/model fallback; administration remains responsive. Redaction is minimisation, not proof of free-form anonymity or processing clearance.",
-      "existing": "Pinned 214e13a/schema070 staging (release sophie-mistral-214e13a) is installed with the Mistral key and the owner-accepted processing policy (notice revision 3); one public channel is activated and the owner received replies to addressed messages on 12 October (6 s and 13 s, not a load measurement). Configured identity/ACL evidence is distinct from actual worker denial/stop and live acceptance. Local models are historical alternatives requiring separate selection.",
+      "existing": "Pinned c1f9084/schema070 staging (release sophie-mistral-c1f9084) is installed with the Mistral key and the owner-accepted processing policy (notice revision 3); one public channel is activated and the owner received replies to addressed messages on 12 October (6 s and 13 s, not a load measurement). Configured identity/ACL evidence is distinct from actual worker denial/stop and live acceptance. Local models are historical alternatives requiring separate selection.",
       "source": "docs/decisions/0001-owner-policy.md; 01-REQUIREMENTS-AND-DECISIONS.md",
       "result": "Not run",
       "actual": "",

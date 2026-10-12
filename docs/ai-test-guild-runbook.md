@@ -1,9 +1,9 @@
 # AI on the Test Discord Server — operator runbook
 
-Status (12 October 2026): pinned source `214e13a` (branch `staging/admission-trace`), schema 070, release
-`sophie-mistral-214e13a`, with the owner-accepted Mistral processing policy (notice revision 3) installed and channel
+Status (12 October 2026): pinned source `c1f9084` (branch `staging/admission-trace`), schema 070, release
+`sophie-mistral-c1f9084`, with the owner-accepted Mistral processing policy (notice revision 3) installed and channel
 `1551010229339037738` activated. Sophie answers addressed messages there for opted-in members. Trust expires
-13 October 12:14 UTC; the independent journal receipt at 11:14 UTC. Every deployment renews both, so redeploy (or
+13 October 12:37 UTC; the independent journal receipt at 11:37 UTC. Every deployment renews both, so redeploy (or
 renew) before then. History of the 11–12 October deployments and root causes: [verification](verification.md).
 Evidence: `GitHub/.agent_docs/aphelion-sophie/deployment-<pin>-<date>/`. Do not paste the provider key, Discord token,
 database passwords or trust-file contents into chat, logs or Git; verifiers must print fixed codes only. Sections
