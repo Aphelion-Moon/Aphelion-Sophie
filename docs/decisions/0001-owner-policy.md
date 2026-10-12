@@ -1040,3 +1040,13 @@ time across the whole server; the AI page denied every owner after a successful 
 Not authorized by this entry: production, game-service changes, a host reboot, new dependencies, restricted channels,
 or a change to consent, notice, budget, retention or ticket exclusion. The staging conversion (retire the supervisor
 service, upgrade the worker wrapper, write `trust\worker.json`) is a deployment the operator runs.
+### Addressing Sophie by name; member interval paces unprompted turns only — 12 October 2026
+
+After the hosting conversion the owner wrote that Sophie "still doesn't speak up when she's being addressed without a
+ping or reply", and on being told that "mentions/replies only" addressing was one of the owner-selected rules,
+replied: "It was an owner rule, you can relax it." A message that calls Sophie by name ("Sophie, …", "hey Sophie",
+"…, Sophie?" or a question that names her) now counts as addressing her, like a mention or a reply; talking about her
+in passing or a possessive ("Sophie's avatar") does not, and the model may still choose silence. The channel's member
+interval now paces unprompted participation only: a message aimed at Sophie is limited by one turn per member at a
+time (quick follow-ups join the turn being gathered) and the ingress flood limit. The five channel behaviours,
+consent, exclusions and the proactive limits are unchanged.

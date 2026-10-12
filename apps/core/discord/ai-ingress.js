@@ -1,6 +1,6 @@
 import { requireCondition, requireId, requireInteger } from '../../../contracts/validation.js';
 import { redactAiIdentifiers } from '../../knowledge-worker/redaction.js';
-import { questionCandidate } from '../../../modules/assistant/participation.js';
+import { namedAddress, questionCandidate } from '../../../modules/assistant/participation.js';
 
 /** Core-only transient event. Embedded replies/forwards and attachments never become AI context. */
 export function createAiIngress({ guildId, botUserId, clock }) {
@@ -49,7 +49,8 @@ export function createAiIngress({ guildId, botUserId, clock }) {
         ...members.flatMap(member => [member.username, member.global_name])];
       const redacted = redactAiIdentifiers(text, aliases);
       if (redacted.length > 4000) return null;
-      return { text: redacted, question: questionCandidate(text), addressed: mentioned || replied, directedToOther: directedToOther || raw.type === 19 && !replied,
+      // Calling Sophie by name addresses her like a mention or a reply does (owner decision, 12 October 2026).
+      return { text: redacted, question: questionCandidate(text), addressed: mentioned || replied || namedAddress(text), directedToOther: directedToOther || raw.type === 19 && !replied,
         conversationTarget: target, inputRevision: raw.edited_timestamp ?? 'original' };
     },
     discard: proof => proofs.delete(proof),

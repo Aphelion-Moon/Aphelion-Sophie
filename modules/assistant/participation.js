@@ -74,6 +74,20 @@ export function questionCandidate(text) {
     /^(?:please\s+)?(?:help|explain|show me|tell me)\b/iu.test(text.trim());
 }
 
+/**
+ * True when a message calls Sophie by name: "Sophie, …", "hey Sophie …", "… Sophie?" at the end, or a question that
+ * names her (owner decision, 12 October 2026: addressing her by name counts like a mention or a reply). Talking about
+ * her in passing ("I told Sophie yesterday") does not count. The model can still choose silence.
+ */
+export function namedAddress(text) {
+  requireCondition(typeof text === 'string' && text.length <= 4000, 'AI_INPUT_INVALID');
+  // A possessive ("Sophie's avatar") talks about her, not to her.
+  const value = text.trim(), name = "(?:sophie|soph)(?!['’]s\\b)";
+  return new RegExp(`^[^\\p{L}\\p{N}]*(?:(?:hey|hi|hello|hiya|yo|oi|ok|okay|so|um|dear|morning|evening|night)[\\s,!.]+)?${name}\\b`, 'iu').test(value) ||
+    new RegExp(`[\\s,]${name}[\\s?!.~)]*$`, 'iu').test(value) ||
+    questionCandidate(value) && new RegExp(`\\b${name}\\b`, 'iu').test(value);
+}
+
 /** The caller supplies verified addressing metadata after exclusion/consent checks. */
 export function participationDecision(profile, { addressed, question, directedToOther, now }) {
   profile = canonicalParticipation(profile);

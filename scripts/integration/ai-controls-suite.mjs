@@ -146,6 +146,16 @@ export async function runAiControlsSuite(cluster, run) {
     await admission.settle(admitted, 'cancelled', '700');
     assert.equal((await pool.query('SELECT state FROM sophie_ai.request_receipts WHERE message_id=$1', ['602'])).rows[0].state, 'cancelled');
   });
+  await run('RB-N02 a follow-up that calls Sophie by name is answered inside the member interval', async () => {
+    // 602 was received moments ago, so the 15 s member interval has not passed; it now paces unprompted turns only.
+    const followUp = await admission.admit(event('603', 'Sophie, what do you do when you are bored?'));
+    assert.ok(followUp, 'an addressed follow-up is admitted'); assert.equal(followUp.decision.proactive, false); assert.equal(followUp.decision.infer, true);
+    // A second message inside the gathering window joins the first turn; it never starts a second concurrent turn.
+    const second = await admission.admit(event('604', 'Sophie, and another thing?'));
+    assert.ok(second === null || second.gather?.rootId === followUp.messageId, 'one turn per member at a time');
+    await admission.settle(followUp, 'cancelled');
+    await admin.query("DELETE FROM sophie_ai.request_receipts WHERE guild_id=$1 AND message_id IN ('603','604')", [actor.guildId]);
+  });
   await run('DS01-01 local notice consent cannot admit remote processing or enable an unapproved notice', async () => {
     const controls = createAiControls({ pool, guildId: actor.guildId, authorize: async () => true,
       inspectChannel: async () => ({ id: '303' }), memberPresence: async () => 1 });

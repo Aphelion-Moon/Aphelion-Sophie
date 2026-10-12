@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { canonicalAiConfiguration, defaultParticipation, canonicalParticipation, participationDecision, questionCandidate, isQuiet } from '../modules/assistant/participation.js';
+import { canonicalAiConfiguration, defaultParticipation, canonicalParticipation, participationDecision, questionCandidate, isQuiet, namedAddress } from '../modules/assistant/participation.js';
 import { validateAiOutput, renderAiReply } from '../modules/assistant/output.js';
 
 const event = (fields = {}) => ({ addressed: false, question: false, directedToOther: false, now: 1000, ...fields });
@@ -69,4 +69,11 @@ test('SAI AT-12 rendering disables pings and renders only canonical source links
   assert.ok(output.content.includes('Synthetic authors · Synthetic fixture'));
   assert.deepEqual(output.allowed_mentions, { parse: [], users: [], roles: [], replied_user: false });
   assert.equal(output.flags, 4);
+});
+
+test('RB-N01 calling Sophie by name addresses her; talking about her in passing does not', () => {
+  for (const text of ['Sophie what do you do when you\'re bored?', 'hey sophie', 'Hey! You alive again, Sophie?', 'is sophie around?', 'Thanks soph!', 'Sophie.'])
+    assert.equal(namedAddress(text), true, text);
+  for (const text of ['I told Sophie yesterday it was fine', 'sophisticated answer', 'what time is it', 'Sophie\'s avatar is neat'])
+    assert.equal(namedAddress(text), false, text);
 });
