@@ -4,28 +4,29 @@ import { createAiIpcChannel } from '../../knowledge-worker/ipc-channel.js';
 import { canonicalAiWorkerIdentity, aiWorkerPayload, validateAiPreparedMetadata } from '../../knowledge-worker/ipc-contract.js';
 
 /** Core-side adapter. Qualification is a required fresh trusted check, never inferred from a successful socket connection. */
-export function createAiIpcClient({ identity, key, connect, qualified, clock = Date.now }) {
+export function createAiIpcClient({ identity, key, connect, qualified, clock = Date.now, capacity = 2 }) {
   const fixed = canonicalAiWorkerIdentity(identity), preparations = new WeakMap(), channels = new Set(), lifetime=new AbortController();
-  let stopped = false, connecting=false;
+  let stopped = false, connecting = 0;
   requireCondition(typeof connect === 'function' && typeof qualified === 'function','TRUSTED_ADAPTERS_REQUIRED');
   requireCondition(Buffer.isBuffer(key) && key.length === 32,'AI_IPC_CONFIGURATION_INVALID');
   const current = async payload => !stopped && payload?.restricted === false && payload.workerDomain === fixed.domain &&
     payload.releaseHash === fixed.releaseHash && await qualified(fixed,payload) === true;
   async function openChannel(signal,deadline) {
-    requireCondition(!stopped && !connecting && channels.size===0,'AI_IPC_BUSY');connecting=true;let stream;
+    // Each turn uses its own authenticated connection; at most capacity turns run at once.
+    requireCondition(!stopped && connecting+channels.size<capacity,'AI_IPC_BUSY');connecting++;let stream;
     const combined=AbortSignal.any([lifetime.signal,...(signal?[signal]:[])]);
     try {
       requireCondition(!combined.aborted,'AI_IPC_CLOSED');stream=await connect({signal:combined,deadline});
       requireCondition(!stopped && !combined.aborted && clock()<deadline,'AI_IPC_CLOSED');
       const channel=createAiIpcChannel({stream,key,side:'broker',clock});channels.add(channel);return channel;
     } catch(error) {stream?.destroy();throw error;}
-    finally {connecting=false;}
+    finally {connecting--;}
   }
   function discardPrepared(prepared) { const state = preparations.get(prepared); if (state) { state.signal?.removeEventListener('abort',state.abort); state.channel.close(); channels.delete(state.channel); preparations.delete(prepared); } }
   return Object.freeze({
     provider:'mistral', current, discardPrepared,
     async probe({signal}={}) {
-      requireCondition(!stopped && !signal?.aborted && channels.size===0 && await qualified(fixed)===true,'AI_WORKER_NOT_QUALIFIED');
+      requireCondition(!stopped && !signal?.aborted && await qualified(fixed)===true,'AI_WORKER_NOT_QUALIFIED');
       const deadline=clock()+2000,channel=await openChannel(signal,deadline);
       const abort=()=>channel.close();signal?.addEventListener('abort',abort,{once:true});
       try {
@@ -41,7 +42,6 @@ export function createAiIpcClient({ identity, key, connect, qualified, clock = D
     async prepare(payload,context = {}) {
       requireCondition(await current(payload),'AI_WORKER_NOT_QUALIFIED');
       requireCondition(!context.signal?.aborted,'AI_IPC_CLOSED');
-      requireCondition(channels.size === 0,'AI_IPC_BUSY');
       const outbound = aiWorkerPayload(payload,fixed), deadline = Math.min(payload.local?.deadline,context.deadline ?? payload.local?.deadline);
       requireCondition(Number.isSafeInteger(deadline) && deadline > clock() && deadline <= clock()+15000,'AI_IPC_DEADLINE_INVALID');
       const channel = await openChannel(context.signal,deadline);

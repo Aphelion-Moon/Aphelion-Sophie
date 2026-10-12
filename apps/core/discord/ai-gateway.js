@@ -9,12 +9,13 @@ export function createAiGateway({ ingress, turns, onFault }) {
       if (stopped) return null;
       const raw = payload.d;
       if (raw?.guild_id !== ingress.guildId && raw?.id !== ingress.guildId) return null;
-      // No content inspection. Audience changes retire the entire temporary context.
+      // No content inspection. Member, role and channel changes are not handled here: they update the Gateway guild
+      // state, and each turn's pre-delivery check compares its own binding, so an unrelated change cancels nothing.
       const edit=payload.t==='MESSAGE_UPDATE' ? {channelId:raw.channel_id,messageId:raw.id}:null;
       if(edit && turns.prepareEdit?.(edit)!==true){turns.invalidate(edit);return null;}
       if (payload.t==='MESSAGE_DELETE') turns.invalidate({ channelId: raw.channel_id, messageId: raw.id });
-      else if (payload.t === 'MESSAGE_DELETE_BULK') turns.invalidate({ channelId: raw.channel_id });
-      else if (/^(?:CHANNEL_|THREAD_|GUILD_ROLE_|GUILD_MEMBER_|GUILD_UPDATE|GUILD_DELETE)/u.test(payload.t)) turns.invalidate();
+      else if (payload.t === 'MESSAGE_DELETE_BULK') for (const id of Array.isArray(raw.ids) ? raw.ids.slice(0, 100) : []) turns.invalidate({ channelId: raw.channel_id, messageId: id });
+      else if (/^(?:CHANNEL|THREAD)_(?:UPDATE|DELETE)$/u.test(payload.t) && typeof raw.id === 'string') turns.cancelChannel?.(raw.id);
       if (reserved.size + pending.size >= 4) {if(edit)turns.invalidate(edit);return null;}
       const proof = ingress.prepare(payload);
       if (proof !== null) reserved.set(proof,edit);else if(edit)turns.invalidate(edit);

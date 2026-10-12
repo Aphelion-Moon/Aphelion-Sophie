@@ -52,7 +52,9 @@ export function createMistralClient({ apiKey, fetchImpl = fetch, clock = Date.no
   const comparisonKey=randomBytes(32), partitionKey=randomBytes(32);
   const compareHash=value=>createHmac('sha256',comparisonKey).update(JSON.stringify(value)).digest('hex');
   const profileHash = mistralProfileHash({ acceptedFingerprints, maxPromptBytes, outputTokens });
-  let active = false, blockedUntil = 0, credentialBlocked = false, identityBlocked = false;
+  // Up to two requests in flight: core runs at most one turn per channel and two in all.
+  let active = 0, blockedUntil = 0, credentialBlocked = false, identityBlocked = false;
+  const MAX_ACTIVE = 2;
   function scope({ boundary, workerDomain, releaseHash, requesterId, restricted }) {
     // Existing local/private qualifications do not authorize a remote restricted lane.
     requireCondition(restricted === false && workerDomain === 'public', 'AI_REMOTE_CONTEXT_UNAPPROVED');
@@ -122,17 +124,18 @@ export function createMistralClient({ apiKey, fetchImpl = fetch, clock = Date.no
       requireCondition(preparedTurns.has(turn) && !consumed.has(turn), 'AI_PREPARATION_UNTRUSTED');
       requireCondition([beforeDispatch, recordDispatch, recordResponse, recordUndispatched].every(fn => typeof fn === 'function'), 'TRUSTED_ADAPTERS_REQUIRED');
       requireCondition(!signal.aborted && clock() < deadline, 'AI_DEADLINE_EXPIRED');
-      requireCondition(!active && !credentialBlocked && !identityBlocked && fingerprints.has(MISTRAL_MODEL) && clock() >= blockedUntil, 'AI_WORKER_UNAVAILABLE');
+      requireCondition(active < MAX_ACTIVE && !credentialBlocked && !identityBlocked && fingerprints.has(MISTRAL_MODEL) && clock() >= blockedUntil, 'AI_WORKER_UNAVAILABLE');
       const { body, contract, sources, serialized } = turn;
       consumed.add(turn);
       if (body === null) return { kind: 'silent' };
       const started = clock(), abort = AbortSignal.any([signal, AbortSignal.timeout(Math.max(1, Math.min(14000, deadline - started)))]);
-      active = true; let reader, response, networkStarted = false;
+      active++; let reader, response, networkStarted = false, transportFailed = false;
       try {
         requireCondition(await beforeDispatch() === true && !abort.aborted && clock() < deadline, 'AI_DISPATCH_REVOKED');
         requireCondition(await recordDispatch() === true, 'AI_DISPATCH_REVOKED');
         requireCondition(await beforeDispatch() === true && !abort.aborted && clock() < deadline, 'AI_DISPATCH_REVOKED');
         networkStarted = true;
+        transportFailed = true;
         response = await fetchImpl(endpoint, { method: 'POST', redirect: 'error', signal: abort,
           headers: { authorization: `Bearer ${apiKey}`, 'content-type': 'application/json' }, body: serialized });
         if (!response.ok) {
@@ -152,6 +155,7 @@ export function createMistralClient({ apiKey, fetchImpl = fetch, clock = Date.no
         }
         // Non-streaming provider keep-alives are whitespace; JSON.parse accepts them.
         const responseBody = JSON.parse(Buffer.concat(chunks).toString('utf8'));
+        transportFailed = false;
         const usage = mistralUsage(responseBody.usage);
         const model = typeof responseBody.model === 'string' && /^[a-zA-Z0-9._-]{1,96}$/u.test(responseBody.model) ? responseBody.model : null;
         const fingerprint = null; // Not reported by this provider; see the identity note above.
@@ -170,12 +174,14 @@ export function createMistralClient({ apiKey, fetchImpl = fetch, clock = Date.no
         requireCondition(!abort.aborted && clock() < deadline, 'AI_DEADLINE_EXPIRED');
         return output;
       } catch {
-        blockedUntil = Math.max(blockedUntil, clock() + 5000);
+        // Only a failed exchange with the provider pauses later requests. A local revocation, a passed deadline or one
+        // invalid model output says nothing about the provider and must not drop the next members' turns.
+        if (transportFailed && !abort.aborted) blockedUntil = Math.max(blockedUntil, clock() + 5000);
         throw Error(abort.aborted || clock() >= deadline ? 'AI_DEADLINE_EXPIRED' : 'AI_WORKER_UNAVAILABLE');
       } finally {
         if (reader) { await reader.cancel().catch(() => {}); reader.releaseLock(); }
         else await response?.body?.cancel().catch(() => {});
-        active = false;
+        active--;
         if (!networkStarted) await recordUndispatched();
       }
   }

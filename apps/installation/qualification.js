@@ -9,16 +9,15 @@ import { installationHash } from './configuration.js';
 // The application transport separately fixes the provider origin and rejects non-public IPv4 addresses.
 export const installationChecks=Object.freeze(['service-account-identity','file-acl-scope','firewall-egress-scope']);
 
-/** An owner-managed, source-bound operator receipt; never an automatic OS qualification. */
-export function installationQualification({configuration,owner},signal,clock=Date.now) {
+/** An owner-managed, source-bound operator receipt, bound to the release at install; never an automatic OS qualification. It does not expire. */
+export function installationQualification({configuration,owner},signal) {
   const release=canonicalAiWorkerRelease(configuration.release),report=configuration.qualification;
-  requireKeys(report,['installationId','releaseHash','profileHash','expiresAt','checks'],'AI_INSTALLATION_UNQUALIFIED');
+  requireKeys(report,['installationId','releaseHash','profileHash','checks'],'AI_INSTALLATION_UNQUALIFIED');
   requireKeys(report.checks,installationChecks,'AI_INSTALLATION_UNQUALIFIED');
-  requireCondition(owner.version==='1' && signal instanceof AbortSignal && report.installationId===owner.installation && report.releaseHash===release.releaseHash &&
+  requireCondition(owner.version==='2' && signal instanceof AbortSignal && report.installationId===owner.installation && report.releaseHash===release.releaseHash &&
     report.profileHash===release.profileHash &&
-    Number.isSafeInteger(report.expiresAt) && report.expiresAt===Number(owner.expires) &&
     installationChecks.every(name=>/^[a-f0-9]{64}$/u.test(report.checks[name]) && report.checks[name]!=='0'.repeat(64)) &&
     installationHash(JSON.stringify(report))===release.evidenceHash,'AI_INSTALLATION_UNQUALIFIED');
-  return async (selected=release,{signal:requestSignal}={})=>!signal.aborted && !requestSignal?.aborted && clock()<report.expiresAt &&
+  return async (selected=release,{signal:requestSignal}={})=>!signal.aborted && !requestSignal?.aborted &&
     ['workerId','releaseHash','profileHash','provider','domain'].every(name=>selected[name]===release[name]);
 }

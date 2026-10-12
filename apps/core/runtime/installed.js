@@ -7,7 +7,7 @@ import { requireStagingDatabase, requireStagingOwnerDatabase, checkRuntimeDataba
 import { requireUnquarantinedDatabase } from './recovery.js';
 import { createKnowledgeLibrary } from '../../knowledge/library.js';
 import { installedRoleContext } from '../../installation/context.js';
-import { createInstalledCoreLifecycle } from './installed-lifecycle.js';
+import { createInstalledAiWorker } from './installed-worker.js';
 import { createProcessingApproval } from '../../../modules/assistant/processing-policy.js';
 import { createPreferenceJournal } from '../storage/preference-journal.js';
 import { createKnowledgeRuntime } from '../../knowledge/runtime.js';
@@ -78,26 +78,26 @@ export async function createInstalledCoreService({pipes,signal,onFault,createPoo
     let aiPreferenceJournal=null;
     if(options.preferenceJournal){
       const receipt=options.preferenceJournal;
-      requireKeys(receipt,['id','evidenceHash','expiresAt'],'AI_PREFERENCE_JOURNAL_INVALID');
-      requireCondition(/^[a-f0-9]{64}$/u.test(receipt.evidenceHash) && receipt.evidenceHash!=='0'.repeat(64) &&
-        Number.isSafeInteger(receipt.expiresAt) && receipt.expiresAt<=Number(pipes.installation.owner.expires),'AI_PREFERENCE_JOURNAL_INVALID');
-      aiPreferenceJournal=createPreferenceJournal({path:INSTALLED_PREFERENCE_JOURNAL,id:receipt.id,
-        qualified:async()=>Date.now()<receipt.expiresAt && await restoreCurrent()});
+      // An install-time receipt binds the journal to its evidence. It no longer expires daily (owner decision, 12 October 2026);
+      // a legacy expiresAt field is accepted and ignored.
+      requireKeys(receipt,['id','evidenceHash',...(Object.hasOwn(receipt,'expiresAt')?['expiresAt']:[])],'AI_PREFERENCE_JOURNAL_INVALID');
+      requireCondition(/^[a-f0-9]{64}$/u.test(receipt.evidenceHash) && receipt.evidenceHash!=='0'.repeat(64),'AI_PREFERENCE_JOURNAL_INVALID');
+      aiPreferenceJournal=createPreferenceJournal({path:INSTALLED_PREFERENCE_JOURNAL,id:receipt.id,qualified:restoreCurrent});
     }
     const library=createKnowledgeLibrary({pool:knowledgePool,guildId:options.runtime.mapping.guildId,authorize:async()=>false,clock:Date.now,
       restoreCurrent:async()=>{if(!await qualified())return false;await requireUnquarantinedDatabase(knowledgePool);return true;}});
     const aiKnowledge=Object.freeze({lookup:library.lookup,current:library.current,currentReferences:library.currentReferences});
-    // Configuration Apply destroys its old AI owner and constructs a fresh one.
-    // A stopped control client/boot must never be reused by the replacement runtime.
+    // Configuration Apply destroys its old AI owner and constructs a fresh one with its own worker connection;
+    // a stopped connection must never be reused by the replacement runtime.
     const compose=async input=>{
-      const lifecycle=createInstalledCoreLifecycle({pipes,signal,onFault});let instance,closed;
-      try {instance=await runtimeFactory({...input,aiControlPool:controlPool,aiKnowledge,aiLifecycle:lifecycle,aiApproval,aiPreferenceJournal,
+      const worker=createInstalledAiWorker({pipes,signal});let instance,closed;
+      try {instance=await runtimeFactory({...input,aiControlPool:controlPool,aiKnowledge,aiWorker:worker,aiApproval,aiPreferenceJournal,
         aiActivationPool:ownerPool,aiRestoreCurrent:restoreCurrent,
         aiKnowledgeAdminFactory:knowledgeOwnerPool===null?null:({authorize,invalidate})=>createKnowledgeRuntime({pool:knowledgeOwnerPool,
           guildId:input.configuration.mapping.guildId,authorize,qualified,restoreCurrent:async()=>{await requireUnquarantinedDatabase(knowledgeOwnerPool);return true;},
           fetchImpl,invalidate,onFault})});}
-      catch(error){await lifecycle.stop().catch(()=>{});throw error;}
-      return Object.freeze({...instance,stop:()=>closed??=(async()=>{try{await instance.stop();}finally{await lifecycle.stop();}})()});
+      catch(error){await Promise.resolve().then(()=>worker.stop()).catch(()=>{});throw error;}
+      return Object.freeze({...instance,stop:()=>closed??=(async()=>{try{await instance.stop();}finally{await worker.stop();}})()});
     };
     const input={configuration:options.runtime,pool,...options.credentials,fetch:fetchImpl,connect,onFault};
     runtime=ownerPool?await configurableFactory({...input,ownerPool,runtimeFactory:compose}):await compose(input);

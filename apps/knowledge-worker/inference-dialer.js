@@ -1,8 +1,9 @@
 import { connect } from 'node:net';
-import { requireCondition } from '../../contracts/validation.js';
+import { setTimeout as delay } from 'node:timers/promises';
+import { requireCondition, requireInteger } from '../../contracts/validation.js';
 import { canonicalAiWorkerIdentity } from './ipc-contract.js';
 import { aiBootPipe, authenticateAiBootPipe } from './boot-pipe.js';
-import { createAiWorkerQualification } from './worker-listener.js';
+import { createAiWorkerQualification } from './qualification.js';
 
 function waitForTurn(socket,signal) {
   return new Promise((resolve,reject)=>{
@@ -13,42 +14,56 @@ function waitForTurn(socket,signal) {
   });
 }
 
-/** Guest initiates each physical connection. Reconnection starts a new IPC channel, never replays a turn. */
-export function createAiInferenceDialer({identity,key,worker,qualified,onFault,connectPipe=connect}) {
+/**
+ * The worker initiates each physical connection to core and keeps `connections` authenticated idle connections, so
+ * that many turns can run at once. A connection carries one turn and is then replaced; a reconnection never replays a
+ * turn. While core is unreachable (restarting, for example) the worker waits and retries instead of exiting; only a
+ * lost installation qualification stops it.
+ */
+export function createAiInferenceDialer({identity,key,worker,qualified,onFault,connectPipe=connect,connections=2,retry={initialMs:1000,maximumMs:10000}}) {
   const fixed=canonicalAiWorkerIdentity(identity),path=aiBootPipe(fixed,'inference');
   requireCondition(Buffer.isBuffer(key) && key.length===32 && typeof worker?.accept==='function' &&
     typeof qualified==='function' && typeof onFault==='function','AI_IPC_CONFIGURATION_INVALID');
+  requireInteger(connections,1,4);requireInteger(retry.initialMs,1,60000);requireInteger(retry.maximumMs,retry.initialMs,600000);
   const secret=Buffer.from(key),lifetime=new AbortController(),qualification=createAiWorkerQualification({identity:fixed,qualified});
-  let phase='idle',socket=null,loop=null,closing=null,firstReady,firstFailed;
+  const sockets=new Set();let phase='idle',loops=[],closing=null,authenticated=0;
   function stop() {
     if(closing)return closing;
-    phase='stopped';lifetime.abort();qualification.stop();secret.fill(0);socket?.destroy();firstFailed?.(Error('AI_WORKER_UNAVAILABLE'));
-    closing=Promise.resolve(loop).then(()=>{});return closing;
+    phase='stopped';lifetime.abort();qualification.stop();secret.fill(0);for(const socket of sockets)socket.destroy();
+    closing=Promise.allSettled(loops).then(()=>{});return closing;
+  }
+  async function connection() {
+    const socket=connectPipe(path);socket.on('error',()=>{});sockets.add(socket);
+    try {
+      await authenticateAiBootPipe({stream:socket,identity:fixed,key:secret,side:'worker',signal:lifetime.signal,purpose:'inference'});
+      authenticated++;
+      await waitForTurn(socket,lifetime.signal);
+      requireCondition(await qualification.current(lifetime.signal) && !lifetime.signal.aborted,'AI_WORKER_NOT_QUALIFIED');
+      await worker.accept(socket);
+      if(!socket.closed)await new Promise(resolve=>socket.once('close',resolve));
+    } finally {socket.destroy();sockets.delete(socket);}
+  }
+  async function loop() {
+    let wait=retry.initialMs;
+    while(!lifetime.signal.aborted){
+      if(!await qualification.current(lifetime.signal)){
+        if(!lifetime.signal.aborted){phase='failed';try{onFault('AI_WORKER_NOT_QUALIFIED');}catch{}}
+        return;
+      }
+      const before=authenticated;
+      try {await connection();} catch {/* Core unreachable, restarting or the turn ended: reconnect below. */}
+      if(lifetime.signal.aborted)return;
+      // A connection that authenticated proves core is up: reconnect at once. Otherwise back off.
+      if(authenticated>before)wait=retry.initialMs;
+      else {await delay(wait,undefined,{signal:lifetime.signal}).catch(()=>{});wait=Math.min(retry.maximumMs,wait*2);}
+    }
   }
   return Object.freeze({
-    start() {
-      requireCondition(phase==='idle','AI_IPC_ALREADY_STARTED');phase='starting';
-      const ready=new Promise((resolve,reject)=>{firstReady=resolve;firstFailed=reject;});
-      loop=(async()=>{
-        try {
-          while(!lifetime.signal.aborted){
-            requireCondition(await qualification.current(lifetime.signal) && !lifetime.signal.aborted,'AI_WORKER_NOT_QUALIFIED');
-            socket=connectPipe(path);socket.on('error',()=>{});
-            await authenticateAiBootPipe({stream:socket,identity:fixed,key:secret,side:'worker',signal:lifetime.signal,purpose:'inference'});
-            phase='waiting';firstReady();
-            await waitForTurn(socket,lifetime.signal);
-            requireCondition(await qualification.current(lifetime.signal) && !lifetime.signal.aborted,'AI_WORKER_NOT_QUALIFIED');
-            phase='working';await worker.accept(socket);
-            if(!socket.closed)await new Promise(resolve=>socket.once('close',resolve));socket=null;
-          }
-        } catch {
-          if(!lifetime.signal.aborted){phase='failed';try{onFault('AI_WORKER_CONNECTION_LOST');}catch{}}
-          firstFailed(Error('AI_WORKER_UNAVAILABLE'));
-        } finally {
-          socket?.destroy();if(socket && !socket.closed)await new Promise(resolve=>socket.once('close',resolve));socket=null;
-        }
-      })();return ready;
+    async start() {
+      requireCondition(phase==='idle','AI_IPC_ALREADY_STARTED');
+      requireCondition(await qualification.current(lifetime.signal),'AI_WORKER_NOT_QUALIFIED');
+      phase='running';loops=Array.from({length:connections},()=>loop());
     },
-    status(){return {phase,connected:socket!==null};},stop,
+    status(){return {phase,connections:sockets.size};},stop,
   });
 }

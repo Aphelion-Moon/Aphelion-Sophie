@@ -80,6 +80,8 @@ export function createAiEffects({ pool, guildId, clock }) {
         WHERE guild_id=$1 AND message_id=$2 AND owner=$3 AND state='cleanup' AND receipt_id IS NOT NULL RETURNING message_id`, proof(value))).rowCount === 1, 'AI_EFFECT_UNTRUSTED');
     },
     async invalidate({ channelId = null, userId = null, messageId = null } = {}) {
+      // An untargeted call once withdrew every delivered reply in the guild; withdrawal always names what it withdraws.
+      requireCondition(userId !== null || messageId !== null, 'AI_EFFECT_FILTER_REQUIRED');
       [channelId,userId,messageId].filter(value => value !== null).forEach(requireId);
       await pool.query(`UPDATE sophie_ai.effects SET state='cleanup',updated_at=clock_timestamp() WHERE guild_id=$1 AND state NOT IN ('removed','cleanup')
         AND ($2::text IS NULL OR channel_id=$2) AND ($3::text IS NULL OR EXISTS(SELECT 1 FROM jsonb_array_elements(dependencies) d WHERE d->>'userId'=$3))
@@ -92,10 +94,10 @@ export function createAiEffects({ pool, guildId, clock }) {
       return inTransaction(pool, async client => {
         // The request receipt still prevents resending after retired cleanup metadata is pruned.
         await client.query("DELETE FROM sophie_ai.effects WHERE guild_id=$1 AND state='removed' AND updated_at<clock_timestamp()-interval '7 days'", [guildId]);
-        // A confirmed effect is re-verified at most every 10 seconds, so delivered replies do not consume Discord's
-        // per-second read budget continuously. Effects marked for cleanup (explicit withdrawal) are always returned.
-        const rows = (await client.query(`SELECT * FROM sophie_ai.effects WHERE guild_id=$1 AND receipt_id IS NOT NULL AND (state='cleanup' OR
-          (state='confirmed' AND (checked_at IS NULL OR checked_at <= clock_timestamp()-interval '10 seconds')))
+        // Only explicit withdrawals reach cleanup; confirmed replies are never re-verified. A withdrawal is attempted at
+        // once (not tried since it was marked), and a failed removal is retried after 10 seconds rather than every cycle.
+        const rows = (await client.query(`SELECT * FROM sophie_ai.effects WHERE guild_id=$1 AND receipt_id IS NOT NULL AND state='cleanup'
+          AND (checked_at <= updated_at OR checked_at <= clock_timestamp()-interval '10 seconds')
           ORDER BY checked_at,message_id LIMIT 4 FOR UPDATE SKIP LOCKED`, [guildId])).rows;
         if (rows.length) await client.query('UPDATE sophie_ai.effects SET checked_at=clock_timestamp() WHERE guild_id=$1 AND message_id=ANY($2::text[])', [guildId,rows.map(row => row.message_id)]);
         return rows;

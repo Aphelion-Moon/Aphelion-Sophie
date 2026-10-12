@@ -7,7 +7,6 @@ import { inTransaction } from './transaction.js';
 import { canonicalAiBudget, DEFAULT_AI_BUDGET } from '../../../modules/assistant/budget.js';
 import { createAiAccounting } from './ai-accounting.js';
 import { createAiPreferences } from './ai-preferences.js';
-import { createAiWorkerOperations } from './ai-worker-operations.js';
 
 // PostgreSQL jsonb reorders object keys. Hash canonical data, including nested profiles.
 function ordered(value) {
@@ -26,7 +25,7 @@ function publication(kind, document) {
 
 /** Authenticated controls own desired state. Activation requires separate installation evidence. */
 export function createAiControls({ pool, guildId, authorize, inspectChannel, memberPresence, invalidate = () => {}, noticeRevision = 2,
-  noticeApproved = async () => false, readNotice = async () => ({ revision: noticeRevision, text: null, approved: await noticeApproved() }), preferenceJournal = null, privacyCurrent = null, clock = Date.now, workerCatalogue=[],workerOperationsAvailable=false,readDiagnostic=async()=>null }) {
+  noticeApproved = async () => false, readNotice = async () => ({ revision: noticeRevision, text: null, approved: await noticeApproved() }), preferenceJournal = null, privacyCurrent = null, clock = Date.now, workerStatus=()=>({connected:false,release:null,observedAt:null}),readDiagnostic=async()=>null }) {
   requireId(guildId); requireInteger(noticeRevision, 1);
   for (const fn of [authorize, inspectChannel, memberPresence, noticeApproved,readNotice,readDiagnostic]) requireCondition(typeof fn === 'function', 'TRUSTED_ADAPTERS_REQUIRED');
   async function access(actor, action, scope = {}) {
@@ -72,7 +71,11 @@ export function createAiControls({ pool, guildId, authorize, inspectChannel, mem
     return { expectedRevision, evidenceHash, controlEpoch: Number(state.epoch) };
   }
   return Object.freeze({
-    ...createAiWorkerOperations({guildId,transaction,catalogue:workerCatalogue,available:workerOperationsAvailable}),
+    // The worker is a service running alongside core; operators see whether it is connected, never a launch control.
+    workerStatus:({actor})=>transaction(actor,'ai.control',async(_client,state)=>{
+      const live=workerStatus();
+      return {available:true,connected:live?.connected===true,phase:live?.connected===true?'ready':'stopped',release:live?.release??null,observedAt:live?.observedAt??null,disabled:state.disabled};
+    }),
     ...createAiPreferences({guildId,transaction,memberPresence,journal:preferenceJournal,privacyCurrent,clock}),
     async diagnostics({actor,channelId}) {
       requireId(channelId);
@@ -203,6 +206,10 @@ export function createAiControls({ pool, guildId, authorize, inspectChannel, mem
           VALUES($1,$2,$3,$4,$5,$6,$7,$8) ON CONFLICT(guild_id,channel_id,user_id) DO UPDATE SET
           epoch=EXCLUDED.epoch,enabled=EXCLUDED.enabled,presence_epoch=EXCLUDED.presence_epoch,notice_revision=EXCLUDED.notice_revision,receipt=EXCLUDED.receipt,updated_at=clock_timestamp()`,
         [guildId, channelId, actor.userId, epoch, enabled, presence, savedRevision, receipt]);
+        // Opt-out withdraws Sophie's delivered replies in this channel that drew on this member's messages. Delivered replies
+        // are no longer re-verified, so the withdrawal is explicit and commits with the consent change.
+        if (!enabled) await client.query(`UPDATE sophie_ai.effects SET state='cleanup',updated_at=clock_timestamp() WHERE guild_id=$1 AND channel_id=$2
+          AND state NOT IN ('removed','cleanup') AND EXISTS(SELECT 1 FROM jsonb_array_elements(dependencies) d WHERE d->>'userId'=$3)`, [guildId, channelId, actor.userId]);
         return { channelId, enabled, epoch, noticeRevision: savedRevision };
       }, { userId: actor.userId }, result => result?.epoch !== 0);
     },

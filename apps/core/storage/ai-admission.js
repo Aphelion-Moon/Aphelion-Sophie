@@ -72,7 +72,7 @@ export function createAiAdmission({ pool, guildId, ingress, inspectContext, insp
       capabilities: { reply: context.canReply, react: context.canReact },
       binding: { epoch: Number(state.epoch), configurationHash: configuration.sha256, personalityHash: personality.sha256,
         boundaryEpoch: Number(qualification.boundary_epoch), audienceHash: context.audienceHash, consentEpoch: Number(consent.epoch),
-        presenceEpoch: member.presenceEpoch, accessEpoch: member.accessEpoch, continuity: context.continuity,
+        presenceEpoch: member.presenceEpoch, accessEpoch: member.accessEpoch, memberHash: member.memberHash ?? null, continuity: context.continuity,
         inputRevision: aiDigest([event.messageId, context.messageRevision]), canReply: context.canReply, canReact: context.canReact,
         workerDomain: qualification.worker_domain, releaseHash: qualification.release_sha256, restricted: qualification.restricted } };
   }
@@ -108,8 +108,6 @@ export function createAiAdmission({ pool, guildId, ingress, inspectContext, insp
             open.gather_bytes + bytes + 1 <= 4096 && open.gather_chars + content.text.length + 1 <= 4000) {
             const count = (await client.query('SELECT count(*)::int AS count FROM sophie_ai.request_receipts WHERE guild_id=$1 AND gather_root=$2', [guildId,open.message_id])).rows[0].count;
             if (count < 3) {
-              const latest = await snapshot(client,event);
-              if (!latest || aiDigest(latest.binding) !== aiDigest(initial.binding)) return null;
               const quietUntil = count === 2 ? clock() : Math.min(clock()+750,open.gather_until.getTime());
               await client.query(`INSERT INTO sophie_ai.request_receipts(guild_id,message_id,channel_id,user_id,input_revision,state,deadline,proactive,received_at,gather_root,gather_owner)
                 VALUES($1,$2,$3,$4,$5,'gathered',$6,false,$7,$8,$9)`, [guildId,event.messageId,event.channelId,event.userId,inputRevision,open.deadline,new Date(event.receivedAt),open.message_id,gatherOwner]);
@@ -135,9 +133,9 @@ export function createAiAdmission({ pool, guildId, ingress, inspectContext, insp
           if (decision.proactive && recent.reply_last && now - recent.reply_last.getTime() < profile.replyIntervalMs) decision.outcomes = decision.outcomes.filter(value => value !== 'reply');
           if (recent.reaction_last && now - recent.reaction_last.getTime() < profile.reactionIntervalMs || initial.config.emojis.length === 0) decision.outcomes = decision.outcomes.filter(value => value !== 'react');
           if (decision.outcomes.every(value => value === 'silent')) return skip('NO_PERMITTED_OUTCOME');
-          const latest = await snapshot(client, event);
-          if (!latest) return null;
-          if (aiDigest(latest.binding) !== aiDigest(initial.binding) || clock() >= initial.deadline - 1000) return skip(clock() >= initial.deadline - 1000 ? 'DEADLINE_PASSED' : 'BINDING_CHANGED');
+          // Observations are in-memory Gateway state, so the admission snapshot cannot age while this transaction runs;
+          // generation still fences an invalidation that arrived meanwhile.
+          if (version !== generation || clock() >= initial.deadline - 1000) return skip(version !== generation ? 'INVALIDATED' : 'DEADLINE_PASSED');
           // Hash only the platform revision marker, not guessable personal message text.
           const gather = gatherable ? { rootId:event.messageId,owner:gatherOwner,until:event.receivedAt+1500,quietUntil:Math.min(clock()+750,event.receivedAt+1500) } : null;
           await client.query(`INSERT INTO sophie_ai.request_receipts(guild_id,message_id,channel_id,user_id,input_revision,state,deadline,proactive,received_at,
