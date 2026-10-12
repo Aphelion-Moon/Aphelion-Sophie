@@ -114,7 +114,12 @@ export async function runCaseParticipantAuthoritySuite(cluster, run) {
   await scenario('PA09 failed or out-of-order presence observations cannot partially advance authority or erase revocation', async f => {
     const grant = await f.authorization.resolveCaseParticipant(scope), authority = createActorAuthorityStore({ pool: f.pool, clock: () => f.clock.now });
     const original = (await f.rows('actor_authority')).find(row => row.user_id === USER);
-    await assert.rejects(authority.observeWithPresence({ ...original.observation, observedAt: original.observation.observedAt - 1 }, f.policy.version), /OBSERVATION_OUT_OF_ORDER/);
+    // An older observation that disagrees with the stored one is refused; one that agrees is a no-op returning the stored epochs.
+    await assert.rejects(authority.observeWithPresence({ ...original.observation, observedAt: original.observation.observedAt - 1,
+      highestRolePosition: original.observation.highestRolePosition + 1 }, f.policy.version), /OBSERVATION_OUT_OF_ORDER/);
+    const agreeing = await authority.observeWithPresence({ ...original.observation, observedAt: original.observation.observedAt - 1 }, f.policy.version);
+    assert.equal(agreeing.grant.capabilityEpoch, Number(original.capability_epoch)); assert.equal(agreeing.presenceEpoch, Number(original.presence_epoch));
+    assert.deepEqual((await f.rows('actor_authority')).find(row => row.user_id === USER), original);
     f.discord.state.members.delete(USER); await f.admin.query('REVOKE UPDATE ON sophie_core.actor_authority FROM sophie_test_core');
     try { await assert.rejects(f.authorization.authorizeCaseParticipant(grant), { code: '42501' }); }
     finally { await f.admin.query('GRANT UPDATE ON sophie_core.actor_authority TO sophie_test_core'); }

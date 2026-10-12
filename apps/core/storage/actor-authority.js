@@ -17,9 +17,16 @@ export function createActorAuthorityStore({ pool, clock }) {
       const previous = (await client.query(`SELECT capability_epoch, presence_epoch, policy_version, observation FROM sophie_core.actor_authority
         WHERE guild_id = $1 AND user_id = $2 FOR UPDATE`, [observation.guildId, observation.userId])).rows[0];
       requireCondition(previous.policy_version <= policyVersion, 'CAPABILITY_POLICY_ROLLBACK');
-      requireCondition(previous.observation.observedAt <= observation.observedAt, 'OBSERVATION_OUT_OF_ORDER');
       const stable = value => JSON.stringify([value.roleIds, value.present, value.bot, value.timedOut,
         value.administrator, value.guildOwner, value.highestRolePosition]);
+      if (previous.observation.observedAt > observation.observedAt) {
+        // Concurrent observers (dashboard checks, AI rechecks) can finish out of order. An older observation that agrees
+        // with the newer stored one adds nothing: keep the stored record and its epochs. One that disagrees could
+        // restore revoked authority, so it is still refused.
+        requireCondition(stable(previous.observation) === stable(normalized) && previous.policy_version === policyVersion, 'OBSERVATION_OUT_OF_ORDER');
+        return { grant: { guildId: observation.guildId, userId: observation.userId, capabilityEpoch: Number(previous.capability_epoch), policyVersion },
+          presenceEpoch: Number(previous.presence_epoch) };
+      }
       const changed = stable(previous.observation) !== stable(normalized) || previous.policy_version !== policyVersion;
       const epoch = Number(previous.capability_epoch) + (changed ? 1 : 0); requireInteger(epoch, 1);
       const lostPresence = previous.observation.present && (!normalized.present || (!previous.observation.bot && normalized.bot));

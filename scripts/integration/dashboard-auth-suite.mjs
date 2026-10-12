@@ -234,7 +234,7 @@ export async function runDashboardAuthSuite(cluster, run) {
       assert.equal((await http(server, '/cases')).status, 404); assert.equal(f.provider.state.calls.length, 2);
       const flow = await f.begin(); f.provider.state.before = () => { throw new Error('synthetic-do-not-log-credentials'); };
       const failed = await http(server, `/auth/callback?state=${flow.state}&code=${f.provider.issueCode()}`, { headers: { Cookie: `${DASHBOARD_COOKIES.login}=${flow.binding}` } });
-      assert.equal(failed.status, 503); assert.equal(failed.text.includes('synthetic'), false); assert.deepEqual(faults, ['DASHBOARD_AUTH_UNAVAILABLE']);
+      assert.equal(failed.status, 503); assert.equal(failed.text.includes('synthetic'), false); assert.deepEqual(faults, ['DASHBOARD_AUTH_UNAVAILABLE_OAUTH_PROVIDER_UNAVAILABLE']);
     });
   });
 
