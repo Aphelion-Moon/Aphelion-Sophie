@@ -89,7 +89,7 @@ export async function createStagingRuntime({ configuration, pool, aiControlPool 
   };
   const transport = createDiscordTransport({ guildId: fixed.mapping.guildId, token, fetch, clock, enabled: databaseActive });
   requireCondition(aiWorker===null || aiKnowledge!==null && aiControlPool!==null, 'AI_ADAPTERS_REQUIRED');
-  let aiRuntime = null, activationRebind = null;
+  let aiRuntime = null, activationRebind = null, activationFollow = null;
   const privacyEffects=aiControlPool===null?null:createAiEffects({pool:aiControlPool,guildId:fixed.mapping.guildId,clock});
   const privacyMessages=privacyEffects===null?null:createAiMessages({transport,botUserId:fixed.mapping.botUserId,effects:privacyEffects,clock,canReact:async()=>false});
   const privacy=aiControlPool===null?null:createAiPrivacy({pool:aiControlPool,guildId:fixed.mapping.guildId,journal:aiPreferenceJournal,
@@ -141,7 +141,7 @@ export async function createStagingRuntime({ configuration, pool, aiControlPool 
       guildId: fixed.mapping.guildId, authorize: authorization.authorize, inspectChannel: qualificationObservations.inspectChannel,
       approval: aiApproval, workerRelease: () => aiRuntime?.qualifiedRelease?.() ?? null, restoreCurrent: aiRestoreCurrent, clock,
       invalidate: () => aiRuntime?.invalidate() });
-    activationRebind = activation === null ? null : activation.rebind;
+    activationRebind = activation === null ? null : activation.rebind; activationFollow = activation === null ? null : activation.follow;
     const knowledgeLookup = aiKnowledge === null ? null : createKnowledgeLookupHttp({ auth, authorization, knowledge: aiKnowledge, clock });
     const ai = aiControlPool === null ? null : createAiControlsHttp({ auth, authorization, trace: fault, controls: { ...createAiControls({
       pool: aiControlPool, guildId: fixed.mapping.guildId, authorize: authorization.authorize, preferenceJournal:aiPreferenceJournal, privacyCurrent:privacy.current,clock,
@@ -149,7 +149,8 @@ export async function createStagingRuntime({ configuration, pool, aiControlPool 
       readDiagnostic:channelId=>aiRuntime?.diagnostics(channelId)??null,
       ...(aiApproval === null ? {} : { readNotice: aiApproval.notice }),
       memberPresence: actor => authorization.aiMemberPresence(actor),
-      invalidate: () => aiRuntime?.invalidate(),
+      // A publication also moves active channels onto it (Go live persists); the follow is idempotent and owner-role only.
+      invalidate: () => { aiRuntime?.invalidate(); if (activationFollow) void activationFollow().catch(() => fault('AI_QUALIFICATION_FOLLOW_UNAVAILABLE')); },
       inspectChannel: (_client, channelId) => inspectAutomationChannel(pool, { guildId: fixed.mapping.guildId,
         protectedCategoryId: fixed.casePolicy.categoryId, channels: aiChannels, channelId }),
     }), ...(activation ?? { reviewActivation: async () => { requireCondition(false, 'AI_ACTIVATION_UNAVAILABLE'); }, activate: async () => { requireCondition(false, 'AI_ACTIVATION_UNAVAILABLE'); } }) } });
@@ -227,7 +228,7 @@ export async function createStagingRuntime({ configuration, pool, aiControlPool 
         requireCondition(!stopping, 'RUNTIME_STOPPED');
         gatewayTask = gateway.start(owner).then(result => { if (!stopping) { stopping = true; clearTimeout(timer); fault('RUNTIME_GATEWAY_HALTED'); } return result; });
         // Go live persists across restarts and deployments: active channels follow the installed release.
-        if(aiRuntime && aiWorker?.release)try {await activationRebind?.(aiWorker.release);}catch{fault('AI_QUALIFICATION_REBIND_UNAVAILABLE');}
+        if(aiRuntime && aiWorker?.release)try {await activationRebind?.(aiWorker.release);await activationFollow?.();}catch{fault('AI_QUALIFICATION_REBIND_UNAVAILABLE');}
         if(aiRuntime)try {await aiRuntime.start();}catch{fault('AI_WORKER_CONNECTION_UNAVAILABLE');}
         preferenceExpiry?.start();
         if (automaticWorkers) schedule();

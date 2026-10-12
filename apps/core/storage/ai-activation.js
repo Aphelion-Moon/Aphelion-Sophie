@@ -60,6 +60,27 @@ export function createAiActivation({ pool, guildId, authorize, inspectChannel, a
       if (changed) invalidate();
       return changed;
     },
+    /**
+     * Go live also persists across publications (owner decision, 12 October 2026): an active channel follows the
+     * currently published character and configuration, provided that configuration still lists the channel with a mode
+     * other than ignore. A channel the owner removed or set to ignore is left as it is, and a disable stays in force.
+     * Audience, consent, notice and budget are still checked on every turn. Idempotent; runs at start-up and after
+     * every control change.
+     */
+    async follow() {
+      const changed = await inTransaction(pool, async client => {
+        await client.query('SELECT pg_advisory_xact_lock(182745,56)');
+        return (await client.query(`UPDATE sophie_ai.qualifications q SET configuration_sha256=c.sha256,personality_sha256=p.sha256
+          FROM sophie_ai.state s
+          JOIN sophie_ai.publications c ON c.guild_id=s.guild_id AND c.kind='configuration' AND c.revision=s.configuration_revision
+          JOIN sophie_ai.publications p ON p.guild_id=s.guild_id AND p.kind='personality' AND p.revision=s.personality_revision
+          WHERE s.guild_id=$1 AND q.guild_id=s.guild_id AND q.active AND (q.configuration_sha256<>c.sha256 OR q.personality_sha256<>p.sha256)
+            AND EXISTS(SELECT 1 FROM jsonb_array_elements(c.document->'channels') channel
+              WHERE channel->>'channelId'=q.channel_id AND channel->'profile'->>'mode'<>'ignore')`, [guildId])).rowCount;
+      });
+      if (changed) invalidate();
+      return changed;
+    },
     async reviewActivation({ actor, channelId }) {
       requireId(channelId);
       return transaction(actor, async client => { const request = await candidate(client, actor, channelId); return { ...request, reviewSha256: aiDigest(request) }; });
