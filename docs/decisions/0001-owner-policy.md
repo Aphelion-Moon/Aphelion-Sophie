@@ -979,3 +979,24 @@ would also let a removed Staff member read case notes and labels for up to 1.5 s
 rules, so the agent narrowed the scope to the slow AI pages. Accepted trade-off: a role removed in Discord without a
 Gateway event can still view, but not change, the AI pages for up to 1.5 seconds. Tests: `DA-VIEW-01` to
 `DA-VIEW-04`; the dashboard-auth suite's browser actions now authenticate as POST, as browsers do.
+
+### Worker self-restart, dashboard queue and single-load, and reply re-verification pacing — 12 October 2026
+
+After the first working replies, the owner wrote: "Go ahead with the faster dashboard options. You can also let the
+worker restart itself. Fix the paperwork and the reply timing as well."
+
+- **Worker self-restart.** A running worker that loses readiness (one late heartbeat makes the supervisor quiesce
+  it) is relaunched in place by core with the same approved release and a new boot, without re-disabling AI, so the
+  owner's Go-live activation stays in force. At most three relaunches per ten minutes; a failed relaunch or a fourth
+  loss records the slot as failed and disables AI, exactly as start-up recovery does. An owner request (pending
+  phase) always takes precedence. This is the only path that moves a slot to a new boot while AI is enabled.
+- **Dashboard queue (option A).** The single administrative request slot now queues up to eight requests for up to
+  eight seconds instead of refusing them; one request still runs at a time, and a full queue, a long wait or
+  shutdown still answers `DASHBOARD_BUSY`. Competing case writes are serialized and refused by their version checks.
+- **Dashboard single load (option B).** The AI page loads its saved state through one `/api/ai/overview` request.
+  Each part authorizes its own capability; a part the actor may not read is withheld and the page treats that as
+  changed access.
+- **Reply re-verification pacing.** Delivered replies are re-verified at most every ten seconds instead of every
+  second, and not while a message is being handled, so periodic checks no longer exhaust Discord's five reads per
+  second and starve new messages. Explicit withdrawals (opt-out, departure, message edit or delete) still mark the
+  reply for cleanup and are removed at once; a definite "no longer current" result is removed on its next check.

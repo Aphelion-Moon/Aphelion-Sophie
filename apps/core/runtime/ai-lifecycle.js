@@ -76,7 +76,9 @@ export function createAiWindowsLifecycle({client,release,qualified,revocationSig
         requireCondition(await startChecks.current({check:beforeStart},launchSignal) && await qualifiedRelease(fixed) && !launchSignal.aborted,'AI_WORKER_START_NOT_APPROVED');
         const running=await job('start',{revision:created.revision,operationId},launchSignal);
         requireCondition(running.phase==='running' && active===entry && !launchSignal.aborted && entry.participant.status().current,'AI_WORKER_LIFECYCLE_UNAVAILABLE');
-        const worker=entry.participant.channel();return Object.freeze({...worker,stop:()=>entry.participant.stop()});
+        const worker=entry.participant.channel();
+        // False once readiness is lost (the supervisor has then quiesced the slot) or another launch replaced it.
+        return Object.freeze({...worker,stop:()=>entry.participant.stop(),alive:()=>active===entry && entry.participant.status().current===true});
       }catch(error){entry.abort.abort();await entry.participant?.stop();throw error;}})();return entry.task;
     },
   });

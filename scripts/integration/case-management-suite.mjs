@@ -96,13 +96,13 @@ export async function runCaseManagementSuite(cluster, run) {
     assert.equal((await f.post(await f.body('close'))).status, 403);
     assert.equal((await f.rows('case_lifecycle_actions')).length, 0); assert.equal((await f.current()).state, 'open');
   });
-  await scenario('MG07 the bounded HTTP lane rejects a competing request and its exact retry cannot overwrite the committed version', async f => {
+  await scenario('MG07 the bounded HTTP lane serializes a competing request, which then cannot overwrite the committed version', async f => {
     const claim = await f.body('claim'), close = await f.body('close');
+    // The single administrative slot queues the second request; once it runs, the version check refuses it.
     const results = await Promise.all([f.post(claim), f.post(close)]);
-    assert.deepEqual(results.map(result => result.status).sort(), [200, 503]);
-    const busy = results.findIndex(result => result.status === 503);
-    assert.deepEqual(results[busy].body, { error: 'This operation is busy. Please try again shortly.', code: 'DASHBOARD_BUSY' }); assert.deepEqual(f.errors, []);
-    assert.equal((await f.post([claim, close][busy])).status, 409); assert.deepEqual(f.errors, ['STALE_CASE_VERSION']);
+    assert.deepEqual(results.map(result => result.status).sort(), [200, 409]);
+    const stale = results.findIndex(result => result.status === 409); assert.deepEqual(f.errors, ['STALE_CASE_VERSION']);
+    assert.equal((await f.post([claim, close][stale])).status, 409); assert.deepEqual(f.errors, ['STALE_CASE_VERSION', 'STALE_CASE_VERSION']);
     assert.equal((await f.rows('case_staff_actions')).length + (await f.rows('case_lifecycle_actions')).length, 1);
   });
   await scenario('MG08 queued browser reopening rechecks the retained Staff grant before granting Discord write access', async f => {

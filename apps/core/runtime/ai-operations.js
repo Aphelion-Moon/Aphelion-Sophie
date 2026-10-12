@@ -50,13 +50,50 @@ export function createAiOperationsRuntime({pool,guildId,lifecycle,createRuntime,
       await journal.transition(token,'failed').catch(fault);fault();
     } finally {operation=null;}
   }
+  // Owner decision, 12 October 2026: a running worker that loses readiness (one late heartbeat makes the supervisor
+  // quiesce it) is relaunched in place with the same approved release and without re-disabling AI, at most
+  // RESTART_LIMIT times per RESTART_WINDOW_MS. A relaunch that fails, or exceeds the limit, records the slot as failed
+  // and disables AI, as start-up recovery does. An owner request (pending phase) always takes precedence.
+  const RESTART_LIMIT=3,RESTART_WINDOW_MS=600_000,restarts=[];
+  const lost=()=>runtime!==null && typeof activeWorker?.alive==='function' && activeWorker.alive()!==true;
+  async function relaunch() {
+    const row=await journal.read();
+    if(stopped || row?.phase!=='ready' || row.owner)return reconcile();
+    const abort=new AbortController();operation=abort;const fence=randomUUID(),selected=activeRelease,previous=row.active_identity;
+    let candidate=null,worker=null;
+    const current=async()=>!stopped && !abort.signal.aborted && await lifecycle.qualified(selected)===true;
+    try {
+      const now=Date.now();while(restarts.length && now-restarts[0]>RESTART_WINDOW_MS)restarts.shift();
+      requireCondition(restarts.length<RESTART_LIMIT,'AI_WORKER_RESTART_LIMIT');restarts.push(now);
+      await drain(fence);
+      requireCondition(selected && await current(),'AI_WORKER_NOT_QUALIFIED');
+      const {workerId,releaseHash,profileHash,provider,domain}=selected;
+      const identity=canonicalAiWorkerIdentity({workerId,releaseHash,profileHash,provider,domain,bootId:randomBytes(32).toString('hex')});
+      worker=await lifecycle.launch({identity,operationId:fence,signal:abort.signal,beforeStart:current});
+      requireCondition(worker && typeof worker.probe==='function' && await current(),'AI_WORKER_NOT_QUALIFIED');
+      const acknowledged=canonicalAiWorkerIdentity(await worker.probe({signal:abort.signal}));
+      requireCondition(Object.keys(identity).every(key=>identity[key]===acknowledged[key]) && await current(),'AI_WORKER_ACK_MISMATCH');
+      candidate=createRuntime(worker);await candidate.start();
+      if(!await journal.relaunched(previous,acknowledged)){
+        // The owner changed the slot meanwhile: hand back to the normal request path.
+        await candidate.stop().catch(fault);candidate=null;await Promise.resolve().then(()=>worker.stop()).catch(fault);worker=null;
+        await quiesce(fence);return;
+      }
+      runtime=candidate;activeWorker=worker;activeRelease=selected;activeIdentity=identity;candidate=null;worker=null;
+      try{onFault('AI_WORKER_RELAUNCHED');}catch{}
+    } catch(error) {
+      await candidate?.stop().catch(fault);if(worker?.stop)await Promise.resolve().then(()=>worker.stop()).catch(fault);
+      try {if(runtime)await drain(fence);else await quiesce(fence);await journal.recovered();}catch{fault();}
+      try{onFault(error?.message==='AI_WORKER_RESTART_LIMIT'?'AI_WORKER_RESTART_LIMIT':'AI_WORKER_RELAUNCH_FAILED');}catch{}
+    } finally {operation=null;}
+  }
   function schedule() {
     clearTimeout(timer);if(stopped || !automatic)return;
     timer=setTimeout(()=>{void tick().catch(fault);},500);
   }
   function tick() {
     requireCondition(started && !stopped,'AI_RUNTIME_STOPPED');if(running)return task;
-    clearTimeout(timer);running=true;task=reconcile().finally(()=>{running=false;schedule();});return task;
+    clearTimeout(timer);running=true;task=(lost()?relaunch():reconcile()).finally(()=>{running=false;schedule();});return task;
   }
   async function stop() {
     if(closing)return closing;

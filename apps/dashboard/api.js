@@ -84,6 +84,7 @@ export function createDashboardApi({ fetch, navigate = path => globalThis.locati
     aiPublish: body => request('/api/ai/publish', body),
     aiDisable: () => request('/api/ai/disable', {}),
     aiBudget: () => request('/api/ai/budget'),
+    aiOverview: () => request('/api/ai/overview'),
     aiResolveSpending: body => request('/api/ai/resolve-spending', body),
     aiReviewSpendingHold: body => request('/api/ai/review-spending-hold', body),
     aiClearSpendingHold: body => request('/api/ai/clear-spending-hold', body),

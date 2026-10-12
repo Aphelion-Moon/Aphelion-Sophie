@@ -145,14 +145,17 @@ async function load() {
   if (personal) { if (!session.aiAvailable) throw Object.assign(Error(), { kind: 'denied' }); await consents(); await preferences.load(); }
   else {
     if (!session.canControlAi && !session.canEditPersonality) throw Object.assign(Error(), { kind: 'denied' });
+    // One request for every saved part this page shows; a part the server withholds means access changed.
+    const overview = await api.aiOverview();
+    const part = value => { if (value === null || value === undefined) throw Object.assign(Error(), { kind: 'denied' }); return value; };
     if (session.canControlAi) {
-      const current = await api.aiPublication('configuration'); configuration = current.publication?.document ?? configuration; configurationRevision = current.publication?.revision ?? 0;
+      const current = part(overview.configuration); configuration = current.publication?.document ?? configuration; configurationRevision = current.publication?.revision ?? 0;
       el('participation').hidden = false; el('desired-enabled').checked = configuration.enabled; el('deadline').value = configuration.deadlineMs / 1000;
       el('active-state').textContent = `Saved revision ${configurationRevision}.`; channels(); emojis();
       aiDisabled = current.disabled; el('overview').hidden = false; el('overview-ai').textContent = current.disabled ? 'Disabled' : 'Allowed where each channel and member qualifies';
-      const savedBudget = await api.aiPublication('budget'); budget = savedBudget.publication?.document ?? { ...DEFAULT_AI_BUDGET }; budgetRevision = savedBudget.publication?.revision ?? 0;
-      const spending = await api.aiBudget(); el('budget').hidden = false;
-      workerSnapshot=await api.aiWorker();
+      const savedBudget = part(overview.budgetPublication); budget = savedBudget.publication?.document ?? { ...DEFAULT_AI_BUDGET }; budgetRevision = savedBudget.publication?.revision ?? 0;
+      const spending = part(overview.budget); el('budget').hidden = false;
+      workerSnapshot=part(overview.worker);
       el('activation-channel').replaceChildren();
       for(const channel of configuration.channels.filter(row=>row.profile.mode!=='ignore')){const option=document.createElement('option');option.value=channel.channelId;option.textContent=channel.channelId;el('activation-channel').append(option);}
       clearDiagnostic();el('diagnostics').hidden=false;el('diagnostic-channel').replaceChildren();
@@ -188,7 +191,7 @@ async function load() {
         row.className = 'ai-card'; row.append(label,button); el('unresolved-spending').append(row);
       }
     }
-    if (session.canEditPersonality) { const current = await api.aiPublication('personality'); character = current.publication?.document ?? structuredClone(DRAFT_PERSONALITY); personalityRevision = current.publication?.revision ?? 0;
+    if (session.canEditPersonality) { const current = part(overview.personality); character = current.publication?.document ?? structuredClone(DRAFT_PERSONALITY); personalityRevision = current.publication?.revision ?? 0;
       el('personality').hidden = false; el('character-core').value = character.core; examples(); }
     if (workerSnapshot) { renderWorker(workerSnapshot); if (transitional(workerSnapshot.phase)) void watchWorker(); }
   }

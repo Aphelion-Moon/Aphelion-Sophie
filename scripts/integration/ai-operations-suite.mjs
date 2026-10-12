@@ -30,8 +30,10 @@ export async function runAiOperationsSuite(cluster,run) {
       async launch({identity,beforeStart}) {
         assert.equal(await beforeStart(),true);assert.equal(physical,false);physical=true;events.push('launch');launched++;
         if(flags.launchGate)await flags.launchGate.promise;
+        if(flags.failLaunch)throw Error('AI_WORKER_LIFECYCLE_UNAVAILABLE');
+        flags.alive=true;
         return {provider:'mistral',probe:async()=>{events.push('probe');return flags.wrongAck?{...identity,bootId:'f'.repeat(64)}:identity;},
-          stop(){events.push('client-stop');}};
+          stop(){events.push('client-stop');},alive:()=>flags.alive};
       }};
     const makeRuntime=()=>createAiOperationsRuntime({pool,guildId:actor.guildId,lifecycle,onFault:()=>events.push('fault'),
       createRuntime:()=>({async start(){events.push('lane-start');},async stop(){events.push('lane-stop');if(flags.drainGate)await flags.drainGate.promise;},
@@ -133,6 +135,30 @@ export async function runAiOperationsSuite(cluster,run) {
       await f.runtime.runOnce();assert.equal((await f.status()).phase,'stopped');assert.equal(f.physical(),false);
       assert.equal(await count(),before);assert.equal(f.launches(),1);assert.equal((await f.status()).historyFull,true);
     }finally{await f.close();}
+  });
+  await run('DS09-O11 a worker that loses readiness is relaunched in place, bounded, and an owner request takes precedence',async()=>{
+    const f=await fixture();try {
+      await f.start();await f.apply();await f.runtime.runOnce();const first=await f.status();
+      await admin.query('UPDATE sophie_ai.state SET disabled=false WHERE guild_id=$1',[f.actor.guildId]);
+      f.flags.alive=false;await f.runtime.runOnce();const second=await f.status();
+      assert.equal(second.phase,'ready');assert.equal(second.activeRevision,first.activeRevision);assert.notEqual(second.acknowledged.bootId,first.acknowledged.bootId);
+      assert.equal(second.disabled,false,'a relaunch keeps the owner\'s live activation');assert.equal(f.launches(),2);assert.equal(f.physical(),true);
+      assert.equal(f.runtime.prepare({}),'synthetic-proof');
+      // An owner request in flight is served by the normal request path, not by a relaunch.
+      f.flags.alive=false;await f.store.stopWorker({actor:f.actor,requestId:aiDigest(randomUUID())});await f.runtime.runOnce();
+      assert.equal((await f.status()).phase,'stopped');assert.equal(f.launches(),2);assert.equal(f.physical(),false);
+    }finally{await f.close();}
+  });
+  await run('DS09-O12 relaunches are limited per window and a failed relaunch records failure and disables AI',async()=>{
+    for(const mode of ['limit','failure']) {const f=await fixture();try {
+      await f.start();await f.apply();await f.runtime.runOnce();
+      await admin.query('UPDATE sophie_ai.state SET disabled=false WHERE guild_id=$1',[f.actor.guildId]);
+      if(mode==='limit')for(let index=0;index<3;index++){f.flags.alive=false;await f.runtime.runOnce();assert.equal((await f.status()).phase,'ready');}
+      else f.flags.failLaunch=true;
+      f.flags.alive=false;await f.runtime.runOnce();
+      const status=await f.status();assert.equal(status.phase,'failed',mode);assert.equal(status.disabled,true,mode);assert.equal(f.physical(),false,mode);
+      assert.equal(f.runtime.prepare({}),null,mode);f.flags.failLaunch=false;
+    }finally{await f.close();}}
   });
   await run('DS09-O10 an exact lost-response apply retry does not cancel its in-progress launch',async()=>{
     const f=await fixture();try {

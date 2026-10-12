@@ -40,6 +40,22 @@ export function createDashboardAuthHttpServer({ configuration, auth, authorizati
   const available = { knowledgeLookup: knowledgeLookup !== null, 'ai.knowledge.publish': knowledge !== null, ai: ai !== null, 'ai.control': ai !== null, 'ai.personality.publish': ai !== null, 'shuttle.publish': authoring !== null, 'case.forms.publish': formAuthoring !== null,
     'answers.publish': answers !== null, 'automation.publish': automation !== null, 'permissions.publish': permissions !== null, moderation: moderation !== null, caseDelivery: caseDelivery !== null, onboardingStaff: onboardingStaff !== null };
   let reserved = false, sourceReserved = false, stopping = false;
+  // One administrative request runs at a time. Later ones wait in a short FIFO queue instead of being refused, so the
+  // page does not back off and retry; a full queue, a long wait or shutdown still answers DASHBOARD_BUSY.
+  const waiting = [], MAX_WAITING = 8, MAX_WAIT_MS = 8_000;
+  function acquire() {
+    if (!reserved) { reserved = true; return Promise.resolve(true); }
+    if (stopping || waiting.length >= MAX_WAITING) return Promise.resolve(false);
+    return new Promise(resolve => {
+      const entry = { resolve, timer: null };
+      entry.timer = setTimeout(() => { const index = waiting.indexOf(entry); if (index !== -1) waiting.splice(index, 1); resolve(false); }, MAX_WAIT_MS);
+      entry.timer.unref?.(); waiting.push(entry);
+    });
+  }
+  function release() {
+    const next = stopping ? null : waiting.shift();
+    if (next) { clearTimeout(next.timer); next.resolve(true); } else reserved = false;
+  }
   const fault = () => { try { onFault('DASHBOARD_AUTH_UNAVAILABLE'); } catch { /* Never expose request material through logging. */ } };
   function send(response, status, data, extra = {}) {
     response.writeHead(status, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store',
@@ -100,8 +116,10 @@ export function createDashboardAuthHttpServer({ configuration, auth, authorizati
     if (stopping || await enabled() !== true) { send(response, 503, { error: 'Sign-in is currently unavailable.' }); return; }
     // A bounded upstream source check must not occupy the administrative request slot.
     const sourceRefresh = path === '/api/ai/knowledge/refresh-policies';
-    if (sourceRefresh ? sourceReserved : reserved) { send(response, 503, { error: 'This operation is busy. Please try again shortly.', code: 'DASHBOARD_BUSY' }); return; }
-    if (sourceRefresh) sourceReserved = true; else reserved = true;
+    const busy = () => send(response, 503, { error: 'This operation is busy. Please try again shortly.', code: 'DASHBOARD_BUSY' });
+    if (sourceRefresh) { if (sourceReserved) { busy(); return; } sourceReserved = true; }
+    else if (!await acquire()) { busy(); return; }
+    else if (stopping || response.destroyed) { release(); if (!response.destroyed) send(response, 503, { error: 'Sign-in is currently unavailable.' }); return; }
     try {
       if (!editing && !['/auth/callback','/auth/start'].includes(path)) requireCondition(url.search === '', 'DASHBOARD_REQUEST_INVALID');
       if (editing) {
@@ -144,7 +162,7 @@ export function createDashboardAuthHttpServer({ configuration, auth, authorizati
         await auth.logout({ token: cookies.session, method: 'POST', origin: request.headers.origin, csrfToken: request.headers['x-csrf-token'] });
         send(response, 200, { status: 'signed_out' }, { 'Set-Cookie': dashboardCookie('session', null, 0) });
       }
-    } finally { if (sourceRefresh) sourceReserved = false; else reserved = false; }
+    } finally { if (sourceRefresh) sourceReserved = false; else release(); }
   }
   const server = createServer({ maxHeaderSize: 16_384 }, (request, response) => {
     let task;
@@ -195,6 +213,7 @@ export function createDashboardAuthHttpServer({ configuration, auth, authorizati
     async drain() { await Promise.all([...running]); },
     async close() {
       stopping = true;
+      for (const entry of waiting.splice(0)) { clearTimeout(entry.timer); entry.resolve(false); }
       await new Promise((resolve, reject) => { server.close(error => error ? reject(error) : resolve()); server.closeIdleConnections(); });
       await Promise.all([...running]);
     },

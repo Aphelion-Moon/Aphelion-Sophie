@@ -377,6 +377,22 @@ test('SAI AT-06 control HTTP binds mutations to the authenticated actor and reje
   assert.equal(calls.length, 1);
 });
 
+test('DASH-B01 the AI overview resolves the actor once, withholds denied parts and fails on any other error', async () => {
+  const actor = { userId: '123', guildId: '101' }, proof = {}; let resolved = 0, broken = false;
+  const denied = () => { throw Object.assign(Error('OPERATION_DENIED'), { code: 'OPERATION_DENIED' }); };
+  const controls = { current: async ({ actor: received, kind }) => { assert.equal(received, actor); if (kind === 'personality') denied(); return { publication: { kind } }; },
+    budgetStatus: async () => { if (broken) throw Object.assign(Error('AI_CONTROL_UNAVAILABLE'), { code: 'AI_CONTROL_UNAVAILABLE' }); return { balances: [] }; },
+    workerStatus: async () => ({ phase: 'ready' }) };
+  const http = createAiControlsHttp({ auth: { authenticate: async () => ({ proof }), resolvePrincipal: async () => ({}) },
+    authorization: { resolveActor: async (received, options) => { assert.equal(received, proof); assert.deepEqual(options, { reuse: true }); resolved++; return actor; } }, controls });
+  const request = { path: '/api/ai/overview', method: 'GET', query: new URLSearchParams(), body: null, credentials: {} };
+  const overview = await http.execute(request);
+  assert.equal(resolved, 1); assert.equal(overview.configuration.publication.kind, 'configuration'); assert.equal(overview.budgetPublication.publication.kind, 'budget');
+  assert.deepEqual(overview.budget, { balances: [] }); assert.deepEqual(overview.worker, { phase: 'ready' }); assert.equal(overview.personality, null);
+  await assert.rejects(http.execute({ ...request, query: new URLSearchParams('kind=budget') }), /AI_INPUT_INVALID/);
+  broken = true; await assert.rejects(http.execute(request), /AI_CONTROL_UNAVAILABLE/);
+});
+
 test('SAI AT-07 dashboard session preserves explicit AI access flags and denies malformed flags', async () => {
   const session = { userId: '123', guildId: '101', csrfToken: 'a'.repeat(64), canEditOnboarding: false, canEditForms: false,
     canControlAi: true, canEditPersonality: false, aiAvailable: true };
