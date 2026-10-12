@@ -1101,3 +1101,10 @@ a synced document in the dashboard excludes it permanently; re-publishing it by 
 document the sync no longer touches. Retrieval now matches any query word (with a minimum overlap), ranks titles and
 headings above body text, uses the last few lines of conversation, and returns at most two passages per document. No
 dependency, migration, credential or provider change.
+
+### The wiki is the rulebook — 13 October 2026
+
+The owner: "The wiki IS the authority for policy, it's not posted anywhere else." Sophie's fixed rules now say the
+community's wiki is its official and only rulebook: when supplied policy evidence answers a question she states the rule
+and cites it rather than sending the member to the wiki or to staff. Abstaining without policy evidence is unchanged.
+The prompt budget rose from 16 KB to 32 KB, because at 16 KB every turn lost its whole conversation history.
