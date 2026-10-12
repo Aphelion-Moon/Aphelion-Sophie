@@ -81,7 +81,8 @@ function Set-ProtectedAcl {
     if ((Get-Item -LiteralPath $Path) -is [System.IO.DirectoryInfo]) { $acl = [System.Security.AccessControl.DirectorySecurity]::new() }
     $acl.SetAccessRuleProtection($true, $false)
     $all = @{ 'S-1-5-18' = 'FullControl'; 'S-1-5-32-544' = 'FullControl' } + $Grants
-    foreach ($sid in $all.Keys) {
+    # Sorted: hashtable order is randomized per PowerShell 7 process, and reruns must write byte-identical ACLs.
+    foreach ($sid in ($all.Keys | Sort-Object)) {
         $acl.AddAccessRule([System.Security.AccessControl.FileSystemAccessRule]::new(
             [System.Security.Principal.SecurityIdentifier]::new($sid), $all[$sid], $Inheritance, 'None', 'Allow'))
     }
@@ -192,10 +193,15 @@ if (-not $registered) {
     if ($registered.StartName -ne "NT SERVICE\$ServiceId") { throw "Unexpected service account $($registered.StartName)" }
     if ($registration -eq 'legacy' -and $PSCmdlet.ShouldProcess($ServiceId, 'Upgrade supervisor-era wrapper configuration (restart on failure)')) {
         $workerXml | Set-Content -LiteralPath (Join-Path $ServiceDirectory "$ServiceId.xml") -Encoding utf8NoBOM
-        & $Wrapper refresh
-        if ($LASTEXITCODE -ne 0) { throw "WinSW refresh failed ($LASTEXITCODE)" }
         Write-Host '  * upgraded wrapper configuration'
     }
+}
+# WinSW 2.12 has no refresh command: the restart policy and description are applied to the SCM directly (idempotent).
+if ($PSCmdlet.ShouldProcess($ServiceId, 'Set SCM restart-on-failure actions and description')) {
+    & sc.exe failure $ServiceId reset= 86400 actions= restart/10000/restart/10000/restart/10000 | Out-Null
+    if ($LASTEXITCODE -ne 0) { throw "sc.exe failure failed ($LASTEXITCODE)" }
+    & sc.exe description $ServiceId 'Mistral inference worker. Runs alongside Sophie core and connects to it; Manual startup, restarted if it exits.' | Out-Null
+    if ($LASTEXITCODE -ne 0) { throw "sc.exe description failed ($LASTEXITCODE)" }
 }
 if ($WhatIfPreference -and -not $registered) { Write-Host 'WhatIf: the remaining steps need the registered service SID.'; return }
 $workerSid = Get-ServiceSid $ServiceId
