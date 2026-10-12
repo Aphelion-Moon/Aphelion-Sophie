@@ -7,16 +7,21 @@ import { createGuildState } from '../apps/core/discord/guild-state.js';
 import { PERMISSIONS } from '../platform/authorization/discord-permissions.js';
 
 const bits = String(PERMISSIONS.viewChannel | PERMISSIONS.sendMessages | PERMISSIONS.readHistory | PERMISSIONS.addReactions);
-function fixture({ members = [{ user: { id: '505', bot: true }, roles: [] }] } = {}) {
+function fixture({ members = [{ user: { id: '505', bot: true }, roles: [] }], resumed = false } = {}) {
   let now = 1000, stamp = 'live.1', excluded = false, automation = false, restReads = 0, sequence = 0;
   const guildState = createGuildState({ guildId: '101', botUserId: '505' });
   const dispatch = (t, d) => guildState.accept({ op: 0, t, s: ++sequence, d });
-  dispatch('READY', {});
-  dispatch('GUILD_CREATE', { id: '101', owner_id: '808', roles: [{ id: '101', permissions: bits, position: 0 }],
-    channels: [{ id: '202', type: 0, parent_id: '606', permission_overwrites: [] }], members, emojis: [{ id: '808', name: 'wave', roles: [] }] });
+  // A process that started by resuming a Gateway session never receives READY or GUILD_CREATE.
+  if (!resumed) {
+    dispatch('READY', {});
+    dispatch('GUILD_CREATE', { id: '101', owner_id: '808', roles: [{ id: '101', permissions: bits, position: 0 }],
+      channels: [{ id: '202', type: 0, parent_id: '606', permission_overwrites: [] }], members, emojis: [{ id: '808', name: 'wave', roles: [] }] });
+  }
   const message = (id = '303', userId = '404', member = { roles: [] }) => dispatch('MESSAGE_CREATE', { guild_id: '101', channel_id: '202', id, author: { id: userId, bot: false }, type: 0, ...(member ? { member } : {}) });
   message();
-  const transport = { getMember: async id => { restReads++; return id === '505' ? { user: { id: '505', bot: true }, roles: [] } : null; } };
+  const transport = { getMember: async id => { restReads++; return id === '505' ? { user: { id: '505', bot: true }, roles: [] } : null; },
+    getGuild: async () => { restReads++; return { id: '101', owner_id: '808', roles: [{ id: '101', permissions: bits, position: 0 }], emojis: [{ id: '808', name: 'wave', roles: [] }] }; },
+    getGuildChannels: async () => { restReads++; return [{ id: '202', guild_id: '101', type: 0, parent_id: '606', permission_overwrites: [] }]; } };
   const observed = [], pool = { query: async sql => ({ rowCount: (sql.includes('automation_deliveries') ? automation : excluded) ? 1 : 0 }) };
   const authorityStore = { registerPolicy: async () => {}, observeWithPresence: async observation => { observed.push(observation); return { presenceEpoch: 1, grant: { capabilityEpoch: 3 } }; } };
   const options = { pool, transport, guildState, authorityStore, mapping: { guildId: '101', botUserId: '505', muzzled: '909' }, protectedCategoryId: '707',
@@ -181,4 +186,18 @@ test('RB-03 member and role events cancel nothing, a channel change stops only t
   assert.deepEqual(invalidations, []); assert.deepEqual(cancelled, ['202']);
   bridge.prepare({ t: 'MESSAGE_DELETE_BULK', d: { guild_id: '101', channel_id: '202', ids: ['301', '302'] } });
   assert.deepEqual(invalidations, [{ channelId: '202', messageId: '301' }, { channelId: '202', messageId: '302' }]); await bridge.stop();
+});
+
+test('RB-H01 a core that resumed its Gateway session hydrates guild state once over REST instead of refusing every message', async () => {
+  const f = fixture({ resumed: true });
+  assert.equal(f.guildState.ready(), false);
+  assert.ok(await f.observations.inspectContext(f.event), 'the first message after a resume is observed');
+  assert.equal(f.guildState.ready(), true); const reads = f.restReads();
+  assert.equal(reads, 3, 'one guild read, one channel list and one bot member read');
+  assert.ok(await f.observations.inspectContext(f.event)); assert.equal(f.restReads(), reads, 'no further REST reads');
+  const raced = fixture({ resumed: true }), read = raced.transport.getGuildChannels; let calls = 0;
+  raced.transport.getGuildChannels = async () => { if (++calls === 1) raced.dispatch('CHANNEL_UPDATE', channel({ permission_overwrites: [{ id: '999', type: 1, allow: '0', deny: '0' }] })); return read(); };
+  assert.ok(await raced.observations.inspectContext(raced.event)); assert.equal(calls, 2, 'an event during the reads retries the snapshot');
+  const offline = fixture({ resumed: true }); offline.disconnect();
+  assert.equal(await offline.observations.inspectContext(offline.event), null); assert.equal(offline.restReads(), 0, 'no hydration while the Gateway is not current');
 });

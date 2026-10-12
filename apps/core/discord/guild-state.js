@@ -44,7 +44,8 @@ export function createGuildState({ guildId, botUserId, messageCapacity = 5000, m
   requireId(guildId); requireId(botUserId);
   requireCondition(Number.isSafeInteger(messageCapacity) && messageCapacity > 0 && Number.isSafeInteger(memberCapacity) && memberCapacity > 0, 'INVALID_INTEGER');
   const roles = new Map(); const channels = new Map(); const members = new Map(); const emojis = new Map(); const messages = new Map();
-  let guild = null; let ready = false; let session = 0;
+  // revision counts guild, role, channel, emoji and member changes, so a REST hydration can tell it raced an event.
+  let guild = null; let ready = false; let session = 0; let revision = 0;
 
   // Map iteration order is insertion order, so delete-then-set both refreshes an entry and keeps the first key the oldest.
   const remember = (map, capacity, key, value) => {
@@ -125,6 +126,7 @@ export function createGuildState({ guildId, botUserId, messageCapacity = 5000, m
       if (!isRecord(data)) return;
       const own = type === 'GUILD_CREATE' || type === 'GUILD_UPDATE' || type === 'GUILD_DELETE' ? data.id : data.guild_id;
       if (own !== guildId) return;
+      if (!type.startsWith('MESSAGE_')) revision += 1;
       dispatch(type, data);
     } catch {
       // A half-applied GUILD_CREATE cannot be trusted; other handlers mutate one entry at a time.
@@ -143,7 +145,7 @@ export function createGuildState({ guildId, botUserId, messageCapacity = 5000, m
 
   return Object.freeze({
     accept, rememberMember,
-    ready: () => ready, session: () => session,
+    ready: () => ready, session: () => session, revision: () => revision,
     guild: () => (guild ? structuredClone(guild) : null),
     roles: () => structuredClone([...roles.values()]),
     channel: id => (channels.has(id) ? structuredClone(channels.get(id)) : null),
