@@ -26,10 +26,22 @@ export function createDiscordRoles({ transport, mapping, clock, readContinuity }
   // result. It never outlives IDENTITY_SHARE_MS and ends on any gateway dispatch, because the continuity stamp includes
   // the gateway sequence. A failed check is never shared. Guild roles and member state are always read afresh.
   let identity = null;
+  // Actor observations for dashboard requests share the single-flight core transport with background work. A request
+  // already in flight is a short wait (at most 1.5 s in total), not a failed sign-in. observedAt is taken before the
+  // reads, so waiting only ages the observation and freshness checks stay at least as strict.
+  async function patient(read) {
+    for (let waited = 0; ;) {
+      try { return await read(); } catch (error) {
+        const retry = error?.retryAfterMs;
+        if (error?.code !== 'DISCORD_BUSY' || !Number.isSafeInteger(retry) || waited + retry > 1_500) throw error;
+        waited += Math.max(50, retry); await new Promise(resolve => setTimeout(resolve, Math.max(50, retry)));
+      }
+    }
+  }
   function confirmIdentity(version) {
     const now = clock();
     if (identity && identity.version === version && now >= identity.at && now - identity.at <= IDENTITY_SHARE_MS) return identity.promise;
-    const record = { version, at: now, promise: transport.getCurrentUser().then(value => {
+    const record = { version, at: now, promise: patient(() => transport.getCurrentUser()).then(value => {
       requireCondition(value?.id === fixed.botUserId && value.bot === true, 'DISCORD_AUTHORIZATION_FAILED');
     }) };
     identity = record; record.promise.catch(() => { if (identity === record) identity = null; });
@@ -68,16 +80,16 @@ export function createDiscordRoles({ transport, mapping, clock, readContinuity }
       const version = await stamp();
       const observedAt = clock(); requireInteger(observedAt);
       await confirmIdentity(version);
-      const guild = await transport.getGuild();
+      const guild = await patient(() => transport.getGuild());
       requireCondition(guild?.id === fixed.guildId, 'FOREIGN_GUILD'); requireId(guild.owner_id);
-      const roles = await transport.getRoles();
+      const roles = await patient(() => transport.getRoles());
       requireCondition(Array.isArray(roles) && roles.length >= 1 && roles.length <= 500, 'DISCORD_RESPONSE_INVALID');
       for (const role of roles) {
         requireId(role?.id); requireInteger(role.position, 0, 500);
         requireCondition(typeof role.permissions === 'string' && /^\d{1,32}$/.test(role.permissions), 'DISCORD_RESPONSE_INVALID');
       }
       requireCondition(new Set(roles.map(role => role.id)).size === roles.length && roles.some(role => role.id === fixed.guildId), 'DISCORD_RESPONSE_INVALID');
-      const member = await transport.getMember(userId);
+      const member = await patient(() => transport.getMember(userId));
       const roleIds = member === null ? [] : memberRoles(member, userId);
       requireCondition(roleIds.every(id => roles.some(role => role.id === id)), 'ROLE_CONFIGURATION_INVALID');
       requireCondition(member === null || member.user.bot === undefined || typeof member.user.bot === 'boolean', 'DISCORD_RESPONSE_INVALID');

@@ -7,7 +7,7 @@ export const AI_ROUTES = Object.freeze({ '/api/ai/publication': 'GET', '/api/ai/
   '/api/ai/review-activation':'POST', '/api/ai/activate':'POST',
   '/api/ai/diagnostics':'GET','/api/ai/overview':'GET','/api/ai/preferences':'GET','/api/ai/preferences/export':'GET', '/api/ai/save-preferences':'POST', '/api/ai/delete-preferences':'POST','/api/ai/save-retention':'POST' });
 
-export function createAiControlsHttp({ auth, authorization, controls }) {
+export function createAiControlsHttp({ auth, authorization, controls, trace = () => {} }) {
   return Object.freeze({ async execute({ path, method, query, body, credentials }) {
     requireCondition(Object.hasOwn(AI_ROUTES, path) && AI_ROUTES[path] === method, 'AI_INPUT_INVALID');
     let operation, fields;
@@ -52,13 +52,14 @@ export function createAiControlsHttp({ auth, authorization, controls }) {
     const actor = await authorization.resolveActor(proof, { reuse: true });
     // The AI page's whole saved state in one request. Each part still authorizes its own capability; a part the
     // actor may not read is null rather than failing the page, and any other error fails the request.
-    const permitted = async work => { try { return await work(); } catch (error) { if (error?.code === 'OPERATION_DENIED') return null; throw error; } };
+    const permitted = async (part, work) => { try { return await work(); } catch (error) {
+      if (error?.code !== 'OPERATION_DENIED') throw error; try { trace(`AI_OVERVIEW_WITHHELD_${part}`); } catch { /* Diagnostics only. */ } return null; } };
     const result = operation === 'overview' ? {
-      configuration: await permitted(() => controls.current({ actor, kind: 'configuration' })),
-      budgetPublication: await permitted(() => controls.current({ actor, kind: 'budget' })),
-      budget: await permitted(() => controls.budgetStatus({ actor })),
-      worker: await permitted(() => controls.workerStatus({ actor })),
-      personality: await permitted(() => controls.current({ actor, kind: 'personality' })) } : await controls[operation]({ ...fields, actor });
+      configuration: await permitted('CONFIGURATION', () => controls.current({ actor, kind: 'configuration' })),
+      budgetPublication: await permitted('BUDGET_POLICY', () => controls.current({ actor, kind: 'budget' })),
+      budget: await permitted('BUDGET', () => controls.budgetStatus({ actor })),
+      worker: await permitted('WORKER', () => controls.workerStatus({ actor })),
+      personality: await permitted('PERSONALITY', () => controls.current({ actor, kind: 'personality' })) } : await controls[operation]({ ...fields, actor });
     await auth.resolvePrincipal(proof);
     if(path==='/api/ai/preferences/export'){
       requireCondition(result.available===true,'AI_PREFERENCE_JOURNAL_UNAVAILABLE');
