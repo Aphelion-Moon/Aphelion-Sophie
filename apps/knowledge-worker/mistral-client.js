@@ -91,7 +91,9 @@ export function createMistralClient({ apiKey, fetchImpl = fetch, clock = Date.no
       if (schema.oneOf.length === 1) return prepared({ sources, contract, body: null, serialized: null, bytes: 0, messages: [], blocks: [] },started);
       const selected = messages.filter((_message, index) => !removed.has(index) && index !== contractMessageIndex).map(({ role, content }) => ({ role, content }));
       // JSON mode does not enforce this schema. Describe it, then validate locally.
-      selected.splice(selected.length - 1, 0, { role: 'system', content: `${guidance ? `${guidance}\n` : ''}Return one JSON object matching this turn's schema. Silence is {"kind":"silent"}. No markdown or extra fields.\n${JSON.stringify(schema)}` });
+      // Show a reply's shape whenever one is permitted, so silence is not the only concrete outcome the model sees.
+      const replyShape = contract.outcomes.includes('reply') ? ' A conversational reply looks like {"kind":"reply","text":"...","purpose":"conversation","support":"current_conversation","citations":[]}.' : '';
+      selected.splice(selected.length - 1, 0, { role: 'system', content: `${guidance ? `${guidance}\n` : ''}Return one JSON object matching this turn's schema.${replyShape} Silence is {"kind":"silent"}. No markdown or extra fields.\n${JSON.stringify(schema)}` });
       const body = { model: MISTRAL_MODEL, messages: selected, prompt_cache_key: cacheKey, reasoning_effort: 'none',
         stream: false, max_tokens: outputTokens, temperature: 0.4, response_format: { type: 'json_object' } };
       const serialized = JSON.stringify(body), bytes = Buffer.byteLength(serialized, 'utf8');
