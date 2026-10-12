@@ -65,6 +65,9 @@ export function createAiRuntime({ configuration, corePool, controlPool, worker, 
       if (state?.disabled !== false || next !== fingerprint || !await enabled()) invalidate();
       fingerprint = next; await admission.expire(); await expireUnlessContended(() => accounting.expire());
       for (const effect of await effects.pending()) {
+        // Periodic re-verification of a delivered reply yields Discord's small read budget to a message being handled.
+        // Removal of withdrawn effects (state cleanup) never waits.
+        if (effect.state === 'confirmed' && turns.active()) continue;
         const key = `${effect.message_id}.${effect.owner}`;
         let current = effect.state === 'confirmed', unverifiable = false;
         try {

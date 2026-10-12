@@ -132,6 +132,18 @@ export function createAiWorkerJournal({pool,guildId}) {
         [guildId,next,phase,token.revision,identity,terminal]);return true;
       });
     },
+    /** In-place relaunch after lost readiness: only a ready, unowned slot still showing the lost boot takes the new boot. */
+    async relaunched(previous,identity) {
+      identity=canonicalAiWorkerIdentity(identity);
+      return transaction(async client=>{
+        const row=(await client.query('SELECT * FROM sophie_ai.worker_state WHERE guild_id=$1 FOR UPDATE',[guildId])).rows[0];
+        if(!row || row.phase!=='ready' || row.owner || JSON.stringify(canonicalAiWorkerIdentity(row.active_identity))!==JSON.stringify(canonicalAiWorkerIdentity(previous)))return false;
+        const release=(await client.query('SELECT release FROM sophie_ai.worker_requests WHERE guild_id=$1 AND revision=$2',[guildId,row.active_revision])).rows[0]?.release;
+        requireCondition(release && ['workerId','releaseHash','profileHash','provider','domain'].every(key=>canonicalAiWorkerRelease(release)[key]===identity[key]),'AI_WORKER_ACK_MISMATCH');
+        await client.query('UPDATE sophie_ai.worker_state SET active_identity=$2,updated_at=clock_timestamp() WHERE guild_id=$1',[guildId,identity]);
+        return true;
+      });
+    },
     async recovered() {
       return transaction(async client=>{
         const row=(await client.query('SELECT * FROM sophie_ai.worker_state WHERE guild_id=$1 FOR UPDATE',[guildId])).rows[0];

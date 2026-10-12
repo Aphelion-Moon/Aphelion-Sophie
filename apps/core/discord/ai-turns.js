@@ -178,6 +178,8 @@ export function createAiTurns({ admission, scheduler, context, knowledge, messag
       const task = run(request); outstanding.set(request.messageId, { request, task });
       try { return await task; } finally { outstanding.delete(request.messageId); }
     },
+    /** True while any message is gathering or running; background rechecks yield Discord capacity to it. */
+    active: () => outstanding.size > 0 || gatherings.size > 0,
     invalidate(filter = {}) {
       invalidateContext(filter);
       for (const entry of [...gatherings.values()]) if ([...entry.fragments.values()].some(item=>(!filter.channelId || item.channelId===filter.channelId) &&

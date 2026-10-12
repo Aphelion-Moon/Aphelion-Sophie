@@ -92,7 +92,10 @@ export function createAiEffects({ pool, guildId, clock }) {
       return inTransaction(pool, async client => {
         // The request receipt still prevents resending after retired cleanup metadata is pruned.
         await client.query("DELETE FROM sophie_ai.effects WHERE guild_id=$1 AND state='removed' AND updated_at<clock_timestamp()-interval '7 days'", [guildId]);
-        const rows = (await client.query(`SELECT * FROM sophie_ai.effects WHERE guild_id=$1 AND receipt_id IS NOT NULL AND state IN ('confirmed','cleanup')
+        // A confirmed effect is re-verified at most every 10 seconds, so delivered replies do not consume Discord's
+        // per-second read budget continuously. Effects marked for cleanup (explicit withdrawal) are always returned.
+        const rows = (await client.query(`SELECT * FROM sophie_ai.effects WHERE guild_id=$1 AND receipt_id IS NOT NULL AND (state='cleanup' OR
+          (state='confirmed' AND (checked_at IS NULL OR checked_at <= clock_timestamp()-interval '10 seconds')))
           ORDER BY checked_at,message_id LIMIT 4 FOR UPDATE SKIP LOCKED`, [guildId])).rows;
         if (rows.length) await client.query('UPDATE sophie_ai.effects SET checked_at=clock_timestamp() WHERE guild_id=$1 AND message_id=ANY($2::text[])', [guildId,rows.map(row => row.message_id)]);
         return rows;
