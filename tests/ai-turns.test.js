@@ -194,6 +194,15 @@ test('DS-08 context byte limit includes UTF-8 and reply dependencies after repla
   } finally { context.clear(); }
 });
 
+test('SAI AT-03 knowledge lookup receives the recent conversation so a follow-up finds its topic', async () => {
+  const f = turnsFixture(), lookups = [];
+  f.knowledge.lookup = async (query, request, conversation) => { lookups.push({ query, conversation }); return []; };
+  f.context.remember(request({ messageId: '300', text: 'How do airlocks work?', receivedAt: 900 }));
+  assert.deepEqual(await f.turns.handle({}), { state: 'delivered' });
+  assert.equal(lookups[0].query, 'Synthetic hello'); assert.match(lookups[0].conversation, /airlocks/u);
+  await f.turns.stop();
+});
+
 function turnsFixture() {
   let now = 1000, eligible = true; const sent = [], states = [], modelCalls = [];
   const value = request(), output = { kind: 'reply', text: 'Hello!', purpose: 'conversation', support: 'current_conversation', citations: [] };

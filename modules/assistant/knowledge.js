@@ -1,13 +1,15 @@
 import { requireCondition, requireId, requireInteger, requireKeys, requireName } from '../../contracts/validation.js';
 
 export const MEDIAWIKI_EXTRACTOR_REVISION = 'mediawiki-structured-v1';
+/** Kinds the source synchronizer owns and publishes on its own (owner decision, 12 October 2026). */
+export const SYNCED_KNOWLEDGE_KINDS = Object.freeze(['wiki-page', 'website', 'repository']);
 
 export function canonicalKnowledgeDocument(value) {
   requireKeys(value, ['id', 'title', 'kind', 'authority', 'url', 'rights', 'attribution', 'sourceRevision', 'dependencyHash', 'fetchedAt', 'validUntil', 'aliases', 'sections'], 'KNOWLEDGE_DOCUMENT_INVALID');
   requireCondition(typeof value.id === 'string' && /^[a-z][a-z0-9-]{0,47}$/.test(value.id), 'KNOWLEDGE_DOCUMENT_INVALID');
   const text = (item, limit) => requireCondition(typeof item === 'string' && item.trim().length > 0 && item.length <= limit && item.isWellFormed() && !/[\u0000-\u0008\u000b\u000c\u000e-\u001f]/u.test(item), 'KNOWLEDGE_DOCUMENT_INVALID');
   text(value.title, 200); text(value.rights, 300); text(value.attribution, 500); text(value.sourceRevision, 160);
-  requireCondition(['owner-publication','mediawiki','repository'].includes(value.kind) && ['policy','lore','reference','community-event'].includes(value.authority), 'KNOWLEDGE_DOCUMENT_INVALID');
+  requireCondition(['owner-publication','mediawiki',...SYNCED_KNOWLEDGE_KINDS].includes(value.kind) && ['policy','lore','reference','community-event'].includes(value.authority), 'KNOWLEDGE_DOCUMENT_INVALID');
   text(value.url, 1000); const url = new URL(value.url);
   requireCondition(url.protocol === 'https:' && !url.username && !url.password && url.port === '' && !url.hash, 'KNOWLEDGE_URL_INVALID');
   requireCondition(/^[a-f0-9]{64}$/.test(value.dependencyHash), 'KNOWLEDGE_DOCUMENT_INVALID');

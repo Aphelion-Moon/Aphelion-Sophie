@@ -87,7 +87,8 @@ export function createAiTurns({ admission, scheduler, context, knowledge, messag
       const dependencies = [...history,...(request.fragments ?? []).filter(item=>item.messageId!==request.messageId)
         .map(item=>({...item,expiresAt:item.receivedAt+Math.min(300000,item.profile.contextTtlMs)}))];
       stage = 'KNOWLEDGE';
-      const sources = await knowledge.lookup(request.text, request);
+      // The last few exchanged lines let a follow-up ("what about the other one?") find the topic being discussed.
+      const sources = await knowledge.lookup(request.text, request, history.slice(-3).map(source => source.text).join('\n').slice(-4000));
       // Only the requester's own shared notes; never another participant's.
       stage = 'MEMORY';
       const saved = memory === null ? null : await memory.read(request.userId);

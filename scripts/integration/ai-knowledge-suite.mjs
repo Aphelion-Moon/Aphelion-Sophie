@@ -5,6 +5,7 @@ import { migrateCore } from '../../apps/core/storage/migrate.js';
 import { createKnowledgeLibrary } from '../../apps/knowledge/library.js';
 import { createMediaWikiCollector, POLICIES_SOURCE } from '../../apps/knowledge/mediawiki.js';
 import { createWikiExtractor } from '../../apps/knowledge/extraction.js';
+import { packDocuments } from '../../apps/knowledge/sources/sectioning.js';
 
 export async function runAiKnowledgeSuite(cluster, run) {
   const { adminPool: admin, knowledgePool: pool, corePool } = cluster;
@@ -227,5 +228,63 @@ export async function runAiKnowledgeSuite(cluster, run) {
     templateVersion = 3; await assert.rejects(imports.refreshPolicies({ actor }),/KNOWLEDGE_IMPORT_CAPACITY/);
     assert.equal((await imports.policiesStatus({ actor })).state,'unavailable');
     assert.equal((await pool.query('SELECT count(*)::int AS count FROM sophie_knowledge.import_snapshots')).rows[0].count,32);
+  });
+  let syncInvalidations = 0;
+  const synced = createKnowledgeLibrary({ ...options, syncAuthorized: async () => true, invalidate: () => { syncInvalidations++; } });
+  const wikiDoc = (idBase, title, sections, { revision = 'r1', fetchedAt = Date.now(), authority = 'reference' } = {}) => ({ idBase, sourceRevision: `wiki:page:1:${revision}`,
+    documents: packDocuments({ idBase, title, kind: 'wiki-page', authority, url: `https://meridian-wiki.a13.info/wiki/${title.replaceAll(' ','_')}`, rights: 'CC BY-NC-SA 4.0',
+      attribution: 'Meridian Wiki contributors', sourceRevision: `wiki:page:1:${revision}`, fetchedAt, sections }).documents });
+  const captain = wikiDoc('wiki-captain-aaaaaa', 'Captain', [{ heading: 'Captain › Duties', text: 'Carry the nuclear authentication disk and call the heads to report.' }], { authority: 'policy' });
+  const botany = wikiDoc('wiki-botanist-bbbbbb', 'Botanist', [{ heading: 'Botanist › Plants', text: 'Grow ambrosia vulgaris in hydroponics trays with good nutrients.' }]);
+  await run('AI19 synced sources publish without review, renew unchanged text quietly and replace changed text', async () => {
+    const before = syncInvalidations;
+    assert.deepEqual(await synced.mirror.apply('wiki', { entries: [captain, botany], complete: true }), { published: 2, refreshed: 0, unchanged: 0, stale: 0, excluded: 0 });
+    assert.equal(syncInvalidations, before + 1);
+    assert.deepEqual([...(await synced.mirror.knownRevisions('wiki'))], [['wiki-botanist-bbbbbb','wiki:page:1:r1'],['wiki-captain-aaaaaa','wiki:page:1:r1']]);
+    const found = await synced.lookup('how do I become captain on this station', request());
+    assert.equal(found[0].title, 'Captain', 'one title word is enough'); assert.equal(await synced.current(found, request()), true);
+    assert.deepEqual(await synced.mirror.apply('wiki', { entries: [captain, botany], complete: true }), { published: 0, refreshed: 0, unchanged: 2, stale: 0, excluded: 0 });
+    assert.equal(syncInvalidations, before + 1, 'an unchanged sync invalidates nothing');
+    const changed = wikiDoc('wiki-captain-aaaaaa', 'Captain', [{ heading: 'Captain › Duties', text: 'Carry the disk; the Blueshield guards you.' }], { revision: 'r2', authority: 'policy' });
+    assert.equal((await synced.mirror.apply('wiki', { entries: [changed, botany], complete: true })).published, 1);
+    assert.equal(await synced.current(found, request()), false, 'the earlier revision no longer authorizes a reply');
+    assert.equal((await pool.query("SELECT count(*)::int AS count FROM sophie_knowledge.chunks WHERE document_id='wiki-captain-aaaaaa' AND text IS NOT NULL")).rows[0].count, 1, 'superseded text is removed');
+    const near = wikiDoc('wiki-botanist-bbbbbb', 'Botanist', botany.documents[0].sections, { fetchedAt: Date.now() - 6 * 86400000 });
+    await pool.query("UPDATE sophie_knowledge.documents SET valid_until=clock_timestamp()+interval '1 day' WHERE id='wiki-botanist-bbbbbb'");
+    assert.equal((await synced.mirror.apply('wiki', { entries: [{ idBase: near.idBase, sourceRevision: near.sourceRevision, unchanged: true }, changed], complete: true })).refreshed, 1);
+    assert.ok((await synced.read({ actor, id: 'wiki-botanist-bbbbbb' })).document.validUntil > Date.now() + 6 * 86400000, 'validity renewed for seven days');
+  });
+  await run('AI20 a complete listing retires removed pages, a partial one does not, and withdrawn or owner-held pages stay out', async () => {
+    const changed = wikiDoc('wiki-captain-aaaaaa', 'Captain', [{ heading: 'Captain › Duties', text: 'Carry the disk; the Blueshield guards you.' }], { revision: 'r2', authority: 'policy' });
+    assert.equal((await synced.mirror.apply('wiki', { entries: [changed], complete: false })).stale, 0);
+    assert.equal((await synced.lookup('ambrosia hydroponics', request())).length, 1);
+    assert.equal((await synced.mirror.apply('wiki', { entries: [changed], complete: true })).stale, 1);
+    assert.deepEqual(await synced.lookup('ambrosia hydroponics', request()), []);
+    assert.equal((await synced.mirror.apply('wiki', { entries: [changed, botany], complete: true })).refreshed, 1);
+    assert.equal((await synced.lookup('ambrosia hydroponics', request())).length, 1, 'a page that returns is published again');
+    const head = await synced.read({ actor, id: 'wiki-captain-aaaaaa' });
+    await synced.withdraw({ actor, id: 'wiki-captain-aaaaaa', expectedEpoch: head.epoch });
+    const again = await synced.mirror.apply('wiki', { entries: [changed, botany], complete: true });
+    assert.equal(again.excluded, 1); assert.equal((await synced.read({ actor, id: 'wiki-captain-aaaaaa' })).withdrawn, true, 'withdrawal is the exclusion');
+    const owned = { ...botany.documents[0], kind: 'owner-publication', validUntil: null, sections: [{ heading: 'Botanist', text: 'Owner-maintained botany notes.' }] };
+    const botanyHead = await synced.read({ actor, id: 'wiki-botanist-bbbbbb' }), review = await synced.review({ actor, expectedEpoch: botanyHead.epoch, document: owned });
+    await synced.publish({ actor, expectedEpoch: botanyHead.epoch, document: owned, reviewHash: review.reviewHash, requestId: '9a'.repeat(32), confirmed: true });
+    assert.equal((await synced.mirror.apply('wiki', { entries: [botany], complete: true })).excluded, 1);
+    assert.equal((await synced.read({ actor, id: 'wiki-botanist-bbbbbb' })).document.sections[0].text, 'Owner-maintained botany notes.', 'a hand-published page is the owner\'s');
+    await assert.rejects(synced.mirror.apply('site', { entries: [captain] }), /KNOWLEDGE_SYNC_INVALID/, 'a collection cannot write another collection\'s documents');
+    await assert.rejects(library.mirror.apply('wiki', { entries: [] }), /KNOWLEDGE_SYNC_UNQUALIFIED/, 'only the qualified sync identity writes');
+    assert.deepEqual((await synced.mirror.summary({ actor })).wiki, { current: 1, stale: 0, withdrawn: 1 });
+  });
+  await run('AI21 lookup matches any query word, uses the recent conversation, and returns at most two passages per document', async () => {
+    const guide = { idBase: 'site-guide-cccccc', sourceRevision: 'site:/docs/:1', documents: packDocuments({ idBase: 'site-guide-cccccc', title: 'Mapping guide', kind: 'website', authority: 'reference',
+      url: 'https://meridian.a13.info/docs/mapping/', rights: 'Published by the Aphelion project', attribution: 'Meridian Rift website', sourceRevision: 'site:/docs/:1', fetchedAt: Date.now(),
+      sections: ['airlocks need cycling sensors', 'airlocks need external doors', 'airlocks need pumps', 'shuttles dock at airlocks'].map((text, index) => ({ heading: `Mapping guide › Part ${index}`, text })) }).documents };
+    await synced.mirror.apply('site', { entries: [guide], complete: true });
+    const passages = await synced.lookup('which sensors do airlocks need?', request());
+    assert.ok(passages.length >= 1 && passages.length <= 2 && passages.every(item => item.title === 'Mapping guide')); assert.match(passages[0].text, /sensors/u);
+    assert.deepEqual(await synced.lookup('pumps and lasers', request()), [], 'one of two body words is not enough');
+    const followUp = await synced.lookup('pumps and lasers', request(), 'Member 1: how do I build airlocks?');
+    assert.equal(followUp.length, 1); assert.match(followUp[0].text, /pumps/u, 'the conversation supplies the topic');
+    await assert.rejects(synced.lookup('x', request(), 'y'.repeat(4001)), /KNOWLEDGE_QUERY_INVALID/);
   });
 }

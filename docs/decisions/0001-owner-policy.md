@@ -1071,3 +1071,33 @@ character and configuration published at activation, and the earlier persistence
 make Go live follow publications, the owner replied: "Yeah go ahead please, thank you." At start-up and after every
 control change, active channels now follow the published character and configuration (owner database role), provided the
 configuration still lists the channel with a mode other than ignore; a disable stays in force.
+### Conversational follow-ups — 12 October 2026
+
+The owner reported that Sophie "doesn't follow conversational flow in the designated channel": a follow-up without her
+name was skipped (`AI_ADMISSION_SKIPPED_NO_PERMITTED_OUTCOME`, the unprompted reply interval). For two minutes after
+Sophie answers a member, that member's next message in the channel addresses her unless it mentions or replies to
+someone else; anyone else speaking ends the exchange. Installed as `1354730` (source `f40dac8`).
+
+### Synced public knowledge — 12 October 2026
+
+The owner asked for Sophie to "answer questions about information on our main website, wiki, and github, particularly
+our Repos". Shown the choice between automatic publication and per-change review, the owner chose **automatic
+publication**; for GitHub the owner chose **documentation plus recent activity**. Scope:
+
+- Meridian wiki (`meridian-wiki.a13.info`): every non-redirect article in the main namespace, re-checked every 30
+  minutes; `Songs/` pages (instrument song sheets, largely third-party works) and pages over the extractor limits are left
+  out. Authority is `policy` for pages in a Policies/Rules category, `lore` for Lore, otherwise `reference`.
+- Main website (`meridian.a13.info`; `a13.info` itself is behind Cloudflare Access): the sitemap pages and the `/docs/`
+  tree, honouring `robots.txt`, every 3 hours. `/lore` is `lore`, the rest `reference`.
+- GitHub (`Aphelion-Moon`): the organisation's own public repositories, not forks: overview, README, CONTRIBUTING and
+  Markdown files directly under `docs/` (except Aphelion-Sophie's internal engineering records), plus recent releases,
+  open issues and pull requests, and recently merged pull requests, every 3 hours. Public repositories accept issues from
+  anyone, so activity text is kept only from authors GitHub reports as owner, member, collaborator or earlier
+  contributor.
+
+Synced documents are published without a review click, cited with their link, licence and attribution, and expire seven
+days after their last successful check. A page that disappears leaves retrieval at the next complete check. Withdrawing
+a synced document in the dashboard excludes it permanently; re-publishing it by hand makes it an owner-maintained
+document the sync no longer touches. Retrieval now matches any query word (with a minimum overlap), ranks titles and
+headings above body text, uses the last few lines of conversation, and returns at most two passages per document. No
+dependency, migration, credential or provider change.
