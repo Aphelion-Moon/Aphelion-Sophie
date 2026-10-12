@@ -28,14 +28,17 @@ export function renderAiReply(output, sources) {
   output = validateAiOutput(output, { outcomes: ['reply'], answerOnly: false, sources, emojiKeys: [] });
   const text = output.text.replace(/@/gu, '@\u200b').replace(/https?:\/\/\S+/giu, '[link omitted]')
     .replace(/<[^>]*>/gu, '').replace(/!\[/gu, '[');
-  const links = output.citations.map(id => {
+  // One small-print line per cited page (several passages of one page share it). Links inside the attribution or licence
+  // text are dropped rather than shown as placeholders; the page link itself comes from the source registry.
+  const plain = value => value.replace(/@/gu, '@\u200b').replace(/\s*\(?https?:\/\/\S+\)?/giu, '').replace(/[<>\r\n*_`~|\\#]/gu, '').replace(/[;,:]\s*$/u, '').trim();
+  const links = [...new Map(output.citations.map(id => {
     const source = sources.find(item => item.id === id);
     requireCondition(source && typeof source.url === 'string' && /^https:\/\/[^\s<>]+$/u.test(source.url), 'AI_CITATION_INVALID');
     requireCondition(typeof source.attribution === 'string' && source.attribution.length > 0 && source.attribution.length <= 500 &&
       typeof source.rights === 'string' && source.rights.length > 0 && source.rights.length <= 300, 'AI_CITATION_INVALID');
-    const plain = value => value.replace(/@/gu, '@\u200b').replace(/https?:\/\/\S+/giu, '[link omitted]').replace(/[<>\r\n*_`~|\\]/gu, '');
-    return `${plain(source.attribution)} · ${plain(source.rights)}\n<${source.url}>`;
-  });
+    const title = typeof source.title === 'string' ? plain(source.title).replace(/\s*\(part \d+\)$/u, '') : '';
+    return [source.url, `-# ${[title, plain(source.attribution), plain(source.rights)].filter(Boolean).join(' · ')} <${source.url}>`];
+  })).values()];
   const content = [text, ...links].join('\n');
   requireCondition(content.length <= 2000, 'AI_OUTPUT_TOO_LONG');
   return { content, allowed_mentions: { parse: [], users: [], roles: [], replied_user: false }, flags: 4 };

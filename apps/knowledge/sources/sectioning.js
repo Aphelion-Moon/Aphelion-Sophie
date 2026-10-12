@@ -26,7 +26,8 @@ export function documentIdBase(prefix, name, key) {
 /** Extracted HTML blocks (see html-extractor.js) to heading/text sections. Headings h1–h3 start a section. */
 export function blocksToSections(blocks, title) {
   const sections = []; let current = { heading: title, lines: [] }, path = [];
-  const line = value => { const text = cleanText(value); if (text) current.lines.push(text); };
+  // Wiki section footers such as "↑ Contents and search" are navigation, not content.
+  const line = value => { const text = cleanText(value); if (text && !/^↑/u.test(text)) current.lines.push(text); };
   function cells(cell) { return cleanText(flatten(cell.blocks).join(' ')).replace(/\s+/gu, ' '); }
   function flatten(items) {
     const out = [];
@@ -108,7 +109,7 @@ export function splitSection({ heading, text }) {
  * text was left out. dependencyHash is the content digest, so unchanged content can be recognised across syncs.
  */
 export function packDocuments({ idBase, title, kind, authority, url, rights, attribution, sourceRevision, fetchedAt, aliases = [], sections, maxParts = 8 }) {
-  requireCondition(SYNCED_KNOWLEDGE_KINDS.includes(kind) && /^[a-z][a-z0-9-]{0,44}$/u.test(idBase), 'KNOWLEDGE_SYNC_INVALID'); requireInteger(fetchedAt, 1); requireInteger(maxParts, 1, 9);
+  requireCondition(SYNCED_KNOWLEDGE_KINDS.includes(kind) && /^[a-z][a-z0-9-]{0,44}$/u.test(idBase), 'KNOWLEDGE_SYNC_INVALID'); requireInteger(fetchedAt, 1); requireInteger(maxParts, 1, 20);
   const parts = sections.flatMap(splitSection).filter(section => section.text);
   if (!parts.length) return { documents: [], truncated: false };
   const groups = []; let group = [], size = 0;

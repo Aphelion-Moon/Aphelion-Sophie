@@ -6,6 +6,7 @@ const digest = value => createHash('sha256').update(JSON.stringify(value)).diges
 export const SYNC_PREFIXES = Object.freeze(['wiki', 'site', 'gh']);
 export const SYNC_DOCUMENT_LIMIT = 2000;
 const REFRESH_BEFORE_MS = 2 * 86400000;
+const comparable = document => { const { fetchedAt: _fetched, validUntil: _valid, ...rest } = canonicalKnowledgeDocument(document); return digest(rest); };
 const partOf = (id, base) => id === base || id.startsWith(`${base}-p`) && /^\d+$/u.test(id.slice(base.length + 2));
 
 /** Shared by owner publication and the mirror so both index title, aliases and headings above body text. */
@@ -75,7 +76,8 @@ export function createSourceMirror({ guildId, syncTransaction, editorTransaction
           if (row && !owned(row)) { counts.excluded++; continue; }
           const { refresh = false, ...candidate } = wanted;
           const current = row?.document ?? null;
-          const same = current && current.dependencyHash === candidate.dependencyHash && current.sourceRevision === candidate.sourceRevision;
+          // Everything but the fetch window counts, so a changed citation line (rights, attribution) is republished too.
+          const same = current && comparable(current) === comparable(candidate);
           if (same && row.source_current && row.valid_until && row.valid_until.getTime() - now > REFRESH_BEFORE_MS) { counts.unchanged++; continue; }
           // Unchanged content verified current at this sync: renew its validity window without re-reading the text.
           const doc = canonicalKnowledgeDocument(same || refresh ? { ...(current ?? candidate), fetchedAt: now, validUntil: now + 7 * 86400000 } : candidate);
