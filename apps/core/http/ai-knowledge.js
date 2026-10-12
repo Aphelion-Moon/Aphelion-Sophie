@@ -25,7 +25,7 @@ export function createAiKnowledgeHttp({ auth, authorization, knowledge, invalida
       if (operation === 'withdraw') delete fields.confirmed;
       if (operation === 'refresh-policies') operation = 'refreshPolicies';
     }
-    const { proof } = await auth.authenticate({ ...credentials, method }), actor = await authorization.resolveActor(proof);
+    const { proof } = await auth.authenticate({ ...credentials, method }), actor = await authorization.resolveActor(proof, { reuse: true });
     requireCondition(await authorization.authorize('ai.knowledge.publish',actor,{ guildId: actor.guildId }) === true, 'OPERATION_DENIED');
     let result;
     try { result = await knowledge[operation]({ ...fields, actor }); }

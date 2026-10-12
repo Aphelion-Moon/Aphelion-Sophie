@@ -961,3 +961,21 @@ precedes the consent's `updated_at`: the consent was given during the current me
 observed or not, moves the join time past the consent and still voids it; an observed departure still disables and
 by default deletes consents. An unknown join time refuses. No migration; case, onboarding and Whitelist presence
 rules are unchanged. Commit on `codex/sophie-social-ai` with the AI observation read reduction of the same day.
+
+### Dashboard views may reuse a role check for 1.5 seconds — 12 October 2026
+
+The owner asked why every dashboard button took so long. Each API request observed the actor's Discord roles twice
+(principal and capability, about four sequential Discord reads each), and a page load makes seven to eight requests.
+Offered (A) a server-side queue instead of the busy refusal, (B) one request per page load, and (C) reuse of the
+role observation for read-only views, the owner chose C only.
+
+Dashboard GET requests (views) may now reuse the same member's most recent fully validated present-member role
+observation for at most 1.5 seconds while the Gateway continuity stamp, which includes the Gateway sequence, is
+unchanged. Reuse applies to principal resolution and to the AI capabilities (`ai.control`, `ai.personality.publish`,
+`ai.knowledge.publish`, `ai.self`) and `answers.read` only. Case, contact, permission and automation reads, every
+POST (action), every Discord command or interaction, and every moderation target still read Discord afresh; an absence
+is never reused and a reused observation is never re-recorded. The storage suites showed that unrestricted view reuse
+would also let a removed Staff member read case notes and labels for up to 1.5 seconds, contrary to the case-access
+rules, so the agent narrowed the scope to the slow AI pages. Accepted trade-off: a role removed in Discord without a
+Gateway event can still view, but not change, the AI pages for up to 1.5 seconds. Tests: `DA-VIEW-01` to
+`DA-VIEW-04`; the dashboard-auth suite's browser actions now authenticate as POST, as browsers do.

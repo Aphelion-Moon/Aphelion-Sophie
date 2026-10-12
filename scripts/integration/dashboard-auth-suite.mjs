@@ -17,7 +17,8 @@ const post = value => ({ token: value, method: 'POST', origin: dashboardConfigur
 export async function runDashboardAuthSuite(cluster, run) {
   const scenario = (name, work) => run(name, async () => { const f = await dashboardWorkflow(cluster); await work(f); });
   const browserActor = async (f, session) => {
-    const { proof } = await f.auth.authenticate({ token: session.token });
+    // Browser actions are POSTs. A GET is a view and may reuse a role observation for 1.5 s (owner decision, 12 October 2026).
+    const { proof } = await f.auth.authenticate(post(session.token));
     return f.dashboardAuthorization.resolveActor(proof);
   };
   async function withServer(f, work, overrides = {}) {

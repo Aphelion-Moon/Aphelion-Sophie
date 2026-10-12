@@ -20,7 +20,8 @@ export function createDashboardAuth({ configuration, store, oauth, discord, cloc
     await active(); requireCondition(['GET', 'POST'].includes(method), 'DASHBOARD_METHOD_INVALID');
     if (method === 'POST') { requireCondition(origin === fixed.origin, 'DASHBOARD_ORIGIN_INVALID'); csrf(token, csrfToken); }
     const identity = await store.readSession(authDigest(token)); await active();
-    const proof = Object.freeze({ guildId: identity.guildId, userId: identity.userId });
+    // A GET is a view: authorization may reuse a just-made role observation for it (owner decision, 12 October 2026).
+    const proof = Object.freeze({ guildId: identity.guildId, userId: identity.userId, ...(method === 'GET' ? { view: true } : {}) });
     principals.set(proof, { tokenHash: authDigest(token), issuedAt: clock() });
     return { proof, csrfToken: sessionCsrf(token) };
   }
