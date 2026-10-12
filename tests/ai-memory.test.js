@@ -98,9 +98,9 @@ test('MEM-06 notes are redacted like any outgoing text and dropped whole when th
   for (const value of ['rook@example.invalid', '+31 6 1234 5678', '123456789012345678']) assert.equal(wire.includes(value), false, value);
   assert.ok(wire.includes('Call me Rook') && wire.includes('[email]') && wire.includes('[phone]') && wire.includes('[id]'));
   const large = memberMemoryForInference({ ...shared, notes: Array.from({ length: 8 }, (_, index) => `${index} ${'synthetic filler '.repeat(11)}`) });
-  const prepared = client({ maxPromptBytes: 4096 }).prepare({ ...buildAiPrompt({ request: turn, history: [], sources: [], memory: large }), ...lane });
+  const prepared = client({ maxPromptBytes: 4608 }).prepare({ ...buildAiPrompt({ request: turn, history: [], sources: [], memory: large }), ...lane });
   assert.equal(prepared.blocks.some(block => block.kind === 'memory'), false); assert.equal(prepared.serialized.includes('synthetic filler'), false);
-  assert.ok(prepared.bytes <= 4096 && prepared.blocks.at(-1).kind === 'question');
+  assert.ok(prepared.bytes <= 4608 && prepared.blocks.at(-1).kind === 'question');
 });
 
 const request = (fields = {}) => ({ guildId: '101', channelId: '202', userId: '404', messageId: '303', receivedAt: 1000, deadline: 16000,

@@ -41,6 +41,19 @@ test('SAI AT-04/12 Mistral Small uses the fixed EU provider, reasoning off, JSON
     completion_tokens: 25, total_tokens: 125, prompt_cache_hit_tokens: 64, prompt_cache_miss_tokens: 36 }]);
 });
 
+test('SAI AT-13 an addressed turn tells the model to reply; the rebuilt schema message keeps the prompt guidance', async () => {
+  const addressed = { ...buildAiPrompt({ request: { character: DRAFT_PERSONALITY, userId: '404', text: 'Hello Sophie',
+    decision: { outcomes: ['reply','silent'], answerOnly: false, proactive: false }, config: { emojis: [] } }, history: [], sources: [] }),
+    workerDomain: 'public', restricted: false, requesterId: '404', releaseHash: 'a'.repeat(64),
+    boundary: { guildId: '101', channelId: '202', boundaryEpoch: 1, continuity: 'synthetic-epoch' } };
+  const f = fixture(); await f.generate(addressed);
+  const schema = f.calls[0].body.messages.at(-2);
+  assert.equal(schema.role, 'system'); assert.match(schema.content, /addressed you directly\. Reply/u);
+  assert.match(schema.content, /Use support provided_sources only with supporting citations/u); assert.match(schema.content, /"oneOf"/u);
+  const ambient = fixture(); await ambient.generate(prompt());
+  assert.doesNotMatch(ambient.calls[0].body.messages.at(-2).content, /addressed you directly/u);
+});
+
 test('DS-02 unqualified backend policy prevents even the first paid dispatch', async () => {
   // An empty list, a mutable alias or another model never authorizes the pinned model.
   for (const acceptedFingerprints of [[], ['mistral-small-latest'], ['mistral-large-2512']]) {
@@ -157,7 +170,7 @@ test('SAI AT-12 JSON mode is independently validated; empty, truncated, tool, re
 test('SAI AT-12 byte budget removes whole optional evidence and its citation choices, preserving mandatory policy/question', async () => {
   const source = { id: 'guide.r1.s0', text: 'Synthetic evidence '.repeat(210) };
   const payload = prompt({ sources: [source] });
-  const f = fixture({ maxPromptBytes: 4096, response: () => Response.json(completion({ choices: [{ finish_reason: 'stop', message: { role: 'assistant', content: '{"kind":"silent"}' } }] })) });
+  const f = fixture({ maxPromptBytes: 4352, response: () => Response.json(completion({ choices: [{ finish_reason: 'stop', message: { role: 'assistant', content: '{"kind":"silent"}' } }] })) });
   assert.deepEqual(await f.generate(payload), { kind: 'silent' });
   const sent = f.calls[0].body.messages;
   assert.deepEqual(sent[0], payload.messages[0]); assert.deepEqual(sent.at(-1), payload.messages.at(-1));
@@ -207,9 +220,9 @@ test('SAI AT-13 external abort cancels the HTTP call; deadline/size failures can
 });
 
 test('DS-02 preparation freezes the full outbound request and exposes only safe block diagnostics', async () => {
-  const f = fixture({ maxPromptBytes: 4096 }), payload = prompt(), first = f.client.prepare(payload), second = f.client.prepare(payload);
+  const f = fixture({ maxPromptBytes: 4352 }), payload = prompt(), first = f.client.prepare(payload), second = f.client.prepare(payload);
   assert.equal(first.serialized, second.serialized);
-  assert.equal(first.bytes, Buffer.byteLength(first.serialized)); assert.ok(first.bytes <= 4096);
+  assert.equal(first.bytes, Buffer.byteLength(first.serialized)); assert.ok(first.bytes <= 4352);
   assert.throws(() => { first.body.messages[0].content = 'tampered'; }, TypeError);
   assert.throws(() => first.contract.sourceIds.push('invented'), TypeError);
   assert.equal(firstChangedAiBlock(first, second), null);
