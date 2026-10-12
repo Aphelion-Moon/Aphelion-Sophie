@@ -23,6 +23,22 @@ export function documentIdBase(prefix, name, key) {
   return `${prefix}-${slug ? `${slug}-` : ''}${sha(`${prefix}:${key}`).slice(0, 6)}`;
 }
 
+/**
+ * A numbered code heading under a section whose initials spell the code ("CR 10: The Rule of Cool" under "Core Rules")
+ * also gets the spelled-out name, "(Core Rule 10)", so people who ask by name find the code.
+ */
+export function spelledOut(heading, parents) {
+  const code = /^([A-Z]{2,6})[ -]?0*(\d{1,3})\b/u.exec(heading);
+  if (!code) return heading;
+  for (const parent of [...parents].reverse()) {
+    const words = parent.replace(/\s+[A-Z]+(?:-[A-Z0-9]+)+$/u, '').split(/\s+/u).filter(word => /^\p{L}/u.test(word) && !/^(?:and|of|the|for|in|on|to|a|an)$/iu.test(word));
+    if (words.map(word => word[0].toUpperCase()).join('') !== code[1]) continue;
+    const name = words.map((word, index) => index === words.length - 1 && word.length > 3 ? word.replace(/s$/u, '') : word).join(' ');
+    return `${heading} (${name} ${code[2]})`;
+  }
+  return heading;
+}
+
 /** Extracted HTML blocks (see html-extractor.js) to heading/text sections. Headings h1–h3 start a section. */
 export function blocksToSections(blocks, title) {
   const sections = []; let current = { heading: title, lines: [] }, path = [];
@@ -44,7 +60,8 @@ export function blocksToSections(blocks, title) {
       if (block.kind === 'heading') {
         if (block.level <= 3) {
           if (current.lines.length) sections.push(current);
-          path = [...path.slice(0, Math.max(0, block.level - 2)), block.text].filter(Boolean);
+          const parents = path.slice(0, Math.max(0, block.level - 2));
+          path = [...parents, spelledOut(block.text, parents)].filter(Boolean);
           current = { heading: [title, ...path].join(' › '), lines: [] };
         } else line(`${block.text}:`);
       } else if (block.kind === 'text' || block.kind === 'preformatted') line(block.text);
