@@ -44,7 +44,11 @@ export function createAiAdmission({ pool, guildId, ingress, inspectContext, insp
     if (!member?.eligible) return skip(member === null ? 'MEMBER_UNAVAILABLE' : 'MEMBER_INELIGIBLE');
     if (context.audienceHash !== qualification.audience_sha256) return skip('AUDIENCE_CHANGED');
     if (context.restricted !== qualification.restricted) return skip('RESTRICTION_CHANGED');
-    if (member.presenceEpoch !== Number(consent.presence_epoch)) return skip('PRESENCE_CHANGED');
+    // A Gateway reconnect advances every presence epoch because departures during the outage cannot be seen. The
+    // member's Discord join time can: consent recorded after the current join belongs to this membership and survives
+    // a reconnect, while any leave and rejoin (seen or not) moves the join time past it and still voids consent.
+    const sameMembership = Number.isSafeInteger(member.joinedAt) && consent.updated_at instanceof Date && member.joinedAt < consent.updated_at.getTime();
+    if (member.presenceEpoch !== Number(consent.presence_epoch) && !sameMembership) return skip('PRESENCE_CHANGED');
     if (typeof context.canReply !== 'boolean' || typeof context.canReact !== 'boolean' ||
       !Number.isSafeInteger(member.presenceEpoch) || !Number.isSafeInteger(member.accessEpoch) ||
       typeof context.continuity !== 'string' || context.continuity.length === 0 || typeof context.messageRevision !== 'string') return skip('OBSERVATION_INVALID');
