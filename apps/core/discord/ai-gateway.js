@@ -9,6 +9,8 @@ export function createAiGateway({ ingress, turns, onFault }) {
       if (stopped) return null;
       const raw = payload.d;
       if (raw?.guild_id !== ingress.guildId && raw?.id !== ingress.guildId) return null;
+      // Before the capacity check: who is talking must stay current even when no turn can be taken.
+      ingress.observe?.(payload);
       // No content inspection. Member, role and channel changes are not handled here: they update the Gateway guild
       // state, and each turn's pre-delivery check compares its own binding, so an unrelated change cancels nothing.
       const edit=payload.t==='MESSAGE_UPDATE' ? {channelId:raw.channel_id,messageId:raw.id}:null;
