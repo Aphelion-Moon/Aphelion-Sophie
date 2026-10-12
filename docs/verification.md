@@ -1,5 +1,25 @@
 # Verification and release limits
 
+## AI stack rebuild — 12 October 2026 (prepared, not yet installed)
+
+Owner decisions of 12 October (decision log, "AI stack rebuild"); audit:
+`GitHub/.agent_docs/aphelion-sophie/ai-stack-audit-2026-10-12.md`. Source on `codex/sophie-social-ai`: `1d6239b`
+(Gateway-state turns, two checks, no reply re-verification), `28d6117` (plain worker service, trust v2 without expiry,
+persistent Go live) and `88359f6` (deterministic worker service setup). Pin `d8fb0e5b98a6da117c5bba6c9369dc1555cfedad`
+on `staging/admission-trace` = `7764723` plus 3 added, 26 modified and 20 removed runtime files and the two operator
+scripts; no migration, dependency or licence change.
+
+- **Offline evidence at `88359f6`:** `npm test` 643 passed, 0 failed. The worker-channel tests now listen on ephemeral
+  ports; the earlier "DS04 first-run" failures were a collision with the live staging core on 127.0.0.1:47552.
+  Storage (parallel, 4 shards) 957 passed with the three known order-dependent failures (J01, U08, S17); the twelve
+  worker-lifecycle scenarios were removed with that code. New: GS-01..19, RL-04, RB-01..03, RB-E05, RB-A01, RB-P01b,
+  RB-P05, RB-P05b, an opt-out withdrawal check in AI04 and a read-only worker status test.
+- **Deployment preparation:** `deployment-d8fb0e5-2026-10-12/prepare.mjs` passed (497 pinned files, 514 installed
+  baseline files equal to Git, 20 reviewed removals, provider profile unchanged). The new
+  `Setup-InferenceAccount.ps1` was exercised with `-WhatIf` on WUFF. Not yet run: the conversion itself, its service
+  boundary and installed checks, and a live rapid-conversation test on the Test Discord Server.
+- **Installed state:** `7764723` (below). At 17:38 UTC its supervisor lost worker readiness three times and disabled AI
+  (`AI_WORKER_RESTART_LIMIT`).
 ## First working AI replies on the Test Discord Server — 11 and 12 October 2026
 
 **Installed now:** pinned `c1f908497a804bbfb187316113bfd2d06ed99d4a`, release `sophie-mistral-c1f9084`, schema 070

@@ -1,45 +1,51 @@
 # AI on the Test Discord Server — operator runbook
 
-Status (12 October 2026): pinned source `c1f9084` (branch `staging/admission-trace`), schema 070, release
-`sophie-mistral-c1f9084`, with the owner-accepted Mistral processing policy (notice revision 3) installed and channel
-`1551010229339037738` activated. Sophie answers addressed messages there for opted-in members. Trust expires
-13 October 12:37 UTC; the independent journal receipt at 11:37 UTC. Every deployment renews both, so redeploy (or
-renew) before then. History of the 11–12 October deployments and root causes: [verification](verification.md).
-Evidence: `GitHub/.agent_docs/aphelion-sophie/deployment-<pin>-<date>/`. Do not paste the provider key, Discord token,
-database passwords or trust-file contents into chat, logs or Git; verifiers must print fixed codes only. Sections
-below that describe the 4 October builds are history.
+Status (12 October 2026, evening): installed pin `7764723` (supervisor-era hosting). Prepared, not yet run: the hosting
+conversion to `d8fb0e5` in `GitHub/.agent_docs/aphelion-sophie/deployment-d8fb0e5-2026-10-12/` (see its README). It
+implements the owner's AI stack decisions of 12 October (decision log; audit in
+`GitHub/.agent_docs/aphelion-sophie/ai-stack-audit-2026-10-12.md`): turns read Gateway state and check authorization
+twice, delivered replies are not re-verified, the worker is an ordinary service without the supervisor, trust and
+journal receipts no longer expire, and Go live persists across restarts and deployments. Channel
+`1551010229339037738` is activated. History of the 11–12 October deployments: [verification](verification.md). Do not
+paste the provider key, Discord token, database passwords or trust-file contents into chat, logs or Git; verifiers
+must print fixed codes only. Sections below that describe the 4 October builds are history.
 
-### Operating the AI after any deployment
+### Operating the AI after the hosting conversion
 
-1. A deployment requires the worker stopped: the owner stops it at `https://sophie.a13.info/ai` (from their own
-   machine; Discord sign-in does not work on this server).
-2. Deploy from `GitHub/.agent_docs/aphelion-sophie/deployment-<pin>-<date>/run-when-worker-stopped.ps1` (elevated
-   PowerShell). New pins: copy the previous folder, `git archive` the pin, run `adapt-next-pin.py`, then the read-only
-   `prepare.mjs`, record `approval.json`.
-3. Afterwards the owner starts the worker and clicks **Go live**: a core restart re-disables AI by design.
+1. Deploy from an elevated PowerShell 7 prompt with the deployment folder's `run-conversion.ps1` (later pins: a
+   `run-deployment.ps1` built the same way). The script stops and starts Sophie's services itself; no dashboard stop
+   is needed, and PostgreSQL and the tunnel keep running.
+2. After a deployment or restart nothing needs to be clicked: the worker reconnects to core on its own and Go live
+   stays in force. Only after the one-time conversion does the owner click **Go live** once, because the retiring
+   supervisor-era core disables AI on its way out.
+3. The dashboard's AI worker panel only reports **Connected** / **Not connected**. If it stays disconnected for more than
+   a minute, check `C:\Aphelion\Sophie\logs\worker\` (fixed codes `AI_WORKER_FAULT …`, `AI_WORKER_UNAVAILABLE …`) and that
+   `aphelion-bot-ai-worker` is running; WinSW restarts it if it exits.
 4. Consent survives restarts. If the restart opened a fresh Gateway session, consent is kept when the member's
    Discord join time precedes the consent; a leave and rejoin still voids it.
-5. Diagnose with the fixed codes in `C:\Aphelion\Sophie\logs\core\aphelion-bot.err.log`:
-   `AI_ADMISSION_SKIPPED_<REASON>`, `AI_TURN_<STATE>_<STAGE>_<N>S[_<CODE>]`, `AI_OBSERVATION_LIMITED_<ROUTE>_…`,
-   `AI_WORKER_RELAUNCHED` / `AI_WORKER_RESTART_LIMIT` / `AI_WORKER_RELAUNCH_FAILED`, `AI_EFFECT_CHECK_DEFERRED`.
-   A lost worker is relaunched automatically (at most three times in ten minutes); beyond that the slot is failed,
-   AI is disabled, and the owner restarts it from the dashboard.
+5. Diagnose turns with the fixed codes in `C:\Aphelion\Sophie\logs\core\aphelion-bot.err.log`:
+   `AI_ADMISSION_SKIPPED_<REASON>`, `AI_TURN_<STATE>_<STAGE>_<N>S[_<CODE>]`, `AI_OBSERVATION_LIMITED_MEMBER_…` (a member
+   Discord had not yet described to core; rare), `AI_WORKER_CONNECTION_UNAVAILABLE`, `AI_QUALIFICATION_REBIND_UNAVAILABLE`.
+6. Delivered replies are withdrawn only when the member opts out or leaves, or a message the reply drew on is edited
+   or deleted. Disabling AI keeps earlier replies.
 
 ## What is installed
+
+After the conversion. Before it (7764723), the supervisor also runs with control on 127.0.0.1:47551 and starts the worker.
+
 
 | Service (all Manual) | Account | Runs |
 | --- | --- | --- |
 | `aphelion-bot-postgres` | `NT SERVICE\aphelion-bot-postgres` | Staging PostgreSQL 17.11 on 127.0.0.1:52435, data in `C:\Aphelion\Sophie\staging\postgres-data`, from Sophie's own hash-verified binary copy in `C:\Aphelion\Sophie\postgres` |
 | `aphelion-bot-tunnel` | `NT SERVICE\aphelion-bot-tunnel` | Pinned cloudflared for the `sophie-staging` tunnel (`sophie.a13.info`) |
-| `aphelion-bot-ai-supervisor` | `NT SERVICE\aphelion-bot-ai-supervisor` | `apps/inference-host/installed.mjs`; control on 127.0.0.1:47551 |
-| `aphelion-bot` | `NT SERVICE\aphelion-bot` | `apps/core/installed.mjs`; listeners 127.0.0.1:38121/38122 |
-| `aphelion-bot-ai-worker` | `NT SERVICE\aphelion-bot-ai-worker` | `apps/knowledge-worker/main.mjs`; started/stopped only by the supervisor |
+| `aphelion-bot` | `NT SERVICE\aphelion-bot` | `apps/core/installed.mjs`; listeners 127.0.0.1:38121/38122 and the worker channel 127.0.0.1:47552 |
+| `aphelion-bot-ai-worker` | `NT SERVICE\aphelion-bot-ai-worker` | `apps/knowledge-worker/main.mjs`; reads `trust\worker.json` and the provider key, dials core; restarted by WinSW/SCM if it exits |
+| `aphelion-bot-ai-supervisor` | `NT SERVICE\aphelion-bot-ai-supervisor` | Retired: **Disabled**, kept only so `rollback.ps1` can restore the 7764723 hosting |
 
-Start order: postgres, tunnel, supervisor, core. Wait at least 31 seconds between stopping and starting
-core, because its Gateway ownership lease fails closed (`GATEWAY_OWNER_ACTIVE`) until then.
-Setup is reproducible with `ops/windows/Setup-StagingServices.ps1` and `ops/windows/Setup-InferenceAccount.ps1`.
-Both are idempotent and support `-WhatIf`.
-
+Start order: postgres, tunnel, core, worker (the worker waits and retries until core listens). Wait at least 31 seconds
+between stopping and starting core, because its Gateway ownership lease fails closed (`GATEWAY_OWNER_ACTIVE`) until
+then. Setup is reproducible with `ops/windows/Setup-StagingServices.ps1` and `ops/windows/Setup-InferenceAccount.ps1`.
+Both are idempotent and support `-WhatIf`; the latter also upgrades a supervisor-era worker wrapper in place.
 Database `sophie_stage_bot` was created fresh for the new application, now with migrations 001–069. The
 earlier staging data is retained, renamed and fenced as `sophie_stage_archive_20260929`, plus encrypted
 bundles in `D:\Backups`. Runtime identities are `sophie_stage_core`, `sophie_stage_control` (AI tables only)
@@ -77,7 +83,10 @@ Preserve the independent journal's bytes and identity; verify its ACL, integrity
 from database restores. Renew its receipt separately from installation trust. Do not rerun a provisioning
 helper that would recreate a missing journal. A missing or corrupt journal is a recovery hold.
 
-## Renew the installation receipts
+## Renew the installation receipts (obsolete after the hosting conversion)
+
+Trust and journal receipts no longer expire once `d8fb0e5` is installed; this section describes the supervisor-era
+procedure and must not be used afterwards. `staging\renewal\renew-installation.ps1` mirrors repository HEAD, never use it.
 
 The October 4 deployment retained the reviewed worker access to `services\worker` and metadata access
 to `services`. Setup rejects drifted service/firewall configuration before mutation. Current package,
