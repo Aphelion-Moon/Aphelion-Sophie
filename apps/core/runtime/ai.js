@@ -41,6 +41,12 @@ export function createAiRuntime({ configuration, corePool, controlPool, worker, 
   const gateway = createAiGateway({ ingress, turns, onFault });
   let timer = null, stopped = false, fingerprint = null, refreshing = Promise.resolve();
   function invalidate() { observations.clear(); gateway.invalidate(); }
+  // Accounting expiry shares the AI advisory lock, which admission holds across its Discord observations. Waiting out
+  // lock_timeout (55P03) there is contention, not a control failure: defer to the next cycle instead of invalidating the
+  // in-flight admission, which otherwise refuses its own message as CONTEXT_UNAVAILABLE.
+  async function expireUnlessContended(expire) {
+    try { await expire(); } catch (error) { if (error?.code !== '55P03') throw error; onFault('AI_EXPIRY_DEFERRED'); }
+  }
   async function refresh() {
     try {
       if (!recovered) { await effects.recover(); recovered = true; }
@@ -48,7 +54,7 @@ export function createAiRuntime({ configuration, corePool, controlPool, worker, 
       const qualifications = (await controlPool.query('SELECT channel_id,boundary_epoch,active,restore_ready,release_sha256,evidence_sha256 FROM sophie_ai.qualifications WHERE guild_id=$1 ORDER BY channel_id', [mapping.guildId])).rows;
       const next = aiDigest({ state: state ?? null, qualifications });
       if (state?.disabled !== false || next !== fingerprint || !await enabled()) invalidate();
-      fingerprint = next; await admission.expire(); await accounting.expire();
+      fingerprint = next; await admission.expire(); await expireUnlessContended(() => accounting.expire());
       for (const effect of await effects.pending()) {
         let current = effect.state === 'confirmed';
         try {
