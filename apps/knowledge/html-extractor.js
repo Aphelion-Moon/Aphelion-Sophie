@@ -1,9 +1,12 @@
-import { parseFragment } from 'parse5';
+import { parse, parseFragment } from 'parse5';
 import { requireCondition } from '../../contracts/validation.js';
 import { MEDIAWIKI_EXTRACTOR_REVISION } from '../../modules/assistant/knowledge.js';
 
 export const EXTRACTOR_REVISION = MEDIAWIKI_EXTRACTOR_REVISION;
-const ignored = new Set(['script','style','template','noscript','iframe','object','embed','svg','canvas','input','button','select','textarea']);
+export const SITE_EXTRACTOR_REVISION = 'site-main-v1';
+const mediaWikiIgnored = new Set(['script','style','template','noscript','iframe','object','embed','svg','canvas','input','button','select','textarea']);
+// Website chrome inside <main> (page navigation, "on this page" lists) is not page content.
+const siteIgnored = new Set([...mediaWikiIgnored, 'nav', 'form', 'dialog']);
 const blocks = new Set(['address','article','aside','blockquote','div','dl','dt','dd','fieldset','figcaption','figure','footer','header','main','nav','p','pre','section']);
 const attr = (node, name) => node.attrs?.find(item => item.name === name)?.value ?? null;
 const children = node => node.childNodes ?? [];
@@ -16,7 +19,22 @@ const anchors = node => {
 /** Call only inside extraction-worker.js. This is text extraction, never HTML sanitization or source approval. */
 export function extractMediaWikiHtml(html) {
   requireCondition(typeof html === 'string' && html.isWellFormed() && Buffer.byteLength(html) <= 786432, 'WIKI_HTML_LIMIT');
-  const tree = parseFragment(html, { scriptingEnabled: false });
+  return extractTree(parseFragment(html, { scriptingEnabled: false }), mediaWikiIgnored, EXTRACTOR_REVISION);
+}
+
+/** A whole website page: only its single <main> element is content. Call only inside extraction-worker.js. */
+export function extractSiteHtml(html) {
+  requireCondition(typeof html === 'string' && html.isWellFormed() && Buffer.byteLength(html) <= 786432, 'WIKI_HTML_LIMIT');
+  const document = parse(html, { scriptingEnabled: false }), found = [], pending = [document]; let visited = 0;
+  while (pending.length) {
+    const node = pending.pop(); requireCondition(++visited <= 60000, 'WIKI_TREE_LIMIT');
+    if (node.tagName === 'main') found.push(node); else children(node).forEach(child => pending.push(child));
+  }
+  requireCondition(found.length === 1, 'SITE_MAIN_UNAVAILABLE');
+  return extractTree({ nodeName: '#document-fragment', childNodes: found[0].childNodes }, siteIgnored, SITE_EXTRACTOR_REVISION);
+}
+
+function extractTree(tree, ignored, revision) {
   const pending = [{ node: tree, depth: 0 }]; let nodes = 0;
   const sourceAnchors = [];
   while (pending.length) {
@@ -91,5 +109,5 @@ export function extractMediaWikiHtml(html) {
   }
   const extracted = output(tree);
   requireCondition(extracted.length > 0 && characters > 0, 'WIKI_TEXT_EMPTY');
-  return { extractorRevision: EXTRACTOR_REVISION, reviewed: false, blocks: extracted, sourceAnchors: [...new Set(sourceAnchors)].sort(), excludedElements: [...excluded].sort(), characters, nodes };
+  return { extractorRevision: revision, reviewed: false, blocks: extracted, sourceAnchors: [...new Set(sourceAnchors)].sort(), excludedElements: [...excluded].sort(), characters, nodes };
 }

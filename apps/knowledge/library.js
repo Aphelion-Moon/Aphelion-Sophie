@@ -2,6 +2,7 @@ import { createHash } from 'node:crypto';
 import { requireCondition, requireId, requireInteger } from '../../contracts/validation.js';
 import { canonicalKnowledgeDocument, requireKnowledgeSourceId } from '../../modules/assistant/knowledge.js';
 import { createWikiImports, mediaWikiDocumentCurrent, mediaWikiReviewEpoch } from './imports.js';
+import { createSourceMirror, insertPublication, SYNC_PREFIXES } from './mirror.js';
 
 const digest = value => createHash('sha256').update(JSON.stringify(value)).digest('hex');
 const hash = value => requireCondition(typeof value === 'string' && /^[a-f0-9]{64}$/.test(value), 'KNOWLEDGE_HASH_INVALID');
@@ -60,11 +61,12 @@ export function createKnowledgeLibrary({ pool, guildId, authorize, restoreCurren
   }
   return Object.freeze({
     ...createWikiImports({ guildId, transaction, syncTransaction, collector, extractor, invalidate, clock }),
+    mirror: createSourceMirror({ guildId, syncTransaction, editorTransaction: transaction, invalidate, clock }),
     async catalogue({ actor }) {
       return transaction(actor, async client => {
         const rows = (await client.query(`SELECT d.id,d.epoch,d.revision,d.withdrawn,d.source_current AS "sourceCurrent",
           d.valid_until AS "validUntil",p.document->>'title' AS title,p.document-'sections'-'aliases' AS source FROM sophie_knowledge.documents d JOIN sophie_knowledge.publications p
-          ON p.guild_id=d.guild_id AND p.document_id=d.id AND p.revision=d.revision WHERE d.guild_id=$1 ORDER BY d.id LIMIT 500`, [guildId])).rows;
+          ON p.guild_id=d.guild_id AND p.document_id=d.id AND p.revision=d.revision WHERE d.guild_id=$1 ORDER BY d.id LIMIT 2500`, [guildId])).rows;
         const documents = [];
         for (const { source, ...row } of rows) documents.push({ ...row, epoch: Number(row.epoch),
           sourceCurrent: !row.withdrawn && row.sourceCurrent && (row.validUntil === null || clock() < row.validUntil.getTime()) && await mediaWikiDocumentCurrent(client,guildId,source) });
@@ -97,17 +99,12 @@ export function createKnowledgeLibrary({ pool, guildId, authorize, restoreCurren
         if (receipt) { requireCondition(receipt.actor_id === actor.userId && receipt.review_sha256 === reviewHash && receipt.input_sha256 === digest(input), 'KNOWLEDGE_REQUEST_COLLISION'); return { revision: receipt.revision, duplicate: true }; }
         requireCondition(await reviewedDigest(client,input) === reviewHash, 'KNOWLEDGE_REVIEW_STALE');
         const previous = await head(client,input.document.id); requireCondition(Number(previous?.epoch ?? 0) === expectedEpoch, 'KNOWLEDGE_STALE');
-        if (!previous) requireCondition(Number((await client.query('SELECT count(*)::int AS count FROM sophie_knowledge.documents WHERE guild_id=$1', [guildId])).rows[0].count) < 500, 'KNOWLEDGE_LIMIT');
+        // Synced sources have their own cap (mirror.js); this one bounds owner-written documents.
+        if (!previous) requireCondition(Number((await client.query("SELECT count(*)::int AS count FROM sophie_knowledge.documents WHERE guild_id=$1 AND NOT split_part(id,'-',1) = ANY($2)",
+          [guildId,[...SYNC_PREFIXES]])).rows[0].count) < 500, 'KNOWLEDGE_LIMIT');
         const revision = (previous?.revision ?? 0) + 1, epoch = expectedEpoch + 1, publicationHash = digest(input.document); requireInteger(revision,1,2147483646);
         const doc = input.document;
-        await client.query(`INSERT INTO sophie_knowledge.documents(guild_id,id,epoch,revision,withdrawn,source_current,valid_until)
-          VALUES($1,$2,$3,$4,false,true,$5) ON CONFLICT(guild_id,id) DO UPDATE SET epoch=$3,revision=$4,withdrawn=false,source_current=true,valid_until=$5`,
-        [guildId,doc.id,epoch,revision,doc.validUntil === null ? null : new Date(doc.validUntil)]);
-        await client.query('INSERT INTO sophie_knowledge.publications(guild_id,document_id,revision,sha256,document) VALUES($1,$2,$3,$4,$5)', [guildId,doc.id,revision,publicationHash,doc]);
-        for (const [index, section] of doc.sections.entries()) await client.query(`INSERT INTO sophie_knowledge.chunks
-          (guild_id,document_id,revision,source_id,publication_sha256,title,heading,text,url,authority,aliases,search)
-          VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,to_tsvector('english',$6 || ' ' || $7 || ' ' || $8))`,
-        [guildId,doc.id,revision,`${doc.id}.r${revision}.s${index}`,publicationHash,doc.title,section.heading,section.text,doc.url,doc.authority,doc.aliases]);
+        await insertPublication(client, guildId, doc, revision, epoch, publicationHash);
         await client.query('INSERT INTO sophie_knowledge.receipts(guild_id,request_id,actor_id,review_sha256,document_id,revision,input_sha256) VALUES($1,$2,$3,$4,$5,$6,$7)', [guildId,requestId,actor.userId,reviewHash,doc.id,revision,digest(input)]);
         return { revision, epoch, duplicate: false };
       });
@@ -133,18 +130,41 @@ export function createKnowledgeLibrary({ pool, guildId, authorize, restoreCurren
         await client.query('UPDATE sophie_knowledge.documents SET epoch=epoch+1,source_current=false WHERE guild_id=$1 AND id=$2',[guildId,id]); return { epoch: expectedEpoch + 1 };
       });
     },
-    async lookup(query, request) {
-      requireCondition(typeof query === 'string' && query.trim().length > 0 && query.length <= 4000 && request.guildId === guildId && clock() < request.deadline, 'KNOWLEDGE_QUERY_INVALID');
+    /**
+     * Chat questions rarely contain every word of a passage, so any query word may match, but a passage needs two of the
+     * message's words (or all of them when there are fewer), one word in its title or aliases, or one plus a word from the
+     * recent conversation. Titles and aliases rank above headings, headings above body text; at most two passages come
+     * from one document.
+     */
+    async lookup(query, request, conversation = '') {
+      requireCondition(typeof query === 'string' && query.trim().length > 0 && query.length <= 4000 && typeof conversation === 'string' && conversation.length <= 4000 &&
+        request.guildId === guildId && clock() < request.deadline, 'KNOWLEDGE_QUERY_INVALID');
       await ready();
-      const rows = (await pool.query(`SELECT c.source_id AS id,c.title,c.heading,c.text,c.url,c.authority,c.publication_sha256 AS "publicationHash",d.epoch,d.valid_until AS "validUntil",
-        p.document->>'rights' AS rights,p.document->>'attribution' AS attribution,p.document->>'sourceRevision' AS "sourceRevision",
-        (lower(c.title)=lower($2) OR EXISTS(SELECT 1 FROM unnest(c.aliases) alias WHERE lower(alias)=lower($2))) AS exact
-        FROM sophie_knowledge.chunks c JOIN sophie_knowledge.documents d ON d.guild_id=c.guild_id AND d.id=c.document_id
-        JOIN sophie_knowledge.publications p ON p.guild_id=c.guild_id AND p.document_id=c.document_id AND p.revision=c.revision
-        WHERE c.guild_id=$1 AND c.revision=d.revision AND c.text IS NOT NULL AND NOT d.withdrawn AND d.source_current
-          AND (d.valid_until IS NULL OR d.valid_until>clock_timestamp()) AND
-          (lower(c.title)=lower($2) OR EXISTS(SELECT 1 FROM unnest(c.aliases) alias WHERE lower(alias)=lower($2)) OR c.search @@ plainto_tsquery('english',$2))
-        ORDER BY exact DESC,ts_rank(c.search,plainto_tsquery('english',$2)) DESC,c.source_id LIMIT 4`, [guildId,query])).rows.map(row => ({ ...row, epoch: Number(row.epoch), validUntil: row.validUntil?.getTime() ?? null }));
+      const words = value => value.normalize('NFKC').match(/[\p{L}\p{N}]+/gu)?.slice(0, 64).join(' or ') ?? '';
+      const rows = (await pool.query(`WITH terms AS (
+          SELECT ARRAY(SELECT DISTINCT lexeme FROM unnest(to_tsvector('english',$2))) AS current,
+            ARRAY(SELECT DISTINCT lexeme FROM unnest(to_tsvector('english',$4)) WHERE NOT lexeme = ANY(ARRAY(SELECT lexeme FROM unnest(to_tsvector('english',$2))))) AS recent,
+            websearch_to_tsquery('english',$3) AS query
+        ), matched AS (
+          SELECT c.source_id AS id,c.document_id,c.title,c.heading,c.text,c.url,c.authority,c.publication_sha256 AS "publicationHash",d.epoch,d.valid_until AS "validUntil",
+            p.document->>'rights' AS rights,p.document->>'attribution' AS attribution,p.document->>'sourceRevision' AS "sourceRevision",
+            (lower(c.title)=lower($2) OR EXISTS(SELECT 1 FROM unnest(c.aliases) alias WHERE lower(alias)=lower($2))) AS exact,
+            cardinality(ARRAY(SELECT unnest(tsvector_to_array(c.search)) INTERSECT SELECT unnest(t.current))) AS hits,
+            cardinality(ARRAY(SELECT unnest(tsvector_to_array(ts_filter(c.search,'{a}'))) INTERSECT SELECT unnest(t.current))) AS title_hits,
+            cardinality(ARRAY(SELECT unnest(tsvector_to_array(c.search)) INTERSECT SELECT unnest(t.recent))) AS context_hits,
+            cardinality(t.current) AS wanted, ts_rank(c.search,t.query,1) AS rank
+          FROM terms t, sophie_knowledge.chunks c JOIN sophie_knowledge.documents d ON d.guild_id=c.guild_id AND d.id=c.document_id
+          JOIN sophie_knowledge.publications p ON p.guild_id=c.guild_id AND p.document_id=c.document_id AND p.revision=c.revision
+          WHERE c.guild_id=$1 AND c.revision=d.revision AND c.text IS NOT NULL AND NOT d.withdrawn AND d.source_current
+            AND (d.valid_until IS NULL OR d.valid_until>clock_timestamp()) AND
+            (lower(c.title)=lower($2) OR EXISTS(SELECT 1 FROM unnest(c.aliases) alias WHERE lower(alias)=lower($2)) OR c.search @@ t.query)
+        ), ranked AS (
+          SELECT *, row_number() OVER (PARTITION BY document_id ORDER BY exact DESC,hits*2+context_hits DESC,rank DESC,id) AS within
+          FROM matched WHERE exact OR hits>=least(2,wanted) OR title_hits>=1 OR hits>=1 AND context_hits>=1
+        )
+        SELECT id,title,heading,text,url,authority,"publicationHash",epoch,"validUntil",rights,attribution,"sourceRevision",exact FROM ranked
+        WHERE within<=2 ORDER BY exact DESC,hits*2+context_hits DESC,rank DESC,id LIMIT 4`,
+      [guildId,query,words(`${query} ${conversation}`) || query,conversation])).rows.map(row => ({ ...row, epoch: Number(row.epoch), validUntil: row.validUntil?.getTime() ?? null }));
       return await available(rows,request) ? rows : [];
     },
     current: available,

@@ -5,14 +5,14 @@ import { requireCondition, requireInteger } from '../../contracts/validation.js'
 /** One bounded disposable parser worker. No DB, network adapter, credentials, HTML renderer or publication path. */
 export function createWikiExtractor() {
   let active = false;
-  return Object.freeze({ async extract({ html, htmlHash, signal = new AbortController().signal, timeoutMs = 3000 }) {
-    requireCondition(!active, 'WIKI_EXTRACTION_BUSY');
+  return Object.freeze({ async extract({ html, htmlHash, mode = 'mediawiki', signal = new AbortController().signal, timeoutMs = 3000 }) {
+    requireCondition(!active, 'WIKI_EXTRACTION_BUSY'); requireCondition(['mediawiki', 'site'].includes(mode), 'WIKI_EXTRACTION_FAILED');
     requireCondition(typeof html === 'string' && html.isWellFormed() && Buffer.byteLength(html) <= 786432 &&
       typeof htmlHash === 'string' && createHash('sha256').update(html).digest('hex') === htmlHash, 'WIKI_SNAPSHOT_INVALID');
     requireInteger(timeoutMs, 1, 5000); requireCondition(!signal.aborted, 'WIKI_EXTRACTION_CANCELLED');
     active = true; let worker, timer, onAbort;
     try {
-      worker = new Worker(new URL('./extraction-worker.js', import.meta.url), { workerData: { html }, env: {}, execArgv: [],
+      worker = new Worker(new URL('./extraction-worker.js', import.meta.url), { workerData: { html, mode }, env: {}, execArgv: [],
         resourceLimits: { maxOldGenerationSizeMb: 48, maxYoungGenerationSizeMb: 8, stackSizeMb: 2 } });
       return await new Promise((resolve, reject) => {
         const fail = code => reject(new Error(code));
@@ -22,7 +22,7 @@ export function createWikiExtractor() {
         worker.once('exit', () => fail('WIKI_EXTRACTION_FAILED'));
         worker.once('message', message => {
           if (signal.aborted) { onAbort(); return; }
-          if (message?.ok !== true) { fail(/^WIKI_[A-Z_]+$/u.test(message?.error) ? message.error : 'WIKI_EXTRACTION_FAILED'); return; }
+          if (message?.ok !== true) { fail(/^(?:WIKI|SITE)_[A-Z_]+$/u.test(message?.error) ? message.error : 'WIKI_EXTRACTION_FAILED'); return; }
           const value = message.value;
           resolve({ ...value, htmlHash, extractHash: createHash('sha256').update(JSON.stringify(value)).digest('hex') });
         });

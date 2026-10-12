@@ -69,6 +69,8 @@ export function createDashboardApi({ fetch, navigate = path => globalThis.locati
     knowledgePoliciesStatus: () => request('/api/ai/knowledge/policies-status'),
     knowledgePoliciesSnapshot: snapshotHash => request(`/api/ai/knowledge/policies-snapshot?snapshotHash=${encodeURIComponent(snapshotHash)}`),
     knowledgeRefreshPolicies: () => request('/api/ai/knowledge/refresh-policies', {}, true, false, 45000),
+    knowledgeSourcesStatus: () => request('/api/ai/knowledge/sources-status'),
+    knowledgeSyncSources: () => request('/api/ai/knowledge/sync-sources', {}),
     knowledgeDocument: id => request(`/api/ai/knowledge/document?id=${encodeURIComponent(id)}`),
     knowledgeReview: body => request('/api/ai/knowledge/review', body),
     knowledgePublish: body => request('/api/ai/knowledge/publish', body),

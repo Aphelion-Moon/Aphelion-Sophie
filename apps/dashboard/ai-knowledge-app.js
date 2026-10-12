@@ -74,14 +74,39 @@ function useWiki() {
   el('document-state').textContent = 'Wiki source attached. Enter complete reviewed extracts below, including qualifications. Publishing requires a separate confirmation.';
   changed(); notice('Source attached to the editor. No text was published or automatically summarized.');
 }
-async function load() {
-  const session = await api.session(); if (!session.canEditKnowledge) throw Object.assign(Error(),{ kind: 'denied' });
-  const result = await api.knowledgeCatalogue(); el('catalogue').replaceChildren();
-  await loadWiki(); sourceBinding = null;
-  for (const row of result.documents) {
+const sourceNames = { wiki: 'Meridian wiki', site: 'Main website', gh: 'GitHub repositories' };
+async function loadSources() {
+  const status = await api.knowledgeSourcesStatus(), list = el('sources-status'); list.replaceChildren();
+  el('sync-sources').disabled = !status.available;
+  for (const [prefix, label] of Object.entries(sourceNames)) {
+    const published = status.published?.[prefix] ?? { current: 0, stale: 0, withdrawn: 0 }, run = status.runs?.[prefix]?.last ?? null;
+    const item = document.createElement('li');
+    const checked = run === null ? (status.available ? 'not checked since the last restart' : 'sync is not configured for this installation')
+      : run.ok ? `checked ${new Date(run.finishedAt).toLocaleString()} (${run.published} new or changed, ${run.stale} removed${run.skipped ? `, ${run.skipped} skipped` : ''})`
+        : `last check failed ${new Date(run.finishedAt).toLocaleString()} (${run.code}); published text stays until it expires`;
+    item.textContent = `${label}: ${published.current} published${published.stale ? `, ${published.stale} stale` : ''}${published.withdrawn ? `, ${published.withdrawn} withdrawn` : ''} · ${checked}`;
+    list.append(item);
+  }
+}
+let catalogueRows = [];
+function renderCatalogue() {
+  const filter = el('catalogue-filter').value.trim().toLowerCase(); el('catalogue').replaceChildren();
+  const rows = catalogueRows.filter(row => !filter || `${row.title ?? ''} ${row.id}`.toLowerCase().includes(filter));
+  for (const row of rows.slice(0, 200)) {
     const button = document.createElement('button'); button.textContent = `${row.title ?? row.id} · revision ${row.revision} · ${row.withdrawn ? 'withdrawn' : row.sourceCurrent ? 'published' : 'stale'}`;
     button.addEventListener('click',() => perform(async () => edit(await api.knowledgeDocument(row.id)))); el('catalogue').append(button);
   }
+  if (rows.length > 200) { const more = document.createElement('p'); more.textContent = `${rows.length - 200} more; narrow the search to see them.`; el('catalogue').append(more); }
+}
+async function load() {
+  const session = await api.session(); if (!session.canEditKnowledge) throw Object.assign(Error(),{ kind: 'denied' });
+  const result = await api.knowledgeCatalogue(); catalogueRows = result.documents;
+  await loadWiki(); sourceBinding = null;
+  try { await loadSources(); } catch (error) {
+    if (error.kind === 'denied') throw error;
+    el('sources-status').replaceChildren(Object.assign(document.createElement('li'), { textContent: 'Sync status is unavailable.' })); el('sync-sources').disabled = true;
+  }
+  renderCatalogue();
   pending = null; dirty = false; record = null; el('review').hidden = true; el('editor').hidden = true; el('workspace').hidden = false; el('logout').hidden = false; phase = 'ready'; notice('Current public knowledge loaded.');
 }
 async function review() {
@@ -107,6 +132,10 @@ el('refresh-wiki').addEventListener('click',() => perform(async () => {
   await api.knowledgeRefreshPolicies(); await loadWiki(); notice('Source check completed. Review the text before preparing a publication.');
 }));
 el('inspect-wiki').addEventListener('click',() => perform(inspectWiki));
+el('catalogue-filter').addEventListener('input',renderCatalogue);
+el('sync-sources').addEventListener('click',() => perform(async () => {
+  await api.knowledgeSyncSources(); await loadSources(); notice('Sources will be checked within a few minutes. Reload to see the result.');
+}));
 el('use-wiki').addEventListener('click',useWiki);
 el('new-document').addEventListener('click',() => edit());
 el('retry').addEventListener('click',() => perform(load));
