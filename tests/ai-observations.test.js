@@ -165,6 +165,18 @@ test('SAI AT-07 Gateway handoff is bounded, commit-dependent and detached from s
   release(); await bridge.stop(); assert.equal(bridge.prepare(packet('306')), null);
 });
 
+test('SAI AT-07 the Gateway bridge tracks who is talking even while no turn can be taken', async () => {
+  const real = createAiIngress({ guildId: '101', botUserId: '505', clock: () => 1000 }), seen = [];
+  const ingress = { ...real, observe: payload => { seen.push(payload.d.id); real.observe(payload); } };
+  const bridge = createAiGateway({ ingress, turns: { handle: async () => new Promise(() => {}), invalidate: () => {}, stop: async () => {} }, onFault: () => assert.fail('unexpected fault') });
+  const packet = (id, author = '404', change = {}) => ({ t: 'MESSAGE_CREATE', d: { guild_id: '101', id, channel_id: '202', author: { id: author }, type: 0, content: 'Synthetic follow-up', mentions: [], ...change } });
+  ['301','302','303','304'].forEach(id => bridge.committed(bridge.prepare(packet(id)), true));
+  assert.equal(bridge.prepare(packet('900', '505', { type: 19, message_reference: { channel_id: '202' }, referenced_message: { author: { id: '404' } } })), null);
+  assert.equal(bridge.prepare(packet('305', '606')), null, 'at capacity');
+  assert.deepEqual(seen, ['301','302','303','304','900','305']);
+  const proof = ingress.prepare(packet('306')); assert.equal(ingress.content(proof).addressed, false, 'the other member ended the exchange');
+});
+
 test('DS06-E02 only a complete committed edit reaches replacement; rejected or partial edits cancel',async()=>{
   const ingress=createAiIngress({guildId:'101',botUserId:'505',clock:()=>1000}),invalidations=[],seen=[];
   const turns={prepareEdit:()=>true,edit:async proof=>seen.push(ingress.content(proof)),handle:()=>assert.fail('edits cannot become new turns'),

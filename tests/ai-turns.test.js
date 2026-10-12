@@ -49,6 +49,26 @@ test('DS-08 eligible creates and edits redact metadata names and identifiers bef
   }
 });
 
+test('SAI AT-02 the next message from the member Sophie just answered addresses her until someone else speaks or time passes', () => {
+  let now = 1000; const ingress = createAiIngress({ guildId: '101', botUserId: '505', clock: () => now });
+  const sophie = (to, channel = '202') => ({ t: 'MESSAGE_CREATE', d: { guild_id: '101', channel_id: channel, id: '900', author: { id: '505', bot: true }, type: 19,
+    message_reference: { channel_id: channel, message_id: '301' }, referenced_message: { author: { id: to } } } });
+  const addressed = (change = {}) => { const proof = ingress.prepare(packet({ content: 'What if there were people on it?!', ...change }));
+    const value = ingress.content(proof).addressed; ingress.discard(proof); return value; };
+  assert.equal(addressed(), false, 'no exchange yet');
+  ingress.observe(sophie('404')); now += 5000;
+  assert.equal(addressed(), true, 'a follow-up without her name continues the exchange');
+  ingress.observe(packet()); assert.equal(addressed(), true, 'the member themself speaking keeps it open');
+  assert.equal(addressed({ mentions: [{ id: '606' }] }), false, 'a message mentioning someone else is not for her');
+  assert.equal(addressed({ type: 19, message_reference: { channel_id: '202' }, referenced_message: { author: { id: '606' } } }), false, 'nor a reply to someone else');
+  assert.equal(addressed({ author: { id: '606', bot: false } }), false, 'only the member she answered');
+  assert.equal(addressed({ channel_id: '203' }), false, 'only in that channel');
+  ingress.observe(packet({ author: { id: '606', bot: false } })); assert.equal(addressed(), false, 'someone else speaking ends it');
+  ingress.observe(sophie('404')); ingress.observe(packet({ author: { id: '707', bot: true } })); assert.equal(addressed(), true, 'other bots do not end it');
+  now += 120_000; assert.equal(addressed(), false, 'it lapses two minutes after her reply');
+  ingress.observe(sophie('505')); assert.equal(addressed(), false, 'her own message is never a partner');
+});
+
 test('DS-08 a common-word username cannot change the original message question trigger', () => {
   const ingress = createAiIngress({ guildId: '101', botUserId: '505', clock: () => 1000 });
   const proof = ingress.prepare(packet({ author: { id: '404', username: 'help', global_name: 'me' }, content: 'help me' }));
