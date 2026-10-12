@@ -71,6 +71,15 @@ test('SAI AT-12 rendering disables pings and renders only canonical source links
   assert.equal(output.flags, 4);
 });
 
+test('SAI AT-12 citations are one small-print line per page, without placeholder links', () => {
+  const page = { id: 'wiki-policies.r1.s3', title: 'Policies (part 2)', url: 'https://meridian-wiki.a13.info/wiki/Policies',
+    attribution: 'Meridian Wiki contributors; history: https://meridian-wiki.a13.info/index.php?curid=878&action=history', rights: 'CC BY-NC-SA 4.0 (https://creativecommons.org/licenses/by-nc-sa/4.0/)' };
+  const other = { ...page, id: 'wiki-policies.r1.s4' };
+  const output = renderAiReply({ ...answer, citations: [page.id, other.id] }, [page, other]);
+  assert.deepEqual(output.content.split('\n').slice(1), ['-# Policies · Meridian Wiki contributors; history · CC BY-NC-SA 4.0 <https://meridian-wiki.a13.info/wiki/Policies>']);
+  assert.equal(output.content.includes('[link omitted]'), false);
+});
+
 test('RB-N01 calling Sophie by name addresses her; talking about her in passing does not', () => {
   for (const text of ['Sophie what do you do when you\'re bored?', 'hey sophie', 'Hey! You alive again, Sophie?', 'is sophie around?', 'Thanks soph!', 'Sophie.'])
     assert.equal(namedAddress(text), true, text);

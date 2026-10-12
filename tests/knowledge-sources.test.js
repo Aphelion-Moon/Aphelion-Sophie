@@ -20,7 +20,7 @@ test('KS-01 sections follow headings, keep lists and tables as lines, and split 
   const sections = blocksToSections([{ kind: 'text', text: 'Intro line.' }, { kind: 'heading', level: 2, anchors: [], text: 'Duties' },
     { kind: 'list', ordered: false, start: null, reversed: false, items: [{ value: null, blocks: [{ kind: 'text', text: 'Hold the disk' }] }] },
     { kind: 'table', anchors: [], caption: null, rows: [{ anchors: [], cells: [{ blocks: [{ kind: 'text', text: 'Role' }] }, { blocks: [{ kind: 'text', text: 'Captain' }] }] }] },
-    { kind: 'heading', level: 3, anchors: [], text: 'Disk' }, { kind: 'group', element: 'div', anchors: [], blocks: [{ kind: 'text', text: 'Keep it safe.' }] }], 'Captain');
+    { kind: 'heading', level: 3, anchors: [], text: 'Disk' }, { kind: 'group', element: 'div', anchors: [], blocks: [{ kind: 'text', text: 'Keep it safe.' }] }, { kind: 'text', text: '↑ Contents and search' }], 'Captain');
   assert.deepEqual(sections, [{ heading: 'Captain', text: 'Intro line.' }, { heading: 'Captain › Duties', text: '- Hold the disk\nRole | Captain' },
     { heading: 'Captain › Duties › Disk', text: 'Keep it safe.' }]);
   const long = `${'word '.repeat(500)}\n\n${'more '.repeat(500)}`, parts = splitSection({ heading: 'H', text: long });
@@ -42,6 +42,7 @@ test('KS-02 packing yields canonical documents with stable ids, parts, a content
   assert.equal(packDocuments({ ...base, fetchedAt: 2_000_000 }).documents[0].dependencyHash, packed.documents[0].dependencyHash, 'fetch time is not content');
   assert.notEqual(packDocuments({ ...base, sections: [{ heading: 'S0', text: 'Changed' }] }).documents[0].dependencyHash, packed.documents[0].dependencyHash);
   assert.equal(packDocuments({ ...base, maxParts: 2 }).truncated, true);
+  assert.throws(() => packDocuments({ ...base, maxParts: 21 }), /INVALID|21/u);
   assert.throws(() => packDocuments({ ...base, kind: 'owner-publication' }), /KNOWLEDGE_SYNC_INVALID/);
   assert.equal(wikiPageUrl('Songs/Pop, Rock'), 'https://meridian-wiki.a13.info/wiki/Songs/Pop%2C_Rock');
 });
@@ -88,9 +89,9 @@ test('KS-04 the wiki collector parses only changed pages, excludes song sheets a
   const { fetchImpl, calls } = wikiFetch({ pages, parse: { 2: [{ category: 'Policies' }] }, failParse: new Set([4]) });
   const collector = createWikiCollector({ fetchImpl, extractor: inlineExtractor, clock: () => 5_000_000 });
   const captain = documentIdBase('wiki', 'Captain', 1), broken = documentIdBase('wiki', 'Broken', 4);
-  const result = await collector.collect({ signal, known: new Map([[captain, 'wiki:page:1:r10'], [broken, 'wiki:page:4:r39']]) });
+  const result = await collector.collect({ signal, known: new Map([[captain, 'wiki:page:1:r10:f2'], [broken, 'wiki:page:4:r39']]) });
   assert.deepEqual(calls.filter(call => call.startsWith('parse')), ['parse:2', 'parse:4'], 'unchanged, excluded and oversized pages are not parsed');
-  assert.deepEqual(result.entries.find(entry => entry.idBase === captain), { idBase: captain, sourceRevision: 'wiki:page:1:r10', unchanged: true });
+  assert.deepEqual(result.entries.find(entry => entry.idBase === captain), { idBase: captain, sourceRevision: 'wiki:page:1:r10:f2', unchanged: true });
   assert.deepEqual(result.entries.find(entry => entry.idBase === broken), { idBase: broken, sourceRevision: 'wiki:page:4:r39', unchanged: true });
   const policy = result.entries.find(entry => entry.documents)?.documents[0];
   assert.equal(policy.authority, 'policy'); assert.equal(policy.kind, 'wiki-page'); assert.equal(policy.url, 'https://meridian-wiki.a13.info/wiki/Antagonist_Policy');

@@ -12,6 +12,8 @@ export const WIKI_SOURCE = Object.freeze({
   excludedPrefixes: ['Songs/'], maxWikitextBytes: 400000, maxPages: 600,
 });
 const sha256 = value => createHash('sha256').update(value).digest('hex');
+// Bump when the text a page produces changes, so every page is read again once.
+const WIKI_FORMAT = 'f2';
 const policyCategories = /^(?:polic(?:y|ies)|rules?)$/iu, loreCategories = /^lore$/iu;
 
 export const wikiPageUrl = title => `${WIKI_SOURCE.origin}/wiki/${encodeURIComponent(title.replaceAll(' ', '_')).replace(/%2F/giu, '/').replace(/%3A/giu, ':')}`;
@@ -35,7 +37,8 @@ export function createWikiCollector({ fetchImpl = fetch, extractor, clock = Date
       const general = (await api({ action: 'query', meta: 'siteinfo', siprop: 'general|rightsinfo' }, signal)).query;
       requireCondition(general?.general?.server === WIKI_SOURCE.origin && general.general.wikiid === WIKI_SOURCE.wikiId &&
         general.general.articlepath === '/wiki/$1' && general.rightsinfo?.url === WIKI_SOURCE.licenceUrl, 'WIKI_SOURCE_SCOPE_CHANGED');
-      const rights = `${cleanText(general.rightsinfo.text) || 'CC BY-NC-SA 4.0'} (${WIKI_SOURCE.licenceUrl})`;
+      // Short enough for the one-line citation under a reply; the licence link is on every wiki page.
+      const rights = 'CC BY-NC-SA 4.0';
       const pages = []; let next = null;
       do {
         const value = await api({ action: 'query', generator: 'allpages', gapnamespace: String(WIKI_SOURCE.namespace), gapfilterredir: 'nonredirects',
@@ -51,7 +54,7 @@ export function createWikiCollector({ fetchImpl = fetch, extractor, clock = Date
       const entries = [], skipped = []; let truncated = 0;
       for (const page of pages.sort((a, b) => a.pageId - b.pageId)) {
         requireCondition(!signal.aborted, 'WIKI_SYNC_CANCELLED');
-        const idBase = documentIdBase(WIKI_SOURCE.prefix, page.title, page.pageId), sourceRevision = `wiki:page:${page.pageId}:r${page.revision}`;
+        const idBase = documentIdBase(WIKI_SOURCE.prefix, page.title, page.pageId), sourceRevision = `wiki:page:${page.pageId}:r${page.revision}:${WIKI_FORMAT}`;
         if (WIKI_SOURCE.excludedPrefixes.some(prefix => page.title.startsWith(prefix)) || page.length > WIKI_SOURCE.maxWikitextBytes) { skipped.push('EXCLUDED'); continue; }
         if (known.get(idBase) === sourceRevision) { entries.push({ idBase, sourceRevision, unchanged: true }); continue; }
         try {
@@ -63,9 +66,9 @@ export function createWikiCollector({ fetchImpl = fetch, extractor, clock = Date
           const categories = (parsed.categories ?? []).map(item => String(item.category ?? '').replaceAll('_', ' '));
           const authority = categories.some(name => policyCategories.test(name)) ? 'policy' : categories.some(name => loreCategories.test(name)) ? 'lore' : 'reference';
           const display = cleanText(String(parsed.displaytitle ?? '').replace(/<[^>]*>/gu, ''));
-          const revision = `wiki:page:${page.pageId}:r${parsed.revid}`;
+          const revision = `wiki:page:${page.pageId}:r${parsed.revid}:${WIKI_FORMAT}`;
           const packed = packDocuments({ idBase, title: page.title, kind: 'wiki-page', authority, url: wikiPageUrl(page.title), rights,
-            attribution: `Meridian Wiki contributors; history: ${WIKI_SOURCE.origin}/index.php?curid=${page.pageId}&action=history`,
+            attribution: 'Meridian Wiki contributors', maxParts: 20,
             sourceRevision: revision, fetchedAt: clock(), aliases: display && display !== page.title ? [display] : [],
             sections: blocksToSections(extraction.blocks, page.title) });
           if (packed.truncated) truncated++;

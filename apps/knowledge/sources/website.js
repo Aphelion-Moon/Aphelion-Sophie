@@ -61,7 +61,7 @@ export function createWebsiteCollector({ fetchImpl = fetch, extractor, clock = D
           const content = sha256(JSON.stringify(sections));
           const packed = packDocuments({ idBase: documentIdBase(SITE_SOURCE.prefix, final.pathname, final.pathname), title, kind: 'website',
             authority: final.pathname.startsWith('/lore') ? 'lore' : 'reference', url: final.href,
-            rights: 'Published by the Aphelion project on meridian.a13.info', attribution: `Meridian Rift website: ${title}`,
+            rights: 'Aphelion project', attribution: 'Meridian Rift website',
             sourceRevision: `site:${final.pathname}:${content.slice(0, 16)}`, fetchedAt: clock(), sections, maxParts: 4 });
           if (packed.documents.length) entries.push({ idBase: packed.documents[0].id, sourceRevision: packed.documents[0].sourceRevision, documents: packed.documents });
           else skipped.push('EMPTY');

@@ -43,7 +43,7 @@ export function createGithubCollector({ fetchImpl = fetch, clock = Date.now }) {
         const owner = name(repo.owner.login), repoName = name(repo.name), branch = String(repo.default_branch ?? '');
         requireCondition(/^[A-Za-z0-9._/-]{1,100}$/u.test(branch), 'GITHUB_RESPONSE_INVALID');
         const home = `${GITHUB_SOURCE.site}/${owner}/${repoName}`, licence = repo.license?.spdx_id && repo.license.spdx_id !== 'NOASSERTION' ? repo.license.spdx_id : 'no stated licence';
-        const rights = `${licence} (repository licence)`, attribution = `${owner}/${repoName} contributors on GitHub`;
+        const rights = licence, attribution = `${owner}/${repoName} on GitHub`;
         // Overview and README.
         const overview = [`${owner}/${repoName} is a public GitHub repository of the Aphelion project.`,
           repo.description ? `Description: ${short(repo.description, 500)}` : null, repo.language ? `Main language: ${repo.language}.` : null,
@@ -89,7 +89,7 @@ export function createGithubCollector({ fetchImpl = fetch, clock = Date.now }) {
             `#${item.number} ${short(item.title, 200)} — merged ${day(item.merged_at)}${item.body ? `\n${short(item.body, 400)}` : ''}`).join('\n\n') });
           if (!sections.length) sections.push({ heading: `${repoName} › Activity ${as}`, text: `No releases, open issues or open pull requests ${as}.` });
           add(`${owner}/${repoName}#activity`, `${repoName} recent activity`, { authority: 'reference', url: `${home}/pulls`,
-            rights: 'Issue and pull request text belongs to its authors', attribution: `${owner}/${repoName} on GitHub`, sourceRevision: `github:${owner}/${repoName}:activity`, sections });
+            rights: 'text by its authors', attribution: `${owner}/${repoName} on GitHub`, sourceRevision: `github:${owner}/${repoName}:activity`, sections });
         } catch (error) { rethrow(error, signal); skipped++; }
       }
       return { entries, listed: repositories.length, skipped, truncated, complete: skipped === 0 };

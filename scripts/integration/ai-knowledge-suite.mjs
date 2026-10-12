@@ -286,5 +286,16 @@ export async function runAiKnowledgeSuite(cluster, run) {
     const followUp = await synced.lookup('pumps and lasers', request(), 'Member 1: how do I build airlocks?');
     assert.equal(followUp.length, 1); assert.match(followUp[0].text, /pumps/u, 'the conversation supplies the topic');
     await assert.rejects(synced.lookup('x', request(), 'y'.repeat(4001)), /KNOWLEDGE_QUERY_INVALID/);
+    const rules = section => ({ heading: `Policies › Core Rules › ${section.code}`, text: section.text });
+    const policy = (idBase, title) => ({ idBase, sourceRevision: 'wiki:page:2:r1', documents: packDocuments({ idBase, title, kind: 'wiki-page', authority: 'policy',
+      url: `https://meridian-wiki.a13.info/wiki/${title.replaceAll(' ','_')}`, rights: 'CC BY-NC-SA 4.0', attribution: 'Meridian Wiki contributors', sourceRevision: 'wiki:page:2:r1', fetchedAt: Date.now(),
+      sections: [{ code: 'CR 9: Station Infrastructure CR-09', text: 'Do not vent the station without cause.' }, { code: 'CR 10: The Rule of Cool CR-10', text: 'A cool scene may bend minor rules if everyone enjoys it.' }].map(rules) }).documents });
+    // The same rules transcluded into a second page must not take two of the five slots.
+    await synced.mirror.apply('wiki', { entries: [policy('wiki-policies-dddddd', 'Policies'), policy('wiki-server-policies-eeeeee', 'Server Policies')], complete: false });
+    for (const question of ['explain CR10 to me', 'what is cr-10?', 'tell me about CR 10']) {
+      const found = await synced.lookup(question, request());
+      assert.match(found[0]?.heading ?? '', /CR 10/u, question);
+      assert.equal(found.filter(item => /Rule of Cool/u.test(item.heading)).length, 1, `identical passages count once: ${question}`);
+    }
   });
 }
