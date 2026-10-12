@@ -22,11 +22,18 @@ export function createAiTurns({ admission, scheduler, context, knowledge, messag
   function gatheringFor(filter) {
     return [...gatherings.values()].find(entry=>entry.fragments.has(filter.messageId) && entry.fragments.get(filter.messageId).channelId===filter.channelId);
   }
+  const targeted = filter => Boolean(filter.channelId || filter.userId || filter.messageId);
   function invalidateContext(filter) {
-    admission.invalidate?.();context.invalidate(filter);onInvalidate(filter);
     // Pending admissions have no trusted identity yet; discard them on any invalidation.
-    generation++;
-    for(const [id,{request}] of outstanding)if(!filter.channelId || request.channelId===filter.channelId)scheduler.cancel(id);
+    admission.invalidate?.(); generation++;
+    // An untargeted change (consent, AI state, knowledge, Gateway reconnect) is caught where it matters: history is
+    // authorized as it is read and the pre-delivery check compares bindings. Wiping every lane, cancelling unrelated
+    // turns and withdrawing every delivered reply on such events made Sophie forget and delete conversations.
+    if (!targeted(filter)) return;
+    context.invalidate(filter); onInvalidate(filter);
+    for(const [id,{request}] of outstanding)if((!filter.channelId || request.channelId===filter.channelId) &&
+      (!filter.userId || request.userId===filter.userId || (request.fragments??[]).some(item=>item.userId===filter.userId)) &&
+      (!filter.messageId || request.messageId===filter.messageId || (request.fragments??[]).some(item=>item.messageId===filter.messageId) || filter.channelId))scheduler.cancel(id);
   }
   async function gather(request) {
     const lease = request.gather;
@@ -50,14 +57,18 @@ export function createAiTurns({ admission, scheduler, context, knowledge, messag
     return { ...root, text:combined.map(item=>item.text).join('\n'), fragments:combined };
   }
   const historyCurrent = (request, source) => context.current(source, item => admission.revalidateSource(item), items => knowledge.current(items, request));
-  async function current(request, sources = [], history = [], saved = null) {
-    if (stopped || clock() >= request.deadline || !await admission.revalidate(request)) return false;
+  // The second of exactly two authorization checks (owner decision, 12 October 2026). Admission is the first: it authorizes
+  // the request and its fragments, and history is authorized as it is read. This one runs once, right before delivery,
+  // over everything the reply depends on; beginDelivery re-checks the request itself atomically with the state change.
+  async function dependenciesCurrent(request, sources, history, saved) {
+    if (stopped || clock() >= request.deadline) return false;
     for (const fragment of request.fragments ?? []) if (fragment.messageId!==request.messageId && !await admission.revalidate(fragment)) return false;
     for (const source of history) if (!await historyCurrent(request, source)) return false;
-    // Notes the member edited, deleted or stopped sharing after preparation must not reach dispatch or delivery.
+    // Notes the member edited, deleted or stopped sharing after preparation must not reach delivery.
     if (saved !== null && await memory.current(request.userId, saved) !== true) return false;
     return await knowledge.current(sources, request) === true && clock() < request.deadline;
   }
+  const expired = request => stopped || clock() >= request.deadline;
   async function run(request) {
     const result = await runStages(request);
     report(request, result.state, result.stage ?? 'END', result.reason ?? null);
@@ -66,7 +77,10 @@ export function createAiTurns({ admission, scheduler, context, knowledge, messag
   async function runStages(request) {
     let attempted = false, effect = null, stage = 'START';
     try {
-      if (!await current(request)) { await admission.settle(request, 'cancelled'); return { state: 'cancelled', stage }; }
+      if (expired(request)) { await admission.settle(request, 'expired'); return { state: 'expired', stage }; }
+      // Typing starts as soon as an addressed turn is admitted, as people expect; it promises nothing and an
+      // indicator failure cannot authorize or replay a response.
+      if (request.profile.typing && !request.decision.proactive && request.decision.outcomes.includes('reply')) void messages.typing(request).catch(() => {});
       stage = 'HISTORY';
       const fragmentIds = new Set((request.fragments ?? []).map(item=>item.messageId));
       const history = (await context.history(request, source => historyCurrent(request, source))).filter(source=>!fragmentIds.has(source.messageId));
@@ -77,30 +91,12 @@ export function createAiTurns({ admission, scheduler, context, knowledge, messag
       // Only the requester's own shared notes; never another participant's.
       stage = 'MEMORY';
       const saved = memory === null ? null : await memory.read(request.userId);
-      stage = 'RECHECK';
-      if (!await current(request, sources, history, saved)) { await admission.settle(request, 'cancelled'); return { state: 'cancelled', stage }; }
+      if (expired(request)) { await admission.settle(request, 'expired'); return { state: 'expired', stage }; }
       stage = 'GENERATE';
       const generated = await scheduler.submit({ id: request.messageId, member: `${request.guildId}.${request.userId}`, channel: `${request.guildId}.${request.channelId}`, receivedAt: request.receivedAt,
         deadline: request.deadline, proactive: request.decision.proactive,
-        beforeDispatch: () => current(request, sources, history, saved),
-        onPrepared: async comparison=>{
-          if(!await current(request, sources, history, saved))return;
-          await context.comparePrepared(request,history,sources,comparison,admission.revalidateSource,
-            items=>items.length===0?true:knowledge.currentReferences(items,request));
-        },
-        beforeExecute: async () => {
-          let check = 'BEFORE_TYPING';
-          try {
-            if (!await current(request, sources, history, saved)) { report(request, 'cancelled', check); return false; }
-            if (request.profile.typing && !request.decision.proactive && request.decision.outcomes.includes('reply')) {
-              try { await messages.typing(request); } catch { /* An optional indicator failure cannot authorize or replay a response. */ }
-            }
-            check = 'AFTER_TYPING';
-            const still = await current(request, sources, history, saved);
-            if (!still) report(request, 'cancelled', check);
-            return still;
-          } catch (error) { report(request, 'failed', check, error?.code ?? error?.message); throw error; }
-        },
+        // The prepared-shape comparison holds block sizes and digests only; diagnostics() re-authorizes it before showing it.
+        onPrepared: comparison => context.comparePrepared(request, history, sources, comparison, async () => true, async () => true),
         payload: freezeAiMaterial({ workerDomain: request.binding.workerDomain, releaseHash: request.binding.releaseHash,
           requesterId: request.userId, restricted: request.binding.restricted,
           boundary: { guildId: request.guildId, channelId: request.channelId, continuity: request.binding.continuity, boundaryEpoch: request.binding.boundaryEpoch },
@@ -111,33 +107,27 @@ export function createAiTurns({ admission, scheduler, context, knowledge, messag
       stage = 'VALIDATE';
       const output = validateAiOutput(generated.result, { outcomes: request.decision.outcomes, answerOnly: request.decision.answerOnly,
         sources, emojiKeys: request.config.emojis.map(emoji => emoji.key) });
-      if (!await current(request, sources, history, saved)) { await admission.settle(request, 'cancelled'); return { state: 'cancelled', stage }; }
       if (output.kind === 'silent') { await admission.settle(request, 'silent'); return { state: 'silent', stage }; }
       stage = 'DELIVER';
-      if (!await admission.beginDelivery(request)) { await admission.settle(request, 'cancelled'); return { state: 'cancelled', stage }; }
+      if (!await dependenciesCurrent(request, sources, history, saved) || !await admission.beginDelivery(request)) {
+        await admission.settle(request, clock() >= request.deadline ? 'expired' : 'cancelled');
+        return { state: clock() >= request.deadline ? 'expired' : 'cancelled', stage };
+      }
       // Deadline is propagated through the actual Discord request; no late-send queue or fallback destination.
       requireCondition(clock() < request.deadline, 'AI_DEADLINE_EXPIRED'); attempted = true;
       effect = output.kind === 'reply'
         ? await messages.reply(request, renderAiReply(output, sources), dependencies, sources)
         : await messages.react(request, request.config.emojis.find(emoji => emoji.key === output.emojiKey), dependencies, sources);
-      if (clock() >= request.deadline || !await current(request, sources, history, saved)) {
-        await messages.remove(request, effect); await admission.settle(request, 'cancelled', effect.id); return { state: 'cancelled', stage: 'DELIVERED_RECHECK' };
-      }
-      const state = output.kind === 'reply' ? 'delivered' : 'reacted'; await admission.settle(request, state, effect.id);
-      if (!await current(request, sources, history, saved)) {
-        await messages.remove(request, effect); await admission.settle(request, 'cancelled', effect.id); return { state: 'cancelled', stage: 'SETTLED_RECHECK' };
-      }
-      // Disposable continuity must not turn a confirmed delivery into an uncertain send.
+      // A sent reply stays. It is withdrawn only by an explicit event (opt-out, departure, source edit or delete), which
+      // marks its effect for cleanup even while this turn is still settling.
+      const state = output.kind === 'reply' ? 'delivered' : 'reacted';
+      try { await admission.settle(request, state, effect.id); } catch { /* The effect receipt already records the delivery. */ }
       try {
-        if (output.kind === 'reply' && await current(request, sources, history, saved)) context.rememberReply(request, { id: effect.id, text: output.text }, dependencies, sources);
-      } catch { /* Omit context if fresh authorization or bounded retention is unavailable. */ }
+        if (output.kind === 'reply') context.rememberReply(request, { id: effect.id, text: output.text }, dependencies, sources);
+      } catch { /* Omit context if bounded retention is unavailable. */ }
       return { state, stage };
     } catch (error) {
       const reason = error?.code ?? error?.message;
-      if (effect !== null) {
-        try { await messages.remove(request, effect); await admission.settle(request, 'cancelled', effect.id); return { state: 'cancelled', stage, reason }; }
-        catch { /* Cleanup uncertainty is retained; no new generation or delivery retry. */ }
-      }
       const state = attempted ? 'uncertain' : clock() >= request.deadline ? 'expired' : 'unavailable';
       await admission.settle(request, state, effect?.id ?? null).catch(() => {}); return { state, stage, reason };
     }
@@ -182,6 +172,7 @@ export function createAiTurns({ admission, scheduler, context, knowledge, messag
     active: () => outstanding.size > 0 || gatherings.size > 0,
     invalidate(filter = {}) {
       invalidateContext(filter);
+      if (!targeted(filter)) return;
       for (const entry of [...gatherings.values()]) if ([...entry.fragments.values()].some(item=>(!filter.channelId || item.channelId===filter.channelId) &&
         (!filter.userId || item.userId===filter.userId) && (!filter.messageId || item.messageId===filter.messageId))) { entry.cancelled=true; finishGather(entry); }
     },

@@ -303,14 +303,15 @@ test('SAI AT-03/13 revocation or expired retrieval prevents model admission and 
   await revoked.turns.handle({}); assert.equal(revoked.sent.length, 0);
 });
 
-test('SAI AT-13 uncertain sends are parked and never retried; late effects receive exact compensation', async () => {
+test('SAI AT-13 uncertain sends are parked and never retried; a reply that lands is kept', async () => {
   const uncertain = turnsFixture(); let attempts = 0; uncertain.messages.reply = async () => { attempts++; throw Error('network'); };
   assert.deepEqual(await uncertain.turns.handle({}), { state: 'uncertain' }); assert.equal(attempts, 1);
+  // The transport refuses to start after the deadline; a send that started in time and lands late is not withdrawn.
   const late = turnsFixture(); late.messages.reply = async () => { late.time(16001); return { id: '606' }; };
-  assert.deepEqual(await late.turns.handle({}), { state: 'cancelled' }); assert.deepEqual(late.sent, ['removed']);
+  assert.deepEqual(await late.turns.handle({}), { state: 'delivered' }); assert.deepEqual(late.sent, []);
 });
 
-test('DS-08/09 source invalidation cancels dependent active work and settlement races compensate known effects', async () => {
+test('DS-08/09 source invalidation cancels dependent active work; revocation after a send does not withdraw the reply', async () => {
   const f = turnsFixture(), cancelled = [];
   f.scheduler.cancel = id => cancelled.push(id);
   let finish;
@@ -322,12 +323,12 @@ test('DS-08/09 source invalidation cancels dependent active work and settlement 
   finish({ state: 'cancelled' }); await task;
   const race = turnsFixture();
   race.admission.settle = async () => { race.revoke(); };
-  assert.deepEqual(await race.turns.handle({}), { state: 'cancelled' });
-  assert.equal(race.sent.at(-1), 'removed');
+  assert.deepEqual(await race.turns.handle({}), { state: 'delivered' });
+  assert.notEqual(race.sent.at(-1), 'removed');
   const unavailable = turnsFixture();
-  unavailable.admission.settle = async () => { unavailable.knowledge.current = async () => { throw Error('authority unavailable'); }; };
-  assert.deepEqual(await unavailable.turns.handle({}), { state: 'cancelled' });
-  assert.equal(unavailable.sent.at(-1), 'removed');
+  unavailable.admission.settle = async () => { throw Error('storage unavailable'); };
+  assert.deepEqual(await unavailable.turns.handle({}), { state: 'delivered' });
+  assert.notEqual(unavailable.sent.at(-1), 'removed');
 });
 
 test('DS-08 a delivered derivative expires with its knowledge source', async () => {
@@ -418,19 +419,18 @@ test('DS09 operator HTTP accepts only fixed lifecycle inputs and suppresses resp
   assert.deepEqual(calls,['applyWorker','stopWorker']);
 });
 
-test('SAI AT-07/19 typing is brief, fixed to an admitted addressed turn and cannot survive revocation', async () => {
-  let eligible = true; const calls = [];
-  const messages = createAiMessages({ botUserId: '505', clock: () => 1000, revalidate: async () => eligible, canReact: async () => false,
+test('SAI AT-07/19 typing is brief, fixed to an admitted addressed turn, and a revocation while typing stops delivery', async () => {
+  const calls = []; let now = 1000;
+  const messages = createAiMessages({ botUserId: '505', clock: () => now, canReact: async () => false,
     effects: Object.fromEntries(['claim','begin','note','cleanup','removed'].map(name => [name, async () => assert.fail('typing must not claim a social effect')])),
     transport: { indicateAiTyping: async (...values) => calls.push(values) } });
   const addressed = request({ decision: { ...request().decision, proactive: false } });
   await messages.typing(addressed); assert.deepEqual(calls, [['202',2000]]);
   await assert.rejects(messages.typing(request()),/AI_TYPING_UNAVAILABLE/);
-  eligible = false; await assert.rejects(messages.typing(addressed),/AI_DELIVERY_REVOKED/); assert.equal(calls.length,1);
-  const f = turnsFixture(); f.value.decision.proactive = false;
-  f.messages.typing = async () => { f.revoke(); };
-  f.scheduler.submit = async input => { assert.equal(await input.beforeExecute(),false); return { state: 'cancelled' }; };
-  assert.deepEqual(await f.turns.handle({}),{ state: 'cancelled' }); assert.equal(f.sent.length,0);
+  now = 16000; await assert.rejects(messages.typing(addressed),/AI_DEADLINE_EXPIRED/); assert.equal(calls.length,1);
+  const f = turnsFixture(); f.value.decision.proactive = false; let typed = 0;
+  f.messages.typing = async () => { typed++; f.revoke(); };
+  assert.deepEqual(await f.turns.handle({}),{ state: 'cancelled' }); assert.equal(typed,1); assert.equal(f.sent.length,0);
 });
 
 test('SAI AT-06/08 knowledge HTTP requires current publication authority and explicit public-source confirmation', async () => {
@@ -474,4 +474,22 @@ test('DS07-K07 import HTTP exposes fixed read/refresh operations only to current
   allowed = true; assert.equal((await http.execute(request)).publishedAutomatically,false); assert.equal(calls,1); assert.equal(invalidations,1);
   assert.equal((await http.execute({ ...request, method: 'GET', path: '/api/ai/knowledge/policies-status', body: null })).state,'pending');
   assert.equal((await http.execute({ ...request, method: 'GET', path: '/api/ai/knowledge/policies-snapshot', body: null, query: new URLSearchParams({ snapshotHash: 'a'.repeat(64) }) })).reviewed,false);
+});
+
+test('RB-01 an untargeted invalidation keeps context, cancels no running turn and withdraws no reply', async () => {
+  const f = turnsFixture(), cancelled = [], withdrawn = [];
+  const turns = createAiTurns({ admission: f.admission, scheduler: { ...f.scheduler, cancel: id => cancelled.push(id) }, context: f.context, knowledge: f.knowledge,
+    messages: f.messages, clock: () => 1000, onInvalidate: filter => withdrawn.push(filter) });
+  f.context.remember(request({ messageId: '301' }));
+  turns.invalidate(); turns.invalidate({});
+  assert.equal(f.context.status().messages, 1); assert.deepEqual(cancelled, []); assert.deepEqual(withdrawn, []);
+  turns.invalidate({ channelId: '202', messageId: '301' });
+  assert.equal(f.context.status().messages, 0); assert.deepEqual(withdrawn, [{ channelId: '202', messageId: '301' }]); await turns.stop();
+});
+
+test('RB-02 a turn re-checks authorization twice: at admission and once before delivery', async () => {
+  const f = turnsFixture(); let revalidated = 0, delivered = 0;
+  f.admission.revalidate = async () => { revalidated++; return true; }; f.admission.beginDelivery = async () => { delivered++; return true; };
+  assert.deepEqual(await f.turns.handle({}), { state: 'delivered' });
+  assert.equal(revalidated, 0, 'no extra request re-checks between admission and delivery'); assert.equal(delivered, 1);
 });

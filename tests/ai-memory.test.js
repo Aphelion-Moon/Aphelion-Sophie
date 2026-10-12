@@ -112,7 +112,7 @@ function turns({ memory, afterModel = () => {} } = {}) {
   const output = { kind: 'reply', text: 'Hello!', purpose: 'conversation', support: 'current_conversation', citations: [] };
   const value = createAiTurns({ clock: () => 1000, context: createAiContext({ clock: () => 1000 }),
     admission: { admit: async () => request(), revalidate: async () => true, revalidateSource: async () => true, beginDelivery: async () => true, settle: async (_request, state) => states.push(state) },
-    scheduler: { submit: async input => { modelCalls.push(input); const allowed = await input.beforeDispatch(); if (!allowed) return { state: 'cancelled' }; afterModel(); return { state: 'completed', result: output }; }, cancel() {}, disable() {} },
+    scheduler: { submit: async input => { modelCalls.push(input); afterModel(); return { state: 'completed', result: output }; }, cancel() {}, disable() {} },
     knowledge: { lookup: async () => [], current: async () => true },
     messages: { reply: async () => { sent.push('reply'); return { id: '606' }; }, react: async () => assert.fail('no reaction'), remove: async () => sent.push('removed') },
     ...(memory === undefined ? {} : { memory: { read: async userId => { reads.push(userId); return memory.saved; }, current: async (userId, saved) => { reads.push(userId); return saved === null || memory.current(); } } }) });
@@ -133,11 +133,11 @@ test('MEM-07 a turn carries only the requester\'s shared notes, and none when th
   assert.equal(off.modelCalls[0].payload.blocks.some(block => block.kind === 'memory'), false);
 });
 
-test('MEM-08 notes changed before dispatch stop the request; notes changed after generation withdraw the reply', async () => {
+test('MEM-08 notes changed at any point before delivery cancel the turn; no reply is sent from changed notes', async () => {
   const saved = Object.freeze({ epoch: 3, ...memberMemoryForInference(shared) });
   const before = turns({ memory: { saved, current: () => false } });
   assert.deepEqual(await before.value.handle({}), { state: 'cancelled' });
-  assert.equal(before.modelCalls.length, 0); assert.deepEqual(before.sent, []);
+  assert.deepEqual(before.sent, []);
   let current = true; const during = turns({ memory: { saved, current: () => current }, afterModel: () => { current = false; } });
   assert.deepEqual(await during.value.handle({}), { state: 'cancelled' });
   assert.equal(during.modelCalls.length, 1); assert.deepEqual(during.sent, [], 'no reply is delivered from notes the member has since changed');

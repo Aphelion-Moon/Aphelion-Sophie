@@ -62,4 +62,15 @@ export async function runAiEffectsSuite(cluster, run) {
     await effects.invalidate({messageId:'105'}); await assert.rejects(effects.begin(held),/AI_EFFECT_REVOKED/);
     assert.deepEqual(calls,['send']);
   });
+  await run('RB-E05 delivered replies are never re-verified; only a named withdrawal reaches cleanup, at once', async () => {
+    const effects = store(), value = await request('106'), held = await effects.claim(value,'reply',null);
+    await effects.begin(held); await effects.note(held,'911');
+    assert.equal((await effects.pending()).some(row=>row.message_id==='106'),false,'a confirmed reply is not returned for re-verification');
+    await assert.rejects(effects.invalidate({}),/AI_EFFECT_FILTER_REQUIRED/);
+    await assert.rejects(effects.invalidate({channelId:'202'}),/AI_EFFECT_FILTER_REQUIRED/);
+    assert.equal((await rows()).find(row=>row.message_id==='106').state,'confirmed');
+    await effects.invalidate({messageId:'106'});
+    const first = await effects.pending(); assert.equal(first.filter(row=>row.message_id==='106').length,1,'a fresh withdrawal is attempted at once');
+    assert.equal((await effects.pending()).some(row=>row.message_id==='106'),false,'a failed removal waits before its retry');
+  });
 }

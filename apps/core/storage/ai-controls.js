@@ -203,6 +203,10 @@ export function createAiControls({ pool, guildId, authorize, inspectChannel, mem
           VALUES($1,$2,$3,$4,$5,$6,$7,$8) ON CONFLICT(guild_id,channel_id,user_id) DO UPDATE SET
           epoch=EXCLUDED.epoch,enabled=EXCLUDED.enabled,presence_epoch=EXCLUDED.presence_epoch,notice_revision=EXCLUDED.notice_revision,receipt=EXCLUDED.receipt,updated_at=clock_timestamp()`,
         [guildId, channelId, actor.userId, epoch, enabled, presence, savedRevision, receipt]);
+        // Opt-out withdraws Sophie's delivered replies in this channel that drew on this member's messages. Delivered replies
+        // are no longer re-verified, so the withdrawal is explicit and commits with the consent change.
+        if (!enabled) await client.query(`UPDATE sophie_ai.effects SET state='cleanup',updated_at=clock_timestamp() WHERE guild_id=$1 AND channel_id=$2
+          AND state NOT IN ('removed','cleanup') AND EXISTS(SELECT 1 FROM jsonb_array_elements(dependencies) d WHERE d->>'userId'=$3)`, [guildId, channelId, actor.userId]);
         return { channelId, enabled, epoch, noticeRevision: savedRevision };
       }, { userId: actor.userId }, result => result?.epoch !== 0);
     },

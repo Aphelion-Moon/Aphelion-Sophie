@@ -2,15 +2,19 @@ import { requireCondition, requireId, requireInteger } from '../../../contracts/
 import { channelPermissions, PERMISSIONS, validateOverwrites } from '../../../platform/authorization/discord-permissions.js';
 import { aiDigest } from '../storage/ai-controls.js';
 
-/** Core-only live metadata. The returned narrow adapters cannot expose case content or credentials. */
-export function createAiObservations({ pool, transport, authorityStore, capabilityPolicy, mapping, protectedCategoryId, observer, clock,
+/**
+ * Core-only live metadata, read from the Gateway-maintained guild state rather than Discord REST. Discord pushes every
+ * member, role and channel change to core as it happens, so this is current state, not a snapshot; it is refused while
+ * the Gateway is not current. The returned narrow adapters cannot expose case content or credentials.
+ */
+export function createAiObservations({ pool, transport, guildState, authorityStore, capabilityPolicy, mapping, protectedCategoryId, observer, clock,
   trace = () => {}, wait = ms => new Promise(resolve => setTimeout(resolve, ms)) }) {
-  const cache = new Map(), members = new WeakMap();
+  requireCondition(guildState && ['ready', 'session', 'guild', 'roles', 'channel', 'member', 'rememberMember', 'emoji', 'message'].every(name => typeof guildState[name] === 'function'), 'TRUSTED_ADAPTERS_REQUIRED');
+  const members = new WeakMap();
   let generation = 0;
   const guildId = mapping.guildId, botUserId = mapping.botUserId;
-  // Discord allows five member reads and five message reads per second for the whole bot. A short cooldown or a
-  // request already in flight is a wait, not a refusal, within a bounded total. Waiting only ages the observation
-  // (its timestamp is taken before the read), so freshness checks stay at least as strict.
+  // A member the Gateway has not described yet (large guilds omit members from GUILD_CREATE) is read once over REST;
+  // later Gateway member events keep it current. Short cooldowns are waited out within a bounded total.
   async function patient(read, label) {
     let waited = 0;
     for (;;) {
@@ -27,76 +31,59 @@ export function createAiObservations({ pool, transport, authorityStore, capabili
       }
     }
   }
-  async function continuity() { const stamp = await observer.readAiContinuity(); requireCondition(typeof stamp === 'string', 'AI_AUTHORITY_UNAVAILABLE'); return stamp; }
-  // Cached reads are bound to the Gateway continuity stamp (member, role, channel and guild events) and to the clear()
-  // generation (message edits and deletes, state changes), and are reused for at most two seconds.
-  async function metadata(key, stamp, version, read, label) {
-    const saved = cache.get(key), now = clock();
-    if (saved?.stamp === stamp && saved.at <= now && now - saved.at < 2000) return saved;
-    const value = { at: now, stamp, value: await patient(read, label) };
-    // A completed read from before clear() must not repopulate the next generation.
-    if (version !== generation) return value;
-    if (cache.size >= 128) cache.delete(cache.keys().next().value);
-    cache.set(key, value); return value;
+  async function memberOf(userId, label) {
+    const known = guildState.member(userId);
+    if (known !== undefined) return known;
+    const raw = await patient(() => transport.getMember(userId), label);
+    guildState.rememberMember(userId, raw ?? null);
+    return guildState.member(userId) ?? null;
   }
   async function excluded(channelId, parentId = null) {
     if (channelId === protectedCategoryId || parentId === protectedCategoryId) return true;
     return (await pool.query('SELECT 1 FROM sophie_core.case_exclusions WHERE guild_id=$1 AND channel_id=ANY($2::text[]) LIMIT 1',
       [guildId, [channelId, ...(parentId ? [parentId] : [])]])).rowCount > 0;
   }
+  // The Gateway must be current (journal lease and guild availability) and the projection must belong to the same session.
+  async function gatewayCurrent(session) { return guildState.ready() && guildState.session() === session && typeof await observer.readAiContinuity() === 'string'; }
   async function isCurrent(observation, channelId) {
-    const fresh = () => observation.generation === generation && clock() >= observation.checkedAt && clock() - observation.checkedAt < 5000;
-    return fresh() && !await excluded(channelId, observation.parentId) && await continuity() === observation.continuity && fresh();
-  }
-  function roleIds(member, userId) {
-    requireCondition(member?.user?.id === userId && Array.isArray(member.roles) && member.roles.length <= 500, 'AI_MEMBER_INVALID');
-    member.roles.forEach(requireId); requireCondition(new Set(member.roles).size === member.roles.length, 'AI_MEMBER_INVALID'); return member.roles;
-  }
-  function timedOut(member) {
-    if (member.communication_disabled_until == null) return false;
-    const until = Date.parse(member.communication_disabled_until); requireCondition(Number.isFinite(until), 'AI_MEMBER_INVALID'); return until > clock();
+    return observation.generation === generation && !await excluded(channelId, observation.parentId) && await gatewayCurrent(observation.session);
   }
   async function inspect(event) {
     requireCondition(event.guildId === guildId, 'FOREIGN_GUILD'); requireId(event.channelId); requireId(event.userId);
-    const version = generation;
-    if (await excluded(event.channelId)) return null;
-    const stamp = await continuity(), started = clock();
-    const channel = await metadata(`channel.${event.channelId}`, stamp, version, () => transport.getChannel(event.channelId), 'CHANNEL');
-    const raw = channel.value;
-    if (raw?.id !== event.channelId || raw.guild_id !== guildId || raw.type !== 0 || await excluded(raw.id, raw.parent_id)) return null;
-    validateOverwrites(raw.permission_overwrites);
-    const guild = await metadata('guild', stamp, version, () => transport.getGuild(), 'GUILD'); requireCondition(guild.value?.id === guildId, 'FOREIGN_GUILD'); requireId(guild.value.owner_id);
-    const roles = await metadata('roles', stamp, version, () => transport.getRoles(), 'ROLES');
-    requireCondition(Array.isArray(roles.value) && roles.value.length > 0 && roles.value.length <= 500, 'AI_ROLES_INVALID');
-    const projected = roles.value.map(role => { requireInteger(role.position, 0, 500); return { id: role.id, permissions: role.permissions }; });
-    const bot = await metadata('bot', stamp, version, () => transport.getMember(botUserId), 'BOT'), botRoles = roleIds(bot.value, botUserId);
-    const member = await metadata(`member.${event.userId}`, stamp, version, () => transport.getMember(event.userId), 'MEMBER');
-    if (member.value === null) return null;
-    const userRoles = roleIds(member.value, event.userId);
-    if (bot.value.user.bot !== true || member.value.user.bot === true || timedOut(bot.value) || timedOut(member.value) || userRoles.includes(mapping.muzzled)) return null;
-    const permissions = (userId, roleIds) => channelPermissions({ guildId, userId, ownerId: guild.value.owner_id, roleIds, roles: projected, overwrites: raw.permission_overwrites });
-    const humanBits = permissions(event.userId, userRoles), botBits = permissions(botUserId, botRoles);
+    const version = generation, session = guildState.session();
+    if (await excluded(event.channelId) || !await gatewayCurrent(session)) return null;
+    const raw = guildState.channel(event.channelId), guild = guildState.guild(), roles = guildState.roles();
+    if (raw?.id !== event.channelId || raw.type !== 0 || guild?.id !== guildId || await excluded(raw.id, raw.parentId)) return null;
+    requireId(guild.ownerId); validateOverwrites(raw.overwrites);
+    requireCondition(roles.length > 0 && roles.length <= 500, 'AI_ROLES_INVALID');
+    const projected = roles.map(role => { requireInteger(role.position, 0, 500); return { id: role.id, permissions: role.permissions }; });
+    const bot = await memberOf(botUserId, 'BOT'), member = await memberOf(event.userId, 'MEMBER');
+    if (!bot || !member || bot.userId !== botUserId || member.userId !== event.userId) return null;
+    const now = clock(), timedOut = value => value.timedOutUntil !== null && value.timedOutUntil > now;
+    if (bot.bot !== true || member.bot || timedOut(bot) || timedOut(member) || member.roles.includes(mapping.muzzled)) return null;
+    const permissions = (userId, roleIds) => channelPermissions({ guildId, userId, ownerId: guild.ownerId, roleIds, roles: projected, overwrites: raw.overwrites });
+    const humanBits = permissions(event.userId, member.roles), botBits = permissions(botUserId, bot.roles);
     const humanRequired = PERMISSIONS.viewChannel | PERMISSIONS.sendMessages, botRequired = PERMISSIONS.viewChannel | PERMISSIONS.readHistory;
     if ((humanBits & humanRequired) !== humanRequired || (botBits & botRequired) !== botRequired) return null;
-    const at = Math.min(started, ...[channel, guild, roles, bot, member].map(value => value.at));
-    const boundary = { checkedAt: at, continuity: stamp, generation: version, parentId: raw.parent_id ?? null };
-    if (!await isCurrent(boundary, event.channelId)) return null;
-    const observation = { guildId, userId: event.userId, known: true, observedAt: at, present: true, roleIds: userRoles,
-      bot: false, timedOut: false, administrator: userRoles.concat(guildId).some(id => projected.some(role => role.id === id && (BigInt(role.permissions) & PERMISSIONS.administrator) !== 0n)),
-      guildOwner: guild.value.owner_id === event.userId,
-      highestRolePosition: Math.max(0, ...roles.value.filter(role => role.id === guildId || userRoles.includes(role.id)).map(role => role.position)) };
+    const boundary = { checkedAt: now, continuity: String(session), session, generation: version, parentId: raw.parentId };
+    const observation = { guildId, userId: event.userId, known: true, observedAt: now, present: true, roleIds: member.roles,
+      bot: false, timedOut: false, administrator: member.roles.concat(guildId).some(id => projected.some(role => role.id === id && (BigInt(role.permissions) & PERMISSIONS.administrator) !== 0n)),
+      guildOwner: guild.ownerId === event.userId,
+      highestRolePosition: Math.max(0, ...roles.filter(role => role.id === guildId || member.roles.includes(role.id)).map(role => role.position)) };
     await authorityStore.registerPolicy(capabilityPolicy);
     const authority = await authorityStore.observeWithPresence(observation, capabilityPolicy.version);
     if (!await isCurrent(boundary, event.channelId)) return null;
     // A bot-specific allow does not make a private channel visible to ordinary members.
-    const everyone = channelPermissions({ guildId, userId: botUserId, roleIds: [], roles: projected, overwrites: raw.permission_overwrites.filter(value => value.type === 0) });
-    return { ...boundary, eligible: true, botBits, botRoles,
+    const everyone = channelPermissions({ guildId, userId: botUserId, roleIds: [], roles: projected, overwrites: raw.overwrites.filter(value => value.type === 0) });
+    return { ...boundary, eligible: true, botBits, botRoles: bot.roles,
       restricted: (everyone & PERMISSIONS.viewChannel) === 0n,
       presenceEpoch: authority.presenceEpoch, accessEpoch: authority.grant.capabilityEpoch,
       // Discord's start of the member's current stint; a leave and rejoin always moves it forward.
-      joinedAt: typeof member.value.joined_at === 'string' ? Date.parse(member.value.joined_at) : null,
-      audienceHash: aiDigest({ guildId, channelId: raw.id, parentId: raw.parent_id ?? null, ownerId: guild.value.owner_id,
-        roles: projected.sort((a, b) => a.id.localeCompare(b.id)), overwrites: [...raw.permission_overwrites].sort((a, b) => `${a.type}.${a.id}`.localeCompare(`${b.type}.${b.id}`)) }) };
+      joinedAt: member.joinedAt,
+      // Binds the member's own state, so an unrelated member's change no longer voids this member's turn.
+      memberHash: aiDigest({ roles: [...member.roles].sort(), timedOutUntil: member.timedOutUntil, joinedAt: member.joinedAt }),
+      audienceHash: aiDigest({ guildId, channelId: raw.id, parentId: raw.parentId, ownerId: guild.ownerId,
+        roles: projected.sort((a, b) => a.id.localeCompare(b.id)), overwrites: [...raw.overwrites].sort((a, b) => `${a.type}.${a.id}`.localeCompare(`${b.type}.${b.id}`)) }) };
   }
   return Object.freeze({
     // Qualification observes audience and permissions without fetching any message or case content.
@@ -106,12 +93,10 @@ export function createAiObservations({ pool, transport, authorityStore, capabili
       // Gateway commits deterministic decisions before handing this same create event to AI.
       // An admitted automation keeps ownership even when its delivery later becomes uncertain.
       if ((await pool.query('SELECT 1 FROM sophie_core.automation_deliveries WHERE guild_id=$1 AND message_id=$2 LIMIT 1', [guildId,event.messageId])).rowCount) return null;
-      if (!await isCurrent(current, event.channelId)) return null;
-      // Rechecks of the same message reuse its metadata like other reads; an edit or delete clears the cache via clear().
-      const source = (await metadata(`source.${event.channelId}.${event.messageId}`, current.continuity, current.generation,
-        () => transport.getAiSourceMetadata(event.channelId, event.messageId), 'SOURCE')).value;
-      if (source?.id !== event.messageId || source.channelId !== event.channelId || source.authorId !== event.userId || source.bot || source.webhook || ![0, 19].includes(source.type) ||
-        !await isCurrent(current, event.channelId)) return null;
+      // Message identity and revision come from the Gateway too: creates are recorded before AI sees them, and edits
+      // and deletes update or tombstone them. An unknown message (evicted or from before a restart) is refused.
+      const source = guildState.message(event.messageId);
+      if (!source || source.channelId !== event.channelId || source.authorId !== event.userId || !await isCurrent(current, event.channelId)) return null;
       members.set(event, current);
       return { eligible: true, checkedAt: current.checkedAt, audienceHash: current.audienceHash, restricted: current.restricted,
         continuity: current.continuity, messageRevision: source.revision,
@@ -121,15 +106,13 @@ export function createAiObservations({ pool, transport, authorityStore, capabili
     async canReact(request, emoji) {
       const current = await inspect(request); if (!current || (current.botBits & PERMISSIONS.addReactions) === 0n) return false;
       if (emoji.id !== null) {
-        const actual = await transport.getAutomationEmoji(emoji.id);
-        if (actual?.id !== emoji.id || actual.name !== emoji.name || actual.available === false || !Array.isArray(actual.roles) || actual.roles.length && !actual.roles.some(id => current.botRoles.includes(id))) return false;
+        const actual = guildState.emoji(emoji.id);
+        if (actual?.id !== emoji.id || actual.name !== emoji.name || actual.available === false || actual.roles.length && !actual.roles.some(id => current.botRoles.includes(id))) return false;
       }
-      if (!await isCurrent(current, request.channelId)) return false;
-      const source = await transport.getAutomationSource(request.channelId, request.messageId);
-      return source?.id === request.messageId && source.channelId === request.channelId && source.authorId === request.userId &&
-        !(source.reactions ?? []).some(item => item.me && item.emoji?.id === emoji.id && (emoji.id !== null || item.emoji?.name === emoji.name)) &&
-        await isCurrent(current, request.channelId);
+      const source = guildState.message(request.messageId);
+      // Discord treats a repeated reaction by the same user as a no-op, so no read of existing reactions is needed.
+      return source?.channelId === request.channelId && source.authorId === request.userId && await isCurrent(current, request.channelId);
     },
-    clear() { generation++; cache.clear(); },
+    clear() { generation++; },
   });
 }

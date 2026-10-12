@@ -3,33 +3,37 @@ import assert from 'node:assert/strict';
 import { createAiObservations } from '../apps/core/discord/ai-observations.js';
 import { createAiGateway } from '../apps/core/discord/ai-gateway.js';
 import { createAiIngress } from '../apps/core/discord/ai-ingress.js';
+import { createGuildState } from '../apps/core/discord/guild-state.js';
 import { PERMISSIONS } from '../platform/authorization/discord-permissions.js';
 
-function fixture() {
-  let now = 1000, stamp = 'live.1', excluded = false, automation = false, reads = 0;
-  const bits = String(PERMISSIONS.viewChannel | PERMISSIONS.sendMessages | PERMISSIONS.readHistory | PERMISSIONS.addReactions);
-  const members = { '505': { user: { id: '505', bot: true }, roles: [] }, '404': { user: { id: '404', bot: false }, roles: [] } };
-  const channel = { id: '202', guild_id: '101', type: 0, parent_id: '606', permission_overwrites: [] };
-  const roles = [{ id: '101', permissions: bits, position: 0 }], source = { id: '303', channelId: '202', authorId: '404', type: 0, revision: 'original', bot: false, webhook: false };
-  const transport = { getChannel: async () => { reads++; return structuredClone(channel); }, getGuild: async () => ({ id: '101', owner_id: '808' }), getRoles: async () => structuredClone(roles),
-    getMember: async id => structuredClone(members[id] ?? null), getAiSourceMetadata: async () => structuredClone(source), getAutomationSource: async () => ({ ...source, reactions: [] }) };
+const bits = String(PERMISSIONS.viewChannel | PERMISSIONS.sendMessages | PERMISSIONS.readHistory | PERMISSIONS.addReactions);
+function fixture({ members = [{ user: { id: '505', bot: true }, roles: [] }] } = {}) {
+  let now = 1000, stamp = 'live.1', excluded = false, automation = false, restReads = 0, sequence = 0;
+  const guildState = createGuildState({ guildId: '101', botUserId: '505' });
+  const dispatch = (t, d) => guildState.accept({ op: 0, t, s: ++sequence, d });
+  dispatch('READY', {});
+  dispatch('GUILD_CREATE', { id: '101', owner_id: '808', roles: [{ id: '101', permissions: bits, position: 0 }],
+    channels: [{ id: '202', type: 0, parent_id: '606', permission_overwrites: [] }], members, emojis: [{ id: '808', name: 'wave', roles: [] }] });
+  const message = (id = '303', userId = '404', member = { roles: [] }) => dispatch('MESSAGE_CREATE', { guild_id: '101', channel_id: '202', id, author: { id: userId, bot: false }, type: 0, ...(member ? { member } : {}) });
+  message();
+  const transport = { getMember: async id => { restReads++; return id === '505' ? { user: { id: '505', bot: true }, roles: [] } : null; } };
   const observed = [], pool = { query: async sql => ({ rowCount: (sql.includes('automation_deliveries') ? automation : excluded) ? 1 : 0 }) };
   const authorityStore = { registerPolicy: async () => {}, observeWithPresence: async observation => { observed.push(observation); return { presenceEpoch: 1, grant: { capabilityEpoch: 3 } }; } };
-  const observations = createAiObservations({ pool, transport, authorityStore,
-    mapping: { guildId: '101', botUserId: '505', muzzled: '909' }, protectedCategoryId: '707', capabilityPolicy: { version: 1 },
-    observer: { readAiContinuity: async () => stamp }, clock: () => now });
-  return { observations, transport, members, channel, source, roles, observed, pool, authorityStore, event: { guildId: '101', channelId: '202', userId: '404', messageId: '303' },
-    exclude: () => { excluded = true; }, automate: () => { automation = true; }, reads: () => reads, time: value => { now = value; }, invalidate: () => { stamp += '.2'; } };
+  const options = { pool, transport, guildState, authorityStore, mapping: { guildId: '101', botUserId: '505', muzzled: '909' }, protectedCategoryId: '707',
+    capabilityPolicy: { version: 1 }, observer: { readAiContinuity: async () => stamp }, clock: () => now };
+  return { observations: createAiObservations(options), options, guildState, transport, observed, pool, authorityStore, dispatch, message,
+    event: { guildId: '101', channelId: '202', userId: '404', messageId: '303' },
+    exclude: () => { excluded = true; }, automate: () => { automation = true; }, restReads: () => restReads, time: value => { now = value; }, disconnect: () => { stamp = null; } };
 }
+const channel = (change = {}) => ({ guild_id: '101', id: '202', type: 0, parent_id: '606', permission_overwrites: [], ...change });
 
 test('DS-09 deterministic automation admission takes precedence before AI source access', async () => {
-  const f = fixture(); f.automate(); f.transport.getAiSourceMetadata = async () => assert.fail('automation owns this source');
-  assert.equal(await f.observations.inspectContext(f.event), null);
+  const f = fixture(); f.automate(); assert.equal(await f.observations.inspectContext(f.event), null);
 });
 
-test('SAI AT-02 real observation adapter excludes registered cases before Discord message access', async () => {
-  const f = fixture(); f.exclude(); assert.equal(await f.observations.inspectContext(f.event), null); assert.equal(f.reads(), 0);
-  const moved = fixture(); moved.channel.parent_id = '707'; moved.transport.getAiSourceMetadata = async () => assert.fail('case source must not be fetched');
+test('SAI AT-02 real observation adapter excludes registered cases before any Discord access', async () => {
+  const f = fixture(); f.exclude(); assert.equal(await f.observations.inspectContext(f.event), null); assert.equal(f.restReads(), 0);
+  const moved = fixture(); moved.dispatch('CHANNEL_UPDATE', channel({ parent_id: '707' }));
   assert.equal(await moved.observations.inspectContext(moved.event), null);
 });
 
@@ -37,82 +41,88 @@ test('SAI AT-03 observations bind actual permissions, source revision and retain
   const f = fixture(), context = await f.observations.inspectContext(f.event), member = await f.observations.inspectMember(f.event);
   assert.equal(context.restricted, false); assert.equal(context.canReply, true); assert.equal(member.presenceEpoch, 1); assert.equal(member.accessEpoch, 3);
   assert.equal(await f.observations.inspectMember(f.event), null);
-  f.roles[0].permissions = String(PERMISSIONS.viewChannel | PERMISSIONS.readHistory); f.invalidate();
+  f.dispatch('GUILD_ROLE_UPDATE', { guild_id: '101', role: { id: '101', permissions: String(PERMISSIONS.viewChannel | PERMISSIONS.readHistory), position: 0 } });
   assert.equal(await f.observations.inspectContext(f.event), null);
   assert.equal(f.observed[0].roleIds.length, 0);
 });
 
-test('SAI AT-03 changed audience invalidates cached metadata and unknown/missing source denies', async () => {
+test('SAI AT-03 Gateway changes to audience, source and timeout take effect on the next observation', async () => {
   const f = fixture(), first = await f.observations.inspectContext(f.event);
-  f.channel.permission_overwrites = [{ id: '999', type: 1, allow: String(PERMISSIONS.viewChannel), deny: '0' }]; f.invalidate();
+  f.dispatch('CHANNEL_UPDATE', channel({ permission_overwrites: [{ id: '999', type: 1, allow: String(PERMISSIONS.viewChannel), deny: '0' }] }));
   const second = await f.observations.inspectContext(f.event); assert.notEqual(second.audienceHash, first.audienceHash);
-  // A deleted source reaches the runtime as a MESSAGE_DELETE invalidation, which clears cached source metadata.
-  f.transport.getAiSourceMetadata = async () => null; f.observations.clear(); assert.equal(await f.observations.inspectContext(f.event), null);
-  f.members['404'].communication_disabled_until = new Date(20000).toISOString(); f.invalidate();
+  f.dispatch('GUILD_MEMBER_UPDATE', { guild_id: '101', user: { id: '404', bot: false }, roles: [], communication_disabled_until: new Date(20000).toISOString() });
   assert.equal(await f.observations.inspectContext(f.event), null);
+  const deleted = fixture(); deleted.dispatch('MESSAGE_DELETE', { guild_id: '101', channel_id: '202', id: '303' });
+  assert.equal(await deleted.observations.inspectContext(deleted.event), null);
+  const unknown = fixture(); assert.equal(await unknown.observations.inspectContext({ ...unknown.event, messageId: '398' }), null);
 });
 
-test('SAI RL-01 rechecks reuse source metadata within the cache window and re-read it after clear() or the window', async () => {
-  const f = fixture(); let sourceReads = 0; const read = f.transport.getAiSourceMetadata;
-  f.transport.getAiSourceMetadata = async (...args) => { sourceReads++; return read(...args); };
-  assert.ok(await f.observations.inspectContext(f.event)); assert.ok(await f.observations.inspectContext(f.event)); assert.equal(sourceReads, 1);
-  f.observations.clear(); assert.ok(await f.observations.inspectContext(f.event)); assert.equal(sourceReads, 2);
-  f.time(3100); assert.ok(await f.observations.inspectContext(f.event)); assert.equal(sourceReads, 3);
-  f.source.revision = '2026-10-12T10:00:00Z'; f.observations.clear();
+test('SAI RL-01 known members and messages need no Discord REST read; edits update the revision', async () => {
+  const f = fixture();
+  for (let index = 0; index < 20; index++) assert.ok(await f.observations.inspectContext(f.event));
+  assert.equal(f.restReads(), 0);
+  f.dispatch('MESSAGE_UPDATE', { guild_id: '101', channel_id: '202', id: '303', edited_timestamp: '2026-10-12T10:00:00Z' });
   assert.equal((await f.observations.inspectContext(f.event)).messageRevision, '2026-10-12T10:00:00Z');
 });
 
-test('SAI RL-02 short Discord cooldowns are waited out; long ones are reported by route class and refused', async () => {
-  const waits = [], traces = [];
-  const f = fixture(); let limited = 2; const read = f.transport.getMember;
-  f.transport.getMember = async id => { if (id === '404' && limited-- > 0) throw Object.assign(Error('RATE_LIMITED'), { code: 'RATE_LIMITED', retryAfterMs: 800 }); return read(id); };
-  const observations = createAiObservations({ pool: f.pool, transport: f.transport, authorityStore: f.authorityStore,
-    mapping: { guildId: '101', botUserId: '505', muzzled: '909' }, protectedCategoryId: '707', capabilityPolicy: { version: 1 },
-    observer: { readAiContinuity: async () => 'live.1' }, clock: () => 1000, trace: code => traces.push(code), wait: async ms => { waits.push(ms); } });
-  assert.ok(await observations.inspectContext(f.event)); assert.deepEqual(waits, [800, 800]); assert.deepEqual(traces, []);
-  f.transport.getMember = async () => { throw Object.assign(Error('RATE_LIMITED'), { code: 'RATE_LIMITED', retryAfterMs: 5000 }); };
-  observations.clear();
-  await assert.rejects(observations.inspectContext(f.event), error => error.code === 'RATE_LIMITED');
-  assert.deepEqual(traces, ['AI_OBSERVATION_LIMITED_BOT_RATE_LIMITED_5000MS']);
+test('SAI RL-02 an unknown member is read once; short cooldowns are waited out and long ones refused by route class', async () => {
+  const waits = [], traces = [], f = fixture({ members: [] });
+  let limited = 2; f.message('320', '410', null);
+  f.transport.getMember = async id => {
+    if (id === '410' && limited-- > 0) throw Object.assign(Error('RATE_LIMITED'), { code: 'RATE_LIMITED', retryAfterMs: 800 });
+    return { user: { id, bot: id === '505' }, roles: [] };
+  };
+  const observations = createAiObservations({ ...f.options, trace: code => traces.push(code), wait: async ms => { waits.push(ms); } });
+  const event = { ...f.event, userId: '410', messageId: '320' };
+  assert.ok(await observations.inspectContext(event)); assert.deepEqual(waits, [800, 800]); assert.deepEqual(traces, []);
+  f.transport.getMember = async () => assert.fail('a member described once is kept current by Gateway events');
+  assert.ok(await observations.inspectContext(event));
+  const other = fixture(); other.message('321', '411', null);
+  const limitedObservations = createAiObservations({ ...other.options, transport: { getMember: async () => { throw Object.assign(Error('RATE_LIMITED'), { code: 'RATE_LIMITED', retryAfterMs: 5000 }); } }, trace: code => traces.push(code) });
+  await assert.rejects(limitedObservations.inspectContext({ ...other.event, userId: '411', messageId: '321' }), error => error.code === 'RATE_LIMITED');
+  assert.deepEqual(traces, ['AI_OBSERVATION_LIMITED_MEMBER_RATE_LIMITED_5000MS']);
 });
 
 test('SAI RL-03 member observations carry the Discord join time of the current membership', async () => {
-  const f = fixture(); f.members['404'].joined_at = '2026-10-01T12:00:00.000Z';
+  const f = fixture(); f.message('304', '404', { roles: [], joined_at: '2026-10-01T12:00:00.000Z' });
   assert.ok(await f.observations.inspectContext(f.event));
   assert.equal((await f.observations.inspectMember(f.event)).joinedAt, Date.parse('2026-10-01T12:00:00.000Z'));
   const missing = fixture(); assert.ok(await missing.observations.inspectContext(missing.event));
   assert.equal((await missing.observations.inspectMember(missing.event)).joinedAt, null);
 });
 
+test('SAI RL-04 an unrelated member\'s change leaves this member\'s binding unchanged', async () => {
+  const f = fixture(), before = await f.observations.inspectContext(f.event), member = await f.observations.inspectMember(f.event);
+  f.dispatch('GUILD_MEMBER_UPDATE', { guild_id: '101', user: { id: '450', bot: false }, roles: ['101'], nick: 'Someone else' });
+  const after = await f.observations.inspectContext(f.event), again = await f.observations.inspectMember(f.event);
+  assert.equal(after.audienceHash, before.audienceHash); assert.equal(after.continuity, before.continuity); assert.equal(again.memberHash, member.memberHash);
+  f.dispatch('GUILD_MEMBER_UPDATE', { guild_id: '101', user: { id: '404', bot: false }, roles: ['101'] });
+  await f.observations.inspectContext(f.event); assert.notEqual((await f.observations.inspectMember(f.event)).memberHash, member.memberHash);
+});
+
 test('SAI AT-05 a private channel with individual bot and member grants remains restricted', async () => {
   const f = fixture();
-  f.channel.permission_overwrites = [
+  f.dispatch('CHANNEL_UPDATE', channel({ permission_overwrites: [
     { id: '101', type: 0, allow: '0', deny: String(PERMISSIONS.viewChannel) },
     ...['505','404'].map(id => ({ id, type: 1, allow: String(PERMISSIONS.viewChannel), deny: '0' })),
-  ];
+  ] }));
   const observed = await f.observations.inspectContext(f.event);
   assert.equal(observed.eligible,true); assert.equal(observed.restricted,true);
 });
 
-test('DS-08 invalidation fences in-flight metadata and one-use member observations', async () => {
-  const f = fixture(), original = f.transport.getChannel;
-  let release, started;
-  const reading = new Promise(resolve => { started = resolve; });
-  f.transport.getChannel = async () => {
-    const saved = await original(); started(); await new Promise(resolve => { release = resolve; }); return saved;
-  };
-  const pending = f.observations.inspectContext(f.event); await reading;
-  f.observations.clear(); f.channel.parent_id = '707'; release();
-  assert.equal(await pending, null);
-  f.transport.getChannel = original;
-  assert.equal(await f.observations.inspectContext(f.event), null); assert.equal(f.reads(), 2);
+test('DS-08 a new Gateway session, a disconnect or clear() fences observations', async () => {
+  const f = fixture(), observe = f.authorityStore.observeWithPresence;
+  f.authorityStore.observeWithPresence = async (...args) => { const result = await observe(...args); f.dispatch('READY', {}); return result; };
+  assert.equal(await f.observations.inspectContext(f.event), null);
+  assert.equal(await f.observations.inspectContext(f.event), null, 'nothing is observed before the next GUILD_CREATE');
+  const offline = fixture(); offline.disconnect(); assert.equal(await offline.observations.inspectContext(offline.event), null);
   const member = fixture(); assert.ok(await member.observations.inspectContext(member.event));
   member.observations.clear(); assert.equal(await member.observations.inspectMember(member.event), null);
 });
 
 test('SAI AT-02 exclusions registered during authority or automation checks deny source access', async () => {
   for (const phase of ['authority', 'automation']) {
-    const f = fixture(); f.transport.getAiSourceMetadata = async () => assert.fail('newly excluded source must not be fetched');
+    const f = fixture();
     if (phase === 'authority') {
       const observe = f.authorityStore.observeWithPresence;
       f.authorityStore.observeWithPresence = async (...args) => { const result = await observe(...args); f.exclude(); return result; };
@@ -125,14 +135,14 @@ test('SAI AT-02 exclusions registered during authority or automation checks deny
   }
 });
 
-test('SAI AT-02 exclusion during source or emoji lookup denies context and reactions', async () => {
-  const f = fixture(); f.transport.getAiSourceMetadata = async () => { f.exclude(); return f.source; };
-  assert.equal(await f.observations.inspectContext(f.event), null); assert.equal(await f.observations.inspectMember(f.event), null);
-  const reaction = fixture(); reaction.transport.getAutomationEmoji = async () => { reaction.exclude(); return { id: '808', name: 'wave', roles: [] }; };
-  reaction.transport.getAutomationSource = async () => assert.fail('newly excluded source must not be fetched');
-  assert.equal(await reaction.observations.canReact(reaction.event, { id: '808', name: 'wave' }), false);
-  const late = fixture(); late.transport.getAutomationSource = async () => { late.exclude(); return { ...late.source, reactions: [] }; };
-  assert.equal(await late.observations.canReact(late.event, { id: null, name: 'wave' }), false);
+test('SAI AT-02 reactions need a current source, an available emoji and no new exclusion', async () => {
+  const f = fixture();
+  assert.equal(await f.observations.canReact(f.event, { id: '808', name: 'wave' }), true);
+  assert.equal(await f.observations.canReact(f.event, { id: '809', name: 'wave' }), false);
+  assert.equal(await f.observations.canReact({ ...f.event, messageId: '398' }, { id: null, name: 'wave' }), false);
+  const observe = f.authorityStore.observeWithPresence;
+  f.authorityStore.observeWithPresence = async (...args) => { const result = await observe(...args); f.exclude(); return result; };
+  assert.equal(await f.observations.canReact(f.event, { id: null, name: 'wave' }), false);
 });
 
 test('SAI AT-07 Gateway handoff is bounded, commit-dependent and detached from slow AI', async () => {
@@ -161,4 +171,13 @@ test('DS06-E02 only a complete committed edit reaches replacement; rejected or p
   const accepted=bridge.prepare(packet);bridge.committed(accepted,true);await new Promise(resolve=>setImmediate(resolve));assert.equal(seen[0].text,'Revised fragment');
   const partial={...packet,d:{...packet.d}};delete partial.d.attachments;assert.equal(bridge.prepare(partial),null);assert.equal(invalidations.length,2);
   await bridge.stop();
+});
+
+test('RB-03 member, role and channel events cancel nothing; a bulk delete invalidates each named message', async () => {
+  const ingress = createAiIngress({ guildId: '101', botUserId: '505', clock: () => 1000 }), invalidations = [];
+  const bridge = createAiGateway({ ingress, turns: { handle: async () => {}, invalidate: filter => invalidations.push(filter ?? {}), stop: async () => {} }, onFault: () => assert.fail('unexpected fault') });
+  for (const t of ['GUILD_MEMBER_UPDATE', 'GUILD_ROLE_UPDATE', 'CHANNEL_UPDATE', 'GUILD_UPDATE']) bridge.prepare({ t, d: { guild_id: '101', id: '101', user: { id: '450' } } });
+  assert.deepEqual(invalidations, []);
+  bridge.prepare({ t: 'MESSAGE_DELETE_BULK', d: { guild_id: '101', channel_id: '202', ids: ['301', '302'] } });
+  assert.deepEqual(invalidations, [{ channelId: '202', messageId: '301' }, { channelId: '202', messageId: '302' }]); await bridge.stop();
 });

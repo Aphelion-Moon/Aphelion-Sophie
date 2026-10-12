@@ -14,6 +14,8 @@ export async function runAiControlsSuite(cluster, run) {
   const { adminPool: admin, corePool: pool, knowledgePool: knowledge } = cluster;
   await admin.query('GRANT USAGE ON SCHEMA sophie_ai TO sophie_test_core');
   await admin.query('GRANT SELECT,INSERT,UPDATE ON sophie_ai.state,sophie_ai.publications,sophie_ai.consents,sophie_ai.request_receipts,sophie_ai.request_tombstones TO sophie_test_core');
+  // Opt-out withdraws dependent replies in the same transaction; production uses one control role for both.
+  await admin.query('GRANT SELECT,UPDATE ON sophie_ai.effects TO sophie_test_core');
   await admin.query('GRANT SELECT ON sophie_ai.qualifications TO sophie_test_core');
   await admin.query('GRANT SELECT,INSERT,UPDATE ON sophie_ai.budget_policies,sophie_ai.budget_periods,sophie_ai.provider_attempts,sophie_ai.budget_hold_receipts TO sophie_test_core');
   await admin.query('GRANT DELETE ON sophie_ai.budget_periods,sophie_ai.provider_attempts TO sophie_test_core');
@@ -50,8 +52,18 @@ export async function runAiControlsSuite(cluster, run) {
   await run('AI04 personal consent is channel-bound, versioned and revocable after channel access disappears', async () => {
     assert.equal((await store.consent({ actor, channelId: '303', enabled: true, expectedEpoch: 0, acceptedNoticeRevision: 1 })).epoch, 1);
     await assert.rejects(store.consent({ actor, channelId: '303', enabled: true, expectedEpoch: 0, acceptedNoticeRevision: 1 }), /AI_CONSENT_STALE/);
+    // Delivered replies are not re-verified, so opt-out withdraws the ones that drew on this member in this channel explicitly.
+    for (const [id, userId, channelId] of [['951', actor.userId, '303'], ['952', '909', '303'], ['953', actor.userId, '304']]) {
+      await admin.query(`INSERT INTO sophie_ai.request_receipts(guild_id,message_id,channel_id,user_id,input_revision,state,deadline)
+        VALUES($1,$2,$3,$4,repeat('a',64),'delivered',clock_timestamp()+interval '15 seconds')`, [actor.guildId, id, channelId, userId]);
+      await admin.query(`INSERT INTO sophie_ai.effects(guild_id,message_id,owner,channel_id,kind,dependencies,sources,state,receipt_id,deadline)
+      VALUES($1,$2,gen_random_uuid(),$3,'reply',$4,'[]','confirmed',$5,clock_timestamp()+interval '15 seconds')`, [actor.guildId, id, channelId, JSON.stringify([{ userId, messageId: id }]), String(Number(id) + 1000)]);
+    }
     channelAvailable = false;
     assert.equal((await store.consent({ actor, channelId: '303', enabled: false, expectedEpoch: 1, acceptedNoticeRevision: 1 })).epoch, 2);
+    assert.deepEqual((await admin.query(`SELECT message_id,state FROM sophie_ai.effects WHERE message_id IN ('951','952','953') ORDER BY message_id`)).rows.map(row => row.state), ['cleanup', 'confirmed', 'confirmed']);
+    await admin.query(`DELETE FROM sophie_ai.effects WHERE message_id IN ('951','952','953')`);
+    await admin.query(`DELETE FROM sophie_ai.request_receipts WHERE message_id IN ('951','952','953')`);
     await assert.rejects(store.consent({ actor, channelId: '303', enabled: true, expectedEpoch: 2, acceptedNoticeRevision: 1 }), /AI_CHANNEL_UNAVAILABLE/);
     channelAvailable = true;
     await assert.rejects(store.consent({ actor, channelId: '303', enabled: true, expectedEpoch: 2, acceptedNoticeRevision: 2 }), /AI_NOTICE_STALE/);
