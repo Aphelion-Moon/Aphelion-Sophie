@@ -1,14 +1,29 @@
 # AI on the Test Discord Server — operator runbook
 
-Status (11 October 2026): the owner-approved update is installed at pinned source `66a69f8`,
-schema 070, release `sophie-mistral-66a69f8` (the `77b9d07` Mistral and member-notes build plus the sign-in fix). PostgreSQL, tunnel, supervisor and core are running; the AI
-worker is stopped. The installed provider key is the owner's Mistral key. No processing policy is
-installed, so members cannot opt in and no channel can be enabled. Trust expires 12 October at 20:30
-Warsaw; the independent journal receipt expires earlier, at 19:30 Warsaw. Both need fresh evidence before
-renewal. Evidence: `GitHub/.agent_docs/aphelion-sophie/deployment-66a69f8-2026-10-11/` and `deployment-77b9d07-2026-10-11/verification.json`.
-No live AI processing is cleared. Starting the worker is an owner action through the dashboard. Do not paste
-the provider key, Discord token or trust-file contents into chat, logs or Git. Sections below that describe
-the 4 October builds are history.
+Status (12 October 2026): pinned source `214e13a` (branch `staging/admission-trace`), schema 070, release
+`sophie-mistral-214e13a`, with the owner-accepted Mistral processing policy (notice revision 3) installed and channel
+`1551010229339037738` activated. Sophie answers addressed messages there for opted-in members. Trust expires
+13 October 12:14 UTC; the independent journal receipt at 11:14 UTC. Every deployment renews both, so redeploy (or
+renew) before then. History of the 11–12 October deployments and root causes: [verification](verification.md).
+Evidence: `GitHub/.agent_docs/aphelion-sophie/deployment-<pin>-<date>/`. Do not paste the provider key, Discord token,
+database passwords or trust-file contents into chat, logs or Git; verifiers must print fixed codes only. Sections
+below that describe the 4 October builds are history.
+
+### Operating the AI after any deployment
+
+1. A deployment requires the worker stopped: the owner stops it at `https://sophie.a13.info/ai` (from their own
+   machine; Discord sign-in does not work on this server).
+2. Deploy from `GitHub/.agent_docs/aphelion-sophie/deployment-<pin>-<date>/run-when-worker-stopped.ps1` (elevated
+   PowerShell). New pins: copy the previous folder, `git archive` the pin, run `adapt-next-pin.py`, then the read-only
+   `prepare.mjs`, record `approval.json`.
+3. Afterwards the owner starts the worker and clicks **Go live**: a core restart re-disables AI by design.
+4. Consent survives restarts. If the restart opened a fresh Gateway session, consent is kept when the member's
+   Discord join time precedes the consent; a leave and rejoin still voids it.
+5. Diagnose with the fixed codes in `C:\Aphelion\Sophie\logs\core\aphelion-bot.err.log`:
+   `AI_ADMISSION_SKIPPED_<REASON>`, `AI_TURN_<STATE>_<STAGE>_<N>S[_<CODE>]`, `AI_OBSERVATION_LIMITED_<ROUTE>_…`,
+   `AI_WORKER_RELAUNCHED` / `AI_WORKER_RESTART_LIMIT` / `AI_WORKER_RELAUNCH_FAILED`, `AI_EFFECT_CHECK_DEFERRED`.
+   A lost worker is relaunched automatically (at most three times in ten minutes); beyond that the slot is failed,
+   AI is disabled, and the owner restarts it from the dashboard.
 
 ## What is installed
 

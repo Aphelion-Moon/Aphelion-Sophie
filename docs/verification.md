@@ -1,5 +1,61 @@
 # Verification and release limits
 
+## First working AI replies on the Test Discord Server — 11 and 12 October 2026
+
+**Installed now:** pinned `214e13a554614cd141e323c39d2c42ddaf9a0259`, release `sophie-mistral-214e13a`, schema 070
+unchanged, owner-accepted processing policy (notice revision 3, evidence hash `3ff06663…cf5c`) retained. Pins live on
+branch `staging/admission-trace`: each is the previous pin plus only the changed runtime files from
+`codex/sophie-social-ai`, so `package.json` and dependencies never drift. Every deployment below used the same
+source-only procedure: owner stops the worker from the dashboard; core and supervisor stopped and their children
+confirmed gone; PostgreSQL and the tunnel keep their process IDs; a protected copy of package, trust, services,
+qualification, renewal tooling and journal in `D:\Backups\sophie-staging\source-only-<pin>-<date>`; only the
+reviewed files written; fresh evidence in `qualification\evidence-<date>-<pin>`; journal receipt and trust renewed;
+pre-start check, service boundaries, 25 installed checks and the dashboard route check passed after each start.
+Evidence for each: `GitHub/.agent_docs/aphelion-sophie/deployment-<pin>-<date>/`.
+
+| Pin | Owner-visible change |
+| --- | --- |
+| `dbd0937`, `d7591bd` (11 Oct) | AI and personal preference pages reorganised; setup checklist, live worker panel, inline review |
+| `11c87c3` (11 Oct) | Recovery conflict codes scoped to their routes (RN05 regression); recovery tools pinned to System32 |
+| `policy-install-11c87c3` (12 Oct, 00:16 Warsaw) | Processing policy installed under the owner's acceptance; channel activated |
+| `b2b949c` (12 Oct) | **Failed before start**, see below; re-run as `b2b949c-r2` with rotated credentials |
+| `22b502a`, `1eb2e7d` | Admission no longer blocks itself: lock-timeout invalidation and control-pool starvation |
+| `6d270b3` | Diagnostics: each turn reports the stage and fixed code at which it ends |
+| `78c5f74`, `b150364` | Short Discord cooldowns waited out; source metadata cached 2 s; consent survives Gateway reconnects within one membership |
+| `f8850d1` | Addressed-turn guidance reaches Mistral; AI page views reuse a 1.5 s role observation |
+| `d8fc757` | An unverifiable reply check defers (30 s) instead of deleting the reply; reply shape shown to the model |
+| `214e13a` | Worker self-restart; replies re-verified every 10 s and not during a turn; dashboard request queue and one-request AI page load |
+
+**Root causes found with fixed-code diagnostics** (no message text or identifiers logged). Last night the worker was
+quiesced by the supervisor five minutes after start (one late readiness heartbeat) while the database still showed
+it ready. After the redeploy, admissions failed in turn on: a presence epoch advanced by the Gateway reconnect
+(`PRESENCE_CHANGED`); the 1 s refresh hitting `lock_timeout` behind admission and invalidating it
+(`CONTEXT_UNAVAILABLE`); the four-connection control pool exhausted by pollers waiting for the same advisory lock
+(6.8 s idle admission transactions, measured with `pg_stat_activity`); Discord's five member/message reads per second
+drained by repeated rechecks (`RATE_LIMITED` after typing); the Mistral client dropping the "addressed you directly,
+reply" guidance (silent outcomes from a completed generation); the reconciliation deleting a just-delivered reply when
+its check hit `DISCORD_BUSY`; and continuous one-second re-verification of every delivered reply starving new messages.
+
+**Live result (12 October, owner on the Test Discord Server):** addressed messages at 11:47:42 and 11:48:25 UTC were
+answered in 6 and 13 seconds and the replies stayed; with `214e13a` the re-verification no longer competes with turns.
+An unaddressed remark is not answered unless the channel profile chooses to participate.
+
+**Credential incident.** The first `b2b949c` pre-start check compared the full core trust configuration with
+`assert.deepEqual`; its mismatch (a verifier bug: the old configuration still contained the processing policy) printed
+the Discord bot token, client secret and database passwords into the operator transcript. The owner rotated the
+Discord token and client secret; the five exposed database role passwords were rotated with client-side SCRAM verifiers
+and statement logging off. The verifier now compares hashes of secret-free configuration and prints only a step and a
+fixed code. Old copies of the revoked credentials remain only in pre-incident backups under `D:\Backups`.
+
+**Tests at `3719c9a`:** `npm test` 647 passed; `npm run test:storage:fast` 968 passed and the three known order-
+dependent failures (J01, U08, S17); new scenarios DS09-O11/O12 (relaunch, limit, owner precedence), DA-VIEW-01..04,
+DASH-B01, SAI RL-01..03, SAI AT-13; MG07 now expects a queued competing case write to be refused by its version check.
+`DS04` worker-pipe tests fail on the first `npm test` after a change and pass on rerun; not yet diagnosed.
+
+**Still open:** actual worker denial and stop qualification; the join-time consent rule has not yet met a fresh
+Gateway session in staging; Mistral zero data retention (notice revision and re-acceptance when confirmed); measured
+latency under load; production.
+
 ## Dashboard sign-in fix — 11 October 2026
 
 After the schema070 deployment the owner could not sign in to the dashboard: every attempt ended with

@@ -1,6 +1,6 @@
 # Current implementation workplan
 
-Revision: 2026-10-11-signin-fix-staging-deployment. Mistral Small 4 (mistral-small-2603) on the official EU API is the selected provider for trial; DeepSeek Flash is withdrawn. Local models are historical, explicitly selected alternatives only; no automatic fallback. Continue the DS workstream with synthetic data; full readiness and activation remain open.
+Revision: 2026-10-12-first-ai-replies-staging. Mistral Small 4 (mistral-small-2603) on the official EU API is the selected provider for trial; DeepSeek Flash is withdrawn. Local models are historical, explicitly selected alternatives only; no automatic fallback. Continue the DS workstream with synthetic data; full readiness and activation remain open.
 
 All production release gates remain open; pure and isolated database checks are not full application acceptance.
 
@@ -10,11 +10,11 @@ Source requirements remain in the preserved v1.1 pack. Current owner decisions o
 
 Deterministic administration, Whitelist onboarding, protected editors, role/permission configuration and the configurable staging host are implemented.
 
-Recorded baseline: Owner-approved pinned 66a69f8/schema070 (release sophie-mistral-66a69f8: Mistral provider, member notes and the dashboard sign-in fix) is installed. At 18:30 UTC on 11 October, PostgreSQL, tunnel, supervisor and core run under the expected separate child identities. Worker stopped; processing policy absent; AI disabled; Mistral key installed; no publications or member choices exist.
+Recorded baseline: Pinned 214e13a/schema070 (release sophie-mistral-214e13a, branch staging/admission-trace) is installed with the owner-accepted Mistral processing policy (notice revision 3) and channel 1551010229339037738 activated. On 12 October the owner received AI replies to addressed messages on the Test Discord Server (6 s and 13 s). PostgreSQL, tunnel, supervisor and core run under their separate service identities; the worker is started and relaunched by core only through the supervisor. Trust expires 13 October 12:14 UTC.
 
-Current work: Prepared the exact 2c5d356 source-only/schema069 export candidate and guarded operator entry point; corrected current staging/runbook/release-checklist references. Prepared an inactive fixed-target worker OS probe and proposed no-provider lifecycle/identity/stop procedure. No source deployment or worker trial was executed. Separate source-update and worker-trial approvals, fresh endpoint/identity bindings, provider facts, publications/consent, actual Windows denial/stop, private client acceptance and measured AI latency remain open.
+Current work: Twelve source-only staging deployments on 11-12 October (dbd0937 to 214e13a) fixed AI admission self-invalidation, control-pool starvation, Discord read budgets, consent across Gateway reconnects (join-time rule), dropped Mistral turn guidance, reply deletion on unverifiable checks and continuous re-verification, and added fixed-code turn diagnostics, worker self-restart and dashboard view reuse, request queueing and one-request AI page loads. Owner decisions are in the decision log. Open: actual worker denial/stop qualification, a fresh-session test of the join-time consent rule, Mistral zero data retention, measured latency under load, DS04 first-run test instability, production.
 
-Read-only installed 335 checks match 512 source files and 69 migration hashes; the 512-entry archive and 741 installer/support/dependency files are hash-bound. Fourteen operator scripts pass syntax checks; default and missing-approval paths perform no deployment. Thirteen synthetic probe checks pass. Host inspection found the existing public Sophie ingress on TCP 80; one operator control connected without application data. Reports: GitHub/.agent_docs/aphelion-sophie/candidate-2c5d356-2026-10-04/verification.json and worker-os-qualification-2026-10-04/verification.json.
+At 3719c9a: npm test 647 passed; storage fast 968 passed with the three known order-dependent failures (J01, U08, S17). Each deployment: pre-start check, service boundaries, 25 installed checks and dashboard routes passed. Evidence: GitHub/.agent_docs/aphelion-sophie/deployment-<pin>-2026-10-1[12]/. Details: docs/verification.md.
 
 ## Selected AI workstream
 
