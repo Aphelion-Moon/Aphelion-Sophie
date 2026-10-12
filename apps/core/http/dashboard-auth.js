@@ -56,7 +56,9 @@ export function createDashboardAuthHttpServer({ configuration, auth, authorizati
     const next = stopping ? null : waiting.shift();
     if (next) { clearTimeout(next.timer); next.resolve(true); } else reserved = false;
   }
-  const fault = () => { try { onFault('DASHBOARD_AUTH_UNAVAILABLE'); } catch { /* Never expose request material through logging. */ } };
+  // A fixed contract code is appended for diagnosis; messages, paths, SQL and credentials never are.
+  const fault = (error = null) => { try { const code = typeof error?.code === 'string' && /^[A-Z][A-Z0-9_]{2,36}$/u.test(error.code) ? error.code : null;
+    onFault(code === null ? 'DASHBOARD_AUTH_UNAVAILABLE' : `DASHBOARD_AUTH_UNAVAILABLE_${code}`); } catch { /* Never expose request material through logging. */ } };
   function send(response, status, data, extra = {}) {
     response.writeHead(status, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store',
       'X-Content-Type-Options': 'nosniff', 'Referrer-Policy': 'no-referrer',
@@ -194,7 +196,7 @@ export function createDashboardAuthHttpServer({ configuration, auth, authorizati
       const refusal = error instanceof ContractError && AI_REFUSALS.includes(error.code) ? error.code : null;
       const expectedUnavailable = refusal !== null || error instanceof ContractError && (/^WIKI_[A-Z_]+$/u.test(error.code) ||
         ['SHUTTLE_STAFF_DISABLED','CASE_RECOVERY_DISABLED','AI_DELETION_PENDING','AI_PREFERENCE_JOURNAL_UNAVAILABLE','KNOWLEDGE_IMPORT_UNAVAILABLE','KNOWLEDGE_IMPORT_FAILED','KNOWLEDGE_IMPORT_BUSY','KNOWLEDGE_IMPORT_STALE','KNOWLEDGE_IMPORT_CAPACITY','KNOWLEDGE_IMPORT_CORRUPT','KNOWLEDGE_IMPORT_INVALID','KNOWLEDGE_EXTRACTOR_CHANGED'].includes(error.code));
-      if (!denied && !conflict && !missing && !invalid && !limited && !expectedUnavailable) fault();
+      if (!denied && !conflict && !missing && !invalid && !limited && !expectedUnavailable) fault(error);
       if (!response.headersSent && !response.destroyed) send(response, denied ? 403 : limited ? 429 : conflict ? 409 : missing ? 404 : invalid ? 400 : 503,
         { error: denied ? 'Sign-in or request could not be verified.' : limited ? 'Reply queue or cooldown limit reached. Retry later using the same request.' : conflict ? 'This configuration changed. Reload and review it again.' :
           missing ? 'Configuration was not found.' : invalid ? 'Check the configuration and request fields.' : 'This operation is currently unavailable.',
