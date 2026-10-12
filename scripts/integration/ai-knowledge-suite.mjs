@@ -282,9 +282,11 @@ export async function runAiKnowledgeSuite(cluster, run) {
     await synced.mirror.apply('site', { entries: [guide], complete: true });
     const passages = await synced.lookup('which sensors do airlocks need?', request());
     assert.ok(passages.length >= 1 && passages.length <= 2 && passages.every(item => item.title === 'Mapping guide')); assert.match(passages[0].text, /sensors/u);
-    assert.deepEqual(await synced.lookup('pumps and lasers', request()), [], 'one of two body words is not enough');
-    const followUp = await synced.lookup('pumps and lasers', request(), 'Member 1: how do I build airlocks?');
-    assert.equal(followUp.length, 1); assert.match(followUp[0].text, /pumps/u, 'the conversation supplies the topic');
+    assert.match((await synced.lookup('Sophie, what about pumps?', request()))[0].text, /pumps/u, 'her name and filler are not search words');
+    assert.deepEqual(await synced.lookup('what about that one', request()), [], 'nothing specific, no conversation: nothing');
+    const followUp = await synced.lookup('what about that one', request(), 'Member 1: how do I build airlocks?');
+    assert.ok(followUp.length >= 1 && followUp.every(item => item.title === 'Mapping guide'), 'a vague follow-up searches the conversation');
+    assert.match((await synced.lookup('airlock sensor', request()))[0].text, /sensors/u, 'a word of five or more letters also matches its longer forms');
     await assert.rejects(synced.lookup('x', request(), 'y'.repeat(4001)), /KNOWLEDGE_QUERY_INVALID/);
     const rules = section => ({ heading: `Policies › Core Rules › ${section.code}`, text: section.text });
     const policy = (idBase, title) => ({ idBase, sourceRevision: 'wiki:page:2:r1', documents: packDocuments({ idBase, title, kind: 'wiki-page', authority: 'policy',

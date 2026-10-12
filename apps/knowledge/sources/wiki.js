@@ -13,7 +13,7 @@ export const WIKI_SOURCE = Object.freeze({
 });
 const sha256 = value => createHash('sha256').update(value).digest('hex');
 // Bump when the text a page produces changes, so every page is read again once.
-const WIKI_FORMAT = 'f2';
+const WIKI_FORMAT = 'f3';
 const policyCategories = /^(?:polic(?:y|ies)|rules?)$/iu, loreCategories = /^lore$/iu;
 
 export const wikiPageUrl = title => `${WIKI_SOURCE.origin}/wiki/${encodeURIComponent(title.replaceAll(' ', '_')).replace(/%2F/giu, '/').replace(/%3A/giu, ':')}`;

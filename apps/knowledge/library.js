@@ -131,58 +131,76 @@ export function createKnowledgeLibrary({ pool, guildId, authorize, restoreCurren
       });
     },
     /**
-     * Chat questions rarely contain every word of a passage, so any query word may match, but a passage needs two of the
-     * message's words (or all of them when there are fewer), one word in its title or aliases, or one plus a word from the
-     * recent conversation. Each matched word counts by its rarity across the published passages (so "station" or
-     * "Meridian" count little and "CR" a lot), more in a title or alias, a little more in a heading; recent conversation
-     * counts half. Identical passages (a page transcluded into another) count once; at most two passages per document.
+     * Chat questions rarely contain every word of a passage, so any query word may match. Each word counts by its rarity
+     * across the published passages ("station" little, "CR" a lot), more in a title or alias and a little more in a
+     * heading; words of five or more letters also match longer words ("antag" finds "antagonist"). A passage qualifies
+     * when its words cover half of the question's weight (a third if they are in its title), or with one word plus one from
+     * the recent conversation, which counts half. Her name and question filler ("explain", "supposed", "wiki") are not
+     * search words unless nothing else is left. Identical passages (a page transcluded into another) count once; at most
+     * two passages per document; a page the question names leads with its opening sections.
      */
     async lookup(query, request, conversation = '') {
       requireCondition(typeof query === 'string' && query.trim().length > 0 && query.length <= 4000 && typeof conversation === 'string' && conversation.length <= 4000 &&
         request.guildId === guildId && clock() < request.deadline, 'KNOWLEDGE_QUERY_INVALID');
       await ready();
-      // Constant text for ts_stat (word rarity); only the validated guild ID is formatted into it, as a literal.
       // Rule codes are written CR10, CR 10 or CR-10; the pages index "cr" and "10", so a joined code also searches its parts.
       const codes = value => value.replace(/\b(\p{L}{1,8})-?(\d{1,4})\b/gu, '$&  $1 $2');
-      const terms = codes(query), recent = codes(conversation);
-      const words = value => value.normalize('NFKC').match(/[\p{L}\p{N}]+/gu)?.slice(0, 64).join(' or ') ?? '';
+      const filler = /\b(?:sophie|soph|explain|tell|say|says|said|know|supposed|mean|means|please|pls|omg|lol|wiki|page|whats|hows|whos|wheres|whys|thats|dont|cant|wont|isnt|arent|im|ive|youre|gonna|wanna|gotta)\b/giu;
+      const terms = codes(query), recent = codes(conversation).replace(filler, ' '), focus = terms.replace(filler, ' ');
+      // Constant text for ts_stat (word rarity); only the validated guild ID is formatted into it, as a literal.
       const live = `FROM sophie_knowledge.chunks c JOIN sophie_knowledge.documents d ON d.guild_id=c.guild_id AND d.id=c.document_id
         WHERE c.guild_id=%L AND c.revision=d.revision AND c.text IS NOT NULL AND NOT d.withdrawn AND d.source_current AND (d.valid_until IS NULL OR d.valid_until>clock_timestamp())`;
       const rows = (await pool.query(`WITH terms AS (
-          SELECT ARRAY(SELECT DISTINCT lexeme FROM unnest(to_tsvector('english',$5))) AS current,
-            ARRAY(SELECT DISTINCT lexeme FROM unnest(to_tsvector('english',$4)) WHERE NOT lexeme = ANY(ARRAY(SELECT lexeme FROM unnest(to_tsvector('english',$5))))) AS recent,
-            websearch_to_tsquery('english',$3) AS query
+          SELECT coalesce(nullif(ARRAY(SELECT DISTINCT lexeme FROM unnest(to_tsvector('english',$4))),'{}'),ARRAY(SELECT DISTINCT lexeme FROM unnest(to_tsvector('english',$3)))) AS current,
+            ARRAY(SELECT DISTINCT lexeme FROM unnest(to_tsvector('english',$5))) AS spoken
+        ), stat AS (
+          SELECT word, ndoc FROM ts_stat(format('SELECT c.search ${live}', $1::text))
         ), total AS (
           SELECT greatest(count(*),1)::float8 AS passages FROM sophie_knowledge.chunks c JOIN sophie_knowledge.documents d ON d.guild_id=c.guild_id AND d.id=c.document_id
           WHERE c.guild_id=$1 AND c.revision=d.revision AND c.text IS NOT NULL AND NOT d.withdrawn AND d.source_current AND (d.valid_until IS NULL OR d.valid_until>clock_timestamp())
-        ), rarity AS (
-          SELECT s.word, ln(1 + total.passages / s.ndoc) AS idf FROM total, terms t, ts_stat(format('SELECT c.search ${live}', $1::text)) s WHERE s.word = ANY(t.current || t.recent)
+        ), asked AS (
+          SELECT unnest(t.current) AS term, false AS recent FROM terms t
+          UNION SELECT word, true FROM terms t, unnest(t.spoken) word WHERE NOT word = ANY(t.current)
+        ), base_terms AS (
+          SELECT a.term, a.recent, ln(1 + total.passages / max(s.ndoc)) AS idf FROM asked a CROSS JOIN total
+          JOIN stat s ON s.word = a.term OR length(a.term) >= 5 AND left(s.word, length(a.term)) = a.term GROUP BY a.term, a.recent, total.passages
+        ), query_terms AS (
+          -- A follow-up with nothing specific of its own ("what about the other one?") searches the conversation instead.
+          SELECT b.term, b.recent AND NOT w.vague AS recent, b.idf FROM base_terms b,
+            (SELECT coalesce(sum(idf) FILTER (WHERE NOT recent),0) < 1.9 AS vague FROM base_terms) w
+        ), need AS (
+          SELECT coalesce(sum(idf) FILTER (WHERE NOT recent),0) AS wanted,
+            to_tsquery('simple', coalesce(string_agg(quote_literal(term) || CASE WHEN length(term) >= 5 THEN ':*' ELSE '' END, ' | '),'')) AS probe FROM query_terms
         ), matched AS (
           SELECT c.source_id AS id,c.document_id,c.title,c.heading,c.text,c.url,c.authority,c.publication_sha256 AS "publicationHash",d.epoch,d.valid_until AS "validUntil",
             p.document->>'rights' AS rights,p.document->>'attribution' AS attribution,p.document->>'sourceRevision' AS "sourceRevision",
             (lower(c.title)=lower($2) OR EXISTS(SELECT 1 FROM unnest(c.aliases) alias WHERE lower(alias)=lower($2))) AS exact,
-            cardinality(ARRAY(SELECT unnest(tsvector_to_array(c.search)) INTERSECT SELECT unnest(t.current))) AS hits,
-            cardinality(ARRAY(SELECT unnest(tsvector_to_array(ts_filter(c.search,'{a}'))) INTERSECT SELECT unnest(t.current))) AS title_hits,
-            cardinality(ARRAY(SELECT unnest(tsvector_to_array(c.search)) INTERSECT SELECT unnest(t.recent))) AS context_hits,
-            cardinality(t.current) AS wanted, ts_rank(c.search,t.query,1) AS rank,
-            (SELECT coalesce(sum(r.idf * CASE WHEN 'A' = ANY(u.weights) THEN 2.5 WHEN 'B' = ANY(u.weights) THEN 1.5 ELSE 1 END),0)
-              FROM unnest(c.search) u JOIN rarity r ON r.word=u.lexeme WHERE u.lexeme = ANY(t.current)) +
-            (SELECT coalesce(sum(r.idf),0) FROM unnest(c.search) u JOIN rarity r ON r.word=u.lexeme WHERE u.lexeme = ANY(t.recent)) / 2 +
-            -- When the question names the page, its opening sections usually answer it.
-            CASE WHEN c.document_id NOT LIKE '%-p%' AND c.source_id ~ '\.s[01]$' AND EXISTS(SELECT 1 FROM unnest(tsvector_to_array(ts_filter(c.search,'{a}'))) l WHERE l = ANY(t.current)) THEN 4 ELSE 0 END AS score
-          FROM terms t, sophie_knowledge.chunks c JOIN sophie_knowledge.documents d ON d.guild_id=c.guild_id AND d.id=c.document_id
+            m.*, n.wanted, ts_rank(c.search,n.probe,1) AS rank,
+            c.document_id NOT LIKE '%-p%' AND c.source_id ~ '\\.s[01]$' AS opening
+          FROM need n, sophie_knowledge.chunks c JOIN sophie_knowledge.documents d ON d.guild_id=c.guild_id AND d.id=c.document_id
           JOIN sophie_knowledge.publications p ON p.guild_id=c.guild_id AND p.document_id=c.document_id AND p.revision=c.revision
+          CROSS JOIN LATERAL (
+            SELECT coalesce(sum(q.idf * CASE WHEN q.recent THEN 0.5 ELSE f.factor END),0) AS score,
+              coalesce(sum(q.idf) FILTER (WHERE NOT q.recent),0) AS covered, coalesce(sum(q.idf) FILTER (WHERE NOT q.recent AND f.title),0) AS title_covered,
+              count(*) FILTER (WHERE NOT q.recent) AS hits, coalesce(sum(q.idf) FILTER (WHERE q.recent),0) AS context_covered
+            FROM query_terms q CROSS JOIN LATERAL (
+              SELECT max(CASE WHEN 'A' = ANY(u.weights) THEN 1.75 WHEN 'B' = ANY(u.weights) THEN 1.5 ELSE 1 END) AS factor, bool_or('A' = ANY(u.weights)) AS title
+              FROM unnest(c.search) u WHERE u.lexeme = q.term OR length(q.term) >= 5 AND left(u.lexeme, length(q.term)) = q.term) f
+            WHERE f.factor IS NOT NULL) m
           WHERE c.guild_id=$1 AND c.revision=d.revision AND c.text IS NOT NULL AND NOT d.withdrawn AND d.source_current
             AND (d.valid_until IS NULL OR d.valid_until>clock_timestamp()) AND
-            (lower(c.title)=lower($2) OR EXISTS(SELECT 1 FROM unnest(c.aliases) alias WHERE lower(alias)=lower($2)) OR c.search @@ t.query)
+            (lower(c.title)=lower($2) OR EXISTS(SELECT 1 FROM unnest(c.aliases) alias WHERE lower(alias)=lower($2)) OR c.search @@ n.probe)
         ), ranked AS (
-          SELECT *, row_number() OVER (PARTITION BY document_id ORDER BY exact DESC,score DESC,rank DESC,id) AS within,
-            row_number() OVER (PARTITION BY md5(text) ORDER BY exact DESC,score DESC,rank DESC,id) AS copy
-          FROM matched WHERE exact OR hits>=least(2,wanted) OR title_hits>=1 OR hits>=1 AND context_hits>=1
+          SELECT *, score + CASE WHEN opening AND title_covered > 0 AND title_covered >= wanted / 3 THEN 4 ELSE 0 END AS total_score
+          -- A passage needs at least one fairly specific word (in at most about one passage in six: ln 7 = 1.95) unless the conversation backs it.
+          FROM matched WHERE exact OR hits >= 1 AND covered >= 1.9 AND covered >= wanted / 2 OR title_covered > 0 AND title_covered >= wanted / 3 OR hits >= 1 AND context_covered >= 3
+        ), kept AS (
+          SELECT *, row_number() OVER (PARTITION BY document_id ORDER BY exact DESC,total_score DESC,rank DESC,id) AS within,
+            row_number() OVER (PARTITION BY md5(text) ORDER BY exact DESC,total_score DESC,rank DESC,id) AS copy FROM ranked
         )
-        SELECT id,title,heading,text,url,authority,"publicationHash",epoch,"validUntil",rights,attribution,"sourceRevision",exact FROM ranked
-        WHERE within<=2 AND copy=1 ORDER BY exact DESC,score DESC,rank DESC,id LIMIT 5`,
-      [guildId,query,words(`${terms} ${recent}`) || query,recent,terms])).rows.map(row => ({ ...row, epoch: Number(row.epoch), validUntil: row.validUntil?.getTime() ?? null }));
+        SELECT id,title,heading,text,url,authority,"publicationHash",epoch,"validUntil",rights,attribution,"sourceRevision",exact FROM kept
+        WHERE within<=2 AND copy=1 ORDER BY exact DESC,total_score DESC,rank DESC,id LIMIT 5`,
+      [guildId,query,terms,focus,recent])).rows.map(row => ({ ...row, epoch: Number(row.epoch), validUntil: row.validUntil?.getTime() ?? null }));
       return await available(rows,request) ? rows : [];
     },
     current: available,

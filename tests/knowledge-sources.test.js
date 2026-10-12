@@ -30,6 +30,17 @@ test('KS-01 sections follow headings, keep lists and tables as lines, and split 
   assert.deepEqual(markdown, [{ heading: 'Repo › Tool', text: 'Use bold docs code.' }, { heading: 'Repo › Tool › Setup', text: '- step one\nquoted\nDetail:\nfine' }]);
 });
 
+test('KS-10 a rule code under a section whose initials spell it also carries the spelled-out name', async () => {
+  const { spelledOut } = await import('../apps/knowledge/sources/sectioning.js');
+  assert.equal(spelledOut('CR 10: The Rule of Cool CR-10', ['Core Rules']), 'CR 10: The Rule of Cool CR-10 (Core Rule 10)');
+  assert.equal(spelledOut('CR-04 Separation', ['Reading', 'Core Rules']), 'CR-04 Separation (Core Rule 4)');
+  assert.equal(spelledOut('ERP-G-1 Expectations', ['Consent and Sexual Content']), 'ERP-G-1 Expectations');
+  assert.equal(spelledOut('Duties', ['Core Rules']), 'Duties');
+  const sections = blocksToSections([{ kind: 'heading', level: 2, anchors: [], text: 'Core Rules' }, { kind: 'heading', level: 3, anchors: [], text: 'CR 10: The Rule of Cool' },
+    { kind: 'text', text: 'Staff may waive rules.' }], 'Policies');
+  assert.equal(sections[0].heading, 'Policies › Core Rules › CR 10: The Rule of Cool (Core Rule 10)');
+});
+
 test('KS-02 packing yields canonical documents with stable ids, parts, a content hash and a seven-day validity', () => {
   assert.match(documentIdBase('wiki', 'Antagonist Policy!', 42), /^wiki-antagonist-policy-[a-f0-9]{6}$/u);
   assert.equal(documentIdBase('wiki', 'Antagonist Policy!', 42), documentIdBase('wiki', 'Antagonist Policy!', 42));
@@ -89,9 +100,9 @@ test('KS-04 the wiki collector parses only changed pages, excludes song sheets a
   const { fetchImpl, calls } = wikiFetch({ pages, parse: { 2: [{ category: 'Policies' }] }, failParse: new Set([4]) });
   const collector = createWikiCollector({ fetchImpl, extractor: inlineExtractor, clock: () => 5_000_000 });
   const captain = documentIdBase('wiki', 'Captain', 1), broken = documentIdBase('wiki', 'Broken', 4);
-  const result = await collector.collect({ signal, known: new Map([[captain, 'wiki:page:1:r10:f2'], [broken, 'wiki:page:4:r39']]) });
+  const result = await collector.collect({ signal, known: new Map([[captain, 'wiki:page:1:r10:f3'], [broken, 'wiki:page:4:r39']]) });
   assert.deepEqual(calls.filter(call => call.startsWith('parse')), ['parse:2', 'parse:4'], 'unchanged, excluded and oversized pages are not parsed');
-  assert.deepEqual(result.entries.find(entry => entry.idBase === captain), { idBase: captain, sourceRevision: 'wiki:page:1:r10:f2', unchanged: true });
+  assert.deepEqual(result.entries.find(entry => entry.idBase === captain), { idBase: captain, sourceRevision: 'wiki:page:1:r10:f3', unchanged: true });
   assert.deepEqual(result.entries.find(entry => entry.idBase === broken), { idBase: broken, sourceRevision: 'wiki:page:4:r39', unchanged: true });
   const policy = result.entries.find(entry => entry.documents)?.documents[0];
   assert.equal(policy.authority, 'policy'); assert.equal(policy.kind, 'wiki-page'); assert.equal(policy.url, 'https://meridian-wiki.a13.info/wiki/Antagonist_Policy');

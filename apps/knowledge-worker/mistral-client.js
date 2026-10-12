@@ -29,7 +29,7 @@ export function mistralUsage(value) {
 }
 
 /** Release binding for the fixed request profile. It never includes the provider key. */
-export function mistralProfileHash({ acceptedFingerprints, maxPromptBytes = 16384, outputTokens = 384 }) {
+export function mistralProfileHash({ acceptedFingerprints, maxPromptBytes = 32768, outputTokens = 384 }) {
   return createHash('sha256').update(JSON.stringify({schema:1,provider:'mistral',endpoint,model:MISTRAL_MODEL,
     redaction:AI_REDACTION_VERSION,cachePartition:'worker-private-hmac-v1',identity:'pinned-model-id-v1',
     maxPromptBytes,outputTokens,reasoning:'none',stream:false,temperature:0.4,responseFormat:'json_object',acceptedFingerprints:[...new Set(acceptedFingerprints)].sort()})).digest('hex');
@@ -41,7 +41,7 @@ export function mistralProfileHash({ acceptedFingerprints, maxPromptBytes = 1638
  * the worker runs only while the operator-approved list names the pinned model, and holds on any other
  * returned model. This detects an alias or model substitution, not a silent rebuild behind the same ID.
  */
-export function createMistralClient({ apiKey, fetchImpl = fetch, clock = Date.now, onUsage = () => {}, maxPromptBytes = 16384, outputTokens = 384,
+export function createMistralClient({ apiKey, fetchImpl = fetch, clock = Date.now, onUsage = () => {}, maxPromptBytes = 32768, outputTokens = 384,
   acceptedFingerprints = [] }) {
   requireCondition(typeof apiKey === 'string' && /^[a-zA-Z0-9_-]{16,256}$/u.test(apiKey), 'AI_WORKER_KEY_REQUIRED');
   requireCondition([fetchImpl, clock, onUsage].every(fn => typeof fn === 'function'), 'TRUSTED_ADAPTERS_REQUIRED');
