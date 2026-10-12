@@ -1061,3 +1061,7 @@ end replies with a question by reflex. A character draft is in
 `GitHub/.agent_docs/aphelion-sophie/personality-2026-10-12/` for the owner to review and publish through the dashboard
 character editor; publication remains the owner's act. The draft keeps every existing limit (bot not staff, no invented
 memories or lore authority, no pile-ons, no cases) and adds that Sophie does not stoke drama about other servers.
+The owner then corrected the draft's safe-for-work line: "One reason I selected Mistral was because it cares less about
+that"; "She can be freaky if she wants to be"; "The entire server is age restricted and ID check's at the door." The
+draft now allows crude, suggestive and explicit adult talk, and keeps two limits: nothing sexual involving minors or
+characters presented as minors, and no sexual content aimed at someone who did not invite it (dropped at once on request).
