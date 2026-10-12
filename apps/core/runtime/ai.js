@@ -22,7 +22,7 @@ export function createAiRuntime({ configuration, corePool, controlPool, worker, 
   const { mapping, casePolicy, capabilityPolicy } = configuration;
   const transport = createDiscordTransport({ guildId: mapping.guildId, token, fetch, clock, enabled });
   const observations = createAiObservations({ pool: corePool, transport, authorityStore: createActorAuthorityStore({ pool: corePool, clock }),
-    capabilityPolicy, mapping, protectedCategoryId: casePolicy.categoryId, observer, clock });
+    capabilityPolicy, mapping, protectedCategoryId: casePolicy.categoryId, observer, clock, trace: onFault });
   const ingress = createAiIngress({ guildId: mapping.guildId, botUserId: mapping.botUserId, clock });
   let recovered = false;
   const admission = createAiAdmission({ pool: controlPool, guildId: mapping.guildId, ingress, ...observations, clock,
@@ -44,7 +44,8 @@ export function createAiRuntime({ configuration, corePool, controlPool, worker, 
   const effects = createAiEffects({ pool: controlPool, guildId: mapping.guildId, clock });
   const messages = createAiMessages({ transport, botUserId: mapping.botUserId, revalidate: admission.revalidate, canReact: observations.canReact, effects, clock });
   const turns = createAiTurns({ admission, scheduler, context: createAiContext({ clock }), knowledge, messages, clock, memory, trace: onFault,
-    onInvalidate: filter => { void effects.invalidate(filter).catch(() => onFault('AI_CONTROL_UNAVAILABLE')); } });
+    // Message edits and deletes also drop cached source metadata, so a changed message is always re-read.
+    onInvalidate: filter => { observations.clear(); void effects.invalidate(filter).catch(() => onFault('AI_CONTROL_UNAVAILABLE')); } });
   const gateway = createAiGateway({ ingress, turns, onFault });
   let timer = null, stopped = false, fingerprint = null, refreshing = Promise.resolve();
   function invalidate() { observations.clear(); gateway.invalidate(); }

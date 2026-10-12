@@ -46,9 +46,42 @@ test('SAI AT-03 changed audience invalidates cached metadata and unknown/missing
   const f = fixture(), first = await f.observations.inspectContext(f.event);
   f.channel.permission_overwrites = [{ id: '999', type: 1, allow: String(PERMISSIONS.viewChannel), deny: '0' }]; f.invalidate();
   const second = await f.observations.inspectContext(f.event); assert.notEqual(second.audienceHash, first.audienceHash);
-  f.transport.getAiSourceMetadata = async () => null; assert.equal(await f.observations.inspectContext(f.event), null);
+  // A deleted source reaches the runtime as a MESSAGE_DELETE invalidation, which clears cached source metadata.
+  f.transport.getAiSourceMetadata = async () => null; f.observations.clear(); assert.equal(await f.observations.inspectContext(f.event), null);
   f.members['404'].communication_disabled_until = new Date(20000).toISOString(); f.invalidate();
   assert.equal(await f.observations.inspectContext(f.event), null);
+});
+
+test('SAI RL-01 rechecks reuse source metadata within the cache window and re-read it after clear() or the window', async () => {
+  const f = fixture(); let sourceReads = 0; const read = f.transport.getAiSourceMetadata;
+  f.transport.getAiSourceMetadata = async (...args) => { sourceReads++; return read(...args); };
+  assert.ok(await f.observations.inspectContext(f.event)); assert.ok(await f.observations.inspectContext(f.event)); assert.equal(sourceReads, 1);
+  f.observations.clear(); assert.ok(await f.observations.inspectContext(f.event)); assert.equal(sourceReads, 2);
+  f.time(3100); assert.ok(await f.observations.inspectContext(f.event)); assert.equal(sourceReads, 3);
+  f.source.revision = '2026-10-12T10:00:00Z'; f.observations.clear();
+  assert.equal((await f.observations.inspectContext(f.event)).messageRevision, '2026-10-12T10:00:00Z');
+});
+
+test('SAI RL-02 short Discord cooldowns are waited out; long ones are reported by route class and refused', async () => {
+  const waits = [], traces = [];
+  const f = fixture(); let limited = 2; const read = f.transport.getMember;
+  f.transport.getMember = async id => { if (id === '404' && limited-- > 0) throw Object.assign(Error('RATE_LIMITED'), { code: 'RATE_LIMITED', retryAfterMs: 800 }); return read(id); };
+  const observations = createAiObservations({ pool: f.pool, transport: f.transport, authorityStore: f.authorityStore,
+    mapping: { guildId: '101', botUserId: '505', muzzled: '909' }, protectedCategoryId: '707', capabilityPolicy: { version: 1 },
+    observer: { readAiContinuity: async () => 'live.1' }, clock: () => 1000, trace: code => traces.push(code), wait: async ms => { waits.push(ms); } });
+  assert.ok(await observations.inspectContext(f.event)); assert.deepEqual(waits, [800, 800]); assert.deepEqual(traces, []);
+  f.transport.getMember = async () => { throw Object.assign(Error('RATE_LIMITED'), { code: 'RATE_LIMITED', retryAfterMs: 5000 }); };
+  observations.clear();
+  await assert.rejects(observations.inspectContext(f.event), error => error.code === 'RATE_LIMITED');
+  assert.deepEqual(traces, ['AI_OBSERVATION_LIMITED_BOT_RATE_LIMITED_5000MS']);
+});
+
+test('SAI RL-03 member observations carry the Discord join time of the current membership', async () => {
+  const f = fixture(); f.members['404'].joined_at = '2026-10-01T12:00:00.000Z';
+  assert.ok(await f.observations.inspectContext(f.event));
+  assert.equal((await f.observations.inspectMember(f.event)).joinedAt, Date.parse('2026-10-01T12:00:00.000Z'));
+  const missing = fixture(); assert.ok(await missing.observations.inspectContext(missing.event));
+  assert.equal((await missing.observations.inspectMember(missing.event)).joinedAt, null);
 });
 
 test('SAI AT-05 a private channel with individual bot and member grants remains restricted', async () => {

@@ -201,6 +201,19 @@ export async function runAiControlsSuite(cluster, run) {
   });
   await run('AI12 departure and rejoin cannot revive enrollment; withdrawn qualification blocks before body read', async () => {
     presenceEpoch = 2; bodyReads = 0; assert.equal(await admission.admit(event('606')), null); assert.equal(bodyReads, 0); presenceEpoch = 1;
+    // A reconnect advances the presence epoch for everyone; the Discord join time decides whether this is the same membership.
+    const consented = (await admin.query("SELECT updated_at FROM sophie_ai.consents WHERE guild_id=$1 AND channel_id='303' AND user_id=$2", [actor.guildId, actor.userId])).rows[0].updated_at.getTime();
+    for (const [id, joinedAt, refused] of [['6061', consented + 1000, true], ['6062', null, true], ['6063', consented - 86_400_000, false]]) {
+      const reasons = [], lane = createAiIngress({ guildId: actor.guildId, botUserId: '505', clock: Date.now });
+      const stint = createAiAdmission({ pool, guildId: actor.guildId, ingress: lane, clock: Date.now, trace: reason => reasons.push(reason),
+        inspectContext: async () => ({ eligible: true, audienceHash: 'e'.repeat(64), restricted: false, canReply: true, canReact: true, messageRevision: 'original', continuity: 'synthetic-current', checkedAt: Date.now() }),
+        inspectMember: async () => ({ eligible: true, presenceEpoch: 2, accessEpoch: 1, checkedAt: Date.now(), joinedAt }) });
+      const proof = lane.prepare({ t: 'MESSAGE_CREATE', d: { guild_id: actor.guildId, channel_id: '303', id, author: { id: actor.userId, bot: false }, type: 0, mentions: [], content: 'Synthetic hello' } });
+      assert.ok(proof, `${id} prepared`);
+      const admitted = await stint.admit(proof);
+      assert.equal(reasons.includes('PRESENCE_CHANGED'), refused, `${id} ${reasons.join(',')}`);
+      if (refused) assert.equal(admitted, null, id); else if (admitted) await stint.settle(admitted, 'cancelled');
+    }
     await admin.query('UPDATE sophie_ai.qualifications SET active=false WHERE guild_id=$1', [actor.guildId]);
     bodyReads = 0; assert.equal(await admission.admit(event('607')), null); assert.equal(bodyReads, 0);
   });

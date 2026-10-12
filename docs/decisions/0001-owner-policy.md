@@ -948,3 +948,16 @@ Receipts are operator records of reviewed public documents, not legal opinions. 
 Mistral confirms zero data retention; the notice and receipts must then be revised and re-accepted. Restricted
 channels, image or tool use, and production remain outside this approval. Evidence:
 `GitHub/.agent_docs/aphelion-sophie/processing-policy-2026-10-12/`.
+
+### AI consent survives Gateway reconnects within the same membership — 12 October 2026
+
+Every core restart opened a new Gateway session, which advances every member's presence epoch because departures
+during the outage cannot be observed; AI consent was bound to that epoch, so each restart silently withdrew every
+member's opt-in. Asked whether to bind consent to the member's Discord join time instead, the owner replied: "Make
+the fix." (after: "I shouldn't have to repeat this opt-in process every single time.")
+
+AI admission now also accepts a consent whose presence epoch differs when the member's current Discord join time
+precedes the consent's `updated_at`: the consent was given during the current membership. Any leave and rejoin,
+observed or not, moves the join time past the consent and still voids it; an observed departure still disables and
+by default deletes consents. An unknown join time refuses. No migration; case, onboarding and Whitelist presence
+rules are unchanged. Commit on `codex/sophie-social-ai` with the AI observation read reduction of the same day.
