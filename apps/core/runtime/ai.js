@@ -31,12 +31,19 @@ export function createAiRuntime({ configuration, corePool, controlPool, worker, 
   const accounting = createAiAccounting({ pool: controlPool, guildId: mapping.guildId });
   const inference = worker.provider === 'mistral' ? createMeteredAiWorker({ worker, accounting }) : worker;
   const scheduler = createAiScheduler({ clock, execute: async (payload, context) => {
-    requireCondition(await worker.current(payload) === true, 'AI_WORKER_NOT_QUALIFIED');
-    return inference.generate(payload, context);
+    try {
+      requireCondition(await worker.current(payload) === true, 'AI_WORKER_NOT_QUALIFIED');
+      return await inference.generate(payload, context);
+    } catch (error) {
+      // The scheduler reduces every failure to a state; keep the fixed contract code for diagnosis.
+      const code = error?.code ?? error?.message;
+      onFault(`AI_GENERATE_FAILED_${typeof code === 'string' && /^[A-Z][A-Z0-9_]{2,40}$/u.test(code) ? code : 'ERROR'}`);
+      throw error;
+    }
   } });
   const effects = createAiEffects({ pool: controlPool, guildId: mapping.guildId, clock });
   const messages = createAiMessages({ transport, botUserId: mapping.botUserId, revalidate: admission.revalidate, canReact: observations.canReact, effects, clock });
-  const turns = createAiTurns({ admission, scheduler, context: createAiContext({ clock }), knowledge, messages, clock, memory,
+  const turns = createAiTurns({ admission, scheduler, context: createAiContext({ clock }), knowledge, messages, clock, memory, trace: onFault,
     onInvalidate: filter => { void effects.invalidate(filter).catch(() => onFault('AI_CONTROL_UNAVAILABLE')); } });
   const gateway = createAiGateway({ ingress, turns, onFault });
   let timer = null, stopped = false, fingerprint = null, refreshing = Promise.resolve();
