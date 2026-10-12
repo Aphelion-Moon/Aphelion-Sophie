@@ -7,11 +7,22 @@ export function createAiObservations({ pool, transport, authorityStore, capabili
   const cache = new Map(), members = new WeakMap();
   let generation = 0;
   const guildId = mapping.guildId, botUserId = mapping.botUserId;
+  // Every recheck in a turn re-reads members and the source message, which can drain Discord's small per-route
+  // buckets. A short cooldown or a request already in flight is a wait, not a refusal. Waiting only ages the
+  // observation (its timestamp is taken before the read), so freshness checks stay at least as strict.
+  async function patient(read) {
+    for (let attempt = 0; ; attempt++) {
+      try { return await read(); } catch (error) {
+        if (attempt >= 3 || !['RATE_LIMITED', 'DISCORD_BUSY'].includes(error?.code) || !Number.isSafeInteger(error.retryAfterMs) || error.retryAfterMs > 2000) throw error;
+        await new Promise(resolve => setTimeout(resolve, Math.max(50, error.retryAfterMs)));
+      }
+    }
+  }
   async function continuity() { const stamp = await observer.readAiContinuity(); requireCondition(typeof stamp === 'string', 'AI_AUTHORITY_UNAVAILABLE'); return stamp; }
   async function metadata(key, stamp, version, read) {
     const saved = cache.get(key), now = clock();
     if (saved?.stamp === stamp && saved.at <= now && now - saved.at < 2000) return saved;
-    const value = { at: now, stamp, value: await read() };
+    const value = { at: now, stamp, value: await patient(read) };
     // A completed read from before clear() must not repopulate the next generation.
     if (version !== generation) return value;
     if (cache.size >= 128) cache.delete(cache.keys().next().value);
@@ -83,7 +94,7 @@ export function createAiObservations({ pool, transport, authorityStore, capabili
       // An admitted automation keeps ownership even when its delivery later becomes uncertain.
       if ((await pool.query('SELECT 1 FROM sophie_core.automation_deliveries WHERE guild_id=$1 AND message_id=$2 LIMIT 1', [guildId,event.messageId])).rowCount) return null;
       if (!await isCurrent(current, event.channelId)) return null;
-      const source = await transport.getAiSourceMetadata(event.channelId, event.messageId);
+      const source = await patient(() => transport.getAiSourceMetadata(event.channelId, event.messageId));
       if (source?.id !== event.messageId || source.channelId !== event.channelId || source.authorId !== event.userId || source.bot || source.webhook || ![0, 19].includes(source.type) ||
         !await isCurrent(current, event.channelId)) return null;
       members.set(event, current);

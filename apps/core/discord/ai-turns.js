@@ -89,11 +89,17 @@ export function createAiTurns({ admission, scheduler, context, knowledge, messag
             items=>items.length===0?true:knowledge.currentReferences(items,request));
         },
         beforeExecute: async () => {
-          if (!await current(request, sources, history, saved)) return false;
-          if (request.profile.typing && !request.decision.proactive && request.decision.outcomes.includes('reply')) {
-            try { await messages.typing(request); } catch { /* An optional indicator failure cannot authorize or replay a response. */ }
-          }
-          return current(request, sources, history, saved);
+          let check = 'BEFORE_TYPING';
+          try {
+            if (!await current(request, sources, history, saved)) { report(request, 'cancelled', check); return false; }
+            if (request.profile.typing && !request.decision.proactive && request.decision.outcomes.includes('reply')) {
+              try { await messages.typing(request); } catch { /* An optional indicator failure cannot authorize or replay a response. */ }
+            }
+            check = 'AFTER_TYPING';
+            const still = await current(request, sources, history, saved);
+            if (!still) report(request, 'cancelled', check);
+            return still;
+          } catch (error) { report(request, 'failed', check, error?.code ?? error?.message); throw error; }
         },
         payload: freezeAiMaterial({ workerDomain: request.binding.workerDomain, releaseHash: request.binding.releaseHash,
           requesterId: request.userId, restricted: request.binding.restricted,
