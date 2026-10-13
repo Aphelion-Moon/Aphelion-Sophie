@@ -304,5 +304,9 @@ export async function runAiKnowledgeSuite(cluster, run) {
       const found = await synced.lookup(question, request());
       assert.match(found[0]?.heading ?? '', /CR 1: The Social Contract/u, question);
     }
+    // A passage that is no longer current is dropped on its own; the other passages are still supplied.
+    await admin.query("UPDATE sophie_knowledge.chunks SET text = text || ' (edited outside publication)' WHERE heading LIKE '%CR 9:%'");
+    const remaining = await synced.lookup('what do CR 9 and CR 10 say?', request());
+    assert.ok(remaining.some(item => /CR 10/u.test(item.heading)) && !remaining.some(item => /CR 9:/u.test(item.heading)));
   });
 }

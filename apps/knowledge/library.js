@@ -208,7 +208,10 @@ export function createKnowledgeLibrary({ pool, guildId, authorize, restoreCurren
         SELECT id,title,heading,text,url,authority,"publicationHash",epoch,"validUntil",rights,attribution,"sourceRevision",exact FROM kept
         WHERE (within<=2 OR coded) AND copy=1 ORDER BY exact DESC,coded DESC,total_score DESC,rank DESC,id LIMIT 5`,
       [guildId,query,terms,focus,recent,named])).rows.map(row => ({ ...row, epoch: Number(row.epoch), validUntil: row.validUntil?.getTime() ?? null }));
-      return await available(rows,request) ? rows : [];
+      // Each passage is checked on its own: one that is no longer current is dropped, not every passage with it.
+      const kept = [];
+      for (const row of rows) if (await available([row], request)) kept.push(row);
+      return clock() < request.deadline ? kept : [];
     },
     current: available,
     currentReferences: (sources, request) => available(sources, request, true),
