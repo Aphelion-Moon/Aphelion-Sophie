@@ -1,5 +1,5 @@
 // Development loop for the isolated PostgreSQL suites: disjoint shards run at once, each on its own cluster.
-// Evidence still comes from the sequential `node scripts/test-storage.mjs --record`; shards cannot record.
+// Each shard writes its own log; the sequential `node scripts/test-storage.mjs` remains the plain full run.
 import { spawn } from 'node:child_process';
 import { availableParallelism, constants, setPriority } from 'node:os';
 import { mkdir, readFile, writeFile, open } from 'node:fs/promises';

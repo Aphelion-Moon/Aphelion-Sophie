@@ -68,7 +68,7 @@ Migration 030 adds [private attachment acquisition](case-attachments.md): core-o
 
 ## Running the synthetic checks on this host
 
-Install the pinned driver using `npm ci --ignore-scripts --omit=optional`. `.npmrc` preserves those safeguards. Use `npm test` for pure/contract tests and `npm run test:storage` for real PostgreSQL integration. `node scripts/test-storage.mjs --record` records source hashes and successful results. These are separate from release acceptance.
+Install the pinned driver using `npm ci --ignore-scripts --omit=optional`. `.npmrc` preserves those safeguards. Use `npm test` for pure/contract tests and `npm run test:storage` for real PostgreSQL integration. `npm run test:storage:fast` runs the same suites in parallel shards for iteration; both report every failing scenario and are separate from release acceptance.
 
 The ignored `.local/postgres-runtime.json` identifies the existing binary directory, with no database credentials. The harness checks its executables, supporting DLLs and notice hashes against `legal/postgresql-test-runtime.json`; a changed build fails and needs review. On a different host, provide a reviewed matching binary directory before running it. Do not point it at a data directory or copy an existing service configuration.
 
