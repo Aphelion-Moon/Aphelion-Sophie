@@ -38,6 +38,8 @@ export function createOnboardingCommands({ authorization, discord, channels, sto
         return 'shuttle_recorded';
       } catch (error) {
         if (error instanceof ContractError && error.code === 'SHUTTLE_PAUSED') return 'shuttle_paused';
+        // No published guide at all is a setup gap, not a member's case for Staff review; say so.
+        if (error instanceof ContractError && error.code === 'DEFINITION_NOT_FOUND' && envelope.command === 'shuttle.start') return 'shuttle_unpublished';
         if (error instanceof ContractError && ['OPERATION_DENIED', 'UNTRUSTED_PRINCIPAL', 'MEMBER_ABSENT',
           'MEMBER_MUZZLED', 'NOT_IN_GUILD', 'CAPABILITY_REVOKED', 'FOREIGN_GUILD', 'FOREIGN_SHUTTLE_CONTROL'].includes(error.code)) return 'denied';
         if (error instanceof ContractError && ['STALE_SHUTTLE_CONTROL', 'SHUTTLE_NOT_ACTIVE', 'BACK_UNAVAILABLE',

@@ -27,6 +27,15 @@ function references(sources, history) {
   requireCondition(result.size <= 24, 'AI_EFFECT_INVALID'); return [...result.values()];
 }
 
+/**
+ * Whether a reply with this context fits one effect record (13 messages, 24 knowledge references, counting what earlier
+ * replies in the context relied on). A turn drops its oldest context until it fits, instead of failing at delivery.
+ */
+export function effectContextFits(request, history, sources) {
+  try { dependencies(request, history); references(sources, history); return true; }
+  catch (error) { if (error?.code === 'AI_EFFECT_INVALID') return false; throw error; }
+}
+
 /** Durable fixed-target ownership. Unknown network outcomes are parked, never replayed or discovered through history. */
 export function createAiEffects({ pool, guildId, clock }) {
   requireId(guildId);

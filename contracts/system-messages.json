@@ -408,6 +408,12 @@
     "max": 1800
   },
   {
+    "id": "reply.onboarding_unpublished",
+    "group": "Onboarding",
+    "source": "Whitelist isn't open yet: Staff haven't published the Whitelist guide. Please let them know.",
+    "max": 1800
+  },
+  {
     "id": "onboarding.ended.title",
     "group": "Onboarding",
     "source": "The Shuttle",
