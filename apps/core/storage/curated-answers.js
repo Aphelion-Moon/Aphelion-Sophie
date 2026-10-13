@@ -73,17 +73,13 @@ export function createCuratedAnswers({ pool, authorize, guildId }) {
       requireCondition(confirmed === true && approvedPublic === true, 'ANSWER_CONFIRMATION_REQUIRED');
       requireCondition(reviewSha256 === digest(request), 'ANSWER_REVIEW_STALE');
       return operation(actor, 'answers.publish', async (client, grant) => {
-        const prior = (await client.query('SELECT * FROM sophie_core.curated_answers WHERE guild_id = $1 AND request_id = $2', [guildId, requestId])).rows[0];
-        if (prior) {
-          checked(prior); requireCondition(prior.operator_grant.userId === grant.userId && prior.request_sha256 === reviewSha256, 'ANSWER_REQUEST_COLLISION');
-          return { name: prior.name, revision: prior.revision, action: prior.action, duplicate: true };
-        }
+        // The request ID is recorded only. A resent change is not replayed: the revision check makes it stale.
         await current(client, request); const next = request.expectedRevision + 1; revision(next);
         await client.query(`INSERT INTO sophie_core.curated_answers
           (guild_id, name, revision, action, document, document_sha256, request_id, request_sha256, operator_grant, approved_public)
           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,true)`, [guildId, request.name, next, request.action, request.document,
           request.document === null ? null : digest(request.document), requestId, reviewSha256, grant]);
-        return { name: request.name, revision: next, action: request.action, duplicate: false };
+        return { name: request.name, revision: next, action: request.action };
       });
     },
   });

@@ -647,9 +647,10 @@ export async function runStorageSuite(cluster, run) {
     const recovered = authoringServices(dashboardServices({ ...f, pool: core, admin })), actor = await recovered.editorActor();
     assert.deepEqual(await read('shuttle_draft_revisions'), revisions); assert.deepEqual(await read('shuttle_editor_actions'), audit);
     assert.deepEqual(await read('shuttle_publications'), publications);
-    assert.equal((await recovered.editorStore.saveOnboardingDraft({ ...save, actor })).duplicate, true);
-    assert.equal((await recovered.editorStore.publishOnboardingDraft({ ...publish, actor })).duplicate, true);
-    assert.equal((await recovered.editorStore.withdrawOnboardingPublication({ ...withdraw, actor })).duplicate, true);
+    // Resent requests after restart are stale rather than repeated.
+    await assert.rejects(recovered.editorStore.saveOnboardingDraft({ ...save, actor }), /SHUTTLE_DRAFT_STALE/);
+    await assert.rejects(recovered.editorStore.publishOnboardingDraft({ ...publish, actor }), /SHUTTLE_PUBLICATION_STALE/);
+    await assert.rejects(recovered.editorStore.withdrawOnboardingPublication({ ...withdraw, actor }), /SHUTTLE_PUBLICATION_STALE/);
     assert.equal((await recovered.editorStore.readOnboardingPublication({ actor, version: 2 })).status, 'withdrawn');
     const store = createCoreStore({ pool: core, clock: () => f.clock.now, authorize: recovered.dashboardAuthorization.authorize,
       casePolicy, caseVerification: f.discord.channels.verification, onboardingMessageVerification: f.discord.messages.verification });
@@ -735,7 +736,7 @@ export async function runStorageSuite(cluster, run) {
     f.discord.state.members.set(OTHER, [CREW]); assert.equal(await recovered.executeIssue(request), 'denied');
     assert.equal((await read('case_delivery_actions')).length, 1);
   });
-  await run('S32 form drafts, immutable publications and exact editor receipts survive restart without restoring withdrawn entry', async () => {
+  await run('S32 form drafts, immutable publications and the editor audit survive restart without restoring withdrawn entry', async () => {
     const f = await formAuthoringWorkflow({ ...cluster, adminPool: admin, corePool: core });
     const save = { actor: await f.formActor(), caseType: 'admin-help', requestId: formRequestId(), expectedRevision: 0, document: syntheticCaseForm() };
     await f.formEditor.saveCaseFormDraft(save); await f.publishForm(1);
@@ -750,9 +751,10 @@ export async function runStorageSuite(cluster, run) {
     assert.deepEqual(await read('case_form_drafts'), drafts); assert.deepEqual(await read('case_form_editor_actions'), audit);
     assert.deepEqual(await read('case_forms'), forms); assert.deepEqual(await read('case_intakes'), intakes);
     await assert.rejects(recovered.formEditor.saveCaseFormDraft(save), /OPERATION_DENIED/);
-    assert.equal((await recovered.formEditor.saveCaseFormDraft({ ...save, actor })).duplicate, true);
-    assert.equal((await recovered.formEditor.publishCaseFormDraft({ ...publish, actor })).duplicate, true);
-    assert.equal((await recovered.formEditor.withdrawCaseFormPublication({ ...withdraw, actor })).duplicate, true);
+    // Resent requests after restart are stale rather than repeated.
+    await assert.rejects(recovered.formEditor.saveCaseFormDraft({ ...save, actor }), /CASE_FORM_DRAFT_STALE/);
+    await assert.rejects(recovered.formEditor.publishCaseFormDraft({ ...publish, actor }), /CASE_FORM_PUBLICATION_STALE/);
+    await assert.rejects(recovered.formEditor.withdrawCaseFormPublication({ ...withdraw, actor }), /CASE_FORM_PUBLICATION_STALE/);
     const view = await recovered.formEditor.readCaseFormDraft({ actor, caseType: 'admin-help' }); assert.equal(view.newRequestVersion, null); assert.equal(view.latest.status, 'withdrawn');
     assert.equal((await read('case_forms')).find(row => row.version === 1).status, 'published'); assert.equal((await read('case_form_editor_actions')).length, 4);
     f.discord.state.members.set(OTHER, [STAFF]); await assert.rejects(recovered.formEditor.publishCaseFormDraft({ ...publish, actor }), /OPERATION_DENIED/);

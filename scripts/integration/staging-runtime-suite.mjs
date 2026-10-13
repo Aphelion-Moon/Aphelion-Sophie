@@ -409,7 +409,7 @@ export async function runStagingRuntimeSuite(cluster, run) {
     const fields = { name: 'synthetic-public', expectedRevision: 0, action: 'publish', document: { title: 'Synthetic public help', text: 'Literal @everyone public test', source: 'Synthetic authored reference' } };
     const review = await post('review', fields); assert.equal(review.status, 200);
     const request = { ...fields, requestId: 'a'.repeat(64), reviewSha256: review.body.reviewSha256, confirmed: true, approvedPublic: true };
-    assert.equal((await post('change', request)).status, 200); assert.equal((await post('change', request)).body.duplicate, true);
+    assert.equal((await post('change', request)).status, 200); assert.equal((await post('change', request)).status, 409);
     const lookup = await dashboardHttp(f.addresses.dashboard, `/api/answers/lookup?name=${fields.name}`, { headers });
     assert.equal(lookup.status, 200); assert.deepEqual(lookup.body.document, fields.document);
     const command = (action, options) => f.identities.payload({ member: { user: { id: USER } },

@@ -41,11 +41,7 @@ export function createSystemWordingStore({ pool, authorize, guildId, definitionI
       return inTransaction(pool, async client => {
         const grant = await access(actor);
         await client.query('SELECT pg_advisory_xact_lock(hashtextextended($1, 52))', [guildId]);
-        const prior = (await client.query('SELECT revision, request_sha256 FROM sophie_core.system_wording WHERE guild_id=$1 AND request_id=$2', [guildId, input.requestId])).rows[0];
-        if (prior) {
-          requireCondition(prior.request_sha256 === requestHash, 'SYSTEM_WORDING_CONFLICT'); await access(actor);
-          return { revision: prior.revision };
-        }
+        // The request ID is recorded only. A resent save is not replayed: the revision check makes it a conflict.
         const current = await latest(client);
         requireCondition(current.revision === input.expectedRevision, 'SYSTEM_WORDING_CONFLICT');
         const revision = current.revision + 1;

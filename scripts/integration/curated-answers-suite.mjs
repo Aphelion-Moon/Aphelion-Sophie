@@ -27,9 +27,9 @@ export async function runCuratedAnswersSuite(cluster, run) {
     };
     await work({ ...f, answers, fields, prepare });
   });
-  await scenario('CA01 explicit public-source review publishes exact authored text and records one current-actor receipt', async f => {
+  await scenario('CA01 explicit public-source review publishes exact authored text once; a resend is stale', async f => {
     const request = await f.prepare(), first = await f.answers.change(request); assert.equal(first.revision, 1);
-    assert.equal((await f.answers.change(request)).duplicate, true);
+    await assert.rejects(f.answers.change(request), /ANSWER_STALE/);
     const value = await f.answers.lookup({ actor: await f.actor(USER), name: request.name });
     assert.deepEqual(value.document, request.document); assert.equal(value.authorId, OTHER);
     assert.equal((await f.rows('curated_answers')).length, 1);
@@ -51,24 +51,22 @@ export async function runCuratedAnswersSuite(cluster, run) {
     await assert.rejects(f.answers.change({ ...request, caseId: 'not-imported' }), /ANSWER_INPUT_INVALID/);
     assert.equal((await f.rows('curated_answers')).length, 0);
   });
-  await scenario('CA04 immutable revisions retain withdrawal history and exact old receipts cannot republish', async f => {
+  await scenario('CA04 immutable revisions retain withdrawal history and an old request cannot republish', async f => {
     const original = await f.prepare(); await f.answers.change(original);
     const update = await f.prepare({ expectedRevision: 1, document: { ...original.document, text: 'New synthetic public answer' } }); await f.answers.change(update);
     const withdraw = await f.prepare({ expectedRevision: 2, action: 'withdraw', document: null }); await f.answers.change(withdraw);
     await assert.rejects(f.answers.lookup({ actor: await f.actor(USER), name: original.name }), /ANSWER_UNAVAILABLE/);
     assert.equal((await f.answers.list({ actor: await f.actor(USER) })).entries.length, 0);
-    assert.equal((await f.answers.change(original)).revision, 1); assert.equal((await f.rows('curated_answers')).length, 3);
+    await assert.rejects(f.answers.change(original), /ANSWER_STALE/); assert.equal((await f.rows('curated_answers')).length, 3);
     const history = await f.answers.history({ actor: original.actor, name: original.name });
     assert.deepEqual(history.entries.map(row => row.action), ['withdraw','publish','publish']); assert.deepEqual(history.entries[2].document, original.document);
     const republish = await f.prepare({ expectedRevision: 3 }); assert.equal((await f.answers.change(republish)).revision, 4);
   });
-  await scenario('CA05 competing publication intents have one winner and reused receipt IDs cannot change meaning', async f => {
+  await scenario('CA05 competing publication intents have one winner', async f => {
     const a = await f.prepare(), b = await f.prepare({ document: { ...a.document, text: 'Competing synthetic answer' } });
     const results = await Promise.allSettled([f.answers.change(a), f.answers.change(b)]);
     assert.equal(results.filter(result => result.status === 'fulfilled').length, 1);
     assert.match(results.find(result => result.status === 'rejected').reason.message, /ANSWER_STALE/);
-    const won = results[0].status === 'fulfilled' ? a : b, lost = won === a ? b : a;
-    await assert.rejects(f.answers.change({ ...lost, requestId: won.requestId }), /ANSWER_REQUEST_COLLISION/);
     assert.equal((await f.rows('curated_answers')).length, 1);
   });
   await scenario('CA06 final publisher revocation rolls back the publication and all retained metadata', async f => {
@@ -129,7 +127,7 @@ export async function runCuratedAnswersSuite(cluster, run) {
       const changed = { ...request, requestId: 'a'.repeat(64), reviewSha256: review.body.reviewSha256, confirmed: true, approvedPublic: true };
       assert.equal((await post('change', { ...changed, approvedPublic: false })).status, 400);
       assert.equal((await post('change', { ...changed, actorId: USER })).status, 400);
-      assert.equal((await post('change', changed)).status, 200); assert.equal((await post('change', changed)).body.duplicate, true);
+      assert.equal((await post('change', changed)).status, 200); assert.equal((await post('change', changed)).status, 409, 'a resend is stale');
       assert.equal((await post('review', request)).status, 409);
       const member = await d.login(USER), memberHeaders = { Cookie: `${DASHBOARD_COOKIES.session}=${member.token}` };
       const lookup = await dashboardHttp(address, `/api/answers/lookup?name=${request.name}`, { headers: memberHeaders });

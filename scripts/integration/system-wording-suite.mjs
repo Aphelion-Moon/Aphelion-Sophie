@@ -12,11 +12,11 @@ export async function runSystemWordingSuite(cluster, run) {
     const actor = () => f.actor(OTHER);
     return { ...f, editor, editorActor: actor };
   }
-  await run('L01 wording persists, concurrent edits conflict, and uncertain retries are idempotent', async () => {
+  await run('L01 wording persists, concurrent edits conflict, and a resent save is a conflict', async () => {
     const f = await fixture(), actor = await f.editorActor();
     const request = { actor, requestId: 'a'.repeat(64), expectedRevision: 0, wording: { 'onboarding.next': 'Next page' } };
     const first = await f.editor.save(request); assert.equal(first.revision, 1);
-    assert.deepEqual(await f.editor.save(request), first);
+    await assert.rejects(f.editor.save({ ...request, requestId: 'd'.repeat(64) }), /SYSTEM_WORDING_CONFLICT/);
     const restarted = createSystemWordingReader({ pool: f.pool, guildId: GUILD });
     assert.equal((await restarted())('onboarding.next'), 'Next page');
     await assert.rejects(f.editor.save({ ...request, wording: {} }), /SYSTEM_WORDING_CONFLICT/);
@@ -29,7 +29,7 @@ export async function runSystemWordingSuite(cluster, run) {
     await f.editor.save({ actor, requestId: 'd'.repeat(64), expectedRevision: saved.revision, wording: {} });
     assert.equal((await restarted())('onboarding.next'), 'Next screen');
   });
-  await run('L02 wording requires current publisher authority on reads, writes and duplicate requests', async () => {
+  await run('L02 wording requires current publisher authority on reads and writes', async () => {
     const f = await fixture(), actor = await f.editorActor();
     const input = { actor, requestId: 'e'.repeat(64), expectedRevision: 0, wording: { 'onboarding.next': 'Next page' } };
     await f.editor.save(input); f.discord.state.members.set(OTHER, [STAFF]);
