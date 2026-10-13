@@ -309,3 +309,10 @@ test('DS-03 Vienna month boundaries and daylight-saving rollover use the named c
   assert.equal(aiUsageCostNanos(mistralUsage(completion().usage),DEFAULT_AI_BUDGET),21360n);
   assert.equal(aiUsageCostNanos({...mistralUsage(completion().usage),total_tokens:0},DEFAULT_AI_BUDGET),null);
 });
+
+test('evidence names its heading, so a passage can be matched to the rule it is', () => {
+  const value = prompt({ sources: [{ id: 'wiki-policies.r3.s6', title: 'Policies', heading: 'Policies › Core Rules › CR 1: The Social Contract CR-01 (Core Rule 1)',
+    authority: 'policy', sourceRevision: 'wiki:page:878:r1:f3', text: 'Act with the maturity expected in an adult community.' }] });
+  const evidence = value.messages.find(message => message.content.startsWith('Approved evidence'));
+  assert.match(JSON.parse(evidence.content.slice(evidence.content.indexOf('\n') + 1)).heading, /CR 1: The Social Contract/u);
+});
