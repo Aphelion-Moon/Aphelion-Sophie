@@ -1,6 +1,18 @@
 # Verification and release limits
 
-## Test cleanup and staff-editor simplification — 13 October 2026 (prepared, not yet installed)
+## Rule codes in chatty questions — 13 October 2026 (prepared, not yet installed)
+
+Asked "My finger slipped :< Anyways, sophie, can you summarize CR 1 for me?", Sophie answered that she had no verified
+information. The CR 1 passage is on the wiki with policy authority; retrieval weighs words by rarity, so the common "CR"
+and "1" lost to the chatty words and no passage qualified. `b5f40cd`: a rule code in a question (CR 1, CR1, CR-01, Core
+Rule 1) selects the passages whose heading carries it, first, and CR 1 never matches CR 10. Reproduced and checked
+against the full live wiki (230 pages) in an isolated cluster. Pin `18f214d` = `5c54ba4` plus `apps/knowledge/library.js`.
+Offline: `npm test` 656 passed; AI storage suites 89 passed.
+
+## Test cleanup and staff-editor simplification — 13 October 2026 (installed 14:23 UTC as `5c54ba4`)
+
+Installed with passing pre-start, service-boundary, installed and dashboard checks; Sophie back online after the 08:20
+UTC stop.
 
 **Installed now:** pin `b4b81db` (source `37acf37`), release `sophie-mistral-b4b81db`, schema 070, 32 KB prompt budget.
 Installed after the conversion below, each with passing pre-start, service-boundary, installed and dashboard checks

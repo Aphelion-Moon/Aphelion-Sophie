@@ -1,6 +1,6 @@
 # AI on the Test Discord Server — operator runbook
 
-Status (13 October 2026): installed pin `b4b81db` (12 October, 22:46 UTC), after the hosting conversion to `d8fb0e5`
+Status (13 October 2026): installed pin `5c54ba4` (14:23 UTC; `18f214d` prepared), after the hosting conversion to `d8fb0e5`
 (12 October, 19:08 UTC); see `docs/verification.md` for the full sequence and the prepared next update. The conversion
 implements the owner's AI stack decisions of 12 October (decision log; audit in
 `GitHub/.agent_docs/aphelion-sophie/ai-stack-audit-2026-10-12.md`): turns read Gateway state and check authorization
