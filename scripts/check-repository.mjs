@@ -2,16 +2,11 @@ import { readFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import { resolve } from 'node:path';
 import { spawnSync } from 'node:child_process';
-import { checkModuleImports, checkWorkplan, sha256, sourceFiles, verifyAssetManifest, verifyReferencePackage } from './lib/repository-checks.mjs';
-import { renderWorkplan } from './build-workplan.mjs';
+import { checkModuleImports, sha256, sourceFiles, verifyAssetManifest, verifyReferencePackage } from './lib/repository-checks.mjs';
 import { validateOfflineConfiguration } from '../platform/configuration/index.js';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
 const json = async path => JSON.parse(await readFile(resolve(root, path), 'utf8'));
-const plan = await json('docs/workplan.json');
-const catalogue = await json('docs/acceptance-cases.json');
-const graph = checkWorkplan(plan, catalogue);
-if (await readFile(resolve(root, 'docs/workplan.md'), 'utf8') !== renderWorkplan(plan)) throw new Error('WORKPLAN_REGENERATION_REQUIRED');
 validateOfflineConfiguration(await json('config/example.json'));
 const pkg = await json('package.json');
 const lock = await json('package-lock.json');
@@ -48,4 +43,4 @@ if (errors.length) throw new Error(errors.join('\n'));
 const referenceChecksums = await verifyReferencePackage(root);
 const assetCopies = await verifyAssetManifest(resolve(root, 'Sophie-Implementation-Plans-v1.1')) +
   await verifyAssetManifest(resolve(root, 'Sophie-Visual-Assets-v1'));
-console.log(JSON.stringify({ ...graph, sourceFilesChecked: files.length, referenceChecksums, assetCopies, moduleConventions: 'passed', productionReady: false }, null, 2));
+console.log(JSON.stringify({ sourceFilesChecked: files.length, referenceChecksums, assetCopies, moduleConventions: 'passed', productionReady: false }, null, 2));

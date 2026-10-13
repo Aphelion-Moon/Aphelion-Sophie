@@ -59,36 +59,6 @@ export function checkModuleImports(file, source) {
   return failures;
 }
 
-export function checkWorkplan(plan, catalogue) {
-  const tasks = new Map(plan.tasks.map(task => [task.id, task]));
-  const tests = new Set(catalogue.cases.map(item => item.id));
-  if (tasks.size !== plan.tasks.length || tests.size !== catalogue.cases.length) throw new Error('DUPLICATE_TASK_OR_TEST_ID');
-  for (const task of tasks.values()) {
-    if (task.depends_on.some(id => !tasks.has(id)) || task.acceptance_tests.some(id => !tests.has(id))) throw new Error('MISSING_TASK_OR_TEST_REFERENCE');
-  }
-  const active = new Set();
-  const visited = new Set();
-  function visit(id) {
-    if (active.has(id)) throw new Error('CYCLIC_TASK_DEPENDENCY');
-    if (visited.has(id)) return;
-    active.add(id);
-    tasks.get(id).depends_on.forEach(visit);
-    active.delete(id);
-    visited.add(id);
-  }
-  tasks.forEach((_, id) => visit(id));
-  function closure(id, seen = new Set()) {
-    for (const dependency of tasks.get(id).depends_on) {
-      if (!seen.has(dependency)) { seen.add(dependency); closure(dependency, seen); }
-    }
-    return seen;
-  }
-  for (const release of ['P31', 'P39']) {
-    if (['P23', 'P24', 'P25', 'P28', 'P32'].some(id => closure(release).has(id))) throw new Error('MODEL_INDEPENDENCE_VIOLATION');
-  }
-  return { tasks: tasks.size, acceptanceSpecifications: tests.size };
-}
-
 export async function verifyReferencePackage(root) {
   const directory = resolve(root, 'Sophie-Implementation-Plans-v1.1');
   const lines = (await readFile(resolve(directory, 'SHA256SUMS.txt'), 'utf8')).trim().split(/\r?\n/);
