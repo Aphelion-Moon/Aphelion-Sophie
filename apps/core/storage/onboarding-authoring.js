@@ -53,17 +53,13 @@ export function createOnboardingAuthoringStore({ pool, authorize, guildId, defin
     requireCondition(row !== undefined, 'SHUTTLE_PUBLICATION_NOT_FOUND'); row.publication = canonicalPublication(row.publication);
     requireCondition(digest(row.publication) === row.sha256, 'SHUTTLE_COPY_INVALID'); return row;
   }
-  async function prior(client, grant, requestId, request) {
-    const row = (await client.query('SELECT * FROM sophie_core.shuttle_editor_actions WHERE guild_id = $1 AND request_id = $2', [guildId, requestId])).rows[0];
-    if (!row) return null;
-    requireCondition(row.definition_id === definitionId && row.operator_grant.userId === grant.userId && row.request_sha256 === digest(request), 'SHUTTLE_EDITOR_REQUEST_COLLISION');
-    return { ...row.result, duplicate: true };
-  }
+  // The request ID is recorded for the audit only. A resent request is not replayed: it fails the revision, hash or
+  // publication check, and the editor reloads.
   async function audit(client, grant, requestId, request, before, after, version, result) {
     await client.query(`INSERT INTO sophie_core.shuttle_editor_actions
       (guild_id, request_id, definition_id, request_sha256, action, before_revision, after_revision, publication_version, operator_grant, result)
       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`, [guildId, requestId, definitionId, digest(request), request.action, before, after, version, grant, result]);
-    return { ...result, duplicate: false };
+    return result;
   }
   return Object.freeze({
     async readOnboardingDraft({ actor, revision = null }) {
@@ -89,7 +85,6 @@ export function createOnboardingAuthoringStore({ pool, authorize, guildId, defin
       requireEditorRequestId(requestId); revisionNumber(expectedRevision, 0); const fixed = canonicalOnboardingDraft(document);
       const request = { action: 'save', expectedRevision, document: fixed };
       return operation(actor, async (client, grant) => {
-        const previous = await prior(client, grant, requestId, request); if (previous) return previous;
         const old = await draft(client); requireCondition((old?.revision ?? 0) === expectedRevision, 'SHUTTLE_DRAFT_STALE');
         const revision = expectedRevision + 1; revisionNumber(revision); const sha256 = digest(fixed);
         await client.query(`INSERT INTO sophie_core.shuttle_draft_revisions (guild_id, definition_id, revision, document, sha256, operator_grant)
@@ -113,7 +108,6 @@ export function createOnboardingAuthoringStore({ pool, authorize, guildId, defin
       requireCondition(['none', 'published', 'withdrawn'].includes(expectedLatestStatus), 'SHUTTLE_EDITOR_INPUT_INVALID');
       const request = { action: 'publish', expectedRevision, expectedHash, expectedLatestVersion, expectedLatestStatus };
       return operation(actor, async (client, grant) => {
-        const previous = await prior(client, grant, requestId, request); if (previous) return previous;
         const row = await draft(client), latest = (await publications(client))[0];
         requireCondition(row?.revision === expectedRevision && row.sha256 === expectedHash, 'SHUTTLE_DRAFT_STALE');
         requireCondition((latest?.version ?? 0) === expectedLatestVersion && (latest?.status ?? 'none') === expectedLatestStatus, 'SHUTTLE_PUBLICATION_STALE');
@@ -136,7 +130,6 @@ export function createOnboardingAuthoringStore({ pool, authorize, guildId, defin
       requireCondition(confirm === true, 'SHUTTLE_WITHDRAWAL_CONFIRMATION_REQUIRED');
       const request = { action: 'withdraw', version, expectedHash, confirm };
       return operation(actor, async (client, grant) => {
-        const previous = await prior(client, grant, requestId, request); if (previous) return previous;
         const row = await publication(client, version), current = await draft(client);
         requireCondition(row.sha256 === expectedHash && row.status === 'published', 'SHUTTLE_PUBLICATION_STALE');
         await withdrawOnboardingPublication(client, definitionId, version);

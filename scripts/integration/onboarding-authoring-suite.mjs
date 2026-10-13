@@ -39,23 +39,19 @@ export async function runOnboardingAuthoringSuite(cluster, run) {
     assert.equal(f.discord.state.calls.some(call => call.method !== 'GET'), false);
   });
 
-  await scenario('E02 saved-request replay is bound to its actor and exact body and cannot accept copied authority', async f => {
-    const request = await savedRequest(f); assert.equal((await f.editorStore.saveOnboardingDraft(request)).duplicate, false);
-    assert.equal((await f.editorStore.saveOnboardingDraft(request)).duplicate, true);
-    await assert.rejects(f.editorStore.saveOnboardingDraft({ ...request, document: { ...request.document, helpPauses: true } }), /SHUTTLE_EDITOR_REQUEST_COLLISION/);
-    f.discord.state.members.set(USER, [LEAD]); await assert.rejects(f.editorStore.saveOnboardingDraft({ ...request, actor: await f.editorActor(USER) }), /SHUTTLE_EDITOR_REQUEST_COLLISION/);
+  await scenario('E02 a copied actor cannot borrow an editor authority', async f => {
+    const request = await savedRequest(f);
     await assert.rejects(f.editorStore.saveOnboardingDraft({ ...request, actor: { ...request.actor } }), /OPERATION_DENIED/);
-    assert.equal((await f.rows('shuttle_draft_revisions')).length, 1); assert.equal((await f.rows('shuttle_editor_actions')).length, 1);
+    assert.equal((await f.rows('shuttle_draft_revisions')).length, 0); assert.equal((await f.rows('shuttle_editor_actions')).length, 0);
   });
 
-  await scenario('E03 concurrent editors cannot overwrite a revision and simultaneous identical retries commit once', async f => {
+  await scenario('E03 concurrent editors cannot overwrite a revision and a resent save is stale rather than repeated', async f => {
     const request = await savedRequest(f), result = await Promise.allSettled([
       f.editorStore.saveOnboardingDraft(request), f.editorStore.saveOnboardingDraft({ ...request, requestId: editorRequestId(), document: { ...draftDocument(), helpPauses: true } }),
     ]);
     assert.equal(result.filter(row => row.status === 'fulfilled').length, 1); assert.match(result.find(row => row.status === 'rejected').reason.message, /SHUTTLE_DRAFT_STALE/);
-    const next = { ...request, requestId: editorRequestId(), expectedRevision: 1 };
-    const repeated = await Promise.all([f.editorStore.saveOnboardingDraft(next), f.editorStore.saveOnboardingDraft(next)]);
-    assert.deepEqual(repeated.map(row => row.duplicate).sort(), [false, true]); assert.equal((await read(f)).draft.revision, 2);
+    await assert.rejects(f.editorStore.saveOnboardingDraft({ ...request, requestId: editorRequestId() }), /SHUTTLE_DRAFT_STALE/);
+    assert.equal((await read(f)).draft.revision, 1);
   });
 
   await scenario('E04 publishing new guidance preserves active runs and only new runs select its immutable version', async f => {
@@ -100,15 +96,13 @@ export async function runOnboardingAuthoringSuite(cluster, run) {
     assert.equal((await read(f)).draft.revision, 1);
   });
 
-  await scenario('E05 publishing is version-checked, duplicate-safe and cannot ignore another operator withdrawing the reviewed latest version', async f => {
+  await scenario('E05 publishing is version-checked, a resend is stale, and it cannot ignore another operator withdrawing the reviewed latest version', async f => {
     await f.save(); const request = await publishing(f);
     const results = await Promise.allSettled([f.editorStore.publishOnboardingDraft(request), f.editorStore.publishOnboardingDraft({ ...request, requestId: editorRequestId() })]);
     assert.equal(results.filter(row => row.status === 'fulfilled').length, 1); assert.match(results.find(row => row.status === 'rejected').reason.message, /SHUTTLE_PUBLICATION_STALE/);
-    const successfulId = results[0].status === 'fulfilled' ? request.requestId : (await f.rows('shuttle_editor_actions')).find(row => row.action === 'publish').request_id;
-    assert.equal((await f.editorStore.publishOnboardingDraft({ ...request, requestId: successfulId })).duplicate, true);
+    await assert.rejects(f.editorStore.publishOnboardingDraft({ ...request, requestId: editorRequestId() }), /SHUTTLE_PUBLICATION_STALE/);
     const next = await publishing(f); await f.store.withdrawDefinition({ actor: await f.actor(OTHER), id: publication.id, version: 2 });
     await assert.rejects(f.editorStore.publishOnboardingDraft(next), /SHUTTLE_PUBLICATION_STALE/); assert.equal((await f.rows('shuttle_publications')).length, 2);
-    assert.equal((await f.editorStore.publishOnboardingDraft({ ...request, requestId: successfulId })).duplicate, true);
     assert.equal((await f.editorStore.readOnboardingPublication({ actor: await f.editorActor(), version: 2 })).status, 'withdrawn');
   });
 
@@ -133,7 +127,7 @@ export async function runOnboardingAuthoringSuite(cluster, run) {
     assert.deepEqual(view.impact, { active: 0, rolePending: 1, complete: 0 }); assert.equal(JSON.stringify(view.impact).includes(USER), false);
     await assert.rejects(f.editorStore.withdrawOnboardingPublication({ ...request, confirm: false }), /SHUTTLE_WITHDRAWAL_CONFIRMATION_REQUIRED/);
     const result = await f.editorStore.withdrawOnboardingPublication(request); assert.deepEqual(result.impactAtWithdrawal, view.impact);
-    assert.equal((await f.editorStore.withdrawOnboardingPublication(request)).duplicate, true);
+    await assert.rejects(f.editorStore.withdrawOnboardingPublication({ ...request, requestId: editorRequestId() }), /SHUTTLE_PUBLICATION_STALE/);
     await f.drain(f.screens); assert.equal((await f.grants.runOnce('withdrawn-grant')).code, 'DEFINITION_WITHDRAWN');
     assert.equal(f.discord.state.members.get(USER).includes(WHITELIST), false); assert.equal(await f.current(), undefined);
     assert.equal((await f.rows('shuttle_editor_actions')).length, 1); assert.equal((await f.rows('shuttle_publications')).length, 1);
@@ -145,7 +139,7 @@ export async function runOnboardingAuthoringSuite(cluster, run) {
     assert.deepEqual((await f.editorStore.readOnboardingPublication({ actor: await f.editorActor(), version: 1 })).impact, { active: 0, rolePending: 0, complete: 1 });
     await f.save(); const request = await publishing(f); await f.editorStore.publishOnboardingDraft(request);
     await f.editorStore.withdrawOnboardingPublication(await withdrawRequest(f)); await f.drain(f.screens);
-    assert.equal((await f.editorStore.publishOnboardingDraft(request)).duplicate, true); // A receipt does not republish its version.
+    await assert.rejects(f.editorStore.publishOnboardingDraft({ ...request, requestId: editorRequestId() }), /SHUTTLE_PUBLICATION_STALE/); // A resend does not republish.
     assert.equal(f.discord.state.members.get(USER).includes(WHITELIST), true);
     assert.equal(await f.execute(f.payload()), 'shuttle_recorded'); await f.drain(f.cases); await f.drain(f.screens);
     assert.equal((await f.session()).definitionVersion, 2); assert.equal((await f.session()).mode, 'refresh');
@@ -230,7 +224,7 @@ export async function runOnboardingAuthoringSuite(cluster, run) {
       const withdrawn = await post('/api/shuttle/withdraw', { requestId: editorRequestId(), version: 2, expectedHash: record.body.sha256, confirm: true });
       assert.equal(withdrawn.status, 200); assert.equal(withdrawn.body.newRunVersionAtWithdrawal, 1);
       const after = (await get('/api/shuttle/publication?version=2')).body; assert.equal(after.status, 'withdrawn'); assert.equal(after.currentPublishedVersion, 1);
-      assert.equal((await post('/api/shuttle/save', request)).body.duplicate, true);
+      assert.equal((await post('/api/shuttle/save', request)).status, 409, 'a resent save is stale');
       assert.equal((await f.rows('shuttle_editor_actions')).length, 3); assert.deepEqual(faults, []);
     });
   });
@@ -254,13 +248,13 @@ export async function runOnboardingAuthoringSuite(cluster, run) {
     });
   });
 
-  await scenario('E18 permission loss after commit prevents the HTTP result while an authorized retry finds the retained receipt', async f => {
+  await scenario('E18 permission loss after commit prevents the HTTP result and a resend is stale', async f => {
     await withServer(f, async ({ post, faults }) => {
       const request = { requestId: editorRequestId(), expectedRevision: 0, document: draftDocument() }; let count = 0;
       f.discord.state.before = call => { if (call.path.endsWith(`/members/${OTHER}`) && ++count === 4) f.discord.state.members.set(OTHER, [STAFF]); };
       assert.equal((await post('/api/shuttle/save', request)).status, 403); f.discord.state.before = null;
       assert.equal((await f.rows('shuttle_editor_actions')).length, 1); f.discord.state.members.set(OTHER, [LEAD]);
-      const repeated = await post('/api/shuttle/save', request); assert.equal(repeated.status, 200); assert.equal(repeated.body.duplicate, true);
+      assert.equal((await post('/api/shuttle/save', request)).status, 409);
       assert.equal((await f.rows('shuttle_draft_revisions')).length, 1); assert.deepEqual(faults, []);
     });
   });

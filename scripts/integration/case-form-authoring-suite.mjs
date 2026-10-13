@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { formAuthoringWorkflow, formAuthoringServices, formRequestId } from '../../tests/fixtures/case-form-authoring.js';
+import { formAuthoringWorkflow, formRequestId } from '../../tests/fixtures/case-form-authoring.js';
 import { syntheticCaseForm, syntheticCaseValues } from '../../tests/fixtures/case-intake.js';
 import { dashboardHttp as http } from '../../tests/fixtures/dashboard-http.js';
 import { dashboardConfiguration } from '../../tests/fixtures/oauth.js';
@@ -43,26 +43,20 @@ export async function runCaseFormAuthoringSuite(cluster, run) {
     assert.equal(f.discord.state.calls.some(call => call.method !== 'GET'), false);
   });
 
-  await scenario('Z02 replay is bound to the actor, category and exact canonical action and cannot use copied authority', async f => {
-    const request = await saveRequest(f); assert.equal((await f.formEditor.saveCaseFormDraft(request)).duplicate, false);
-    assert.equal((await f.formEditor.saveCaseFormDraft(request)).duplicate, true);
-    await assert.rejects(f.formEditor.saveCaseFormDraft({ ...request, document: { ...request.document, title: 'Changed' } }), /CASE_FORM_EDITOR_REQUEST_COLLISION/);
-    await assert.rejects(f.formEditor.saveCaseFormDraft({ ...request, caseType: 'tech-support', document: syntheticCaseForm('tech-support') }), /CASE_FORM_EDITOR_REQUEST_COLLISION/);
-    f.discord.state.members.set(USER, [LEAD]); await assert.rejects(f.formEditor.saveCaseFormDraft({ ...request, actor: await f.formActor(USER) }), /CASE_FORM_EDITOR_REQUEST_COLLISION/);
+  await scenario('Z02 a copied actor cannot borrow an editor authority', async f => {
+    const request = await saveRequest(f);
     await assert.rejects(f.formEditor.saveCaseFormDraft({ ...request, actor: { ...request.actor } }), /OPERATION_DENIED/);
-    await assert.rejects(f.formEditor.publishCaseFormDraft({ ...await publishRequest(f), requestId: request.requestId }), /CASE_FORM_EDITOR_REQUEST_COLLISION/);
-    assert.equal((await f.rows('case_form_editor_actions')).length, 1);
+    assert.equal((await f.rows('case_form_editor_actions')).length, 0);
   });
 
-  await scenario('Z03 concurrent editors cannot overwrite revisions and identical retries append once', async f => {
+  await scenario('Z03 concurrent editors cannot overwrite revisions and a resent save is stale rather than repeated', async f => {
     const request = await saveRequest(f), results = await Promise.allSettled([
       f.formEditor.saveCaseFormDraft(request), f.formEditor.saveCaseFormDraft({ ...request, requestId: formRequestId(), document: { ...request.document, title: 'Another editor' } }),
     ]);
     assert.equal(results.filter(row => row.status === 'fulfilled').length, 1);
     assert.match(results.find(row => row.status === 'rejected').reason.message, /CASE_FORM_DRAFT_STALE/);
-    const next = { ...request, requestId: formRequestId(), expectedRevision: 1 };
-    assert.deepEqual((await Promise.all([f.formEditor.saveCaseFormDraft(next), f.formEditor.saveCaseFormDraft(next)])).map(row => row.duplicate).sort(), [false, true]);
-    assert.equal((await read(f)).draft.revision, 2);
+    await assert.rejects(f.formEditor.saveCaseFormDraft({ ...request, requestId: formRequestId() }), /CASE_FORM_DRAFT_STALE/);
+    assert.equal((await read(f)).draft.revision, 1);
   });
 
   await scenario('Z04 each form category has independent immutable versions and Quick Help remains formless', async f => {
@@ -108,14 +102,14 @@ export async function runCaseFormAuthoringSuite(cluster, run) {
     assert.equal((await f.rows('case_forms')).length, 1); assert.equal((await f.rows('case_form_actions')).length, 1);
   });
 
-  await scenario('Z08 withdrawal invalidates a reviewed latest state and replay cannot reactivate a withdrawn publication', async f => {
+  await scenario('Z08 withdrawal invalidates a reviewed latest state and resending cannot reactivate a withdrawn publication', async f => {
     await f.saveForm(); const first = await publishRequest(f); await f.formEditor.publishCaseFormDraft(first);
     const stale = await publishRequest(f), withdrawal = await withdrawRequest(f); await f.formEditor.withdrawCaseFormPublication(withdrawal);
     await assert.rejects(f.formEditor.publishCaseFormDraft(stale), /CASE_FORM_PUBLICATION_STALE/);
-    assert.equal((await f.formEditor.publishCaseFormDraft(first)).duplicate, true);
-    assert.equal((await f.formEditor.withdrawCaseFormPublication(withdrawal)).duplicate, true);
+    await assert.rejects(f.formEditor.publishCaseFormDraft({ ...first, requestId: formRequestId() }), /CASE_FORM_PUBLICATION_STALE/);
+    await assert.rejects(f.formEditor.withdrawCaseFormPublication({ ...withdrawal, requestId: formRequestId() }), /CASE_FORM_PUBLICATION_STALE/);
     assert.equal((await f.publish()).status, 'withdrawn'); assert.equal((await read(f)).newRequestVersion, null);
-    assert.equal((await f.publishForm(1)).version, 2); assert.equal((await f.formEditor.withdrawCaseFormPublication(withdrawal)).newRequestVersionAtWithdrawal, null);
+    assert.equal((await f.publishForm(1)).version, 2);
     assert.equal((await read(f)).newRequestVersion, 2); assert.equal((await f.rows('case_form_actions')).length, 3);
   });
 
@@ -214,7 +208,7 @@ export async function runCaseFormAuthoringSuite(cluster, run) {
       assert.equal((await get('/api/ticket-forms/history?caseType=admin-help&kind=publications')).body.entries.length, 1);
       const withdrawn = await post('/api/ticket-forms/withdraw', { caseType: 'admin-help', requestId: formRequestId(), version: 1, expectedHash: record.body.sha256, confirm: true });
       assert.equal(withdrawn.status, 200); assert.equal(withdrawn.body.newRequestVersionAtWithdrawal, null);
-      assert.equal((await post('/api/ticket-forms/save', request)).body.duplicate, true); assert.equal((await f.rows('case_form_editor_actions')).length, 3);
+      assert.equal((await post('/api/ticket-forms/save', request)).status, 409, 'a resent save is stale'); assert.equal((await f.rows('case_form_editor_actions')).length, 3);
       assert.equal(record.headers['cache-control'], 'no-store'); assert.deepEqual(faults, []);
     });
   });
@@ -237,13 +231,13 @@ export async function runCaseFormAuthoringSuite(cluster, run) {
     });
   });
 
-  await scenario('Z18 revocation after commit suppresses the HTTP result and an authorized retry resolves the retained receipt', async f => {
+  await scenario('Z18 revocation after commit suppresses the HTTP result and a resend is stale', async f => {
     await withServer(f, async ({ post, faults }) => {
       const request = { caseType: 'admin-help', requestId: formRequestId(), expectedRevision: 0, document: syntheticCaseForm() }; let calls = 0;
       f.discord.state.before = call => { if (call.path.endsWith(`/members/${OTHER}`) && ++calls === 4) f.discord.state.members.set(OTHER, [STAFF]); };
       assert.equal((await post('/api/ticket-forms/save', request)).status, 403); f.discord.state.before = null;
       assert.equal((await f.rows('case_form_editor_actions')).length, 1); f.discord.state.members.set(OTHER, [LEAD]);
-      const replay = await post('/api/ticket-forms/save', request); assert.equal(replay.status, 200); assert.equal(replay.body.duplicate, true);
+      assert.equal((await post('/api/ticket-forms/save', request)).status, 409);
       assert.equal((await f.rows('case_form_drafts')).length, 1); assert.deepEqual(faults, []);
     });
   });
@@ -259,26 +253,6 @@ export async function runCaseFormAuthoringSuite(cluster, run) {
     });
   });
 
-  await scenario('Z20 lost commit acknowledgements for save, publish and withdraw resolve without repeating the recorded effect', async f => {
-    const uncertain = () => {
-      let armed = false, lost = false;
-      return formAuthoringServices({ ...f, pool: { connect: async () => {
-        const client = await f.pool.connect(); return { release: discard => client.release(discard), query: async (...args) => {
-          const result = await client.query(...args); if (String(args[0]).includes('INSERT INTO sophie_core.case_form_editor_actions')) armed = true;
-          if (args[0] === 'COMMIT' && armed && !lost) { lost = true; throw new Error('SYNTHETIC_FORM_COMMIT_ACK_LOST'); } return result;
-        } };
-      } } });
-    };
-    const save = await saveRequest(f); await assert.rejects(uncertain().formEditor.saveCaseFormDraft(save), /SYNTHETIC_FORM_COMMIT_ACK_LOST/);
-    assert.equal((await f.formEditor.saveCaseFormDraft(save)).duplicate, true);
-    const publish = await publishRequest(f); await assert.rejects(uncertain().formEditor.publishCaseFormDraft(publish), /SYNTHETIC_FORM_COMMIT_ACK_LOST/);
-    assert.equal((await f.formEditor.publishCaseFormDraft(publish)).duplicate, true);
-    const withdraw = await withdrawRequest(f); await assert.rejects(uncertain().formEditor.withdrawCaseFormPublication(withdraw), /SYNTHETIC_FORM_COMMIT_ACK_LOST/);
-    assert.equal((await f.formEditor.withdrawCaseFormPublication(withdraw)).duplicate, true);
-    assert.equal((await f.rows('case_form_editor_actions')).length, 3); assert.equal((await f.rows('case_form_actions')).length, 2);
-    assert.equal((await f.rows('case_form_drafts')).length, 1); assert.equal((await f.rows('case_forms'))[0].status, 'withdrawn');
-  });
-
   await scenario('Z21 corrupted drafts and publications cannot be reviewed, copied or used to withdraw a different form', async f => {
     await f.saveForm(); await f.publishForm(1);
     await f.admin.query("UPDATE sophie_core.case_form_drafts SET sha256 = repeat('0', 64)");
@@ -289,19 +263,16 @@ export async function runCaseFormAuthoringSuite(cluster, run) {
       requestId: formRequestId(), expectedHash: '0'.repeat(64), confirm: true }), /CASE_FORM_CORRUPT/);
     assert.equal((await f.rows('case_forms'))[0].status, 'published');
   });
-  await scenario('Z22 the browser controller and transport exercise real authenticated form storage with uncertain response recovery', async f => {
+  await scenario('Z22 the browser controller and transport exercise real authenticated form storage', async f => {
     await withServer(f, async ({ address, headers, faults }) => {
-      let loseSave = true;
       const api = createDashboardApi({ fetch: async (path, options) => {
         const result = await http(address, path, { method: options.method, headers: { ...headers, ...options.headers }, body: options.body ?? '' });
-        if (loseSave && path === '/api/ticket-forms/save' && result.status === 200) { loseSave = false; throw new Error('SYNTHETIC_BROWSER_RESPONSE_LOST'); }
         return Response.json(result.body, { status: result.status });
       } });
       const controller = createFormController({ api, newRequestId: formRequestId, onChange: () => {} });
       await controller.start(); assert.equal(controller.snapshot().phase, 'ready'); assert.equal(controller.snapshot().overview.draft, null);
       controller.updateTitle('Synthetic integrated browser'); controller.addField(); controller.updateField(0, 'label', 'Synthetic question');
-      await controller.save(); assert.ok(controller.snapshot().pending); assert.equal((await f.rows('case_form_drafts')).length, 1);
-      await controller.retry(); assert.equal(controller.snapshot().pending, null); assert.equal((await f.rows('case_form_drafts')).length, 1);
+      await controller.save(); assert.equal(controller.snapshot().pending, null); assert.equal((await f.rows('case_form_drafts')).length, 1);
       await controller.review(); assert.equal(controller.snapshot().review.valid, true); await controller.publish(); assert.equal(controller.snapshot().overview.newRequestVersion, 1);
       controller.updateTitle('Synthetic second publication'); await controller.save(); await controller.review(); await controller.publish();
       await controller.history(); await controller.inspect('publications', 2); controller.reviewWithdrawal(); await controller.withdraw();
