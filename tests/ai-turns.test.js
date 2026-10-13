@@ -519,3 +519,24 @@ test('RB-02 a turn re-checks authorization twice: at admission and once before d
   assert.deepEqual(await f.turns.handle({}), { state: 'delivered' });
   assert.equal(revalidated, 0, 'no extra request re-checks between admission and delivery'); assert.equal(delivered, 1);
 });
+
+test('a run of sourced replies fits one effect record once her earlier replies are left out', async () => {
+  const { effectContextFits } = await import('../apps/core/storage/ai-effects.js');
+  const message = id => ({ guildId: '101', channelId: '202', userId: '404', messageId: String(id), receivedAt: 1000 + id, binding: { epoch: 1 } });
+  const refs = turn => Array.from({ length: 5 }, (_, index) => ({ id: `wiki-policies-${turn}.r1.s${index}`, publicationHash: 'a'.repeat(64), epoch: 1 }));
+  // Each earlier reply carries the references of the replies before it, as on staging (5, 10, 15, 20).
+  const history = []; let carried = [];
+  for (let turn = 1; turn <= 4; turn++) {
+    history.push(message(turn * 10)); carried = [...carried, ...refs(turn)];
+    history.push({ kind: 'assistant', dependencies: [message(turn * 10)], knowledge: carried });
+  }
+  const request = message(99), sources = refs(5);
+  assert.equal(effectContextFits(request, history, sources), false, '20 carried references plus 5 new ones exceed 24');
+  // The turn's trimming: Sophie's own replies first, oldest first; the members' questions stay.
+  let kept = history;
+  while (kept.length > 0 && !effectContextFits(request, kept, sources)) {
+    const reply = kept.findIndex(item => item.kind === 'assistant'); kept = reply >= 0 ? kept.filter((_, index) => index !== reply) : kept.slice(1);
+  }
+  assert.equal(effectContextFits(request, kept, sources), true);
+  assert.equal(kept.filter(item => item.kind !== 'assistant').length, 4, 'every member question is kept');
+});

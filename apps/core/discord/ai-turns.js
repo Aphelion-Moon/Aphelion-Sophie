@@ -2,6 +2,7 @@ import { requireCondition } from '../../../contracts/validation.js';
 import { validateAiOutput, renderAiReply } from '../../../modules/assistant/output.js';
 import { buildAiPrompt } from '../../knowledge-worker/prompt.js';
 import { freezeAiMaterial } from '../../knowledge-worker/prompt-contract.js';
+import { effectContextFits } from '../storage/ai-effects.js';
 
 /** Core owns delivery. No worker can choose a recipient, target message or operational indicator. */
 export function createAiTurns({ admission, scheduler, context, knowledge, messages, clock, memory = null, onInvalidate = () => {}, trace = () => {} }) {
@@ -83,12 +84,20 @@ export function createAiTurns({ admission, scheduler, context, knowledge, messag
       if (request.profile.typing && !request.decision.proactive && request.decision.outcomes.includes('reply')) void messages.typing(request).catch(() => {});
       stage = 'HISTORY';
       const fragmentIds = new Set((request.fragments ?? []).map(item=>item.messageId));
-      const history = (await context.history(request, source => historyCurrent(request, source))).filter(source=>!fragmentIds.has(source.messageId));
-      const dependencies = [...history,...(request.fragments ?? []).filter(item=>item.messageId!==request.messageId)
-        .map(item=>({...item,expiresAt:item.receivedAt+Math.min(300000,item.profile.contextTtlMs)}))];
+      let history = (await context.history(request, source => historyCurrent(request, source))).filter(source=>!fragmentIds.has(source.messageId));
+      const fragmentDependencies = (request.fragments ?? []).filter(item=>item.messageId!==request.messageId)
+        .map(item=>({...item,expiresAt:item.receivedAt+Math.min(300000,item.profile.contextTtlMs)}));
       stage = 'KNOWLEDGE';
       // The last few exchanged lines let a follow-up ("what about the other one?") find the topic being discussed.
       const sources = await knowledge.lookup(request.text, request, history.slice(-3).map(source => source.text).join('\n').slice(-4000));
+      // The reply's effect record also holds what earlier replies in its context relied on, so a run of sourced answers
+      // overflowed it and every later reply failed at delivery. Leave out Sophie's own earlier replies, oldest first, then
+      // the oldest messages, until it fits; members' questions stay, and context the model never sees is not a dependency.
+      while (history.length > 0 && !effectContextFits(request, [...history, ...fragmentDependencies], sources)) {
+        const reply = history.findIndex(item => item.kind === 'assistant');
+        history = reply >= 0 ? history.filter((_, index) => index !== reply) : history.slice(1);
+      }
+      const dependencies = [...history, ...fragmentDependencies];
       // Only the requester's own shared notes; never another participant's.
       stage = 'MEMORY';
       const saved = memory === null ? null : await memory.read(request.userId);
