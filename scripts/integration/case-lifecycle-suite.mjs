@@ -49,7 +49,7 @@ export async function runCaseLifecycleSuite(cluster, run) {
     const audit = (await actions(f))[0]; assert.equal(audit.reason, 'resolved'); assert.equal(audit.operator_grant.userId, OTHER); assert.equal(audit.status, 'pending');
     assert.equal(await f.current(), undefined); assert.equal(await f.execute(f.control(screen, 'advance')), 'shuttle_review');
     await f.drain(f.cases); await exact(f, 'closed'); assert.equal((await state(f)).state, 'closed'); assert.equal((await actions(f))[0].status, 'confirmed');
-    await f.drain(f.screens); assert.deepEqual(f.discord.state.messages.get(screen.message_id).components, []);
+    await f.drain(f.screens); assert.ok(f.discord.state.messages.get(screen.message_id).components.flatMap(row => row.components).every(control => control.disabled), 'a retired screen has no usable control');
     for (const table of ['case_reservations', 'case_channels', 'case_exclusions', 'sessions', 'shuttle_cases']) assert.equal((await f.rows(table)).length, 1);
     assert.equal(writes(f).some(call => call.method === 'DELETE'), false);
   });

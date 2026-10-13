@@ -344,7 +344,7 @@ export async function runStorageSuite(cluster, run) {
     }
     assert.equal((await screenWorker.runOnce('restart-screen')).status, 'settled');
     const firstScreen = (await read('shuttle_screens'))[0], retainedMessage = firstScreen.message_id;
-    const control = { screenId: firstScreen.id, channelId: firstScreen.channel_id, messageId: retainedMessage };
+    const control = { screenId: firstScreen.id, channelId: firstScreen.channel_id, messageId: retainedMessage, controlVersion: firstScreen.control_version };
     const screenObservation = obs({ userId: screenMember, crew: false });
     const { plan } = await screenStore.describeOnboardingControl({ actor: self(screenMember), observation: screenObservation, ...control });
     const helpRequestId = nextId();
@@ -358,7 +358,7 @@ export async function runStorageSuite(cluster, run) {
     await drainScreens();
     const nextScreen = (await read('shuttle_screens')).find(row => row.current), retainedPauseId = nextId();
     await screenStore.actOnOnboarding({ actor: self(screenMember), observation: screenObservation,
-      screenId: nextScreen.id, channelId: nextScreen.channel_id, messageId: nextScreen.message_id,
+      screenId: nextScreen.id, channelId: nextScreen.channel_id, messageId: nextScreen.message_id, controlVersion: nextScreen.control_version,
       interactionId: retainedPauseId, action: 'help', proof: await screenDiscord.channels.inspect(plan, nextScreen.channel_id) });
     const pendingScreen = (await read('shuttle_screens')).find(row => row.current).id;
     const pendingAlerts = (await read('shuttle_alerts')).map(row => row.id).sort(); assert.equal(pendingAlerts.length, 2);
@@ -416,7 +416,9 @@ export async function runStorageSuite(cluster, run) {
     const recovered = (await read('shuttle_screens')).find(row => row.current);
     assert.equal(recovered.id, pendingScreen); assert.equal(recovered.ready, true); assert.equal(recovered.snapshot.stepIndex, 1);
     assert.equal(recovered.help_requested, true); assert.equal(recovered.snapshot.helpPaused, true);
-    assert.deepEqual(screenDiscord.state.messages.get(retainedMessage).components, []);
+    // The journey edits one Discord message, so the retained message is the paused current screen: only Help stays usable.
+    const pausedControls = screenDiscord.state.messages.get(retainedMessage).components.flatMap(row => row.components);
+    assert.deepEqual(pausedControls.filter(control => !control.disabled).map(control => control.custom_id.split(':')[4]), ['help']);
     const alertWorker = createOnboardingAlertDispatcher({ outbox, store: screenStore, roles: screenDiscord.roles, messages: screenDiscord.alerts, enabled: () => true });
     assert.equal((await alertWorker.runOnce('restart-obsolete-alert')).obsolete, true);
     assert.equal((await alertWorker.runOnce('restart-current-alert')).confirmed, true);
@@ -659,7 +661,7 @@ export async function runStorageSuite(cluster, run) {
     assert.equal((await worker.runOnce('restart-editor-paused')).status, 'idle');
     assert.equal(f.discord.state.calls.filter(call => call.method !== 'GET').length, writes);
     await admin.query('UPDATE sophie_core.discord_backoff SET paused = false'); await f.drain(worker);
-    assert.deepEqual(f.discord.state.messages.get(screen.message_id).components, []);
+    assert.ok(f.discord.state.messages.get(screen.message_id).components.flatMap(row => row.components).every(control => control.disabled), 'a retired screen has no usable control');
     assert.equal((await read('shuttle_editor_actions')).length, 3); assert.equal((await read('shuttle_publications')).length, 2);
     assert.equal((await read('shuttle_screens')).filter(row => row.current).length, 0);
   });

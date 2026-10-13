@@ -174,7 +174,7 @@ export async function runOnboardingEntrySuite(cluster, run) {
       assert.equal((await post(button, true)).status, 401);
       assert.deepEqual(await (await post(button)).json(), { type: 5, data: { flags: 64 } }); await server.drain();
       assert.deepEqual(await (await post(payload())).json(), { type: 5, data: { flags: 64 } }); await server.drain();
-      assert.equal(replies.length, 2); assert.ok(replies.every(reply => /request is recorded/.test(reply.content)));
+      assert.equal(replies.length, 2); assert.ok(replies.every(reply => /Shuttle is getting ready/.test(reply.content)));
       assert.ok(replies.every(reply => reply.allowed_mentions.parse.length === 0));
       assert.equal((await rows('sessions')).length, 1); assert.equal((await rows('case_reservations')).length, 1);
       healthy = false;
