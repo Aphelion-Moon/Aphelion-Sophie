@@ -1,6 +1,29 @@
 # Verification and release limits
 
-## AI stack rebuild — 12 October 2026 (prepared, not yet installed)
+## Test cleanup and staff-editor simplification — 13 October 2026 (prepared, not yet installed)
+
+**Installed now:** pin `b4b81db` (source `37acf37`), release `sophie-mistral-b4b81db`, schema 070, 32 KB prompt budget.
+Installed after the conversion below, each with passing pre-start, service-boundary, installed and dashboard checks
+(UTC, 12 October): `d8fb0e5` 19:08 (hosting conversion), `193a94a` 20:13, `0dbc4fc` 20:27, `3fa6be3` 20:45,
+`1354730` 21:06, `3a2fb62` 21:55, `f05f6f5` 22:07, `b4b81db` 22:46. At 08:20 UTC on 13 October the b4b81db folder was
+run a second time: its deploy script stopped core and the worker before finding the existing backup
+(`PRESERVATION_ALREADY_EXISTS`), changed nothing else, and left both services stopped. The next deployment folder checks
+for its backup before it stops anything.
+
+Source on `codex/sophie-social-ai` since `37acf37` (owner-approved 13 October, keeping every permission re-check):
+- `d07dd3d`: a failed storage scenario no longer skips the rest of its suite; `--record` evidence removed.
+- `87fd7f4`: the workplan graph, workplan regeneration and release-ledger wording are no longer automated gates.
+- `15ca3a9`: case labels are last-write-wins without request IDs or expected versions.
+- `f038a66`, `c78ce7e`: form and Shuttle authoring, curated answers and system wording no longer replay request IDs;
+  a resent request fails as stale. Review hashes, publication checks and permission checks are unchanged.
+- `564a038`: J01, S17, S28 and U08 updated to the current Shuttle (stale expectations, not product faults).
+
+**Offline evidence at `564a038`:** `npm test` 656 passed, 0 failed; repository check and verify-foundation passed;
+storage (parallel, 4 shards) 997 passed, 0 failed. Eleven runtime files change (core storage, HTTP and dashboard for
+the editors above); no migration, dependency, licence, provider-profile or AI-worker code change. Not yet run: the
+deployment and a live check of label, form, Shuttle, answer and wording edits on the Test Discord Server.
+
+## AI stack rebuild — 12 October 2026 (installed 12 October, 19:08 UTC as `d8fb0e5`)
 
 Owner decisions of 12 October (decision log, "AI stack rebuild"); audit:
 `GitHub/.agent_docs/aphelion-sophie/ai-stack-audit-2026-10-12.md`. Source on `codex/sophie-social-ai`: `1d6239b`

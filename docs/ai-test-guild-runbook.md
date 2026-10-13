@@ -1,7 +1,7 @@
 # AI on the Test Discord Server — operator runbook
 
-Status (12 October 2026, evening): installed pin `7764723` (supervisor-era hosting). Prepared, not yet run: the hosting
-conversion to `d8fb0e5` in `GitHub/.agent_docs/aphelion-sophie/deployment-d8fb0e5-2026-10-12/` (see its README). It
+Status (13 October 2026): installed pin `b4b81db` (12 October, 22:46 UTC), after the hosting conversion to `d8fb0e5`
+(12 October, 19:08 UTC); see `docs/verification.md` for the full sequence and the prepared next update. The conversion
 implements the owner's AI stack decisions of 12 October (decision log; audit in
 `GitHub/.agent_docs/aphelion-sophie/ai-stack-audit-2026-10-12.md`): turns read Gateway state and check authorization
 twice, delivered replies are not re-verified, the worker is an ordinary service without the supervisor, trust and
