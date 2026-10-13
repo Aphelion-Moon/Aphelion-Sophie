@@ -86,7 +86,7 @@ export function createAnswersController({ api, onChange, newRequestId }) {
   async function submit(context) {
     if (!state.pending || !state.identity.canEditAnswers) return;
     context.stage = 'send'; const request = state.pending, result = await api.changeAnswer(request); if (!context.active()) return; bound(result);
-    if (result.name !== request.name || result.revision !== request.expectedRevision + 1 || result.action !== request.action || typeof result.duplicate !== 'boolean') throw new DashboardFailure('unavailable');
+    if (result.name !== request.name || result.revision !== request.expectedRevision + 1 || result.action !== request.action) throw new DashboardFailure('unavailable');
     state.pending = null; state.dirty = false; state.review = null; state.checked = false;
     state.notice = `${result.action === 'publish' ? 'Publication' : 'Withdrawal'} recorded at revision ${result.revision}. Earlier text and authorship remain in history.`;
     await selection(context); if (context.active()) await list(context,null);

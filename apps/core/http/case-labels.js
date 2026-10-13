@@ -7,7 +7,7 @@ export function createCaseLabelsHttp({ auth, authorization, labels }) {
     let request;
     if (method === 'POST') {
       requireCondition([...query].length === 0, 'CASE_LABEL_INPUT_INVALID');
-      requireKeys(body, ['channelId', 'requestId', 'expectedVersion', 'priority', 'tags'], 'CASE_LABEL_INPUT_INVALID'); request = body;
+      requireKeys(body, ['channelId', 'priority', 'tags'], 'CASE_LABEL_INPUT_INVALID'); request = body;
     } else {
       const keys = [...query.keys()], before = query.get('before');
       requireCondition(body === null && new Set(keys).size === keys.length && keys.includes('channelId') &&
