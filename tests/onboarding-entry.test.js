@@ -46,3 +46,13 @@ test('administration routing is a closed union and Shuttle construction validate
   assert.throws(() => createOnboardingCommands({ definitionId: definition.id,
     limits: { memberOpen: 1, guildPending: 0, cooldownMs: 1_000 }, enabled: () => false }), /INVALID_INTEGER/);
 });
+
+test('starting Whitelist before any guide is published says so instead of sending the member to Staff', async () => {
+  const { ContractError } = await import('../contracts/validation.js');
+  const commands = (code) => createOnboardingCommands({ definitionId: definition.id, limits: { memberOpen: 1, guildPending: 1, cooldownMs: 1_000 }, enabled: () => true,
+    authorization: { resolveActor: async () => ({ guildId: GUILD, userId: USER }) }, discord: { guildId: GUILD, observe: async () => ({}) }, channels: {},
+    store: { describeOnboardingEntryChannel: async () => null, openOnboarding: async () => { throw new ContractError(code); } } });
+  const start = { command: 'shuttle.start', guildId: GUILD, userId: USER, targetId: USER, interactionId: '1' };
+  assert.equal(await commands('DEFINITION_NOT_FOUND').execute(start), 'shuttle_unpublished');
+  assert.equal(await commands('DEFINITION_WITHDRAWN').execute(start), 'shuttle_review');
+});

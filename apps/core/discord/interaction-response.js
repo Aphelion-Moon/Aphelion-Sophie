@@ -82,7 +82,8 @@ const messages = Object.freeze({
   "shuttle_channel_rejected": "reply.onboarding_channel_rejected",
   "shuttle_stale": "reply.onboarding_stale",
   "shuttle_busy": "reply.onboarding_busy",
-  "shuttle_review": "reply.onboarding_review"
+  "shuttle_review": "reply.onboarding_review",
+  "shuttle_unpublished": "reply.onboarding_unpublished"
 });
 
 /** Only edits a verified interaction's own ephemeral response with bounded static presentation. */
