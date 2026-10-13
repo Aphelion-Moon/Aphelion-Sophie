@@ -135,8 +135,9 @@ export function createKnowledgeLibrary({ pool, guildId, authorize, restoreCurren
      * across the published passages ("station" little, "CR" a lot), more in a title or alias and a little more in a
      * heading; words of five or more letters also match longer words ("antag" finds "antagonist"). A passage qualifies
      * when its words cover half of the question's weight (a third if they are in its title), or with one word plus one from
-     * the recent conversation, which counts half. Her name and question filler ("explain", "supposed", "wiki") are not
-     * search words unless nothing else is left. Identical passages (a page transcluded into another) count once; at most
+     * the recent conversation. Ranking follows the question's own words; the conversation only breaks ties, so a clear
+     * question is never outranked by passages about what was discussed before it. Her name and question filler
+     * ("explain", "supposed", "wiki") are not search words unless nothing else is left. Identical passages (a page transcluded into another) count once; at most
      * two passages per document; a page the question names leads with its opening sections. A rule code in the question
      * ("CR 1", "CR1", "CR-01", "Core Rule 1") selects the passages whose heading carries that code, first, whatever else
      * the message says: "CR" and "1" are too common for the word weights to find them in a chatty message.
@@ -186,7 +187,7 @@ export function createKnowledgeLibrary({ pool, guildId, authorize, restoreCurren
           FROM need n, sophie_knowledge.chunks c JOIN sophie_knowledge.documents d ON d.guild_id=c.guild_id AND d.id=c.document_id
           JOIN sophie_knowledge.publications p ON p.guild_id=c.guild_id AND p.document_id=c.document_id AND p.revision=c.revision
           CROSS JOIN LATERAL (
-            SELECT coalesce(sum(q.idf * CASE WHEN q.recent THEN 0.5 ELSE f.factor END),0) AS score,
+            SELECT coalesce(sum(q.idf * f.factor) FILTER (WHERE NOT q.recent),0) AS score,
               coalesce(sum(q.idf) FILTER (WHERE NOT q.recent),0) AS covered, coalesce(sum(q.idf) FILTER (WHERE NOT q.recent AND f.title),0) AS title_covered,
               count(*) FILTER (WHERE NOT q.recent) AS hits, coalesce(sum(q.idf) FILTER (WHERE q.recent),0) AS context_covered
             FROM query_terms q CROSS JOIN LATERAL (
@@ -202,11 +203,11 @@ export function createKnowledgeLibrary({ pool, guildId, authorize, restoreCurren
           -- A passage needs at least one fairly specific word (in at most about one passage in six: ln 7 = 1.95) unless the conversation backs it.
           FROM matched WHERE exact OR coded OR hits >= 1 AND covered >= 1.9 AND covered >= wanted / 2 OR title_covered > 0 AND title_covered >= wanted / 3 OR hits >= 1 AND context_covered >= 3
         ), kept AS (
-          SELECT *, row_number() OVER (PARTITION BY document_id ORDER BY exact DESC,coded DESC,total_score DESC,rank DESC,id) AS within,
-            row_number() OVER (PARTITION BY md5(text) ORDER BY exact DESC,coded DESC,total_score DESC,rank DESC,id) AS copy FROM ranked
+          SELECT *, row_number() OVER (PARTITION BY document_id ORDER BY exact DESC,coded DESC,total_score DESC,context_covered DESC,rank DESC,id) AS within,
+            row_number() OVER (PARTITION BY md5(text) ORDER BY exact DESC,coded DESC,total_score DESC,context_covered DESC,rank DESC,id) AS copy FROM ranked
         )
         SELECT id,title,heading,text,url,authority,"publicationHash",epoch,"validUntil",rights,attribution,"sourceRevision",exact FROM kept
-        WHERE (within<=2 OR coded) AND copy=1 ORDER BY exact DESC,coded DESC,total_score DESC,rank DESC,id LIMIT 5`,
+        WHERE (within<=2 OR coded) AND copy=1 ORDER BY exact DESC,coded DESC,total_score DESC,context_covered DESC,rank DESC,id LIMIT 5`,
       [guildId,query,terms,focus,recent,named])).rows.map(row => ({ ...row, epoch: Number(row.epoch), validUntil: row.validUntil?.getTime() ?? null }));
       // Each passage is checked on its own: one that is no longer current is dropped, not every passage with it.
       const kept = [];

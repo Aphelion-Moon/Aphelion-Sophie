@@ -308,5 +308,15 @@ export async function runAiKnowledgeSuite(cluster, run) {
     await admin.query("UPDATE sophie_knowledge.chunks SET text = text || ' (edited outside publication)' WHERE heading LIKE '%CR 9:%'");
     const remaining = await synced.lookup('what do CR 9 and CR 10 say?', request());
     assert.ok(remaining.some(item => /CR 10/u.test(item.heading)) && !remaining.some(item => /CR 9:/u.test(item.heading)));
+    // A clear question is ranked by its own words: earlier talk about a tooling "dependency policy" cannot push the
+    // blackout rule out of the answer to "what is blackout policy".
+    const page = (idBase, title, authority, sections) => ({ idBase, sourceRevision: 'wiki:page:3:r1', documents: packDocuments({ idBase, title, kind: 'wiki-page', authority,
+      url: `https://meridian-wiki.a13.info/wiki/${title.replaceAll(' ','_')}`, rights: 'CC BY-NC-SA 4.0', attribution: 'Meridian Wiki contributors', sourceRevision: 'wiki:page:3:r1',
+      fetchedAt: Date.now(), sections }).documents });
+    await synced.mirror.apply('wiki', { entries: [
+      page('wiki-tooling-aaaaaa', 'Tooling', 'reference', [{ heading: 'Tooling › Dependency policy', text: 'The tooling dependency policy pins every package and records compatibility evidence for the release gate.' }]),
+      page('wiki-death-bbbbbb', 'Death', 'policy', [{ heading: 'Death › Post Mortality Blackout', text: 'After revival you remember neither your death nor the events leading to it.' }]) ], complete: false });
+    const blackout = await synced.lookup('Sophie what is blackout policy', request(), 'Member 1: what is the tooling dependency policy? it pins every package and records compatibility evidence for the release gate');
+    assert.match(blackout[0]?.heading ?? '', /Post Mortality Blackout/u);
   });
 }
