@@ -291,13 +291,18 @@ export async function runAiKnowledgeSuite(cluster, run) {
     const rules = section => ({ heading: `Policies › Core Rules › ${section.code}`, text: section.text });
     const policy = (idBase, title) => ({ idBase, sourceRevision: 'wiki:page:2:r1', documents: packDocuments({ idBase, title, kind: 'wiki-page', authority: 'policy',
       url: `https://meridian-wiki.a13.info/wiki/${title.replaceAll(' ','_')}`, rights: 'CC BY-NC-SA 4.0', attribution: 'Meridian Wiki contributors', sourceRevision: 'wiki:page:2:r1', fetchedAt: Date.now(),
-      sections: [{ code: 'CR 9: Station Infrastructure CR-09', text: 'Do not vent the station without cause.' }, { code: 'CR 10: The Rule of Cool CR-10', text: 'A cool scene may bend minor rules if everyone enjoys it.' }].map(rules) }).documents });
+      sections: [{ code: 'CR 1: The Social Contract CR-01 (Core Rule 1)', text: 'Act with the maturity expected in an adult community.' }, { code: 'CR 9: Station Infrastructure CR-09', text: 'Do not vent the station without cause.' }, { code: 'CR 10: The Rule of Cool CR-10', text: 'A cool scene may bend minor rules if everyone enjoys it.' }].map(rules) }).documents });
     // The same rules transcluded into a second page must not take two of the five slots.
     await synced.mirror.apply('wiki', { entries: [policy('wiki-policies-dddddd', 'Policies'), policy('wiki-server-policies-eeeeee', 'Server Policies')], complete: false });
     for (const question of ['explain CR10 to me', 'what is cr-10?', 'tell me about CR 10']) {
       const found = await synced.lookup(question, request());
       assert.match(found[0]?.heading ?? '', /CR 10/u, question);
       assert.equal(found.filter(item => /Rule of Cool/u.test(item.heading)).length, 1, `identical passages count once: ${question}`);
+    }
+    // A code is found however chatty the message is, and CR 1 never matches CR 10.
+    for (const question of ['My finger slipped :< Anyways, sophie, can you summarize CR 1 for me?', 'CR1', 'what does core rule 1 say']) {
+      const found = await synced.lookup(question, request());
+      assert.match(found[0]?.heading ?? '', /CR 1: The Social Contract/u, question);
     }
   });
 }

@@ -137,7 +137,9 @@ export function createKnowledgeLibrary({ pool, guildId, authorize, restoreCurren
      * when its words cover half of the question's weight (a third if they are in its title), or with one word plus one from
      * the recent conversation, which counts half. Her name and question filler ("explain", "supposed", "wiki") are not
      * search words unless nothing else is left. Identical passages (a page transcluded into another) count once; at most
-     * two passages per document; a page the question names leads with its opening sections.
+     * two passages per document; a page the question names leads with its opening sections. A rule code in the question
+     * ("CR 1", "CR1", "CR-01", "Core Rule 1") selects the passages whose heading carries that code, first, whatever else
+     * the message says: "CR" and "1" are too common for the word weights to find them in a chatty message.
      */
     async lookup(query, request, conversation = '') {
       requireCondition(typeof query === 'string' && query.trim().length > 0 && query.length <= 4000 && typeof conversation === 'string' && conversation.length <= 4000 &&
@@ -147,6 +149,9 @@ export function createKnowledgeLibrary({ pool, guildId, authorize, restoreCurren
       const codes = value => value.replace(/\b(\p{L}{1,8})-?(\d{1,4})\b/gu, '$&  $1 $2');
       const filler = /\b(?:sophie|soph|explain|tell|say|says|said|know|supposed|mean|means|please|pls|omg|lol|wiki|page|whats|hows|whos|wheres|whys|thats|dont|cant|wont|isnt|arent|im|ive|youre|gonna|wanna|gotta)\b/giu;
       const terms = codes(query), recent = codes(conversation).replace(filler, ' '), focus = terms.replace(filler, ' ');
+      // Heading patterns for the codes asked about; "CR 1" never matches "CR 10". Only letters and digits reach the pattern.
+      const named = [...new Set([...query.matchAll(/(?<![\p{L}\p{N}])(\p{L}{1,10})[ -]?0*(\d{1,4})(?![\p{L}\p{N}])/gu)]
+        .map(([, letters, number]) => `(^|[^[:alnum:]])${letters.toLowerCase()}[ -]?0*${Number(number)}([^0-9]|$)`))].slice(0, 4);
       // Constant text for ts_stat (word rarity); only the validated guild ID is formatted into it, as a literal.
       const live = `FROM sophie_knowledge.chunks c JOIN sophie_knowledge.documents d ON d.guild_id=c.guild_id AND d.id=c.document_id
         WHERE c.guild_id=%L AND c.revision=d.revision AND c.text IS NOT NULL AND NOT d.withdrawn AND d.source_current AND (d.valid_until IS NULL OR d.valid_until>clock_timestamp())`;
@@ -176,7 +181,8 @@ export function createKnowledgeLibrary({ pool, guildId, authorize, restoreCurren
             p.document->>'rights' AS rights,p.document->>'attribution' AS attribution,p.document->>'sourceRevision' AS "sourceRevision",
             (lower(c.title)=lower($2) OR EXISTS(SELECT 1 FROM unnest(c.aliases) alias WHERE lower(alias)=lower($2))) AS exact,
             m.*, n.wanted, ts_rank(c.search,n.probe,1) AS rank,
-            c.document_id NOT LIKE '%-p%' AND c.source_id ~ '\\.s[01]$' AS opening
+            c.document_id NOT LIKE '%-p%' AND c.source_id ~ '\\.s[01]$' AS opening,
+            EXISTS(SELECT 1 FROM unnest($6::text[]) code WHERE c.heading ~* code) AS coded
           FROM need n, sophie_knowledge.chunks c JOIN sophie_knowledge.documents d ON d.guild_id=c.guild_id AND d.id=c.document_id
           JOIN sophie_knowledge.publications p ON p.guild_id=c.guild_id AND p.document_id=c.document_id AND p.revision=c.revision
           CROSS JOIN LATERAL (
@@ -189,18 +195,19 @@ export function createKnowledgeLibrary({ pool, guildId, authorize, restoreCurren
             WHERE f.factor IS NOT NULL) m
           WHERE c.guild_id=$1 AND c.revision=d.revision AND c.text IS NOT NULL AND NOT d.withdrawn AND d.source_current
             AND (d.valid_until IS NULL OR d.valid_until>clock_timestamp()) AND
-            (lower(c.title)=lower($2) OR EXISTS(SELECT 1 FROM unnest(c.aliases) alias WHERE lower(alias)=lower($2)) OR c.search @@ n.probe)
+            (lower(c.title)=lower($2) OR EXISTS(SELECT 1 FROM unnest(c.aliases) alias WHERE lower(alias)=lower($2)) OR c.search @@ n.probe
+              OR EXISTS(SELECT 1 FROM unnest($6::text[]) code WHERE c.heading ~* code))
         ), ranked AS (
           SELECT *, score + CASE WHEN opening AND title_covered > 0 AND title_covered >= wanted / 3 THEN 4 ELSE 0 END AS total_score
           -- A passage needs at least one fairly specific word (in at most about one passage in six: ln 7 = 1.95) unless the conversation backs it.
-          FROM matched WHERE exact OR hits >= 1 AND covered >= 1.9 AND covered >= wanted / 2 OR title_covered > 0 AND title_covered >= wanted / 3 OR hits >= 1 AND context_covered >= 3
+          FROM matched WHERE exact OR coded OR hits >= 1 AND covered >= 1.9 AND covered >= wanted / 2 OR title_covered > 0 AND title_covered >= wanted / 3 OR hits >= 1 AND context_covered >= 3
         ), kept AS (
-          SELECT *, row_number() OVER (PARTITION BY document_id ORDER BY exact DESC,total_score DESC,rank DESC,id) AS within,
-            row_number() OVER (PARTITION BY md5(text) ORDER BY exact DESC,total_score DESC,rank DESC,id) AS copy FROM ranked
+          SELECT *, row_number() OVER (PARTITION BY document_id ORDER BY exact DESC,coded DESC,total_score DESC,rank DESC,id) AS within,
+            row_number() OVER (PARTITION BY md5(text) ORDER BY exact DESC,coded DESC,total_score DESC,rank DESC,id) AS copy FROM ranked
         )
         SELECT id,title,heading,text,url,authority,"publicationHash",epoch,"validUntil",rights,attribution,"sourceRevision",exact FROM kept
-        WHERE within<=2 AND copy=1 ORDER BY exact DESC,total_score DESC,rank DESC,id LIMIT 5`,
-      [guildId,query,terms,focus,recent])).rows.map(row => ({ ...row, epoch: Number(row.epoch), validUntil: row.validUntil?.getTime() ?? null }));
+        WHERE (within<=2 OR coded) AND copy=1 ORDER BY exact DESC,coded DESC,total_score DESC,rank DESC,id LIMIT 5`,
+      [guildId,query,terms,focus,recent,named])).rows.map(row => ({ ...row, epoch: Number(row.epoch), validUntil: row.validUntil?.getTime() ?? null }));
       return await available(rows,request) ? rows : [];
     },
     current: available,
