@@ -1,7 +1,7 @@
 import { DashboardFailure } from './api.js';
 
-/** Keep the draft's original version until an explicit discard or successful save. */
-export function createLabelsController({ api, onChange, newRequestId }) {
+/** A draft is not rebased onto another Staff edit; a retry resends the same labels, which is harmless. */
+export function createLabelsController({ api, onChange }) {
   let state = { phase: 'loading', identity: null, busy: false, channelId: null, page: null, draft: { priority: 'normal', tags: '' },
     baseVersion: null, dirty: false, pending: null, error: null, notice: null }, generation = 0;
   const snapshot = () => structuredClone(state), emit = () => onChange(snapshot());
@@ -41,7 +41,7 @@ export function createLabelsController({ api, onChange, newRequestId }) {
   }
   async function save(active) {
     const result = await api.saveCaseLabels(state.pending); if (!active()) return;
-    if (!Number.isSafeInteger(result.version) || result.version < 1 || typeof result.duplicate !== 'boolean') throw new DashboardFailure('unavailable');
+    if (!Number.isSafeInteger(result.version) || result.version < 1) throw new DashboardFailure('unavailable');
     state.pending = null; state.dirty = false; state.notice = `Change recorded at case version ${result.version}. The latest labels are shown below.`; await load(active);
   }
   return Object.freeze({ snapshot,
@@ -50,7 +50,7 @@ export function createLabelsController({ api, onChange, newRequestId }) {
     edit(draft) { if (!state.busy && !state.pending && state.page) { state.draft = { priority: draft.priority, tags: draft.tags }; state.dirty = true; state.notice = null; emit(); } },
     save() {
       if (!state.page || state.pending || !state.dirty || state.page.version !== state.baseVersion) return;
-      return run(async active => { state.pending = { channelId: state.channelId, requestId: newRequestId(), expectedVersion: state.baseVersion,
+      return run(async active => { state.pending = { channelId: state.channelId,
         priority: state.draft.priority, tags: state.draft.tags.trim() === '' ? [] : state.draft.tags.split(',').map(tag => tag.trim()) }; await save(active); });
     },
     retry() { if (state.pending) return run(save); },

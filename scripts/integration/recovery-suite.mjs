@@ -19,8 +19,7 @@ export async function runRecoverySuite(cluster, run) {
   const f = await attachmentWorkflow(cluster);
   const notes = createCaseNotes({ pool: f.pool, authorize: f.authorization.authorize, clock: () => f.clock.now });
   await notes.append({ actor: await f.actor(OTHER), channelId: f.opened.channel_id, requestId: 'd'.repeat(64), text: 'Authored synthetic retained Staff note.' });
-  await f.store.changeCaseLabels({ actor: await f.actor(OTHER), channelId: f.opened.channel_id, requestId: 'e'.repeat(64),
-    expectedVersion: f.opened.version, priority: 'high', tags: ['Synthetic-retained-label'] });
+  await f.store.changeCaseLabels({ actor: await f.actor(OTHER), channelId: f.opened.channel_id, priority: 'high', tags: ['Synthetic-retained-label'] });
   const replies = createCaseReplies({ pool: f.pool, authorize: f.authorization.authorize, clock: () => f.clock.now });
   await replies.request({ actor: await f.actor(OTHER), channelId: f.opened.channel_id, requestId: 'f'.repeat(64),
     expectedVersion: f.opened.version + 1, text: 'Authored synthetic pending reply retained through encrypted restore.' });

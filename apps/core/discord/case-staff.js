@@ -1,5 +1,4 @@
 import { ContractError, requireCondition, requireId } from '../../../contracts/validation.js';
-import { createHash } from 'node:crypto';
 import { caseStatusView } from '../../../modules/tickets/lifecycle.js';
 
 /** Signed Staff operations; authored labels never enter public replies, AI or generic receipts. */
@@ -23,8 +22,7 @@ export function createCaseStaff({ authorization, store, guildId, enabled }) {
         const row = await store.describeCase({ actor, ...binding(envelope) });
         if (await enabled() !== true) return 'disabled';
         if (envelope.command === 'ticket.label') {
-          await store.changeCaseLabels({ actor, id: row.id, expectedVersion: envelope.expectedVersion, priority: envelope.priority, tags: envelope.tags,
-            requestId: createHash('sha256').update(`discord.case-labels.${guildId}.${envelope.interactionId}`).digest('hex') });
+          await store.changeCaseLabels({ actor, id: row.id, priority: envelope.priority, tags: envelope.tags });
           return 'case_labels_recorded';
         }
         await store.changeCaseAssignment({ actor, guildId, id: row.id, interactionId: envelope.interactionId,

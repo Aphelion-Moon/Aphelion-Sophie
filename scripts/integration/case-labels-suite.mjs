@@ -17,17 +17,14 @@ export async function runCaseLabelsSuite(cluster, run) {
     await work({ ...f, labels: createCaseLabels({ pool: f.pool, authorize: f.authorization.authorize, clock: () => f.clock.now }),
       staff: await f.actor(OTHER), member: await f.actor(USER), channelId: f.opened.channel_id });
   });
-  const request = (f, overrides = {}) => ({ actor: f.staff, channelId: f.channelId, expectedVersion: f.opened.version,
-    requestId: 'a'.repeat(64), priority: 'high', tags: ['Synthetic-manual-tag'], ...overrides });
+  const request = (f, overrides = {}) => ({ actor: f.staff, channelId: f.channelId, priority: 'high', tags: ['Synthetic-manual-tag'], ...overrides });
   const read = f => f.labels.readCaseLabels({ actor: f.staff, channelId: f.channelId });
-  await scenario('CL01 manual labels retain attribution and exact replay without clobbering a later edit', async f => {
+  await scenario('CL01 manual labels retain attribution and history, and the latest change wins', async f => {
     const original = await read(f); assert.equal(original.priority, 'normal'); assert.deepEqual(original.tags, []);
-    const input = request(f), result = await f.labels.changeCaseLabels(input); assert.equal(result.version, original.version + 1);
-    const next = await read(f); assert.deepEqual(next.tags, input.tags); assert.equal(next.history[0].authorId, OTHER);
-    await f.labels.changeCaseLabels(request(f, { requestId: 'b'.repeat(64), expectedVersion: next.version, priority: 'urgent', tags: ['Later'] }));
-    assert.deepEqual(await f.labels.changeCaseLabels(input), { version: result.version, duplicate: true });
-    assert.deepEqual((await read(f)).tags, ['Later']);
-    await assert.rejects(f.labels.changeCaseLabels({ ...input, tags: ['Conflict'] }), /CASE_LABEL_REQUEST_COLLISION/);
+    const result = await f.labels.changeCaseLabels(request(f)); assert.equal(result.version, original.version + 1);
+    const next = await read(f); assert.deepEqual(next.tags, ['Synthetic-manual-tag']); assert.equal(next.history[0].authorId, OTHER);
+    await f.labels.changeCaseLabels(request(f, { priority: 'urgent', tags: ['Later'] }));
+    const latest = await read(f); assert.deepEqual(latest.tags, ['Later']); assert.equal(latest.priority, 'urgent');
     assert.equal((await f.rows('case_label_changes')).length, 2);
   });
   await scenario('CL02 members cannot read or change labels and ordinary Staff cannot inspect Head Admin labels', async f => {
@@ -52,17 +49,8 @@ export async function runCaseLabelsSuite(cluster, run) {
     f.discord.state.members.set(OTHER, [LEAD]); f.staff = await f.actor(OTHER); checks = 0;
     await assert.rejects(racing.readCaseLabels({ actor: f.staff, channelId: f.channelId }), /CASE_ACCESS_DENIED/);
   });
-  await scenario('CL04 concurrent saves use case versions and an old assignment cannot overwrite their version', async f => {
-    const results = await Promise.allSettled([f.labels.changeCaseLabels(request(f)), f.labels.changeCaseLabels(request(f, { requestId: 'b'.repeat(64), tags: ['Other'] }))]);
-    assert.equal(results.filter(result => result.status === 'fulfilled').length, 1);
-    assert.equal(results.find(result => result.status === 'rejected').reason.code, 'STALE_CASE_VERSION');
-    await assert.rejects(f.store.changeCaseAssignment({ actor: f.staff, guildId: f.staff.guildId, interactionId: f.nextId(),
-      id: f.opened.id, expectedVersion: f.opened.version, action: 'claim' }), /STALE_CASE_VERSION/);
-    assert.equal((await f.rows('case_label_changes')).length, 1);
-  });
   await scenario('CL05 retained history is bounded and paginated without losing the current labels', async f => {
-    let version = f.opened.version;
-    for (let i = 1; i <= 27; i++) version = (await f.labels.changeCaseLabels(request(f, { requestId: String(i).padStart(64, '0'), expectedVersion: version, tags: [`Synthetic-${i}`] }))).version;
+    for (let i = 1; i <= 27; i++) await f.labels.changeCaseLabels(request(f, { tags: [`Synthetic-${i}`] }));
     const first = await read(f); assert.equal(first.history.length, 25); assert.deepEqual(first.tags, ['Synthetic-27']);
     const second = await f.labels.readCaseLabels({ actor: f.staff, channelId: f.channelId, before: first.next });
     assert.equal(second.history.length, 2); assert.equal(second.next, null); assert.deepEqual(second.tags, first.tags);
@@ -73,8 +61,7 @@ export async function runCaseLabelsSuite(cluster, run) {
     assert.equal(await f.execute(payload), 'case_labels_recorded'); assert.equal(await f.execute(payload), 'case_labels_recorded');
     const view = await f.caseStaff.status(f.verified(payload)); assert.deepEqual(view.tags, ['Signed', 'Follow-up']);
     assert.equal(view.priority, 'urgent'); assert.equal(Object.hasOwn(view, 'operator_grant'), false);
-    assert.equal((await f.rows('case_label_changes')).length, 1);
-    assert.equal(await f.execute(caseStaffPayload(f, 'label', f.opened)), 'case_stale');
+    assert.equal((await f.rows('case_label_changes')).length, 2, 'a repeated command records the same labels again');
   });
   await scenario('CL07 authenticated labels HTTP requires CSRF and rejects revoked or expanded requests', async f => {
     const d = dashboardServices(f), authorization = d.dashboardAuthorization;
@@ -84,7 +71,7 @@ export async function runCaseLabelsSuite(cluster, run) {
     const address = await server.listen();
     try {
       const login = await d.login(OTHER), session = await d.auth.authenticate({ token: login.token }), cookie = `${DASHBOARD_COOKIES.session}=${login.token}`;
-      const body = { channelId: f.channelId, requestId: 'e'.repeat(64), expectedVersion: f.opened.version, priority: 'low', tags: ['Web'] };
+      const body = { channelId: f.channelId, priority: 'low', tags: ['Web'] };
       const options = { method: 'POST', headers: { Cookie: cookie, Origin: dashboardConfiguration.origin, 'Content-Type': 'application/json', 'X-CSRF-Token': session.csrfToken }, body: JSON.stringify(body) };
       assert.equal((await dashboardHttp(address, '/api/cases/labels/save', { ...options, headers: { ...options.headers, 'X-CSRF-Token': '' } })).status, 403);
       assert.equal((await dashboardHttp(address, '/api/cases/labels/save', { ...options, body: JSON.stringify({ ...body, actor: {} }) })).status, 400);
