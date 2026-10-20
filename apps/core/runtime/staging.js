@@ -72,7 +72,7 @@ import { runtimeDatabaseAvailable } from '../storage/runtime-maintenance.js';
 import { createGuildState } from '../discord/guild-state.js';
 
 /** Explicit staging host. Construction starts no listener, connection, registration, migration or service. */
-export async function createStagingRuntime({ configuration, pool, aiControlPool = null, aiPreferenceJournal = null, aiWorker = null, aiKnowledge = null, aiKnowledgeAdmin = null, aiKnowledgeAdminFactory = null, aiApproval = null, aiActivationPool = null, aiRestoreCurrent = async () => false, token, clientSecret = null, fetch, connect, clock = Date.now, random = Math.random, onFault, rateLimits = createDiscordRateLimits(), configurationApplyEnabled = false }) {
+export async function createStagingRuntime({ configuration, pool, aiControlPool = null, aiPreferenceJournal = null, aiWorker = null, aiKnowledge = null, aiKnowledgeAdmin = null, aiKnowledgeAdminFactory = null, aiApproval = null, aiActivationPool = null, aiRestoreCurrent = async () => false, token, clientSecret = null, fetch, connect, clock = Date.now, random = Math.random, onFault, onTrace = () => {}, rateLimits = createDiscordRateLimits(), configurationApplyEnabled = false }) {
   validateStagingRuntime(configuration); const fixed = structuredClone(configuration);
   requireCondition(typeof onFault === 'function', 'TRUSTED_ADAPTERS_REQUIRED');
   await requireUnquarantinedDatabase(pool);
@@ -82,6 +82,8 @@ export async function createStagingRuntime({ configuration, pool, aiControlPool 
   let maintenanceObserved = false;
   const active = () => started && !stopping && !maintenanceObserved;
   const fault = code => { try { onFault(code); } catch { /* Never log original dependency errors or payloads. */ } };
+  // Timing diagnostics (fixed codes: outcome, milliseconds, request counts). Never faults, IDs or content.
+  const trace = code => { try { onTrace(code); } catch { /* Diagnostics never affect the runtime. */ } };
   const databaseActive = async () => {
     if (!active()) return false;
     if (await runtimeDatabaseAvailable(pool)) return true;
@@ -122,10 +124,21 @@ export async function createStagingRuntime({ configuration, pool, aiControlPool 
     ...(aiApproval === null ? {} : { readNotice: aiApproval.notice }) });
   if(aiWorker!==null)aiRuntime=createAiLane(aiWorker);
   const readSystemText = createSystemWordingReader({ pool, guildId: fixed.mapping.guildId });
-  const lane = () => createAdministrationLane({ configuration: fixed, pool, token, fetch, clock, enabled, rateLimits, observer, principals, verifier, onFault: fault, readSystemText, knowledge:aiKnowledge });
+  const lane = () => createAdministrationLane({ configuration: fixed, pool, token, fetch, clock, enabled, rateLimits, observer, principals, verifier, onFault: fault, onTrace: trace, readSystemText, knowledge:aiKnowledge });
   const requests = lane(), delivery = lane();
   const responder = createInteractionResponder({ verifier, applicationId: fixed.applicationId, fetch, clock, enabled, readSystemText, ...requests.responseAdapters });
-  const interactions = createInteractionHttpServer({ verifier, commands: requests.commands, respond: responder.respond,
+  // A recorded Shuttle change has already committed its render intent, so delivery starts now instead of at the next
+  // interval. The diagnostic is a fixed code: the command result and whole milliseconds, never IDs or content.
+  const interactionCommands = Object.freeze({ async execute(envelope) {
+    const startedAt = performance.now();
+    const result = await requests.commands.execute(envelope);
+    if (['shuttle.start', 'shuttle.control'].includes(envelope.command)) {
+      trace(`SHUTTLE_COMMAND_${String(result).toUpperCase().replace(/[^A-Z]/g, '_').slice(0, 32)}_${Math.min(99_999, Math.round(performance.now() - startedAt))}MS`);
+      if (['shuttle_recorded', 'shuttle_progress_recorded', 'shuttle_help_recorded', 'shuttle_help_paused'].includes(result)) wake();
+    }
+    return result;
+  } });
+  const interactions = createInteractionHttpServer({ verifier, commands: interactionCommands, respond: responder.respond,
     onboardingPanel: createOnboardingEntryPanel({ authorization: requests.authorization, transport: requests.transport, store: requests.store, policy: fixed.casePolicy,
       definitionId: fixed.definitionId, enabled, readSystemText }),
     caseIntake: requests.caseIntake, readSystemText, enabled, onFault: fault });
@@ -189,7 +202,7 @@ export async function createStagingRuntime({ configuration, pool, aiControlPool 
       presentation: await createDashboardPresentation() });
   }
   const owner = `staging.${randomUUID()}`;
-  let ticking = false;
+  let ticking = false, scheduled = false, wakeQueued = false;
   function tick() {
     if (ticking || !active()) return Promise.resolve();
     ticking = true;
@@ -206,9 +219,19 @@ export async function createStagingRuntime({ configuration, pool, aiControlPool 
   }
   function schedule() {
     if (!active()) return;
+    clearTimeout(timer);
+    // A wake that arrived during the last tick may have committed after its worker ran; go again at once.
+    const delay = wakeQueued ? 0 : fixed.workerIntervalMs; wakeQueued = false;
     timer = setTimeout(() => {
       workerTask = tick().catch(() => fault('RUNTIME_WORKER_UNAVAILABLE')).finally(schedule);
-    }, fixed.workerIntervalMs);
+    }, delay);
+  }
+  /** Runs the normal tick now. Coalesced: one tick at a time, and only once automatic workers are running. */
+  function wake() {
+    if (!scheduled || !active()) return;
+    if (ticking) { wakeQueued = true; return; }
+    clearTimeout(timer);
+    workerTask = tick().catch(() => fault('RUNTIME_WORKER_UNAVAILABLE')).finally(schedule);
   }
   async function stop() {
     stopping = true; clearTimeout(timer);
@@ -233,7 +256,7 @@ export async function createStagingRuntime({ configuration, pool, aiControlPool 
         if(aiRuntime && aiWorker?.release)try {await activationRebind?.(aiWorker.release);await activationFollow?.();}catch{fault('AI_QUALIFICATION_REBIND_UNAVAILABLE');}
         if(aiRuntime)try {await aiRuntime.start();}catch{fault('AI_WORKER_CONNECTION_UNAVAILABLE');}
         preferenceExpiry?.start();
-        if (automaticWorkers) schedule();
+        if (automaticWorkers) { scheduled = true; schedule(); }
         return { interactions: interactionAddress, dashboard: dashboardAddress };
       } catch (error) { await stop(); throw error; }
     },

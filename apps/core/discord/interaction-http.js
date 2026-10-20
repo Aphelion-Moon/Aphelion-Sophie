@@ -4,6 +4,9 @@ import { requireCondition, requireInteger } from '../../../contracts/validation.
 import { caseFormModal, ticketEntryPanel } from '../../../modules/tickets/intake.js';
 
 const MAX_BODY = 262_144;
+// Shuttle entry replies poll for the new private channel for up to ~32 s. A few may wait at once without holding the
+// one-command slot, so other members' clicks are not answered "busy" meanwhile. Beyond this they keep the slot.
+const MAX_WAITING_REPLIES = 4;
 const messages = {"disabled":"initial.disabled","busy":"initial.busy","denied":"initial.denied","unavailable":"initial.unavailable","ticket_busy":"initial.ticket_busy","ticket_form_unavailable":"initial.ticket_form_unavailable"};
 const message = content => ({ type: 4, data: { content, flags: 64, allowed_mentions: { parse: [] } } });
 
@@ -12,7 +15,7 @@ export function createInteractionHttpServer({ verifier, commands, respond, enabl
   requireCondition(typeof respond === 'function' && typeof enabled === 'function' && typeof onFault === 'function', 'TRUSTED_ADAPTERS_REQUIRED');
   requireCondition(caseIntake === null || typeof caseIntake.prepare === 'function', 'TRUSTED_ADAPTERS_REQUIRED'); requireInteger(initialBudgetMs, 50, 2_500);
   const running = new Set();
-  let reserved = false, stopping = false;
+  let reserved = false, stopping = false, waitingReplies = 0;
   const fault = code => { try { onFault(code); } catch { /* Logging cannot change command state. */ } };
   function send(response, status, body) {
     response.writeHead(status, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff' });
@@ -104,14 +107,16 @@ export function createInteractionHttpServer({ verifier, commands, respond, enabl
     response.once('close', () => { if (!started) reserved = false; });
     response.once('finish', () => {
       started = true;
-      let task;
+      let task, released = false;
       task = (async () => {
         let result;
         try { result = await commands.execute(envelope); }
         catch { fault('INTERACTION_EXECUTION_UNAVAILABLE'); result = 'unavailable'; }
+        // The command itself is finished; only its reply still waits for the channel to exist.
+        if (result === 'shuttle_recorded' && waitingReplies < MAX_WAITING_REPLIES) { released = true; reserved = false; waitingReplies++; }
         try { await respond(envelope, result); }
         catch { fault('INTERACTION_RESPONSE_UNAVAILABLE'); }
-      })().finally(() => { running.delete(task); reserved = false; });
+      })().finally(() => { running.delete(task); if (released) waitingReplies--; else reserved = false; });
       running.add(task);
     });
     // Acknowledge before database or Discord work. This is receipt, not completion.

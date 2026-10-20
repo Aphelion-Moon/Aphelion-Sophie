@@ -58,6 +58,28 @@ test('T59 a busy endpoint defers one command promptly and admits no waiting back
   } finally { release('unavailable'); await fixture.server.close(); }
 });
 
+test('T59 Shuttle entry replies waiting for their channel release the command slot, at most four at a time', async () => {
+  let release;
+  const blocked = new Promise(resolve => { release = resolve; });
+  const executed = [];
+  const fixture = await setup({ commands: { execute: async command => { executed.push(command); return 'shuttle_recorded'; } },
+    respond: async () => { await blocked; } });
+  try {
+    for (let count = 1; count <= 5; count++) {
+      const accepted = await fixture.request();
+      assert.equal((await accepted.json()).type, 5);
+      while (executed.length < count) await new Promise(resolve => setTimeout(resolve, 5));
+      await new Promise(resolve => setImmediate(resolve));
+    }
+    // Four replies wait without the slot; the fifth keeps it, so the endpoint is busy again.
+    const declined = await (await fixture.request()).json();
+    assert.equal(declined.type, 4); assert.match(declined.data.content, /busy/);
+    release(); await fixture.server.drain();
+    const accepted = await fixture.request();
+    assert.equal((await accepted.json()).type, 5);
+  } finally { release(); await fixture.server.close(); }
+});
+
 test('T01 disabled commands, wrong routes, compressed and oversized bodies have no side effects', async () => {
   const fixture = await setup({ enabled: () => false });
   try {

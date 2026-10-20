@@ -78,7 +78,7 @@ export function createDiscordTransport({ guildId, token, fetch, clock, enabled, 
   requireCondition(limits?.cooldowns instanceof Map && limits.buckets instanceof Map, 'TRUSTED_ADAPTERS_REQUIRED');
   // Requests stay serial per transport, but a caller queues briefly behind the one in flight instead of failing at once:
   // a failed outbox step re-runs all of its reads, spends an attempt and backs off exponentially.
-  let tail = Promise.resolve();
+  let tail = Promise.resolve(), sent = 0;
   async function turn(budgetMs) {
     const previous = tail; let release;
     const mine = new Promise(resolve => { release = resolve; });
@@ -113,6 +113,7 @@ export function createDiscordTransport({ guildId, token, fetch, clock, enabled, 
   }
   async function send(method, path, route, body, jsonResult, deadline) {
     const { template } = limitKey(limits, method, path);
+    sent++;
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), deadline === null ? 5_000 : Math.max(1, Math.min(5_000, deadline - clock())));
     const write = method !== 'GET';
@@ -342,6 +343,8 @@ export function createDiscordTransport({ guildId, token, fetch, clock, enabled, 
       requireCondition(typeof add === 'boolean', 'INVALID_ROLE_CHANGE');
       return request(add ? 'PUT' : 'DELETE', `/guilds/${guildId}/members/${userId}/roles/${roleId}`, 'role-write');
     },
+    /** Requests this transport has sent, for timing diagnostics only. */
+    requestCount() { return sent; },
     cooldownRemaining() { const result = Math.max(limits.globalUntil, ...limits.cooldowns.values(), 0) - clock(); return Math.max(0, Math.ceil(result)); },
   });
 }

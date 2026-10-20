@@ -148,6 +148,30 @@ test('T18 concurrent requests on one transport queue behind each other instead o
   assert.equal(calls, 3); assert.equal(peak, 1);
 });
 
+test('T18 the request count covers sent requests only, for timing diagnostics', async () => {
+  let now = NOW;
+  const rest = transportWith(async () => response(roleList(), 200, { 'X-RateLimit-Remaining': '0', 'X-RateLimit-Reset-After': '5' }), { clock: () => now });
+  assert.equal(rest.requestCount(), 0);
+  await rest.getRoles();
+  // A cooled route fails before sending, so it is not counted.
+  await assert.rejects(rest.getRoles(), /RATE_LIMITED/);
+  assert.equal(rest.requestCount(), 1);
+});
+
+test('T18 Shuttle render diagnostics are fixed codes with outcome, time, request count and queue wait only', async () => {
+  const { createOnboardingDispatcher } = await import('../apps/core/discord/onboarding-dispatcher.js');
+  const traces = []; let count = 3;
+  const dispatcher = createOnboardingDispatcher({ enabled: async () => true, trace: code => traces.push(code), requestCount: () => count,
+    outbox: { claim: async () => ({ claim: { guildId: GUILD, operationId: 'synthetic-op', owner: 'worker', fence: 1 }, userId: USER, kind: 'shuttle.render', parked: false, waitedMs: 1_234 }),
+      requireDeliveryReady: async () => {}, renew: async () => {} },
+    store: { inspectOnboardingRender: async () => { count += 2; return { settled: true }; } },
+    roles: { guildId: GUILD, observe: async () => ({}) }, messages: { guildId: GUILD } });
+  assert.deepEqual(await dispatcher.runOnce('worker'), { status: 'settled' });
+  assert.equal(traces.length, 1);
+  assert.match(traces[0], /^SHUTTLE_RENDER_SETTLED_\d{1,5}MS_2CALLS_1234WAITMS$/);
+  assert.match(traces[0], /^[A-Z][A-Z0-9_]{2,63}$/);
+});
+
 test('T18 malformed rate limits halt retries, rather than immediately retrying', async () => {
   for (const body of [{ retry_after: -1 }, { retry_after: 100_000 }, null, []]) {
     const rest = transportWith(async () => response(body, 429));

@@ -45,7 +45,7 @@ export async function requireInstalledAiDatabase(pool,kind) {
 }
 
 /** Public lookup and optional administration use distinct knowledge-only database identities. */
-export async function createInstalledCoreService({pipes,signal,onFault,createPool=createDatabasePool,runtimeFactory=createStagingRuntime,
+export async function createInstalledCoreService({pipes,signal,onFault,onTrace=()=>{},createPool=createDatabasePool,runtimeFactory=createStagingRuntime,
   configurableFactory=createConfigurableStagingRuntime,fetchImpl=fetch,connect=url=>new WebSocket(url)}) {
   const {configuration,qualified,keys}=installedRoleContext(pipes,'core',signal);Object.values(keys).forEach(key=>key.fill(0));
   const options=configuration.core;
@@ -99,7 +99,7 @@ export async function createInstalledCoreService({pipes,signal,onFault,createPoo
       catch(error){await Promise.resolve().then(()=>worker.stop()).catch(()=>{});throw error;}
       return Object.freeze({...instance,stop:()=>closed??=(async()=>{try{await instance.stop();}finally{await worker.stop();}})()});
     };
-    const input={configuration:options.runtime,pool,...options.credentials,fetch:fetchImpl,connect,onFault};
+    const input={configuration:options.runtime,pool,...options.credentials,fetch:fetchImpl,connect,onFault,onTrace};
     runtime=ownerPool?await configurableFactory({...input,ownerPool,runtimeFactory:compose}):await compose(input);
     return Object.freeze({start:()=>runtime.start(),status:()=>runtime.status(),stop});
   } catch(error){await stop().catch(()=>{});throw error;}

@@ -48,7 +48,7 @@ import { createKnowledgeLookupCommands } from '../discord/knowledge-lookup.js';
 import { inspectAutomationChannel } from '../storage/automation-channel-policy.js';
 
 /** One request lane owns its proof issuers and serial transport. Workers use a separate lane. */
-export function createAdministrationLane({ configuration, pool, token, fetch, clock, enabled, rateLimits, observer, principals, verifier, onFault, readSystemText, knowledge = null }) {
+export function createAdministrationLane({ configuration, pool, token, fetch, clock, enabled, rateLimits, observer, principals, verifier, onFault, onTrace = () => {}, readSystemText, knowledge = null }) {
   const { mapping, casePolicy: policy, limits, definitionId, capabilityPolicy } = configuration;
   const transport = createDiscordTransport({ guildId: mapping.guildId, token, fetch, clock, enabled, ...(rateLimits ? { limits: rateLimits } : {}) });
   const roles = createDiscordRoles({ transport, mapping, clock, readContinuity: observer.readContinuity });
@@ -96,7 +96,8 @@ export function createAdministrationLane({ configuration, pool, token, fetch, cl
   const automationRecovery = createAutomationRecovery({pool,authorize,guildId:mapping.guildId,protectedCategoryId:policy.categoryId,
     channels:createAutomationChannels({transport}),messages:automationMessages});
   const workers = [createMembershipDispatcher({ outbox, store, discord: roles, enabled }), createRoleDispatcher({ outbox, store, discord: roles, enabled }),
-    createCaseDispatcher({ outbox, store, roles, channels, enabled }), createOnboardingDispatcher({ outbox, store, roles, messages: screens, enabled }),
+    createCaseDispatcher({ outbox, store, roles, channels, enabled }), createOnboardingDispatcher({ outbox, store, roles, messages: screens, enabled,
+      trace: onTrace, requestCount: transport.requestCount }),
     createOnboardingAlertDispatcher({ outbox, store, roles, messages: alerts, enabled }),
     createCaseIntakeDispatcher({ outbox, store: deliveryStore, roles, messages: answers, enabled }),
     createCaseDirectNoticeDispatcher({ outbox, store: directStore, roles, channels, messages: directMessages, enabled }),

@@ -8,7 +8,7 @@ import { checkRuntimeDatabaseIdentity } from './database.js';
 import { validateStagingRuntime } from './configuration.js';
 
 /** Core host composition. Owner credentials stay outside the normal runtime identity. */
-export async function createConfigurableStagingRuntime({ownerPool,configuration,pool,token,clientSecret=null,fetch,connect,clock=Date.now,random=Math.random,onFault,
+export async function createConfigurableStagingRuntime({ownerPool,configuration,pool,token,clientSecret=null,fetch,connect,clock=Date.now,random=Math.random,onFault,onTrace=()=>{},
   runtimeFactory=createStagingRuntime}) {
   requireCondition(ownerPool&&ownerPool!==pool,'MAINTENANCE_OWNER_REQUIRED');
   validateStagingRuntime(configuration);
@@ -24,7 +24,7 @@ export async function createConfigurableStagingRuntime({ownerPool,configuration,
     if(runtime||stopping)return;
     await closeDashboard();
     const current=await coordinator.configuration();
-    runtime=await runtimeFactory({configuration:current,pool,token,clientSecret,fetch,connect,clock,random,onFault,rateLimits,configurationApplyEnabled:true});
+    runtime=await runtimeFactory({configuration:current,pool,token,clientSecret,fetch,connect,clock,random,onFault,onTrace,rateLimits,configurationApplyEnabled:true});
     try { return await runtime.start(options); }
     catch(error) { await stopRuntime(); throw error; }
   }

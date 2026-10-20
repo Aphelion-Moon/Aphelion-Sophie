@@ -22,7 +22,7 @@ export function createDiscordRoles({ transport, mapping, clock, readContinuity }
   const mentionableRoles = new WeakMap();
   const stamp = async () => requireContinuityStamp(await readContinuity());
   const same = async expected => requireCondition(await stamp() === expected, 'OBSERVATION_INVALIDATED');
-  // The bot's own identity check carries no member authority, so actor observations made close together share one
+  // The bot's own identity check carries no member authority, so observations and preparations made close together share one
   // result. It never outlives IDENTITY_SHARE_MS and ends on any gateway dispatch, because the continuity stamp includes
   // the gateway sequence. A failed check is never shared. Guild roles and member state are always read afresh.
   let identity = null;
@@ -113,8 +113,8 @@ export function createDiscordRoles({ transport, mapping, clock, readContinuity }
       requireId(userId);
       const version = await stamp();
       const observedAt = clock(); requireInteger(observedAt);
-      const identity = await transport.getCurrentUser();
-      requireCondition(identity?.id === fixed.botUserId && identity.bot === true, 'DISCORD_AUTHORIZATION_FAILED');
+      // Shared like actor observations: it ends on any gateway dispatch and never outlives IDENTITY_SHARE_MS.
+      await confirmIdentity(version);
       const rawRoles = await transport.getRoles();
       requireCondition(Array.isArray(rawRoles) && rawRoles.length <= 500, 'DISCORD_RESPONSE_INVALID');
       const roles = rawRoles.map(role => ({ id: role.id, position: role.position, managed: role.managed, permissions: role.permissions }));

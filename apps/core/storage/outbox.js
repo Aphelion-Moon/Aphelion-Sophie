@@ -70,7 +70,7 @@ export function createOutbox({ pool }) {
         requireCondition(delivery.rowCount === 1, 'DELIVERY_BARRIER_MISSING');
         if (!delivery.rows[0].allowed) return null;
         const result = await client.query(`WITH candidate AS (
-          SELECT o.guild_id, o.operation_id FROM sophie_core.outbox o
+          SELECT o.guild_id, o.operation_id, o.available_at FROM sophie_core.outbox o
           WHERE ((o.status = 'ready' AND o.available_at <= clock_timestamp())
               OR (o.status = 'leased' AND o.lease_until <= clock_timestamp()))
             AND o.kind = ANY($3::text[])
@@ -85,7 +85,9 @@ export function createOutbox({ pool }) {
           lease_until = clock_timestamp() + $2 * interval '1 millisecond',
           fence = o.fence + 1, attempts = o.attempts + 1
         FROM candidate c WHERE o.guild_id = c.guild_id AND o.operation_id = c.operation_id
-        RETURNING o.guild_id, o.operation_id, o.user_id, o.fence, o.kind, o.attempts`, [owner, leaseMs, kinds]);
+        RETURNING o.guild_id, o.operation_id, o.user_id, o.fence, o.kind, o.attempts,
+          CASE WHEN isfinite(c.available_at) THEN LEAST(86400000, GREATEST(0, floor(extract(epoch FROM clock_timestamp() - c.available_at) * 1000)))
+            ELSE 0 END::bigint AS waited_ms`, [owner, leaseMs, kinds]);
         if (!result.rowCount) return null;
         const row = result.rows[0];
         const claim = { guildId: row.guild_id, operationId: row.operation_id, owner, fence: row.fence };
@@ -94,7 +96,8 @@ export function createOutbox({ pool }) {
           await recordDeliveryFailure(client, claim);
           return { claim, userId: row.user_id, kind: row.kind, parked: true };
         }
-        return { claim, userId: row.user_id, kind: row.kind, parked: false };
+        // waitedMs (time since the job became claimable) is for timing diagnostics only.
+        return { claim, userId: row.user_id, kind: row.kind, parked: false, waitedMs: Number(row.waited_ms) };
       });
     },
     async renew(claim, leaseMs = 30_000) {
