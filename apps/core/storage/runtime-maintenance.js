@@ -72,7 +72,7 @@ export function createPermissionMaintenance({ pool, configuration, channelInvent
     const bindings = await readPermissionCaseBindings(client, guildId), candidate = current.row.candidate;
     const request = { binding: { operationId, generation, candidateHash: current.row.sha256, controlHash: current.review.reviewHash },
       channelIds: [...new Set(bindings.flatMap(row => [...row.known_channels, row.channel_id, row.provision_channel_id, row.chosen_channel_id].filter(Boolean)))].sort(),
-      categoryIds: [...new Set([running.casePolicy.categoryId, candidate.casePolicy.categoryId])].sort(),
+      categoryIds: [...new Set([running.casePolicy, candidate.casePolicy].flatMap(policy => [policy.categoryId, policy.shuttleCategoryId ?? policy.categoryId]))].sort(),
       roleIds: [...new Set([candidate.mapping.staff, candidate.mapping.leadOps,
         ...Object.values(candidate.capabilityPolicy.grants).flat(), ...Object.values(candidate.capabilityPolicy.responders).flat()])].sort() };
     return { bindings, candidate, request };

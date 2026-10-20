@@ -1,5 +1,15 @@
 # Reviewed administrative permissions
 
+## Shuttle channel category — 20 October 2026
+
+The editor also offers **Shuttle channel category** (`shuttleCategoryId`), defaulting to
+"Same as case channel category". A chosen category must differ from the case category.
+Changing it advances the case-policy version like a case-category change, and the apply
+step inventories both the case and the Shuttle categories, then seals each retained
+channel into the category its case type uses (Shuttle cases into the Shuttle category,
+every other case into the case category). Drafts saved before this option keep the
+running choice. See [onboarding experience](onboarding-experience.md#shuttle-channel-title-and-category-20-october-2026).
+
 ## Website configuration and apply — schema 055
 
 The owner selected **Full website configuration and apply workflow**, then

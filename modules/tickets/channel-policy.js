@@ -18,8 +18,9 @@ export function caseChannelMode(value) {
 }
 
 export function validateCasePolicy(policy) {
-  requireKeys(policy, ['guildId', 'botUserId', 'staff', 'leadOps', 'categoryId', 'version', 'attachmentsAllowed', ...(Object.hasOwn(policy, 'responders') ? ['responders'] : [])]);
-  const ids = ['guildId', 'botUserId', 'staff', 'leadOps', 'categoryId'].map(key => policy[key]);
+  const optional = ['responders', 'shuttleCategoryId'].filter(key => Object.hasOwn(policy ?? {}, key));
+  requireKeys(policy, ['guildId', 'botUserId', 'staff', 'leadOps', 'categoryId', 'version', 'attachmentsAllowed', ...optional]);
+  const ids = ['guildId', 'botUserId', 'staff', 'leadOps', 'categoryId', ...(optional.includes('shuttleCategoryId') ? ['shuttleCategoryId'] : [])].map(key => policy[key]);
   ids.forEach(requireId);
   requireCondition(new Set(ids).size === ids.length, 'CASE_CONFIGURATION_INVALID');
   requireInteger(policy.version, 1);
@@ -41,10 +42,21 @@ export function caseIdentityKey(plan) {
 }
 export function casePlanKey(plan) { return JSON.stringify([caseIdentityKey(plan), plan.audience ?? null]); }
 
+/** Shuttle channels use their own category when one is configured; every other case uses the case category. */
+export function caseCategoryId(policy, type) {
+  return type === 'shuttle' && Object.hasOwn(policy, 'shuttleCategoryId') ? policy.shuttleCategoryId : policy.categoryId;
+}
+
+/** Names a Shuttle channel after the opener's current Discord username, read at creation and never stored. */
+export function shuttleChannelName(username) {
+  return typeof username === 'string' && username.length >= 1 && username.length <= 32 && username.isWellFormed() &&
+    !/[\p{Cc}\p{Cf}\p{Zl}\p{Zp}]/u.test(username) ? `${username}'s Shuttle` : null;
+}
+
 export function caseMarker(plan) { validateCasePlan(plan); return `sophie:case:v1:${plan.token}`; }
 
 /** Initial creation is bot-only; audience access is a separately confirmed operation. */
-export function caseChannelPayload(plan, policy, sealed) {
+export function caseChannelPayload(plan, policy, sealed, openerName = null) {
   validateCasePlan(plan); validateCasePolicy(policy);
   requireCondition(plan.guildId === policy.guildId && plan.policyVersion === policy.version && plan.openerId !== policy.botUserId, 'CASE_CONFIGURATION_INVALID');
   const mode = caseChannelMode(sealed), closed = mode === 'closed';
@@ -62,7 +74,9 @@ export function caseChannelPayload(plan, policy, sealed) {
     }
   }
   // Neither a subject identifier nor a display name can become an audience member.
-  return { name: `case-${plan.token.slice(0, 12)}`, type: 0, parent_id: policy.categoryId,
+  // A Shuttle channel is titled "<username>'s Shuttle" when the name is known; Discord applies its own channel-name rules.
+  const name = plan.type === 'shuttle' ? shuttleChannelName(openerName) : null;
+  return { name: name ?? `case-${plan.token.slice(0, 12)}`, type: 0, parent_id: caseCategoryId(policy, plan.type),
     topic: caseMarker(plan), permission_overwrites: overwrites };
 }
 
@@ -77,5 +91,5 @@ export function requireCaseChannel(channel, plan, policy, sealed) {
   const expected = caseChannelPayload(plan, policy, sealed);
   requireKeys(channel, ['id', 'guildId', 'type', 'parentId', 'marker', 'overwrites']); requireId(channel.id);
   requireCondition(channel.guildId === plan.guildId && channel.type === 0 && channel.marker === expected.topic, 'CASE_CHANNEL_MISMATCH');
-  requireCondition(channel.parentId === policy.categoryId && sameOverwrites(channel.overwrites, expected.permission_overwrites), 'CASE_CHANNEL_ACL_MISMATCH');
+  requireCondition(channel.parentId === caseCategoryId(policy, plan.type) && sameOverwrites(channel.overwrites, expected.permission_overwrites), 'CASE_CHANNEL_ACL_MISMATCH');
 }

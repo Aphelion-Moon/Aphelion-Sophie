@@ -1,7 +1,7 @@
 import { requireCondition, requireFreshObservation, requireId, requireInteger } from '../../../contracts/validation.js';
 import { validateRoleContext, validateRoleMapping } from '../../../modules/membership/discord-policy.js';
 import { PREPARATION_SHARE_MS } from './roles.js';
-import { CASE_CHANNEL_BITS, CASE_CLOSED_WRITE_BITS, caseChannelMode, validateCasePolicy, validateCasePlan, caseChannelPayload, caseMarker, requireCaseChannel, casePlanKey, caseIdentityKey } from '../../../modules/tickets/channel-policy.js';
+import { CASE_CHANNEL_BITS, CASE_CLOSED_WRITE_BITS, caseChannelMode, validateCasePolicy, validateCasePlan, caseChannelPayload, caseMarker, requireCaseChannel, casePlanKey, caseIdentityKey, caseCategoryId } from '../../../modules/tickets/channel-policy.js';
 import { PERMISSIONS, channelPermissions, guildPermissions, validateOverwrites } from '../../../platform/authorization/discord-permissions.js';
 
 /** Explicit metadata projection: never retain arbitrary channel topics or names. */
@@ -109,8 +109,8 @@ export function createCaseChannels({ transport, roles, mapping, policy, clock, a
       const { context, observation } = await roles.prepare(plan.openerId);
       validateRoleContext(context, roleMapping, clock());
       requireCondition(responderRoles(fixed, plan.type).every(id => context.roles.some(role => role.id === id)), 'CASE_CONFIGURATION_INVALID');
-      const category = project(await transport.getChannel(fixed.categoryId));
-      requireCondition(category.id === fixed.categoryId && category.type === 4, 'CASE_CATEGORY_INVALID');
+      const categoryId = caseCategoryId(fixed, plan.type), category = project(await transport.getChannel(categoryId));
+      requireCondition(category.id === categoryId && category.type === 4, 'CASE_CATEGORY_INVALID');
       const projectedRoles = context.roles.map(role => ({ id: role.id, permissions: role.permissions }));
       const principal = { guildId: fixed.guildId, userId: fixed.botUserId, roleIds: context.botRoleIds, roles: projectedRoles };
       const base = guildPermissions(principal);
@@ -159,10 +159,11 @@ export function createCaseChannels({ transport, roles, mapping, policy, clock, a
       await transport.deleteOnboardingChannel(channel.id);
     },
     async create(preparation, plan) {
-      await consume(preparation, plan);
+      const { context } = await consume(preparation, plan);
       const startedAt = clock();
       const version = await validity();
-      const raw = await transport.createCaseTextChannel(caseChannelPayload(plan, fixed, true));
+      const openerName = plan.type === 'shuttle' && typeof roles.memberName === 'function' ? roles.memberName(context) : null;
+      const raw = await transport.createCaseTextChannel(caseChannelPayload(plan, fixed, true, openerName));
       return certify(raw, plan, startedAt, version, true);
     },
     async setAudience(preparation, proof, plan, sealed) {
@@ -171,7 +172,7 @@ export function createCaseChannels({ transport, roles, mapping, policy, clock, a
       if (caseChannelMode(sealed) !== 'sealed') await currentAudience(plan);
       await roles.assertCurrent(context.context);
       const payload = caseChannelPayload(plan, fixed, sealed);
-      const result = await transport.replaceCaseAudience(channel.id, fixed.categoryId, payload.permission_overwrites);
+      const result = await transport.replaceCaseAudience(channel.id, payload.parent_id, payload.permission_overwrites);
       requireCondition(result?.id === channel.id && (result.guild_id === undefined || result.guild_id === fixed.guildId), 'CASE_CHANNEL_MISMATCH');
     },
   });

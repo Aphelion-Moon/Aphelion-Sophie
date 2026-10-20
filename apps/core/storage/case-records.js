@@ -12,6 +12,9 @@ export async function registerCasePolicy(client, policy) {
   await client.query('INSERT INTO sophie_core.case_policies (guild_id, version, policy) VALUES ($1, $2, $3) ON CONFLICT DO NOTHING', [policy.guildId, policy.version, policy]);
   const recorded = (await client.query('SELECT policy = $3::jsonb AS same FROM sophie_core.case_policies WHERE guild_id = $1 AND version = $2', [policy.guildId, policy.version, policy])).rows[0];
   requireCondition(recorded.same, 'CASE_POLICY_IMMUTABLE');
+  // A separate Shuttle category is excluded like a case channel, so AI and automation never read or post inside it.
+  if (Object.hasOwn(policy, 'shuttleCategoryId')) await client.query('INSERT INTO sophie_core.case_exclusions (guild_id, channel_id) VALUES ($1, $2) ON CONFLICT DO NOTHING',
+    [policy.guildId, policy.shuttleCategoryId]);
 }
 
 /** Shared admission budget for new cases and explicit reopening; never for worker retries. */

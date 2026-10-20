@@ -7,6 +7,24 @@ Staging now selects **9479c2c/schema 054** after the authorized 27 September
 [channel/login follow-up and /whitelist rename](onboarding-followup.md). See [current handoff](handoff.md).
 No dependency, AI path or publisher capability grant was added.
 
+## Shuttle channel title and category (20 October 2026)
+
+A new Shuttle channel is titled **"<Discord username>'s Shuttle"**. The username is the
+member's unique Discord username (not a nickname or display name), read from Discord in
+the same member read that prepares the channel. It is not stored; the case record keeps
+its opaque token. Discord applies its own text-channel naming rules, so the visible name
+is lowercased with spaces turned into hyphens and some punctuation possibly removed. When
+the username cannot be read, the channel keeps the opaque `case-…` name. A channel that
+already exists keeps its name. Tickets keep `case-…` names.
+
+Shuttle channels can live in their own category, chosen as **Shuttle channel category** on
+the Permissions page (`casePolicy.shuttleCategoryId`). Unset, they stay in the case
+category as before. The choice is part of the case policy: changing it advances the
+case-policy version and goes through the usual review and apply, which moves and reseals
+existing Shuttle channels into the new category before normal work resumes. The Shuttle
+category is recorded as a case exclusion, so AI and automation never read or post in it,
+and the Shuttle entry panel cannot be posted there.
+
 ## Message groups (20 October 2026)
 
 Each run now shows as a message group (migration 071):

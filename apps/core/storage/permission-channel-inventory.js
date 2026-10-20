@@ -58,8 +58,10 @@ export function buildPermissionChannelInventory({ bindings, observed, candidate,
     } else if (found.length === 1 && (row.channel_id === null || row.channel_id === found[0])) entry.selectedChannelId = found[0];
     else if (found.length > 1 || row.channel_id !== null && !found.includes(row.channel_id)) block('channel-choice-required');
   }
-  const category = observed.channels.find(row => row.id === candidate.casePolicy.categoryId);
-  if (!category || category.type !== 4) block('candidate-category-unavailable');
+  for (const id of new Set([candidate.casePolicy.categoryId, candidate.casePolicy.shuttleCategoryId ?? candidate.casePolicy.categoryId])) {
+    const category = observed.channels.find(row => row.id === id);
+    if (!category || category.type !== 4) block('candidate-category-unavailable');
+  }
   const selectedRoles = new Set([candidate.mapping.staff, candidate.mapping.leadOps, ...Object.values(candidate.capabilityPolicy.grants).flat(), ...Object.values(candidate.capabilityPolicy.responders).flat()]);
   for (const id of selectedRoles) if (!observed.roles.some(row => row.id === id && !row.managed)) block('candidate-role-unavailable');
   const summary = { cases: cases.length, recorded: channels.filter(row => row.classification === 'recorded').length,

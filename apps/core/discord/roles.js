@@ -22,6 +22,8 @@ export function createDiscordRoles({ transport, mapping, clock, readContinuity, 
   const fixed = structuredClone(mapping);
   const contexts = new WeakMap();
   const mentionableRoles = new WeakMap();
+  // The member's Discord username from the same read, kept only with its context (to title a new Shuttle channel).
+  const memberNames = new WeakMap();
   const stamp = async () => requireContinuityStamp(await readContinuity());
   // Role and member reads are overtaken by an authority change (a member, role, channel or guild event, or a reconnect;
   // see the observer's readAuthorityBoundary), not by message traffic. With message events on, this bot's own posts and
@@ -107,6 +109,7 @@ export function createDiscordRoles({ transport, mapping, clock, readContinuity, 
     }
     contexts.set(context, version);
     mentionableRoles.set(context, new Set(rawRoles.filter(role => role.mentionable === true).map(role => role.id)));
+    if (typeof rawMember?.user?.username === 'string') memberNames.set(context, rawMember.user.username);
     requireFreshObservation(context, clock());
     return { context, observation };
   }
@@ -133,6 +136,11 @@ export function createDiscordRoles({ transport, mapping, clock, readContinuity, 
       requireCondition(contexts.has(context), 'UNTRUSTED_ROLE_CONTEXT');
       await same(contexts.get(context));
       requireFreshObservation(context, clock());
+    },
+    /** The member's Discord username from a context this adapter prepared, or null. Never a nickname or display name. */
+    memberName(context) {
+      requireCondition(contexts.has(context), 'UNTRUSTED_ROLE_CONTEXT');
+      return memberNames.get(context) ?? null;
     },
     async roleMentionable(context, roleId) {
       requireId(roleId); requireCondition(contexts.has(context), 'UNTRUSTED_ROLE_CONTEXT');

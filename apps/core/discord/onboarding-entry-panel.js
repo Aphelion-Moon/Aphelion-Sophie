@@ -11,7 +11,7 @@ export function createOnboardingEntryPanel({ authorization, transport, store, po
     await authorize();
     const channel = await transport.getChannel(envelope.channelId);
     requireCondition(channel?.id === envelope.channelId && channel.guild_id === policy.guildId && channel.type === 0 &&
-      channel.parent_id !== policy.categoryId, 'OPERATION_DENIED');
+      channel.parent_id !== policy.categoryId && (!Object.hasOwn(policy, 'shuttleCategoryId') || channel.parent_id !== policy.shuttleCategoryId), 'OPERATION_DENIED');
     requireCondition(!await store.hasCaseExclusion({ guildId: policy.guildId, lineage: [channel.id, ...(channel.parent_id ? [channel.parent_id] : [])] }), 'OPERATION_DENIED');
     const data = onboardingEntryPanel(await readSystemText());
     await authorize();

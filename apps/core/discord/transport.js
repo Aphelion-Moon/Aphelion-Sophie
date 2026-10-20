@@ -9,6 +9,7 @@ import { ticketDirectNotice } from '../../../modules/tickets/direct-notice.js';
 import { automationPayload, automationEmoji } from '../../../modules/automation/delivery.js';
 import { validateAiMessagePayload } from '../../../modules/assistant/output.js';
 import { contactStaffControl } from '../../../modules/tickets/intake.js';
+import { shuttleChannelName } from '../../../modules/tickets/channel-policy.js';
 
 /** Stable errors never retain tokens, URLs, response bodies or the original fetch error. */
 export class DiscordError extends Error {
@@ -328,7 +329,8 @@ export function createDiscordTransport({ guildId, token, fetch, clock, enabled, 
     async createCaseTextChannel(body) {
       requireKeys(body, ['name', 'type', 'parent_id', 'topic', 'permission_overwrites']);
       requireId(body.parent_id); validateOverwrites(body.permission_overwrites);
-      requireCondition(body.type === 0 && /^case-[a-f0-9]{12}$/.test(body.name) && /^sophie:case:v1:[a-f0-9]{48}$/.test(body.topic), 'INVALID_CASE_CHANNEL_REQUEST');
+      requireCondition(body.type === 0 && typeof body.name === 'string' && (/^case-[a-f0-9]{12}$/.test(body.name) || shuttleChannelName(body.name.slice(0, -"'s Shuttle".length)) === body.name) &&
+        /^sophie:case:v1:[a-f0-9]{48}$/.test(body.topic), 'INVALID_CASE_CHANNEL_REQUEST');
       return request('POST', `/guilds/${guildId}/channels`, 'channel-create', body, true);
     },
     async replaceCaseAudience(channelId, parentId, overwrites) {

@@ -36,7 +36,7 @@ export function createPermissionEditor({ pool, authorize, configuration, options
     requireCondition(document.baseHash === baseHash, 'PERMISSION_BASE_STALE');
     const available = await options.read(), roleIds = new Set(available.roles.map(row => row.id));
     const selected = [candidate.mapping.crew, candidate.mapping.muzzled, candidate.mapping.whitelist, document.staff, document.leadOps, ...Object.values(document.grants).flat(), ...Object.values(document.responders).flat()];
-    requireCondition(selected.every(id => roleIds.has(id)) && available.categories.some(row => row.id === document.categoryId), 'PERMISSION_SELECTION_UNAVAILABLE');
+    requireCondition(selected.every(id => roleIds.has(id)) && [candidate.casePolicy.categoryId, candidate.casePolicy.shuttleCategoryId ?? candidate.casePolicy.categoryId].every(id => available.categories.some(row => row.id === id)), 'PERMISSION_SELECTION_UNAVAILABLE');
     // A nonempty grant is insufficient: the current editor must actually retain usable authority.
     const observation = await observeActor(actor.userId);
     requireCondition(observation.userId === actor.userId, 'OPERATION_DENIED');

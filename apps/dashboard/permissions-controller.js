@@ -14,7 +14,7 @@ export function createPermissionsController({ api, onChange, newRequestId }) {
       publish: body => api.permissionPublish(body), withdraw: body => api.permissionWithdraw(body) },
     profile: { capability: 'canEditPermissions', emptyDraft: (_, overview) => overview.initial, pageCount: () => 1, scope: () => ({}),
       currentVersion: () => null, comparisonOf: record => record.document, draftOf: record => record.document,
-      invalidMessage: 'Check role ownership and responder selections. Head Admin contact must use only lead ops. Keep a permissions-editor role you currently hold to prevent lockout.',
+      invalidMessage: 'Check role ownership and responder selections. Head Admin contact must use only lead ops. A separate Shuttle category must differ from the case category. Keep a permissions-editor role you currently hold to prevent lockout.',
       mutationNotice: (kind, receipt) => kind === 'save' ? `Draft revision ${receipt.revision} was saved.` : kind === 'publish' ?
         `Settings version ${receipt.version} is approved. Review and apply it to change the running configuration.` :
         `Candidate ${receipt.version} was withdrawn. Running permissions have not changed.` },
@@ -62,7 +62,7 @@ export function createPermissionsController({ api, onChange, newRequestId }) {
     },
     mapping(key, value) {
       if(blocked())return;
-      if (!['crew', 'whitelist', 'muzzled', 'staff', 'leadOps', 'categoryId'].includes(key)) return;
+      if (!['crew', 'whitelist', 'muzzled', 'staff', 'leadOps', 'categoryId', 'shuttleCategoryId'].includes(key)) return;
       edit(document => { document[key] = value; if (key === 'leadOps') document.responders['head-admin-contact'] = [value]; });
     },
     roles(group, key, values) {

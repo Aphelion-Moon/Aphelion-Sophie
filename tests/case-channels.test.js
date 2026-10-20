@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { caseChannelPayload, requireCaseChannel, sameOverwrites } from '../modules/tickets/channel-policy.js';
+import { caseCategoryId, caseChannelPayload, requireCaseChannel, sameOverwrites, shuttleChannelName, validateCasePolicy } from '../modules/tickets/channel-policy.js';
 import { channelPermissions, PERMISSIONS, permissionBits } from '../platform/authorization/discord-permissions.js';
 import { GUILD, USER, OTHER, STAFF, LEAD, NOW } from './fixtures/domain.js';
 import { BOT, BOT_ROLE, CREW, MUZZLED, roleList } from './fixtures/discord.js';
@@ -86,5 +86,48 @@ test('case adapter checks token identity, parent category and bot permission bef
     if (failure === 'responder-role') discord.state.roles = discord.state.roles.filter(role => role.id !== LEAD);
     await assert.rejects(discord.channels.prepare(casePlan), /DISCORD_AUTHORIZATION_FAILED|CASE_CATEGORY_INVALID|BOT_PERMISSION_MISSING|CASE_CONFIGURATION_INVALID/);
     assert.equal(discord.state.calls.filter(call => call.method !== 'GET').length, 0);
+  }
+});
+
+const SHUTTLE_CATEGORY = '100000000000000021';
+const shuttlePlan = Object.freeze({ ...casePlan, type: 'shuttle' });
+function shuttleCases(policy) {
+  const discord = simulatedCases({ policy });
+  discord.state.channels.set(SHUTTLE_CATEGORY, { id: SHUTTLE_CATEGORY, guild_id: GUILD, type: 4, parent_id: null, topic: null, permission_overwrites: [] });
+  discord.state.usernames = new Map([[USER, 'synthetic_member']]);
+  return discord;
+}
+async function created(discord, plan) {
+  const proof = await discord.channels.create(await discord.channels.prepare(plan), plan);
+  await discord.channels.verification.channel(proof, plan, true);
+  return discord.state.channels.get(proof.channelId);
+}
+
+test('Shuttle channels are titled after the opener\'s Discord username and use the configured Shuttle category', async () => {
+  const policy = { ...casePolicy, shuttleCategoryId: SHUTTLE_CATEGORY };
+  const shuttle = await created(shuttleCases(policy), shuttlePlan);
+  assert.equal(shuttle.name, "synthetic_member's Shuttle"); assert.equal(shuttle.parent_id, SHUTTLE_CATEGORY);
+  const ticket = await created(shuttleCases(policy), casePlan);
+  assert.equal(ticket.name, `case-${casePlan.token.slice(0, 12)}`); assert.equal(ticket.parent_id, CATEGORY);
+  // Without a separate category, Shuttle channels stay with the other cases.
+  assert.equal((await created(shuttleCases(casePolicy), shuttlePlan)).parent_id, CATEGORY);
+  // An unknown username falls back to the opaque case name.
+  const unnamed = shuttleCases(policy); unnamed.state.usernames.clear();
+  assert.equal((await created(unnamed, shuttlePlan)).name, `case-${casePlan.token.slice(0, 12)}`);
+  const payload = caseChannelPayload(shuttlePlan, policy, false);
+  const channel = { id: '300000000000000001', guildId: GUILD, type: 0, parentId: SHUTTLE_CATEGORY, marker: payload.topic, overwrites: payload.permission_overwrites };
+  requireCaseChannel(channel, shuttlePlan, policy, false);
+  assert.throws(() => requireCaseChannel({ ...channel, parentId: CATEGORY }, shuttlePlan, policy, false), /CASE_CHANNEL_ACL_MISMATCH/);
+});
+
+test('Shuttle category and channel names are bounded', async () => {
+  assert.throws(() => validateCasePolicy({ ...casePolicy, shuttleCategoryId: CATEGORY }), /CASE_CONFIGURATION_INVALID/);
+  assert.throws(() => validateCasePolicy({ ...casePolicy, shuttleCategoryId: 'not-an-id' }), /INVALID_ID|INVALID/);
+  assert.equal(caseCategoryId({ ...casePolicy, shuttleCategoryId: SHUTTLE_CATEGORY }, 'admin-help'), CATEGORY);
+  for (const value of [null, '', 'x'.repeat(33), 'line\nbreak', 'zero​width', 42]) assert.equal(shuttleChannelName(value), null);
+  assert.equal(shuttleChannelName('a.b_c'), "a.b_c's Shuttle");
+  const discord = shuttleCases(casePolicy), body = { type: 0, parent_id: CATEGORY, topic: `sophie:case:v1:${casePlan.token}`, permission_overwrites: [] };
+  for (const name of ['general', "two words's Shuttle\n", "x's Shuttle extra", 7]) {
+    await assert.rejects(discord.transport.createCaseTextChannel({ ...body, name }), /INVALID_CASE_CHANNEL_REQUEST/);
   }
 });

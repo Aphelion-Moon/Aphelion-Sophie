@@ -123,7 +123,8 @@ export function simulatedDiscord({ clock = () => NOW, enabled = () => true, read
     const [, , userId, roleId] = route;
     if (!state.members.has(userId)) return json({ code: 10007 }, 404);
     const roles = state.members.get(userId);
-    if (call.method === 'GET' && !roleId) return json({ user: { id: userId, bot: userId === BOT }, roles, communication_disabled_until: null });
+    if (call.method === 'GET' && !roleId) return json({ user: { id: userId, bot: userId === BOT, ...(state.usernames?.has(userId) ? { username: state.usernames.get(userId) } : {}) },
+      roles, communication_disabled_until: null });
     if (!roleId || !['PUT', 'DELETE'].includes(call.method)) throw new Error('SIMULATION_ROUTE_UNSUPPORTED');
     state.members.set(userId, call.method === 'PUT' ? [...new Set([...roles, roleId])] : roles.filter(id => id !== roleId));
     await state.afterWrite?.(call);

@@ -1,12 +1,14 @@
 import { requireCondition, requireInteger } from '../../../contracts/validation.js';
 import { requireEditorRequestId } from '../../../modules/onboarding/authoring.js';
-import { sameOverwrites } from '../../../modules/tickets/channel-policy.js';
+import { caseCategoryId, sameOverwrites } from '../../../modules/tickets/channel-policy.js';
 import { sealedPermissionOverwrites } from '../discord/permission-channel-sealer.js';
 import { permissionDigest } from '../runtime/permission-configuration.js';
 import { buildPermissionChannelInventory } from './permission-channel-inventory.js';
 
-const targets = (inventory, guildId, parentId) => inventory.channels.map(row => ({ caseId: row.caseId, target: {
-  guildId, channelId: row.id, marker: row.marker, parentId,
+// Each retained channel is sealed into the category its case type uses under the policy (Shuttle cases may have their own).
+const parentOf = (inventory, policy, caseId) => caseCategoryId(policy, inventory.cases.find(row => row.caseId === caseId)?.type ?? null);
+const targets = (inventory, policy) => inventory.channels.map(row => ({ caseId: row.caseId, target: {
+  guildId: policy.guildId, channelId: row.id, marker: row.marker, parentId: parentOf(inventory, policy, row.caseId),
 } })).sort((a, b) => a.target.channelId.localeCompare(b.target.channelId));
 const planHash = (plan, effects) => permissionDigest({ inventoryRevision: plan.inventory_revision, inventoryHash: plan.inventory_sha256,
   targets: effects.map(row => ({ caseId: row.case_id, target: row.target })) });
@@ -23,9 +25,9 @@ export async function readPermissionSealPlan(client, operationId) {
 export function requirePermissionSealInventory({ plan, effects, inventory, policy }) {
   requireCondition(effects.every(row => row.state === 'verified'), 'PERMISSION_SEAL_INCOMPLETE');
   requireCondition(inventory.blockers.length === 0, 'PERMISSION_INVENTORY_BLOCKED');
-  const expected = targets(inventory, policy.guildId, policy.categoryId);
+  const expected = targets(inventory, policy);
   requireCondition(planHash(plan, expected.map(row => ({ case_id: row.caseId, target: row.target }))) === plan.plan_sha256, 'PERMISSION_INVENTORY_STALE');
-  requireCondition(inventory.channels.every(row => row.parentId === policy.categoryId &&
+  requireCondition(inventory.channels.every(row => row.parentId === parentOf(inventory, policy, row.caseId) &&
     sameOverwrites(row.overwrites, sealedPermissionOverwrites(policy.guildId, policy.botUserId))), 'PERMISSION_CHANNEL_NOT_SEALED');
 }
 
@@ -87,7 +89,7 @@ export function createPermissionSealing({ transaction, held, inventoryReceipt, i
         sameInputs(current.inputs, prepared.inputs);
         const fresh = inventory(proof, current.inputs), { candidateHash, controlHash } = current.inputs.request.binding;
         requireCondition(permissionDigest({ candidateHash, controlHash, inventory: fresh }) === expectedInventoryHash, 'PERMISSION_INVENTORY_STALE');
-        const effects = targets(fresh, guildId, current.inputs.candidate.casePolicy.categoryId);
+        const effects = targets(fresh, current.inputs.candidate.casePolicy);
         const plan = { inventory_revision: inventoryRevision, inventory_sha256: expectedInventoryHash };
         const hash = planHash(plan, effects.map(row => ({ case_id: row.caseId, target: row.target })));
         await client.query(`INSERT INTO sophie_control.maintenance_seal_plans

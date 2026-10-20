@@ -65,3 +65,18 @@ test('T21 current custom responder role existence is checked before any channel 
   await assert.rejects(discord.channels.prepare(plan),/CASE_CONFIGURATION_INVALID/);
   assert.equal(discord.state.calls.filter(call=>call.method!=='GET').length,writes);
 });
+test('a separate Shuttle category is an optional, versioned case-policy choice', () => {
+  const draft = initialPermissions(configuration), shuttle = '100000000000000777';
+  assert.equal(draft.shuttleCategoryId, null);
+  const chosen = permissionCandidate(canonicalPermissions({ ...draft, shuttleCategoryId: shuttle }, configuration), configuration);
+  assert.equal(chosen.casePolicy.shuttleCategoryId, shuttle); assert.equal(chosen.casePolicy.version, 2);
+  validateStagingRuntime({ ...configuration, ...chosen });
+  assert.throws(() => canonicalPermissions({ ...draft, shuttleCategoryId: draft.categoryId }, configuration), /PERMISSION_INPUT_INVALID/);
+  assert.throws(() => canonicalPermissions({ ...draft, shuttleCategoryId: 'general' }, configuration));
+  // Running with a Shuttle category: older drafts without the field keep it; null returns Shuttle channels to the case category.
+  const running = { ...configuration, ...chosen }, { shuttleCategoryId, ...older } = initialPermissions(running);
+  assert.equal(shuttleCategoryId, shuttle);
+  assert.equal(permissionCandidate(canonicalPermissions(older, running), running).casePolicy.version, 2);
+  const cleared = permissionCandidate(canonicalPermissions({ ...older, shuttleCategoryId: null }, running), running);
+  assert.equal(Object.hasOwn(cleared.casePolicy, 'shuttleCategoryId'), false); assert.equal(cleared.casePolicy.version, 3);
+});

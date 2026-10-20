@@ -37,7 +37,7 @@ export function createPermissionsView({ document, controller }) {
     if (multiple) select.size = Math.min(6, Math.max(2, choices.length));
     const values = new Set(selected), known = new Set(choices.map(row => row.id));
     for (const value of selected) if (!known.has(value)) choices = [...choices, { id: value, name: 'Unavailable selection' }];
-    for (const row of choices) { const option = node('option', `${row.name} (${row.id})`); option.value = row.id; option.selected = values.has(row.id); select.append(option); }
+    for (const row of choices) { const option = node('option', row.id === '' ? row.name : `${row.name} (${row.id})`); option.value = row.id; option.selected = values.has(row.id); select.append(option); }
     select.addEventListener('change', () => change(multiple ? [...select.selectedOptions].map(option => option.value) : select.value));
     parent.append(label, select);
   }
@@ -48,6 +48,8 @@ export function createPermissionsView({ document, controller }) {
     const row = (title, before, after) => { const tr = node('tr'); tr.append(node('th', title), node('td', before), node('td', after)); body.append(tr); };
     for (const [key,title] of [['crew','Base member role (Crew)'],['whitelist','Whitelist role'],['muzzled','Restricted member role (Muzzled)'],['staff','Staff role'],['leadOps','Lead ops role']]) row(title,running.mapping[key],candidate.mapping[key]);
     row('Case category', running.casePolicy.categoryId, candidate.casePolicy.categoryId);
+    const shuttle = policy => policy.shuttleCategoryId ?? `Same as case category (${policy.categoryId})`;
+    row('Shuttle category', shuttle(running.casePolicy), shuttle(candidate.casePolicy));
     for (const [key, title] of Object.entries(labels)) row(title, (running.capabilityPolicy.grants[key] ?? []).join(', ') || 'Denied', candidate.capabilityPolicy.grants[key].join(', ') || 'Denied');
     for (const [key, title] of Object.entries(caseLabels)) row(title, (running.casePolicy.responders?.[key] ?? (key === 'head-admin-contact' ? [running.mapping.leadOps] : [running.mapping.staff, running.mapping.leadOps])).join(', '), candidate.capabilityPolicy.responders[key].join(', '));
     table.append(body); parent.append(table);
@@ -96,6 +98,10 @@ export function createPermissionsView({ document, controller }) {
         selection(get('mapping-fields'), `mapping-${key}`, title, [state.document[key] ?? owned[key]], key === 'categoryId' ? choices.categories : eligible,
           false, value => controller.mapping(key, value), frozen);
       }
+      // Onboarding (Shuttle) channels may use their own category; none selected keeps them with the other cases.
+      selection(get('mapping-fields'), 'mapping-shuttleCategoryId', 'Shuttle channel category',
+        [state.document.shuttleCategoryId ?? ''], [{ id: '', name: 'Same as case channel category' }, ...choices.categories],
+        false, value => controller.mapping('shuttleCategoryId', value === '' ? null : value), frozen);
       for (const [group, titles, parent] of [['grants',labels,'grant-fields'], ['responders',caseLabels,'responder-fields']]) {
         for (const [key, title] of Object.entries(titles)) selection(get(parent), `${group}-${key}`, title, state.document[group][key], roles, true,
           values => controller.roles(group,key,values), frozen || key === 'head-admin-contact');
