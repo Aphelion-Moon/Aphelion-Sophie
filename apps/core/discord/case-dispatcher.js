@@ -4,16 +4,28 @@ import { settleDeliveryFailure } from './delivery-failure.js';
 import { casePlanKey } from '../../../modules/tickets/channel-policy.js';
 
 /** One case operation per call. A database lease cannot make Discord effects atomic. */
-export function createCaseDispatcher({ outbox, store, roles, channels, enabled }) {
-  requireCondition(typeof enabled === 'function', 'DELIVERY_GATE_REQUIRED');
+export function createCaseDispatcher({ outbox, store, roles, channels, enabled, trace = () => {} }) {
+  requireCondition(typeof enabled === 'function' && typeof trace === 'function', 'DELIVERY_GATE_REQUIRED');
   const parkedCodes = [...commonParkedCodes, ...caseParkedCodes];
   async function ready(claim) {
     requireCondition(await enabled() === true, 'DELIVERY_DISABLED');
     await outbox.requireDeliveryReady(claim);
     await outbox.renew(claim);
   }
-  return Object.freeze({
+  // Fixed diagnostic codes only: the outcome, its error code and whole milliseconds. No IDs or channel names.
+  function note(result, startedAt) {
+    try {
+      const code = typeof result.code === 'string' && /^[A-Z][A-Z0-9_]{1,47}$/.test(result.code) ? `_${result.code}` : '';
+      trace(`CASE_PROVISION_${String(result.status).toUpperCase().replace(/[^A-Z]/g, '_')}${code}_${Math.min(99_999, Math.round(performance.now() - startedAt))}MS`);
+    } catch { /* Diagnostics never affect delivery. */ }
+  }
+  const dispatcher = Object.freeze({
     async runOnce(owner) {
+      const startedAt = performance.now(), result = await dispatcher.provision(owner);
+      if (!['idle', 'disabled'].includes(result.status)) note(result, startedAt);
+      return result;
+    },
+    async provision(owner) {
       requireName(owner);
       if (await enabled() !== true) return { status: 'disabled' };
       const job = await outbox.claim(owner, 30_000, ['case.provision']);
@@ -122,4 +134,5 @@ export function createCaseDispatcher({ outbox, store, roles, channels, enabled }
       }
     },
   });
+  return dispatcher;
 }

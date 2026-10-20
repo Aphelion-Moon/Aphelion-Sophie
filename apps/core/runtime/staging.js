@@ -135,7 +135,8 @@ export async function createStagingRuntime({ configuration, pool, aiControlPool 
     const result = await requests.commands.execute(envelope);
     if (['shuttle.start', 'shuttle.control'].includes(envelope.command)) {
       trace(`SHUTTLE_COMMAND_${String(result).toUpperCase().replace(/[^A-Z]/g, '_').slice(0, 32)}_${Math.min(99_999, Math.round(performance.now() - startedAt))}MS`);
-      if (['shuttle_recorded', 'shuttle_progress_recorded', 'shuttle_help_recorded', 'shuttle_help_paused'].includes(result)) wake();
+      // A failed click may have queued its card to be drawn again; waking costs nothing when there is no work.
+      if (result !== 'disabled') wake();
     }
     return result;
   } });

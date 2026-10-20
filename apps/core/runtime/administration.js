@@ -82,7 +82,7 @@ export function createAdministrationLane({ configuration, pool, token, fetch, cl
   const knowledgeLookup=knowledge===null ? null:createKnowledgeLookupCommands({authorization,verifier,knowledge,guildId:mapping.guildId,enabled,clock,
     inspectChannel:channelId=>inspectAutomationChannel(pool,{guildId:mapping.guildId,protectedCategoryId:policy.categoryId,channels:lookupChannels,channelId})});
   const commands = createAdministrationCommands({ onboardingClosure: createOnboardingChannelClosure({ authorization, roles, channels, store, enabled }), moderation: createModerationCommands(common),
-    onboarding: createOnboardingCommands({ ...common, channels, definitionId, limits }), assistance, deliveryIssues, caseLifecycle, caseStaff,
+    onboarding: createOnboardingCommands({ ...common, channels, definitionId, limits, trace: onTrace }), assistance, deliveryIssues, caseLifecycle, caseStaff,
     caseIntake, caseContacts, caseDeliveryIssues, publicAnswers, caseAnswers, knowledgeLookup, caseParticipants: createCaseParticipants(common),
     caseReplies: createCaseReplyCommands({ ...common, verifier, replies: replyStore, guildId: mapping.guildId }) });
   const outbox = createOutbox({ pool });
@@ -96,7 +96,7 @@ export function createAdministrationLane({ configuration, pool, token, fetch, cl
   const automationRecovery = createAutomationRecovery({pool,authorize,guildId:mapping.guildId,protectedCategoryId:policy.categoryId,
     channels:createAutomationChannels({transport}),messages:automationMessages});
   const workers = [createMembershipDispatcher({ outbox, store, discord: roles, enabled }), createRoleDispatcher({ outbox, store, discord: roles, enabled }),
-    createCaseDispatcher({ outbox, store, roles, channels, enabled }), createOnboardingDispatcher({ outbox, store, roles, messages: screens, enabled,
+    createCaseDispatcher({ outbox, store, roles, channels, enabled, trace: onTrace }), createOnboardingDispatcher({ outbox, store, roles, messages: screens, enabled,
       trace: onTrace, requestCount: transport.requestCount }),
     createOnboardingAlertDispatcher({ outbox, store, roles, messages: alerts, enabled }),
     createCaseIntakeDispatcher({ outbox, store: deliveryStore, roles, messages: answers, enabled }),
