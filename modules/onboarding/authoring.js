@@ -14,7 +14,8 @@ export function canonicalOnboardingDraft(value) {
   requireOnboardingSteps(value.stages);
   const text = (value, maximum) => requireCondition(typeof value === 'string' && value.length <= maximum && value.isWellFormed() &&
     !/[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]/.test(value), 'INVALID_STATIC_COPY');
-  const document = { helpPauses: value.helpPauses, stages: value.stages.map(stage => {
+  // The help-pause rule is retired: Staff take no part in the Shuttle (owner direction, 20 October 2026).
+  const document = { helpPauses: false, stages: value.stages.map(stage => {
     requireKeys(stage, ['id', 'title', 'body', ...['screens', 'linkPreviews'].filter(key => Object.hasOwn(stage, key))]);
     requireName(stage.id); text(stage.title, 80); text(stage.body, 5_000);
     requireAuthoredScreens(stage);

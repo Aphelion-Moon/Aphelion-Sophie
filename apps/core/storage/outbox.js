@@ -1,17 +1,16 @@
 import { requireCondition, requireId, requireInteger, requireKeys, requireName } from '../../../contracts/validation.js';
 import { inTransaction } from './transaction.js';
 import { commonParkedCodes, caseParkedCodes, onboardingParkedCodes, onboardingAlertParkedCodes, caseIntakeParkedCodes, caseReplyParkedCodes, automationParkedCodes } from '../../../contracts/delivery-errors.js';
-import { recordOnboardingDeliveryAlert } from './onboarding-alert-records.js';
 import { recordOnboardingDeliveryIssue } from './onboarding-issue-records.js';
 import { recordCaseDeliveryIssue } from './case-issue-records.js';
 
 const deliveryKinds = Object.freeze(['whitelist.grant', 'whitelist.reconcile', 'member.reconcile', 'case.provision', 'shuttle.render', 'shuttle.alert', 'case.intake', 'case.dm', 'case.reply', 'automation.dispatch']);
 
+// Issues are recorded for history. Shuttle failures no longer ping Staff (owner direction, 20 October 2026): parked
+// Shuttle work is rechecked on its own, see recheckParkedShuttleWork.
 async function recordDeliveryFailure(client, claim) {
   await recordOnboardingDeliveryIssue(client, claim);
   await recordCaseDeliveryIssue(client, claim);
-  const effect = await recordOnboardingDeliveryAlert(client, claim);
-  if (effect) await enqueue(client, effect);
 }
 
 export async function enqueue(client, effect) {
@@ -47,7 +46,7 @@ export async function lockClaim(client, claim) {
 export async function finishClaim(client, claim, status, code = null) {
   // Recheck the time after any intervening row locks or state validation.
   const result = await client.query(`UPDATE sophie_core.outbox SET status = $5,
-    lease_owner = NULL, lease_until = NULL, last_error_code = $6
+    lease_owner = NULL, lease_until = NULL, last_error_code = $6, parked_at = CASE WHEN $5 = 'parked' THEN clock_timestamp() END
     WHERE guild_id = $1 AND operation_id = $2 AND lease_owner = $3 AND fence = $4
       AND status = 'leased' AND lease_until > clock_timestamp()`,
   [claim.guildId, claim.operationId, claim.owner, claim.fence, status, code]);
@@ -138,6 +137,23 @@ export function createOutbox({ pool }) {
         await finishClaim(client, claim, 'parked', code);
         await recordDeliveryFailure(client, claim);
       });
+    },
+    /**
+     * No Shuttle work waits for Staff (owner direction, 20 October 2026). A parked Shuttle job is rechecked on its own
+     * like a Staff recheck (new fence, fresh attempts): two minutes after it parks, doubling with each recheck up to
+     * fifteen. A global rate-limit halt stays with the operator. Returns how many jobs were requeued.
+     */
+    async recheckParkedShuttleWork(limit = 20) {
+      requireInteger(limit, 1, 100);
+      const result = await pool.query(`UPDATE sophie_core.outbox o SET status = 'ready', available_at = clock_timestamp(), attempts = 0,
+          fence = o.fence + 1, last_error_code = NULL, parked_at = NULL, auto_rechecks = o.auto_rechecks + 1
+        FROM (SELECT guild_id, operation_id FROM sophie_core.outbox
+          WHERE status = 'parked' AND last_error_code IS DISTINCT FROM 'DISCORD_RATE_LIMIT_INVALID'
+            AND (kind IN ('whitelist.grant', 'whitelist.reconcile', 'shuttle.render') OR (kind = 'case.provision' AND effect->>'type' = 'shuttle'))
+            AND parked_at <= clock_timestamp() - LEAST(900000, 120000 * power(2, LEAST(auto_rechecks, 3))) * interval '1 millisecond'
+          ORDER BY parked_at LIMIT $1 FOR UPDATE SKIP LOCKED) due
+        WHERE o.guild_id = due.guild_id AND o.operation_id = due.operation_id`, [limit]);
+      return result.rowCount;
     },
     /** Successful progress can release a job for its next bounded role operation. */
     async continue(claim) {

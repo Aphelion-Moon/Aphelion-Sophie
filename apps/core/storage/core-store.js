@@ -17,7 +17,6 @@ import { createOnboardingScreenStore } from './onboarding-screens.js';
 import { createOnboardingAssistanceStore } from './onboarding-assistance.js';
 import { createOnboardingAlertStore } from './onboarding-alerts.js';
 import { createOnboardingDeliveryIssueStore } from './onboarding-delivery-issues.js';
-import { recordOnboardingDeliveryAlert } from './onboarding-alert-records.js';
 import { getDefinition, getSession, saveSession } from './onboarding-records.js';
 import { inTransaction } from './transaction.js';
 import { enqueue, finishClaim, lockClaim, validateClaim } from './outbox.js';
@@ -27,8 +26,6 @@ async function queueReconciliation(client, member, sourceOperation, suffix = 're
     operationId: `${sourceOperation}.${suffix}`, sourceOperation,
     // This asks the future dispatcher to inspect current policy, not blindly remove a role.
     accessEpoch: member.accessEpoch, eligibilityEpoch: member.eligibilityEpoch });
-  const alert = await recordOnboardingDeliveryAlert(client, { guildId: member.guildId, operationId: sourceOperation });
-  if (alert) await enqueue(client, alert);
 }
 
 async function latestMemberAction(client, member) {

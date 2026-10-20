@@ -2,6 +2,8 @@
 
 Scope: P06, P09, P16 and P17; partial T04, T05, T13–T16, T18–T21 and T36. The initial slice added a private Staff queue and an audited request to recheck parked Whitelist jobs. [Case/message recovery](shuttle-artifact-recovery.md) extends it to the three fixed Shuttle artifact jobs. It uses the existing runtime, driver, token boundary and case policy. There is no dependency or licence change, live command registration or production activation.
 
+> **20 October 2026:** Staff no longer need to act on Shuttle deliveries. A parked Whitelist, Shuttle message or Shuttle channel job is rechecked automatically two minutes after it parks (doubling up to fifteen); unanswered creates older than two minutes are given up and redone, and duplicate Shuttle channels keep the oldest. A Staff recheck below still works; only a global rate-limit halt needs the operator.
+
 ## Review and authority
 
 `/shuttle issues` lists at most five parked Shuttle deliveries, with retained cursors for subsequent pages. Each entry contains only member/case references, a static reason, possible-effect indication and a specific Recheck control or message-identification instructions. Current Staff or lead ops authority is checked when executing, reading, committing and constructing the later ephemeral response. Incoming Discord role arrays, requester status, Administrator permissions, copied component IDs and serialized actors confer no authority. Responses suppress all mentions.

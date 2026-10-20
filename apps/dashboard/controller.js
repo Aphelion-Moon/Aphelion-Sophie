@@ -6,7 +6,8 @@ export const INITIAL_STAGES = Object.freeze([
   ['admire-the-lights', 'Admire the Lights'], ['disembarking', 'Disembarking'],
 ]);
 export const emptyDraft = () => ({ helpPauses: false, stages: INITIAL_STAGES.map(([id, title]) => ({ id, title, body: '', screens: [''] })) });
-export const draftOf = publication => ({ helpPauses: publication.helpPauses, stages: publication.stages.map(({ id, title, body, screens, linkPreviews }) => ({ id, title, body,
+// Staff take no part in the Shuttle, so drafts never pause on help (owner direction, 20 October 2026).
+export const draftOf = publication => ({ helpPauses: false, stages: publication.stages.map(({ id, title, body, screens, linkPreviews }) => ({ id, title, body,
   ...(screens ? { screens: [...screens] } : {}), ...(screens && linkPreviews ? { linkPreviews: [...linkPreviews] } : {}) })) });
 /** Whether each message of a step shows Discord link previews; off unless the author turned it on. */
 export function previewsOf(stage) { return screensOf(stage).map((_, index) => stage.linkPreviews?.[index] === true); }
@@ -95,6 +96,5 @@ export function createGuidanceController({ api, onChange, newRequestId }) {
       edit(document => { document.stages.splice(state.page, 1); },
         `Remove step ${state.page + 1}, “${state.document.stages[state.page].title || 'Untitled page'}”, from this draft? Saved versions and active runs remain unchanged.`);
     },
-    updateHelp(value) { if (typeof value === 'boolean') edit(document => { document.helpPauses = value; }); },
   });
 }

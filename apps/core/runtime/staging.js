@@ -30,6 +30,7 @@ import { createGatewaySupervisor } from '../discord/gateway-supervisor.js';
 import { createInteractionVerifier } from '../security/interaction-verifier.js';
 import { createInteractionResponder } from '../discord/interaction-response.js';
 import { createInteractionHttpServer } from '../discord/interaction-http.js';
+import { createOutbox } from '../storage/outbox.js';
 import { createCaseReconciler } from '../discord/case-reconciler.js';
 import { createCaseInspectionStore } from '../storage/case-inspections.js';
 import { createCorePrincipals } from '../security/principals.js';
@@ -143,6 +144,8 @@ export async function createStagingRuntime({ configuration, pool, aiControlPool 
       definitionId: fixed.definitionId, enabled, readSystemText }),
     caseIntake: requests.caseIntake, readSystemText, enabled, onFault: fault });
   const reconciler = createCaseReconciler({ store: createCaseInspectionStore({ pool, policy: fixed.casePolicy }), enabled });
+  // No Shuttle work waits for Staff: parked Shuttle jobs are rechecked on their own (see recheckParkedShuttleWork).
+  const shuttleOutbox = createOutbox({ pool });
   let dashboard = null;
   if (auth !== null) {
     const browser = lane(), { authorization, roles } = browser;
@@ -212,6 +215,8 @@ export async function createStagingRuntime({ configuration, pool, aiControlPool 
         try {await knowledgeAdministration.start();knowledgeStarted=true;}catch{fault('KNOWLEDGE_SYNC_UNAVAILABLE');}
       }
       await reconciler.runOnce();
+      try { if (await shuttleOutbox.recheckParkedShuttleWork() > 0) trace('SHUTTLE_SELF_HEAL_REQUEUED'); }
+      catch { fault('SHUTTLE_SELF_HEAL_UNAVAILABLE'); }
       // Bounded round-robin: a busy case queue cannot starve membership or role revocation.
       for (const worker of delivery.workers) { if (!active()) break; await worker.runOnce(owner); }
     })().finally(() => { ticking = false; });

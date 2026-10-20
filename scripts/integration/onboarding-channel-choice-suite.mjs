@@ -243,4 +243,16 @@ export async function runOnboardingChannelChoiceSuite(cluster, run) {
     await f.admin.query("UPDATE sophie_core.case_reservations SET type = 'head-admin-contact'");
     assert.equal(await channelChoice(f, issue, duplicate.id), 'shuttle_issue_stale'); assert.equal((await audit(f)).length, 0);
   });
+
+  await scenario('Q12 without Staff, an old unresolved duplicate keeps the oldest channel and seals the other', async f => {
+    const { original, duplicate } = await duplicateOnboardingCase(f);
+    const [kept, other] = [original.id, duplicate.id].sort();
+    await f.admin.query("UPDATE sophie_core.case_provisions SET create_started_at = clock_timestamp() - interval '3 minutes'");
+    await f.admin.query("UPDATE sophie_core.outbox SET parked_at = clock_timestamp() - interval '3 minutes' WHERE status = 'parked'");
+    assert.equal(await f.outbox.recheckParkedShuttleWork(), 1);
+    await f.drain(f.cases); assert.equal((await state(f)).channel_id, kept); assert.equal((await state(f)).state, 'open');
+    await exact(f, other, true); await exact(f, kept, false);
+    assert.equal((await audit(f)).length, 0); assert.equal(writes(f).filter(call => call.method === 'POST').length, 1);
+    await f.drain(f.screens); assert.equal((await f.current()).channel_id, kept);
+  });
 }

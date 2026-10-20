@@ -244,4 +244,44 @@ export async function runOnboardingArtifactRecoverySuite(cluster, run) {
     assert.ok(card.embeds.every(embed => embed.footer === undefined)); assert.equal(card.components.length, 0);
     assert.match(card.embeds[0].title, /your progress/);
   });
+
+  const age = (f, table) => f.admin.query(`UPDATE sophie_core.${table} SET create_started_at = clock_timestamp() - interval '3 minutes' WHERE create_started`);
+  const recheck = async f => {
+    await f.admin.query("UPDATE sophie_core.outbox SET parked_at = clock_timestamp() - interval '3 minutes' WHERE status = 'parked'");
+    return f.outbox.recheckParkedShuttleWork();
+  };
+
+  await scenario('F21 without Staff, an old unanswered status card starts the run again at the same progress', async f => {
+    const { record } = await parkedOnboardingMessage(f), progress = await f.session();
+    await age(f, 'shuttle_screens'); assert.equal(await recheck(f), 1);
+    await f.drain(f.screens);
+    const replacement = await f.current(); assert.notEqual(replacement.id, record.id); assert.equal(replacement.ready, true);
+    assert.equal((await recorded(f, 'screen', record.id)).current, false); assert.deepEqual(await f.session(), progress);
+    assert.equal((await f.group()).content.length, 1); assert.equal((await audits(f)).length, 0);
+    assert.equal(await f.click('advance'), 'shuttle_progress_recorded');
+  });
+
+  await scenario('F22 without Staff, an old unanswered step message is given up and its step posted again in order', async f => {
+    assert.equal(await f.execute(f.payload()), 'shuttle_recorded'); await f.drain(f.cases);
+    let posts = 0, lost = null;
+    f.discord.state.afterWrite = call => { if (call.method === 'POST' && call.path.endsWith('/messages') && ++posts === 2) {
+      f.discord.state.afterWrite = null; lost = [...f.discord.state.messages.keys()].at(-1); f.discord.state.messages.delete(lost);
+      throw new Error('SYNTHETIC_LOST_STEP_MESSAGE');
+    } };
+    assert.equal((await f.screens.runOnce('lost-step')).status, 'retry_scheduled'); await age(f, 'shuttle_screen_parts'); await makeDue(f);
+    await f.drain(f.screens);
+    const screen = await f.current(), shown = await f.group(screen);
+    assert.equal(screen.ready, true); assert.equal(screen.part_generation, 1); assert.equal(shown.content.length, 1);
+    assert.ok(BigInt(shown.content[0].id) < BigInt(shown.nav.id));
+    assert.equal((await f.rows('shuttle_screen_parts')).filter(part => part.gone).length, 1); assert.equal((await audits(f)).length, 0);
+  });
+
+  await scenario('F23 without Staff, an old unanswered channel create that left nothing behind is created again', async f => {
+    const { channel } = await lostCase(f); assert.ok(channel);
+    await age(f, 'case_provisions'); assert.equal(await recheck(f), 1);
+    await f.drain(f.cases); await f.drain(f.screens);
+    const reservation = (await f.rows('case_reservations'))[0];
+    assert.equal(reservation.state, 'open'); assert.notEqual(reservation.channel_id, channel.id);
+    assert.equal((await f.current()).ready, true); assert.equal((await audits(f)).length, 0);
+  });
 }

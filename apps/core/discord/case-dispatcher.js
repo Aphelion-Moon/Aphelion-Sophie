@@ -58,7 +58,12 @@ export function createCaseDispatcher({ outbox, store, roles, channels, enabled }
         }
         // Retain every discovered candidate, including duplicates and late results.
         for (const proof of matches) await store.noteCaseChannel({ claim, proof });
-        if (!matches.length && current.channelId === null) requireCondition(false, 'CASE_CREATION_UNCERTAIN');
+        if (!matches.length && current.channelId === null) {
+          // Shuttle cases create again once the unanswered create is old enough; anything else waits for review.
+          const { restarted } = await store.restartUncertainCaseCreation({ claim, observation: await roles.observe(job.userId) });
+          requireCondition(restarted, 'CASE_CREATION_UNCERTAIN');
+          await outbox.continue(claim); return { status: 'progressed' };
+        }
         const candidates = await store.inspectCaseCandidates({ claim, observation: await roles.observe(job.userId) });
         const otherProofs = [];
         // No selection grants access. Seal each other retained candidate first, one

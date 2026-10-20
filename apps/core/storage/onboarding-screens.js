@@ -15,6 +15,10 @@ const digest = payload => createHash('sha256').update(JSON.stringify(payload)).d
 // Discord suppresses a repeated create nonce only "in the past few minutes". A part create whose response was lost
 // is sent once more with the same nonce inside this window; after it, it parks for review like any uncertain create.
 const NONCE_RETRY_MS = 60_000;
+// No Shuttle work waits for Staff (owner direction, 20 October 2026). A create still unanswered this long after it
+// started is given up: a step message is posted again with its step, a status card starts a new run. Rarely, a member
+// may then see a duplicate message. Younger uncertain creates park and are rechecked automatically.
+export const ABANDON_UNCERTAIN_MS = 120_000;
 
 /**
  * Core-only metadata and deterministic controls. No case text input or generic endpoint.
@@ -90,12 +94,16 @@ export function createOnboardingScreenStore({ pool, clock, authorize, policy, ca
       helpRequested: screen.help_requested, controlVersion: screen.control_version }, wording.text) }];
     const parts = (await client.query(`SELECT *, floor(extract(epoch FROM clock_timestamp() - create_started_at) * 1000) AS create_age_ms
       FROM sophie_core.shuttle_screen_parts WHERE screen_id = $1 ORDER BY generation, position FOR UPDATE`, [screen.id])).rows;
+    // A status card create started before migration 072 has no time; it counts as old.
+    screen.create_age_ms = Number((await client.query(`SELECT coalesce(floor(extract(epoch FROM clock_timestamp() - create_started_at) * 1000),
+      'Infinity'::double precision) AS age FROM sophie_core.shuttle_screens WHERE id = $1`, [screen.id])).rows[0].age);
     return { screen, session, plan, channelId, removed: row.onboarding_retirement === 'removed', retired, status, group, parts };
   }
   /** The next single Discord write toward the stored state, or null when the group is current. No side effects. */
   function nextWrite({ screen, retired, status, group, parts }) {
     if (screen.message_id === null) {
       if (retired || screen.message_gone) return null;
+      if (screen.create_started && screen.create_age_ms > ABANDON_UNCERTAIN_MS) return { action: 'replace' };
       requireCondition(!screen.create_started, 'SHUTTLE_MESSAGE_UNCERTAIN');
       return { action: 'create', target: 'anchor', recordId: screen.id, kind: 'status', payload: status };
     }
@@ -109,6 +117,7 @@ export function createOnboardingScreenStore({ pool, clock, authorize, policy, ca
       if (part?.gone || (part && part.kind !== wanted.kind)) return { action: 'regroup' };
       if (!part) return { action: 'create', target: 'part', position, kind: wanted.kind, payload: wanted.payload };
       if (part.message_id === null) {
+        if (Number(part.create_age_ms) > ABANDON_UNCERTAIN_MS) return { action: 'regroup', abandon: part.id };
         requireCondition(!part.create_retried && Number(part.create_age_ms) <= NONCE_RETRY_MS, 'SHUTTLE_MESSAGE_UNCERTAIN');
         return { action: 'create', target: 'part', retry: true, recordId: part.id, position, kind: wanted.kind, payload: wanted.payload };
       }
@@ -245,10 +254,20 @@ export function createOnboardingScreenStore({ pool, clock, authorize, policy, ca
         requireCondition(!current.removed, 'SHUTTLE_CASE_UNAVAILABLE');
         await caseProof(proof, current.plan, current.channelId, current.retired);
         let write = nextWrite(current);
+        if (write?.action === 'replace') {
+          // The status card's create was never answered: start the run again with a new card at the same progress.
+          await client.query('UPDATE sophie_core.shuttle_screens SET current = false, ready = false WHERE id = $1', [current.screen.id]);
+          await requestOnboardingScreen(client, member, current.session, `abandoned.${current.screen.id}`);
+          requireFreshObservation(member.observation, clock());
+          await finishClaim(client, claim, 'done'); return { action: 'none', current: false };
+        }
         if (write?.action === 'regroup') {
-          // A message of this step went missing (or the layout changed): post the whole step again, in order.
+          // A message of this step went missing, its create was never answered, or the layout changed: post the whole
+          // step again, in order.
+          if (write.abandon) await client.query('UPDATE sophie_core.shuttle_screen_parts SET gone = true WHERE id = $1', [write.abandon]);
           await client.query('UPDATE sophie_core.shuttle_screens SET part_generation = part_generation + 1, ready = false WHERE id = $1', [current.screen.id]);
           current.screen.part_generation++;
+          if (write.abandon) Object.assign(current.parts.find(part => part.id === write.abandon), { gone: true });
           write = nextWrite(current);
         }
         const ready = controlsReady(current);
@@ -258,7 +277,7 @@ export function createOnboardingScreenStore({ pool, clock, authorize, policy, ca
           await finishClaim(client, claim, 'done'); return { action: 'none', current: !current.retired };
         }
         if (write.action === 'create' && write.target === 'anchor') {
-          await client.query('UPDATE sophie_core.shuttle_screens SET create_started = true, channel_id = $2 WHERE id = $1', [current.screen.id, current.channelId]);
+          await client.query('UPDATE sophie_core.shuttle_screens SET create_started = true, create_started_at = clock_timestamp(), channel_id = $2 WHERE id = $1', [current.screen.id, current.channelId]);
         } else if (write.action === 'create' && write.retry) {
           await client.query('UPDATE sophie_core.shuttle_screen_parts SET create_retried = true WHERE id = $1', [write.recordId]);
         } else if (write.action === 'create') {

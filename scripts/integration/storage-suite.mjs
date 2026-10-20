@@ -78,7 +78,7 @@ export async function runStorageSuite(cluster, run) {
   const scenario = async (name, work) => run(name, async () => { await reset(); await work(); });
 
   await scenario('S01 migrations are repeatable and detect a changed applied checksum', async () => {
-    assert.deepEqual(await migrateCore(admin), { migrations: 71 });
+    assert.deepEqual(await migrateCore(admin), { migrations: 72 });
     const original = await admin.query('SELECT id, sha256 FROM sophie_migrations.applied');
     await admin.query("UPDATE sophie_migrations.applied SET sha256 = 'invalid'");
     await assert.rejects(migrateCore(admin), /MIGRATION_CHECKSUM_MISMATCH/);

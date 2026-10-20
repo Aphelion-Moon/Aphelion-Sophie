@@ -1,5 +1,17 @@
 # Verification and release limits
 
+## Shuttle without Staff intervention — 20 October 2026 (prepared, not yet installed)
+
+Owner direction (decision log, "Staff take no part in the Shuttle"). Migration 072 releases earlier help pauses, closes
+open help requests and withdraws unsent notices. Parked Shuttle work (Whitelist grant and reconciliation, Shuttle
+messages, Shuttle channels) is rechecked automatically two minutes after parking, doubling to fifteen; creates still
+unanswered after two minutes are redone; duplicate Shuttle channels keep the opened or oldest channel; Whitelist delivery
+problems no longer alert Staff. Only a global rate-limit halt still needs the operator.
+
+**Offline evidence:** `npm test` 672 passed; repository check passed; storage (parallel, 4 shards) 1002 passed, 0 failed.
+New F21-F23 and Q12 cover the automatic recoveries; L04-L06, L15, L16 and L21 now cover no-Staff recovery, recheck
+timing and the migration release. Not yet run: staging install and live observation.
+
 ## Shuttle message groups and faster page turns — 20 October 2026 (prepared, not yet installed)
 
 Owner request and decisions of 20 October (decision log, "Shuttle message groups"). Source on `codex/sophie-social-ai`:

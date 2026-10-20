@@ -1,3 +1,4 @@
+import { readFile } from 'node:fs/promises';
 import { closeTestCase } from '../../tests/fixtures/case-lifecycle.js';
 import assert from 'node:assert/strict';
 import { onboardingWorkflow } from '../../tests/fixtures/onboarding-workflow.js';
@@ -44,34 +45,43 @@ export async function runOnboardingAlertSuite(cluster, run) {
     assert.equal((await records(f))[0].state, 'obsolete'); assert.equal((await records(f))[0].message_id, null);
   });
 
-  await scenario('L04 a blocked Whitelist grant retains one Staff alert across member retries', async f => {
+  await scenario('L04 a blocked Whitelist grant pings no one and completes on its own once the role order is fixed', async f => {
     await f.pending(); f.discord.state.roles.find(role => role.id === WHITELIST).position = 20;
     assert.equal((await f.grants.runOnce('blocked-grant')).code, 'ROLE_HIERARCHY_BLOCKED');
     assert.equal((await f.session()).status, 'role_pending'); assert.equal(f.discord.state.members.get(USER).includes(WHITELIST), false);
-    await f.drain(f.alerts); assert.equal((await records(f))[0].state, 'confirmed');
-    assert.equal((await records(f))[0].kind, 'delivery');
-    assert.equal(await f.click('retry'), 'shuttle_progress_recorded');
-    assert.equal((await f.grants.runOnce('inspect-old-effect')).status, 'settled');
-    assert.equal((await f.grants.runOnce('blocked-retry')).code, 'ROLE_HIERARCHY_BLOCKED');
-    assert.equal((await records(f)).length, 1); assert.equal((await f.alerts.runOnce('duplicate-alert')).status, 'idle');
+    assert.equal((await records(f)).length, 0); assert.equal((await f.alerts.runOnce('no-alert')).status, 'idle');
+    // Still blocked: the automatic recheck parks it again and waits longer before the next one.
+    await f.admin.query("UPDATE sophie_core.outbox SET parked_at = clock_timestamp() - interval '3 minutes' WHERE status = 'parked'");
+    assert.equal(await f.outbox.recheckParkedShuttleWork(), 1);
+    for (let index = 0; index < 3; index++) await f.grants.runOnce('still-blocked');
+    const grant = (await f.rows('outbox')).find(row => row.kind === 'whitelist.grant');
+    assert.deepEqual([grant.status, grant.last_error_code, grant.auto_rechecks], ['parked', 'ROLE_HIERARCHY_BLOCKED', 1]);
+    await f.admin.query("UPDATE sophie_core.outbox SET parked_at = clock_timestamp() - interval '3 minutes' WHERE status = 'parked'");
+    assert.equal(await f.outbox.recheckParkedShuttleWork(), 0);
+    // Once the bot's role order is fixed, the next automatic recheck completes it. No Staff action was taken.
+    f.discord.state.roles.find(role => role.id === WHITELIST).position = 1;
+    await f.admin.query("UPDATE sophie_core.outbox SET parked_at = clock_timestamp() - interval '5 minutes' WHERE status = 'parked'");
+    assert.equal(await f.outbox.recheckParkedShuttleWork(), 1); await f.drain(f.grants); await f.drain(f.screens);
+    assert.equal((await f.rows('sessions'))[0].state.status, 'complete'); assert.equal(f.discord.state.members.get(USER).includes(WHITELIST), true);
+    assert.equal((await records(f)).length, 0); assert.equal((await f.rows('shuttle_delivery_rechecks')).length, 0);
   });
 
-  await scenario('L05 a lost role response records uncertainty and an alert without claiming completion', async f => {
+  await scenario('L05 a lost role response records uncertainty, pings no one and claims no completion', async f => {
     await f.pending();
     f.discord.state.afterWrite = call => { if (call.method === 'PUT') { f.discord.state.afterWrite = null; throw new Error('SYNTHETIC_LOST_ROLE_RESPONSE'); } };
     assert.equal((await f.grants.runOnce('uncertain-role')).status, 'retry_scheduled');
-    assert.equal((await f.session()).status, 'role_pending'); assert.equal((await records(f)).length, 1);
+    assert.equal((await f.session()).status, 'role_pending'); assert.equal((await records(f)).length, 0);
     assert.ok((await f.rows('outbox')).some(row => row.kind === 'whitelist.reconcile'));
-    await f.drain(f.alerts); assert.equal((await records(f))[0].state, 'confirmed');
+    assert.equal((await f.rows('outbox')).some(row => row.kind === 'shuttle.alert'), false);
   });
 
-  await scenario('L06 a recovered role failure suppresses its queued alert after confirmed completion', async f => {
+  await scenario('L06 a recovered role failure completes without any Staff notice', async f => {
     await f.pending();
     f.discord.state.before = call => call.method === 'PUT' ? new Response(null, { status: 503 }) : null;
     assert.equal((await f.grants.runOnce('temporary-failure')).status, 'retry_scheduled');
     f.discord.state.before = null; await due(f); await f.drain(f.grants);
     assert.equal((await f.rows('sessions'))[0].state.status, 'complete');
-    const before = posts(f); await f.drain(f.alerts); assert.equal(posts(f), before); assert.equal((await records(f))[0].state, 'obsolete');
+    const before = posts(f); await f.drain(f.alerts); assert.equal(posts(f), before); assert.equal((await records(f)).length, 0);
   });
 
   await scenario('L07 a lost alert create response parks without issuing another POST or recursive alert', async f => {
@@ -155,21 +165,28 @@ export async function runOnboardingAlertSuite(cluster, run) {
     assert.equal((await records(f))[0].create_started, false);
   });
 
-  await scenario('L15 attempt exhaustion records a role-failure alert and preserves pending access', async f => {
+  await scenario('L15 attempt exhaustion pings no one; the automatic recheck gives the grant fresh attempts', async f => {
     await f.pending(); await f.admin.query("UPDATE sophie_core.outbox SET attempts = 10 WHERE kind = 'whitelist.grant'");
     assert.equal((await f.grants.runOnce('exhausted-role')).code, 'ATTEMPT_LIMIT');
-    assert.equal((await records(f))[0].kind, 'delivery'); assert.equal((await f.session()).status, 'role_pending');
-    await f.drain(f.alerts); assert.equal((await records(f))[0].state, 'confirmed');
+    assert.equal((await records(f)).length, 0); assert.equal((await f.session()).status, 'role_pending');
+    await f.admin.query("UPDATE sophie_core.outbox SET parked_at = clock_timestamp() - interval '3 minutes' WHERE status = 'parked'");
+    assert.equal(await f.outbox.recheckParkedShuttleWork(), 1);
+    const job = (await f.rows('outbox')).find(row => row.kind === 'whitelist.grant');
+    assert.deepEqual([job.status, job.attempts, job.auto_rechecks], ['ready', 0, 1]);
+    await f.drain(f.grants); assert.equal((await f.rows('sessions'))[0].state.status, 'complete');
   });
 
-  await scenario('L16 failure settlement rolls back if its alert cannot be retained', async f => {
+  await scenario('L16 parked Shuttle work waits before its automatic recheck; a global rate-limit halt stays with the operator', async f => {
     await f.pending(); f.discord.state.roles.find(role => role.id === WHITELIST).position = 20;
-    await f.admin.query("ALTER TABLE sophie_core.shuttle_alerts ADD CONSTRAINT synthetic_alert_storage_failure CHECK (kind <> 'delivery') NOT VALID");
-    try { await assert.rejects(f.grants.runOnce('failed-alert-record'), /DELIVERY_STATE_UNAVAILABLE/); }
-    finally { await f.admin.query('ALTER TABLE sophie_core.shuttle_alerts DROP CONSTRAINT synthetic_alert_storage_failure'); }
-    assert.equal((await records(f)).length, 0);
-    assert.equal((await f.rows('outbox')).find(row => row.kind === 'whitelist.grant').status, 'leased');
-    assert.equal((await f.session()).status, 'role_pending');
+    assert.equal((await f.grants.runOnce('blocked')).code, 'ROLE_HIERARCHY_BLOCKED');
+    assert.equal(await f.outbox.recheckParkedShuttleWork(), 0);
+    await f.admin.query("UPDATE sophie_core.outbox SET parked_at = clock_timestamp() - interval '1 minute' WHERE status = 'parked'");
+    assert.equal(await f.outbox.recheckParkedShuttleWork(), 0);
+    await f.admin.query("UPDATE sophie_core.outbox SET parked_at = clock_timestamp() - interval '3 minutes', last_error_code = 'DISCORD_RATE_LIMIT_INVALID' WHERE status = 'parked'");
+    assert.equal(await f.outbox.recheckParkedShuttleWork(), 0);
+    await f.admin.query("UPDATE sophie_core.outbox SET last_error_code = 'ROLE_HIERARCHY_BLOCKED' WHERE status = 'parked'");
+    assert.equal(await f.outbox.recheckParkedShuttleWork(), 1);
+    assert.ok((await f.rows('outbox')).find(row => row.kind === 'whitelist.grant').fence > 1);
   });
 
   await scenario('L17 resolution during a POST retains its late receipt without claiming current delivery', async f => {
@@ -208,24 +225,18 @@ export async function runOnboardingAlertSuite(cluster, run) {
     assert.equal(f.discord.state.calls.some(call => ['PUT', 'DELETE'].includes(call.method) && call.path.includes('/roles/')), false);
   }, { helpPauses: true });
 
-  await scenario('L21 an obsolete unsent failure alert can notify a later failure without reviving old delivery authority', async f => {
-    await f.pending();
-    f.discord.state.before = call => call.method === 'PUT' ? new Response(null, { status: 503 }) : null;
-    assert.equal((await f.grants.runOnce('before-pause-failure')).status, 'retry_scheduled'); f.discord.state.before = null;
-    assert.equal(await f.help(), 'shuttle_help_paused'); await due(f); await f.drain(f.grants); await f.drain(f.alerts);
-    const old = (await records(f)).find(row => row.kind === 'delivery');
-    assert.equal(old.state, 'obsolete'); assert.equal(old.create_started, false); assert.equal(old.revision, 0);
-    assert.equal(await f.resolve((await f.rows('shuttle_help_requests'))[0]), 'shuttle_help_resumed'); await f.drain(f.screens);
+  await scenario('L21 migration 072 releases pauses, closes help requests and withdraws unsent notices without Staff', async f => {
+    await f.open(); assert.equal(await f.help(), 'shuttle_help_paused'); await f.drain(f.screens);
+    assert.ok((await f.group()).nav.components[0].components.every(button => button.disabled));
+    const sql = await readFile(new URL('../../apps/core/storage/migrations/072-shuttle-autonomy.sql', import.meta.url), 'utf8');
+    await f.admin.query(sql.slice(sql.indexOf('-- Release:')));
+    assert.equal((await f.session()).helpPaused, false); assert.equal((await f.rows('shuttle_help_requests'))[0].status, 'resolved');
+    assert.equal((await records(f))[0].state, 'obsolete'); assert.equal((await f.rows('shuttle_help_resolutions')).length, 0);
+    await f.drain(f.screens); const before = posts(f); await f.drain(f.alerts); assert.equal(posts(f), before);
+    const shown = await f.group();
+    assert.deepEqual(shown.nav.components[0].components.map(button => button.disabled), [true, false]);
+    assert.doesNotMatch(shown.nav.embeds[0].description, /Staff/); assert.doesNotMatch(shown.status.embeds[0].description, /Staff/);
     assert.equal(await f.click('advance'), 'shuttle_progress_recorded');
-    f.discord.state.roles.find(role => role.id === WHITELIST).position = 20;
-    assert.equal((await f.grants.runOnce('after-resume-failure')).code, 'ROLE_HIERARCHY_BLOCKED');
-    const renewed = (await records(f)).find(row => row.id === old.id);
-    assert.equal(renewed.state, 'pending'); assert.equal(renewed.revision, 1); assert.equal(renewed.create_started, false);
-    const obsoleteJob = (await f.rows('outbox')).find(row => row.kind === 'shuttle.alert' && row.effect.alertId === old.id && row.effect.revision === 0);
-    // Model a retained obsolete intent being offered again after recovery: it must cancel.
-    await f.admin.query("UPDATE sophie_core.outbox SET status = 'ready', available_at = clock_timestamp() - interval '1 second' WHERE operation_id = $1", [obsoleteJob.operation_id]);
-    const before = posts(f); await f.drain(f.alerts);
-    assert.equal(posts(f), before + 1); assert.equal((await records(f)).find(row => row.id === old.id).state, 'confirmed');
-    assert.equal((await f.rows('outbox')).find(row => row.operation_id === obsoleteJob.operation_id).status, 'cancelled');
   }, { helpPauses: true });
+
 }

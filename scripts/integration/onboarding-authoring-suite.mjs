@@ -148,7 +148,8 @@ export async function runOnboardingAuthoringSuite(cluster, run) {
   });
 
   await scenario('E10 the original publication use case shares the editor lock and cannot overwrite competing published copy', async f => {
-    await f.save({ ...draftDocument(), helpPauses: true }); const request = await publishing(f);
+    const changed = draftDocument(); changed.stages[0].body = 'Competing synthetic guidance.';
+    await f.save(changed); const request = await publishing(f);
     const results = await Promise.allSettled([f.editorStore.publishOnboardingDraft(request),
       f.store.publishOnboarding({ actor: await f.actor(OTHER), publication: { ...publication, version: 2 } })]);
     assert.equal(results.filter(row => row.status === 'fulfilled').length, 1);

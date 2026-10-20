@@ -1131,3 +1131,23 @@ the same request. Shown the plan, the owner chose:
 A part create whose response was lost may be sent once more with the same Discord nonce within 60 seconds; Discord
 documents nonce enforcement as duplicate suppression "in the past few minutes". After that it parks for review as before.
 This keeps a single timeout during a step change from stranding the member; it is called out for owner confirmation.
+
+### Staff take no part in the Shuttle — 20 October 2026
+
+The owner: "Staff should not have to intervene in the Shuttle process at all." Shown the four places where a run could
+wait on Staff, the owner chose:
+
+- **Earlier help pauses:** resume them automatically. Migration 072 releases every pause and closes open help requests
+  as resolved (rows kept, no Staff resolution record); unsent Staff notices are withdrawn; the "pause on help" rule is
+  retired from the editor and drafts.
+- **Lost posts and channel creates:** carry on automatically. A Shuttle message or channel create still unanswered two
+  minutes after it started is given up: a step is posted again, a status card starts the run again at the same
+  progress, a channel is created again. Duplicate channels keep the channel already opened, or else the oldest, and
+  the others are sealed. Rarely, a member may see a duplicate message.
+- **Whitelist delivery failures:** retry on their own, without a Staff ping. Delivery-problem alerts are no longer
+  recorded.
+
+Parking itself is unchanged, so a Staff recheck still works, but any parked Shuttle job (Whitelist grant or
+reconciliation, Shuttle message, Shuttle channel) is rechecked automatically two minutes after it parks, doubling with
+each recheck up to fifteen minutes. Only a global rate-limit halt stays with the operator. Muzzled still blocks the
+Shuttle; that is moderation, not Shuttle intervention.

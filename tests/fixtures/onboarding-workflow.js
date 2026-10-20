@@ -16,7 +16,7 @@ import { createRoleDispatcher } from '../../apps/core/discord/dispatcher.js';
 import { createDiscordTransport } from '../../apps/core/discord/transport.js';
 import { createDiscordRoles } from '../../apps/core/discord/roles.js';
 import { simulatedOnboarding } from './onboarding.js';
-import { navigationMessage, seedOnboardingHelp } from './onboarding-group.js';
+import { navigationMessage, seedOnboardingHelp, shuttleGroup } from './onboarding-group.js';
 import { casePolicy } from './cases.js';
 import { mapping, MUZZLED } from './discord.js';
 import { syntheticInteractions } from './interactions.js';
@@ -102,5 +102,6 @@ export async function onboardingWorkflow(cluster, { helpPauses = false, extraCap
     return session();
   }
   return { pool, admin, clock, discord, identities, policy, authorization, actor, store, assistance, deliveryIssues, caseLifecycle, caseStaff, commands, outbox, cases, screens, grants, alerts,
+    group: async screen => shuttleGroup(admin, discord.state, screen ?? await current()),
     rows, current, withNavigation, session, drain, nextId, payload, verified, execute, control, click, help, resolution, resolve, open, pending };
 }

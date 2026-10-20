@@ -9,7 +9,6 @@ export function createGuidanceView({ document, controller }) {
   const hidden = (id, value) => { byId(id).hidden = value; };
   const disabled = (id, value) => { byId(id).disabled = value; };
   const date = value => value ? new Date(value).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' }) : 'Date unavailable';
-  const setting = document => document?.helpPauses ? 'Staff help pauses progress.' : 'Staff help does not pause progress.';
   let state, reviewKey = null, selectedKey = null, conflictKey = null, historyKey = null, returnFocus = null, restoreFocus = false;
   let choices = [];
   let screenIndex = 0, screenStep = null, screenChoices = [], previewText = null;
@@ -29,7 +28,6 @@ export function createGuidanceView({ document, controller }) {
   function copyColumn(title, guidance) {
     const column = node('section', '', 'comparison-column'); column.append(node('h3', title));
     if (!guidance) { column.append(node('p', 'No published copy.', 'muted')); return column; }
-    column.append(node('p', setting(guidance), 'muted'));
     guidance.stages.forEach((page, index) => { const article = node('article', '', 'copy-page');
       article.append(node('h4', `${index + 1}. ${page.title || 'Untitled page'}`), node('p', page.body || '(No guidance yet.)')); column.append(article); });
     return column;
@@ -186,7 +184,6 @@ export function createGuidanceView({ document, controller }) {
       for (const [id, value] of [['page-title', page.title], ['page-body', screens[screenIndex]]]) { if (byId(id).value !== value) byId(id).value = value; byId(id).readOnly = locked; }
       byId('page-body').maxLength = Math.min(1_800, 5_000 - (screens.join('\n\n').length - screens[screenIndex].length));
       setText('title-count', `${page.title.length} / 80`); setText('body-count', `${screens[screenIndex].length} / 1,800 · step ${page.body.length} / 5,000`);
-      byId('help-pauses').checked = state.document.helpPauses; disabled('help-pauses', locked);
       disabled('add-page', locked || count >= 20); disabled('remove-page', locked || count <= 1);
       disabled('move-up', locked || state.page === 0); disabled('move-down', locked || state.page === count - 1);
       for (const [index, choice] of choices.entries()) {
@@ -203,7 +200,7 @@ export function createGuidanceView({ document, controller }) {
       // Hidden fields must not retain guidance after permission loss or sign-out.
       byId('page-title').value = ''; byId('page-body').value = ''; byId('history-list').replaceChildren(); historyKey = null;
       byId('screen-preview').replaceChildren(); byId('screens').replaceChildren(); screenChoices = []; screenStep = null; previewText = null;
-      byId('help-pauses').checked = false; setText('title-count', ''); setText('body-count', '');
+      setText('title-count', ''); setText('body-count', '');
       setText('page-heading', ''); setText('journey-count', 'Your journey'); resizeChoices(0);
       setText('draft-status', ''); setText('publication-status', ''); setText('account', '');
     }
@@ -229,7 +226,6 @@ export function createGuidanceView({ document, controller }) {
   listen('link-previews', 'change', event => controller.setLinkPreview(state.page, screenIndex, event.target.checked));
   listen('preview-back', 'click', () => { screenIndex--; render(state); });
   listen('preview-next', 'click', () => { screenIndex++; render(state); });
-  listen('help-pauses', 'change', event => controller.updateHelp(event.target.checked));
   listen('add-page', 'click', () => { controller.addPage(); byId('page-title').focus(); });
   listen('move-up', 'click', () => { controller.movePage(-1); byId('page-title').focus(); });
   listen('move-down', 'click', () => { controller.movePage(1); byId('page-title').focus(); });

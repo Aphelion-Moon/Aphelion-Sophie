@@ -2,7 +2,7 @@
 
 Scope: P06, P09, P14 and P16; partial T13–T16, T18 and T19. This adds automatic static notices for new help requests and Whitelist delivery problems. It uses the existing runtime, driver and core token boundary, with no dependency or licence change. Tests use only synthetic data and simulated Discord; production activation remains disabled.
 
-> **20 October 2026:** Ask Staff is no longer shown in the Shuttle (owner direction; see [message groups](onboarding-experience.md#message-groups-20-october-2026)). Members cannot raise a new help request from it, and old Ask Staff buttons answer that they are out of date and record nothing. Requests, alerts, pauses and resolutions recorded before then are handled exactly as described below.
+> **20 October 2026:** Ask Staff is no longer shown in the Shuttle (owner direction; see [message groups](onboarding-experience.md#message-groups-20-october-2026)). Members cannot raise a new help request from it, and old Ask Staff buttons answer that they are out of date and record nothing. Migration 072 then released every pause, closed open requests and withdrew unsent notices; Whitelist delivery problems no longer alert Staff (decision log, "Staff take no part in the Shuttle"). The mechanisms below remain for history and tests.
 
 ## Routing and meaning
 

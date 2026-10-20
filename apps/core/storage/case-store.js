@@ -7,6 +7,7 @@ import { createMemberOperation, lockMember } from './members.js';
 import { receipt, saveReceipt } from './receipts.js';
 import { enqueue, finishClaim, lockClaim, validateClaim } from './outbox.js';
 import { inTransaction } from './transaction.js';
+import { ABANDON_UNCERTAIN_MS } from './onboarding-screens.js';
 import { registerCasePolicy, reserveCaseRecords } from './case-records.js';
 import { caseCandidateIds, selectedCaseChannel, requireOtherCaseSeals } from './case-channel-selection.js';
 import { createCaseLifecycleStore, latestCaseAction } from './case-lifecycle.js';
@@ -25,7 +26,9 @@ export function createCaseStore({ pool, clock, authorize, authorizeRecorded = as
   }
   async function load(client, guildId, caseId) {
     const row = (await client.query(`SELECT r.*, p.policy_version, p.operation_token, p.presence_epoch, p.audience_version,
-      p.create_started, p.channel_id AS candidate_channel_id, p.phase, p.chosen_channel_id, p.chosen_candidates FROM sophie_core.case_reservations r
+      p.create_started, p.channel_id AS candidate_channel_id, p.phase, p.chosen_channel_id, p.chosen_candidates,
+      coalesce(floor(extract(epoch FROM clock_timestamp() - p.create_started_at) * 1000), 'Infinity'::double precision) AS create_age_ms
+      FROM sophie_core.case_reservations r
       JOIN sophie_core.case_provisions p ON p.case_id = r.id AND p.guild_id = r.guild_id
       WHERE r.guild_id = $1 AND r.id = $2 FOR UPDATE OF r, p`, [guildId, caseId])).rows[0];
     requireCondition(row !== undefined, 'CASE_PROVISION_NOT_FOUND');
@@ -101,7 +104,31 @@ export function createCaseStore({ pool, clock, authorize, authorizeRecorded = as
       return memberOperation(observation, async (client, member) => {
         const { row, plan } = await active(client, claim, member);
         const ids = await caseCandidateIds(client, plan);
-        return { ids, channelId: selectedCaseChannel(row, ids) };
+        let channelId = selectedCaseChannel(row, ids);
+        // A Shuttle case never waits for a Staff channel choice (owner direction, 20 October 2026). Once its create is
+        // old enough, it keeps the channel it already opened, or else the oldest candidate; the worker then seals every
+        // other candidate exactly as after a Staff choice.
+        if (channelId === null && ids.length > 1 && plan.type === 'shuttle' && Number(row.create_age_ms) > ABANDON_UNCERTAIN_MS) {
+          channelId = ids.includes(row.channel_id) ? row.channel_id : ids[0];
+          await client.query(`UPDATE sophie_core.case_provisions SET chosen_channel_id = $2, chosen_candidates = $3, channel_id = $2
+            WHERE case_id = $1`, [plan.id, channelId, ids]);
+        }
+        return { ids, channelId };
+      });
+    },
+
+    /**
+     * A Shuttle case whose channel create was never answered and found nothing is created again once old enough,
+     * instead of waiting for Staff. A late first channel is then just a duplicate candidate, sealed as above.
+     */
+    async restartUncertainCaseCreation({ claim, observation }) {
+      return memberOperation(observation, async (client, member) => {
+        const { row, plan } = await active(client, claim, member);
+        const restart = plan.type === 'shuttle' && row.create_started && row.candidate_channel_id === null &&
+          (await caseCandidateIds(client, plan)).length === 0 && Number(row.create_age_ms) > ABANDON_UNCERTAIN_MS;
+        if (restart) await client.query(`UPDATE sophie_core.case_provisions SET create_started = false, create_started_at = NULL, phase = 'reserved'
+          WHERE case_id = $1`, [plan.id]);
+        return { restarted: restart };
       });
     },
 
@@ -130,7 +157,7 @@ export function createCaseStore({ pool, clock, authorize, authorizeRecorded = as
         const { row, plan, eligible } = await active(client, claim, member);
         requireCondition(eligible && row.state === 'pending' && !row.create_started && row.candidate_channel_id === null, 'CASE_CREATION_UNCERTAIN');
         await lockClaim(client, claim);
-        await client.query("UPDATE sophie_core.case_provisions SET create_started = true, phase = 'creating' WHERE case_id = $1", [plan.id]);
+        await client.query("UPDATE sophie_core.case_provisions SET create_started = true, create_started_at = clock_timestamp(), phase = 'creating' WHERE case_id = $1", [plan.id]);
         await client.query('UPDATE sophie_core.outbox SET dispatch_started = true WHERE guild_id = $1 AND operation_id = $2', [claim.guildId, claim.operationId]);
         return plan;
       });

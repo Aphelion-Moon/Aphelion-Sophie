@@ -35,8 +35,10 @@ Discord's own response while the Gateway records no authority change; an unconfi
 edit, and every message on an explicit `/whitelist start`, is read back rather than
 rewritten. A deleted step message is reposted with its whole step, in order; a deleted
 status card replaces the run (it cannot return to the top of the channel). A lost
-part create is repeated once with the same Discord nonce within 60 seconds, then parks
-for review. The pre-group single-message format is still recognised for recovery and
+part create is repeated once with the same Discord nonce within 60 seconds. Staff take
+no part (see "Staff take no part in the Shuttle" in the decision log): parked Shuttle
+work is rechecked automatically, and a create still unanswered after two minutes is given
+up and posted again (a status card starts the run again at the same progress). The pre-group single-message format is still recognised for recovery and
 is turned into the status card in place; it is never sent again.
 
 ## One message per journey (superseded)
