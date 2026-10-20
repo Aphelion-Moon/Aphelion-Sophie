@@ -398,13 +398,13 @@
   {
     "id": "reply.onboarding_busy",
     "group": "Onboarding",
-    "source": "We can’t open your Shuttle just now. Try again in a moment, or ask Staff for help.",
+    "source": "We can’t open your Shuttle just now. Please try again in a moment.",
     "max": 1800
   },
   {
     "id": "reply.onboarding_review",
     "group": "Onboarding",
-    "source": "We need a hand from Staff before you can continue. Please ask them for help.",
+    "source": "Your Shuttle can’t continue right now because of a setup problem on our side. Please try /whitelist start again later.",
     "max": 1800
   },
   {
@@ -447,7 +447,7 @@
   {
     "id": "onboarding.complete.body",
     "group": "Onboarding",
-    "source": "You’re all set. Welcome aboard! This channel will close automatically after one hour, once any outstanding Staff help is resolved. Use /whitelist start whenever you want to review the guidance again.",
+    "source": "You’re all set. Welcome aboard! This channel will close automatically after one hour. Use /whitelist start whenever you want to review the guidance again.",
     "max": 1500
   },
   {
@@ -570,7 +570,7 @@
   {
     "id": "onboarding.navigation.unavailable",
     "group": "Onboarding",
-    "source": "We couldn’t open your Shuttle just now. Try /whitelist start again, or ask Staff for help.",
+    "source": "We couldn’t open your Shuttle just now. Please try /whitelist start again in a moment.",
     "max": 1800
   },
   {
@@ -1682,7 +1682,7 @@
   },
   {
     "id": "tickets.type.shuttle",
-    "source": "Shuttle assistance",
+    "source": "Shuttle",
     "group": "Tickets",
     "max": 60,
     "format": "plain"

@@ -14,7 +14,7 @@ role grants, permission-policy changes or AI paths were added.
   Each observation retains current authority checks. Timeout, unavailable authority
   or denied access cannot produce a destination link or a false arrival claim.
 - The default completion message explains that the channel closes automatically
-  after one hour, once outstanding Staff help is resolved. Cleanup itself remains
+  after one hour. Cleanup itself remains
   one hour completed/three days inactive, with existing help and grant protections.
   Owner-authored overrides, published guidance and pinned in-flight payloads are
   preserved; historical messages are not bulk-edited.

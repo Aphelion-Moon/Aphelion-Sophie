@@ -8,7 +8,7 @@ export const CASE_TYPES = Object.freeze([
   Object.freeze({ id: 'tech-support', label: 'Tech Support', staffGroup: 'staff', publicEntry: true }),
   Object.freeze({ id: 'database-support', label: 'Database Support', staffGroup: 'staff', publicEntry: true }),
   Object.freeze({ id: 'head-admin-contact', label: 'Speak with the Head Admins', staffGroup: 'leadOps', publicEntry: true }),
-  Object.freeze({ id: 'shuttle', label: 'Shuttle assistance', staffGroup: 'staff', publicEntry: false }),
+  Object.freeze({ id: 'shuttle', label: 'Shuttle', staffGroup: 'staff', publicEntry: false }),
   Object.freeze({ id: 'staff-contact', label: 'Staff contact', staffGroup: 'staff', publicEntry: false }),
   Object.freeze({ id: 'player-report', label: 'Player report', staffGroup: 'staff', publicEntry: false }),
 ]);

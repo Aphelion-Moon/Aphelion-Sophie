@@ -6,7 +6,7 @@ const labels = { 'member.mute': 'Mute members', 'member.unmute': 'Unmute members
   'ai.sandbox.publish': 'Review AI sandbox profiles', 'ai.runtime.apply': 'Apply reviewed AI runtime changes',
   'ai.silence': 'Silence AI in permitted channels' };
 const caseLabels = { 'quick-help': 'Quick Help', 'admin-help': 'Admin Help', 'staff-report': 'Report a Staffer', 'tech-support': 'Tech Support',
-  'database-support': 'Database Support', 'head-admin-contact': 'Head Admin contact (lead ops only)', 'shuttle': 'Shuttle assistance',
+  'database-support': 'Database Support', 'head-admin-contact': 'Head Admin contact (lead ops only)', 'shuttle': 'Shuttle',
   'staff-contact': 'Staff contact', 'player-report': 'Player report' };
 const deploymentBlockers = {
   'registered-case-policy-changed': 'The registered case policy differs from the running configuration.',
