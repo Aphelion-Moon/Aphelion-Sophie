@@ -1171,3 +1171,16 @@ above:
 
 Without the boundary adapter (any journal that does not record it), the full continuity applies as before. No access
 rule changed: every check still reads Discord afresh, and any authority change still voids it.
+
+### Faster isolated database tests — 20 October 2026
+
+The owner: "Thirteen minutes per build is excessive", and asked for the storage tests to be audited and condensed. Shown
+the audit, the owner chose:
+- **Durability:** relax it on the synthetic throwaway test clusters only (`fsync`, `synchronous_commit`,
+  `full_page_writes` off). This replaces the earlier harness rule of keeping `fsync` on. Staging and production are
+  unchanged.
+- **Condensing:** merge exact duplicates only, keeping every requirement and test ID covered.
+
+The audit found no scenario that duplicates another; colliding scenario IDs (`CA01`–`CA13` in three suites, `PA01`–`PA10`
+in two) name distinct checks. Details: [storage](../storage.md) and the
+[storage test inventory](../storage-test-inventory.md).

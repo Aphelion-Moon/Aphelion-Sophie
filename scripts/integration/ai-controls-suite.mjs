@@ -216,7 +216,8 @@ export async function runAiControlsSuite(cluster, run) {
     contextEligible=false;assert.equal(await lane.replaceGather(prepare('720','Excluded edit',true),updated),null);contextEligible=true;
     sourceRevision=new Date(Date.now()+2).toISOString();assert.equal(await lane.replaceGather(prepare('720','Different target',true,{mentions:[{id:'505'}]}),updated),null);
     sourceRevision=new Date().toISOString();
-    await admin.query('UPDATE sophie_ai.request_receipts SET gather_quiet_until=clock_timestamp() WHERE message_id=$1',[root.messageId]);
+    // The gather window closed a moment ago (not "now": with fast commits the edit can land in the same instant).
+    await admin.query("UPDATE sophie_ai.request_receipts SET gather_quiet_until=clock_timestamp()-interval '1 second' WHERE message_id=$1",[root.messageId]);
     assert.equal(await lane.replaceGather(prepare('720','Too late',true),updated),null);
     assert.equal((await admin.query('SELECT input_revision FROM sophie_ai.request_receipts WHERE message_id=$1',[root.messageId])).rows[0].input_revision,updated.inputRevision);
     sourceRevision='original';

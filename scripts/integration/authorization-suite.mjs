@@ -12,6 +12,7 @@ import { simulatedDiscord, CREW, MUZZLED, BOT, BYOND_ROLE } from '../../tests/fi
 import { GUILD, OTHER, USER, STAFF, LEAD, NOW } from '../../tests/fixtures/domain.js';
 import { CASE_TYPES } from '../../modules/tickets/index.js';
 import { defaultSystemText } from '../../contracts/system-messages.js';
+import { resetCoreState } from '../../tests/fixtures/reset.js';
 
 export async function runAuthorizationSuite(cluster, run) {
   const pool = cluster.corePool;
@@ -28,10 +29,7 @@ export async function runAuthorizationSuite(cluster, run) {
   };
   const scenario = async (name, work) => run(name, async () => {
     await admin.query("UPDATE sophie_core.discord_backoff SET until_at = '-infinity', paused = false");
-    await admin.query(`TRUNCATE sophie_core.automation_recovery_actions, sophie_core.automation_delivery_events, sophie_core.automation_deliveries, sophie_core.automation_events, sophie_core.automation_cooldowns, sophie_core.automation_policies, sophie_core.case_answer_reviews, sophie_core.curated_answers, sophie_core.case_reply_events, sophie_core.case_replies, sophie_core.case_label_changes, sophie_core.case_notes, sophie_core.case_direct_notices, sophie_core.case_attachment_jobs, sophie_core.case_attachment_attempts, sophie_core.case_attachment_capacity, sophie_core.case_message_observations, sophie_core.case_capture_gaps, sophie_core.case_capture_channels, sophie_core.case_participant_actions, sophie_core.case_participants, sophie_core.case_form_editor_actions, sophie_core.case_form_drafts, sophie_core.case_delivery_actions, sophie_core.case_delivery_issues, sophie_core.case_intake_messages, sophie_core.case_intakes, sophie_core.case_form_slots, sophie_core.case_form_actions, sophie_core.case_forms, sophie_core.shuttle_editor_actions, sophie_core.shuttle_draft_revisions, sophie_core.dashboard_sessions, sophie_core.dashboard_login_flows, sophie_core.dashboard_auth_limits, sophie_core.dashboard_auth_policies, sophie_core.case_inspection_sweeps, sophie_core.case_staff_actions, sophie_core.case_lifecycle_actions, sophie_core.shuttle_delivery_rechecks, sophie_core.shuttle_delivery_issues, sophie_core.shuttle_alerts, sophie_core.shuttle_help_resolutions, sophie_core.shuttle_screen_parts, sophie_core.shuttle_screens, sophie_core.shuttle_help_requests, sophie_core.shuttle_publications, sophie_core.shuttle_cases, sophie_core.gateway_members, sophie_core.gateway_lifecycle, sophie_core.actor_authority, sophie_core.capability_policies, sophie_core.member_actions,
-      sophie_core.outbox, sophie_core.receipts, sophie_core.sessions, sophie_core.members, sophie_core.definitions,
-      sophie_core.case_provisions, sophie_core.case_channels, sophie_core.case_policies,
-      sophie_core.case_reservations, sophie_core.case_budgets, sophie_core.case_exclusions`);
+    await resetCoreState(admin);
     healthy = true;
     discord = simulatedDiscord(); discord.state.members.set(OTHER, [STAFF]);
     interactions = syntheticInteractions();

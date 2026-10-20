@@ -1,6 +1,6 @@
 {
   "schema_version": 2,
-  "revision": "2026-10-20-shuttle-settle",
+  "revision": "2026-10-20-fast-storage-tests",
   "reference_plan_version": "1.1",
   "source": "Sophie-Implementation-Plans-v1.1/backlog.json",
   "owner_decisions": "docs/decisions/0001-owner-policy.md",
@@ -2959,6 +2959,15 @@
       "implemented": "Owner reports on 67c1f4a: about 20 s to open a Whitelist ticket, and a step message that seemed not to delete before the next step. Discord's own delete events show the order was right, but the deletes were spread over 7 s by OBSERVATION_UNAVAILABLE retries; channel creation and the first page also failed on OBSERVATION_OUT_OF_ORDER and re-reads. A boundary read now waits up to 750 ms for dispatches already received to be recorded; an older membership observation that agrees with the stored one is kept; render and channel claims re-read overtaken observations within the claim; a first page whose channel is pending waits without reading Discord and is made due when the channel opens.",
       "evidence": "Offline: npm test 674 passed; repository check passed; storage 1007 passed, 0 failed (4 shards, 835 s).",
       "remaining": "Operator-approved staging install; timed walk-through of ticket opening and page turns."
+    },
+    {
+      "title": "Faster isolated database tests",
+      "tasks": [
+        "P27"
+      ],
+      "implemented": "Owner: \"Thirteen minutes per build is excessive.\" Per-scenario TRUNCATE resets became DELETE in replica mode (tests/fixtures/reset.js, one shared CORE_STATE_TABLES list); the synthetic test clusters run with fsync, synchronous_commit and full_page_writes off and initdb --no-sync (owner decision); shards take suites one at a time, longest first; each suite runs on its own copy of the migrated template database, so suites are order-independent (--order=reverse check); RT09 waits out a real 5 s Gateway lease (journal leaseMs option, deployments keep 30 s) and P19-RT22 uses a 1.5 s member interval; per-scenario SCENARIO_MS timings; storage test inventory generated from the suites. No scenario was merged or dropped: none duplicates another.",
+      "evidence": "npm test 674 passed; repository check passed; storage (4 shards) 1007 passed, 0 failed in 68 s (835 s before); reverse-order serial 1007/0 in 3 min 29 s; forward serial 1007/0 in 3 min 39 s (about 20 minutes before).",
+      "remaining": "None for speed. Optional: rename the scenario IDs reused across suites (CA01-CA13, PA01-PA10 and others) where evidence documents allow."
     }
   ],
   "next_steps": [

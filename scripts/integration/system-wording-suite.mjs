@@ -2,11 +2,12 @@ import assert from 'node:assert/strict';
 import { onboardingWorkflow } from '../../tests/fixtures/onboarding-workflow.js';
 import { createSystemWordingReader, createSystemWordingStore, readSystemWording } from '../../apps/core/storage/system-wording.js';
 import { GUILD, OTHER, LEAD, STAFF, publication } from '../../tests/fixtures/domain.js';
+import { resetTables } from '../../tests/fixtures/reset.js';
 
 export async function runSystemWordingSuite(cluster, run) {
   async function fixture() {
     const f = await onboardingWorkflow(cluster);
-    await f.admin.query('TRUNCATE sophie_core.system_wording');
+    await resetTables(f.admin, 'sophie_core.system_wording');
     f.discord.state.members.set(OTHER, [LEAD]);
     const editor = createSystemWordingStore({ pool: f.pool, authorize: f.authorization.authorize, guildId: GUILD, definitionId: publication.id });
     const actor = () => f.actor(OTHER);

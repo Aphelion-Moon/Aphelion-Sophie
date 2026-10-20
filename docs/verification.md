@@ -1,5 +1,40 @@
 # Verification and release limits
 
+## Faster isolated database tests — 20 October 2026
+
+Owner: "Thirteen minutes per build is excessive." Audit and owner choices are in the decision log ("Faster isolated database
+tests"). Baseline: `npm run test:storage:fast` (4 shards) 835 s wall for 1007 scenarios, 1214 s serial.
+
+| Change | Full run (4 shards) |
+| --- | --- |
+| Baseline | 835 s |
+| Per-scenario `TRUNCATE` → `DELETE` resets (`tests/fixtures/reset.js`), plus relaxed durability on test clusters | 130 s |
+| Dynamic longest-first scheduling across shards | 90 s |
+| Real waits removed: RT09 uses a real 5 s Gateway lease (journal `leaseMs`, renewed at a third; deployments keep 30 s); P19-RT22 uses a 1.5 s member interval | 63 s |
+| A database copy per suite (order independence; `initdb --no-sync`) | 68 s |
+
+What each change needed:
+- **Resets:** the shared copies of the reset lists became one `CORE_STATE_TABLES` list.
+- **Durability:** a DS06-E01 race became visible once commits were fast (it closed the gather window "now" and expected
+  "too late"); its window now closes a second earlier.
+- **Scheduling:** the storage suite's restarts must also refresh the cluster's own pools.
+- **Database per suite:** a reverse-order run first failed 74 scenarios on leaked grants, dropped or replayed tables and
+  shared AI rows. Each suite now runs on its own copy of the migrated template (`cluster.fresh()`), named within the
+  isolated-backup `sophie_test_*` rule.
+- **V23** compares a database timestamp with a margin (microseconds against milliseconds).
+- The 24 PostgreSQL restarts in the storage suite now cost little (the suite takes 16 s), so they stay genuine restarts.
+
+Condensing (owner: exact duplicates only): no scenario title appears in two suites, and none was merged or dropped.
+`docs/storage-test-inventory.md` (`node scripts/build-storage-inventory.mjs`) lists every scenario and the 27 scenario
+IDs reused by different suites (`CA01`–`CA13`, `PA01`–`PA10`, …).
+
+**Evidence:**
+- `npm test`: 674 passed.
+- Repository check passed.
+- Storage, 4 shards: 1007 passed, 0 failed, 68 s.
+- `node scripts/test-storage.mjs --order=reverse`: 1007 passed, 0 failed, 3 min 29 s.
+- Forward serial `node scripts/test-storage.mjs`: 1007 passed, 0 failed, 3 min 39 s (about 20 minutes before).
+
 ## Slow ticket opening and lingering step messages — 20 October 2026 (prepared, not yet installed)
 
 Owner reports on `67c1f4a`: "It still takes like 20s to open a whitelist ticket", and "a message did not delete before

@@ -28,10 +28,11 @@ import { createStagingRuntime } from '../../apps/core/runtime/staging.js';
 import { createPermissionChannelInventory } from '../../apps/core/discord/permission-channel-inventory.js';
 import { createPermissionChannelSealer } from '../../apps/core/discord/permission-channel-sealer.js';
 import { caseChannelPayload } from '../../modules/tickets/channel-policy.js';
+import { resetTables } from '../../tests/fixtures/reset.js';
 
 export async function runPermissionEditorSuite(cluster,run,configurationOnly=false) {
   const scenario=(name,work)=>run(name,async()=>{
-    await cluster.adminPool.query('TRUNCATE sophie_core.permission_applications,sophie_core.permission_editor_actions,sophie_core.permission_candidates,sophie_core.permission_drafts');
+    await resetTables(cluster.adminPool, 'sophie_core.permission_applications,sophie_core.permission_editor_actions,sophie_core.permission_candidates,sophie_core.permission_drafts');
     const f=await onboardingWorkflow(cluster,{extraCapabilities:{'permissions.publish':[STAFF]}});
     const configuration=stagingConfiguration('a'.repeat(64)); configuration.capabilityPolicy=f.policy;
     const available={roles:f.discord.state.roles.filter(row=>!row.managed).map(row=>({id:row.id,name:'Synthetic role'})),categories:[{id:configuration.casePolicy.categoryId,name:'Synthetic category'}]};
@@ -485,5 +486,5 @@ export async function runPermissionEditorSuite(cluster,run,configurationOnly=fal
   await runPermissionPolicyApplicationSuite(cluster,scenario);
   await runConfigurationApplicationSuite(cluster,scenario);
   // Only the owned synthetic fixture is reset; sealing has no runtime-release API.
-  await cluster.adminPool.query('TRUNCATE sophie_control.configuration_members, sophie_control.runtime_configuration, sophie_control.configuration_applications, sophie_control.maintenance_policy_applications, sophie_control.runtime_gate, sophie_control.maintenance_seal_effects, sophie_control.maintenance_seal_plans, sophie_control.maintenance_inventories, sophie_control.maintenance_operations; INSERT INTO sophie_control.runtime_gate (singleton) VALUES (true)');
+  await resetTables(cluster.adminPool, 'sophie_control.configuration_members, sophie_control.runtime_configuration, sophie_control.configuration_applications, sophie_control.maintenance_policy_applications, sophie_control.runtime_gate, sophie_control.maintenance_seal_effects, sophie_control.maintenance_seal_plans, sophie_control.maintenance_inventories, sophie_control.maintenance_operations'); await cluster.adminPool.query('INSERT INTO sophie_control.runtime_gate (singleton) VALUES (true)');
 }

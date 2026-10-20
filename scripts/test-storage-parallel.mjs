@@ -1,4 +1,5 @@
-// Development loop for the isolated PostgreSQL suites: disjoint shards run at once, each on its own cluster.
+// Development loop for the isolated PostgreSQL suites: shards run at once, each on its own cluster. Suites are handed
+// out one at a time, longest first by recorded time, to whichever shard is free, so shards finish together.
 // Each shard writes its own log; the sequential `node scripts/test-storage.mjs` remains the plain full run.
 import { spawn } from 'node:child_process';
 import { availableParallelism, constants, setPriority } from 'node:os';
@@ -17,12 +18,20 @@ setPriority(0, constants.priority.PRIORITY_BELOW_NORMAL);
 const logs = resolve(root, '.local/postgres-tests', `parallel-${new Date().toISOString().replace(/[:.]/gu, '-')}`);
 await mkdir(logs, { recursive: true });
 const started = Date.now();
+let recorded = {};
+try { recorded = JSON.parse(await readFile(resolve(root, '.local/storage-suite-timings.json'), 'utf8')); } catch { /* First run: unknown suites count as one minute. */ }
+const cost = name => Number.isSafeInteger(recorded[name]) && recorded[name] > 0 ? recorded[name] : 60_000;
+let pending = null; // Suite names still to hand out, longest first; set from the first shard's announcement.
 console.log(`Running ${count} storage shards below normal priority (${cores} logical cores). Logs: ${logs}`);
 
 function runShard(index) {
   return new Promise(async (resolveShard, reject) => {
     const log = await open(resolve(logs, `shard-${index}.log`), 'w');
-    const child = spawn(process.execPath, ['scripts/test-storage.mjs', `--shard=${index}/${count}`, '--keep-going'], { cwd: root, windowsHide: true, stdio: ['ignore', 'pipe', 'pipe'] });
+    const child = spawn(process.execPath, ['scripts/test-storage.mjs', '--worker', '--keep-going'], { cwd: root, windowsHide: true, stdio: ['ignore', 'pipe', 'pipe', 'ipc'] });
+    child.on('message', message => {
+      if (Array.isArray(message?.suites) && pending === null) pending = [...message.suites].sort((a, b) => cost(b) - cost(a));
+      child.send(pending?.shift() ?? null);
+    });
     let text = '';
     for (const stream of [child.stdout, child.stderr]) stream.on('data', chunk => { text += chunk; void log.write(chunk); });
     child.on('error', reject);

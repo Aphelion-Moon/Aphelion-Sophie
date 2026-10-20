@@ -19,7 +19,7 @@ function invoke(executable, args) {
   catch { throw new Error(`POSTGRES_TEST_COMMAND_FAILED:${executable.split(/[\\/]/).at(-1)}`); }
 }
 
-/** Await only the owned cluster's control process; keep Windows handles detached and fsync enabled. */
+/** Await only the owned cluster's control process; keep Windows handles detached. */
 function control(executable, args) {
   // The full suite has measured a 53-second durable shutdown checkpoint. Async waiting
   // permits progress reporting; a timeout is still failure, never evidence of shutdown.
@@ -29,6 +29,22 @@ function control(executable, args) {
     child.once('error', failed); child.once('close', code => { if (code === 0) resolve(); else failed(); });
   });
 }
+
+// The AI, knowledge and configuration suites' own suite-level grants (see those suites), fixed text only.
+const SUITE_BASELINE_GRANTS = Object.freeze([
+  'GRANT USAGE ON SCHEMA sophie_ai TO sophie_test_core',
+  'GRANT SELECT,INSERT,UPDATE ON sophie_ai.state,sophie_ai.publications,sophie_ai.consents,sophie_ai.request_receipts,sophie_ai.request_tombstones TO sophie_test_core',
+  'GRANT SELECT,INSERT,UPDATE,DELETE ON sophie_ai.effects TO sophie_test_core',
+  'GRANT SELECT ON sophie_ai.qualifications TO sophie_test_core',
+  'GRANT SELECT,INSERT,UPDATE ON sophie_ai.budget_policies,sophie_ai.budget_periods,sophie_ai.provider_attempts,sophie_ai.budget_hold_receipts TO sophie_test_core',
+  'GRANT DELETE ON sophie_ai.budget_periods,sophie_ai.provider_attempts TO sophie_test_core',
+  'GRANT SELECT,INSERT,UPDATE ON sophie_ai.response_preferences TO sophie_test_core',
+  'GRANT SELECT,INSERT,UPDATE,DELETE ON sophie_ai.consents,sophie_ai.request_receipts,sophie_ai.request_tombstones,sophie_ai.effect_erasure,sophie_ai.response_preferences TO sophie_test_core',
+  'GRANT USAGE ON SCHEMA sophie_knowledge TO sophie_test_knowledge',
+  'GRANT SELECT,INSERT,UPDATE ON ALL TABLES IN SCHEMA sophie_knowledge TO sophie_test_knowledge',
+  'GRANT USAGE ON SCHEMA sophie_migrations TO sophie_test_core',
+  'GRANT SELECT ON sophie_migrations.applied TO sophie_test_core',
+]);
 
 async function freePort() {
   const listener = createServer();
@@ -65,10 +81,13 @@ export async function createTestCluster() {
   await writeFile(passwordFile, `${password}\n`, { flag: 'wx' });
   const data = resolve(directory, 'data');
   const executable = name => resolve(binaryRoot, 'bin', `${name}.exe`);
-  invoke(executable('initdb'), ['-D', data, '--auth=scram-sha-256', '--encoding=UTF8', '--locale=C', '--username=sophie_test_admin', `--pwfile=${passwordFile}`]);
+  invoke(executable('initdb'), ['-D', data, '--no-sync', '--auth=scram-sha-256', '--encoding=UTF8', '--locale=C', '--username=sophie_test_admin', `--pwfile=${passwordFile}`]);
   const port = await freePort();
   const configuration = { host: '127.0.0.1', port, database: `sophie_test_${randomBytes(8).toString('hex')}`, user: 'sophie_test_admin', password };
-  const ctlOptions = ['-D', data, '-l', resolve(directory, 'postgres.log'), '-o', `-h 127.0.0.1 -p ${port} -c max_connections=16 -c shared_buffers=16MB -c log_statement=none -c log_min_error_statement=panic`, '-w'];
+  const ctlOptions = ['-D', data, '-l', resolve(directory, 'postgres.log'), '-o', `-h 127.0.0.1 -p ${port} -c max_connections=16 -c shared_buffers=16MB -c log_statement=none -c log_min_error_statement=panic` +
+    // Owner decision, 20 October 2026: these throwaway synthetic clusters need not survive a host crash. Every stop and
+    // restart here is a clean (fast) shutdown, so restart scenarios still prove recovery from committed state.
+    ' -c fsync=off -c synchronous_commit=off -c full_page_writes=off', '-w'];
   const pools = new Set();
   let running = false;
   const newPool = config => { const pool = createDatabasePool(config, () => {}); pools.add(pool); return pool; };
@@ -108,42 +127,72 @@ export async function createTestCluster() {
     await migrateCore(adminPool);
     await adminPool.query('GRANT USAGE ON SCHEMA sophie_core TO sophie_test_core');
     await adminPool.query('GRANT SELECT, INSERT, UPDATE ON ALL TABLES IN SCHEMA sophie_core TO sophie_test_core');
+    // Grants that suites used to leave behind for the suites after them, applied once here so suites can run in any
+    // order on any shard (test-storage-parallel.mjs schedules them dynamically). The suites still issue their own.
+    for (const statement of SUITE_BASELINE_GRANTS) await adminPool.query(statement);
     const coreConfiguration = { ...configuration, user: 'sophie_test_core', password: corePassword };
-    return {
-      adminPool, corePool: newPool(coreConfiguration),
-      knowledgePool: newPool({ ...configuration, user: 'sophie_test_knowledge', password: knowledgePassword }),
+    const knowledgeConfiguration = { ...configuration, user: 'sophie_test_knowledge', password: knowledgePassword };
+    // The migrated database becomes a template that no suite uses directly; see fresh().
+    const template = configuration.database;
+    const cluster = {
+      adminPool, corePool: newPool(coreConfiguration), knowledgePool: newPool(knowledgeConfiguration),
       runtime, stop,
       // Recovery tests receive only this freshly generated cluster's identity, never an existing login.
-      recovery: { configuration: { ...configuration }, binaryRoot, directory,
+      recovery: { get configuration() { return { ...configuration }; }, binaryRoot, directory,
         async createHistoricalSource() {
           const database = `sophie_test_${randomBytes(12).toString('hex')}`;
-          await adminPool.query(`CREATE DATABASE ${database}`);
-          await adminPool.query(`REVOKE ALL ON DATABASE ${database} FROM PUBLIC`);
+          await cluster.adminPool.query(`CREATE DATABASE ${database}`);
+          await cluster.adminPool.query(`REVOKE ALL ON DATABASE ${database} FROM PUBLIC`);
           const target = { ...configuration, database };
           return { configuration: target, pool: newPool(target), corePool: newPool({ ...target, user: 'sophie_test_core', password: corePassword }) };
         },
         async createTarget() {
           const database = `sophie_restore_${randomBytes(12).toString('hex')}`;
-          await adminPool.query(`CREATE DATABASE ${database}`);
-          await adminPool.query(`REVOKE ALL ON DATABASE ${database} FROM PUBLIC`);
+          await cluster.adminPool.query(`CREATE DATABASE ${database}`);
+          await cluster.adminPool.query(`REVOKE ALL ON DATABASE ${database} FROM PUBLIC`);
           const target = { ...configuration, database };
           return { configuration: target, pool: newPool(target) };
         } },
       async checkpoint() {
         // Fixture TRUNCATE churn can otherwise leave over 100,000 files to sync at shutdown.
-        // Only between independent suites; never inside a scenario, and never relax durability.
-        const client = await adminPool.connect();
-        // Parallel shards share the disk, so a large checkpoint may take minutes; waiting longer keeps full durability.
+        // Only between independent suites; never inside a scenario.
+        const client = await cluster.adminPool.connect();
+        // Parallel shards share the disk, so a large checkpoint may take a while; the timeout is generous.
         try { await client.query("SET statement_timeout = '300s'"); await client.query('CHECKPOINT'); }
         finally { client.release(true); }
+      },
+      /**
+       * Gives the next suite its own copy of the migrated template, so nothing a suite changes (rows, grants, dropped or
+       * replayed tables, triggers) reaches another, in whatever order or shard they run. The previous suite's copy is
+       * dropped unless keepPrevious (a failed suite's data is kept for diagnosis).
+       */
+      async fresh({ keepPrevious = false } = {}) {
+        await closePools();
+        const previous = configuration.database === template ? null : configuration.database;
+        const database = `sophie_test_suite_${randomBytes(8).toString('hex')}`; // Isolated-backup tooling accepts only sophie_test_* names.
+        const client = new pg.Client({ ...configuration, database: 'postgres', ssl: false, connectionTimeoutMillis: 5_000 });
+        await client.connect();
+        try {
+          // Generated hex names only.
+          if (previous && !keepPrevious) await client.query(`DROP DATABASE ${previous} WITH (FORCE)`);
+          await client.query(`CREATE DATABASE ${database} TEMPLATE ${template} STRATEGY FILE_COPY`);
+          // A database's own privileges are not copied from its template.
+          await client.query(`REVOKE ALL ON DATABASE ${database} FROM PUBLIC`);
+          await client.query(`GRANT CONNECT ON DATABASE ${database} TO sophie_test_core, sophie_test_knowledge`);
+        } finally { await client.end(); }
+        for (const target of [configuration, coreConfiguration, knowledgeConfiguration]) target.database = database;
+        Object.assign(cluster, { adminPool: newPool(configuration), corePool: newPool(coreConfiguration), knowledgePool: newPool(knowledgeConfiguration) });
       },
       async restart() {
         await closePools();
         await control(executable('pg_ctl'), ['-D', data, '-m', 'fast', '-w', 'stop']); running = false;
         // Track startup before awaiting it so a lost acknowledgement still requires cleanup.
         running = true; await control(executable('pg_ctl'), [...ctlOptions, 'start']); await matchPriority();
-        return { adminPool: newPool(configuration), corePool: newPool(coreConfiguration) };
+        // Suites run in any order, so the cluster's own pools are replaced too: a later suite must not get ended pools.
+        Object.assign(cluster, { adminPool: newPool(configuration), corePool: newPool(coreConfiguration), knowledgePool: newPool(knowledgeConfiguration) });
+        return { adminPool: cluster.adminPool, corePool: cluster.corePool };
       },
     };
+    return cluster;
   } catch (error) { await stop(); throw error; }
 }

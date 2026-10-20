@@ -13,12 +13,13 @@ import { CREW } from '../../tests/fixtures/discord.js';
 import { authDigest } from '../../apps/core/security/dashboard-auth.js';
 import { transcriptCursor } from '../../modules/tickets/transcript.js';
 import { recordCaseCaptureGap } from '../../apps/core/storage/case-capture-coverage.js';
+import { resetTables } from '../../tests/fixtures/reset.js';
 
 const requestId = () => randomBytes(32).toString('hex');
 export async function runCaseExportsSuite(cluster, run) {
   async function fixture() {
     const f = await transcriptWorkflow(cluster);
-    await f.admin.query('TRUNCATE sophie_core.case_export_attempts, sophie_core.case_export_policies');
+    await resetTables(f.admin, 'sophie_core.case_export_attempts, sophie_core.case_export_policies');
     const policy = { version: 1, enabled: true, audience: 'responders', maxObservations: 100, maxGaps: 200, maxBytes: 2_097_152 };
     const exports = createCaseExports({ pool: f.pool, transcripts: f.transcripts, readPolicy: () => policy });
     await f.message({ content: 'Synthetic <script>alert(1)</script> @everyone export sentinel' });

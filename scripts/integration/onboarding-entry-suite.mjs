@@ -14,6 +14,7 @@ import { simulatedCases, casePolicy } from '../../tests/fixtures/cases.js';
 import { CREW, BYOND_ROLE, WHITELIST, MUZZLED } from '../../tests/fixtures/discord.js';
 import { syntheticInteractions, APPLICATION } from '../../tests/fixtures/interactions.js';
 import { GUILD, USER, OTHER, STAFF, LEAD, NOW, definition, publication, command } from '../../tests/fixtures/domain.js';
+import { resetCoreState } from '../../tests/fixtures/reset.js';
 
 /** Synthetic metadata, actual signatures/HTTP/transactions; no live case or onboarding text. */
 export async function runOnboardingEntrySuite(cluster, run) {
@@ -39,11 +40,7 @@ export async function runOnboardingEntrySuite(cluster, run) {
   }
   const scenario = (name, work) => run(name, async () => {
     await admin.query("UPDATE sophie_core.discord_backoff SET until_at = '-infinity', paused = false");
-    await admin.query(`TRUNCATE sophie_core.case_answer_reviews, sophie_core.case_reply_events, sophie_core.case_replies, sophie_core.case_label_changes, sophie_core.case_notes, sophie_core.case_direct_notices, sophie_core.case_attachment_jobs, sophie_core.case_attachment_attempts, sophie_core.case_attachment_capacity, sophie_core.case_message_observations, sophie_core.case_capture_gaps, sophie_core.case_capture_channels, sophie_core.case_participant_actions, sophie_core.case_participants, sophie_core.case_form_editor_actions, sophie_core.case_form_drafts, sophie_core.case_delivery_actions, sophie_core.case_delivery_issues, sophie_core.case_intake_messages, sophie_core.case_intakes, sophie_core.case_form_slots, sophie_core.case_form_actions, sophie_core.case_forms, sophie_core.shuttle_editor_actions, sophie_core.shuttle_draft_revisions, sophie_core.dashboard_sessions, sophie_core.dashboard_login_flows, sophie_core.dashboard_auth_limits, sophie_core.dashboard_auth_policies, sophie_core.case_inspection_sweeps, sophie_core.case_staff_actions, sophie_core.case_lifecycle_actions, sophie_core.shuttle_delivery_rechecks, sophie_core.shuttle_delivery_issues, sophie_core.shuttle_alerts, sophie_core.shuttle_help_resolutions, sophie_core.shuttle_screen_parts, sophie_core.shuttle_screens, sophie_core.shuttle_help_requests, sophie_core.shuttle_publications, sophie_core.shuttle_cases, sophie_core.gateway_members, sophie_core.gateway_lifecycle,
-      sophie_core.actor_authority, sophie_core.capability_policies, sophie_core.member_actions,
-      sophie_core.outbox, sophie_core.receipts, sophie_core.sessions, sophie_core.members, sophie_core.definitions,
-      sophie_core.case_channels, sophie_core.case_provisions, sophie_core.case_policies,
-      sophie_core.case_reservations, sophie_core.case_budgets, sophie_core.case_exclusions`);
+    await resetCoreState(admin);
     now = NOW; healthy = true;
     discord = simulatedCases({ clock: () => now }); discord.state.members.set(OTHER, [LEAD]);
     identities = syntheticInteractions({ clock: () => now });

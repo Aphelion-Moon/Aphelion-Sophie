@@ -69,14 +69,20 @@ const keepGoing = process.argv.includes('--keep-going'), from = process.argv.fin
 const shardArgument = process.argv.find(value => value.startsWith('--shard='))?.slice(8) ?? null, shard = shardArgument === null ? null : /^(\d+)\/(\d+)$/u.exec(shardArgument);
 if (shardArgument !== null && (!shard || Number(shard[1]) < 1 || Number(shard[1]) > Number(shard[2]) || Number(shard[2]) > 16)) throw new Error('STORAGE_SHARD_INVALID');
 if (shard !== null && from !== null) throw new Error('STORAGE_SHARD_INVALID');
+// --worker: run whichever suite the parent (test-storage-parallel.mjs) hands over next, on this process's own cluster,
+// until it says stop. Suites are order-independent, so the parent can balance shards by recorded time.
+const worker = process.argv.includes('--worker');
+if (worker && (typeof process.send !== 'function' || shard !== null || from !== null || selected !== null)) throw new Error('STORAGE_WORKER_INVALID');
+// --order=reverse runs the chosen suites last to first: a check that no suite depends on one before it.
+const reverse = process.argv.includes('--order=reverse');
 // Parallel shards run below normal priority; on Windows, initdb and PostgreSQL started from here inherit it.
-if (shard !== null) setPriority(0, constants.priority.PRIORITY_BELOW_NORMAL);
+if (shard !== null || worker) setPriority(0, constants.priority.PRIORITY_BELOW_NORMAL);
 if (from !== null && !/^run[A-Za-z]+Suite$/u.test(from)) throw new Error('UNKNOWN_STORAGE_SUITE_START');
 const selectedSuites = { 'onboarding-staff': [runOnboardingAssistanceSuite, runOnboardingPauseSuite, runOnboardingDeliveryIssueSuite, runOnboardingArtifactRecoverySuite, runOnboardingChannelChoiceSuite, runOnboardingStaffSuite], members: [runMemberDeliverySuite], ai: [runAiControlsSuite,runAiEffectsSuite,runAiPreferencesSuite,runAiPrivacySuite,runGatewaySuite,runAiKnowledgeSuite], configuration:[(cluster,run)=>runPermissionEditorSuite(cluster,run,true)], 'onboarding-lifecycle': [runOnboardingChannelLifecycleSuite], 'system-wording': [runSystemWordingSuite], onboarding: [runOnboardingScreenSuite, runOnboardingPauseSuite, runOnboardingNavigationSuite, runOnboardingAlertSuite, runOnboardingArtifactRecoverySuite, runSystemWordingSuite], 'staging-upgrade': [runRecoverySuite, runStagingUpgradeSuite], permissions: [runPermissionEditorSuite, runAuthorizationSuite], 'shuttle-authoring': [runOnboardingAuthoringSuite, runOnboardingScreenSuite, runOnboardingPauseSuite], authorization: [runAuthorizationSuite], 'dashboard-auth': [runDashboardAuthSuite], 'automation-recovery': [runAutomationRecoverySuite], 'automation-delivery': [runAutomationDeliverySuite], 'automation-admission': [runAutomationAdmissionSuite,runGatewaySuite], automation: [runAutomationPoliciesSuite], answers: [runCuratedAnswersSuite], replies: [runCaseRepliesSuite], 'contact-navigation': [runCaseContactsSuite, runContactNavigationSuite], 'contact-entry': [runCaseContactsSuite, runContactEntrySuite], management: [runCaseLifecycleSuite, runCaseStaffSuite, runCaseParticipantsSuite, runCaseManagementSuite], labels: [runCaseStaffSuite, runCaseLabelsSuite], notes: [runCaseNotesSuite], controls: [runRecoveryControlsSuite], recovery: [runRecoverySuite], transcripts: [runCaseTranscriptsSuite], staging: [runStagingRuntimeSuite], exports: [runCaseTranscriptsSuite, runCaseExportsSuite],
   'attachment-operations': [runCaseAttachmentsSuite, runAttachmentOperationsSuite],
   intake: [runCaseIntakeSuite, runCaseIntakeDeliverySuite, runCaseDeliveryIssueSuite],
   'direct-notices': [runCaseDirectNoticeSuite], forms: [runCaseFormAuthoringSuite] };
-if (process.argv.slice(2).some(value => value !== '--keep-going' && !value.startsWith('--from=') && !value.startsWith('--shard=') && !value.startsWith('--suite=')) ||
+if (process.argv.slice(2).some(value => !['--keep-going', '--worker', '--order=reverse'].includes(value) && !value.startsWith('--from=') && !value.startsWith('--shard=') && !value.startsWith('--suite=')) ||
     process.argv.filter(value => value.startsWith('--suite=')).length > 1 || (selected !== null && !Object.hasOwn(selectedSuites, selected))) throw new Error('UNKNOWN_STORAGE_SUITE_ARGUMENT');
 const results = [], failedSuites = [];
 /** Error code, message and the first stack frame inside this repository, on one line. */
@@ -115,7 +121,9 @@ try {
   // A failed scenario is recorded and its suite carries on: scenarios build their own fixtures, and stopping at the
   // first failure hid every later scenario. Where a suite shares state, later failures may follow from the first.
   const run = async (name, work) => {
-    try { await work(); results.push({ name, status: 'passed' }); console.log(`PASS ${name}`); }
+    // SCENARIO_MS: whole milliseconds per scenario, for finding slow scenarios (see storage-suite-timings.json per suite).
+    const startedAt = Date.now();
+    try { await work(); results.push({ name, status: 'passed' }); console.log(`PASS ${name}`); console.log(`SCENARIO_MS ${Date.now() - startedAt} ${name}`); }
     catch (error) {
       results.push({ name, status: 'failed', code: /^[A-Z_0-9]{1,64}$/.test(error.code ?? '') ? error.code : 'ASSERTION_OR_RUNTIME_FAILURE' });
       console.error(`FAIL ${name}`);
@@ -131,7 +139,24 @@ try {
   let queue = selected === null ? [...suites, runStorageSuite] : selectedSuites[selected];
   if (from !== null) { const start = queue.findIndex(suite => suite.name === from); if (start < 0) throw new Error('UNKNOWN_STORAGE_SUITE_START'); queue = queue.slice(start); }
   if (shard !== null) { const groups = await storageShards(queue.map(suite => suite.name), Number(shard[2])); queue = queue.filter(suite => groups[Number(shard[1]) - 1].includes(suite.name)); }
-  for (const suite of queue) {
+  if (reverse) queue = [...queue].reverse();
+  let previousFailed = false; // The failed suite's database copy is kept for diagnosis.
+  if (worker) {
+    // Announce the suite names, then ask for one suite at a time; a null name means there is nothing left.
+    const byName = new Map(queue.map(suite => [suite.name, suite]));
+    const next = message => new Promise(resolve => { process.once('message', resolve); process.send(message); });
+    queue = [];
+    for (let name = await next({ suites: [...byName.keys()] }); name !== null; name = await next({ done: true })) {
+      const suite = byName.get(name); if (!suite) throw new Error('UNKNOWN_STORAGE_SUITE_ARGUMENT');
+      await runSuite(suite);
+    }
+    process.disconnect();
+  }
+  for (const suite of queue) await runSuite(suite);
+  async function runSuite(suite) {
+    // Every suite gets its own copy of the migrated database (see cluster.fresh), so none depends on another's leftovers.
+    await cluster.fresh({ keepPrevious: previousFailed });
+    const failuresBefore = results.filter(result => result.status === 'failed').length + failedSuites.length;
     // A failed scenario does not end its suite (see run above). A failure outside any scenario, such as shared setup,
     // does; --keep-going then moves on to the next suite.
     const startedAt = Date.now();
@@ -143,8 +168,7 @@ try {
       console.error(`SKIPPED remaining scenarios of ${suite.name}`);
     }
     finally { console.log(`TIMING ${suite.name} ${Date.now() - startedAt}`); }
-    // Stateful restart checks run without added checkpoints inside the suite.
-    if (suite !== runStorageSuite) await cluster.checkpoint();
+    previousFailed = results.filter(result => result.status === 'failed').length + failedSuites.length > failuresBefore;
   }
 } finally { await cluster.stop(); cleanup = true; }
 
