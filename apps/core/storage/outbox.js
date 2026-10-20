@@ -110,7 +110,7 @@ export function createOutbox({ pool }) {
       requireCondition(result.rowCount === 1, 'OUTBOX_LEASE_LOST');
     },
     async retry(claim, code, retryAfterMs = 0) {
-      requireCondition(['DELIVERY_UNCERTAIN', 'DISCORD_UNAVAILABLE', 'RATE_LIMITED'].includes(code), 'INVALID_RETRY_CODE');
+      requireCondition(['DELIVERY_UNCERTAIN', 'DISCORD_UNAVAILABLE', 'RATE_LIMITED', 'OBSERVATION_INVALIDATED'].includes(code), 'INVALID_RETRY_CODE');
       requireInteger(retryAfterMs, 0, 86_400_000);
       return inTransaction(pool, async client => {
         await lockClaim(client, claim);
@@ -120,7 +120,9 @@ export function createOutbox({ pool }) {
         }
         const result = await client.query(`UPDATE sophie_core.outbox SET status = 'ready',
           lease_owner = NULL, lease_until = NULL,
-          available_at = clock_timestamp() + GREATEST($6::double precision, LEAST(300000, power(2, attempts) * 1000)) * interval '1 millisecond',
+          -- Overtaken reads (no write attempted) clear in moments; everything else backs off exponentially.
+          available_at = clock_timestamp() + CASE WHEN $5 = 'OBSERVATION_INVALIDATED' THEN 250
+            ELSE GREATEST($6::double precision, LEAST(300000, power(2, attempts) * 1000)) END * interval '1 millisecond',
           last_error_code = $5 WHERE guild_id = $1 AND operation_id = $2
             AND lease_owner = $3 AND fence = $4 AND lease_until > clock_timestamp()`,
         [claim.guildId, claim.operationId, claim.owner, claim.fence, code, retryAfterMs]);

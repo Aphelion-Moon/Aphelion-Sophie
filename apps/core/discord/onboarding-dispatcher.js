@@ -23,11 +23,16 @@ export function createOnboardingDispatcher({ outbox, store, roles, messages, ena
   }
   // Fixed diagnostic codes only: the outcome, whole milliseconds spent, Discord requests sent and how long the job
   // waited to be claimed. No IDs, wording or message content.
+  // The original failure code, on its own line: the host keeps trace codes of at most 64 characters.
+  function failure(error) {
+    try { if (typeof error?.code === 'string' && /^[A-Z][A-Z0-9_]{1,43}$/.test(error.code)) trace(`SHUTTLE_RENDER_CODE_${error.code}`); }
+    catch { /* Diagnostics never affect delivery. */ }
+  }
   function note(result, startedAt, calls, waitedMs) {
     const bound = (value, limit) => Math.min(limit, Math.max(0, Math.round(value)));
     try {
-      const code = typeof result.code === 'string' && /^[A-Z][A-Z0-9_]{1,47}$/.test(result.code) ? `_${result.code}` : '';
-      trace(`SHUTTLE_RENDER_${String(result.status).toUpperCase().replace(/[^A-Z]/g, '_')}${code}_${bound(performance.now() - startedAt, 99_999)}MS_` +
+      const status = String(result.status).toUpperCase().replace(/[^A-Z]/g, '_');
+      trace(`SHUTTLE_RENDER_${status}_${bound(performance.now() - startedAt, 99_999)}MS_` +
         `${bound(requestCount() - calls, 999)}CALLS_${bound(waitedMs, 99_999)}WAITMS`);
     } catch { /* Diagnostics never affect delivery. */ }
   }
@@ -43,6 +48,8 @@ export function createOnboardingDispatcher({ outbox, store, roles, messages, ena
     try {
       requireCondition(claim.guildId === messages.guildId && claim.guildId === roles.guildId, 'CASE_CONFIGURATION_INVALID');
       await ready(claim);
+      // A click's watch whose card was already replaced or redrawn ends here, without reading Discord.
+      if (await store.settleWatchedOnboardingRender({ claim })) return { status: 'settled', watched: true };
       const current = await observed(async () => store.inspectOnboardingRender({ claim,
         observation: (await roles.prepare(userId, { share: true })).observation }));
       if (current.settled) return { status: 'settled', current: current.current };
@@ -88,6 +95,7 @@ export function createOnboardingDispatcher({ outbox, store, roles, messages, ena
       }
       await outbox.continue(claim); return { status: 'progressed' };
     } catch (error) {
+      failure(error);
       return settleDeliveryFailure({ outbox, claim, error, possiblyAttempted, parkedCodes,
         noteUncertain: possiblyAttempted ? () => store.noteUncertainOnboardingWrite(claim) : undefined });
     }

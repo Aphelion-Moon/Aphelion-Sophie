@@ -31,6 +31,9 @@ export function createCaseChannels({ transport, roles, mapping, policy, clock, a
   // (no channel, role, member, authority or guild change recorded) and for at most PREPARATION_SHARE_MS.
   const sharedChannels = new Map();
   const boundary = async () => typeof roles.readAuthorityBoundary === 'function' ? roles.readAuthorityBoundary() : null;
+  // Channel metadata is overtaken by an authority change (a channel, role, member or guild event, or a reconnect), not by
+  // message traffic in the channel; see roles.readAuthority. Without that adapter, the full continuity.
+  const validity = async () => typeof roles.readAuthority === 'function' ? roles.readAuthority() : roles.readContinuity();
   const key = casePlanKey;
   async function currentAudience(plan) {
     for (const grant of plan.audience?.participants ?? []) requireCondition(await authorizeCaseParticipant(grant) === true, 'CASE_AUDIENCE_CHANGED');
@@ -40,7 +43,7 @@ export function createCaseChannels({ transport, roles, mapping, policy, clock, a
     const channel = project(raw, fromGuildRoute);
     requireCondition(channel.guildId === plan.guildId && channel.type === 0 && channel.marker === caseMarker(plan), 'CASE_CHANNEL_MISMATCH');
     requireFreshObservation({ known: true, observedAt }, clock());
-    requireCondition(await roles.readContinuity() === version, 'OBSERVATION_INVALIDATED');
+    requireCondition(await validity() === version, 'OBSERVATION_INVALIDATED');
     requireFreshObservation({ known: true, observedAt }, clock());
     const proof = Object.freeze({ channelId: channel.id });
     observed.set(proof, { channel, planKey: key(plan), identityKey: caseIdentityKey(plan), known: true, observedAt, version });
@@ -50,7 +53,7 @@ export function createCaseChannels({ transport, roles, mapping, policy, clock, a
     const record = observed.get(proof);
     requireCondition(record && record.channel && record.identityKey === caseIdentityKey(plan), 'CASE_OBSERVATION_UNTRUSTED');
     requireFreshObservation(record, clock());
-    requireCondition(await roles.readContinuity() === record.version, 'OBSERVATION_INVALIDATED');
+    requireCondition(await validity() === record.version, 'OBSERVATION_INVALIDATED');
     requireFreshObservation(record, clock());
     return record.channel;
   }
@@ -64,7 +67,7 @@ export function createCaseChannels({ transport, roles, mapping, policy, clock, a
   async function inspect(plan, channelId, { share = false } = {}) {
     requireId(channelId); requireCondition(typeof share === 'boolean', 'CASE_OBSERVATION_UNTRUSTED');
     let startedAt = clock();
-    const version = await roles.readContinuity(), before = share ? await boundary() : null, kept = sharedChannels.get(channelId);
+    const version = await validity(), before = share ? await boundary() : null, kept = sharedChannels.get(channelId);
     const reuse = before !== null && kept?.boundary === before && startedAt >= kept.observedAt && startedAt - kept.observedAt <= PREPARATION_SHARE_MS;
     const raw = reuse ? kept.raw : await transport.getChannel(channelId);
     if (reuse) startedAt = kept.observedAt;
@@ -87,7 +90,7 @@ export function createCaseChannels({ transport, roles, mapping, policy, clock, a
         const record = observed.get(proof);
         requireCondition(record && record.identityKey === caseIdentityKey(plan) && record.channelId === channelId, 'CASE_OBSERVATION_UNTRUSTED');
         requireFreshObservation(record, clock());
-        requireCondition(await roles.readContinuity() === record.version, 'OBSERVATION_INVALIDATED');
+        requireCondition(await validity() === record.version, 'OBSERVATION_INVALIDATED');
         requireFreshObservation(record, clock());
         return { missing: record.missing === true };
       },
@@ -125,7 +128,7 @@ export function createCaseChannels({ transport, roles, mapping, policy, clock, a
     async find(plan) {
       validateCasePlan(plan); requireCondition(plan.guildId === fixed.guildId, 'FOREIGN_GUILD');
       const startedAt = clock();
-      const version = await roles.readContinuity();
+      const version = await validity();
       const channels = await transport.getGuildChannels();
       requireCondition(Array.isArray(channels) && channels.length <= 500, 'DISCORD_RESPONSE_INVALID');
       const matches = channels.filter(channel => channel?.topic === caseMarker(plan));
@@ -135,7 +138,7 @@ export function createCaseChannels({ transport, roles, mapping, policy, clock, a
     async inspectPresence(plan, channelId) {
       validateCasePlan(plan); requireId(channelId);
       requireCondition(plan.guildId === fixed.guildId && plan.type === 'shuttle', 'OPERATION_DENIED');
-      const observedAt = clock(), version = await roles.readContinuity();
+      const observedAt = clock(), version = await validity();
       const raw = await transport.getChannel(channelId);
       if (raw !== null) {
         requireCondition(raw?.id === channelId, 'CASE_CHANNEL_MISMATCH');
@@ -143,7 +146,7 @@ export function createCaseChannels({ transport, roles, mapping, policy, clock, a
         Object.assign(observed.get(proof), { channelId, missing: false });
         return proof;
       }
-      requireCondition(await roles.readContinuity() === version, 'OBSERVATION_INVALIDATED');
+      requireCondition(await validity() === version, 'OBSERVATION_INVALIDATED');
       requireFreshObservation({ known: true, observedAt }, clock());
       const proof = Object.freeze({ channelId, missing: true });
       observed.set(proof, { channelId, missing: true, identityKey: caseIdentityKey(plan), known: true, observedAt, version });
@@ -158,7 +161,7 @@ export function createCaseChannels({ transport, roles, mapping, policy, clock, a
     async create(preparation, plan) {
       await consume(preparation, plan);
       const startedAt = clock();
-      const version = await roles.readContinuity();
+      const version = await validity();
       const raw = await transport.createCaseTextChannel(caseChannelPayload(plan, fixed, true));
       return certify(raw, plan, startedAt, version, true);
     },

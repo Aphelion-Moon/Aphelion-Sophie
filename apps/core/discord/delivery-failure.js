@@ -1,5 +1,7 @@
 import { ContractError } from '../../../contracts/validation.js';
 
+const OVERTAKEN_CODES = Object.freeze(['OBSERVATION_INVALIDATED', 'OBSERVATION_UNAVAILABLE', 'MEMBERSHIP_STALE']);
+
 /** Persist Discord barriers even when the reporting worker no longer owns its lease. */
 export async function settleDeliveryFailure({ outbox, claim, error, possiblyAttempted, parkedCodes, noteUncertain }) {
   try {
@@ -13,7 +15,9 @@ export async function settleDeliveryFailure({ outbox, claim, error, possiblyAtte
       await outbox.park(claim, error.code);
       return { status: 'operator_required', code: error.code };
     }
-    const code = error.code === 'RATE_LIMITED' ? 'RATE_LIMITED' : possiblyAttempted ? 'DELIVERY_UNCERTAIN' : 'DISCORD_UNAVAILABLE';
+    // Reads overtaken by the Gateway before any write was attempted are not an outage: they are tried again shortly.
+    const code = error.code === 'RATE_LIMITED' ? 'RATE_LIMITED' : possiblyAttempted ? 'DELIVERY_UNCERTAIN' :
+      OVERTAKEN_CODES.includes(error.code) ? 'OBSERVATION_INVALIDATED' : 'DISCORD_UNAVAILABLE';
     await outbox.retry(claim, code, Number.isSafeInteger(error.retryAfterMs) ? error.retryAfterMs : 0);
     return { status: 'retry_scheduled', code };
   } catch (failure) {

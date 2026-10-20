@@ -12,11 +12,10 @@ export function createCaseDispatcher({ outbox, store, roles, channels, enabled, 
     await outbox.requireDeliveryReady(claim);
     await outbox.renew(claim);
   }
-  // Fixed diagnostic codes only: the outcome, its error code and whole milliseconds. No IDs or channel names.
+  // Fixed diagnostic codes only: the outcome and whole milliseconds. No IDs or channel names.
   function note(result, startedAt) {
     try {
-      const code = typeof result.code === 'string' && /^[A-Z][A-Z0-9_]{1,47}$/.test(result.code) ? `_${result.code}` : '';
-      trace(`CASE_PROVISION_${String(result.status).toUpperCase().replace(/[^A-Z]/g, '_')}${code}_${Math.min(99_999, Math.round(performance.now() - startedAt))}MS`);
+      trace(`CASE_PROVISION_${String(result.status).toUpperCase().replace(/[^A-Z]/g, '_')}_${Math.min(99_999, Math.round(performance.now() - startedAt))}MS`);
     } catch { /* Diagnostics never affect delivery. */ }
   }
   const dispatcher = Object.freeze({
@@ -129,6 +128,9 @@ export function createCaseDispatcher({ outbox, store, roles, channels, enabled, 
         }
         return { status: 'settled', opened: confirmed.opened };
       } catch (error) {
+        // The original failure code, on its own line: the host keeps trace codes of at most 64 characters.
+        try { if (typeof error?.code === 'string' && /^[A-Z][A-Z0-9_]{1,43}$/.test(error.code)) trace(`CASE_PROVISION_CODE_${error.code}`); }
+        catch { /* Diagnostics never affect delivery. */ }
         return settleDeliveryFailure({ outbox, claim, error, possiblyAttempted, parkedCodes,
           noteUncertain: accessAttempted ? () => store.noteUncertainCaseChange(claim) : undefined });
       }

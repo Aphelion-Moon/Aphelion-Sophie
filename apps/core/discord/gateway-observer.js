@@ -53,14 +53,15 @@ export function createGatewayObserver({ journal, mapping, applicationId, clock, 
     },
     /**
      * Changes only when the journal records a member, authority, role, channel or guild change, or the connection
-     * restarts. Message traffic, including this bot's own posts, leaves it unchanged. Callers may re-use an
-     * observation across writes only while it is unchanged; it is null while any dispatch is still unprocessed.
+     * restarts. Message traffic, including this bot's own posts, leaves it unchanged. Role, member and channel
+     * observations are checked against it, and may be re-used across writes only while it is unchanged; it is null
+     * while any dispatch is still unprocessed. Offered only when the journal records that boundary.
      */
-    async readAuthorityBoundary() {
-      if (!healthy() || lease === null || typeof journal.readAiContinuity !== 'function') return null;
+    ...(typeof journal.readAiContinuity === 'function' ? { async readAuthorityBoundary() {
+      if (!healthy() || lease === null) return null;
       const handle = connection, current = connections, persisted = await journal.readAiContinuity(lease);
       return healthy() && connection === handle && connections === current && persisted !== null ? `${persisted}.${current}` : null;
-    },
+    } } : {}),
     async isCurrent() { return await readContinuity() !== null; },
     async renew() { requireCondition(lease !== null, 'GATEWAY_NOT_ACQUIRED'); await journal.renew(lease); },
     async reserveIdentify() { requireCondition(lease !== null, 'GATEWAY_NOT_ACQUIRED'); return journal.reserveIdentify(lease); },
