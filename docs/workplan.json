@@ -1,6 +1,6 @@
 {
   "schema_version": 2,
-  "revision": "2026-10-20-shuttle-authority-boundary",
+  "revision": "2026-10-20-staging-67c1f4a",
   "reference_plan_version": "1.1",
   "source": "Sophie-Implementation-Plans-v1.1/backlog.json",
   "owner_decisions": "docs/decisions/0001-owner-policy.md",
@@ -1379,7 +1379,7 @@
   ],
   "checkpoint": {
     "summary": "Deterministic administration, Whitelist onboarding, protected editors, role/permission configuration and the configurable staging host are implemented.",
-    "recorded_baseline": "Pinned 334fd97/schema072 (release sophie-mistral-334fd97, the runtime paths of 229708b, branch staging/admission-trace) installed 20 October 14:57 UTC as a source-only update of 20bd3e7 (installed 13:55 UTC with migrations 071-072, replacing 38e4f3a/schema070), with the owner-accepted Mistral processing policy unchanged, Go live in force and a 32 KB prompt budget. Hosting after the d8fb0e5 conversion: core and the AI worker are ordinary Manual services with trust v2 (no expiry); the supervisor is Disabled. Cold recovery point D:\\Backups\\sophie-staging\\schema072-20bd3e7-20261020.",
+    "recorded_baseline": "Pinned 67c1f4a/schema072 (release sophie-mistral-67c1f4a, the runtime paths of f92272a, branch staging/admission-trace) installed 20 October 15:47 UTC as a source-only update of 334fd97 (14:57 UTC), itself on 20bd3e7 (installed 13:55 UTC with migrations 071-072, replacing 38e4f3a/schema070), with the owner-accepted Mistral processing policy unchanged, Go live in force and a 32 KB prompt budget. Hosting after the d8fb0e5 conversion: core and the AI worker are ordinary Manual services with trust v2 (no expiry); the supervisor is Disabled. Cold recovery point D:\\Backups\\sophie-staging\\schema072-20bd3e7-20261020.",
     "current_work": "Shuttle message groups, faster page turns and no Staff intervention (owner-approved 20 October): status card, plain step messages and a navigation card; instant \"Opening…\" feedback; Ask Staff removed; shared rate limits, delivery wake-up, boundary-scoped observation sharing and response-confirmed writes; migration 071. Prepared on codex/sophie-social-ai; not yet installed. Open: staging install and live walk-through with timing comparison; Mistral zero data retention; fresh-session join-time consent test; worker denial qualification; production.",
     "evidence_note": "At 88359f6: npm test 643 passed; storage fast 957 passed with the three known order-dependent failures (J01, U08, S17). Conversion prepared and checked read-only in GitHub/.agent_docs/aphelion-sophie/deployment-d8fb0e5-2026-10-12/ (prepare.mjs passed, setup -WhatIf on WUFF); not yet installed. Details: docs/verification.md."
   },
@@ -2947,8 +2947,8 @@
         "P16"
       ],
       "implemented": "After a full staging walk-through on 334fd97 (owner: \"significant lag and stutter\", and a stale card fixed only by /whitelist start), traces showed every click retried once after OBSERVATION_INVALIDATED (about 5 s) and render jobs needing 2-5 attempts; those retry traces exceeded the host's 64-character limit and were dropped. Role, member and channel observations are now checked against the authority boundary instead of the per-dispatch continuity (message reads keep the continuity; dashboard view reuse unchanged); delivery reads overtaken before any write retry after 250 ms; every Continue, Back or Check leaves a 20-second database watch that redraws its card unless it was replaced or put back, finishing without Discord calls when there is nothing to do; /whitelist start does not count a watch as its re-check; failure codes go on their own trace lines.",
-      "evidence": "Offline: npm test 674 passed (new authority-boundary test); repository check passed; onboarding storage suites 97 passed (new V24, V25; V11 caught the watch suppressing the entry re-check). Full storage run 1007 passed, 0 failed (4 shards).",
-      "remaining": "Operator-approved staging install; live walk-through comparing SHUTTLE_COMMAND/SHUTTLE_RENDER timings with the 334fd97 run (about 5 s per click plus 2-5 s render)."
+      "evidence": "Offline: npm test 674 passed (new authority-boundary test); repository check passed; onboarding storage suites 97 passed (new V24, V25; V11 caught the watch suppressing the entry re-check). Full storage run 1007 passed, 0 failed (4 shards). Installed on staging 20 October 15:47 UTC as pin 67c1f4a (source-only; prepare, pre-start, boundaries, installed and dashboard checks passed first time).",
+      "remaining": "Timed live walk-through on staging, compared with the 334fd97 run (about 5 s per click plus 2-5 s per render)."
     }
   ],
   "next_steps": [

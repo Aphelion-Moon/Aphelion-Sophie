@@ -1,6 +1,6 @@
 # Verification and release limits
 
-## Shuttle lag, stutter and stale cards — 20 October 2026 (prepared, not yet installed)
+## Shuttle lag, stutter and stale cards — 20 October 2026 (installed 15:47 UTC as `67c1f4a`)
 
 Owner report after a full walk-through on `334fd97`: "significant lag and stutter throughout navigating the pages", and a
 ticket whose navigation buttons did not work until `/whitelist start` was used again.
@@ -31,8 +31,13 @@ Fix:
 **Offline evidence:** `npm test` 674 passed (new authority-boundary test); repository check passed. Storage (4 shards)
 1007 passed, 0 failed. New V24 (an unfinished click's card is redrawn by its watch) and V25 (a recorded click's watch
 makes no Discord call). On the way there, V11 caught that a waiting watch suppressed the prompt re-check of
-`/whitelist start`, and five delivery suites caught an extra result field; both were corrected. Not yet run: staging
-install and a timed walk-through.
+`/whitelist start`, and five delivery suites caught an extra result field; both were corrected.
+
+**Staging install:** owner approved ("Install now"), after being told of the validity change. Pin `67c1f4a` = the runtime
+paths of `f92272a` on `334fd97`; release `sophie-mistral-67c1f4a`, schema 072 unchanged; folder
+`deployment-67c1f4a-2026-10-20`, source-only (12 files). Prepare (505 pinned and 505 installed files verified), pre-start,
+service boundaries, installed and dashboard checks all passed on the first run, and core logged no fault after the
+restart. Not yet run: a timed walk-through to compare with the 334fd97 run.
 
 ## Shuttle clicks overtaken by Gateway traffic — 20 October 2026 (installed 14:57 UTC as `334fd97`)
 
