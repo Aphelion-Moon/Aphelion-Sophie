@@ -39,7 +39,10 @@ export async function requireInstalledAiDatabase(pool,kind) {
     const access=(await pool.query(`SELECT bool_and(has_table_privilege(current_user,table_name,privilege)) AS privacy_access
       FROM (VALUES ('sophie_ai.request_tombstones','SELECT'),('sophie_ai.request_tombstones','INSERT'),
         ('sophie_ai.effect_erasure','SELECT'),('sophie_ai.effect_erasure','INSERT'),('sophie_ai.effect_erasure','DELETE'),
-        ('sophie_ai.consents','DELETE'),('sophie_ai.request_receipts','DELETE')) required(table_name,privilege)`)).rows[0];
+        ('sophie_ai.consents','DELETE'),('sophie_ai.request_receipts','DELETE'),
+        -- Schema073: Sophie's own memories; preference saves re-stamp them even while memory is off.
+        ('sophie_ai.memories','SELECT'),('sophie_ai.memories','INSERT'),('sophie_ai.memories','UPDATE'),('sophie_ai.memories','DELETE'),
+        ('sophie_ai.memory_optouts','SELECT'),('sophie_ai.memory_optouts','INSERT'),('sophie_ai.memory_optouts','DELETE')) required(table_name,privilege)`)).rows[0];
     requireCondition(access?.privacy_access===true,'AI_DATABASE_PRIVILEGES_MISSING');
   }
 }

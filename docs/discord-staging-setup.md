@@ -196,6 +196,14 @@ GRANT USAGE ON SCHEMA sophie_migrations TO sophie_stage_core;
 GRANT SELECT ON sophie_migrations.applied TO sophie_stage_core;
 ```
 
+Migration 073 adds Sophie's own memories. The AI control identity needs, before core starts (installed core fails
+closed without them):
+
+```sql
+GRANT SELECT, INSERT, UPDATE, DELETE ON sophie_ai.memories TO sophie_stage_control;
+GRANT SELECT, INSERT, DELETE ON sophie_ai.memory_optouts TO sophie_stage_control;
+```
+
 Startup checks privileges and all 32 migration hashes before opening listeners.
 An owner/superuser credential, table DELETE/TRUNCATE, core schema CREATE, writable
 migration metadata or missing/altered migration fails closed. Do not grant the

@@ -44,9 +44,11 @@ Memory is off until all of these are done. Nothing here is done automatically.
 
 1. **Grant the control role** access to the new tables after migration 073:
 
-       GRANT SELECT,INSERT,UPDATE,DELETE ON sophie_ai.memories, sophie_ai.memory_optouts TO <control role>;
+       GRANT SELECT,INSERT,UPDATE,DELETE ON sophie_ai.memories TO <control role>;
+       GRANT SELECT,INSERT,DELETE ON sophie_ai.memory_optouts TO <control role>;
 
-   Preference saves re-stamp memories, so this grant is needed before deploying even while memory stays off.
+   Preference saves re-stamp memories, so these grants are needed before deploying even while memory stays off; installed
+   core refuses to start without them.
 2. **Revise the notice** (revision 4) and **re-accept the processing policy** with `"automaticMemory": true`. The
    field is part of the consent binding, so every member must opt in again under the new notice before Sophie reads
    their messages. Policies without the field keep their current binding.

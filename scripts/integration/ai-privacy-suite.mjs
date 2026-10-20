@@ -11,11 +11,13 @@ import { requireInstalledAiDatabase } from '../../apps/core/runtime/installed.js
 
 export async function runAiPrivacySuite(cluster,run) {
   const {adminPool:admin,corePool:pool}=cluster,guildId='929',actor={guildId,userId:'202',capabilityEpoch:1,policyVersion:1};
-  await run('AI-D11 installed control rejects any missing schema066 deletion grant',async()=>{
+  await run('AI-D11 installed control rejects any missing schema066 deletion or schema073 memory grant',async()=>{
     await admin.query('CREATE ROLE sophie_test_departure_control NOLOGIN');
     await admin.query('GRANT USAGE ON SCHEMA sophie_ai TO sophie_test_departure_control');
     const grants=[['request_tombstones','SELECT'],['request_tombstones','INSERT'],['effect_erasure','SELECT'],
-      ['effect_erasure','INSERT'],['effect_erasure','DELETE'],['consents','DELETE'],['request_receipts','DELETE']];
+      ['effect_erasure','INSERT'],['effect_erasure','DELETE'],['consents','DELETE'],['request_receipts','DELETE'],
+      // Schema073: Sophie's own memories.
+      ['memories','SELECT'],['memories','INSERT'],['memories','UPDATE'],['memories','DELETE'],['memory_optouts','SELECT'],['memory_optouts','INSERT'],['memory_optouts','DELETE']];
     for(const [table,privilege] of grants) await admin.query(`GRANT ${privilege} ON sophie_ai.${table} TO sophie_test_departure_control`);
     const client=await admin.connect();
     async function inspect(){await client.query('BEGIN');try{
