@@ -50,6 +50,5 @@
   },
   "models": [],
   "candidateRegister": "Sophie-Implementation-Plans-v1.1/dependency-register.json",
-  "artworkManifest": "Sophie-Implementation-Plans-v1.1/asset-manifest.json",
   "scope": "Development source and pinned PostgreSQL driver; production runtime distribution remains gated"
 }

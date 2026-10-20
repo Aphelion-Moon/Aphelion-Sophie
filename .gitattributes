@@ -19,4 +19,3 @@ legal/THIRD-PARTY-NOTICES text eol=lf
 *.png binary
 # Preserve the supplied reference pack's byte-level checksums and provenance.
 Sophie-Implementation-Plans-v1.1/** -text
-Sophie-Visual-Assets-v1/** -text

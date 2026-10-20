@@ -4,7 +4,7 @@ Scope: P05/P08/P10/P17/P36/P37; partial R02/R03/R04/R07/R12/R16/R18 and T01/T03â
 
 ## Composition and shared workflow
 
-The existing fixed asset map now serves both authoring shells, the shared stylesheet, nine browser modules and the original manifest-selected avatar. Inject `presentation`, `formAuthoring` and the existing authentication/authorization services into the core dashboard listener. All remain explicit optional dependencies. Static navigation connects Shuttle guidance and ticket forms; the established OAuth callback still returns to the dashboard root. A public shell contains no authored questions or private data and grants no access.
+The existing fixed asset map now serves both authoring shells, the shared stylesheet, nine browser modules. Inject `presentation`, `formAuthoring` and the existing authentication/authorization services into the core dashboard listener. All remain explicit optional dependencies. Static navigation connects Shuttle guidance and ticket forms; the established OAuth callback still returns to the dashboard root. A public shell contains no authored questions or private data and grants no access.
 
 `authoring-controller.js` shares draft review, exact-request recovery, conflict comparison, retained history and permission clearing between the two editors. Fixed source-code profiles keep Shuttle publication semantics and ticket-form semantics separate; these profiles are not editable configuration or plugins. Domain controllers expose only their relevant editing operations. `shell.js` shares quiet mode, focus/visibility access checks and the warning before leaving with unsaved or uncertain work.
 

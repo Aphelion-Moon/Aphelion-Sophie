@@ -389,18 +389,18 @@
     },
     {
       "id": "T49",
-      "title": "Selected Sophie asset identity and integrity",
+      "title": "No bundled Sophie artwork",
       "area": "Brand assets",
-      "procedure": "Resolve all four asset IDs, inspect the selected chibi files, verify their dimensions/alpha and hashes, then substitute a human-era file, corrupt bytes and a path outside the asset root.",
-      "expected": "All intended assets match the manifest. Invalid or legacy substitutions are rejected. No missing file is silently regenerated; original PNGs and provenance are preserved.",
+      "procedure": "Search the repository and the dashboard asset map for Sophie images or brand files; request the former avatar path from the dashboard.",
+      "expected": "No Sophie artwork is bundled (removed 20 October 2026 by owner direction). The former avatar path answers 404 and no artwork is generated in its place.",
       "status": "specified_not_run"
     },
     {
       "id": "T50",
       "title": "Sophie placement and accessible fallbacks",
       "area": "Dashboard/Discord",
-      "procedure": "Preview the avatar at small sizes and through a circular crop; inspect character/wordmark alpha on light and dark surfaces; use narrow/zoomed layouts, missing assets and quiet mode.",
-      "expected": "Identity remains readable, aspect ratios are preserved, important controls use live text, and quiet mode removes optional decoration without hiding status/focus/actions. Sticker/upload compliance is verified separately before such use.",
+      "procedure": "Use narrow/zoomed layouts and quiet mode with the text-only Sophie / Community Services identity.",
+      "expected": "Identity remains readable, important controls use live text, and quiet mode removes optional decoration without hiding status/focus/actions.",
       "status": "specified_not_run"
     },
     {

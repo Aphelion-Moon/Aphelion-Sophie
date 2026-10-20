@@ -2,7 +2,7 @@ import { readFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import { resolve } from 'node:path';
 import { spawnSync } from 'node:child_process';
-import { checkModuleImports, sha256, sourceFiles, verifyAssetManifest, verifyReferencePackage } from './lib/repository-checks.mjs';
+import { checkModuleImports, sha256, sourceFiles, verifyReferencePackage } from './lib/repository-checks.mjs';
 import { validateOfflineConfiguration } from '../platform/configuration/index.js';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
@@ -41,6 +41,4 @@ for (const file of files) {
 }
 if (errors.length) throw new Error(errors.join('\n'));
 const referenceChecksums = await verifyReferencePackage(root);
-const assetCopies = await verifyAssetManifest(resolve(root, 'Sophie-Implementation-Plans-v1.1')) +
-  await verifyAssetManifest(resolve(root, 'Sophie-Visual-Assets-v1'));
-console.log(JSON.stringify({ sourceFilesChecked: files.length, referenceChecksums, assetCopies, moduleConventions: 'passed', productionReady: false }, null, 2));
+console.log(JSON.stringify({ sourceFilesChecked: files.length, referenceChecksums, moduleConventions: 'passed', productionReady: false }, null, 2));

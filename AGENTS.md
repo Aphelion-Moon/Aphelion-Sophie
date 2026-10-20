@@ -2,7 +2,7 @@
 
 ## Source of truth
 
-Current owner decisions are in `docs/decisions/0001-owner-policy.md`; current implementation ordering and evidence are in `docs/workplan.json`, `docs/verification.md` and the external continuation linked by the owner decisions. These supersede conflicting recommendations in the preserved `Sophie-Implementation-Plans-v1.1` reference pack. For the AI workstream the owner permits up to two GPT-5.6 Luna sub-agents at Max effort for bounded independent work; use one implementation owner per worktree. Do not change the original hardware addendum or source artwork.
+Current owner decisions are in `docs/decisions/0001-owner-policy.md`; current implementation ordering and evidence are in `docs/workplan.json`, `docs/verification.md` and the external continuation linked by the owner decisions. These supersede conflicting recommendations in the preserved `Sophie-Implementation-Plans-v1.1` reference pack. For the AI workstream the owner permits up to two GPT-5.6 Luna sub-agents at Max effort for bounded independent work; use one implementation owner per worktree. Do not change the original hardware addendum.
 
 The latest requirement is **no AI in tickets**. Read the numbered plans and decision log. Earlier suggestions for AI case assistance are obsolete. Do not reintroduce them as optional settings.
 
@@ -19,9 +19,9 @@ Human admission happens before Discord entry. Crew is the default role except wh
 7. MediaWiki is the current source. Wagtail is not deployed and is not a prerequisite.
 8. Only core holds the Discord token; knowledge and inference identities have no case-store or transcript access.
 
-## Sophie identity and asset rules
+## Sophie identity rules
 
-Use Sophie (she/her), Community Services, and the latest neon chibi protogen. Read chapter 12, `asset-manifest.json` and `brand-profile.json`. Only the four bundled protogen assets are active; do not substitute the older human artwork or invent missing brand files. Source PNGs are preserved byte-for-byte; any later exports need their own provenance and visual checks.
+Use Sophie (she/her), Community Services. Her custom artwork was removed on 20 October 2026 by owner direction: the repository bundles no Sophie images or brand files, the dashboard shows her name as text only, and Discord shows whatever avatar is set on the bot account. Do not add, generate or restore artwork without a new owner decision.
 
 Branding is shared presentation, not an AI dependency. Tickets/Shuttle can show the normal bot avatar and static approved templates, never a generative mascot, ticket-summary control or AI data path. Style cannot change permission checks, state transitions or truthfulness. The approved AI workstream permits persistent owner-published character and approved knowledge, with separately gated explicit personal memory and named restricted contexts. It permits configurable participation in explicitly enabled, individually opted-in non-ticket contexts. Do not add image generation, voice, animation, autonomous personality changes, model training, invented lore authority or a second bot identity.
 

@@ -7,7 +7,6 @@ export function mountDashboardShell({ window, document, controller, now = Date.n
     document.body.classList.toggle('quiet-mode', quiet.checked);
     try { window.localStorage.setItem('sophie.quiet', String(quiet.checked)); } catch { /* Editing needs no local storage. */ }
   });
-  document.getElementById('avatar').addEventListener('error', event => { event.target.hidden = true; });
   window.addEventListener('beforeunload', event => {
     const state = controller.snapshot(); if (state.dirty || state.pending) { event.preventDefault(); event.returnValue = ''; }
   });

@@ -1,7 +1,6 @@
 import { createHash } from 'node:crypto';
-import { readFile, readdir, realpath } from 'node:fs/promises';
+import { readFile, readdir } from 'node:fs/promises';
 import { isAbsolute, relative, resolve, posix } from 'node:path';
-import { canonicalBrandProfile } from '../../contracts/brand-profile.js';
 
 export const sha256 = bytes => createHash('sha256').update(bytes).digest('hex');
 
@@ -71,20 +70,4 @@ export async function verifyReferencePackage(root) {
     if (sha256(await readFile(path)) !== match[1]) throw new Error(`Reference bytes changed: ${match[2]}`);
   }
   return lines.length;
-}
-
-export async function verifyAssetManifest(base) {
-  const manifest = JSON.parse(await readFile(resolve(base, 'asset-manifest.json'), 'utf8'));
-  canonicalBrandProfile(JSON.parse(await readFile(resolve(base, 'brand-profile.json'), 'utf8')), manifest);
-  const allowedRoot = await realpath(resolve(base, 'assets/sophie/neon-chibi-v1'));
-  for (const asset of manifest.assets) {
-    const path = await realpath(resolve(base, asset.path));
-    const within = relative(allowedRoot, path);
-    if (!within || within.startsWith('..') || isAbsolute(within)) throw new Error('ASSET_PATH_ESCAPE');
-    const bytes = await readFile(path);
-    if (bytes.length !== asset.bytes || sha256(bytes) !== asset.sha256) throw new Error(`Asset integrity failed: ${asset.id}`);
-    if (bytes.subarray(0, 8).toString('hex') !== '89504e470d0a1a0a' || bytes.readUInt32BE(16) !== asset.width || bytes.readUInt32BE(20) !== asset.height) throw new Error('ASSET_DIMENSIONS_INVALID');
-    if (bytes[25] !== (asset.has_transparency ? 6 : 2)) throw new Error('ASSET_COLOUR_TYPE_INVALID');
-  }
-  return manifest.assets.length;
 }

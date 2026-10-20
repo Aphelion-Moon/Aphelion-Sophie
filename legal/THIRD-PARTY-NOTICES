@@ -10,9 +10,8 @@ The already installed Node.js runtime is used for development. Its distribution
 contains third-party components with their own notices; review the exact release
 before bundling or production deployment. See legal/DEPENDENCIES.json.
 
-The four supplied Sophie PNGs retain their existing asset-manifest provenance.
-The MIT software licence is not an assignment of an artwork licence. The supplied
-reference documents contain links/citations, not approval to copy upstream code.
+No Sophie artwork is bundled. The supplied reference documents contain
+links/citations, not approval to copy upstream code.
 
 MediaWiki site metadata reports CC BY-NC-SA 4.0 for content. No article corpus or
 third-party website asset/font has been copied into this foundation. Source and

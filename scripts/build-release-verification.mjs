@@ -80,7 +80,7 @@ const evidence = {
   39: 'Encrypted snapshot/retained-file restoration passes local PostgreSQL drills, including authored reply requests/audit, concurrent writes and operator CLI. Off-host storage, key custody and full release recovery remain open; see docs/recovery-bundles.md and docs/case-replies.md.',
   45: 'Configuration, source review, recovery and public-answer selection have synthetic HTTP/database/browser evidence. Stale authority, uncertain sends, exact receipts, revocation and quarantined jobs remain enforced. Full live T45 and owner publication/activation remain open; see docs/static-automation.md and current P18 evidence.',
   58: 'Local transactional control history and restored-ledger hashes are tested; tool-managed restores fence runtime, jobs and sessions. Independent durability, latest-state verification and replay are not implemented; see docs/recovery-controls.md. No full T58 pass.',
-  49: 'Fixed brand-profile and source hash validation cover four selected assets and eight preserved copies. Local static placement review loads every original asset; owner distribution/placement approval remains open.',
+  49: 'Custom artwork removed on 20 October 2026 by owner direction. No Sophie image is bundled; the dashboard shows text identity only.',
   50: 'Local developer review covers small/circular avatar crops, light/dark alpha, 320 CSS-pixel reflow, live-text fallback, keyboard quiet mode and failed images. Actual zoom, independent accessibility and Discord upload acceptance remain open.',
   59: 'Owner observed the configured two-open-case limit; atomic race/restart matrix remains an offline result.',
 };

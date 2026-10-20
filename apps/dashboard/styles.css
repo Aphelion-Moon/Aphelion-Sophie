@@ -142,11 +142,6 @@ button:focus-visible,a:focus-visible,input:focus-visible,textarea:focus-visible,
   gap:13px;
 }
 
-.identity img {
-  object-fit:contain;
-  border-radius:3px;
-}
-
 .identity strong {
   display:block;
   font-size:23px;
@@ -749,10 +744,6 @@ summary:focus-visible {
   --magenta:#d0c3d3;
 }
 
-.quiet-mode .identity img {
-  display:none;
-}
-
 .quiet-mode .page-choice[aria-current=step] {
   background:#292520;
   border-color:var(--border);
@@ -903,10 +894,6 @@ summary:focus-visible {
   .identity span {
     font-size:10px;
   }
-  .identity img {
-    width:44px;
-    height:44px;
-  }
 }
 
 @media(prefers-reduced-motion:reduce) {
@@ -1013,13 +1000,12 @@ h2 { letter-spacing:-.02em; }
 .nav-links a[aria-current=page] { border-left-color:var(--cyan); background:var(--inset); color:var(--text); }
 body:has(.service-nav) .topbar { margin-left:var(--rail-width); min-height:58px; padding:10px 32px; background:#171412e8; }
 body:has(.service-nav) .topbar::before { content:'APHELION / COMMUNITY SERVICES'; font:11px Consolas,monospace; color:var(--muted); letter-spacing:.08em; }
-body:has(.service-nav) .identity { position:fixed; inset:0 auto auto 0; width:var(--rail-width); height:216px; padding:28px 24px; align-items:flex-start; flex-direction:column; gap:12px; background:var(--background); border-right:1px solid var(--soft-border); z-index:6; }
-body:has(.service-nav) .identity img { width:72px; height:72px; }
+body:has(.service-nav) .identity { position:fixed; inset:0 auto auto 0; width:var(--rail-width); height:140px; padding:28px 24px; align-items:flex-start; flex-direction:column; gap:12px; background:var(--background); border-right:1px solid var(--soft-border); z-index:6; }
 body:has(.service-nav) .identity strong { font-size:28px; font-weight:500; text-transform:uppercase; letter-spacing:.04em; }
 body:has(.service-nav) .identity strong::after { content:''; display:block; height:2px; width:134px; margin:10px 0 6px; background:linear-gradient(90deg,#56d4dc,#7bc86f,#e5c25b,#e0863f,#d95f4c,#c06bb4); }
 body:has(.service-nav) .identity span { font:11px Consolas,monospace; color:var(--muted); }
 body:has(.service-nav) main { margin-left:var(--rail-width); max-width:1660px; padding:32px; }
-body:has(.service-nav) .service-nav { position:fixed; inset:216px auto 0 0; width:var(--rail-width); overflow-y:auto; margin:0; padding:0 0 28px; background:var(--background); border-right:1px solid var(--soft-border); z-index:6; }
+body:has(.service-nav) .service-nav { position:fixed; inset:140px auto 0 0; width:var(--rail-width); overflow-y:auto; margin:0; padding:0 0 28px; background:var(--background); border-right:1px solid var(--soft-border); z-index:6; }
 body:has(.service-nav) .header-actions { margin-left:auto; }
 body:has(.service-nav) .editor-layout { grid-template-columns:minmax(180px,230px) minmax(0,1fr); gap:24px; }
 .skip-link { z-index:10; }
@@ -1035,7 +1021,6 @@ body:has(.service-nav) .editor-layout { grid-template-columns:minmax(180px,230px
   body:has(.service-nav) .topbar { margin:0; padding:16px; flex-wrap:wrap; }
   body:has(.service-nav) .topbar::before { display:none; }
   body:has(.service-nav) .identity { position:static; width:auto; height:auto; padding:0; flex-direction:row; align-items:center; background:transparent; border:0; }
-  body:has(.service-nav) .identity img { width:48px; height:48px; }
   body:has(.service-nav) .identity strong { font-size:21px; }
   body:has(.service-nav) .identity strong::after { width:100px; margin:5px 0; }
   body:has(.service-nav) main { margin:0; padding:18px 16px; }

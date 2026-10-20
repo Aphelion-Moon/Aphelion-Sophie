@@ -1,6 +1,5 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { createHash } from 'node:crypto';
 import { createDashboardPresentation, DASHBOARD_CSP } from '../apps/core/http/dashboard-assets.js';
 import { createDashboardAuthHttpServer } from '../apps/core/http/dashboard-auth.js';
 import { dashboardConfiguration } from './fixtures/oauth.js';
@@ -34,7 +33,7 @@ test('authenticated shell serves fixed bytes and anonymous visitors receive only
       capabilities: Object.fromEntries(['shuttle.publish', 'case.forms.publish', 'answers.publish', 'permissions.publish', 'automation.publish'].map(key => [key, true])) }) }, onFault: () => assert.fail('Unexpected fault') });
   const address = await server.listen();
   try {
-    const paths = ['/', '/ticket-forms', '/cases', '/staff-notes', '/case-labels', '/manage-cases', '/contact-entry', '/contacts', '/dashboard/styles.css', ...['app', 'api', 'controller', 'view', 'authoring-controller', 'shell', 'form-app', 'form-controller', 'form-view', 'case-app', 'case-controller', 'case-view', 'notes-app', 'notes-controller', 'notes-view', 'labels-app', 'labels-controller', 'labels-view', 'management-app', 'management-controller', 'management-view', 'contact-app', 'contact-controller', 'contact-view', 'contacts-app', 'contacts-controller', 'contacts-view'].map(name => `/dashboard/${name}.js`), '/dashboard/sophie-avatar.png'];
+    const paths = ['/', '/ticket-forms', '/cases', '/staff-notes', '/case-labels', '/manage-cases', '/contact-entry', '/contacts', '/dashboard/styles.css', ...['app', 'api', 'controller', 'view', 'authoring-controller', 'shell', 'form-app', 'form-controller', 'form-view', 'case-app', 'case-controller', 'case-view', 'notes-app', 'notes-controller', 'notes-view', 'labels-app', 'labels-controller', 'labels-view', 'management-app', 'management-controller', 'management-view', 'contact-app', 'contact-controller', 'contact-view', 'contacts-app', 'contacts-controller', 'contacts-view'].map(name => `/dashboard/${name}.js`)];
     paths.splice(paths.length - 1, 0, '/case-replies', '/dashboard/replies-app.js', '/dashboard/replies-controller.js', '/dashboard/replies-view.js');
     paths.splice(paths.length - 1, 0, '/answers', '/dashboard/answers-app.js', '/dashboard/answers-controller.js', '/dashboard/answers-view.js');
     paths.splice(paths.length - 1, 0, '/automation', '/dashboard/automation-app.js', '/dashboard/automation-controller.js', '/dashboard/automation-view.js', '/modules/automation/index.js', '/contracts/validation.js');
@@ -59,8 +58,7 @@ test('authenticated shell serves fixed bytes and anonymous visitors receive only
     assert.equal((results[0].text.match(/class="nav-group"/g) ?? []).length, 3);
     for (const path of ['/dashboard/markdown.js', '/modules/onboarding/presentation.js']) assert.equal((await dashboardBytes(address, path)).status, 200);
     assert.match(results[2].text, /Case records/); assert.equal(results[2].text.includes('Synthetic case message'), false);
-    assert.equal(createHash('sha256').update(results.at(-1).bytes).digest('hex'), '3d79dde5215683c2ba6183e98d06b21a66523318a3a20e20c20ca9b579f12a65');
-    for (const path of ['/dashboard/../api.js', '/dashboard/%2e%2e/api.js', '/?draft=1', '/ticket-forms?caseType=admin-help', '/dashboard/app.js?cache=1', '/dashboard/asset-manifest.json', '/__preview/control']) {
+    for (const path of ['/dashboard/../api.js', '/dashboard/%2e%2e/api.js', '/?draft=1', '/ticket-forms?caseType=admin-help', '/dashboard/app.js?cache=1', '/dashboard/asset-manifest.json', '/dashboard/sophie-avatar.png', '/__preview/control']) {
       assert.equal((await dashboardBytes(address, path)).status, 404);
     }
     assert.equal((await dashboardBytes(address, '/', { headers: { Host: 'other.example.test' } })).status, 403);

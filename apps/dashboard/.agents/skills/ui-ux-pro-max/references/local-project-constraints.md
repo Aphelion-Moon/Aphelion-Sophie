@@ -6,9 +6,10 @@ not add runtime AI features or authorize unrelated application changes.
 - Meridian website: preserve the approved cassette-futurist, worn-station design and
   its intentional contrast with newer development. Do not normalize it into a generic
   minimal software-product site.
-- Sophie dashboard: preserve the neon protogen identity and intentional cyan/teal and
-  magenta accents. Do not impose a single accent or mandatory desaturation. Follow the
-  repository owner decisions and existing brand profile; preserve approved source artwork.
+- Sophie dashboard: preserve the text identity (Sophie / Community Services) and the
+  intentional cyan/teal and magenta accents. Do not impose a single accent or mandatory
+  desaturation. Follow the repository owner decisions. Sophie has no bundled artwork; do
+  not add or generate any.
 - Wagtail wiki: inspect and use the actual Wagtail/Django implementation and existing
   design conventions. A missing stack dataset is not permission to add React, Next.js,
   or Tailwind. A MediaWiki installation is not proof of a Wagtail development checkout.
