@@ -14,6 +14,13 @@ import { migrateCore } from '../../apps/core/storage/migrate.js';
 import { createRecoveryBundle, prepareRecoveryBundle, restoreRecoveryBundle } from '../../apps/core/recovery/bundle.js';
 import { reviewedRecoveryTools } from '../../apps/core/recovery/local-operations.js';
 import { stagingConfiguration } from '../../tests/fixtures/staging.js';
+import { casePolicy, SHUTTLE_CATEGORY } from '../../tests/fixtures/cases.js';
+import { BOT, mapping } from '../../tests/fixtures/discord.js';
+import { inTransaction } from '../../apps/core/storage/transaction.js';
+import { registerCasePolicy } from '../../apps/core/storage/case-records.js';
+import { createAiObservations } from '../../apps/core/discord/ai-observations.js';
+import { createGuildState } from '../../apps/core/discord/guild-state.js';
+import { PERMISSIONS } from '../../platform/authorization/discord-permissions.js';
 
 export async function runAutomationPoliciesSuite(cluster,run) {
   const scenario = (name,work) => run(name,async()=>{
@@ -165,5 +172,29 @@ export async function runAutomationPoliciesSuite(cluster,run) {
     await assert.rejects(f.services({pool}).change(request),/Synthetic lost commit/);
     await f.automation.change(await f.prepare({expectedRevision:1,action:'withdraw',document:null}));
     assert.equal((await f.services().change(request)).duplicate,true); assert.equal((await f.rows('automation_policies')).length,2);
+  });
+  await scenario('AP16 a registered Shuttle category excludes its channels from AI observation and automation publication',async f=>{
+    const actor = await f.actor(OTHER), inside = '715', document = automationDocument([automationRule({channels:[inside]})]);
+    f.records.set(inside,automationChannel({id:inside,parentId:SHUTTLE_CATEGORY}));
+    // Real exclusion queries against the restricted core identity; Discord metadata is a synthetic Gateway projection.
+    const bits = String(PERMISSIONS.viewChannel | PERMISSIONS.sendMessages | PERMISSIONS.readHistory), guildState = createGuildState({guildId:GUILD,botUserId:BOT});
+    guildState.accept({op:0,t:'READY',s:1,d:{}});
+    guildState.accept({op:0,t:'GUILD_CREATE',s:2,d:{id:GUILD,owner_id:'100000000000000099',roles:[{id:GUILD,permissions:bits,position:0}],emojis:[],
+      channels:[{id:inside,type:0,parent_id:SHUTTLE_CATEGORY,permission_overwrites:[]}],members:[{user:{id:BOT,bot:true},roles:[]},{user:{id:USER,bot:false},roles:[]}]}});
+    const observations = createAiObservations({pool:f.pool,transport:{},guildState,mapping,protectedCategoryId:casePolicy.categoryId,capabilityPolicy:{version:1},
+      authorityStore:{registerPolicy:async()=>{},observeWithPresence:async()=>({presenceEpoch:1,grant:{capabilityEpoch:1}})},
+      observer:{readAiContinuity:async()=>'synthetic-continuity'},clock:()=>f.clock.now});
+    const request = {guildId:GUILD,channelId:inside,userId:USER};
+    // Before registration the channel is an ordinary eligible text channel, so the later refusals come from the exclusion.
+    const dryRun = () => f.automation.preview({actor,expectedRevision:0,document:automationDocument(),synthetic:true,events:[automationEvent({channelId:inside})]});
+    assert.ok(await observations.inspectChannel(request)); await f.automation.review({actor,...f.fields({document})});
+    assert.equal((await dryRun()).results[0].suppressed,false);
+    await inTransaction(f.pool,client=>registerCasePolicy(client,{...casePolicy,version:casePolicy.version+1,shuttleCategoryId:SHUTTLE_CATEGORY}));
+    assert.deepEqual((await f.rows('case_exclusions')).map(row=>row.channel_id),[SHUTTLE_CATEGORY]);
+    assert.equal(await observations.inspectChannel(request),null);
+    await assert.rejects(f.automation.review({actor,...f.fields({document})}),/AUTOMATION_CHANNEL_UNAVAILABLE/);
+    await assert.rejects(f.automation.preview({actor,expectedRevision:0,document,synthetic:true,events:[automationEvent({channelId:inside})]}),/AUTOMATION_CHANNEL_UNAVAILABLE/);
+    const preview = await dryRun(); assert.equal(preview.results[0].suppressed,true); assert.equal(preview.results[0].actions.length,0);
+    assert.equal((await f.rows('automation_policies')).length,0); assert.equal((await f.rows('outbox')).length,0);
   });
 }

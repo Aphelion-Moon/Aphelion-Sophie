@@ -12,6 +12,8 @@ import { reviewedRecoveryTools } from '../../apps/core/recovery/local-operations
 import { runtimeDatabaseAvailable } from '../../apps/core/storage/runtime-maintenance.js';
 import { GUILD, USER, OTHER, STAFF } from '../../tests/fixtures/domain.js';
 import { BYOND_ROLE } from '../../tests/fixtures/discord.js';
+import { CATEGORY, SHUTTLE_CATEGORY } from '../../tests/fixtures/cases.js';
+import { requireCaseChannel } from '../../modules/tickets/channel-policy.js';
 
 export async function runPermissionPolicyApplicationSuite(cluster,scenario) {
   async function request(f,change=true) {
@@ -37,6 +39,20 @@ export async function runPermissionPolicyApplicationSuite(cluster,scenario) {
     const store=createCoreStore({pool:f.admin,clock,authorize:authorization.authorize,authorizeRecorded:authorization.authorizeRecorded,
       authorizeCaseParticipant:authorization.authorizeCaseParticipant,casePolicy:configuration.casePolicy,caseVerification:channels.verification});
     return {authorization,worker:createCaseDispatcher({outbox:createOutbox({pool:f.admin}),store,roles:f.discord.roles,channels,enabled:()=>true})};
+  }
+  // Seals and applies a Shuttle-category change, keeping the first inventory request and each planned channel's target parent.
+  async function applyShuttleCategory(f,change) {
+    let observed=null;
+    const maintenance=f.maintenanceServices({channelInventory:{...f.inventory,read:async input=>{observed??=structuredClone(input);return f.inventory.read(input);}}});
+    const held=await maintenance.begin(await f.maintenanceRequest(change)),inventory=await maintenance.inspectChannels({...held,requestId:f.id(),expectedRevision:0});
+    const request={...held,requestId:f.id(),inventoryRevision:inventory.revision,expectedInventoryHash:inventory.sha256,confirm:true};
+    let status=await maintenance.planSealing(request);
+    const parents=Object.fromEntries((await f.admin.query('SELECT channel_id,target FROM sophie_control.maintenance_seal_effects')).rows.map(row=>[row.channel_id,row.target.parentId]));
+    while(status.states.planned)status=await maintenance.sealNext(request);
+    const sealed=new Map([...f.discord.state.channels].map(([id,channel])=>[id,channel.parent_id]));
+    const seal=await maintenance.finishSealing(request),result=await maintenance.applyPolicy({...request,requestId:f.id(),expectedSealHash:seal.sha256});
+    const saved=(await f.admin.query('SELECT inventory FROM sophie_control.maintenance_inventories WHERE revision=1')).rows[0].inventory;
+    return {observed,inventory,saved,parents,sealed,result};
   }
   await scenario('PA01 policy application preserves epochs and history while atomically queuing versioned case reconciliation',async f=>{
     await createMemberOperation({pool:f.admin,clock:()=>f.clock.now})(await f.discord.roles.observe(USER),async()=>{});
@@ -149,4 +165,38 @@ export async function runPermissionPolicyApplicationSuite(cluster,scenario) {
     assert.ok(gap.reasons.includes('permission-change'));assert.equal(gap.closed_at_ms,null);
     await f.maintenance.cancelPreparation(held);assert.equal((await f.rows('case_capture_gaps'))[0].closed_at_ms,null,'Cancellation cannot certify capture recovery');
   });
+  await scenario('PA12 a separate Shuttle category is inventoried and sealed per case type and both retained cases are re-adopted',async f=>{
+    f.shuttleCategory();
+    const ticket=await f.retainVisibleCase(),shuttle=await f.retainVisibleCase({name:'synthetic-shuttle',channel:'100000000000000092',token:'c',type:'shuttle'});
+    const {observed,inventory,saved,parents,sealed,result}=await applyShuttleCategory(f,d=>{d.shuttleCategoryId=SHUTTLE_CATEGORY;});
+    assert.deepEqual(observed.categoryIds,[CATEGORY,SHUTTLE_CATEGORY]);assert.deepEqual(inventory.blockers,[]);
+    assert.deepEqual(saved.categories.map(row=>row.id),[CATEGORY,SHUTTLE_CATEGORY]);
+    assert.deepEqual(parents,{[ticket.channel]:CATEGORY,[shuttle.channel]:SHUTTLE_CATEGORY});
+    assert.equal(sealed.get(ticket.channel),CATEGORY);assert.equal(sealed.get(shuttle.channel),SHUTTLE_CATEGORY);
+    assert.equal(result.summary.casePolicyChanged,true);assert.equal(result.summary.casePolicyVersion,2);
+    assert.equal(result.summary.casesMigrated,2);assert.equal(result.summary.reconciliationJobs,2);
+    for(const row of await f.rows('case_provisions')){assert.equal(row.policy_version,2);assert.equal(row.phase,'sealed');}
+    assert.deepEqual((await f.rows('case_channels')).map(row=>row.case_id).sort(),[shuttle.name,ticket.name].sort());
+    const policy=(await f.rows('case_policies')).find(row=>row.version===2).policy;assert.equal(policy.shuttleCategoryId,SHUTTLE_CATEGORY);assert.equal(policy.categoryId,CATEGORY);
+    assert.ok((await f.rows('case_exclusions')).some(row=>row.channel_id===SHUTTLE_CATEGORY));
+    await f.drain(ownedReconciliation(f,await candidate(f)).worker);
+    for(const [spec,parent] of [[ticket,CATEGORY],[shuttle,SHUTTLE_CATEGORY]]){
+      const channel=f.discord.state.channels.get(spec.channel);assert.equal(channel.parent_id,parent);assert.ok(channel.permission_overwrites.some(row=>row.id===USER));
+      requireCaseChannel({id:channel.id,guildId:GUILD,type:0,parentId:channel.parent_id,marker:channel.topic,overwrites:channel.permission_overwrites},
+        {id:spec.name,guildId:GUILD,openerId:USER,type:spec.type,policyVersion:2,token:spec.token.repeat(48),presenceEpoch:0},policy,'open');
+    }
+    assert.equal(await runtimeDatabaseAvailable(f.pool),false);
+  });
+  await scenario('PA13 clearing the Shuttle category seals retained Shuttle channels back into the case category',async f=>{
+    const shuttle=await f.retainVisibleCase({name:'synthetic-shuttle',type:'shuttle'});
+    assert.equal(f.discord.state.channels.get(shuttle.channel).parent_id,SHUTTLE_CATEGORY);
+    const {observed,parents,sealed,result}=await applyShuttleCategory(f,d=>{d.shuttleCategoryId=null;});
+    assert.deepEqual(observed.categoryIds,[CATEGORY,SHUTTLE_CATEGORY],'The running Shuttle category is still inventoried');
+    assert.deepEqual(parents,{[shuttle.channel]:CATEGORY});assert.equal(sealed.get(shuttle.channel),CATEGORY);
+    assert.equal(result.summary.casePolicyVersion,2);assert.equal(result.summary.reconciliationJobs,1);
+    const policy=(await f.rows('case_policies')).find(row=>row.version===2).policy;assert.equal(Object.hasOwn(policy,'shuttleCategoryId'),false);
+    assert.equal((await f.rows('case_provisions'))[0].policy_version,2);
+    await f.drain(ownedReconciliation(f,await candidate(f)).worker);
+    const channel=f.discord.state.channels.get(shuttle.channel);assert.equal(channel.parent_id,CATEGORY);assert.ok(channel.permission_overwrites.some(row=>row.id===USER));
+  },{runningShuttleCategory:true});
 }

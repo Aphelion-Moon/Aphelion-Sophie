@@ -4,6 +4,7 @@ import { createRecoveryBundle, prepareRecoveryBundle, restoreRecoveryBundle } fr
 import { reviewedRecoveryTools } from '../../apps/core/recovery/local-operations.js';
 import { runtimeDatabaseAvailable } from '../../apps/core/storage/runtime-maintenance.js';
 import { GUILD } from '../../tests/fixtures/domain.js';
+import { SHUTTLE_CATEGORY } from '../../tests/fixtures/cases.js';
 
 export async function runPermissionSealingSuite(cluster,scenario) {
   const effects=f=>f.admin.query('SELECT * FROM sophie_control.maintenance_seal_effects ORDER BY channel_id').then(r=>r.rows);
@@ -114,5 +115,17 @@ export async function runPermissionSealingSuite(cluster,scenario) {
     assert.equal((await effects(f))[0].state,'started');await f.maintenance.sealNext(request);assert.equal(writes(f).length,0);
     await assert.rejects(f.maintenance.recheckNextSeal(request),/PERMISSION_CHANNEL_NOT_SEALED/);
     await assert.rejects(f.maintenance.cancelPreparation(request),/MAINTENANCE_STALE/);assert.equal(await runtimeDatabaseAvailable(f.pool),false);
+  });
+  await scenario('PS12 a Shuttle category that is not a category or is missing blocks sealing with candidate-category-unavailable',async f=>{
+    f.shuttleCategory(0);await f.retainVisibleCase({name:'synthetic-shuttle',type:'shuttle'});
+    const held=await f.maintenance.begin(await f.maintenanceRequest(d=>{d.shuttleCategoryId=SHUTTLE_CATEGORY;}));
+    for(const revision of [0,1]){
+      if(revision===1)f.discord.state.channels.delete(SHUTTLE_CATEGORY);
+      const inventory=await f.maintenance.inspectChannels({...held,requestId:f.id(),expectedRevision:revision});
+      assert.deepEqual(inventory.blockers,[{code:'candidate-category-unavailable',count:1}]);
+      await assert.rejects(f.maintenance.planSealing({...held,requestId:f.id(),inventoryRevision:revision+1,expectedInventoryHash:inventory.sha256,confirm:true}),/PERMISSION_INVENTORY_BLOCKED/);
+    }
+    assert.equal((await effects(f)).length,0);assert.equal((await f.rows('case_exclusions')).length,0);assert.equal(writes(f).length,0);
+    assert.equal((await f.rows('case_policies')).length,1);await f.maintenance.cancelPreparation(held);
   });
 }
