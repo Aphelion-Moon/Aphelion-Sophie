@@ -1,6 +1,6 @@
 # Verification and release limits
 
-## Shuttle clicks overtaken by Gateway traffic — 20 October 2026 (prepared, not yet installed)
+## Shuttle clicks overtaken by Gateway traffic — 20 October 2026 (installed 14:57 UTC as `334fd97`)
 
 Reported on staging 20bd3e7: `/whitelist start` and the new channel were slow, and the first Continue answered "We
 couldn’t confirm that request. Please ask Staff…". Trace `SHUTTLE_COMMAND_UNAVAILABLE_952MS`. No render or restore job
@@ -36,7 +36,11 @@ case channel, and were correctly skipped (`AI_ADMISSION_SKIPPED_CHANNEL_NOT_CONF
 **Offline evidence:** `npm test` 673 passed; repository check passed. Storage: the first full run passed 1004 and failed
 OC02, which correctly caught that Discord refusing access must not be worded as "busy"; the wording was narrowed.
 After that change the full run passed 1005, 0 failed (4 shards). New V21–V23: retry after overtaken reads; card release without Discord; first page drawn as soon as its channel opens.
-Not yet run: staging install and a live click-through.
+**Staging install:** owner approved ("Install now"). Pin `334fd97` = the runtime paths of `229708b` on `20bd3e7`; release
+`sophie-mistral-334fd97`, schema 072 unchanged; folder `deployment-334fd97-2026-10-20`, source-only (9 files; PostgreSQL
+and the tunnel kept running). Prepare (505 pinned and 505 installed files verified, dependencies unchanged), pre-start,
+service boundaries, installed and dashboard checks all passed on the first run. Not yet run: a live click-through; read
+the new `SHUTTLE_COMMAND_RETRIED/FAILED` and `CASE_PROVISION` codes from it.
 
 ## Staging install of 20bd3e7 — 20 October 2026 (installed 13:55 UTC, schema 072)
 
