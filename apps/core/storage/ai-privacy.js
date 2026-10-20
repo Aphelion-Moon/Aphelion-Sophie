@@ -1,6 +1,7 @@
 import { createHash } from 'node:crypto';
 import { requireId, requireInteger, requireCondition } from '../../../contracts/validation.js';
 import { inTransaction } from './transaction.js';
+import { eraseAiMemories } from './ai-memories.js';
 
 export const aiReceiptHash = (guildId,messageId) => createHash('sha256').update(`sophie-ai-replay:${guildId}:${messageId}`).digest('hex');
 const memberHash=(guildId,userId)=>createHash('sha256').update(`sophie-ai-erasure:${guildId}:${userId}`).digest('hex');
@@ -27,6 +28,7 @@ export function createAiPrivacy({pool,guildId,journal,departures,invalidate=()=>
       const row=await preference(client,job.userId);
       if(!row && !(await client.query(`SELECT 1 FROM sophie_ai.consents WHERE guild_id=$1 AND user_id=$2
         UNION ALL SELECT 1 FROM sophie_ai.request_receipts WHERE guild_id=$1 AND user_id=$2
+        UNION ALL SELECT 1 FROM sophie_ai.memories WHERE guild_id=$1 AND $2=ANY(subject_ids)
         UNION ALL SELECT 1 FROM sophie_ai.effects WHERE guild_id=$1 AND EXISTS(SELECT 1 FROM jsonb_array_elements(dependencies) d WHERE d->>'userId'=$2) LIMIT 1`,[guildId,job.userId])).rowCount)return true;
       requireCondition(journal!==null,'AI_PREFERENCE_JOURNAL_UNAVAILABLE');
       const watermark=await journal.read(guildId,job.userId);requireInteger(watermark);
@@ -36,6 +38,8 @@ export function createAiPrivacy({pool,guildId,journal,departures,invalidate=()=>
       await client.query('UPDATE sophie_ai.consents SET enabled=false,epoch=epoch+1 WHERE guild_id=$1 AND user_id=$2 AND enabled',[guildId,job.userId]);
       await client.query("UPDATE sophie_ai.request_receipts SET state='cancelled',updated_at=clock_timestamp() WHERE guild_id=$1 AND user_id=$2 AND state IN ('gathering','admitted','sending')",[guildId,job.userId]);
       if (retained) return true;
+      // Leaving removes every memory Sophie kept that names the member (owner decision, 20 October 2026).
+      await eraseAiMemories(client,guildId,job.userId);
       const member=memberHash(guildId,job.userId);
       await client.query(`INSERT INTO sophie_ai.effect_erasure(guild_id,member_hash,message_id)
         SELECT guild_id,$3,message_id FROM sophie_ai.effects WHERE guild_id=$1 AND

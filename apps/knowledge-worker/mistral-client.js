@@ -170,7 +170,7 @@ export function createMistralClient({ apiKey, fetchImpl = fetch, clock = Date.no
         requireCondition(message?.role === 'assistant' && typeof message.content === 'string' && message.content.length <= 8192 &&
           !message.tool_calls?.length && !message.function_call && !message.reasoning_content, 'AI_FINAL_OUTPUT_REQUIRED');
         const output = validateAiOutput(JSON.parse(message.content), { outcomes: contract.outcomes, answerOnly: contract.answerOnly,
-          sources, emojiKeys: contract.emojiKeys });
+          sources, emojiKeys: contract.emojiKeys, ...(contract.memoryLabels === undefined ? {} : { memoryLabels: contract.memoryLabels }) });
         requireCondition(!abort.aborted && clock() < deadline, 'AI_DEADLINE_EXPIRED');
         return output;
       } catch {

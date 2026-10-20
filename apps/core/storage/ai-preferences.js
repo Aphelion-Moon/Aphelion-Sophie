@@ -1,5 +1,6 @@
 import { requireCondition, requireInteger } from '../../../contracts/validation.js';
 import { canonicalResponsePreferences, PREFERENCE_LIFETIME_MS } from '../../../modules/assistant/preferences.js';
+import { restampAiMemories } from './ai-memories.js';
 
 /** Shared authenticated self-service operations. Saved settings and notes reach inference only through the member's own sharing switch (ai-memory.js). */
 export function createAiPreferences({ guildId, transaction, memberPresence, journal = null, clock = Date.now, privacyCurrent = null }) {
@@ -34,6 +35,8 @@ export function createAiPreferences({ guildId, transaction, memberPresence, jour
       await client.query(`INSERT INTO sophie_ai.response_preferences(guild_id,user_id,epoch,presence_epoch,settings,expires_at,retain_on_leave)
         VALUES($1,$2,$3,$4,$5,$6,$7) ON CONFLICT(guild_id,user_id) DO UPDATE SET epoch=$3,presence_epoch=$4,settings=$5,expires_at=$6,retain_on_leave=$7,updated_at=clock_timestamp()`,
       [guildId,actor.userId,epoch,presence,selected,expiresAt===null ? null:new Date(expiresAt),keep]);
+      // Sophie's memories of this member follow the new epoch; only a restored copy keeps the old one.
+      await restampAiMemories(client,guildId,actor.userId,epoch);
       return {available:true,epoch,quarantined:false,settings:selected,expiresAt,retainOnLeave:keep,remoteUse:selected?.useWithAi===true,provenance:'member-saved',scope:'self'};
     },{userId:actor.userId},true);
   }

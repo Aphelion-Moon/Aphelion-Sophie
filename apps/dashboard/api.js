@@ -64,6 +64,16 @@ export function createDashboardApi({ fetch, navigate = path => globalThis.locati
     aiSavePreferences: body => request('/api/ai/save-preferences',body),
     aiSaveRetention: body => request('/api/ai/save-retention',body),
     aiDeletePreferences: body => request('/api/ai/delete-preferences',body),
+    aiMemories: () => request('/api/ai/memories'),
+    aiMemoryAudit: (before = null) => {
+      if(before!==null && (typeof before!=='string' || !/^[0-9a-f-]{36}$/u.test(before)))throw new DashboardFailure('invalid',400);
+      return request(before===null ? '/api/ai/memory-audit' : `/api/ai/memory-audit?before=${before}`);
+    },
+    aiForgetMemory: body => request('/api/ai/forget-memory',body),
+    aiEditMemory: body => request('/api/ai/edit-memory',body),
+    aiForgetAllMemories: body => request('/api/ai/forget-all-memories',body),
+    aiRemembering: body => request('/api/ai/remembering',body),
+    aiRemoveMemory: body => request('/api/ai/remove-memory',body),
     knowledgeLookup: query => request('/api/knowledge/lookup', { query }),
     knowledgeCatalogue: () => request('/api/ai/knowledge'),
     knowledgePoliciesStatus: () => request('/api/ai/knowledge/policies-status'),

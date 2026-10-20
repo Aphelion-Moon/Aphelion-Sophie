@@ -1208,3 +1208,23 @@ branches be merged into `main` and work continue there; `codex/sophie-social-ai`
   flow, and the category is recorded as a case exclusion for AI and automation.
 
 No migration, dependency or new Discord permission. Not deployed.
+
+### Sophie keeps her own memories — 20 October 2026
+
+After the AI review the owner wrote: "Sophie is supposed to be creating her own memories, it's not supposed to be just
+user input." This supersedes the 11 October position that nothing is extracted from conversation (option B of that
+research was then rejected). Asked four questions, the owner chose:
+
+- **Scope:** both member memories (what a member says about themselves) and channel memories (moments, events, running
+  jokes), each tied to the members it mentions.
+- **Control:** saved and used at once; each member can see, edit and delete what names them, and the owner can review
+  and delete any memory.
+- **Exclusions:** identifiers only: real names, locations, contact details and account IDs. The recommended wider
+  exclusion of sensitive topics was declined.
+- **Retention:** 90 days after a memory was last used; deleted on leaving unless the member keeps their AI data.
+
+Implementation decisions: memories ride on the existing reply output (no second provider call); members are stored as
+subjects with placeholders, never names or turn labels; a member can turn memory off; the restore fence reuses the
+independent preference journal. Memory stays off until the owner re-accepts a processing policy with
+`automaticMemory: true` and a notice that discloses it; that changes the consent binding, so members opt in again.
+Details and the proposed notice text: [Sophie's own memories](../ai-memory.md). Not deployed; no policy change made.

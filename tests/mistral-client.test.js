@@ -316,3 +316,15 @@ test('evidence names its heading, so a passage can be matched to the rule it is'
   const evidence = value.messages.find(message => message.content.startsWith('Approved evidence'));
   assert.match(JSON.parse(evidence.content.slice(evidence.content.indexOf('\n') + 1)).heading, /CR 1: The Social Contract/u);
 });
+
+test('MEM-09 a turn that may remember returns Sophie\'s memories from the worker; one that may not rejects them', async () => {
+  const remembering = { ...output, memories: [{ scope: 'member', about: ['Member 1'], text: 'Member 1 likes moths' }] };
+  const respond = () => new Response(JSON.stringify(completion({ choices: [{ finish_reason: 'stop', message: { role: 'assistant', content: JSON.stringify(remembering) } }] })),
+    { headers: { 'content-type': 'application/json' } });
+  const payload = { ...prompt(), ...buildAiPrompt({ request: { character: DRAFT_PERSONALITY, userId: '404', text: 'Hello Sophie',
+    decision: { outcomes: ['reply', 'silent'], answerOnly: false }, config: { emojis: [] } }, history: [], sources: [], memories: [] }) };
+  const f = fixture({ response: respond });
+  assert.deepEqual((await f.generate(payload)).memories, remembering.memories);
+  assert.match(JSON.stringify(f.calls[0].body.messages), /memories/u);
+  await assert.rejects(fixture({ response: respond }).generate(), /AI_WORKER_UNAVAILABLE/);
+});

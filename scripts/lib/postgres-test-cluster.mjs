@@ -40,6 +40,7 @@ const SUITE_BASELINE_GRANTS = Object.freeze([
   'GRANT DELETE ON sophie_ai.budget_periods,sophie_ai.provider_attempts TO sophie_test_core',
   'GRANT SELECT,INSERT,UPDATE ON sophie_ai.response_preferences TO sophie_test_core',
   'GRANT SELECT,INSERT,UPDATE,DELETE ON sophie_ai.consents,sophie_ai.request_receipts,sophie_ai.request_tombstones,sophie_ai.effect_erasure,sophie_ai.response_preferences TO sophie_test_core',
+  'GRANT SELECT,INSERT,UPDATE,DELETE ON sophie_ai.memories,sophie_ai.memory_optouts TO sophie_test_core',
   'GRANT USAGE ON SCHEMA sophie_knowledge TO sophie_test_knowledge',
   'GRANT SELECT,INSERT,UPDATE ON ALL TABLES IN SCHEMA sophie_knowledge TO sophie_test_knowledge',
   'GRANT USAGE ON SCHEMA sophie_migrations TO sophie_test_core',

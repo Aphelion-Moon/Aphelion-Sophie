@@ -1,11 +1,13 @@
 import { requireCondition } from '../../../contracts/validation.js';
 import { validateAiOutput, renderAiReply } from '../../../modules/assistant/output.js';
-import { buildAiPrompt } from '../../knowledge-worker/prompt.js';
+import { aiSpeakerLabels, buildAiPrompt } from '../../knowledge-worker/prompt.js';
+import { encodeMemory } from '../../../modules/assistant/memories.js';
+import { redactAiIdentifiers } from '../../knowledge-worker/redaction.js';
 import { freezeAiMaterial } from '../../knowledge-worker/prompt-contract.js';
 import { effectContextFits } from '../storage/ai-effects.js';
 
 /** Core owns delivery. No worker can choose a recipient, target message or operational indicator. */
-export function createAiTurns({ admission, scheduler, context, knowledge, messages, clock, memory = null, onInvalidate = () => {}, trace = () => {} }) {
+export function createAiTurns({ admission, scheduler, context, knowledge, messages, clock, memory = null, memories = null, onInvalidate = () => {}, trace = () => {} }) {
   const outstanding = new Map(), gatherings = new Map(); let stopped = false, generation = 0;
   // Fixed diagnostic codes only: the stage a turn ended at, its outcome and whole seconds since receipt. No IDs or text.
   const code = value => typeof value === 'string' && /^[A-Z][A-Z0-9_]{2,40}$/u.test(value) ? value : 'ERROR';
@@ -61,15 +63,31 @@ export function createAiTurns({ admission, scheduler, context, knowledge, messag
   // The second of exactly two authorization checks (owner decision, 12 October 2026). Admission is the first: it authorizes
   // the request and its fragments, and history is authorized as it is read. This one runs once, right before delivery,
   // over everything the reply depends on; beginDelivery re-checks the request itself atomically with the state change.
-  async function dependenciesCurrent(request, sources, history, saved) {
+  async function dependenciesCurrent(request, sources, history, saved, remembered) {
     if (stopped || clock() >= request.deadline) return false;
     for (const fragment of request.fragments ?? []) if (fragment.messageId!==request.messageId && !await admission.revalidate(fragment)) return false;
     for (const source of history) if (!await historyCurrent(request, source)) return false;
     // Notes the member edited, deleted or stopped sharing after preparation must not reach delivery.
     if (saved !== null && await memory.current(request.userId, saved) !== true) return false;
+    // A memory deleted, edited or no longer usable since preparation must not shape the reply.
+    if (remembered?.length && await memories.current(remembered) !== true) return false;
     return await knowledge.current(sources, request) === true && clock() < request.deadline;
   }
   const expired = request => stopped || clock() >= request.deadline;
+  // What Sophie chose to remember is stored only for a turn that finished (reply, reaction or silence), and memories she
+  // used stay another 90 days. A memory failure never affects the turn.
+  async function remember(request, speakers, output, remembered) {
+    if (memories === null || remembered === null) return;
+    try {
+      await memories.touch(remembered);
+      if (!output.memories?.length) return;
+      const userOf = new Map([...speakers].map(([userId, label]) => [label, userId]));
+      const saved = await memories.record({ channelId: request.channelId, memories: output.memories.map(item => encodeMemory(item, label => userOf.get(label)))
+        // Contact details, links and IDs are masked before anything is kept, as they are before anything is sent.
+        .map(item => ({ ...item, text: redactAiIdentifiers(item.text) })) });
+      trace(`AI_MEMORY_SAVED_${saved}`);
+    } catch { try { trace('AI_MEMORY_UNAVAILABLE'); } catch { /* Diagnostics only. */ } }
+  }
   async function run(request) {
     const result = await runStages(request);
     report(request, result.state, result.stage ?? 'END', result.reason ?? null);
@@ -101,6 +119,10 @@ export function createAiTurns({ admission, scheduler, context, knowledge, messag
       // Only the requester's own shared notes; never another participant's.
       stage = 'MEMORY';
       const saved = memory === null ? null : await memory.read(request.userId);
+      // Sophie's own memories, only while an accepted notice discloses them; null means this turn cannot remember.
+      const speakers = aiSpeakerLabels(request, history);
+      const remembered = memories !== null && await memories.enabled() === true
+        ? await memories.forPrompt({ channelId: request.channelId, userIds: [...speakers.keys()] }) : null;
       if (expired(request)) { await admission.settle(request, 'expired'); return { state: 'expired', stage }; }
       stage = 'GENERATE';
       const generated = await scheduler.submit({ id: request.messageId, member: `${request.guildId}.${request.userId}`, channel: `${request.guildId}.${request.channelId}`, receivedAt: request.receivedAt,
@@ -112,14 +134,14 @@ export function createAiTurns({ admission, scheduler, context, knowledge, messag
           boundary: { guildId: request.guildId, channelId: request.channelId, continuity: request.binding.continuity, boundaryEpoch: request.binding.boundaryEpoch },
           local: { messageId: request.messageId, inputRevision: request.inputRevision, controlEpoch: request.binding.epoch,
             deadline: request.deadline, proactive: request.decision.proactive },
-          ...buildAiPrompt({ request, history, sources, memory: saved }) }) });
+          ...buildAiPrompt({ request, history, sources, memory: saved, memories: remembered }) }) });
       if (generated.state !== 'completed') { const state = ['expired', 'cancelled'].includes(generated.state) ? generated.state : 'unavailable'; await admission.settle(request, state); return { state, stage, reason: String(generated.state).toUpperCase() }; }
       stage = 'VALIDATE';
       const output = validateAiOutput(generated.result, { outcomes: request.decision.outcomes, answerOnly: request.decision.answerOnly,
-        sources, emojiKeys: request.config.emojis.map(emoji => emoji.key) });
-      if (output.kind === 'silent') { await admission.settle(request, 'silent'); return { state: 'silent', stage }; }
+        sources, emojiKeys: request.config.emojis.map(emoji => emoji.key), ...(remembered === null ? {} : { memoryLabels: [...speakers.values()] }) });
+      if (output.kind === 'silent') { await admission.settle(request, 'silent'); await remember(request, speakers, output, remembered); return { state: 'silent', stage }; }
       stage = 'DELIVER';
-      if (!await dependenciesCurrent(request, sources, history, saved) || !await admission.beginDelivery(request)) {
+      if (!await dependenciesCurrent(request, sources, history, saved, remembered) || !await admission.beginDelivery(request)) {
         await admission.settle(request, clock() >= request.deadline ? 'expired' : 'cancelled');
         return { state: clock() >= request.deadline ? 'expired' : 'cancelled', stage };
       }
@@ -132,6 +154,7 @@ export function createAiTurns({ admission, scheduler, context, knowledge, messag
       // marks its effect for cleanup even while this turn is still settling.
       const state = output.kind === 'reply' ? 'delivered' : 'reacted';
       try { await admission.settle(request, state, effect.id); } catch { /* The effect receipt already records the delivery. */ }
+      await remember(request, speakers, output, remembered);
       try {
         if (output.kind === 'reply') context.rememberReply(request, { id: effect.id, text: output.text }, dependencies, sources);
       } catch { /* Omit context if bounded retention is unavailable. */ }

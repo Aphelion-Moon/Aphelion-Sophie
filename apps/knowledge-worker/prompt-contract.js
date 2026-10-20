@@ -1,4 +1,5 @@
 import { requireCondition, requireInteger, requireKeys } from '../../contracts/validation.js';
+import { MEMORY_PROPOSAL_LIMIT, MEMORY_SCOPES, MEMORY_SUBJECT_LIMIT, MEMORY_TEXT_LENGTH, validateMemoryLabels } from '../../modules/assistant/memories.js';
 
 const blockKinds=['authoring','example','evidence','history','memory','contract','question'];
 
@@ -49,14 +50,20 @@ export function firstChangedAiBlock(previous, current) {
 
 /** Generation constraints do not replace core's independent output and authority checks. */
 export function createAiOutputSchema(contract) {
-  requireKeys(contract, ['outcomes', 'answerOnly', 'sourceIds', 'emojiKeys'], 'AI_OUTPUT_CONTRACT_INVALID');
-  const { outcomes, answerOnly, sourceIds, emojiKeys } = contract;
+  requireKeys(contract, ['outcomes', 'answerOnly', 'sourceIds', 'emojiKeys', ...(Object.hasOwn(contract ?? {}, 'memoryLabels') ? ['memoryLabels'] : [])], 'AI_OUTPUT_CONTRACT_INVALID');
+  const { outcomes, answerOnly, sourceIds, emojiKeys, memoryLabels } = contract;
+  if (memoryLabels !== undefined) validateMemoryLabels(memoryLabels);
   requireCondition(Array.isArray(outcomes) && outcomes.length <= 3 && outcomes.includes('silent') &&
     new Set(outcomes).size === outcomes.length && outcomes.every(kind => ['silent','reply','react'].includes(kind)) &&
     typeof answerOnly === 'boolean', 'AI_OUTPUT_CONTRACT_INVALID');
   for (const [values, limit] of [[sourceIds, 6], [emojiKeys, 32]]) requireCondition(Array.isArray(values) && values.length <= limit &&
     new Set(values).size === values.length && values.every(value => typeof value === 'string' && /^[a-zA-Z0-9._-]{1,96}$/.test(value)), 'AI_OUTPUT_CONTRACT_INVALID');
-  const object = properties => ({ type: 'object', additionalProperties: false, properties, required: Object.keys(properties) });
+  // Optional on every outcome when this turn may remember: up to two short notes about labelled members or the channel.
+  const memories = memoryLabels === undefined ? null : { type: 'array', maxItems: MEMORY_PROPOSAL_LIMIT, items: { type: 'object', additionalProperties: false,
+    required: ['scope', 'about', 'text'], properties: { scope: { enum: [...MEMORY_SCOPES] },
+      about: { type: 'array', maxItems: MEMORY_SUBJECT_LIMIT, items: { enum: [...memoryLabels] } }, text: { type: 'string', minLength: 3, maxLength: MEMORY_TEXT_LENGTH } } } };
+  const object = properties => ({ type: 'object', additionalProperties: false, properties: memories === null ? properties : { ...properties, memories },
+    required: Object.keys(properties) });
   const oneOf = [object({ kind: { const: 'silent' } })];
   if (outcomes.includes('react') && emojiKeys.length) oneOf.push(object({ kind: { const: 'react' }, emojiKey: { enum: [...emojiKeys] } }));
   if (outcomes.includes('reply')) {

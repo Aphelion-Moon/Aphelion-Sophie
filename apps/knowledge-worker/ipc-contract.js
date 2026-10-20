@@ -33,7 +33,7 @@ export function validateAiPreparedMetadata(value, payload) {
   requireKeys(value,['bytes','outputTokens','contract','comparison'],'AI_IPC_PREPARATION_INVALID');
   if(value.comparison!==null)validateAiComparison(value.comparison);
   requireInteger(value.bytes,0,32768); requireInteger(value.outputTokens,64,512); createAiOutputSchema(value.contract);
-  for (const key of ['outcomes','answerOnly','emojiKeys']) requireCondition(JSON.stringify(value.contract[key]) === JSON.stringify(payload.outputContract[key]),'AI_IPC_PREPARATION_INVALID');
+  for (const key of ['outcomes','answerOnly','emojiKeys','memoryLabels']) requireCondition(JSON.stringify(value.contract[key]) === JSON.stringify(payload.outputContract[key]),'AI_IPC_PREPARATION_INVALID');
   requireCondition(value.contract.sourceIds.every(id => payload.outputContract.sourceIds.includes(id)) &&
     (value.bytes !== 0 || createAiOutputSchema(value.contract).oneOf.length === 1),'AI_IPC_PREPARATION_INVALID');
   return freezeAiMaterial(structuredClone(value));

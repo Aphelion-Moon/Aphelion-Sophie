@@ -5,7 +5,9 @@ export const AI_ROUTES = Object.freeze({ '/api/ai/publication': 'GET', '/api/ai/
   '/api/ai/review-spending-hold': 'POST', '/api/ai/clear-spending-hold': 'POST',
   '/api/ai/worker':'GET',
   '/api/ai/review-activation':'POST', '/api/ai/activate':'POST',
-  '/api/ai/diagnostics':'GET','/api/ai/overview':'GET','/api/ai/preferences':'GET','/api/ai/preferences/export':'GET', '/api/ai/save-preferences':'POST', '/api/ai/delete-preferences':'POST','/api/ai/save-retention':'POST' });
+  '/api/ai/diagnostics':'GET','/api/ai/overview':'GET','/api/ai/preferences':'GET','/api/ai/preferences/export':'GET', '/api/ai/save-preferences':'POST', '/api/ai/delete-preferences':'POST','/api/ai/save-retention':'POST',
+  '/api/ai/memories':'GET', '/api/ai/memory-audit':'GET', '/api/ai/forget-memory':'POST', '/api/ai/edit-memory':'POST', '/api/ai/forget-all-memories':'POST',
+  '/api/ai/remembering':'POST', '/api/ai/remove-memory':'POST' });
 
 export function createAiControlsHttp({ auth, authorization, controls, trace = () => {} }) {
   return Object.freeze({ async execute({ path, method, query, body, credentials }) {
@@ -20,6 +22,12 @@ export function createAiControlsHttp({ auth, authorization, controls, trace = ()
       } else if(path==='/api/ai/diagnostics'){
         requireCondition([...query.keys()].length===1 && query.has('channelId'),'AI_INPUT_INVALID');
         fields={channelId:query.get('channelId')};operation='diagnostics';
+      } else if (path === '/api/ai/memory-audit') {
+        const keys = [...query.keys()];
+        requireCondition(keys.length <= 1 && keys.every(key => key === 'before'), 'AI_INPUT_INVALID');
+        fields = query.has('before') ? { before: query.get('before') } : {}; operation = 'auditMemories';
+      } else if (path === '/api/ai/memories') {
+        requireCondition([...query].length === 0, 'AI_INPUT_INVALID'); fields = {}; operation = 'ownMemories';
       } else if (path === '/api/ai/overview') {
         requireCondition([...query].length === 0, 'AI_INPUT_INVALID'); fields = {}; operation = 'overview';
       } else if (path === '/api/ai/publication') {
@@ -32,7 +40,8 @@ export function createAiControlsHttp({ auth, authorization, controls, trace = ()
         disable: [], consent: ['channelId', 'enabled', 'expectedEpoch', 'acceptedNoticeRevision'], 'resolve-spending':['messageId','fence','requestId','confirmed'],
         'review-spending-hold': ['expectedRevision','evidenceHash'], 'clear-spending-hold': ['expectedRevision','evidenceHash','reviewSha256','requestId','confirmed'],
         'review-activation':['channelId'], activate:['channelId','reviewSha256','requestId','confirmed'],
-        'save-preferences':['expectedEpoch','settings','confirmed'], 'delete-preferences':['expectedEpoch','confirmed'],'save-retention':['expectedEpoch','retainOnLeave','confirmed'] };
+        'save-preferences':['expectedEpoch','settings','confirmed'], 'delete-preferences':['expectedEpoch','confirmed'],'save-retention':['expectedEpoch','retainOnLeave','confirmed'],
+        'forget-memory':['id','confirmed'], 'edit-memory':['id','text','confirmed'], 'forget-all-memories':['confirmed'], remembering:['enabled','confirmed'], 'remove-memory':['id','confirmed'] };
       const optionalBinding = operation === 'consent' && body && Object.hasOwn(body, 'acceptedNoticeBinding') ? ['acceptedNoticeBinding'] : [];
       requireKeys(body, [...keys[operation], ...optionalBinding], 'AI_INPUT_INVALID'); fields = body;
       if (operation === 'resolve-spending') operation = 'resolveSpending';
@@ -42,6 +51,8 @@ export function createAiControlsHttp({ auth, authorization, controls, trace = ()
       if (operation === 'save-retention') operation = 'saveRetention';
       if (operation === 'delete-preferences') operation = 'deletePreferences';
       if (operation === 'review-activation') operation = 'reviewActivation';
+      operation = { 'forget-memory': 'forgetMemory', 'edit-memory': 'editMemory', 'forget-all-memories': 'forgetAllMemories', remembering: 'setRemembering',
+        'remove-memory': 'removeMemory' }[operation] ?? operation;
     }
     if (path === '/api/ai/consents/export') operation = 'exportConsents';
     const { proof } = await auth.authenticate({ ...credentials, method });

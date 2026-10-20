@@ -1,5 +1,23 @@
 # Verification and release limits
 
+## Sophie keeps her own memories — 20 October 2026
+
+Owner direction and choices in the decision log ("Sophie keeps her own memories"); design, notice draft and enabling
+steps in [Sophie's own memories](ai-memory.md). Migration 073. Memory stays off until the owner re-accepts a processing
+policy with `automaticMemory: true`.
+
+**Evidence:**
+- `npm test`: 682 passed (MEM-01 to MEM-09 new: proposal bounds, output and schema contracts, placeholder storage,
+  prompt variants, policy gate and binding, turn recording and cancellation, worker-side validation).
+- Repository check passed.
+- Storage, 4 shards: 1014 passed, 0 failed, 99 s (MEM-S01 to MEM-S07 new: prompt selection and opt-out, member edit and
+  forget with a restored copy kept out, epoch re-stamp on preference save, caps, owner audit and its refusal, departure
+  erasure, expiry and extension).
+
+**Not covered:** no live Mistral run, so how often and how well Sophie writes memories is unknown; the dashboard pages
+were not exercised in a browser; nothing checks memory text for real names beyond the prompt rule and member review.
+Not deployed.
+
 ## Production-test preparation: artwork, Shuttle wording, channel title and category — 20 October 2026
 
 Owner direction recorded in the decision log ("Production-test preparation"). All branches were merged into `main` first.

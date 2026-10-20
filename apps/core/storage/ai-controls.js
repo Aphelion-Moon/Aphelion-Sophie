@@ -25,7 +25,7 @@ function publication(kind, document) {
 
 /** Authenticated controls own desired state. Activation requires separate installation evidence. */
 export function createAiControls({ pool, guildId, authorize, inspectChannel, memberPresence, invalidate = () => {}, noticeRevision = 2,
-  noticeApproved = async () => false, readNotice = async () => ({ revision: noticeRevision, text: null, approved: await noticeApproved() }), preferenceJournal = null, privacyCurrent = null, clock = Date.now, workerStatus=()=>({connected:false,release:null,observedAt:null}),readDiagnostic=async()=>null }) {
+  noticeApproved = async () => false, readNotice = async () => ({ revision: noticeRevision, text: null, approved: await noticeApproved() }), preferenceJournal = null, privacyCurrent = null, memories = null, memoriesActive = async () => false, clock = Date.now, workerStatus=()=>({connected:false,release:null,observedAt:null}),readDiagnostic=async()=>null }) {
   requireId(guildId); requireInteger(noticeRevision, 1);
   for (const fn of [authorize, inspectChannel, memberPresence, noticeApproved,readNotice,readDiagnostic]) requireCondition(typeof fn === 'function', 'TRUSTED_ADAPTERS_REQUIRED');
   async function access(actor, action, scope = {}) {
@@ -42,6 +42,27 @@ export function createAiControls({ pool, guildId, authorize, inspectChannel, mem
       const state = (await client.query('SELECT * FROM sophie_ai.state WHERE guild_id=$1 FOR UPDATE', [guildId])).rows[0];
       result = await work(client, state); await access(actor, action, scope); return result;
     }).finally(() => { if (typeof changes==='function' ? changes(result) : changes) invalidate(); });
+  }
+  // Sophie's own memories: each member manages what names them (ai.self); the owner audits all of them (ai.memory.audit).
+  function memoryControls() {
+    const unavailable = { available: false, remembering: false, memories: [] };
+    const confirm = confirmed => requireCondition(confirmed === true, 'AI_CONFIRMATION_REQUIRED');
+    const self = (actor, work) => { requireCondition(memories !== null, 'AI_MEMORY_UNAVAILABLE');
+      return transaction(actor, 'ai.self', async client => { requireCondition(privacyCurrent === null || await privacyCurrent(actor.userId, client), 'AI_DELETION_PENDING');
+        const presence = await memberPresence(actor); requireInteger(presence); await work(client, presence);
+        return { available: true, active: await memoriesActive() === true, ...await memories.self.list(client, actor.userId) }; }, { userId: actor.userId }, true); };
+    return {
+      ownMemories: ({ actor }) => memories === null ? unavailable : transaction(actor, 'ai.self', async client =>
+        ({ available: true, active: await memoriesActive() === true, ...await memories.self.list(client, actor.userId) }), { userId: actor.userId }),
+      forgetMemory: ({ actor, id, confirmed }) => { confirm(confirmed); return self(actor, (client, presence) => memories.self.forget(client, actor.userId, id, presence)); },
+      editMemory: ({ actor, id, text, confirmed }) => { confirm(confirmed); return self(actor, (client, presence) => memories.self.edit(client, actor.userId, id, text, presence)); },
+      forgetAllMemories: ({ actor, confirmed }) => { confirm(confirmed); return self(actor, (client, presence) => memories.self.forgetAll(client, actor.userId, presence)); },
+      setRemembering: ({ actor, enabled, confirmed }) => { confirm(confirmed); return self(actor, client => memories.self.remembering(client, actor.userId, enabled)); },
+      auditMemories: ({ actor, before = null }) => { requireCondition(memories !== null, 'AI_MEMORY_UNAVAILABLE');
+        return transaction(actor, 'ai.memory.audit', client => memories.audit.list(client, before)); },
+      removeMemory: ({ actor, id, confirmed }) => { confirm(confirmed); requireCondition(memories !== null, 'AI_MEMORY_UNAVAILABLE');
+        return transaction(actor, 'ai.memory.audit', async client => { await memories.audit.remove(client, id); return memories.audit.list(client, null); }, {}, true); },
+    };
   }
   async function current(client, kind) {
     const row = (await client.query('SELECT * FROM sophie_ai.publications WHERE guild_id=$1 AND kind=$2 ORDER BY revision DESC LIMIT 1', [guildId, kind])).rows[0];
@@ -77,6 +98,7 @@ export function createAiControls({ pool, guildId, authorize, inspectChannel, mem
       return {available:true,connected:live?.connected===true,phase:live?.connected===true?'ready':'stopped',release:live?.release??null,observedAt:live?.observedAt??null,disabled:state.disabled};
     }),
     ...createAiPreferences({guildId,transaction,memberPresence,journal:preferenceJournal,privacyCurrent,clock}),
+    ...memoryControls(),
     async diagnostics({actor,channelId}) {
       requireId(channelId);
       const guard=()=>transaction(actor,'ai.control',async(client,state)=>{

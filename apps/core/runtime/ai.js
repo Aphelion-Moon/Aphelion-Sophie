@@ -16,7 +16,7 @@ import { createMeteredAiWorker } from './ai-provider.js';
 
 /** Core composition only. Inference receives a fixed turn payload, never this pool or Discord transport. */
 export function createAiRuntime({ configuration, corePool, controlPool, worker, knowledge, observer, guildState, token, fetch, clock, enabled, rateLimits, onFault,
-  readNotice = async () => ({ revision: worker.provider === 'mistral' ? 2 : 1, binding: null, approved: worker.provider !== 'mistral' }), privacyCurrent = async () => false, memory = null }) {
+  readNotice = async () => ({ revision: worker.provider === 'mistral' ? 2 : 1, binding: null, approved: worker.provider !== 'mistral' }), privacyCurrent = async () => false, memory = null, memories = null }) {
   requireCondition(worker && typeof worker.generate === 'function' && typeof worker.current === 'function' && knowledge &&
     ['lookup','current','currentReferences'].every(name => typeof knowledge[name] === 'function'), 'AI_ADAPTERS_REQUIRED');
   const { mapping, casePolicy, capabilityPolicy } = configuration;
@@ -44,7 +44,7 @@ export function createAiRuntime({ configuration, corePool, controlPool, worker, 
   } });
   const effects = createAiEffects({ pool: controlPool, guildId: mapping.guildId, clock });
   const messages = createAiMessages({ transport, botUserId: mapping.botUserId, canReact: observations.canReact, effects, clock });
-  const turns = createAiTurns({ admission, scheduler, context: createAiContext({ clock }), knowledge, messages, clock, memory, trace: onFault,
+  const turns = createAiTurns({ admission, scheduler, context: createAiContext({ clock }), knowledge, messages, clock, memory, memories, trace: onFault,
     // Message edits and deletes also drop cached source metadata, so a changed message is always re-read.
     onInvalidate: filter => { observations.clear(); void effects.invalidate(filter).catch(() => onFault('AI_CONTROL_UNAVAILABLE')); } });
   const gateway = createAiGateway({ ingress, turns, onFault });

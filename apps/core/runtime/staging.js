@@ -9,6 +9,7 @@ import { createAiEffects } from '../storage/ai-effects.js';
 import { createAiMessages } from '../discord/ai-messages.js';
 import { createAiRuntime } from './ai.js';
 import { createAiMemory } from '../storage/ai-memory.js';
+import { createAiMemories } from '../storage/ai-memories.js';
 import { createAiControlsHttp } from '../http/ai-controls.js';
 import { createAiKnowledgeHttp } from '../http/ai-knowledge.js';
 import { createKnowledgeLookupHttp } from '../http/knowledge-lookup.js';
@@ -100,7 +101,10 @@ export async function createStagingRuntime({ configuration, pool, aiControlPool 
   const privacy=aiControlPool===null?null:createAiPrivacy({pool:aiControlPool,guildId:fixed.mapping.guildId,journal:aiPreferenceJournal,
     departures:createAiDepartures({pool,guildId:fixed.mapping.guildId}),invalidate:()=>aiRuntime?.invalidate(),onFault:fault,
     removeEffect:effect=>privacyMessages.remove({guildId:fixed.mapping.guildId,channelId:effect.channel_id},{messageId:effect.message_id,owner:effect.owner,id:effect.receipt_id})});
-  const preferenceExpiry=privacy===null?null:createAiPreferenceExpiry({pool:aiControlPool,guildId:fixed.mapping.guildId,onFault:()=>fault('AI_CONTROL_UNAVAILABLE'),maintainPrivacy:privacy.maintain});
+  // Sophie's own memories exist only with the independent journal; they are used only while an accepted notice discloses them.
+  const aiMemories=privacy===null||aiPreferenceJournal===null?null:createAiMemories({pool:aiControlPool,guildId:fixed.mapping.guildId,journal:aiPreferenceJournal,privacyCurrent:privacy.current,clock});
+  const preferenceExpiry=privacy===null?null:createAiPreferenceExpiry({pool:aiControlPool,guildId:fixed.mapping.guildId,onFault:()=>fault('AI_CONTROL_UNAVAILABLE'),
+    maintainPrivacy:async()=>{await privacy.maintain();await aiMemories?.expire();}});
   // One Gateway projection outlives worker runtimes: it must see every dispatch, including while no worker runs.
   const guildState = aiWorker === null ? null : createGuildState({ guildId: fixed.mapping.guildId, botUserId: fixed.mapping.botUserId });
   const aiGateway = guildState === null ? null : { prepare: payload => { guildState.accept(payload); return aiRuntime?.prepare(payload) ?? null; },
@@ -123,6 +127,7 @@ export async function createStagingRuntime({ configuration, pool, aiControlPool 
   const createAiLane=worker=>createAiRuntime({ configuration: fixed, corePool: pool, controlPool: aiControlPool, worker, knowledge: aiKnowledge,
     observer, guildState, token, fetch, clock, enabled, rateLimits, onFault: fault,privacyCurrent:privacy.current,
     memory: aiPreferenceJournal === null ? null : createAiMemory({ pool: aiControlPool, guildId: fixed.mapping.guildId, journal: aiPreferenceJournal, clock }),
+    memories: aiMemories === null ? null : { ...aiMemories, enabled: async () => aiApproval !== null && typeof aiApproval.automaticMemory === 'function' && await aiApproval.automaticMemory() },
     ...(aiApproval === null ? {} : { readNotice: aiApproval.notice }) });
   if(aiWorker!==null)aiRuntime=createAiLane(aiWorker);
   const readSystemText = createSystemWordingReader({ pool, guildId: fixed.mapping.guildId });
@@ -164,7 +169,8 @@ export async function createStagingRuntime({ configuration, pool, aiControlPool 
     activationRebind = activation === null ? null : activation.rebind; activationFollow = activation === null ? null : activation.follow;
     const knowledgeLookup = aiKnowledge === null ? null : createKnowledgeLookupHttp({ auth, authorization, knowledge: aiKnowledge, clock });
     const ai = aiControlPool === null ? null : createAiControlsHttp({ auth, authorization, trace: fault, controls: { ...createAiControls({
-      pool: aiControlPool, guildId: fixed.mapping.guildId, authorize: authorization.authorize, preferenceJournal:aiPreferenceJournal, privacyCurrent:privacy.current,clock,
+      pool: aiControlPool, guildId: fixed.mapping.guildId, authorize: authorization.authorize, preferenceJournal:aiPreferenceJournal, privacyCurrent:privacy.current,clock, memories: aiMemories,
+      memoriesActive: async () => aiApproval !== null && typeof aiApproval.automaticMemory === 'function' && await aiApproval.automaticMemory(),
       workerStatus:()=>aiRuntime?.workerStatus?.()??{connected:false,release:null,observedAt:null},
       readDiagnostic:channelId=>aiRuntime?.diagnostics(channelId)??null,
       ...(aiApproval === null ? {} : { readNotice: aiApproval.notice }),

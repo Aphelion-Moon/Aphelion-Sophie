@@ -4,6 +4,7 @@ import { canonicalAiConfiguration, defaultParticipation, AI_MODES } from '../../
 import { canonicalPersonality, DRAFT_PERSONALITY } from '../../modules/assistant/personality.js';
 import { canonicalAiBudget, DEFAULT_AI_BUDGET } from '../../modules/assistant/budget.js';
 import { createPreferenceEditor } from './ai-preferences-view.js';
+import { createMemoryAudit, createMemoryList } from './ai-memories-view.js';
 
 const api = createDashboardApi({ fetch: window.fetch.bind(window) }), el = id => document.getElementById(id);
 const personal = window.location.pathname === '/ai-preferences';
@@ -20,6 +21,8 @@ window.addEventListener('pagehide',()=>{clearDiagnostic();stopWorkerPoll();});
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState!=='visible')clearDiagnostic();});
 const requestId=()=>[...crypto.getRandomValues(new Uint8Array(32))].map(value=>value.toString(16).padStart(2,'0')).join('');
 const preferences = personal ? createPreferenceEditor({api,document,perform,identity:()=>session,changed,saved:()=>{dirty=false;}}) : null;
+const memoryList = personal ? createMemoryList({api,document,perform,identity:()=>session}) : null;
+const memoryAudit = personal ? null : createMemoryAudit({api,document,perform});
 const notice = text => { el('notice').textContent = text; };
 function changed() { dirty = true; pending = null; pendingRequestId = null; if (el('review')) el('review').hidden = true; if (el('review-content')) el('review-content').textContent = ''; }
 function clear() {
@@ -139,11 +142,13 @@ async function consents(append = false) {
 async function load() {
   stopWorkerPoll(); let workerSnapshot = null;
   session = await api.session(); el('logout').hidden = false;
-  if (personal) { if (!session.aiAvailable) throw Object.assign(Error(), { kind: 'denied' }); await consents(); await preferences.load(); }
+  if (personal) { if (!session.aiAvailable) throw Object.assign(Error(), { kind: 'denied' }); await consents(); await preferences.load(); await memoryList.load(); }
   else {
     if (!session.canControlAi && !session.canEditPersonality) throw Object.assign(Error(), { kind: 'denied' });
     // One request for every saved part this page shows; a part the server withholds means access changed.
     const overview = await api.aiOverview();
+    // Shown only to holders of ai.memory.audit; a denial just keeps the panel hidden.
+    await memoryAudit.load();
     const part = value => { if (value === null || value === undefined) throw Object.assign(Error(), { kind: 'denied' }); return value; };
     if (session.canControlAi) {
       const current = part(overview.configuration); configuration = current.publication?.document ?? configuration; configurationRevision = current.publication?.revision ?? 0;
