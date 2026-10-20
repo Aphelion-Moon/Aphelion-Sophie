@@ -164,9 +164,9 @@ test('T18 Shuttle render diagnostics are fixed codes with outcome, time, request
   const dispatcher = createOnboardingDispatcher({ enabled: async () => true, trace: code => traces.push(code), requestCount: () => count,
     outbox: { claim: async () => ({ claim: { guildId: GUILD, operationId: 'synthetic-op', owner: 'worker', fence: 1 }, userId: USER, kind: 'shuttle.render', parked: false, waitedMs: 1_234 }),
       requireDeliveryReady: async () => {}, renew: async () => {} },
-    store: { inspectOnboardingRender: async () => { count += 2; return { settled: true }; } },
-    roles: { guildId: GUILD, observe: async () => ({}) }, messages: { guildId: GUILD } });
-  assert.deepEqual(await dispatcher.runOnce('worker'), { status: 'settled' });
+    store: { inspectOnboardingRender: async () => { count += 2; return { settled: true, current: true }; } },
+    roles: { guildId: GUILD, prepare: async () => ({ observation: {} }) }, messages: { guildId: GUILD } });
+  assert.deepEqual(await dispatcher.runOnce('worker'), { status: 'settled', current: true });
   assert.equal(traces.length, 1);
   assert.match(traces[0], /^SHUTTLE_RENDER_SETTLED_\d{1,5}MS_2CALLS_1234WAITMS$/);
   assert.match(traces[0], /^[A-Z][A-Z0-9_]{2,63}$/);

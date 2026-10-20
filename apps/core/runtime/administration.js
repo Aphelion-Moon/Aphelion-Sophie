@@ -51,7 +51,7 @@ import { inspectAutomationChannel } from '../storage/automation-channel-policy.j
 export function createAdministrationLane({ configuration, pool, token, fetch, clock, enabled, rateLimits, observer, principals, verifier, onFault, onTrace = () => {}, readSystemText, knowledge = null }) {
   const { mapping, casePolicy: policy, limits, definitionId, capabilityPolicy } = configuration;
   const transport = createDiscordTransport({ guildId: mapping.guildId, token, fetch, clock, enabled, ...(rateLimits ? { limits: rateLimits } : {}) });
-  const roles = createDiscordRoles({ transport, mapping, clock, readContinuity: observer.readContinuity });
+  const roles = createDiscordRoles({ transport, mapping, clock, readContinuity: observer.readContinuity, readBoundary: observer.readAuthorityBoundary ?? null });
   const authorization = createCoreAuthorization({ principals, discord: roles, authorityStore: createActorAuthorityStore({ pool, clock }),
     policy: capabilityPolicy, clock, isAuthorityCurrent: enabled, readContinuity: observer.readContinuity });
   const { authorize, authorizeRecorded, resolveCaseResponder, resolveCaseParticipant, authorizeCaseParticipant } = authorization;

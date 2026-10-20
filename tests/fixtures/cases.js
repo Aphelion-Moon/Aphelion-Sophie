@@ -11,8 +11,8 @@ export const casePlan = Object.freeze({ id: 'synthetic-case', guildId: GUILD, op
   policyVersion: 1, token: '1234567890abcdef'.repeat(3), presenceEpoch: 0 });
 
 /** Only generated metadata is exercised; no case messages/forms/attachments. */
-export function simulatedCases({ clock = () => NOW, enabled = () => true, policy = casePolicy, readContinuity, authorizeCaseParticipant } = {}) {
-  const discord = simulatedDiscord({ clock, enabled, readContinuity });
+export function simulatedCases({ clock = () => NOW, enabled = () => true, policy = casePolicy, readContinuity, readBoundary, authorizeCaseParticipant } = {}) {
+  const discord = simulatedDiscord({ clock, enabled, readContinuity, readBoundary });
   discord.state.roles.find(role => role.id === BOT_ROLE).permissions = String(PERMISSIONS.manageRoles | PERMISSIONS.manageChannels | CASE_CHANNEL_BITS | CASE_CLOSED_WRITE_BITS);
   discord.state.channels.set(CATEGORY, { id: CATEGORY, guild_id: GUILD, type: 4, parent_id: null,
     topic: null, permission_overwrites: [] });

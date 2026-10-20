@@ -80,6 +80,29 @@ test('T59 Shuttle entry replies waiting for their channel release the command sl
   } finally { release(); await fixture.server.close(); }
 });
 
+test('Shuttle Continue, Back and Check clicks update their own card at once; other controls stay quiet', async () => {
+  const fixture = await setup();
+  const screenId = 'c'.repeat(32);
+  const click = custom_id => fixture.request(fixture.signed.payload({ type: 3, message: { id: '100000000000000099' },
+    data: { component_type: 2, custom_id } }));
+  try {
+    for (const action of ['advance', 'back', 'retry']) {
+      const answer = await (await click(`sophie:shuttle:v1:${screenId}:${action}:4`)).json();
+      assert.equal(answer.type, 7);
+      const [button] = answer.data.components[0].components;
+      assert.deepEqual([button.label, button.disabled, button.custom_id], ['Opening…', true, `sophie:shuttle:v1:${screenId}:advance:4`]);
+      // Only the buttons change: the card's own text is left as it was.
+      assert.equal(Object.hasOwn(answer.data, 'embeds'), false); assert.equal(Object.hasOwn(answer.data, 'content'), false);
+      await fixture.server.drain();
+    }
+    for (const custom_id of [`sophie:shuttle:v1:${screenId}:help:4`, `sophie:shuttle:v1:${screenId}:advance`]) {
+      assert.deepEqual(await (await click(custom_id)).json(), { type: 6 });
+      await fixture.server.drain();
+    }
+    assert.equal(fixture.calls.length, 5);
+  } finally { await fixture.server.close(); }
+});
+
 test('T01 disabled commands, wrong routes, compressed and oversized bodies have no side effects', async () => {
   const fixture = await setup({ enabled: () => false });
   try {

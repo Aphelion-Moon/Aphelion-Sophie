@@ -15,6 +15,7 @@ import { casePolicy } from '../../tests/fixtures/cases.js';
 import { CREW, BYOND_ROLE, WHITELIST, MUZZLED } from '../../tests/fixtures/discord.js';
 import { syntheticInteractions, APPLICATION } from '../../tests/fixtures/interactions.js';
 import { GUILD, USER, OTHER, STAFF, LEAD, NOW, definition, publication, observation } from '../../tests/fixtures/domain.js';
+import { navigationMessage, seedOnboardingHelp, shuttleGroup } from '../../tests/fixtures/onboarding-group.js';
 
 /** Authored synthetic copy only; the actual HTTP adapters, signatures and database are exercised. */
 export async function runOnboardingScreenSuite(cluster, run) {
@@ -26,17 +27,23 @@ export async function runOnboardingScreenSuite(cluster, run) {
   let sequence = 830000000000000000n;
   const nextId = () => String(++sequence);
   const rows = async table => (await admin.query(`SELECT * FROM sophie_core.${table}`)).rows;
-  const currentScreen = async () => (await rows('shuttle_screens')).find(row => row.current);
+  // A screen row plus nav_message_id: its current navigation card, where Continue, Back and Check clicks land.
+  const withNavigation = async screen => screen && { ...screen, nav_message_id: await navigationMessage(admin, screen) };
+  const currentScreen = async () => withNavigation((await rows('shuttle_screens')).find(row => row.current));
+  const group = async screen => shuttleGroup(admin, discord.state, screen ?? await currentScreen());
+  const parts = async () => (await rows('shuttle_screen_parts'));
   const session = async () => (await admin.query('SELECT state FROM sophie_core.sessions ORDER BY id DESC LIMIT 1')).rows[0].state;
   const payload = (overrides = {}) => identities.payload({ id: nextId(), member: { user: { id: USER } },
     data: { type: 1, name: 'whitelist', options: [{ type: 1, name: 'start' }] }, ...overrides });
   const verified = value => identities.verifier.verify(identities.signed(value));
   const actor = async (userId = USER) => authorization.resolveActor(verified(payload({ member: { user: { id: userId } } })));
   const entry = async value => commands.execute(verified(value ?? payload()));
-  const controlPayload = (screen, action, overrides = {}) => payload({ type: 3, channel_id: screen.channel_id, message: { id: screen.message_id },
+  const controlPayload = (screen, action, overrides = {}) => payload({ type: 3, channel_id: screen.channel_id, message: { id: screen.nav_message_id ?? screen.message_id },
     data: { component_type: 2, custom_id: `sophie:shuttle:v1:${screen.id}:${action}:${screen.control_version}` }, ...overrides });
   const click = (screen, action, overrides = {}) => commands.execute(verified(controlPayload(screen, action, overrides)));
   const messageWrites = method => discord.state.calls.filter(call => call.method === method && /\/messages(?:\/\d+)?$/.test(call.path));
+  // The status card leads the channel and carries no controls; a retired run's card says the journey ended.
+  const ended = message => /journey has ended/.test(message.embeds[0].description) && (message.components ?? []).length === 0;
   const makeDue = () => admin.query("UPDATE sophie_core.outbox SET available_at = clock_timestamp() - interval '1 second' WHERE status = 'ready'");
   async function drain(worker, name = 'shuttle-worker') {
     for (let i = 0; i < 50; i++) {
@@ -51,14 +58,14 @@ export async function runOnboardingScreenSuite(cluster, run) {
   }
   async function direct(screen, action, interactionId = nextId()) {
     const currentActor = await actor();
-    const control = { screenId: screen.id, channelId: screen.channel_id, messageId: screen.message_id, controlVersion: screen.control_version };
+    const control = { screenId: screen.id, channelId: screen.channel_id, messageId: screen.nav_message_id, controlVersion: screen.control_version };
     const { plan } = await store.describeOnboardingControl({ actor: currentActor, observation: await discord.roles.observe(USER), ...control });
     return { actor: currentActor, action, interactionId, ...control, proof: await discord.channels.inspect(plan, screen.channel_id),
       observation: await discord.roles.observe(USER) };
   }
   const scenario = (name, work, publish = true) => run(name, async () => {
     await admin.query("UPDATE sophie_core.discord_backoff SET until_at = '-infinity', paused = false");
-    await admin.query(`TRUNCATE sophie_core.automation_recovery_actions, sophie_core.automation_delivery_events, sophie_core.automation_deliveries, sophie_core.automation_events, sophie_core.automation_cooldowns, sophie_core.automation_policies, sophie_core.case_answer_reviews, sophie_core.curated_answers, sophie_core.case_reply_events, sophie_core.case_replies, sophie_core.case_label_changes, sophie_core.case_notes, sophie_core.case_direct_notices, sophie_core.case_attachment_jobs, sophie_core.case_attachment_attempts, sophie_core.case_attachment_capacity, sophie_core.case_message_observations, sophie_core.case_capture_gaps, sophie_core.case_capture_channels, sophie_core.case_participant_actions, sophie_core.case_participants, sophie_core.case_form_editor_actions, sophie_core.case_form_drafts, sophie_core.case_delivery_actions, sophie_core.case_delivery_issues, sophie_core.case_intake_messages, sophie_core.case_intakes, sophie_core.case_form_slots, sophie_core.case_form_actions, sophie_core.case_forms, sophie_core.shuttle_editor_actions, sophie_core.shuttle_draft_revisions, sophie_core.dashboard_sessions, sophie_core.dashboard_login_flows, sophie_core.dashboard_auth_limits, sophie_core.dashboard_auth_policies, sophie_core.case_inspection_sweeps, sophie_core.case_staff_actions, sophie_core.case_lifecycle_actions, sophie_core.shuttle_delivery_rechecks, sophie_core.shuttle_delivery_issues, sophie_core.shuttle_alerts, sophie_core.shuttle_help_resolutions, sophie_core.shuttle_screens, sophie_core.shuttle_help_requests, sophie_core.shuttle_publications,
+    await admin.query(`TRUNCATE sophie_core.automation_recovery_actions, sophie_core.automation_delivery_events, sophie_core.automation_deliveries, sophie_core.automation_events, sophie_core.automation_cooldowns, sophie_core.automation_policies, sophie_core.case_answer_reviews, sophie_core.curated_answers, sophie_core.case_reply_events, sophie_core.case_replies, sophie_core.case_label_changes, sophie_core.case_notes, sophie_core.case_direct_notices, sophie_core.case_attachment_jobs, sophie_core.case_attachment_attempts, sophie_core.case_attachment_capacity, sophie_core.case_message_observations, sophie_core.case_capture_gaps, sophie_core.case_capture_channels, sophie_core.case_participant_actions, sophie_core.case_participants, sophie_core.case_form_editor_actions, sophie_core.case_form_drafts, sophie_core.case_delivery_actions, sophie_core.case_delivery_issues, sophie_core.case_intake_messages, sophie_core.case_intakes, sophie_core.case_form_slots, sophie_core.case_form_actions, sophie_core.case_forms, sophie_core.shuttle_editor_actions, sophie_core.shuttle_draft_revisions, sophie_core.dashboard_sessions, sophie_core.dashboard_login_flows, sophie_core.dashboard_auth_limits, sophie_core.dashboard_auth_policies, sophie_core.case_inspection_sweeps, sophie_core.case_staff_actions, sophie_core.case_lifecycle_actions, sophie_core.shuttle_delivery_rechecks, sophie_core.shuttle_delivery_issues, sophie_core.shuttle_alerts, sophie_core.shuttle_help_resolutions, sophie_core.shuttle_screen_parts, sophie_core.shuttle_screens, sophie_core.shuttle_help_requests, sophie_core.shuttle_publications,
       sophie_core.shuttle_cases, sophie_core.gateway_members, sophie_core.gateway_lifecycle,
       sophie_core.actor_authority, sophie_core.capability_policies, sophie_core.member_actions,
       sophie_core.outbox, sophie_core.receipts, sophie_core.sessions, sophie_core.members, sophie_core.definitions,
@@ -87,21 +94,30 @@ export async function runOnboardingScreenSuite(cluster, run) {
     await store.publishOnboarding({ actor: await actor(OTHER), publication: { ...publication, version: 2,
       stages: publication.stages.map(stage => ({ ...stage, body: 'Different synthetic next-version guidance.' })) } });
     for (let index = 0; index < 5; index++) {
-      const screen = await currentScreen(), current = await session();
+      const screen = await currentScreen(), current = await session(), shown = await group(screen);
       assert.equal(screen.message_id, anchor.message_id); assert.equal(screen.id, anchor.id);
       assert.equal(current.definitionVersion, 1); assert.equal(current.stepIndex, index); assert.equal(screen.ready, true);
-      assert.equal(discord.state.messages.get(screen.message_id).embeds[0].description, publication.stages[index].body);
+      // The step is plain messages under its status card; only the navigation card after them carries controls.
+      assert.deepEqual(shown.content.map(message => [message.content, message.embeds.length]), [[publication.stages[index].body, 0]]);
+      assert.equal(shown.nav.embeds[0].title, `Step ${index + 1} of 5 · ${publication.stages[index].title}`);
+      assert.match(shown.status.embeds[0].description, new RegExp(`\\*\\*${index + 1}\\. ${publication.stages[index].title}\\*\\* · reading now`));
       assert.equal(discord.state.members.get(USER).includes(WHITELIST), false);
       assert.equal(await click(screen, 'advance'), 'shuttle_progress_recorded'); await drain(screens);
     }
     assert.equal((await session()).status, 'role_pending');
-    assert.match(discord.state.messages.get((await currentScreen()).message_id).embeds[0].title, /Nearly there/);
+    let shown = await group();
+    assert.match(shown.nav.embeds[0].title, /Nearly there/); assert.equal(shown.content[0].content, publication.stages[4].body);
+    assert.match(shown.status.embeds[0].description, /waiting for Discord to confirm/);
     await drain(grants); await drain(screens);
     assert.equal((await session()).status, 'complete'); assert.ok(discord.state.members.get(USER).includes(WHITELIST));
-    assert.match(discord.state.messages.get((await currentScreen()).message_id).embeds[0].description, /Welcome aboard/);
+    shown = await group();
+    assert.match(shown.nav.embeds[0].description, /Welcome aboard/); assert.equal(shown.nav.components.length, 0);
+    assert.match(shown.status.embeds[0].description, /Whitelist: confirmed/);
     assert.equal(discord.state.calls.filter(call => call.method === 'PUT' && call.path.endsWith(WHITELIST)).length, 1);
     assert.ok(discord.state.members.get(USER).includes(BYOND_ROLE));
-    assert.equal(messageWrites('POST').length, 1); assert.equal((await rows('shuttle_screens')).length, 1);
+    // One status card for the run; each of four step changes deleted one step message and its card and posted the next.
+    assert.equal(messageWrites('POST').length, 3 + 4 * 2); assert.equal(messageWrites('DELETE').length, 4 * 2);
+    assert.equal((await rows('shuttle_screens')).length, 1); assert.equal(discord.state.messages.size, 3);
   });
 
   await scenario('V02 duplicate and competing controls commit one transition and never reactivate an old message', async () => {
@@ -133,7 +149,8 @@ export async function runOnboardingScreenSuite(cluster, run) {
     screen = await currentScreen(); discord.state.members.get(USER).push(MUZZLED);
     assert.equal(await click(screen, 'advance'), 'denied');
     await store.recordObservation(observation({ observedAt: now, muzzled: true })); await drain(screens);
-    assert.equal(await currentScreen(), undefined); assert.ok(discord.state.messages.get(screen.message_id).components.flatMap(row => row.components).every(button => button.disabled));
+    assert.equal(await currentScreen(), undefined); assert.ok(ended(discord.state.messages.get(screen.message_id)));
+    assert.equal(discord.state.messages.has(screen.nav_message_id), false); assert.ok((await parts()).every(part => part.gone));
     discord.state.members.set(USER, [CREW, BYOND_ROLE]);
     assert.equal(await entry(), 'shuttle_recorded'); await drain(cases); await drain(screens);
     assert.equal((await session()).stepIndex, 1); assert.notEqual((await currentScreen()).id, screen.id);
@@ -173,7 +190,7 @@ export async function runOnboardingScreenSuite(cluster, run) {
     const unknownMessage = [...discord.state.messages.values()][0];
     assert.equal(await click({ ...old, channel_id: unknownMessage.channel_id, message_id: unknownMessage.id }, 'advance'), 'denied');
     assert.equal(await entry(), 'shuttle_recorded'); await drain(cases); await drain(screens);
-    assert.equal(messageWrites('POST').length, 2); assert.equal((await session()).stepIndex, 0);
+    assert.equal(messageWrites('POST').length, 1 + 3); assert.equal((await session()).stepIndex, 0);
     assert.notEqual((await currentScreen()).id, old.id);
     assert.equal((await rows('shuttle_screens')).find(row => row.id === old.id).current, false);
   });
@@ -184,7 +201,9 @@ export async function runOnboardingScreenSuite(cluster, run) {
     discord.state.afterWrite = call => { if (call.method === 'PATCH' && call.path.includes('/messages/')) { discord.state.afterWrite = null; throw new Error('SYNTHETIC_LOST_EDIT_RESPONSE'); } };
     assert.equal((await screens.runOnce('lost-edit')).status, 'retry_scheduled');
     await makeDue(); await drain(screens);
-    assert.ok(discord.state.messages.get(screen.message_id).components.flatMap(row => row.components).every(button => button.disabled)); assert.equal(messageWrites('PATCH').length, 1);
+    // The retry reads the card instead of editing it again.
+    assert.ok(ended(discord.state.messages.get(screen.message_id))); assert.equal(messageWrites('PATCH').length, 1);
+    assert.equal(discord.state.messages.has(screen.nav_message_id), false);
   });
 
   await scenario('V09 a screen created during revocation retains its ID and is made inert before any progression', async () => {
@@ -195,10 +214,11 @@ export async function runOnboardingScreenSuite(cluster, run) {
         await store.recordObservation(observation({ muzzled: true }));
       }
     };
-    assert.equal((await screens.runOnce('late-screen')).status, 'progressed'); await drain(screens);
+    assert.equal((await screens.runOnce('late-screen')).status, 'settled'); await drain(screens);
     const retained = (await rows('shuttle_screens'))[0]; assert.ok(retained.message_id);
     assert.equal(retained.current, false); assert.equal(retained.ready, false);
-    assert.ok(discord.state.messages.get(retained.message_id).components.flatMap(row => row.components).every(button => button.disabled));
+    // No step message or control was posted after the revocation; the card it had already posted now says it ended.
+    assert.ok(ended(discord.state.messages.get(retained.message_id))); assert.equal((await parts()).length, 0);
     assert.equal(discord.state.members.get(USER).includes(WHITELIST), false);
   });
 
@@ -212,16 +232,37 @@ export async function runOnboardingScreenSuite(cluster, run) {
     };
     assert.equal((await screens.runOnce('expired-screen')).status, 'lease_lost');
     assert.ok((await currentScreen()).message_id); assert.equal((await currentScreen()).ready, false);
-    await drain(screens); assert.equal((await currentScreen()).ready, true); assert.equal(messageWrites('POST').length, 1);
+    await drain(screens); assert.equal((await currentScreen()).ready, true); assert.equal(messageWrites('POST').length, 3);
   });
 
   await scenario('V11 entry recovers a deleted message without changing progress or reusing obsolete controls', async () => {
     const first = await open(); assert.equal(await click(first, 'advance'), 'shuttle_progress_recorded'); await drain(screens);
     const old = await currentScreen(); discord.state.messages.delete(old.message_id);
     assert.equal(await entry(), 'shuttle_recorded'); await drain(cases); await drain(screens);
+    // The status card cannot come back to the top of the channel: the run gets a new card and its step is posted again.
     const replacement = await currentScreen(); assert.notEqual(replacement.id, old.id); assert.equal(replacement.snapshot.stepIndex, 1);
     assert.equal(await click(old, 'advance'), 'shuttle_stale');
-    assert.equal((await rows('shuttle_screens')).find(row => row.id === old.id).message_id, old.message_id);
+    const retired = (await rows('shuttle_screens')).find(row => row.id === old.id);
+    assert.equal(retired.message_id, old.message_id); assert.equal(retired.message_gone, true);
+    assert.equal(discord.state.messages.has(old.nav_message_id), false);
+    assert.equal((await group(replacement)).content[0].content, publication.stages[1].body);
+    assert.equal(await click(replacement, 'advance'), 'shuttle_progress_recorded');
+  });
+
+  await scenario('V11b entry re-reads an intact group and reposts a deleted step message in order, without editing', async () => {
+    const first = await open(); assert.equal(await click(first, 'advance'), 'shuttle_progress_recorded'); await drain(screens);
+    const patches = messageWrites('PATCH').length;
+    assert.equal(await entry(), 'shuttle_recorded'); await drain(cases); await drain(screens);
+    assert.equal(messageWrites('PATCH').length, patches); assert.equal((await currentScreen()).id, first.id);
+    const before = await currentScreen(), shown = await group(before);
+    discord.state.messages.delete(shown.content[0].id);
+    assert.equal(await entry(), 'shuttle_recorded'); await drain(cases); await drain(screens);
+    const after = await currentScreen(), again = await group(after);
+    assert.equal(after.id, before.id); assert.equal(after.part_generation, before.part_generation + 1);
+    assert.equal(again.content[0].content, publication.stages[1].body);
+    assert.ok(BigInt(again.content[0].id) < BigInt(again.nav.id)); assert.equal(discord.state.messages.has(shown.nav.id), false);
+    assert.equal(messageWrites('PATCH').length, patches);
+    assert.equal(await click(before, 'advance'), 'shuttle_stale'); assert.equal(await click(after, 'advance'), 'shuttle_progress_recorded');
   });
 
   await scenario('V12 publication requires current authority and immutable copy; metadata alone cannot start a screen', async () => {
@@ -237,17 +278,19 @@ export async function runOnboardingScreenSuite(cluster, run) {
     await open();
   }, false);
 
-  await scenario('V13 Ask Staff records one retained request and permits continued reading under the published rule', async () => {
-    const first = await open(), body = controlPayload(first, 'help');
-    assert.equal(await commands.execute(verified(body)), 'shuttle_help_recorded');
-    assert.equal(await commands.execute(verified(body)), 'shuttle_help_recorded'); await drain(screens);
-    assert.equal((await rows('shuttle_help_requests')).length, 1); assert.equal((await session()).stepIndex, 0);
-    const current = await currentScreen(); assert.equal(current.help_requested, true);
-    assert.equal(await click(current, 'help'), 'shuttle_help_recorded'); assert.equal((await rows('shuttle_help_requests')).length, 1);
+  await scenario('V13 Ask Staff is retired: its controls are stale and record nothing; an earlier request still shows', async () => {
+    const first = await open();
+    assert.equal(await click(first, 'help'), 'shuttle_stale'); assert.equal((await rows('shuttle_help_requests')).length, 0);
+    assert.ok((await group()).nav.components[0].components.every(button => !button.custom_id.includes(':help:')));
+    assert.equal(await seedOnboardingHelp({ pool, clock: () => now, observation: await discord.roles.observe(USER), interactionId: nextId() }), 'shuttle_help_recorded');
+    await drain(screens);
+    const current = await currentScreen(), shown = await group(current); assert.equal(current.help_requested, true);
+    assert.match(shown.nav.embeds[0].description, /Staff have been asked/); assert.match(shown.status.embeds[0].description, /Staff have been asked/);
+    assert.equal(await click(current, 'help'), 'shuttle_stale'); assert.equal((await rows('shuttle_help_requests')).length, 1);
     assert.equal(await click(current, 'advance'), 'shuttle_progress_recorded'); assert.equal((await session()).stepIndex, 1);
   });
 
-  await scenario('V14 signed loopback controls acknowledge silently and disabled delivery makes no further writes', async () => {
+  await scenario('V14 signed loopback controls disable their card at once and disabled delivery makes no further writes', async () => {
     const screen = await open(), replies = [], faults = [];
     const responder = createInteractionResponder({ verifier: identities.verifier, applicationId: APPLICATION,
       enabled: () => healthy, clock: () => now, fetch: async (_, request) => { replies.push(JSON.parse(request.body)); return Response.json({}); } });
@@ -258,7 +301,9 @@ export async function runOnboardingScreenSuite(cluster, run) {
       const signed = identities.signed(controlPayload(screen, 'advance'));
       const response = await fetch(`http://${address.host}:${address.port}/discord/interactions`, { method: 'POST', body: signed.body,
         headers: { 'Content-Type': 'application/json', 'X-Signature-Ed25519': signed.signature, 'X-Signature-Timestamp': signed.timestamp } });
-      assert.deepEqual(await response.json(), { type: 6 }); await server.drain();
+      const answer = await response.json(); assert.equal(answer.type, 7);
+      assert.deepEqual(answer.data.components[0].components.map(button => [button.label, button.disabled]), [['Opening…', true]]);
+      await server.drain();
       assert.equal(replies.length, 0);
       assert.equal((await session()).stepIndex, 1); const writes = messageWrites('POST').length;
       healthy = false; assert.equal((await screens.runOnce('disabled')).status, 'disabled'); assert.equal(messageWrites('POST').length, writes);
@@ -280,8 +325,9 @@ export async function runOnboardingScreenSuite(cluster, run) {
   await scenario('V16 withdrawal prevents queued stage content and leaves inert retained screens', async () => {
     const first = await open(); assert.equal(await click(first, 'advance'), 'shuttle_progress_recorded');
     await store.withdrawDefinition({ actor: await actor(OTHER), id: definition.id, version: 1 });
-    await drain(screens); assert.equal(messageWrites('POST').length, 1);
-    assert.ok(discord.state.messages.get(first.message_id).components.flatMap(row => row.components).every(button => button.disabled)); assert.equal(await currentScreen(), undefined);
+    await drain(screens); assert.equal(messageWrites('POST').length, 3);
+    assert.ok(ended(discord.state.messages.get(first.message_id))); assert.equal(await currentScreen(), undefined);
+    assert.ok((await parts()).every(part => part.gone)); assert.equal(discord.state.messages.size, 1);
     assert.equal(await click(first, 'advance'), 'shuttle_review');
     assert.equal((await rows('shuttle_publications')).length, 1); assert.equal((await rows('shuttle_screens')).length, 1);
   });
@@ -290,7 +336,8 @@ export async function runOnboardingScreenSuite(cluster, run) {
     const screen = await open(), binding = (await rows('shuttle_cases'))[0];
     await closeTestCase({ store, actor: await actor(OTHER), observation: await discord.roles.observe(USER), interactionId: nextId(), id: binding.case_id, worker: cases });
     assert.equal(await click(screen, 'advance'), 'shuttle_review'); await drain(screens);
-    assert.ok(discord.state.messages.get(screen.message_id).components.flatMap(row => row.components).every(button => button.disabled)); assert.equal(await currentScreen(), undefined);
+    assert.ok(ended(discord.state.messages.get(screen.message_id))); assert.equal(await currentScreen(), undefined);
+    assert.equal(discord.state.messages.has(screen.nav_message_id), false);
     assert.equal((await session()).stepIndex, 0); assert.equal((await rows('case_reservations'))[0].state, 'closed');
     assert.equal((await rows('case_exclusions')).length, 1);
   });
@@ -322,8 +369,10 @@ export async function runOnboardingScreenSuite(cluster, run) {
     } };
     assert.equal((await screens.runOnce('lost-page')).status, 'retry_scheduled');
     await makeDue(); await drain(screens);
+    // The status card edit was the lost response; the retry reads it instead of editing again.
     const current = await currentScreen(); assert.equal(current.message_id, first.message_id); assert.equal(current.ready, true);
-    assert.equal(messageWrites('POST').length, 1); assert.equal(messageWrites('PATCH').length, 1);
+    assert.equal(messageWrites('POST').length, 3 + 2); assert.equal(messageWrites('PATCH').length, 1);
+    assert.match((await group(current)).status.embeds[0].description, /\*\*2\. Synthetic page 2\*\*/);
     assert.equal((await session()).stepIndex, 1); assert.equal(await click(first, 'advance'), 'shuttle_stale');
   });
 }

@@ -1,6 +1,6 @@
 import { requireCondition, requireId, requireKeys } from '../../../contracts/validation.js';
 import { validateOverwrites } from '../../../platform/authorization/discord-permissions.js';
-import { validateOnboardingPayload } from '../../../modules/onboarding/screens.js';
+import { requireScreenId, validateOnboardingPart } from '../../../modules/onboarding/screens.js';
 import { validateOnboardingAlertPayload } from '../../../modules/onboarding/alerts.js';
 import { validateCaseIntakePayload } from '../../../modules/tickets/intake-messages.js';
 import { requireReplyId, validateCaseReplyPayload } from '../../../modules/tickets/replies.js';
@@ -170,6 +170,9 @@ export function createDiscordTransport({ guildId, token, fetch, clock, enabled, 
         if (!write && route === 'member' && data.code === 10007) return null;
         if (!write && route === 'channel' && data.code === 10003) return null;
         if (!write && ['shuttle-message', 'case-intake-message', 'case-reply-message'].includes(route) && data.code === 10008) return null;
+        // A Shuttle message someone deleted is reported as missing, so its group can be posted again in order.
+        if (route === 'shuttle-message-edit' && data.code === 10008) return null;
+        if (route === 'shuttle-message-delete' && [10003, 10008].includes(data.code)) return null;
         throw new DiscordError('DISCORD_RESOURCE_MISSING');
       }
       if (response.status >= 500) throw new DiscordError(write ? 'DELIVERY_UNCERTAIN' : 'DISCORD_UNAVAILABLE');
@@ -307,14 +310,20 @@ export function createDiscordTransport({ guildId, token, fetch, clock, enabled, 
       return request('POST', `/channels/${channelId}/messages`, 'shuttle-message-create',
         { ...body, nonce: alertId.slice(0, 24), enforce_nonce: true }, true);
     },
-    async createOnboardingMessage(channelId, screenId, body) {
-      requireId(channelId); validateOnboardingPayload(body, screenId);
+    /** One of a run's own messages: its status card, a step message or its navigation card. */
+    async createOnboardingMessage(channelId, recordId, kind, screenId, body) {
+      requireId(channelId); requireScreenId(recordId); validateOnboardingPart(kind, body, screenId);
       return request('POST', `/channels/${channelId}/messages`, 'shuttle-message-create',
-        { ...body, nonce: screenId.slice(0, 24), enforce_nonce: true }, true);
+        { ...body, nonce: recordId.slice(0, 24), enforce_nonce: true }, true);
     },
-    async editOnboardingMessage(channelId, messageId, screenId, body) {
-      requireId(channelId); requireId(messageId); validateOnboardingPayload(body, screenId);
+    async editOnboardingMessage(channelId, messageId, kind, screenId, body) {
+      requireId(channelId); requireId(messageId); validateOnboardingPart(kind, body, screenId);
       return request('PATCH', `/channels/${channelId}/messages/${messageId}`, 'shuttle-message-edit', body, true);
+    },
+    /** Deletes one of this bot's own Shuttle messages; an already deleted one resolves the same way. */
+    async deleteOnboardingMessage(channelId, messageId) {
+      requireId(channelId); requireId(messageId);
+      return request('DELETE', `/channels/${channelId}/messages/${messageId}`, 'shuttle-message-delete');
     },
     async createCaseTextChannel(body) {
       requireKeys(body, ['name', 'type', 'parent_id', 'topic', 'permission_overwrites']);

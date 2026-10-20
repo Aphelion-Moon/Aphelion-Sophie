@@ -18,7 +18,7 @@ export async function runRecoveryControlsSuite(cluster, run) {
     await admin.query('DROP SCHEMA sophie_control CASCADE; DROP FUNCTION sophie_core.runtime_available(); DROP TABLE sophie_core.permission_applications');
     await admin.query(`DELETE FROM sophie_migrations.applied WHERE id IN ('033-recovery-controls.sql', '047-runtime-maintenance.sql',
       '048-permission-channel-inventory.sql', '049-permission-sealing.sql', '050-permission-policy-application.sql', '055-configuration-application.sql')`);
-    assert.deepEqual(await migrateCore(admin), { migrations: 70 });
+    assert.deepEqual(await migrateCore(admin), { migrations: 71 });
     const recorded = await count(); assert.ok(recorded > 0);
     assert.equal((await history('members')).every(row => row.operation === 'baseline'), true);
     assert.deepEqual(await f.rows('members'), member); assert.deepEqual(await f.rows('case_reservations'), cases);

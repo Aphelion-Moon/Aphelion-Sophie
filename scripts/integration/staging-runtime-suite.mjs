@@ -87,7 +87,7 @@ export async function runStagingRuntimeSuite(cluster, run) {
   await run('RT01 runtime database privileges reject the owner and accept the restricted core identity', async () => {
     await cluster.adminPool.query('GRANT USAGE ON SCHEMA sophie_migrations TO sophie_test_core');
     await cluster.adminPool.query('GRANT SELECT ON sophie_migrations.applied TO sophie_test_core');
-    const result = await checkRuntimeDatabase(cluster.corePool); assert.ok(result.checkedTables > 0); assert.equal(result.migrations, 70);
+    const result = await checkRuntimeDatabase(cluster.corePool); assert.ok(result.checkedTables > 0); assert.equal(result.migrations, 71);
     await assert.rejects(checkRuntimeDatabase(cluster.adminPool), /RUNTIME_DATABASE_PRIVILEGES_INVALID/);
     const client = await cluster.adminPool.connect(); await client.query('BEGIN');
     try {
@@ -475,7 +475,8 @@ export async function runStagingRuntimeSuite(cluster, run) {
     for (let stage = 0; stage < 5; stage++) {
       await waitForGateway(async () => { await f.runtime.runOnce(); return (await f.current())?.ready; });
       const screen = await f.current(); assert.ok(screen?.message_id);
-      const ack = await f.send(f.control(screen, 'advance')); assert.equal(ack.body.type, 6);
+      // The click is answered at once by updating its own card ("Opening…"), before the next step is posted.
+      const ack = await f.send(f.control(screen, 'advance')); assert.equal(ack.body.type, 7);
       await waitForGateway(async () => (await f.current()).snapshot.version > screen.snapshot.version);
       assert.equal((await f.rows('shuttle_screens')).length, 1);
     }
@@ -500,7 +501,7 @@ export async function runStagingRuntimeSuite(cluster, run) {
     await f.send(f.identities.payload({ member: { user: { id: USER } }, data: { type: 1, name: 'whitelist', options: [{ type: 1, name: 'start' }] } }));
     await waitForGateway(async () => { await f.runtime.runOnce(); return (await f.current())?.create_started; });
     const screen = await f.current(); assert.equal(screen.message_id, null);
-    const message = [...f.discord.state.messages.values()].find(row => row.components?.some(part => part.components?.some(button => button.custom_id?.startsWith(`sophie:shuttle:v1:${screen.id}:`)))); assert.ok(message);
+    const message = [...f.discord.state.messages.values()].find(row => row.nonce === screen.id.slice(0, 24)); assert.ok(message);
     await f.pool.query("UPDATE sophie_core.outbox SET available_at = '-infinity' WHERE kind = 'shuttle.render' AND status = 'ready'");
     await f.runtime.runOnce();
     const issues = await get('/api/shuttle/delivery'); assert.equal(issues.status, 200);
@@ -511,7 +512,8 @@ export async function runStagingRuntimeSuite(cluster, run) {
     const offset = f.discord.state.calls.length;
     assert.deepEqual((await post('/api/shuttle/delivery/change', recovery)).body, { recorded: true, duplicate: true });
     assert.equal(f.discord.state.calls.slice(offset).some(call => call.path.includes('/channels/')), false);
-    await f.send(f.control(await f.current(), 'help'));
+    // Ask Staff is retired; a request recorded before then is still resolved through the dashboard.
+    assert.equal(await f.help(), 'shuttle_help_paused');
     await waitForGateway(async () => (await f.rows('shuttle_help_requests')).length === 1);
     const queue = await get('/api/shuttle/help'); assert.equal(queue.status, 200); assert.equal(queue.body.entries[0].paused, true);
     const entry = queue.body.entries[0], help = { helpId: entry.requestId, expectedRevision: entry.revision, requestId: '8'.repeat(64), confirmed: true };

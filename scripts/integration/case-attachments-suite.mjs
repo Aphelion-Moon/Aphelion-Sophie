@@ -162,7 +162,7 @@ export async function runCaseAttachmentsSuite(cluster, run) {
     await f.addFile(); const observations = await f.observations();
     await f.admin.query(`DROP TABLE sophie_core.case_attachment_jobs, sophie_core.case_attachment_attempts, sophie_core.case_attachment_capacity;
       DELETE FROM sophie_migrations.applied WHERE id = '030-case-attachments.sql'`);
-    assert.deepEqual(await migrateCore(f.admin), { migrations: 70 });
+    assert.deepEqual(await migrateCore(f.admin), { migrations: 71 });
     await restoreRuntimeGuards(f.admin);
     await f.admin.query('GRANT SELECT, INSERT, UPDATE ON sophie_core.case_attachment_jobs, sophie_core.case_attachment_attempts, sophie_core.case_attachment_capacity TO sophie_test_core');
     assert.deepEqual(await f.observations(), observations); assert.equal((await f.jobs())[0].status, 'pending');

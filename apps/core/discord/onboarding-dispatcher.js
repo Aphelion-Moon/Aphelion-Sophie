@@ -2,7 +2,18 @@ import { requireCondition, requireName } from '../../../contracts/validation.js'
 import { commonParkedCodes, caseParkedCodes, onboardingParkedCodes } from '../../../contracts/delivery-errors.js';
 import { settleDeliveryFailure } from './delivery-failure.js';
 
-/** One create/edit at most per call. Retired screens can only receive an inert replacement. */
+// A step change is a handful of writes (old messages deleted, new ones posted, status card edited). One claim performs
+// up to this many, renewing its lease between them, then continues as a new attempt.
+const MAX_WRITES_PER_CLAIM = 16;
+// Any Gateway dispatch, including the event for this bot's own previous write, ends an observation's continuity.
+// A check overtaken that way is repeated with a new (usually shared) preparation instead of failing the job.
+const OBSERVATION_ATTEMPTS = 3;
+
+/**
+ * Brings one Shuttle run's message group up to date: the status card first when it is new, then removal of an earlier
+ * step, then the current step and its navigation card in order, then the status card. Each write commits its intent
+ * before the request and its result after it; one claim performs a bounded series of them.
+ */
 export function createOnboardingDispatcher({ outbox, store, roles, messages, enabled, trace = () => {}, requestCount = () => 0 }) {
   requireCondition(typeof enabled === 'function' && typeof trace === 'function' && typeof requestCount === 'function', 'DELIVERY_GATE_REQUIRED');
   const parkedCodes = [...commonParkedCodes, ...caseParkedCodes, ...onboardingParkedCodes];
@@ -19,33 +30,62 @@ export function createOnboardingDispatcher({ outbox, store, roles, messages, ena
         `${bound(requestCount() - calls, 999)}CALLS_${bound(waitedMs, 99_999)}WAITMS`);
     } catch { /* Diagnostics never affect delivery. */ }
   }
+  async function observed(work) {
+    for (let attempt = 1; ; attempt++) {
+      try { return await work(); } catch (error) {
+        if (error?.code !== 'OBSERVATION_INVALIDATED' || attempt >= OBSERVATION_ATTEMPTS) throw error;
+      }
+    }
+  }
   async function render({ claim, userId }) {
     let possiblyAttempted = false;
     try {
       requireCondition(claim.guildId === messages.guildId && claim.guildId === roles.guildId, 'CASE_CONFIGURATION_INVALID');
       await ready(claim);
-      const current = await store.inspectOnboardingRender({ claim, observation: await roles.observe(userId) });
-      if (current.settled) return { status: 'settled' };
-      if (current.messageId === null) requireCondition(!current.createStarted, 'SHUTTLE_MESSAGE_UNCERTAIN');
-      const preparation = await messages.prepare(current.plan, current.channelId, current.retired);
-      let observed = current.messageId === null ? null : await messages.inspect(current);
-      if (observed !== null) {
-        const result = await store.confirmOnboardingRender({ claim, observation: preparation.observation, proof: preparation.proof, message: observed });
-        if (result.settled) return { status: 'settled', current: result.current, replacedMissing: result.replacedMissing ?? false };
+      const current = await observed(async () => store.inspectOnboardingRender({ claim,
+        observation: (await roles.prepare(userId, { share: true })).observation }));
+      if (current.settled) return { status: 'settled', current: current.current };
+      const prepare = retired => messages.prepare(current.plan, current.channelId, retired, false, { share: true });
+      for (let writes = 0; writes < MAX_WRITES_PER_CLAIM; writes++) {
+        await ready(claim);
+        let preparation;
+        const write = await observed(async () => {
+          preparation = await prepare(current.retired);
+          return store.beginOnboardingWrite({ claim, observation: preparation.observation, proof: preparation.proof });
+        });
+        if (write.action === 'none') return { status: 'settled', current: write.current };
+        const target = { plan: write.plan, channelId: write.channelId, recordId: write.recordId, screenId: write.screenId,
+          kind: write.kind, payload: write.payload, messageId: write.messageId, retired: write.retired };
+        if (write.action === 'inspect') {
+          // A read, not a write: settles an unconfirmed edit (or an entry re-check) from what Discord now shows.
+          await observed(async () => {
+            const shown = await messages.inspect(target), fresh = await prepare(write.retired);
+            return store.confirmOnboardingWrite({ claim, observation: fresh.observation, proof: fresh.proof, message: shown, write, fromWrite: false });
+          });
+          continue;
+        }
+        await ready(claim); possiblyAttempted = true;
+        let result;
+        if (write.action === 'create') {
+          result = await messages.create(preparation, target);
+          await store.noteOnboardingMessage({ claim, proof: result, recordId: write.recordId });
+        } else if (write.action === 'edit') result = await messages.edit(preparation, target);
+        else result = await messages.remove(preparation, target);
+        possiblyAttempted = false;
+        try {
+          await observed(async () => {
+            const fresh = await prepare(write.retired);
+            return store.confirmOnboardingWrite({ claim, observation: fresh.observation, proof: fresh.proof, message: result, write });
+          });
+        } catch (error) {
+          if (error?.code !== 'OBSERVATION_INVALIDATED') throw error;
+          // An authority change overtook the write: confirm it from a fresh read instead of from its response.
+          const after = await messages.inspect({ ...target, messageId: write.messageId ?? result.messageId });
+          const fresh = await messages.prepare(current.plan, current.channelId, write.retired);
+          await store.confirmOnboardingWrite({ claim, observation: fresh.observation, proof: fresh.proof, message: after, write, fromWrite: false });
+        }
       }
-      await ready(claim);
-      const write = await store.beginOnboardingWrite({ claim, observation: preparation.observation, proof: preparation.proof, message: observed });
-      await ready(claim); possiblyAttempted = true;
-      if (observed === null) {
-        observed = await messages.create(preparation, { ...current, ...write });
-        await store.noteOnboardingMessage({ claim, proof: observed });
-      } else observed = await messages.edit(preparation, { ...current, ...write });
-      await ready(claim);
-      const after = await messages.inspect({ ...current, messageId: observed.messageId });
-      const fresh = await messages.prepare(current.plan, current.channelId, write.retired);
-      const result = await store.confirmOnboardingRender({ claim, observation: fresh.observation, proof: fresh.proof, message: after });
-      if (!result.settled) { await outbox.continue(claim); return { status: 'progressed' }; }
-      return { status: 'settled', current: result.current };
+      await outbox.continue(claim); return { status: 'progressed' };
     } catch (error) {
       return settleDeliveryFailure({ outbox, claim, error, possiblyAttempted, parkedCodes,
         noteUncertain: possiblyAttempted ? () => store.noteUncertainOnboardingWrite(claim) : undefined });

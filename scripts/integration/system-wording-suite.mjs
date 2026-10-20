@@ -50,8 +50,8 @@ export async function runSystemWordingSuite(cluster, run) {
     const wording = { 'onboarding.continue': 'I understand', 'onboarding.alert.help.body': 'Synthetic help notice, first revision.' };
     await f.editor.save({ actor, requestId: '1'.repeat(64), expectedRevision: 0, wording });
     const first = await f.open();
-    assert.equal(f.discord.state.messages.get(first.message_id).components[0].components[0].label, 'I understand');
-    assert.equal(await f.click('help'), 'shuttle_help_recorded'); await f.drain(f.screens);
+    assert.equal(f.discord.state.messages.get(first.nav_message_id).components[0].components.find(button => button.custom_id.includes(':advance:')).label, 'I understand');
+    assert.equal(await f.help(), 'shuttle_help_recorded'); await f.drain(f.screens);
     assert.equal((await f.current()).message_id, first.message_id);
     f.discord.state.afterWrite = async call => {
       if (call.method === 'POST' && call.path.endsWith('/messages')) {

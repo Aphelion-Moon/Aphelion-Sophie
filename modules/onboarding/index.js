@@ -1,4 +1,4 @@
-import { requireCondition, requireId, requireInteger, requireKeys, requireName } from '../../contracts/validation.js';
+import { ContractError, requireCondition, requireId, requireInteger, requireKeys, requireName } from '../../contracts/validation.js';
 import { requireOnboardingEligibility } from '../membership/index.js';
 
 export const MAX_ONBOARDING_STEPS = 20;
@@ -99,35 +99,35 @@ function finish(session, member) {
   };
 }
 
+/** A step's screens are posted together, so a step move shows all of them: screenIndex records its last screen. */
+const wholeStep = (definition, stepIndex) => definition.screenCounts ? { screenIndex: definition.screenCounts[stepIndex] - 1 } : {};
+
 /** Returns data for a single atomic state/outbox commit; performs no external effects. */
 export function advanceOnboarding(session, member, definition, command, now) {
   requireSession(session, member, definition, command, now);
   requireCondition(session.status === 'active', 'SHUTTLE_NOT_ACTIVE');
-  requireCondition(!definition.screenCounts || session.screenIndex === definition.screenCounts[session.stepIndex] - 1, 'SHUTTLE_SCREENS_UNREAD');
   const next = { ...session, version: session.version + 1, nonce: command.nextNonce };
-  if (session.stepIndex === definition.stepIds.length - 1) return finish(next, member);
-  return { session: { ...next, stepIndex: session.stepIndex + 1, ...(definition.screenCounts ? { screenIndex: 0 } : {}) }, effects: [] };
+  if (session.stepIndex === definition.stepIds.length - 1) return finish({ ...next, ...wholeStep(definition, session.stepIndex) }, member);
+  return { session: { ...next, stepIndex: session.stepIndex + 1, ...wholeStep(definition, session.stepIndex + 1) }, effects: [] };
 }
 
 export function backOnboarding(session, member, definition, command, now) {
   requireSession(session, member, definition, command, now);
   requireCondition(session.status === 'active' && session.stepIndex > 0, 'BACK_UNAVAILABLE');
-  requireCondition(!definition.screenCounts || session.screenIndex === 0, 'BACK_UNAVAILABLE');
-  return { session: { ...session, stepIndex: session.stepIndex - 1,
-    ...(definition.screenCounts ? { screenIndex: definition.screenCounts[session.stepIndex - 1] - 1 } : {}),
+  return { session: { ...session, stepIndex: session.stepIndex - 1, ...wholeStep(definition, session.stepIndex - 1),
     version: session.version + 1, nonce: command.nextNonce }, effects: [] };
 }
 
-/** Screen navigation has the same authority/version fences as step acknowledgement. */
-function navigateScreen(session, member, definition, command, now, direction) {
+/**
+ * Screen-by-screen paging is retired: every screen of a step is its own message, posted together. Controls from
+ * older messages still parse, so they are refused here as stale rather than treated as unknown input.
+ */
+function navigateScreen(session, member, definition, command, now) {
   requireSession(session, member, definition, command, now);
-  requireCondition(session.status === 'active' && !!definition.screenCounts, 'SCREEN_NAVIGATION_UNAVAILABLE');
-  const index = session.screenIndex + direction;
-  requireCondition(index >= 0 && index < definition.screenCounts[session.stepIndex], 'SCREEN_NAVIGATION_UNAVAILABLE');
-  return { session: { ...session, screenIndex: index, version: session.version + 1, nonce: command.nextNonce }, effects: [] };
+  throw new ContractError('SCREEN_NAVIGATION_UNAVAILABLE');
 }
-export const nextOnboardingScreen = (session, member, definition, command, now) => navigateScreen(session, member, definition, command, now, 1);
-export const previousOnboardingScreen = (session, member, definition, command, now) => navigateScreen(session, member, definition, command, now, -1);
+export const nextOnboardingScreen = navigateScreen;
+export const previousOnboardingScreen = navigateScreen;
 
 /** After a mute cancels pending delivery, require a fresh final acknowledgement. */
 export function retryWhitelist(session, member, definition, command, now) {

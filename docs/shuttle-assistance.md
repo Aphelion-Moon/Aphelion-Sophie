@@ -2,6 +2,8 @@
 
 Scope: P05, P06, P09, P14 and the Shuttle portion of P17; partial T04, T05, T07, T13–T16 and T53–T55 evidence. This adds a Staff queue and retained resolution actions to the existing Ask Staff flow. It uses the approved runtime and driver, with no new dependency, live command registration, service installation or production changes.
 
+> **20 October 2026:** Ask Staff is no longer shown in the Shuttle (owner direction; see [message groups](onboarding-experience.md#message-groups-20-october-2026)). Members cannot raise a new help request from it, and old Ask Staff buttons answer that they are out of date and record nothing. Requests, alerts, pauses and resolutions recorded before then are handled exactly as described below.
+
 ## Staff workflow
 
 `/shuttle queue` returns an ephemeral page of up to five outstanding requests, oldest interaction ID first. Each entry contains a member reference, stored case state and channel reference where available. Resolve controls identify individual requests; Refresh starts again and Next page uses a bounded numeric cursor. The renderer accepts only this closed metadata shape. It has no conversation excerpts, guidance bodies, forms, attachments, notes, external URLs or AI path. All response mentions are suppressed.

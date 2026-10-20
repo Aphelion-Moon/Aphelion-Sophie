@@ -15,6 +15,7 @@ import { casePolicy } from '../../tests/fixtures/cases.js';
 import { CREW, BYOND_ROLE, WHITELIST, MUZZLED } from '../../tests/fixtures/discord.js';
 import { syntheticInteractions, APPLICATION } from '../../tests/fixtures/interactions.js';
 import { GUILD, USER, OTHER, STAFF, LEAD, NOW, definition, publication } from '../../tests/fixtures/domain.js';
+import { navigationMessage, seedOnboardingHelp } from '../../tests/fixtures/onboarding-group.js';
 
 /** Authored synthetic guidance and help metadata only, never conversations or notes. */
 export async function runOnboardingAssistanceSuite(cluster, run) {
@@ -26,7 +27,10 @@ export async function runOnboardingAssistanceSuite(cluster, run) {
   let sequence = 850000000000000000n;
   const nextId = () => String(++sequence);
   const rows = async table => (await admin.query(`SELECT * FROM sophie_core.${table}`)).rows;
-  const currentScreen = async (userId = USER) => (await rows('shuttle_screens')).find(row => row.current && row.user_id === userId);
+  const currentScreen = async (userId = USER) => {
+    const screen = (await rows('shuttle_screens')).find(row => row.current && row.user_id === userId);
+    return screen && { ...screen, nav_message_id: await navigationMessage(admin, screen) };
+  };
   const payload = (overrides = {}) => identities.payload({ id: nextId(), member: { user: { id: USER } },
     data: { type: 1, name: 'whitelist', options: [{ type: 1, name: 'start' }] }, ...overrides });
   const verified = value => identities.verifier.verify(identities.signed(value));
@@ -56,12 +60,17 @@ export async function runOnboardingAssistanceSuite(cluster, run) {
   async function click(action, userId = USER, id = nextId()) {
     const screen = await currentScreen(userId);
     const result = await commands.execute(verified(payload({ id, type: 3, member: { user: { id: userId } },
-      channel_id: screen.channel_id, message: { id: screen.message_id },
+      channel_id: screen.channel_id, message: { id: screen.nav_message_id ?? screen.message_id },
       data: { component_type: 2, custom_id: `sophie:shuttle:v1:${screen.id}:${action}:${screen.control_version}` } })));
     await drain(screens); return result;
   }
+  // Ask Staff is retired; this records a help request as its click did, for the retained assistance queue.
+  async function raiseHelp(userId = USER, id = nextId()) {
+    const result = await seedOnboardingHelp({ pool, clock: () => now, observation: await discord.roles.observe(userId), interactionId: id, userId });
+    await drain(screens); return result;
+  }
   async function help(userId = USER, id = nextId()) {
-    await open(userId); assert.equal(await click('help', userId, id), 'shuttle_help_recorded');
+    await open(userId); assert.equal(await raiseHelp(userId, id), 'shuttle_help_recorded');
     return (await rows('shuttle_help_requests')).find(row => row.interaction_id === id);
   }
   async function direct(request) {
@@ -70,7 +79,7 @@ export async function runOnboardingAssistanceSuite(cluster, run) {
   }
   const scenario = (name, work) => run(name, async () => {
     await admin.query("UPDATE sophie_core.discord_backoff SET until_at = '-infinity', paused = false");
-    await admin.query(`TRUNCATE sophie_core.case_answer_reviews, sophie_core.case_reply_events, sophie_core.case_replies, sophie_core.case_label_changes, sophie_core.case_notes, sophie_core.case_direct_notices, sophie_core.case_attachment_jobs, sophie_core.case_attachment_attempts, sophie_core.case_attachment_capacity, sophie_core.case_message_observations, sophie_core.case_capture_gaps, sophie_core.case_capture_channels, sophie_core.case_participant_actions, sophie_core.case_participants, sophie_core.case_form_editor_actions, sophie_core.case_form_drafts, sophie_core.case_delivery_actions, sophie_core.case_delivery_issues, sophie_core.case_intake_messages, sophie_core.case_intakes, sophie_core.case_form_slots, sophie_core.case_form_actions, sophie_core.case_forms, sophie_core.shuttle_editor_actions, sophie_core.shuttle_draft_revisions, sophie_core.dashboard_sessions, sophie_core.dashboard_login_flows, sophie_core.dashboard_auth_limits, sophie_core.dashboard_auth_policies, sophie_core.case_inspection_sweeps, sophie_core.case_staff_actions, sophie_core.case_lifecycle_actions, sophie_core.shuttle_delivery_rechecks, sophie_core.shuttle_delivery_issues, sophie_core.shuttle_alerts, sophie_core.shuttle_help_resolutions, sophie_core.shuttle_screens, sophie_core.shuttle_help_requests,
+    await admin.query(`TRUNCATE sophie_core.case_answer_reviews, sophie_core.case_reply_events, sophie_core.case_replies, sophie_core.case_label_changes, sophie_core.case_notes, sophie_core.case_direct_notices, sophie_core.case_attachment_jobs, sophie_core.case_attachment_attempts, sophie_core.case_attachment_capacity, sophie_core.case_message_observations, sophie_core.case_capture_gaps, sophie_core.case_capture_channels, sophie_core.case_participant_actions, sophie_core.case_participants, sophie_core.case_form_editor_actions, sophie_core.case_form_drafts, sophie_core.case_delivery_actions, sophie_core.case_delivery_issues, sophie_core.case_intake_messages, sophie_core.case_intakes, sophie_core.case_form_slots, sophie_core.case_form_actions, sophie_core.case_forms, sophie_core.shuttle_editor_actions, sophie_core.shuttle_draft_revisions, sophie_core.dashboard_sessions, sophie_core.dashboard_login_flows, sophie_core.dashboard_auth_limits, sophie_core.dashboard_auth_policies, sophie_core.case_inspection_sweeps, sophie_core.case_staff_actions, sophie_core.case_lifecycle_actions, sophie_core.shuttle_delivery_rechecks, sophie_core.shuttle_delivery_issues, sophie_core.shuttle_alerts, sophie_core.shuttle_help_resolutions, sophie_core.shuttle_screen_parts, sophie_core.shuttle_screens, sophie_core.shuttle_help_requests,
       sophie_core.shuttle_publications, sophie_core.shuttle_cases, sophie_core.gateway_members, sophie_core.gateway_lifecycle,
       sophie_core.actor_authority, sophie_core.capability_policies, sophie_core.member_actions,
       sophie_core.outbox, sophie_core.receipts, sophie_core.sessions, sophie_core.members, sophie_core.definitions,
@@ -100,7 +109,7 @@ export async function runOnboardingAssistanceSuite(cluster, run) {
     assert.equal((await rows('shuttle_help_requests'))[0].status, 'resolved');
     assert.equal((await rows('shuttle_help_resolutions'))[0].operator_grant.userId, OTHER);
     assert.equal((await assistance.queue(queueEnvelope())).entries.length, 0);
-    assert.equal(await click('help'), 'shuttle_help_recorded'); assert.equal((await rows('shuttle_help_requests')).length, 2);
+    assert.equal(await raiseHelp(), 'shuttle_help_recorded'); assert.equal((await rows('shuttle_help_requests')).length, 2);
     assert.equal(await resolve(request), 'shuttle_help_stale'); assert.equal((await currentScreen()).help_requested, true);
     assert.equal(discord.state.calls.some(call => call.method === 'PUT'), false);
   });
@@ -123,7 +132,7 @@ export async function runOnboardingAssistanceSuite(cluster, run) {
     const outcomes = await Promise.all([store.resolveOnboardingHelp(request), store.resolveOnboardingHelp(request)]);
     assert.deepEqual(outcomes.map(row => row.duplicate).sort(), [false, true]);
     assert.equal((await rows('shuttle_help_resolutions')).length, 1); await drain(screens);
-    assert.equal(await click('help'), 'shuttle_help_recorded');
+    assert.equal(await raiseHelp(), 'shuttle_help_recorded');
     const second = (await rows('shuttle_help_requests')).find(row => row.status === 'open'), competing = await direct(second);
     const results = await Promise.allSettled([store.resolveOnboardingHelp(competing), store.resolveOnboardingHelp({ ...competing, interactionId: nextId() })]);
     assert.equal(results.filter(row => row.status === 'fulfilled').length, 1);

@@ -18,8 +18,17 @@ export function paginateStaticText(text, limit = 1_800) {
   if (rest) messages.push(rest);
   return messages;
 }
-/** Optional explicit screens preserve legacy documents and their publication hashes. */
+/**
+ * Optional explicit screens preserve legacy documents and their publication hashes. Each screen is posted as its own
+ * message; optional linkPreviews (aligned with screens) lets an author show link previews on chosen messages. A
+ * published stage carries linkPreviews only when at least one is on, so documents without previews keep their hashes.
+ */
 export function requireAuthoredScreens(stage, complete = false) {
+  if (Object.hasOwn(stage, 'linkPreviews')) {
+    requireCondition(Object.hasOwn(stage, 'screens') && Array.isArray(stage.linkPreviews) && Array.isArray(stage.screens) &&
+      stage.linkPreviews.length === stage.screens.length && stage.linkPreviews.every(value => typeof value === 'boolean') &&
+      (!complete || stage.linkPreviews.some(Boolean)), 'INVALID_LINK_PREVIEWS');
+  }
   if (!Object.hasOwn(stage, 'screens')) return;
   requireCondition(Array.isArray(stage.screens) && stage.screens.length >= 1 && stage.screens.length <= 5, 'INVALID_SHUTTLE_SCREENS');
   for (const text of stage.screens) requireCondition(typeof text === 'string' && text.length <= 1_800 &&

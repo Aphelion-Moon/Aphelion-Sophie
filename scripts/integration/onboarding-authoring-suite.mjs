@@ -4,6 +4,7 @@ import { dashboardHttp as http } from '../../tests/fixtures/dashboard-http.js';
 import { dashboardConfiguration } from '../../tests/fixtures/oauth.js';
 import { GUILD, USER, OTHER, STAFF, LEAD, publication } from '../../tests/fixtures/domain.js';
 import { CREW, WHITELIST } from '../../tests/fixtures/discord.js';
+import { shuttleGroup } from '../../tests/fixtures/onboarding-group.js';
 import { DASHBOARD_COOKIES } from '../../contracts/dashboard-auth.js';
 import { createDashboardAuthHttpServer } from '../../apps/core/http/dashboard-auth.js';
 import { authDigest, sessionCsrf } from '../../apps/core/security/dashboard-auth.js';
@@ -64,7 +65,7 @@ export async function runOnboardingAuthoringSuite(cluster, run) {
     assert.equal((await f.rows('sessions')).find(row => row.user_id === newcomer).state.definitionVersion, 2);
     assert.equal((await f.rows('sessions')).find(row => row.user_id === USER).state.definitionVersion, 1);
     const newScreen = (await f.rows('shuttle_screens')).find(row => row.user_id === newcomer && row.current);
-    assert.ok(f.discord.state.messages.get(newScreen.message_id).embeds.some(embed => embed.description === document.stages[0].body));
+    assert.deepEqual((await shuttleGroup(f.admin, f.discord.state, newScreen)).content.map(message => message.content), [document.stages[0].body]);
   });
 
   for (const count of [1, 20]) await scenario(`E${count === 1 ? '21' : '22'} a published ${count}-step journey reaches only its own final acknowledgement and observed grant`, async f => {
@@ -72,9 +73,9 @@ export async function runOnboardingAuthoringSuite(cluster, run) {
     await f.save(document); await f.publish(1); await f.open();
     assert.equal((await f.session()).definitionVersion, 2);
     for (let i = 0; i < count; i++) {
-      const screen = await f.current();
-      const payload = f.discord.state.messages.get(screen.message_id);
-      assert.match(payload.embeds[0].title, new RegExp(`Page ${i + 1} of ${count}`));
+      const screen = await f.current(), shown = await shuttleGroup(f.admin, f.discord.state, screen);
+      assert.equal(shown.nav.embeds[0].title, `Step ${i + 1} of ${count} · Synthetic step ${i + 1}`);
+      assert.equal(shown.status.embeds[0].description.split('\n').filter(line => /\d+\. Synthetic step \d+/u.test(line)).length, count);
       assert.equal(f.discord.state.members.get(USER).includes(WHITELIST), false);
       assert.equal(await f.click('advance'), 'shuttle_progress_recorded'); await f.drain(f.screens);
       assert.equal((await f.session()).status, i === count - 1 ? 'role_pending' : 'active');
@@ -273,24 +274,22 @@ export async function runOnboardingAuthoringSuite(cluster, run) {
     });
   });
 
-  await scenario('E24 explicit screen boundaries survive save/publication/reload and gate Discord acknowledgement and grant', async f => {
+  await scenario('E24 explicit message breaks survive save/publication/reload and are posted together before one acknowledgement', async f => {
     const document = { helpPauses: false, stages: [{ id: 'screen-step', title: 'Synthetic screens',
       body: '**First** screen\n\nSecond screen', screens: ['**First** screen', 'Second screen'] }] };
     await f.save(document); const reviewed = await f.review(1);
     assert.deepEqual(reviewed.pages[0].segments, document.stages[0].screens); await f.publish(1);
     const configured = (await f.rows('definitions')).find(row => row.version === 2).definition;
     assert.deepEqual(configured.screenCounts, [2]);
-    await f.open(); const first = await f.current();
-    assert.equal(f.discord.state.messages.get(first.message_id).embeds.length, 1);
-    assert.equal(await f.click('advance'), 'shuttle_stale');
+    await f.open(); const first = await f.current(), shown = await shuttleGroup(f.admin, f.discord.state, first);
+    // Each authored message is its own plain message, posted together before the step's one Continue card.
+    assert.deepEqual(shown.content.map(message => [message.content, message.embeds.length]), [['**First** screen', 0], ['Second screen', 0]]);
+    assert.deepEqual(shown.nav.components[0].components.map(button => button.label), ['Back', 'Complete Shuttle']);
+    for (const action of ['next-screen', 'previous-screen']) assert.equal(await f.execute(f.control(first, action)), 'shuttle_stale');
     assert.equal((await f.session()).screenIndex, 0); assert.equal((await f.session()).status, 'active');
     assert.equal((await f.rows('outbox')).some(row => row.kind === 'whitelist.grant'), false);
-    assert.equal(await f.click('next-screen'), 'shuttle_progress_recorded'); await f.drain(f.screens);
-    assert.equal((await f.session()).screenIndex, 1); assert.equal((await f.session()).stepIndex, 0);
-    assert.equal(await f.execute(f.control(first, 'next-screen')), 'shuttle_stale');
-    assert.equal(await f.click('previous-screen'), 'shuttle_progress_recorded'); await f.drain(f.screens);
-    assert.equal((await f.session()).screenIndex, 0);
-    await f.click('next-screen'); await f.drain(f.screens); await f.click('advance'); await f.drain(f.screens);
+    assert.equal(await f.click('advance'), 'shuttle_progress_recorded'); await f.drain(f.screens);
+    assert.equal((await f.session()).screenIndex, 1);
     assert.equal((await f.session()).status, 'role_pending'); const pendingId = (await f.session()).id;
     await f.drain(f.grants); await f.drain(f.screens);
     assert.equal((await f.rows('sessions')).find(row => row.id === pendingId).state.status, 'complete');

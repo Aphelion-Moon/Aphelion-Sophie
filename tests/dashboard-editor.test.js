@@ -50,6 +50,24 @@ test('screens save their boundaries and order, require confirmed removal, and su
   assert.deepEqual(f.state.publications.at(-1).publication.stages[0].screens, ['Second screen', '**First** screen']);
 });
 
+test('link previews are chosen per message, follow their message when arranged, and publish only when one is on', async () => {
+  const f = await workflow(); f.controller.updateScreen(0, 0, 'See https://example.test'); f.controller.addScreen(0); f.controller.updateScreen(0, 1, 'Plain');
+  assert.equal(Object.hasOwn(f.snapshot().document.stages[0], 'linkPreviews'), false);
+  f.controller.setLinkPreview(0, 0, true); assert.deepEqual(f.snapshot().document.stages[0].linkPreviews, [true, false]);
+  f.controller.moveScreen(0, 0, 1);
+  assert.deepEqual(f.snapshot().document.stages[0].screens, ['Plain', 'See https://example.test']);
+  assert.deepEqual(f.snapshot().document.stages[0].linkPreviews, [false, true]);
+  f.controller.setLinkPreview(0, 5, true); f.controller.setLinkPreview(0, 0, 'yes');
+  assert.deepEqual(f.snapshot().document.stages[0].linkPreviews, [false, true]);
+  await f.controller.save(); await f.controller.review(); assert.equal(f.snapshot().review.valid, true);
+  assert.deepEqual(f.snapshot().review.pages[0].previews, [false, true]); await f.controller.publish();
+  assert.deepEqual(f.state.publications.at(-1).publication.stages[0].linkPreviews, [false, true]);
+  // Turning the last one off removes the field; editing the whole body returns to automatic message breaks.
+  f.controller.setLinkPreview(0, 1, false); assert.equal(Object.hasOwn(f.snapshot().document.stages[0], 'linkPreviews'), false);
+  f.controller.setLinkPreview(0, 1, true); f.controller.updatePage(0, 'body', 'One unbroken body.');
+  assert.equal(Object.hasOwn(f.snapshot().document.stages[0], 'screens'), false); assert.equal(Object.hasOwn(f.snapshot().document.stages[0], 'linkPreviews'), false);
+});
+
 test('Shuttle step addition, reordering and confirmed removal preserve stable identities and saved versions', async () => {
   const f = await workflow(), original = structuredClone(f.snapshot().document);
   f.controller.selectPage(4); f.controller.addPage();

@@ -18,7 +18,7 @@ export function roleList() {
 }
 
 /** In-process HTTP fixture; only synthetic metadata/static bot screens, no real case data. */
-export function simulatedDiscord({ clock = () => NOW, enabled = () => true, readContinuity = () => 'synthetic-continuity-1' } = {}) {
+export function simulatedDiscord({ clock = () => NOW, enabled = () => true, readContinuity = () => 'synthetic-continuity-1', readBoundary = null } = {}) {
   const state = { roles: roleList(), ownerId: '100000000000000099', members: new Map([[BOT, [BOT_ROLE]], [USER, [CREW, BYOND_ROLE]]]),
     channels: new Map(), messages: new Map(), emojis: new Map(), threadMembers: new Map(), calls: [], before: null, afterWrite: null };
   let channelSequence = 300000000000000000n, messageSequence = 400000000000000000n;
@@ -82,7 +82,7 @@ export function simulatedDiscord({ clock = () => NOW, enabled = () => true, read
         if (duplicate) return json(duplicate);
         const id = String(++messageSequence);
         state.messages.set(id, { id, channel_id: channelId, author: { id: BOT, bot: true }, type: 0, attachments: [],
-          content: body.content, embeds: body.embeds, components: body.components, nonce: body.nonce,
+          content: body.content, embeds: body.embeds, components: body.components, nonce: body.nonce, flags: body.flags ?? 0,
           mention_everyone: false, mentions: [], mention_roles: body.allowed_mentions.roles ?? [] });
         await state.afterWrite?.(call); return json(state.messages.get(id));
       }
@@ -95,7 +95,7 @@ export function simulatedDiscord({ clock = () => NOW, enabled = () => true, read
       }
       if (call.method === 'PATCH') {
         const body = JSON.parse(options.body);
-        Object.assign(message, { content: body.content, embeds: body.embeds, components: body.components });
+        Object.assign(message, { content: body.content, embeds: body.embeds, components: body.components, ...(body.flags === undefined ? {} : { flags: body.flags }) });
         await state.afterWrite?.(call); return json(message);
       }
       throw new Error('SIMULATION_ROUTE_UNSUPPORTED');
@@ -130,5 +130,5 @@ export function simulatedDiscord({ clock = () => NOW, enabled = () => true, read
     return new Response(null, { status: 204 });
   };
   const transport = createDiscordTransport({ guildId: GUILD, token: 'synthetic-test-token-not-a-secret', fetch, clock, enabled });
-  return { state, fetch, transport, roles: createDiscordRoles({ transport, mapping, clock, readContinuity }) };
+  return { state, fetch, transport, roles: createDiscordRoles({ transport, mapping, clock, readContinuity, readBoundary }) };
 }

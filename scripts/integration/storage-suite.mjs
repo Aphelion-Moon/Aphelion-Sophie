@@ -1,6 +1,7 @@
 import { closeTestCase } from '../../tests/fixtures/case-lifecycle.js';
 import { caseStaffPayload } from '../../tests/fixtures/case-staff.js';
 import assert from 'node:assert/strict';
+import { navigationMessage, seedOnboardingHelp } from '../../tests/fixtures/onboarding-group.js';
 import { createCoreStore } from '../../apps/core/storage/core-store.js';
 import { createOutbox } from '../../apps/core/storage/outbox.js';
 import { createCaseInspectionStore } from '../../apps/core/storage/case-inspections.js';
@@ -68,7 +69,7 @@ export async function runStorageSuite(cluster, run) {
   async function reset() {
     now = NOW; denied = false;
     await admin.query("UPDATE sophie_core.discord_backoff SET until_at = '-infinity', paused = false");
-    await admin.query(`TRUNCATE sophie_core.case_answer_reviews, sophie_core.case_reply_events, sophie_core.case_replies, sophie_core.case_label_changes, sophie_core.case_notes, sophie_core.case_direct_notices, sophie_core.case_attachment_jobs, sophie_core.case_attachment_attempts, sophie_core.case_attachment_capacity, sophie_core.case_message_observations, sophie_core.case_capture_gaps, sophie_core.case_capture_channels, sophie_core.case_participant_actions, sophie_core.case_participants, sophie_core.case_form_editor_actions, sophie_core.case_form_drafts, sophie_core.case_delivery_actions, sophie_core.case_delivery_issues, sophie_core.case_intake_messages, sophie_core.case_intakes, sophie_core.case_form_slots, sophie_core.case_form_actions, sophie_core.case_forms, sophie_core.shuttle_editor_actions, sophie_core.shuttle_draft_revisions, sophie_core.dashboard_sessions, sophie_core.dashboard_login_flows, sophie_core.dashboard_auth_limits, sophie_core.dashboard_auth_policies, sophie_core.case_inspection_sweeps, sophie_core.case_staff_actions, sophie_core.case_lifecycle_actions, sophie_core.shuttle_delivery_rechecks, sophie_core.shuttle_delivery_issues, sophie_core.shuttle_alerts, sophie_core.shuttle_help_resolutions, sophie_core.shuttle_screens, sophie_core.shuttle_help_requests, sophie_core.shuttle_publications, sophie_core.shuttle_cases, sophie_core.gateway_members, sophie_core.gateway_lifecycle, sophie_core.actor_authority, sophie_core.capability_policies, sophie_core.outbox, sophie_core.receipts, sophie_core.sessions,
+    await admin.query(`TRUNCATE sophie_core.case_answer_reviews, sophie_core.case_reply_events, sophie_core.case_replies, sophie_core.case_label_changes, sophie_core.case_notes, sophie_core.case_direct_notices, sophie_core.case_attachment_jobs, sophie_core.case_attachment_attempts, sophie_core.case_attachment_capacity, sophie_core.case_message_observations, sophie_core.case_capture_gaps, sophie_core.case_capture_channels, sophie_core.case_participant_actions, sophie_core.case_participants, sophie_core.case_form_editor_actions, sophie_core.case_form_drafts, sophie_core.case_delivery_actions, sophie_core.case_delivery_issues, sophie_core.case_intake_messages, sophie_core.case_intakes, sophie_core.case_form_slots, sophie_core.case_form_actions, sophie_core.case_forms, sophie_core.shuttle_editor_actions, sophie_core.shuttle_draft_revisions, sophie_core.dashboard_sessions, sophie_core.dashboard_login_flows, sophie_core.dashboard_auth_limits, sophie_core.dashboard_auth_policies, sophie_core.case_inspection_sweeps, sophie_core.case_staff_actions, sophie_core.case_lifecycle_actions, sophie_core.shuttle_delivery_rechecks, sophie_core.shuttle_delivery_issues, sophie_core.shuttle_alerts, sophie_core.shuttle_help_resolutions, sophie_core.shuttle_screen_parts, sophie_core.shuttle_screens, sophie_core.shuttle_help_requests, sophie_core.shuttle_publications, sophie_core.shuttle_cases, sophie_core.gateway_members, sophie_core.gateway_lifecycle, sophie_core.actor_authority, sophie_core.capability_policies, sophie_core.outbox, sophie_core.receipts, sophie_core.sessions,
       sophie_core.member_actions, sophie_core.members, sophie_core.definitions, sophie_core.case_provisions,
       sophie_core.case_channels, sophie_core.case_policies, sophie_core.case_reservations,
       sophie_core.case_budgets, sophie_core.case_exclusions`);
@@ -77,7 +78,7 @@ export async function runStorageSuite(cluster, run) {
   const scenario = async (name, work) => run(name, async () => { await reset(); await work(); });
 
   await scenario('S01 migrations are repeatable and detect a changed applied checksum', async () => {
-    assert.deepEqual(await migrateCore(admin), { migrations: 70 });
+    assert.deepEqual(await migrateCore(admin), { migrations: 71 });
     const original = await admin.query('SELECT id, sha256 FROM sophie_migrations.applied');
     await admin.query("UPDATE sophie_migrations.applied SET sha256 = 'invalid'");
     await assert.rejects(migrateCore(admin), /MIGRATION_CHECKSUM_MISMATCH/);
@@ -348,8 +349,10 @@ export async function runStorageSuite(cluster, run) {
     const screenObservation = obs({ userId: screenMember, crew: false });
     const { plan } = await screenStore.describeOnboardingControl({ actor: self(screenMember), observation: screenObservation, ...control });
     const helpRequestId = nextId();
-    await screenStore.actOnOnboarding({ actor: self(screenMember), observation: screenObservation, ...control,
-      interactionId: helpRequestId, action: 'help', proof: await screenDiscord.channels.inspect(plan, firstScreen.channel_id) });
+    // Ask Staff is retired; these requests are recorded as its click did, for the retained pause and alert paths.
+    assert.equal(await seedOnboardingHelp({ pool: core, clock: () => now, observation: screenObservation, interactionId: helpRequestId,
+      guildId: GUILD, userId: screenMember }), 'shuttle_help_paused');
+    assert.ok(plan);
     assert.equal((await screenStore.resolveOnboardingHelp({ actor: moderator, observation: screenObservation, interactionId: nextId(),
       requestId: helpRequestId, expectedRevision: 0 })).resumed, true);
     const resumedSession = (await read('sessions')).find(row => row.id === opened.session.id).state;
@@ -357,9 +360,9 @@ export async function runStorageSuite(cluster, run) {
       command: command(resumedSession, { userId: screenMember }), observation: obs({ userId: screenMember, crew: false }) });
     await drainScreens();
     const nextScreen = (await read('shuttle_screens')).find(row => row.current), retainedPauseId = nextId();
-    await screenStore.actOnOnboarding({ actor: self(screenMember), observation: screenObservation,
-      screenId: nextScreen.id, channelId: nextScreen.channel_id, messageId: nextScreen.message_id, controlVersion: nextScreen.control_version,
-      interactionId: retainedPauseId, action: 'help', proof: await screenDiscord.channels.inspect(plan, nextScreen.channel_id) });
+    assert.ok(nextScreen);
+    assert.equal(await seedOnboardingHelp({ pool: core, clock: () => now, observation: screenObservation, interactionId: retainedPauseId,
+      guildId: GUILD, userId: screenMember }), 'shuttle_help_paused');
     const pendingScreen = (await read('shuttle_screens')).find(row => row.current).id;
     const pendingAlerts = (await read('shuttle_alerts')).map(row => row.id).sort(); assert.equal(pendingAlerts.length, 2);
     const moderationTarget = '100000000000000014';
@@ -416,9 +419,11 @@ export async function runStorageSuite(cluster, run) {
     const recovered = (await read('shuttle_screens')).find(row => row.current);
     assert.equal(recovered.id, pendingScreen); assert.equal(recovered.ready, true); assert.equal(recovered.snapshot.stepIndex, 1);
     assert.equal(recovered.help_requested, true); assert.equal(recovered.snapshot.helpPaused, true);
-    // The journey edits one Discord message, so the retained message is the paused current screen: only Help stays usable.
-    const pausedControls = screenDiscord.state.messages.get(retainedMessage).components.flatMap(row => row.components);
-    assert.deepEqual(pausedControls.filter(control => !control.disabled).map(control => control.custom_id.split(':')[4]), ['help']);
+    // The retained first message is the run's status card, which has no controls. While paused, the navigation card's
+    // Back and Continue are both disabled.
+    assert.equal(screenDiscord.state.messages.get(retainedMessage).components.length, 0);
+    const pausedControls = screenDiscord.state.messages.get(await navigationMessage(admin, recovered)).components.flatMap(row => row.components);
+    assert.deepEqual(pausedControls.map(control => [control.custom_id.split(':')[4], control.disabled]), [['back', true], ['advance', true]]);
     const alertWorker = createOnboardingAlertDispatcher({ outbox, store: screenStore, roles: screenDiscord.roles, messages: screenDiscord.alerts, enabled: () => true });
     assert.equal((await alertWorker.runOnce('restart-obsolete-alert')).obsolete, true);
     assert.equal((await alertWorker.runOnce('restart-current-alert')).confirmed, true);

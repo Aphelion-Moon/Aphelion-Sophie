@@ -15,9 +15,12 @@ export function canonicalOnboardingDraft(value) {
   const text = (value, maximum) => requireCondition(typeof value === 'string' && value.length <= maximum && value.isWellFormed() &&
     !/[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]/.test(value), 'INVALID_STATIC_COPY');
   const document = { helpPauses: value.helpPauses, stages: value.stages.map(stage => {
-    requireKeys(stage, ['id', 'title', 'body', ...(Object.hasOwn(stage, 'screens') ? ['screens'] : [])]); requireName(stage.id); text(stage.title, 80); text(stage.body, 5_000);
+    requireKeys(stage, ['id', 'title', 'body', ...['screens', 'linkPreviews'].filter(key => Object.hasOwn(stage, key))]);
+    requireName(stage.id); text(stage.title, 80); text(stage.body, 5_000);
     requireAuthoredScreens(stage);
-    return { id: stage.id, title: stage.title, body: stage.body, ...(stage.screens ? { screens: [...stage.screens] } : {}) };
+    // All-off previews are the default and are not stored, so unchanged documents keep their canonical form.
+    return { id: stage.id, title: stage.title, body: stage.body, ...(stage.screens ? { screens: [...stage.screens] } : {}),
+      ...(stage.linkPreviews?.some(Boolean) ? { linkPreviews: [...stage.linkPreviews] } : {}) };
   }) };
   requireCondition(new TextEncoder().encode(JSON.stringify(document)).length <= 100_000, 'SHUTTLE_DOCUMENT_TOO_LARGE');
   return document;
@@ -31,6 +34,7 @@ export function reviewOnboardingDraft(id, version, document) {
     const publication = canonicalPublication({ id, version, ...fixed });
     return { valid: true, errors: [], publication, pages: publication.stages.map(stage => ({
       id: stage.id, title: stage.title, segments: stage.screens ?? paginateStaticText(stage.body),
+      previews: (stage.screens ?? paginateStaticText(stage.body)).map((_, index) => stage.linkPreviews?.[index] === true),
     })) };
   } catch (error) {
     if (!(error instanceof ContractError)) throw error;

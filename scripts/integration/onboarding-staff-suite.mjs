@@ -27,7 +27,7 @@ export async function runOnboardingStaffSuite(cluster, run) {
     requestId: 'a'.repeat(64), confirmed: true });
   const writes = f => f.discord.state.calls.filter(call => ['PUT', 'DELETE', 'POST', 'PATCH'].includes(call.method)).length;
   await scenario('SH01 OAuth assistance resolves and resumes once, replay avoids member observations and preserves progress', async f => {
-    await f.open(); await f.click('help'); const before = await f.session(), d = await dashboard(f);
+    await f.open(); await f.help(); const before = await f.session(), d = await dashboard(f);
     const queue = await d.call('/api/shuttle/help'); assert.equal(queue.entries.length, 1); assert.equal(queue.entries[0].paused, true);
     const body = { helpId: queue.entries[0].requestId, expectedRevision: queue.entries[0].revision, requestId: 'b'.repeat(64), confirmed: true };
     assert.deepEqual(await d.call('/api/shuttle/help/resolve', body), { recorded: true, duplicate: false, resumed: true });
@@ -42,7 +42,7 @@ export async function runOnboardingStaffSuite(cluster, run) {
     f.discord.state.members.set(OTHER, []); await assert.rejects(d.call('/api/shuttle/help/resolve', body), /OPERATION_DENIED/);
   }, { helpPauses: true });
   await scenario('SH02 OAuth assistance denies Muzzled resume and unconfirmed or forged actor fields', async f => {
-    await f.open(); await f.click('help'); const d = await dashboard(f), entry = (await d.call('/api/shuttle/help')).entries[0];
+    await f.open(); await f.help(); const d = await dashboard(f), entry = (await d.call('/api/shuttle/help')).entries[0];
     const body = { helpId: entry.requestId, expectedRevision: entry.revision, requestId: 'b'.repeat(64), confirmed: true };
     for (const bad of [{ ...body, confirmed: false }, { ...body, guildId: GUILD }, { ...body, actor: { userId: OTHER } }])
       await assert.rejects(d.call('/api/shuttle/help/resolve', bad), /SHUTTLE_STAFF_INPUT_INVALID/);
@@ -56,7 +56,8 @@ export async function runOnboardingStaffSuite(cluster, run) {
     const page = await d.call('/api/shuttle/delivery'); assert.equal(page.entries[0].kind, kind); assert.equal(page.entries[0].needsMessageId, true);
     const body = repair(issue, 'adopt_message', messageId);
     assert.deepEqual(await d.call('/api/shuttle/delivery/change', body), { recorded: true, duplicate: false }); assert.equal(writes(f), count);
-    await f.drain(kind === 'screen' ? f.screens : f.alerts); assert.equal(writes(f), count);
+    // An adopted status card is not posted again; the worker then posts the step message and its card (and edits nothing else).
+    await f.drain(kind === 'screen' ? f.screens : f.alerts); assert.equal(writes(f), count + (kind === 'screen' ? 2 : 0));
     const record = kind === 'screen' ? await f.current() : (await f.rows('shuttle_alerts'))[0]; assert.equal(record.message_id, messageId);
     f.discord.state.messages.delete(messageId); f.discord.state.channels.delete(record.channel_id);
     await f.admin.query('INSERT INTO sophie_core.case_policies (guild_id, version, policy) VALUES ($1, 2, $2)', [GUILD, { ...casePolicy, version: 2 }]); const offset = f.discord.state.calls.length;

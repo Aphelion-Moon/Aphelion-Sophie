@@ -3,25 +3,26 @@ import assert from 'node:assert/strict';
 import { observeMembership, setMuteIntent } from '../modules/membership/index.js';
 import { advanceOnboarding, backOnboarding, confirmWhitelist, requireGrantDelivery, retryWhitelist, startOnboarding, nextOnboardingScreen, previousOnboardingScreen } from '../modules/onboarding/index.js';
 
-test('T13/T14 screens require ordered navigation before acknowledgement and retain pause/version fences', () => {
+test('T13/T14 a step posts all its screens, so moves need no paging; retired paging stays fenced and stale', () => {
   const current = member(), configured = { ...definition, stepIds: ['first', 'last'], screenCounts: [2, 3] };
   let session = startOnboarding({ id: 'screens', nonce: 'initial', member: current, definition: configured, now: NOW });
-  assert.throws(() => advanceOnboarding(session, current, configured, command(session), NOW), /SHUTTLE_SCREENS_UNREAD/);
-  const old = command(session);
-  session = nextOnboardingScreen(session, current, configured, old, NOW).session;
-  assert.equal(session.stepIndex, 0); assert.equal(session.screenIndex, 1);
-  assert.throws(() => nextOnboardingScreen(session, current, configured, old, NOW), /NONCE_NOT_ROTATED/);
-  assert.throws(() => nextOnboardingScreen(session, current, configured, command(session), NOW), /SCREEN_NAVIGATION_UNAVAILABLE/);
-  session = advanceOnboarding(session, current, configured, command(session), NOW).session;
-  assert.equal(session.stepIndex, 1); assert.equal(session.screenIndex, 0);
-  session = backOnboarding(session, current, configured, command(session), NOW).session;
-  assert.equal(session.stepIndex, 0); assert.equal(session.screenIndex, 1);
-  session = previousOnboardingScreen(session, current, configured, command(session), NOW).session;
   assert.equal(session.screenIndex, 0);
+  // Retired paging controls still pass every fence first, then answer stale.
+  assert.throws(() => nextOnboardingScreen(session, current, configured, command(session), NOW), /SCREEN_NAVIGATION_UNAVAILABLE/);
+  assert.throws(() => previousOnboardingScreen(session, current, configured, command(session), NOW), /SCREEN_NAVIGATION_UNAVAILABLE/);
   assert.throws(() => nextOnboardingScreen({ ...session, helpPaused: true }, current, configured, command(session), NOW), /SHUTTLE_PAUSED/);
-  for (const transition of [nextOnboardingScreen, advanceOnboarding, nextOnboardingScreen, nextOnboardingScreen]) session = transition(session, current, configured, command(session), NOW).session;
-  const outcome = advanceOnboarding(session, current, configured, command(session), NOW);
-  assert.equal(outcome.session.status, 'role_pending'); assert.equal(outcome.effects.length, 1);
+  assert.throws(() => nextOnboardingScreen(session, current, configured, { ...command(session), nextNonce: session.nonce }, NOW), /NONCE_NOT_ROTATED/);
+  // Continue works from any screen, including a pre-upgrade session still on its first screen.
+  const old = command(session);
+  session = advanceOnboarding(session, current, configured, old, NOW).session;
+  assert.equal(session.stepIndex, 1); assert.equal(session.screenIndex, 2);
+  assert.throws(() => advanceOnboarding(session, current, configured, { ...old, nextNonce: 'replayed' }, NOW), /STALE_SHUTTLE_CONTROL/);
+  session = backOnboarding({ ...session, screenIndex: 1 }, current, configured, command(session), NOW).session;
+  assert.equal(session.stepIndex, 0); assert.equal(session.screenIndex, 1);
+  session = advanceOnboarding(session, current, configured, command(session), NOW).session;
+  assert.throws(() => backOnboarding({ ...session, helpPaused: true }, current, configured, command(session), NOW), /SHUTTLE_PAUSED/);
+  const outcome = advanceOnboarding({ ...session, screenIndex: 0 }, current, configured, command(session), NOW);
+  assert.equal(outcome.session.status, 'role_pending'); assert.equal(outcome.session.screenIndex, 2); assert.equal(outcome.effects.length, 1);
   assert.throws(() => requireGrantDelivery({ ...outcome.session, screenIndex: 0 }, current, outcome.effects[0], configured, NOW), /INVALID_SESSION_PROGRESS/);
 });
 import { NOW, OTHER, command, completedReading, definition, member, observation, started } from './fixtures/domain.js';

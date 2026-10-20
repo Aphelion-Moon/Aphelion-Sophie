@@ -133,7 +133,7 @@ export async function runOnboardingDeliveryIssueSuite(cluster, run) {
   });
 
   await scenario('R07 withdrawn publication and paused progress remain binding during Staff rechecks', async f => {
-    const issue = await parked(f); assert.equal(await f.click('help'), 'shuttle_help_paused');
+    const issue = await parked(f); assert.equal(await f.help(), 'shuttle_help_paused');
     const paused = await f.session(); assert.equal(await recheck(f, issue), 'shuttle_issue_recorded'); await f.drain(f.grants);
     assert.equal((await source(f, issue)).status, 'cancelled'); assert.deepEqual(await f.session(), paused);
     await f.resolve((await f.rows('shuttle_help_requests'))[0]); await f.drain(f.screens);
@@ -185,7 +185,7 @@ export async function runOnboardingDeliveryIssueSuite(cluster, run) {
     const cleanup = await f.outbox.claim('cleanup', 30_000, ['whitelist.reconcile']); await f.outbox.park(cleanup.claim, 'BOT_PERMISSION_MISSING');
     const issue = (await issues(f))[0]; assert.equal(await recheck(f, issue), 'shuttle_issue_recorded'); await f.drain(f.grants);
     assert.equal(f.discord.state.members.get(USER).includes(WHITELIST), true);
-    assert.equal(f.discord.state.calls.some(call => call.method === 'DELETE'), false);
+    assert.equal(f.discord.state.calls.some(call => call.method === 'DELETE' && call.path.includes('/roles/')), false);
   });
 
   await scenario('R11 stale channel proofs, changed audiences and closed cases cannot requeue a grant', async f => {

@@ -2,6 +2,8 @@
 
 Scope: P06, P09, P14 and P16; partial T13–T16, T18 and T19. This adds automatic static notices for new help requests and Whitelist delivery problems. It uses the existing runtime, driver and core token boundary, with no dependency or licence change. Tests use only synthetic data and simulated Discord; production activation remains disabled.
 
+> **20 October 2026:** Ask Staff is no longer shown in the Shuttle (owner direction; see [message groups](onboarding-experience.md#message-groups-20-october-2026)). Members cannot raise a new help request from it, and old Ask Staff buttons answer that they are out of date and record nothing. Requests, alerts, pauses and resolutions recorded before then are handled exactly as described below.
+
 ## Routing and meaning
 
 The development default posts in the member's already-bound private Shuttle case, mentioning only the mapped Staff role. This default was stated while requesting the owner's routing preference; it is not a claim that production IDs, role mentionability or live permissions have been approved. There is no arbitrary channel/URL destination, Head Admin case fallback, DM delivery, conversation excerpt, generated text or AI path. Existing Staff and lead ops channel access remains defined by the immutable case policy.

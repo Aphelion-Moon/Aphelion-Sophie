@@ -10,7 +10,7 @@ import { APPLICATION } from '../../tests/fixtures/interactions.js';
 export async function runOnboardingPauseSuite(cluster, run) {
   const scenario = (name, work) => run(name, async () => work(await onboardingWorkflow(cluster, { helpPauses: true })));
   const request = async f => (await f.rows('shuttle_help_requests')).find(row => row.status === 'open');
-  const pause = async f => { assert.equal(await f.click('help'), 'shuttle_help_paused'); await f.drain(f.screens); return request(f); };
+  const pause = async f => { assert.equal(await f.help(), 'shuttle_help_paused'); await f.drain(f.screens); return request(f); };
 
   await scenario('W01 a published pause freezes signed and shared-core progression until logged Staff resumption', async f => {
     await f.open(); assert.equal(await f.click('advance'), 'shuttle_progress_recorded'); await f.drain(f.screens);
@@ -41,10 +41,10 @@ export async function runOnboardingPauseSuite(cluster, run) {
   });
 
   await scenario('W03 pausing while a grant is in flight rejects confirmation and compensates the late role', async f => {
-    await f.pending(); const control = f.control(await f.current(), 'help');
+    await f.pending();
     f.discord.state.afterWrite = async call => {
       if (call.method === 'PUT' && call.path.endsWith(WHITELIST)) {
-        f.discord.state.afterWrite = null; assert.equal(await f.execute(control), 'shuttle_help_paused');
+        f.discord.state.afterWrite = null; assert.equal(await f.help(), 'shuttle_help_paused');
       }
     };
     assert.equal((await f.grants.runOnce('in-flight-pause')).code, 'SHUTTLE_PAUSED');
@@ -56,10 +56,10 @@ export async function runOnboardingPauseSuite(cluster, run) {
   });
 
   await scenario('W04 Staff resume alone cannot legitimize an old grant already in flight', async f => {
-    await f.pending(); const control = f.control(await f.current(), 'help');
+    await f.pending();
     f.discord.state.afterWrite = async call => {
       if (call.method === 'PUT' && call.path.endsWith(WHITELIST)) {
-        f.discord.state.afterWrite = null; assert.equal(await f.execute(control), 'shuttle_help_paused');
+        f.discord.state.afterWrite = null; assert.equal(await f.help(), 'shuttle_help_paused');
         assert.equal(await f.resolve(await request(f)), 'shuttle_help_resumed');
       }
     };
@@ -84,11 +84,12 @@ export async function runOnboardingPauseSuite(cluster, run) {
     assert.equal(await f.resolve(help), 'shuttle_help_resumed'); assert.equal((await f.session()).stepIndex, before.stepIndex);
   });
 
-  await scenario('W06 duplicate help and resolution preserve one pause, one resumption and inert old controls', async f => {
+  await scenario('W06 retired help controls record nothing; repeated help and resolution keep one pause and resumption', async f => {
     const original = await f.open(), body = f.control(original, 'help');
-    assert.equal(await f.execute(body), 'shuttle_help_paused'); assert.equal(await f.execute(body), 'shuttle_help_paused');
+    assert.equal(await f.execute(body), 'shuttle_stale'); assert.equal((await f.rows('shuttle_help_requests')).length, 0);
+    assert.equal(await f.help(), 'shuttle_help_paused');
     await f.drain(f.screens); const paused = await f.session(), help = await request(f), old = await f.current();
-    assert.equal(await f.click('help'), 'shuttle_help_paused'); assert.equal((await f.session()).version, paused.version);
+    assert.equal(await f.help(), 'shuttle_help_paused'); assert.equal((await f.session()).version, paused.version);
     const resolution = f.resolution(help);
     assert.equal(await f.execute(resolution), 'shuttle_help_resumed'); const version = (await f.session()).version;
     assert.equal(await f.execute(resolution), 'shuttle_help_resumed'); assert.equal((await f.session()).version, version);
@@ -96,13 +97,8 @@ export async function runOnboardingPauseSuite(cluster, run) {
     assert.equal((await f.rows('shuttle_help_requests')).length, 1); assert.equal((await f.rows('shuttle_help_resolutions')).length, 1);
   });
 
-  await scenario('W07 pause and resumption failures roll back state, audit and screen intents together', async f => {
-    await f.open(); const before = await f.session();
-    await f.admin.query("ALTER TABLE sophie_core.outbox ADD CONSTRAINT synthetic_pause_failure CHECK (kind <> 'shuttle.render') NOT VALID");
-    try { assert.equal(await f.click('help'), 'unavailable'); }
-    finally { await f.admin.query('ALTER TABLE sophie_core.outbox DROP CONSTRAINT synthetic_pause_failure'); }
-    assert.deepEqual(await f.session(), before); assert.equal((await f.rows('shuttle_help_requests')).length, 0);
-    const help = await pause(f), paused = await f.session(), screen = await f.current();
+  await scenario('W07 a resumption failure rolls back state, audit and screen intents together', async f => {
+    await f.open(); const help = await pause(f), paused = await f.session(), screen = await f.current();
     await f.admin.query("ALTER TABLE sophie_core.outbox ADD CONSTRAINT synthetic_resume_failure CHECK (kind <> 'shuttle.render') NOT VALID");
     try { assert.equal(await f.resolve(help), 'unavailable'); }
     finally { await f.admin.query('ALTER TABLE sophie_core.outbox DROP CONSTRAINT synthetic_resume_failure'); }
@@ -118,9 +114,9 @@ export async function runOnboardingPauseSuite(cluster, run) {
     assert.equal(await f.resolve(help), 'shuttle_help_resumed'); await f.drain(f.screens);
     for (let index = 0; index < 5; index++) { assert.equal(await f.click('advance'), 'shuttle_progress_recorded'); await f.drain(f.screens); }
     assert.equal(f.discord.state.members.get(USER).includes(WHITELIST), true);
-    assert.equal(f.discord.state.calls.some(call => ['PUT', 'DELETE'].includes(call.method)), false);
+    assert.equal(f.discord.state.calls.some(call => ['PUT', 'DELETE'].includes(call.method) && call.path.includes('/roles/')), false);
     await f.open(); assert.equal((await f.session()).definitionVersion, 2);
-    assert.equal(await f.click('help'), 'shuttle_help_recorded'); assert.equal((await f.session()).helpPaused, false);
+    assert.equal(await f.help(), 'shuttle_help_recorded'); assert.equal((await f.session()).helpPaused, false);
   });
 
   await scenario('W09 withdrawal and closure permit retained resolution without resuming the obsolete run', async f => {
@@ -141,10 +137,10 @@ export async function runOnboardingPauseSuite(cluster, run) {
   });
 
   await scenario('W11 a lost role response after pause remains incomplete and is reconciled without another grant', async f => {
-    await f.pending(); const control = f.control(await f.current(), 'help');
+    await f.pending();
     f.discord.state.afterWrite = async call => {
       if (call.method === 'PUT' && call.path.endsWith(WHITELIST)) {
-        f.discord.state.afterWrite = null; assert.equal(await f.execute(control), 'shuttle_help_paused');
+        f.discord.state.afterWrite = null; assert.equal(await f.help(), 'shuttle_help_paused');
         throw new Error('SYNTHETIC_LOST_PAUSED_GRANT_RESPONSE');
       }
     };
@@ -156,7 +152,7 @@ export async function runOnboardingPauseSuite(cluster, run) {
     assert.equal((await f.rows('sessions')).some(row => row.state.status === 'complete'), false);
   });
 
-  await scenario('W12 signed loopback help and Staff resumption return private truthful statuses', async f => {
+  await scenario('W12 a signed loopback help control answers privately that it is out of date; Staff resumption stays truthful', async f => {
     await f.open(); const replies = [], faults = [];
     const responder = createInteractionResponder({ verifier: f.identities.verifier, applicationId: APPLICATION,
       clock: () => f.clock.now, enabled: () => f.clock.enabled, onboardingAssistance: f.assistance,
@@ -170,10 +166,12 @@ export async function runOnboardingPauseSuite(cluster, run) {
       assert.deepEqual(await response.json(), f.verified(value).command === 'shuttle.control' ? { type: 6 } : { type: 5, data: { flags: 64 } }); await server.drain();
     }
     try {
-      await send(f.control(await f.current(), 'help')); assert.equal(replies.length, 0);
+      assert.equal(await f.help(), 'shuttle_help_paused'); await f.drain(f.screens);
+      await send(f.control(await f.current(), 'help')); assert.equal(replies.length, 1); assert.equal(replies[0].flags, 64);
+      assert.equal((await f.rows('shuttle_help_requests')).length, 1);
       await send(f.payload({ member: { user: { id: OTHER } }, data: { type: 1, name: 'whitelist', options: [{ type: 1, name: 'queue' }] } }));
-      assert.match(replies[0].components[0].components[0].label, /resume/);
-      await send(f.resolution(await request(f))); assert.match(replies[1].content, /Staff resumption recorded/);
+      assert.match(replies[1].components[0].components[0].label, /resume/);
+      await send(f.resolution(await request(f))); assert.match(replies[2].content, /Staff resumption recorded/);
       assert.equal((await f.session()).helpPaused, false); assert.equal((await f.session()).stepIndex, 0);
       for (const reply of replies) assert.deepEqual(reply.allowed_mentions.parse, []); assert.deepEqual(faults, []);
     } finally { await server.close(); }

@@ -460,7 +460,7 @@
   {
     "id": "onboarding.pending.body",
     "group": "Onboarding",
-    "source": "You’ve finished the guidance. We’re getting your access ready. If it takes a while, choose Check completion or ask Staff for help.",
+    "source": "You’ve finished the guidance. We’re getting your access ready. If it takes a while, choose Check completion.",
     "max": 1500
   },
   {
@@ -571,6 +571,73 @@
     "id": "onboarding.open",
     "group": "Onboarding",
     "source": "Begin Whitelist",
+    "max": 40,
+    "format": "plain"
+  },
+  {
+    "id": "onboarding.status.title",
+    "group": "Onboarding",
+    "source": "The Shuttle · your progress",
+    "max": 80
+  },
+  {
+    "id": "onboarding.status.done",
+    "group": "Onboarding",
+    "source": "✅ {step}. {title}",
+    "max": 120
+  },
+  {
+    "id": "onboarding.status.current",
+    "group": "Onboarding",
+    "source": "▶️ **{step}. {title}** · reading now",
+    "max": 160
+  },
+  {
+    "id": "onboarding.status.upcoming",
+    "group": "Onboarding",
+    "source": "▫️ {step}. {title}",
+    "max": 120
+  },
+  {
+    "id": "onboarding.status.whitelist.none",
+    "group": "Onboarding",
+    "source": "Whitelist: not requested yet",
+    "max": 200
+  },
+  {
+    "id": "onboarding.status.whitelist.kept",
+    "group": "Onboarding",
+    "source": "Whitelist: already active. This run is a refresher.",
+    "max": 200
+  },
+  {
+    "id": "onboarding.status.whitelist.pending",
+    "group": "Onboarding",
+    "source": "Whitelist: requested, waiting for Discord to confirm the role",
+    "max": 200
+  },
+  {
+    "id": "onboarding.status.whitelist.confirmed",
+    "group": "Onboarding",
+    "source": "Whitelist: confirmed",
+    "max": 200
+  },
+  {
+    "id": "onboarding.nav.next",
+    "group": "Onboarding",
+    "source": "When you’re ready, choose **Continue** to open **{title}**.",
+    "max": 400
+  },
+  {
+    "id": "onboarding.nav.final",
+    "group": "Onboarding",
+    "source": "Choose **Complete Shuttle** to request your Whitelist role.",
+    "max": 400
+  },
+  {
+    "id": "onboarding.opening",
+    "group": "Onboarding",
+    "source": "Opening…",
     "max": 40,
     "format": "plain"
   },

@@ -34,7 +34,7 @@ export async function runOnboardingChannelLifecycleSuite(cluster, run) {
     assert.equal((await bound(f)).id, old.id); assert.equal((await f.rows('case_reservations')).length, 1);
   });
   await scenario('OC03 missing-channel recovery preserves a help pause and its existing Staff resolution', async f => {
-    await f.open(); await f.click('help'); await f.drain(f.screens);
+    await f.open(); await f.help(); await f.drain(f.screens);
     const old = await bound(f), before = await f.session();
     f.discord.state.channels.delete(old.channel_id); f.clock.now += 1_001; await f.open();
     assert.deepEqual(await f.session(), before); assert.equal((await f.session()).helpPaused, true);
@@ -71,7 +71,7 @@ export async function runOnboardingChannelLifecycleSuite(cluster, run) {
     assert.ok(f.discord.state.members.get(USER).includes(WHITELIST));
   });
   await scenario('OC07 unresolved help and pending grants block automatic retirement', async f => {
-    await f.open(); await f.click('help'); const old = await bound(f);
+    await f.open(); await f.help(); const old = await bound(f);
     f.clock.now += 73 * 3_600_000; assert.equal(await cleanup(f, old.id), false);
     assert.deepEqual(await f.store.nextOnboardingCleanup(), []);
   }, { helpPauses: true });
@@ -129,7 +129,7 @@ export async function runOnboardingChannelLifecycleSuite(cluster, run) {
       }
       before.set(table,{columns:columns.map(c=>c.column_name),rows:(await db.query('SELECT * FROM sophie_core.'+table)).rows});
     }
-    assert.deepEqual(await migrateCore(db),{migrations:70}); assert.deepEqual(await verifyCoreMigrations(db),{migrations:70});
+    assert.deepEqual(await migrateCore(db),{migrations:71}); assert.deepEqual(await verifyCoreMigrations(db),{migrations:71});
     for (const [table, saved] of before) assert.deepEqual((await db.query('SELECT '+saved.columns.join(',')+' FROM sophie_core.'+table)).rows,saved.rows);
     const row = (await db.query("SELECT onboarding_retirement,onboarding_activity_ms FROM sophie_core.case_reservations WHERE type='shuttle'")).rows[0];
     assert.equal(row.onboarding_retirement,null); assert.ok(Number(row.onboarding_activity_ms) > 0);

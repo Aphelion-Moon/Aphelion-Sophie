@@ -69,7 +69,9 @@ export async function runOnboardingArtifactRecoverySuite(cluster, run) {
     assert.equal(await messageRecovery(f, issue, messageId), 'shuttle_recovery_recorded');
     const identified = await recorded(f, 'screen', record.id); assert.equal(identified.message_id, messageId); assert.equal(identified.ready, false);
     assert.equal(identified.create_started, true); assert.deepEqual(await f.session(), progress); assert.equal(posts(f), before);
-    await f.drain(f.screens); assert.equal((await recorded(f, 'screen', record.id)).ready, true); assert.equal(posts(f), before);
+    // The adopted status card is not posted again; the worker then posts the step and its card, once.
+    await f.drain(f.screens); assert.equal((await recorded(f, 'screen', record.id)).ready, true); assert.equal(posts(f), before + 2);
+    assert.equal([...f.discord.state.messages.values()].filter(row => row.nonce === record.id.slice(0, 24)).length, 1);
     const [audit] = await audits(f); assert.equal(audit.action, 'adopt_message'); assert.equal(audit.result_id, messageId);
   });
 
@@ -195,7 +197,7 @@ export async function runOnboardingArtifactRecoverySuite(cluster, run) {
   });
 
   await scenario('F17 a definitely unattempted notice can be sent after its missing mention permission is repaired', async f => {
-    await f.open(); await f.click('help'); await f.drain(f.screens);
+    await f.open(); await f.help(); await f.drain(f.screens);
     f.discord.state.roles.find(role => role.id === STAFF).mentionable = false;
     assert.equal((await f.alerts.runOnce('missing-mention')).code, 'STAFF_MENTION_UNAVAILABLE');
     const issue = (await f.rows('shuttle_delivery_issues'))[0], before = posts(f);
@@ -235,8 +237,11 @@ export async function runOnboardingArtifactRecoverySuite(cluster, run) {
     const old = renderLegacyOnboardingScreen({ screenId: record.id, session: record.snapshot, publication });
     Object.assign(f.discord.state.messages.get(messageId), old);
     assert.equal(await messageRecovery(f, issue, messageId), 'shuttle_recovery_recorded');
-    await f.drain(f.screens); assert.equal(posts(f), before);
+    // The recognised pre-upgrade message becomes the status card in place; only the step and its card are posted.
+    await f.drain(f.screens); assert.equal(posts(f), before + 2);
     assert.equal((await f.current()).message_id, messageId);
-    assert.ok(f.discord.state.messages.get(messageId).embeds.every(embed => embed.footer === undefined));
+    const card = f.discord.state.messages.get(messageId);
+    assert.ok(card.embeds.every(embed => embed.footer === undefined)); assert.equal(card.components.length, 0);
+    assert.match(card.embeds[0].title, /your progress/);
   });
 }

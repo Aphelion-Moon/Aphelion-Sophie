@@ -7,16 +7,16 @@ import { WHITELIST, MUZZLED } from '../../tests/fixtures/discord.js';
 export async function runOnboardingAlertSuite(cluster, run) {
   const scenario = (name, work, options = {}) => run(name, async () => work(await onboardingWorkflow(cluster, options)));
   const records = f => f.rows('shuttle_alerts');
-  const help = async f => { await f.open(); assert.equal(await f.click('help'), 'shuttle_help_recorded'); return (await records(f))[0]; };
+  const help = async f => { await f.open(); assert.equal(await f.help(), 'shuttle_help_recorded'); return (await records(f))[0]; };
   const posts = f => f.discord.state.calls.filter(call => call.method === 'POST' && call.path.includes('/messages')).length;
   const due = f => f.admin.query("UPDATE sophie_core.outbox SET available_at = clock_timestamp() - interval '1 second' WHERE status = 'ready'");
 
   await scenario('L01 help commits one alert and confirms only an observed Staff mention in the bound case', async f => {
     const alert = await help(f), before = posts(f); await f.drain(f.screens);
-    assert.equal(await f.click('help'), 'shuttle_help_recorded'); assert.equal((await records(f)).length, 1);
+    assert.equal(await f.help(), 'shuttle_help_recorded'); assert.equal((await records(f)).length, 1);
     const screenPosts = posts(f), progress = await f.session(); await f.drain(f.alerts);
     assert.deepEqual(await f.session(), progress);
-    assert.equal(f.discord.state.calls.some(call => ['PUT', 'DELETE'].includes(call.method)), false);
+    assert.equal(f.discord.state.calls.some(call => ['PUT', 'DELETE'].includes(call.method) && call.path.includes('/roles/')), false);
     assert.equal(posts(f), screenPosts + 1); const delivered = (await records(f))[0];
     assert.equal(delivered.state, 'confirmed'); assert.ok(delivered.confirmed_at);
     const message = f.discord.state.messages.get(delivered.message_id);
@@ -25,17 +25,17 @@ export async function runOnboardingAlertSuite(cluster, run) {
     assert.equal(message.embeds[0].footer.text, `sophie:shuttle-alert:v1:${alert.id}`); assert.equal(posts(f) > before, true);
     await f.drain(f.alerts); assert.equal(posts(f), screenPosts + 1);
     await f.resolve((await f.rows('shuttle_help_requests'))[0]); await f.drain(f.screens);
-    assert.equal(await f.click('help'), 'shuttle_help_recorded'); await f.drain(f.alerts);
+    assert.equal(await f.help(), 'shuttle_help_recorded'); await f.drain(f.alerts);
     assert.equal((await records(f)).length, 2); assert.equal((await records(f)).every(row => row.state === 'confirmed'), true);
   });
 
-  await scenario('L02 a failed alert intent rolls back the request, pause, receipt and screen together', async f => {
-    await f.open(); const before = await f.session(), receipts = (await f.rows('receipts')).length;
-    await f.admin.query("ALTER TABLE sophie_core.outbox ADD CONSTRAINT synthetic_alert_failure CHECK (kind <> 'shuttle.alert') NOT VALID");
-    try { assert.equal(await f.click('help'), 'unavailable'); }
-    finally { await f.admin.query('ALTER TABLE sophie_core.outbox DROP CONSTRAINT synthetic_alert_failure'); }
+  await scenario('L02 a retired Ask Staff control records no alert, request, pause, receipt or screen change', async f => {
+    const screen = await f.open(), before = await f.session(), receipts = (await f.rows('receipts')).length;
+    const jobs = (await f.rows('outbox')).length;
+    assert.equal(await f.execute(f.control(screen, 'help')), 'shuttle_stale');
     assert.deepEqual(await f.session(), before); assert.equal((await records(f)).length, 0);
     assert.equal((await f.rows('shuttle_help_requests')).length, 0); assert.equal((await f.rows('receipts')).length, receipts);
+    assert.equal((await f.rows('outbox')).length, jobs);
   }, { helpPauses: true });
 
   await scenario('L03 resolving before delivery suppresses the obsolete help ping without deleting its record', async f => {
@@ -103,7 +103,7 @@ export async function runOnboardingAlertSuite(cluster, run) {
     f.discord.state.before = null; f.clock.now += 2_001; await due(f);
     await f.admin.query("UPDATE sophie_core.discord_backoff SET until_at = '-infinity'");
     await f.drain(f.alerts); assert.equal((await records(f))[0].state, 'confirmed'); assert.equal(posts(f), before + 2);
-    assert.equal([...f.discord.state.messages.values()].filter(row => row.embeds[0].footer?.text?.startsWith('sophie:shuttle-alert:')).length, 1);
+    assert.equal([...f.discord.state.messages.values()].filter(row => row.embeds[0]?.footer?.text?.startsWith('sophie:shuttle-alert:')).length, 1);
   });
 
   await scenario('L10 lost leases retain late own-message IDs but cannot confirm through the old worker', async f => {
@@ -199,20 +199,20 @@ export async function runOnboardingAlertSuite(cluster, run) {
   });
 
   await scenario('L20 Staff can be alerted for a Muzzled member without clearing the pause or granting access', async f => {
-    await f.open(); assert.equal(await f.click('help'), 'shuttle_help_paused'); const paused = await f.session();
+    await f.open(); assert.equal(await f.help(), 'shuttle_help_paused'); const paused = await f.session();
     f.discord.state.members.get(USER).push(MUZZLED); await f.drain(f.alerts);
     assert.equal((await records(f))[0].state, 'confirmed'); assert.deepEqual(await f.session(), paused);
     assert.equal(await f.execute(f.payload()), 'denied');
     assert.equal(await f.resolve((await f.rows('shuttle_help_requests'))[0]), 'shuttle_help_waiting');
     assert.equal((await f.session()).helpPaused, true); assert.equal(f.discord.state.members.get(USER).includes(WHITELIST), false);
-    assert.equal(f.discord.state.calls.some(call => ['PUT', 'DELETE'].includes(call.method)), false);
+    assert.equal(f.discord.state.calls.some(call => ['PUT', 'DELETE'].includes(call.method) && call.path.includes('/roles/')), false);
   }, { helpPauses: true });
 
   await scenario('L21 an obsolete unsent failure alert can notify a later failure without reviving old delivery authority', async f => {
     await f.pending();
     f.discord.state.before = call => call.method === 'PUT' ? new Response(null, { status: 503 }) : null;
     assert.equal((await f.grants.runOnce('before-pause-failure')).status, 'retry_scheduled'); f.discord.state.before = null;
-    assert.equal(await f.click('help'), 'shuttle_help_paused'); await due(f); await f.drain(f.grants); await f.drain(f.alerts);
+    assert.equal(await f.help(), 'shuttle_help_paused'); await due(f); await f.drain(f.grants); await f.drain(f.alerts);
     const old = (await records(f)).find(row => row.kind === 'delivery');
     assert.equal(old.state, 'obsolete'); assert.equal(old.create_started, false); assert.equal(old.revision, 0);
     assert.equal(await f.resolve((await f.rows('shuttle_help_requests'))[0]), 'shuttle_help_resumed'); await f.drain(f.screens);

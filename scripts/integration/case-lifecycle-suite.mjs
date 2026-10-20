@@ -49,9 +49,12 @@ export async function runCaseLifecycleSuite(cluster, run) {
     const audit = (await actions(f))[0]; assert.equal(audit.reason, 'resolved'); assert.equal(audit.operator_grant.userId, OTHER); assert.equal(audit.status, 'pending');
     assert.equal(await f.current(), undefined); assert.equal(await f.execute(f.control(screen, 'advance')), 'shuttle_review');
     await f.drain(f.cases); await exact(f, 'closed'); assert.equal((await state(f)).state, 'closed'); assert.equal((await actions(f))[0].status, 'confirmed');
-    await f.drain(f.screens); assert.ok(f.discord.state.messages.get(screen.message_id).components.flatMap(row => row.components).every(control => control.disabled), 'a retired screen has no usable control');
+    // A retired run keeps its status card (now saying the journey ended, with no controls); its step messages and card are deleted.
+    await f.drain(f.screens); assert.match(f.discord.state.messages.get(screen.message_id).embeds[0].description, /journey has ended/);
+    assert.equal(f.discord.state.messages.get(screen.message_id).components.length, 0); assert.equal(f.discord.state.messages.has(screen.nav_message_id), false);
     for (const table of ['case_reservations', 'case_channels', 'case_exclusions', 'sessions', 'shuttle_cases']) assert.equal((await f.rows(table)).length, 1);
-    assert.equal(writes(f).some(call => call.method === 'DELETE'), false);
+    // Only the run's own step messages are deleted; the channel and its records stay.
+    assert.equal(writes(f).some(call => call.method === 'DELETE' && !/\/messages\/\d+$/.test(call.path)), false);
   });
 
   await scenario('J02 duplicate requests are idempotent while competing versions and receipt collisions cannot add actions', async f => {
@@ -136,7 +139,7 @@ export async function runCaseLifecycleSuite(cluster, run) {
     assert.equal(await act(f, 'close'), 'case_change_recorded'); f.discord.state.members.get(USER).push(WHITELIST);
     assert.equal((await f.store.inspectGrant({ claim: job.claim, observation: await f.discord.roles.observe(USER), confirm: true })).reason, 'GRANT_MISMATCH');
     await f.drain(f.grants); assert.equal(f.discord.state.members.get(USER).includes(WHITELIST), false);
-    const paused = await onboardingWorkflow(cluster, { helpPauses: true }); await paused.open(); assert.equal(await paused.click('help'), 'shuttle_help_paused');
+    const paused = await onboardingWorkflow(cluster, { helpPauses: true }); await paused.open(); assert.equal(await paused.help(), 'shuttle_help_paused');
     assert.equal(await act(paused, 'close'), 'case_change_recorded'); await paused.drain(paused.cases); paused.clock.now += 1_000;
     assert.equal(await act(paused, 'reopen'), 'case_change_recorded'); await paused.drain(paused.cases); assert.equal((await paused.session()).helpPaused, true);
     paused.discord.state.members.set(USER, [MUZZLED, BYOND_ROLE]); assert.equal(await paused.execute(paused.payload()), 'denied');

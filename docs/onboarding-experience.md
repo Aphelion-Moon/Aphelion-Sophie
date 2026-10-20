@@ -7,9 +7,41 @@ Staging now selects **9479c2c/schema 054** after the authorized 27 September
 [channel/login follow-up and /whitelist rename](onboarding-followup.md). See [current handoff](handoff.md).
 No dependency, AI path or publisher capability grant was added.
 
-## One message per journey
+## Message groups (20 October 2026)
 
-The current Onboarding screen is a persistent message anchor. Next, Back,
+Each run now shows as a message group (migration 071):
+
+- a **status card** posted first and edited in place: every stop with done, current
+  and upcoming marks, plus the Whitelist line (not requested, already active,
+  requested and waiting for Discord, confirmed). It has no controls;
+- the current step as **plain messages**, one per authored message break (or
+  automatic segment), with link previews suppressed unless the author turned them on
+  for that message;
+- a **navigation card** after them: "Step n of N · Title", the next stop, and Back plus
+  Continue (Complete Shuttle on the last step). While Whitelist delivery is pending it
+  offers only Check completion; once complete it has no buttons.
+
+On Continue or Back the click is answered at once by updating its own card
+("Opening…", buttons disabled). The worker then deletes the previous step's messages
+and card, posts the new step and its card in order, and edits the status card last.
+Pending and complete keep the last step's messages; only the cards change. A click
+that records nothing puts its card back. Ask Staff is no longer offered: its old
+buttons answer that they are out of date, and help requests, alerts and pauses
+recorded before that change are still handled.
+
+Each message is a retained row; deleted messages are marked gone, never removed, and
+the case capture ledger keeps their earlier content. Writes are confirmed from
+Discord's own response while the Gateway records no authority change; an unconfirmed
+edit, and every message on an explicit `/whitelist start`, is read back rather than
+rewritten. A deleted step message is reposted with its whole step, in order; a deleted
+status card replaces the run (it cannot return to the top of the channel). A lost
+part create is repeated once with the same Discord nonce within 60 seconds, then parks
+for review. The pre-group single-message format is still recognised for recovery and
+is turned into the status card in place; it is never sent again.
+
+## One message per journey (superseded)
+
+Before message groups, the Onboarding screen was a persistent message anchor. Next, Back,
 acknowledgement, help and completion update its snapshot and edit that same Discord
 message. Successful page controls receive a silent deferred update; errors use a
 private follow-up. Routine page turns no longer post progress notices, retire the

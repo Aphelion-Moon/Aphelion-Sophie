@@ -1108,3 +1108,26 @@ The owner: "The wiki IS the authority for policy, it's not posted anywhere else.
 community's wiki is its official and only rulebook: when supplied policy evidence answers a question she states the rule
 and cites it rather than sending the member to the wiki or to staff. Abstaining without policy evidence is unchanged.
 The prompt budget rose from 16 KB to 32 KB, because at 16 KB every turn lost its whole conversation history.
+
+### Shuttle message groups — 20 October 2026
+
+The owner asked for the Shuttle to stop sending each step as one embed-heavy message: "an embed posted and kept at the
+top of ticket which tracks users current status", then each step "as actual messages, followed by a fresh embed to
+navigate", with the previous step's messages and navigation card deleted on every change. Faster page turns were part of
+the same request. Shown the plan, the owner chose:
+
+- **Write verification:** trust the message Discord returns for this bot's own create or edit while the Gateway records
+  no member, authority, role, channel or guild change (the authority boundary already used by the AI lane). A message is
+  read back only when that boundary moved or a write was uncertain. This replaces "a fresh read must match" after every
+  write in [Shuttle screens](../shuttle-screens.md). An unconfirmed edit is still inspected before another write.
+- **Transport:** the in-progress shared rate-limit registry and queueing change ships first.
+- **Link previews:** chosen per message by the author, off by default ("Previews should be able to be enabled for a
+  specific message, instead of just a hard always yes or no").
+- **Click feedback:** Continue, Back and Check completion update their own card at once ("Opening…").
+- **No Ask Staff:** "Remove the 'ask-staff' button from this process." Members can no longer raise a help request from
+  the Shuttle. Requests, alerts, pauses and the Staff queue recorded before then are still handled; old buttons answer
+  that they are out of date and record nothing.
+
+A part create whose response was lost may be sent once more with the same Discord nonce within 60 seconds; Discord
+documents nonce enforcement as duplicate suppression "in the past few minutes". After that it parks for review as before.
+This keeps a single timeout during a step change from stranding the member; it is called out for owner confirmation.

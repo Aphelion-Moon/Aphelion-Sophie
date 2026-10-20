@@ -2,6 +2,7 @@ import { defaultSystemText } from '../../../contracts/system-messages.js';
 import { createServer } from 'node:http';
 import { requireCondition, requireInteger } from '../../../contracts/validation.js';
 import { caseFormModal, ticketEntryPanel } from '../../../modules/tickets/intake.js';
+import { renderOnboardingOpening } from '../../../modules/onboarding/screens.js';
 
 const MAX_BODY = 262_144;
 // Shuttle entry replies poll for the new private channel for up to ~32 s. A few may wait at once without holding the
@@ -119,8 +120,13 @@ export function createInteractionHttpServer({ verifier, commands, respond, enabl
       })().finally(() => { running.delete(task); if (released) waitingReplies--; else reserved = false; });
       running.add(task);
     });
-    // Acknowledge before database or Discord work. This is receipt, not completion.
-    send(response, 200, envelope.command === 'shuttle.control' ? { type: 6 } : { type: 5, data: { flags: 64 } });
+    // Acknowledge before database or Discord work. This is receipt, not completion. A Shuttle Continue, Back or Check
+    // click updates its own card at once: the card stays and its buttons wait ("Opening…") until the next step is
+    // posted. Built only from fixed wording and the signed control; a click that records nothing restores the card.
+    const opening = envelope.command === 'shuttle.control' && ['advance', 'back', 'retry'].includes(envelope.action) &&
+      Number.isSafeInteger(envelope.controlVersion);
+    send(response, 200, opening ? { type: 7, data: renderOnboardingOpening({ screenId: envelope.screenId, controlVersion: envelope.controlVersion }, text) }
+      : envelope.command === 'shuttle.control' ? { type: 6 } : { type: 5, data: { flags: 64 } });
   }
   const server = createServer({ maxHeaderSize: 16_384 }, (request, response) => {
     handle(request, response).catch(() => {

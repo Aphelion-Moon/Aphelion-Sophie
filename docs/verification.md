@@ -1,5 +1,31 @@
 # Verification and release limits
 
+## Shuttle message groups and faster page turns — 20 October 2026 (prepared, not yet installed)
+
+Owner request and decisions of 20 October (decision log, "Shuttle message groups"). Source on `codex/sophie-social-ai`:
+- `04f305c`: one rate-limit registry for every transport on the bot token, keyed by Discord's bucket and top-level
+  resource; an overlapping request queues briefly instead of failing `DISCORD_BUSY`; cooldowns of 1.5 s or less are
+  waited out once.
+- `6c1570e`: a recorded Shuttle command wakes delivery at once; fixed-code timing traces on a new `onTrace` channel
+  (`SHUTTLE_COMMAND_<result>_<ms>MS`, `SHUTTLE_RENDER_<outcome>_<ms>MS_<n>CALLS_<ms>WAITMS`); `/whitelist start` no
+  longer holds the one-command slot while its reply waits for the channel.
+- the message-group commit following `6c1570e`: message groups (status card, plain step messages, navigation card), instant "Opening…" click
+  feedback, per-message link previews, Ask Staff removed, boundary-scoped observation sharing and response-confirmed
+  writes, migration 071 and the editor's message breaks and preview toggle.
+
+**Offline evidence:** Offline, on the message-group source: npm test 672 passed, 0 failed; repository check passed; storage (parallel, 4 shards) 998 passed, 0 failed (new V11b; suites rewritten for message groups and the retired Ask Staff). Transport (04f305c) and delivery wake-up/traces (6c1570e) each passed 997 storage scenarios on their own. Not live: no staging install, Discord rendering or timing measurement yet.
+
+Diagnosis of the slow page turns (from code, not measured live): one click cost about 20 serial Discord requests
+(about 6 for the command, about 14 for the render, including a second full role and channel check after the edit),
+then waited for the worker tick and a round-robin of ten dispatchers. Overlapping requests failed `DISCORD_BUSY` and
+each lane kept its own view of the shared buckets, so retries backed off exponentially. The new traces measure each
+part on staging.
+
+Not yet run: the operator-approved staging install of migration 071 and this source, a live walk through all five steps
+on desktop and mobile, and a before/after timing comparison. Rollback is forward repair only: older code ignores
+`shuttle_screen_parts`, would leave posted step messages visible and redraw status cards as single messages; do not
+downgrade the schema.
+
 ## Rule codes in chatty questions — 13 October 2026 (prepared, not yet installed)
 
 Asked "My finger slipped :< Anyways, sophie, can you summarize CR 1 for me?", Sophie answered that she had no verified

@@ -2,17 +2,27 @@ import { readSystemWording } from './system-wording.js';
 import { randomBytes, createHash } from 'node:crypto';
 import { requireCondition, requireFreshObservation, requireId } from '../../../contracts/validation.js';
 import { requireOnboardingEligibility } from '../../../modules/membership/index.js';
-import { advanceOnboarding, backOnboarding, retryWhitelist, pauseOnboarding, nextOnboardingScreen, previousOnboardingScreen } from '../../../modules/onboarding/index.js';
-import { requireScreenId, renderOnboardingScreen } from '../../../modules/onboarding/screens.js';
+import { advanceOnboarding, backOnboarding, retryWhitelist, nextOnboardingScreen, previousOnboardingScreen } from '../../../modules/onboarding/index.js';
+import { requireScreenId, onboardingStepMessages, renderOnboardingContent, renderOnboardingNav, renderOnboardingStatus } from '../../../modules/onboarding/screens.js';
 import { createMemberOperation, lockMember } from './members.js';
 import { createOnboardingCaseAccess } from './onboarding-case-access.js';
 import { getDefinition, getPublication, getSession, saveSession, requestOnboardingScreen } from './onboarding-records.js';
 import { receipt, saveReceipt } from './receipts.js';
 import { enqueue, lockClaim, finishClaim, validateClaim } from './outbox.js';
 import { inTransaction } from './transaction.js';
-import { recordOnboardingAlert } from './onboarding-alert-records.js';
 
-/** Core-only metadata and deterministic controls. No case text input or generic endpoint. */
+const digest = payload => createHash('sha256').update(JSON.stringify(payload)).digest('hex');
+// Discord suppresses a repeated create nonce only "in the past few minutes". A part create whose response was lost
+// is sent once more with the same nonce inside this window; after it, it parks for review like any uncertain create.
+const NONCE_RETRY_MS = 60_000;
+
+/**
+ * Core-only metadata and deterministic controls. No case text input or generic endpoint.
+ *
+ * A run is shown as a message group: its anchor message is the status card, edited in place; the current step is
+ * posted as plain messages followed by a navigation card (parts). A step change advances part_generation: older parts
+ * are deleted from Discord, the new step is posted, and the status card is edited last.
+ */
 export function createOnboardingScreenStore({ pool, clock, authorize, policy, caseVerification, messageVerification }) {
   const { binding, verify: caseProof } = createOnboardingCaseAccess({ policy, verification: caseVerification });
   const memberOperation = createMemberOperation({ pool, clock });
@@ -22,10 +32,9 @@ export function createOnboardingScreenStore({ pool, clock, authorize, policy, ca
       WHERE id = $1 AND guild_id = $2 AND user_id = $3 FOR UPDATE`, [id, member.guildId, member.userId])).rows[0];
     requireCondition(row !== undefined, 'SHUTTLE_SCREEN_NOT_FOUND'); return row;
   }
-  async function messageProof(kind, proof, current) {
-    requireCondition(typeof messageVerification?.[kind] === 'function', 'SHUTTLE_VERIFIER_REQUIRED');
-    return messageVerification[kind](proof, { screenId: current.screen.id, plan: current.plan,
-      channelId: current.channelId, payload: current.payload });
+  async function messageProof(check, proof, expected, options) {
+    requireCondition(typeof messageVerification?.[check] === 'function', 'SHUTTLE_VERIFIER_REQUIRED');
+    return messageVerification[check](proof, expected, options);
   }
   async function self(actor, member) {
     requireCondition(await authorize('shuttle.self', actor, { guildId: member.guildId, userId: member.userId }) === true, 'OPERATION_DENIED');
@@ -34,14 +43,21 @@ export function createOnboardingScreenStore({ pool, clock, authorize, policy, ca
   async function controlState(client, member, { screenId, channelId, messageId }) {
     requireId(channelId); requireId(messageId);
     const screen = await screenFor(client, member, screenId);
-    requireCondition(screen.channel_id === channelId && screen.message_id === messageId, 'FOREIGN_SHUTTLE_CONTROL');
+    requireCondition(screen.channel_id === channelId, 'FOREIGN_SHUTTLE_CONTROL');
+    // Controls live on the current navigation card. Older cards, and the buttons of a pre-upgrade single message that
+    // is now this run's status card, are out of date rather than foreign. An action checks its own receipt before
+    // refusing an out-of-date card, so a repeated delivery of an accepted click is still recognised.
+    const part = (await client.query(`SELECT generation, kind, gone FROM sophie_core.shuttle_screen_parts
+      WHERE screen_id = $1 AND message_id = $2`, [screen.id, messageId])).rows[0];
+    requireCondition(part !== undefined || screen.message_id === messageId, 'FOREIGN_SHUTTLE_CONTROL');
+    const card = part?.kind === 'nav' && !part.gone && part.generation === screen.part_generation;
     const session = await getSession(client, screen.session_id, member.guildId, member.userId);
     requireCondition(session.eligibilityEpoch === member.eligibilityEpoch, 'SHUTTLE_RESTART_REQUIRED');
     const definition = await getDefinition(client, session.definitionId, session.definitionVersion);
     requireCondition(definition.status === 'published', 'DEFINITION_WITHDRAWN');
     const bound = await binding(client, member, session);
     requireCondition(bound.row.state === 'open' && bound.row.channel_id === channelId && bound.plan.presenceEpoch === member.presenceEpoch, 'SHUTTLE_CASE_UNAVAILABLE');
-    return { screen, session, definition, ...bound };
+    return { screen, session, definition, card, ...bound };
   }
   async function renderState(client, member, claim) {
     const job = await lockClaim(client, claim);
@@ -65,8 +81,57 @@ export function createOnboardingScreenStore({ pool, clock, authorize, policy, ca
     requireCondition(screen.channel_id === null || row.channel_id === screen.channel_id, 'CASE_CHANNEL_MISMATCH');
     const wording = await readSystemWording(client, member.guildId, screen.wording_revision);
     if (screen.wording_revision === null) await client.query('UPDATE sophie_core.shuttle_screens SET wording_revision=$2 WHERE id=$1', [screen.id, wording.revision]);
-    return { screen, session, plan, channelId, removed: row.onboarding_retirement === 'removed', retired: !eligible,
-      payload: renderOnboardingScreen({ screenId: screen.id, session: screen.snapshot, publication, retired: !eligible, helpRequested: screen.help_requested, controlVersion: screen.control_version }, wording.text) };
+    const retired = !eligible;
+    const status = renderOnboardingStatus({ session: screen.snapshot, publication, retired, helpRequested: screen.help_requested }, wording.text);
+    // The step stays visible while Whitelist delivery is pending and once it is confirmed; only the card changes.
+    const group = retired ? [] : [...onboardingStepMessages(publication, screen.snapshot.stepIndex)
+      .map(message => ({ kind: 'content', payload: renderOnboardingContent(message) })),
+    { kind: 'nav', payload: renderOnboardingNav({ screenId: screen.id, session: screen.snapshot, publication,
+      helpRequested: screen.help_requested, controlVersion: screen.control_version }, wording.text) }];
+    const parts = (await client.query(`SELECT *, floor(extract(epoch FROM clock_timestamp() - create_started_at) * 1000) AS create_age_ms
+      FROM sophie_core.shuttle_screen_parts WHERE screen_id = $1 ORDER BY generation, position FOR UPDATE`, [screen.id])).rows;
+    return { screen, session, plan, channelId, removed: row.onboarding_retirement === 'removed', retired, status, group, parts };
+  }
+  /** The next single Discord write toward the stored state, or null when the group is current. No side effects. */
+  function nextWrite({ screen, retired, status, group, parts }) {
+    if (screen.message_id === null) {
+      if (retired || screen.message_gone) return null;
+      requireCondition(!screen.create_started, 'SHUTTLE_MESSAGE_UNCERTAIN');
+      return { action: 'create', target: 'anchor', recordId: screen.id, kind: 'status', payload: status };
+    }
+    const generation = screen.part_generation;
+    // Earlier steps first, then this step's surplus: each newest-first, so a navigation card goes before its step.
+    const stale = parts.filter(part => !part.gone && part.message_id !== null && (retired || part.generation !== generation || part.position >= group.length))
+      .sort((a, b) => a.generation - b.generation || b.position - a.position);
+    if (stale.length) return { action: 'delete', target: 'part', recordId: stale[0].id, messageId: stale[0].message_id };
+    for (const [position, wanted] of group.entries()) {
+      const part = parts.find(row => row.generation === generation && row.position === position);
+      if (part?.gone || (part && part.kind !== wanted.kind)) return { action: 'regroup' };
+      if (!part) return { action: 'create', target: 'part', position, kind: wanted.kind, payload: wanted.payload };
+      if (part.message_id === null) {
+        requireCondition(!part.create_retried && Number(part.create_age_ms) <= NONCE_RETRY_MS, 'SHUTTLE_MESSAGE_UNCERTAIN');
+        return { action: 'create', target: 'part', retry: true, recordId: part.id, position, kind: wanted.kind, payload: wanted.payload };
+      }
+      const update = change(part, wanted.payload);
+      if (update) return { action: update, target: 'part', recordId: part.id, messageId: part.message_id, kind: wanted.kind, payload: wanted.payload };
+    }
+    const update = screen.message_gone ? null : change(screen, status);
+    if (update) return { action: update, target: 'anchor', recordId: screen.id, messageId: screen.message_id, kind: 'status', payload: status };
+    return null;
+  }
+  // An unconfirmed edit to the same body may already have landed, and a re-check on entry asks the same question:
+  // read the message (inspect) rather than editing it again. Otherwise edit whatever differs from the confirmed body.
+  function change(row, payload) {
+    const wanted = digest(payload);
+    if (row.pending_sha256 === wanted) return 'inspect';
+    return row.rendered_sha256 === wanted ? null : 'edit';
+  }
+  /** Controls are ready once this step's messages and card are all confirmed; the status card may still follow. */
+  function controlsReady({ screen, retired, group, parts }) {
+    return !retired && screen.message_id !== null && group.every((wanted, position) => {
+      const part = parts.find(row => row.generation === screen.part_generation && row.position === position);
+      return part && !part.gone && part.message_id !== null && part.rendered_sha256 === digest(wanted.payload);
+    });
   }
   async function destinationState(client, member) {
     const found = (await client.query(`SELECT s.state FROM sophie_core.sessions s
@@ -84,6 +149,12 @@ export function createOnboardingScreenStore({ pool, clock, authorize, policy, ca
     const bound = await binding(client, member, session);
     requireCondition(['pending', 'open'].includes(bound.row.state) && bound.plan.presenceEpoch === member.presenceEpoch, 'SHUTTLE_CASE_UNAVAILABLE');
     return { session, ...bound };
+  }
+  async function claimSource(client, claim) {
+    const source = (await client.query(`SELECT effect, user_id, fence, dispatch_started FROM sophie_core.outbox
+      WHERE guild_id = $1 AND operation_id = $2 AND kind = 'shuttle.render'`, [claim.guildId, claim.operationId])).rows[0];
+    requireCondition(source?.dispatch_started && source.fence >= claim.fence, 'SHUTTLE_MESSAGE_UNTRUSTED');
+    return source;
   }
   return Object.freeze({
     async describeOnboardingDestination({ actor, observation }) {
@@ -113,6 +184,8 @@ export function createOnboardingScreenStore({ pool, clock, authorize, policy, ca
     },
     async actOnOnboarding({ actor, observation, interactionId, action, proof, ...control }) {
       requireCondition(['advance', 'back', 'retry', 'help', 'next-screen', 'previous-screen'].includes(action), 'INVALID_SHUTTLE_ACTION');
+      // Ask Staff is no longer offered. A button left on an older message is out of date and records nothing.
+      requireCondition(action !== 'help', 'STALE_SHUTTLE_CONTROL');
       return memberOperation(observation, async (client, member) => {
         await self(actor, member);
         const current = await controlState(client, member, control);
@@ -121,107 +194,153 @@ export function createOnboardingScreenStore({ pool, clock, authorize, policy, ca
         const previous = await receipt(client, member.guildId, member.userId, interactionId,
           { action: 'shuttle.control', screenId: screen.id, control: action, channelId: control.channelId, messageId: control.messageId });
         if (previous) return { duplicate: true, session };
-        requireCondition((control.controlVersion ?? 0) === screen.control_version && screen.current && screen.ready && screen.snapshot.version === session.version && screen.snapshot.nonce === session.nonce &&
+        requireCondition(current.card && (control.controlVersion ?? 0) === screen.control_version && screen.current && screen.ready && screen.snapshot.version === session.version && screen.snapshot.nonce === session.nonce &&
           Number(screen.access_epoch) === member.accessEpoch, 'STALE_SHUTTLE_CONTROL');
-        let changed = session;
-        if (action === 'help') {
-          requireCondition(session.status !== 'complete', 'SHUTTLE_NOT_ACTIVE');
-          const requested = (await client.query("SELECT 1 FROM sophie_core.shuttle_help_requests WHERE session_id = $1 AND status = 'open' LIMIT 1", [session.id])).rowCount > 0;
-          if (!requested) {
-            await client.query(`INSERT INTO sophie_core.shuttle_help_requests (guild_id, interaction_id, session_id, user_id, session_version)
-              VALUES ($1, $2, $3, $4, $5)`, [member.guildId, interactionId, session.id, member.userId, session.version]);
-            const alert = await recordOnboardingAlert(client, { guildId: member.guildId, userId: member.userId,
-              sessionId: session.id, kind: 'help', sourceId: interactionId });
-            if (alert) await enqueue(client, alert);
-            const publication = await getPublication(client, session);
-            if (publication.helpPauses) {
-              changed = pauseOnboarding(session, member, definition, { guildId: member.guildId, userId: member.userId,
-                expectedVersion: session.version, nonce: session.nonce, nextNonce: randomBytes(16).toString('hex') }, clock()).session;
-              await saveSession(client, changed, member);
-            } else await requestOnboardingScreen(client, member, session, interactionId, { replace: true });
-          }
-        } else {
-          const command = { guildId: member.guildId, userId: member.userId, expectedVersion: screen.snapshot.version,
-            nonce: screen.snapshot.nonce, nextNonce: randomBytes(16).toString('hex') };
-          const change = { advance: advanceOnboarding, back: backOnboarding, retry: retryWhitelist,
-            'next-screen': nextOnboardingScreen, 'previous-screen': previousOnboardingScreen }[action](session, member, definition, command, clock());
-          changed = change.session; await saveSession(client, changed, member);
-          for (const effect of change.effects) await enqueue(client, effect);
-        }
+        const command = { guildId: member.guildId, userId: member.userId, expectedVersion: screen.snapshot.version,
+          nonce: screen.snapshot.nonce, nextNonce: randomBytes(16).toString('hex') };
+        const change = { advance: advanceOnboarding, back: backOnboarding, retry: retryWhitelist,
+          'next-screen': nextOnboardingScreen, 'previous-screen': previousOnboardingScreen }[action](session, member, definition, command, clock());
+        await saveSession(client, change.session, member);
+        for (const effect of change.effects) await enqueue(client, effect);
         await caseProof(proof, plan, control.channelId, false); requireFreshObservation(member.observation, clock());
         await saveReceipt(client, member.guildId, interactionId, { sessionId: session.id });
-        return { duplicate: false, session: changed };
+        return { duplicate: false, session: change.session };
+      });
+    },
+    /**
+     * A click is answered at once by disabling its card ("Opening…"). When the click then records nothing, this puts
+     * the card back: it forgets the confirmed digest of that card so the next render rewrites it. It grants nothing.
+     */
+    async restoreOnboardingControl({ actor, observation, interactionId, action, screenId, channelId, messageId }) {
+      requireId(channelId); requireId(messageId);
+      const opened = ['advance', 'back', 'retry'].includes(action);
+      return memberOperation(observation, async (client, member) => {
+        await self(actor, member);
+        const screen = await screenFor(client, member, screenId);
+        requireCondition(screen.channel_id === channelId, 'FOREIGN_SHUTTLE_CONTROL');
+        const part = opened ? await client.query(`UPDATE sophie_core.shuttle_screen_parts SET rendered_sha256 = NULL
+          WHERE screen_id = $1 AND message_id = $2 AND kind = 'nav' AND NOT gone AND generation = $3`, [screen.id, messageId, screen.part_generation]) : { rowCount: 0 };
+        // A pre-upgrade single message still showing its buttons becomes this run's status card.
+        const anchor = screen.message_id === messageId ? await client.query('UPDATE sophie_core.shuttle_screens SET rendered_sha256 = NULL WHERE id = $1', [screen.id]) : { rowCount: 0 };
+        if (!screen.current || !(part.rowCount || anchor.rowCount)) return { restored: false };
+        await enqueue(client, { kind: 'shuttle.render', operationId: `screen.restore.${screen.id}.${interactionId}`,
+          guildId: member.guildId, userId: member.userId, screenId: screen.id });
+        return { restored: true };
       });
     },
     async inspectOnboardingRender({ claim, observation }) {
       return memberOperation(observation, async (client, member) => {
         const current = await renderState(client, member, claim);
-        if (current.removed || (current.retired && current.screen.message_id === null)) {
-          await finishClaim(client, claim, 'done'); return { settled: true };
+        if (current.removed || nextWrite(current) === null) {
+          await client.query('UPDATE sophie_core.shuttle_screens SET ready = $2 WHERE id = $1', [current.screen.id, controlsReady(current)]);
+          await finishClaim(client, claim, 'done'); return { settled: true, current: !current.retired };
         }
-        return { settled: false, screenId: current.screen.id, plan: current.plan, channelId: current.channelId,
-          retired: current.retired, payload: current.payload, createStarted: current.screen.create_started, messageId: current.screen.message_id };
+        return { settled: false, screenId: current.screen.id, plan: current.plan, channelId: current.channelId, retired: current.retired };
       });
     },
-    async beginOnboardingWrite({ claim, observation, proof, message = null }) {
+    /** Commits the intent of the next write (or settles the job) and returns exactly what to send. */
+    async beginOnboardingWrite({ claim, observation, proof }) {
       return memberOperation(observation, async (client, member) => {
         const current = await renderState(client, member, claim);
         requireCondition(!current.removed, 'SHUTTLE_CASE_UNAVAILABLE');
         await caseProof(proof, current.plan, current.channelId, current.retired);
-        if (message === null) {
-          requireCondition(!current.retired && !current.screen.create_started && current.screen.message_id === null, 'SHUTTLE_MESSAGE_UNCERTAIN');
+        let write = nextWrite(current);
+        if (write?.action === 'regroup') {
+          // A message of this step went missing (or the layout changed): post the whole step again, in order.
+          await client.query('UPDATE sophie_core.shuttle_screens SET part_generation = part_generation + 1, ready = false WHERE id = $1', [current.screen.id]);
+          current.screen.part_generation++;
+          write = nextWrite(current);
+        }
+        const ready = controlsReady(current);
+        if (ready !== current.screen.ready) await client.query('UPDATE sophie_core.shuttle_screens SET ready = $2 WHERE id = $1', [current.screen.id, ready]);
+        if (write === null) {
+          requireFreshObservation(member.observation, clock());
+          await finishClaim(client, claim, 'done'); return { action: 'none', current: !current.retired };
+        }
+        if (write.action === 'create' && write.target === 'anchor') {
           await client.query('UPDATE sophie_core.shuttle_screens SET create_started = true, channel_id = $2 WHERE id = $1', [current.screen.id, current.channelId]);
-        } else {
-          const observed = await messageProof('candidate', message, current);
-          requireCondition(!observed.missing && observed.messageId === current.screen.message_id, 'SHUTTLE_MESSAGE_OWNERSHIP');
+        } else if (write.action === 'create' && write.retry) {
+          await client.query('UPDATE sophie_core.shuttle_screen_parts SET create_retried = true WHERE id = $1', [write.recordId]);
+        } else if (write.action === 'create') {
+          write.recordId = randomBytes(16).toString('hex');
+          await client.query(`INSERT INTO sophie_core.shuttle_screen_parts (id, screen_id, guild_id, user_id, generation, position, kind,
+            create_started, create_started_at, channel_id) VALUES ($1, $2, $3, $4, $5, $6, $7, true, clock_timestamp(), $8)`,
+          [write.recordId, current.screen.id, member.guildId, member.userId, current.screen.part_generation, write.position, write.kind, current.channelId]);
+        } else if (write.action === 'delete') {
+          await client.query('UPDATE sophie_core.shuttle_screen_parts SET delete_started = true WHERE id = $1', [write.recordId]);
+        } else if (write.action === 'edit') {
+          await client.query(`UPDATE sophie_core.${write.target === 'anchor' ? 'shuttle_screens' : 'shuttle_screen_parts'} SET pending_sha256 = $2
+            WHERE id = $1`, [write.recordId, digest(write.payload)]);
         }
         await lockClaim(client, claim); requireFreshObservation(member.observation, clock());
         await client.query('UPDATE sophie_core.outbox SET dispatch_started = true WHERE guild_id = $1 AND operation_id = $2', [claim.guildId, claim.operationId]);
-        return { payload: current.payload, retired: current.retired, screenId: current.screen.id, messageId: current.screen.message_id };
+        return { ...write, screenId: current.screen.id, retired: current.retired, plan: current.plan, channelId: current.channelId };
       });
     },
-    async noteOnboardingMessage({ claim, proof }) {
+    /** Retains this bot's own create result, even late or under an obsolete lease. It confirms nothing by itself. */
+    async noteOnboardingMessage({ claim, proof, recordId }) {
       validateClaim(claim);
       return inTransaction(pool, async client => {
-        const source = (await client.query(`SELECT effect, user_id, fence, dispatch_started FROM sophie_core.outbox
-          WHERE guild_id = $1 AND operation_id = $2 AND kind = 'shuttle.render'`, [claim.guildId, claim.operationId])).rows[0];
-        requireCondition(source?.dispatch_started && source.fence >= claim.fence, 'SHUTTLE_MESSAGE_UNTRUSTED');
+        const source = await claimSource(client, claim);
         const member = await lockMember(client, claim.guildId, source.user_id);
         const screen = await screenFor(client, member, source.effect.screenId);
+        const part = (recordId ?? screen.id) === screen.id ? null : (await client.query(`SELECT * FROM sophie_core.shuttle_screen_parts
+          WHERE id = $1 AND screen_id = $2 FOR UPDATE`, [recordId, screen.id])).rows[0];
+        requireCondition(part !== undefined, 'SHUTTLE_MESSAGE_UNTRUSTED');
+        const target = part ?? screen;
         // Retaining a late own-message ID is not an access decision; a newer policy
         // must not erase evidence of an already attempted write under the old one.
         const { plan } = await binding(client, member, screen.snapshot, false, screen.channel_id);
-        const observed = await messageProof('receipt', proof, { screen, plan, channelId: screen.channel_id });
-        requireCondition(screen.create_started && !observed.missing, 'SHUTTLE_MESSAGE_UNTRUSTED');
-        requireCondition(screen.message_id === null || screen.message_id === observed.messageId, 'SHUTTLE_MESSAGE_COLLISION');
-        await client.query('UPDATE sophie_core.shuttle_screens SET message_id = $2 WHERE id = $1', [screen.id, observed.messageId]);
+        const observed = await messageProof('receipt', proof, { recordId: target.id, screenId: screen.id, plan, channelId: target.channel_id });
+        requireCondition(target.create_started && !observed.missing, 'SHUTTLE_MESSAGE_UNTRUSTED');
+        requireCondition(target.message_id === null || target.message_id === observed.messageId, 'SHUTTLE_MESSAGE_COLLISION');
+        await client.query(`UPDATE sophie_core.${part ? 'shuttle_screen_parts' : 'shuttle_screens'} SET message_id = $2 WHERE id = $1`, [target.id, observed.messageId]);
         if (!screen.current || source.fence !== claim.fence) await enqueue(client, { kind: 'shuttle.render',
-          operationId: `screen.late.${screen.id}.${claim.fence}`, guildId: member.guildId, userId: member.userId, screenId: screen.id });
+          operationId: `screen.late.${target.id}.${claim.fence}`, guildId: member.guildId, userId: member.userId, screenId: screen.id });
       });
     },
-    async confirmOnboardingRender({ claim, observation, proof, message }) {
+    /**
+     * Confirms one write from Discord's response (fromWrite) or from a fresh read. A confirmed body records its digest;
+     * a deleted part is marked gone; a message someone else deleted is reposted with its step, or replaces the run.
+     */
+    async confirmOnboardingWrite({ claim, observation, proof, message, write, fromWrite = true }) {
       return memberOperation(observation, async (client, member) => {
         const current = await renderState(client, member, claim);
         await caseProof(proof, current.plan, current.channelId, current.retired);
-        const observed = await messageProof('candidate', message, current);
-        requireCondition(observed.messageId === current.screen.message_id, 'SHUTTLE_MESSAGE_OWNERSHIP');
-        if (observed.missing) {
-          await client.query('UPDATE sophie_core.shuttle_screens SET current = false, ready = false WHERE id = $1', [current.screen.id]);
-          if (!current.retired) await requestOnboardingScreen(client, member, current.session, `missing.${current.screen.id}`);
-          await finishClaim(client, claim, 'done'); return { settled: true, replacedMissing: !current.retired };
+        const anchor = write.target === 'anchor';
+        requireCondition(anchor ? write.recordId === current.screen.id : write.target === 'part', 'SHUTTLE_MESSAGE_UNTRUSTED');
+        const target = anchor ? current.screen : current.parts.find(part => part.id === write.recordId);
+        requireCondition(target !== undefined && target.channel_id !== null, 'SHUTTLE_MESSAGE_UNTRUSTED');
+        const expected = { recordId: target.id, screenId: current.screen.id, plan: current.plan, channelId: target.channel_id, kind: write.kind, payload: write.payload };
+        const observed = await messageProof(fromWrite ? 'written' : 'candidate', message, expected);
+        requireCondition(observed.messageId === target.message_id, 'SHUTTLE_MESSAGE_OWNERSHIP');
+        const table = anchor ? 'shuttle_screens' : 'shuttle_screen_parts';
+        if (write.action === 'delete') {
+          requireCondition(observed.missing, 'SHUTTLE_MESSAGE_UNTRUSTED');
+          await client.query('UPDATE sophie_core.shuttle_screen_parts SET gone = true WHERE id = $1', [target.id]);
+        } else if (observed.missing && anchor) {
+          await client.query('UPDATE sophie_core.shuttle_screens SET message_gone = true, current = false, ready = false WHERE id = $1', [target.id]);
+          if (!current.retired) await requestOnboardingScreen(client, member, current.session, `missing.${target.id}`);
+        } else if (observed.missing) {
+          await client.query('UPDATE sophie_core.shuttle_screen_parts SET gone = true WHERE id = $1', [target.id]);
+          if (target.generation === current.screen.part_generation) await client.query(`UPDATE sophie_core.shuttle_screens
+            SET part_generation = part_generation + 1, ready = false WHERE id = $1`, [current.screen.id]);
+        } else if (await messageProof('matches', message, expected, { fromWrite })) {
+          await client.query(`UPDATE sophie_core.${table} SET rendered_sha256 = $2, pending_sha256 = NULL WHERE id = $1`, [target.id, digest(write.payload)]);
+        } else {
+          // A read that shows another body means the earlier edit did not land: edit it next. A write whose own
+          // response differs from what was sent is not retried blindly.
+          requireCondition(write.action === 'inspect', 'SHUTTLE_MESSAGE_MISMATCH');
+          await client.query(`UPDATE sophie_core.${table} SET rendered_sha256 = NULL, pending_sha256 = NULL WHERE id = $1`, [target.id]);
         }
-        if (!await messageProof('matches', message, current)) return { settled: false };
-        await client.query('UPDATE sophie_core.shuttle_screens SET ready = $2 WHERE id = $1', [current.screen.id, !current.retired]);
         requireFreshObservation(member.observation, clock());
-        await finishClaim(client, claim, 'done'); return { settled: true, current: !current.retired };
+        return { settled: false };
       });
     },
     async noteUncertainOnboardingWrite(claim) {
       validateClaim(claim);
       return inTransaction(pool, async client => {
-        const source = (await client.query(`SELECT effect, user_id, fence, dispatch_started FROM sophie_core.outbox
-          WHERE guild_id = $1 AND operation_id = $2 AND kind = 'shuttle.render'`, [claim.guildId, claim.operationId])).rows[0];
-        requireCondition(source?.dispatch_started && source.fence >= claim.fence, 'SHUTTLE_MESSAGE_UNTRUSTED');
+        const source = await claimSource(client, claim);
         await lockMember(client, claim.guildId, source.user_id);
         const suffix = createHash('sha256').update(JSON.stringify([claim.operationId, claim.fence])).digest('hex');
         await enqueue(client, { kind: 'shuttle.render', operationId: `screen.recheck.${suffix}`,

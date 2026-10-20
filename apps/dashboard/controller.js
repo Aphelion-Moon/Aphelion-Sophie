@@ -6,7 +6,15 @@ export const INITIAL_STAGES = Object.freeze([
   ['admire-the-lights', 'Admire the Lights'], ['disembarking', 'Disembarking'],
 ]);
 export const emptyDraft = () => ({ helpPauses: false, stages: INITIAL_STAGES.map(([id, title]) => ({ id, title, body: '', screens: [''] })) });
-export const draftOf = publication => ({ helpPauses: publication.helpPauses, stages: publication.stages.map(({ id, title, body, screens }) => ({ id, title, body, ...(screens ? { screens: [...screens] } : {}) })) });
+export const draftOf = publication => ({ helpPauses: publication.helpPauses, stages: publication.stages.map(({ id, title, body, screens, linkPreviews }) => ({ id, title, body,
+  ...(screens ? { screens: [...screens] } : {}), ...(screens && linkPreviews ? { linkPreviews: [...linkPreviews] } : {}) })) });
+/** Whether each message of a step shows Discord link previews; off unless the author turned it on. */
+export function previewsOf(stage) { return screensOf(stage).map((_, index) => stage.linkPreviews?.[index] === true); }
+// Messages and their preview choices change together, so the two always stay aligned.
+function setMessages(stage, screens, previews) {
+  Object.assign(stage, { screens, body: screens.join('\n\n') });
+  if (previews.some(Boolean)) stage.linkPreviews = previews; else delete stage.linkPreviews;
+}
 export function screensOf(stage) {
   if (stage.screens) return [...stage.screens];
   if (!stage.body.trim()) return [''];
@@ -31,7 +39,7 @@ export function createGuidanceController({ api, onChange, newRequestId }) {
     updatePage(index, field, value) {
       if (!['title', 'body'].includes(field) || !Number.isInteger(index) || index < 0 || index >= (workflow.snapshot().document?.stages.length ?? 0) || typeof value !== 'string') return;
       edit(document => { const stage = document.stages[index]; stage[field] = value;
-        if (field === 'body' && stage.screens) delete stage.screens;
+        if (field === 'body' && stage.screens) { delete stage.screens; delete stage.linkPreviews; }
       });
     },
     updateScreen(index, screen, value) {
@@ -39,26 +47,34 @@ export function createGuidanceController({ api, onChange, newRequestId }) {
       if (!stage || !Number.isInteger(screen) || screen < 0 || typeof value !== 'string' || value.length > 1_800) return;
       const screens = screensOf(stage); if (screen >= screens.length) return; screens[screen] = value;
       if (screens.join('\n\n').length > 5_000) return;
-      edit(document => { Object.assign(document.stages[index], { screens, body: screens.join('\n\n') }); });
+      edit(document => { setMessages(document.stages[index], screens, previewsOf(stage)); });
+    },
+    setLinkPreview(index, screen, value) {
+      const stage = workflow.snapshot().document?.stages[index];
+      if (!stage || !Number.isInteger(screen) || screen < 0 || typeof value !== 'boolean') return;
+      const screens = screensOf(stage), previews = previewsOf(stage); if (screen >= screens.length) return; previews[screen] = value;
+      edit(document => { setMessages(document.stages[index], screens, previews); });
     },
     addScreen(index) {
       const stage = workflow.snapshot().document?.stages[index]; if (!stage) return;
       const screens = [...screensOf(stage), '']; if (screens.length > 5 || screens.join('\n\n').length > 5_000) return;
-      edit(document => { Object.assign(document.stages[index], { screens, body: screens.join('\n\n') }); });
+      edit(document => { setMessages(document.stages[index], screens, [...previewsOf(stage), false]); });
     },
     removeScreen(index, screen) {
       const stage = workflow.snapshot().document?.stages[index]; if (!stage) return;
-      const screens = [...screensOf(stage)]; if (!Number.isInteger(screen) || screen < 0 || screen >= screens.length || screens.length <= 1) return;
-      screens.splice(screen, 1);
-      edit(document => { Object.assign(document.stages[index], { screens, body: screens.join('\n\n') }); },
-        `Remove screen ${screen + 1} from “${stage.title || 'Untitled step'}”? Saved versions and active runs remain unchanged.`);
+      const screens = [...screensOf(stage)], previews = previewsOf(stage);
+      if (!Number.isInteger(screen) || screen < 0 || screen >= screens.length || screens.length <= 1) return;
+      screens.splice(screen, 1); previews.splice(screen, 1);
+      edit(document => { setMessages(document.stages[index], screens, previews); },
+        `Remove message ${screen + 1} from “${stage.title || 'Untitled step'}”? Saved versions and active runs remain unchanged.`);
     },
     moveScreen(index, screen, direction) {
       const stage = workflow.snapshot().document?.stages[index]; if (!stage || ![-1, 1].includes(direction)) return;
-      const screens = screensOf(stage), target = screen + direction;
+      const screens = screensOf(stage), previews = previewsOf(stage), target = screen + direction;
       if (!Number.isInteger(screen) || screen < 0 || screen >= screens.length || target < 0 || target >= screens.length) return;
       const [text] = screens.splice(screen, 1); screens.splice(target, 0, text);
-      edit(document => { Object.assign(document.stages[index], { screens, body: screens.join('\n\n') }); });
+      const [preview] = previews.splice(screen, 1); previews.splice(target, 0, preview);
+      edit(document => { setMessages(document.stages[index], screens, previews); });
     },
     addPage() {
       const state = workflow.snapshot(); if (!state.document || state.document.stages.length >= 20) return;

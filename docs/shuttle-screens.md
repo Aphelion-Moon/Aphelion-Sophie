@@ -2,6 +2,8 @@
 
 Scope: P06, P09, P13, P14 and P16; partial T13–T16, T19, T51 and T53–T55 evidence. The signed entry path now continues through private page delivery, Continue/Back, retained help requests, pending Whitelist delivery and observed completion. Tests use authored synthetic guidance, actual PostgreSQL and simulated Discord HTTP. The owner's supplied copy remains a draft. There is no new dependency, live bot, publication approval or production change.
 
+> **Superseded in part, 20 October 2026.** A run is now a [message group](onboarding-experience.md#message-groups-20-october-2026): a status card, the step as plain messages and a navigation card, replacing the single embed message described below. Per the owner's decision, a write is confirmed from Discord's own response while the Gateway's authority boundary is unchanged, instead of "a fresh read must match" after every write; an unconfirmed edit is still inspected before another write. Publications may carry per-message `linkPreviews`. Ask Staff is no longer shown. The fencing, receipts, retention and recovery rules below are otherwise unchanged.
+
 ## Publication and presentation
 
 `publishOnboarding` checks current `shuttle.publish` authority and atomically records the immutable definition, 1–20 ordered steps, canonical SHA-256 and publisher grant metadata. An existing version cannot acquire different copy or reverse a withdrawal. The raw draft artifact is not a publication request. A metadata-only definition can still support internal domain fixtures, but cannot start the signed private experience without published copy.

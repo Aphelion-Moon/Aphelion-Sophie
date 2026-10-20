@@ -34,24 +34,44 @@ export async function requestOnboardingScreen(client, member, session, reason, {
   const help = (await client.query("SELECT 1 FROM sophie_core.shuttle_help_requests WHERE session_id = $1 AND status = 'open' LIMIT 1", [session.id])).rowCount > 0;
   const previous = (await client.query(`SELECT * FROM sophie_core.shuttle_screens
     WHERE guild_id = $1 AND user_id = $2 AND current FOR UPDATE`, [member.guildId, member.userId])).rows[0];
-  let abandonUncertain = false;
-  if (recover && previous?.create_started && previous.message_id === null) {
-    abandonUncertain = (await client.query(`SELECT 1 FROM sophie_core.outbox WHERE guild_id = $1 AND kind = 'shuttle.render'
+  let abandonUncertain = false, abandonParts = false;
+  if (recover && previous) {
+    const parked = (await client.query(`SELECT 1 FROM sophie_core.outbox WHERE guild_id = $1 AND kind = 'shuttle.render'
       AND effect->>'screenId' = $2 AND status = 'parked' LIMIT 1`, [member.guildId, previous.id])).rowCount > 0;
+    abandonUncertain = parked && previous.create_started && previous.message_id === null;
+    // An explicit restart may also give up a step message whose create was never confirmed: the step is posted again.
+    abandonParts = parked && !abandonUncertain && (await client.query(`SELECT 1 FROM sophie_core.shuttle_screen_parts
+      WHERE screen_id = $1 AND create_started AND message_id IS NULL AND NOT gone LIMIT 1`, [previous.id])).rowCount > 0;
+    if (abandonParts) {
+      await client.query(`UPDATE sophie_core.shuttle_screen_parts SET gone = true
+        WHERE screen_id = $1 AND create_started AND message_id IS NULL AND NOT gone`, [previous.id]);
+      await client.query('UPDATE sophie_core.shuttle_screens SET part_generation = part_generation + 1, ready = false WHERE id = $1', [previous.id]);
+      previous.part_generation++;
+    }
   }
   if (previous && !replace && !abandonUncertain && previous.session_id === session.id &&
     previous.snapshot.version === session.version && Number(previous.access_epoch) === member.accessEpoch && previous.help_requested === help) {
+    // An explicit entry re-checks the posted group once (someone may have deleted a message): each confirmed message
+    // is read, not rewritten.
+    if (recover) {
+      await client.query('UPDATE sophie_core.shuttle_screens SET pending_sha256 = rendered_sha256 WHERE id = $1 AND rendered_sha256 IS NOT NULL', [previous.id]);
+      await client.query(`UPDATE sophie_core.shuttle_screen_parts SET pending_sha256 = rendered_sha256
+        WHERE screen_id = $1 AND generation = $2 AND NOT gone AND rendered_sha256 IS NOT NULL`, [previous.id, previous.part_generation]);
+    }
     const pending = (await client.query(`SELECT 1 FROM sophie_core.outbox WHERE guild_id = $1 AND kind = 'shuttle.render'
       AND effect->>'screenId' = $2 AND (status IN ('ready', 'leased') OR (status = 'parked' AND NOT $3)) LIMIT 1`, [member.guildId, previous.id, recover])).rowCount > 0;
     if (!pending) await enqueue(client, { kind: 'shuttle.render', operationId: `screen.refresh.${previous.id}.${reason}`,
       guildId: member.guildId, userId: member.userId, screenId: previous.id });
     return previous.id;
   }
-  // Keep one Discord message throughout a run. Old controls are fenced by the
-  // revision; queued and late render jobs always reconcile the latest snapshot.
+  // Keep one status card throughout a run. A new step replaces the step's messages (a new part generation); other
+  // changes edit its card in place. Old controls are fenced by the revision; queued and late render jobs always
+  // reconcile the latest snapshot.
   if (previous && !abandonUncertain && previous.session_id === session.id && Number(previous.access_epoch) === member.accessEpoch) {
     await client.query(`UPDATE sophie_core.shuttle_screens SET snapshot = $2, help_requested = $3,
-      control_version = control_version + 1, wording_revision = NULL, ready = false WHERE id = $1`, [previous.id, session, help]);
+      control_version = control_version + 1, wording_revision = NULL, ready = false,
+      part_generation = part_generation + CASE WHEN (snapshot->>'stepIndex') IS DISTINCT FROM ($2::jsonb->>'stepIndex') THEN 1 ELSE 0 END
+      WHERE id = $1`, [previous.id, session, help]);
     await enqueue(client, { kind: 'shuttle.render', operationId: `screen.update.${previous.id}.${reason}`,
       guildId: member.guildId, userId: member.userId, screenId: previous.id });
     return previous.id;
