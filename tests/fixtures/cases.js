@@ -5,6 +5,8 @@ import { BOT, BOT_ROLE, mapping, simulatedDiscord } from './discord.js';
 import { GUILD, STAFF, LEAD, USER, NOW } from './domain.js';
 
 export const CATEGORY = '100000000000000020';
+/** Synthetic separate Shuttle category; only scenarios that choose it create the channel. */
+export const SHUTTLE_CATEGORY = '100000000000000021';
 export const casePolicy = Object.freeze({ guildId: GUILD, botUserId: BOT, staff: STAFF, leadOps: LEAD,
   categoryId: CATEGORY, version: 1, attachmentsAllowed: false });
 export const casePlan = Object.freeze({ id: 'synthetic-case', guildId: GUILD, openerId: USER, type: 'admin-help',

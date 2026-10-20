@@ -28,14 +28,23 @@ import { createStagingRuntime } from '../../apps/core/runtime/staging.js';
 import { createPermissionChannelInventory } from '../../apps/core/discord/permission-channel-inventory.js';
 import { createPermissionChannelSealer } from '../../apps/core/discord/permission-channel-sealer.js';
 import { caseChannelPayload } from '../../modules/tickets/channel-policy.js';
+import { SHUTTLE_CATEGORY } from '../../tests/fixtures/cases.js';
 import { resetTables } from '../../tests/fixtures/reset.js';
 
 export async function runPermissionEditorSuite(cluster,run,configurationOnly=false) {
-  const scenario=(name,work)=>run(name,async()=>{
+  // runningShuttleCategory starts from a running policy that already uses the synthetic separate Shuttle category.
+  const scenario=(name,work,{runningShuttleCategory=false}={})=>run(name,async()=>{
     await resetTables(cluster.adminPool, 'sophie_core.permission_applications,sophie_core.permission_editor_actions,sophie_core.permission_candidates,sophie_core.permission_drafts');
     const f=await onboardingWorkflow(cluster,{extraCapabilities:{'permissions.publish':[STAFF]}});
     const configuration=stagingConfiguration('a'.repeat(64)); configuration.capabilityPolicy=f.policy;
+    if(runningShuttleCategory) configuration.casePolicy.shuttleCategoryId=SHUTTLE_CATEGORY;
     const available={roles:f.discord.state.roles.filter(row=>!row.managed).map(row=>({id:row.id,name:'Synthetic role'})),categories:[{id:configuration.casePolicy.categoryId,name:'Synthetic category'}]};
+    // Offered on the Permissions page; type 0 or a later deletion models a Discord channel that is no longer a category.
+    function shuttleCategory(type=4) {
+      f.discord.state.channels.set(SHUTTLE_CATEGORY,{id:SHUTTLE_CATEGORY,guild_id:GUILD,type,parent_id:null,topic:null,permission_overwrites:[]});
+      if(!available.categories.some(row=>row.id===SHUTTLE_CATEGORY)) available.categories.push({id:SHUTTLE_CATEGORY,name:'Synthetic Shuttle category'});
+    }
+    if(runningShuttleCategory) shuttleCategory();
     const services=(changes={})=>createPermissionEditor({pool:f.pool,authorize:f.authorization.authorize,configuration,
       options:{read:async()=>structuredClone(available)},observeActor:id=>f.discord.roles.observeActor(id),clock:()=>f.clock.now,...changes});
     const store=services(); let sequence=0; const id=()=>(++sequence).toString(16).padStart(64,'0');
@@ -73,7 +82,7 @@ export async function runPermissionEditorSuite(cluster,run,configurationOnly=fal
       const inventory=await maintenance.inspectChannels({...held,requestId:id(),expectedRevision:0});
       return {...held,requestId:id(),inventoryRevision:inventory.revision,expectedInventoryHash:inventory.sha256,confirm:true};
     }
-    await work({...f,configuration,available,services,editor:store,id,prepare,retainCase,retainVisibleCase,maintenance,maintenanceRequest,inventory,sealer,sealRequest,maintenanceServices});
+    await work({...f,configuration,available,services,editor:store,id,prepare,retainCase,retainVisibleCase,shuttleCategory,maintenance,maintenanceRequest,inventory,sealer,sealRequest,maintenanceServices});
   });
   if(configurationOnly){await runConfigurationApplicationSuite(cluster,scenario);return;}
   await scenario('PC01 saved review and approval retain mappings author receipts and leave active policies unchanged',async f=>{

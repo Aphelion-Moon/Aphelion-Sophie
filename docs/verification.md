@@ -19,8 +19,19 @@ Owner direction recorded in the decision log ("Production-test preparation"). Al
 - Repository check passed.
 - Storage, 4 shards: 1007 passed, 0 failed, 69 s.
 
-**Not covered:** no isolated-database scenario yet applies a policy that sets or changes the Shuttle category, and no
-live Discord check of the channel name as Discord normalises it. Not deployed.
+**Isolated-database follow-up (same day, tests only):** four new scenarios cover the Shuttle category end to end.
+`PA12` applies a candidate that sets it with one retained ticket and one retained Shuttle case: the inventory request
+and retained inventory include both categories, the seal plan targets the ticket at the case category and the Shuttle
+channel at the Shuttle category, application migrates both to case-policy version 2 and records the category exclusion,
+and reconciliation reopens each channel in its own category. `PA13` clears it back to "Same as case channel category"
+and seals the Shuttle channel back into the case category. `PS12` shows a Shuttle category that is a text channel, or
+missing, blocks with `candidate-category-unavailable` before any seal intent. `AP16` shows that once the policy is
+registered, a channel under the Shuttle category is refused by the real AI observation check and by automation review
+and dry runs (eligible before registration). Mutating the per-type seal parent or the exclusion insert fails `PA12` and
+`AP16` respectively. Evidence: `npm test` 673 passed; repository check passed; storage, 4 shards: 1011 passed, 0
+failed, 70 s.
+
+**Not covered:** no live Discord check of the channel name as Discord normalises it. Not deployed.
 
 ## Faster isolated database tests — 20 October 2026
 
