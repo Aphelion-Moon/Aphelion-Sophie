@@ -1,6 +1,6 @@
 {
   "schema_version": 2,
-  "revision": "2026-10-20-shuttle-autonomy",
+  "revision": "2026-10-20-staging-20bd3e7",
   "reference_plan_version": "1.1",
   "source": "Sophie-Implementation-Plans-v1.1/backlog.json",
   "owner_decisions": "docs/decisions/0001-owner-policy.md",
@@ -1379,7 +1379,7 @@
   ],
   "checkpoint": {
     "summary": "Deterministic administration, Whitelist onboarding, protected editors, role/permission configuration and the configurable staging host are implemented.",
-    "recorded_baseline": "Pinned b4b81db/schema070 (release sophie-mistral-b4b81db, source 37acf37, branch staging/admission-trace) installed 12 October 22:46 UTC with the owner-accepted Mistral processing policy (notice revision 3), channel 1551010229339037738 live, 32 KB prompt budget. Hosting after the d8fb0e5 conversion: core and the AI worker are ordinary Manual services with trust v2 (no expiry); the supervisor is Disabled. On 13 October at 08:20 UTC a second run of the installed b4b81db folder stopped core and the worker and changed nothing else (PRESERVATION_ALREADY_EXISTS).",
+    "recorded_baseline": "Pinned 20bd3e7/schema072 (release sophie-mistral-20bd3e7, the runtime paths of 64dc0aa on 5face56, branch staging/admission-trace) installed 20 October 13:55 UTC, replacing 38e4f3a/schema070, with the owner-accepted Mistral processing policy unchanged, Go live in force and a 32 KB prompt budget. Hosting after the d8fb0e5 conversion: core and the AI worker are ordinary Manual services with trust v2 (no expiry); the supervisor is Disabled. Cold recovery point D:\\Backups\\sophie-staging\\schema072-20bd3e7-20261020.",
     "current_work": "Shuttle message groups, faster page turns and no Staff intervention (owner-approved 20 October): status card, plain step messages and a navigation card; instant \"Opening…\" feedback; Ask Staff removed; shared rate limits, delivery wake-up, boundary-scoped observation sharing and response-confirmed writes; migration 071. Prepared on codex/sophie-social-ai; not yet installed. Open: staging install and live walk-through with timing comparison; Mistral zero data retention; fresh-session join-time consent test; worker denial qualification; production.",
     "evidence_note": "At 88359f6: npm test 643 passed; storage fast 957 passed with the three known order-dependent failures (J01, U08, S17). Conversion prepared and checked read-only in GitHub/.agent_docs/aphelion-sophie/deployment-d8fb0e5-2026-10-12/ (prepare.mjs passed, setup -WhatIf on WUFF); not yet installed. Details: docs/verification.md."
   },
@@ -2917,8 +2917,8 @@
         "P16"
       ],
       "implemented": "Owner request of 20 October: each Shuttle run is a status card (edited in place, no controls), the current step as plain messages (per-message link previews, off by default) and a navigation card with Back and Continue; a step change deletes the previous step's messages and card, posts the new ones in order and edits the status card last. Continue, Back and Check completion update their own card at once (\"Opening…\"); a click that records nothing restores it. Ask Staff is no longer shown; earlier requests, alerts and pauses are still handled. Speed: one rate-limit registry shared by every transport, queued instead of busy-failed requests, delivery woken on commit, observations shared across a render while the Gateway authority boundary is unchanged, writes confirmed from Discord's response (an unconfirmed edit is read back, never rewritten blindly), and fixed-code timing traces. Migration 071 adds retained message parts; the editor shows message breaks and a per-message preview toggle.",
-      "evidence": "Offline, on the message-group source: npm test 672 passed, 0 failed; repository check passed; storage (parallel, 4 shards) 998 passed, 0 failed (new V11b; suites rewritten for message groups and the retired Ask Staff). Transport (04f305c) and delivery wake-up/traces (6c1570e) each passed 997 storage scenarios on their own. Not live: no staging install, Discord rendering or timing measurement yet.",
-      "remaining": "Operator-approved staging install of migration 071 and this source; walk all five steps on desktop and mobile on the Test Discord Server; compare SHUTTLE_COMMAND/SHUTTLE_RENDER timings before and after; owner confirmation of the one 60-second same-nonce retry for lost step-message creates."
+      "evidence": "Offline, on the message-group source: npm test 672 passed, 0 failed; repository check passed; storage (parallel, 4 shards) 998 passed, 0 failed (new V11b; suites rewritten for message groups and the retired Ask Staff). Transport (04f305c) and delivery wake-up/traces (6c1570e) each passed 997 storage scenarios on their own. Not live: no staging install, Discord rendering or timing measurement yet. Installed on staging 20 October 13:55 UTC as pin 20bd3e7 (schema 072; folder deployment-20bd3e7-2026-10-20): prepare, cold preservation, migration 070->072 (103 tables and 16,177 rows kept identical; nothing to release; one grant: SELECT/INSERT/UPDATE on shuttle_screen_parts for the runtime), pre-start, service boundaries, installed 26/26 and dashboard 24/24 passed (the first installed and dashboard passes got 503 from the authenticated API routes within about 40 s of start; both rechecks passed).",
+      "remaining": "Walk all five steps on desktop and mobile on the Test Discord Server; compare SHUTTLE_COMMAND/SHUTTLE_RENDER timings from real clicks with the code-read estimate; owner confirmation of the one 60-second same-nonce retry for lost step-message creates."
     },
     {
       "title": "Shuttle without Staff intervention",
@@ -2927,8 +2927,8 @@
         "P16"
       ],
       "implemented": "Owner direction of 20 October: Staff take no part in the Shuttle. Migration 072 released earlier help pauses, closed open help requests and withdrew unsent notices; the help-pause rule is retired from the editor and drafts. Parked Whitelist grant/reconciliation, Shuttle message and Shuttle channel jobs are rechecked automatically (2 minutes after parking, doubling to 15); creates unanswered after 2 minutes are redone (a step is reposted, a status card restarts the run, a channel is recreated); duplicate Shuttle channels keep the opened or oldest channel; Whitelist delivery problems no longer alert Staff.",
-      "evidence": "Offline: npm test 672 passed; repository check passed; storage (parallel, 4 shards) 1002 passed, 0 failed (new F21-F23, Q12; L04-L06, L15, L16, L21 rewritten for no-Staff recovery and the migration release).",
-      "remaining": "Install with migrations 071-072 on staging after operator approval; observe SHUTTLE_SELF_HEAL_REQUEUED on staging."
+      "evidence": "Offline: npm test 672 passed; repository check passed; storage (parallel, 4 shards) 1002 passed, 0 failed (new F21-F23, Q12; L04-L06, L15, L16, L21 rewritten for no-Staff recovery and the migration release). Installed on staging 20 October 13:55 UTC as pin 20bd3e7 (schema 072; folder deployment-20bd3e7-2026-10-20): prepare, cold preservation, migration 070->072 (103 tables and 16,177 rows kept identical; nothing to release; one grant: SELECT/INSERT/UPDATE on shuttle_screen_parts for the runtime), pre-start, service boundaries, installed 26/26 and dashboard 24/24 passed (the first installed and dashboard passes got 503 from the authenticated API routes within about 40 s of start; both rechecks passed).",
+      "remaining": "Observe SHUTTLE_SELF_HEAL_REQUEUED and the automatic Whitelist recheck live on staging."
     }
   ],
   "next_steps": [

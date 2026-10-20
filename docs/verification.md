@@ -1,6 +1,38 @@
 # Verification and release limits
 
-## Shuttle without Staff intervention — 20 October 2026 (prepared, not yet installed)
+## Staging install of 20bd3e7 — 20 October 2026 (installed 13:55 UTC, schema 072)
+
+Owner request "Session is now elevated. Go redeploy us, please." Pin `20bd3e7` on `staging/admission-trace` = the
+runtime paths of `64dc0aa` (both sections below) on `5face56`, so the six unrun 13 October `5face56` fixes are included.
+Release `sophie-mistral-20bd3e7`, replacing `38e4f3a` (schema 070). Folder
+`.agent_docs/aphelion-sophie/deployment-20bd3e7-2026-10-20`, run by the agent in the owner's elevated session.
+
+- **Prepared (read-only):** 505 pinned files equal Git; the installed 38e4f3a matched its trusted manifest (504 files);
+  212 dependency files copied from it, none fetched; provider profile and processing policy unchanged.
+- **Stopped and preserved:** the services were already all stopped; a cold recovery point
+  `D:\Backups\sophie-staging\schema072-20bd3e7-20261020` (database 6540 files, package, trust, services,
+  qualification, renewal, journal) was verified by hash.
+- **Installed:** 40 files written, `apps/core/storage/onboarding-role-source.js` removed.
+- **Migrated** 070 → 072 as the owner identity. All checksums verified. 103 tables and 16,177 rows kept identical. The
+  072 release found nothing to release (no open help requests, pending notices, paused sessions or parked jobs), so no
+  rows changed. The only grant added is SELECT, INSERT, UPDATE on `sophie_core.shuttle_screen_parts` for the runtime, as
+  `docs/discord-staging-setup.md` directs. Runtime check (72 tables) and the AI control, knowledge and knowledge-editor
+  identity checks passed. AI state unchanged.
+- **Trust v2 and start:** fresh evidence and journal binding; the pre-start check passed. PostgreSQL, the tunnel, core and
+  the worker were started; the supervisor stays retired.
+- **After start:** service boundaries passed.
+  - Installed check: 26 of 26 passed on the rerun. The Gateway is current and leased, AI is still live, and one active
+    qualification is on the new release.
+  - Dashboard: 24 of 24 routes passed on the retry.
+  - The first passes, within about 40 seconds of start, got 503 from the three authenticated API routes, locally and
+    through the tunnel. Both reports are kept in the folder.
+  - Core's log since the start holds only the expected dashboard-denial probes.
+- **Rollback:** `rollback.ps1` restores the cold database copy with the 38e4f3a package. Shuttle and case activity after
+  13:55 UTC would be lost; the 38e4f3a runtime refuses schema 072, so the code is never rolled back alone.
+- **Not yet run:** a live walk through all five Shuttle steps on desktop and mobile; `SHUTTLE_COMMAND`/`SHUTTLE_RENDER`
+  timings from real clicks; observing `SHUTTLE_SELF_HEAL_REQUEUED`. Production is untouched.
+
+## Shuttle without Staff intervention — 20 October 2026 (installed on staging as `20bd3e7`)
 
 Owner direction (decision log, "Staff take no part in the Shuttle"). Migration 072 releases earlier help pauses, closes
 open help requests and withdraws unsent notices. Parked Shuttle work (Whitelist grant and reconciliation, Shuttle
@@ -10,9 +42,10 @@ problems no longer alert Staff. Only a global rate-limit halt still needs the op
 
 **Offline evidence:** `npm test` 672 passed; repository check passed; storage (parallel, 4 shards) 1002 passed, 0 failed.
 New F21-F23 and Q12 cover the automatic recoveries; L04-L06, L15, L16 and L21 now cover no-Staff recovery, recheck
-timing and the migration release. Not yet run: staging install and live observation.
+timing and the migration release. Installed on staging with migration 072 (see the install above); not yet observed
+live.
 
-## Shuttle message groups and faster page turns — 20 October 2026 (prepared, not yet installed)
+## Shuttle message groups and faster page turns — 20 October 2026 (installed on staging as `20bd3e7`)
 
 Owner request and decisions of 20 October (decision log, "Shuttle message groups"). Source on `codex/sophie-social-ai`:
 - `04f305c`: one rate-limit registry for every transport on the bot token, keyed by Discord's bucket and top-level
@@ -25,7 +58,7 @@ Owner request and decisions of 20 October (decision log, "Shuttle message groups
   feedback, per-message link previews, Ask Staff removed, boundary-scoped observation sharing and response-confirmed
   writes, migration 071 and the editor's message breaks and preview toggle.
 
-**Offline evidence:** Offline, on the message-group source: npm test 672 passed, 0 failed; repository check passed; storage (parallel, 4 shards) 998 passed, 0 failed (new V11b; suites rewritten for message groups and the retired Ask Staff). Transport (04f305c) and delivery wake-up/traces (6c1570e) each passed 997 storage scenarios on their own. Not live: no staging install, Discord rendering or timing measurement yet.
+**Offline evidence:** Offline, on the message-group source: npm test 672 passed, 0 failed; repository check passed; storage (parallel, 4 shards) 998 passed, 0 failed (new V11b; suites rewritten for message groups and the retired Ask Staff). Transport (04f305c) and delivery wake-up/traces (6c1570e) each passed 997 storage scenarios on their own. Not live: no staging install, Discord rendering or timing measurement yet. Installed on staging on 20 October (see the install above).
 
 Diagnosis of the slow page turns (from code, not measured live): one click cost about 20 serial Discord requests
 (about 6 for the command, about 14 for the render, including a second full role and channel check after the edit),
@@ -33,10 +66,10 @@ then waited for the worker tick and a round-robin of ten dispatchers. Overlappin
 each lane kept its own view of the shared buckets, so retries backed off exponentially. The new traces measure each
 part on staging.
 
-Not yet run: the operator-approved staging install of migration 071 and this source, a live walk through all five steps
-on desktop and mobile, and a before/after timing comparison. Rollback is forward repair only: older code ignores
-`shuttle_screen_parts`, would leave posted step messages visible and redraw status cards as single messages; do not
-downgrade the schema.
+Installed on staging with migration 071 on 20 October (see the install above). Not yet run: a live walk through all
+five steps on desktop and mobile, and a before/after timing comparison. Rollback: forward repair, or the full
+cold-copy restore in the deployment folder. Never run older code against schema 071 or later: it ignores
+`shuttle_screen_parts`, would leave posted step messages visible and would redraw status cards as single messages.
 
 ## Rule codes in chatty questions — 13 October 2026 (prepared, not yet installed)
 
