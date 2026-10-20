@@ -9,14 +9,15 @@ export function createGatewayObserver({ journal, mapping, applicationId, clock, 
   // Bitwise composition would silently absorb an arbitrary value; only the two reviewed sets are accepted.
   requireCondition([undefined, 0, 33280].includes(journal.messageIntents), 'GATEWAY_INTENTS_INVALID');
   const configuration = { ...structuredClone(mapping), applicationId };
-  let lease = null, connection = null, sessionId = null, revision = 0;
+  // revision advances on every dispatch; connections only when a connection stops or starts.
+  let lease = null, connection = null, sessionId = null, revision = 0, connections = 0;
   let pending = 0, failed = true, acknowledgedAt = null, healthyUntil = 0;
   let tail = Promise.resolve();
   const own = value => requireCondition(value === connection && connection !== null, 'GATEWAY_CONNECTION_STALE');
   const healthy = () => !failed && pending === 0 && acknowledgedAt !== null && clock() >= acknowledgedAt && clock() < healthyUntil;
   const invalidateAi = () => { try { ai?.invalidate(); } catch { /* A failed optional lane cannot stop administration. */ } };
   async function stop(code) {
-    failed = true; revision++; acknowledgedAt = null;
+    failed = true; revision++; connections++; acknowledgedAt = null;
     invalidateAi();
     await tail;
     if (lease) await journal.pause(lease, code);
@@ -49,6 +50,16 @@ export function createGatewayObserver({ journal, mapping, applicationId, clock, 
       if (!healthy() || lease === null || typeof journal.readAiContinuity !== 'function') return null;
       const handle = connection, persisted = await journal.readAiContinuity(lease);
       return healthy() && connection === handle ? persisted : null;
+    },
+    /**
+     * Changes only when the journal records a member, authority, role, channel or guild change, or the connection
+     * restarts. Message traffic, including this bot's own posts, leaves it unchanged. Callers may re-use an
+     * observation across writes only while it is unchanged; it is null while any dispatch is still unprocessed.
+     */
+    async readAuthorityBoundary() {
+      if (!healthy() || lease === null || typeof journal.readAiContinuity !== 'function') return null;
+      const handle = connection, current = connections, persisted = await journal.readAiContinuity(lease);
+      return healthy() && connection === handle && connections === current && persisted !== null ? `${persisted}.${current}` : null;
     },
     async isCurrent() { return await readContinuity() !== null; },
     async renew() { requireCondition(lease !== null, 'GATEWAY_NOT_ACQUIRED'); await journal.renew(lease); },

@@ -7,13 +7,15 @@ export async function runInstalledRole(role,compose) {
   const fatal=()=>{failed=true;abort();};
   // Fixed contract codes only, as in the catch below: never messages, paths, SQL or credentials.
   const onFault=code=>process.stderr.write(`AI_INSTALLED_ROLE_FAULT${typeof code==='string' && /^[A-Z][A-Z0-9_]{2,63}$/u.test(code)?` ${code}`:''}\n`);
+  // Timing diagnostics, not faults: the same fixed-code rule, on their own line prefix.
+  const onTrace=code=>{if(typeof code==='string' && /^[A-Z][A-Z0-9_]{2,63}$/u.test(code))process.stderr.write(`AI_INSTALLED_ROLE_TRACE ${code}\n`);};
   process.once('SIGINT',abort);process.once('SIGTERM',abort);
   try {
     requireCondition(process.argv.length===2 || role==='core' && process.argv.length===3 && process.argv[2]==='start-installed','AI_INSTALLATION_ARGUMENTS_INVALID');
     pipes=await createInstalledTransport({role});
     pipes.signal.addEventListener('abort',fatal,{once:true});
     requireCondition(!pipes.signal.aborted && !lifetime.signal.aborted,'AI_INSTALLATION_UNAVAILABLE');
-    service=await compose({pipes,signal:lifetime.signal,onFault});
+    service=await compose({pipes,signal:lifetime.signal,onFault,onTrace});
     await service.start();
     const poll=async()=>{try{const status=await service.status();
       if(status.failed || status.stopping || status.phase==='stopped')fatal();

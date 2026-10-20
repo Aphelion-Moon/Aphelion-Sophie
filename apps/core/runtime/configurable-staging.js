@@ -2,19 +2,21 @@ import { requireCondition } from '../../../contracts/validation.js';
 import { createStagingRuntime } from './staging.js';
 import { createConfigurationCoordinator } from './configuration-coordinator.js';
 import { createConfigurationDashboard } from './configuration-dashboard.js';
-import { createDiscordTransport } from '../discord/transport.js';
+import { createDiscordTransport, createDiscordRateLimits } from '../discord/transport.js';
 import { permissionDigest } from './permission-configuration.js';
 import { checkRuntimeDatabaseIdentity } from './database.js';
 import { validateStagingRuntime } from './configuration.js';
 
 /** Core host composition. Owner credentials stay outside the normal runtime identity. */
-export async function createConfigurableStagingRuntime({ownerPool,configuration,pool,token,clientSecret=null,fetch,connect,clock=Date.now,random=Math.random,onFault,
+export async function createConfigurableStagingRuntime({ownerPool,configuration,pool,token,clientSecret=null,fetch,connect,clock=Date.now,random=Math.random,onFault,onTrace=()=>{},
   runtimeFactory=createStagingRuntime}) {
   requireCondition(ownerPool&&ownerPool!==pool,'MAINTENANCE_OWNER_REQUIRED');
   validateStagingRuntime(configuration);
   requireCondition(typeof onFault==='function','TRUSTED_ADAPTERS_REQUIRED');
   let runtime=null,maintenanceDashboard=null,dashboardKey=null,timer=null,inFlight=null,started=false,stopping=false,options={};
-  const transport=createDiscordTransport({guildId:configuration.mapping.guildId,token,fetch,clock,enabled:()=>started&&!stopping});
+  // One bot token, one view of Discord's buckets: the coordinator and every runtime it starts share this registry.
+  const rateLimits=createDiscordRateLimits();
+  const transport=createDiscordTransport({guildId:configuration.mapping.guildId,token,fetch,clock,enabled:()=>started&&!stopping,limits:rateLimits});
   const stopRuntime=async()=>{if(runtime){const old=runtime;runtime=null;await old.stop();}};
   const coordinator=createConfigurationCoordinator({pool:ownerPool,configuration,transport,stopRuntime,clock});
   async function closeDashboard(){if(maintenanceDashboard){await maintenanceDashboard.close();maintenanceDashboard=null;dashboardKey=null;}}
@@ -22,7 +24,7 @@ export async function createConfigurableStagingRuntime({ownerPool,configuration,
     if(runtime||stopping)return;
     await closeDashboard();
     const current=await coordinator.configuration();
-    runtime=await runtimeFactory({configuration:current,pool,token,clientSecret,fetch,connect,clock,random,onFault,configurationApplyEnabled:true});
+    runtime=await runtimeFactory({configuration:current,pool,token,clientSecret,fetch,connect,clock,random,onFault,onTrace,rateLimits,configurationApplyEnabled:true});
     try { return await runtime.start(options); }
     catch(error) { await stopRuntime(); throw error; }
   }

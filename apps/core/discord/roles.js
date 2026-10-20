@@ -11,21 +11,29 @@ function memberRoles(member, userId) {
 }
 
 export const IDENTITY_SHARE_MS = 1_500;
+/** How long a shared delivery preparation may be re-used; consumers still require it to be at most 5 s old. */
+export const PREPARATION_SHARE_MS = 3_000;
 
 /** Projects HTTP responses immediately to role metadata; ignores nicknames and profiles. */
-export function createDiscordRoles({ transport, mapping, clock, readContinuity }) {
+export function createDiscordRoles({ transport, mapping, clock, readContinuity, readBoundary = null }) {
   validateRoleMapping(mapping);
   requireCondition(transport.guildId === mapping.guildId && typeof clock === 'function', 'FOREIGN_GUILD');
-  requireCondition(typeof readContinuity === 'function', 'CONTINUITY_ADAPTER_REQUIRED');
+  requireCondition(typeof readContinuity === 'function' && (readBoundary === null || typeof readBoundary === 'function'), 'CONTINUITY_ADAPTER_REQUIRED');
   const fixed = structuredClone(mapping);
   const contexts = new WeakMap();
   const mentionableRoles = new WeakMap();
   const stamp = async () => requireContinuityStamp(await readContinuity());
   const same = async expected => requireCondition(await stamp() === expected, 'OBSERVATION_INVALIDATED');
-  // The bot's own identity check carries no member authority, so actor observations made close together share one
+  // The bot's own identity check carries no member authority, so observations and preparations made close together share one
   // result. It never outlives IDENTITY_SHARE_MS and ends on any gateway dispatch, because the continuity stamp includes
   // the gateway sequence. A failed check is never shared. Guild roles and member state are always read afresh.
   let identity = null;
+  // Opt-in for one Shuttle delivery that writes several messages in a row: its role and member reads may be re-used
+  // while the Gateway records no member, authority, role, channel or guild change (the authority boundary) and for at
+  // most PREPARATION_SHARE_MS. Each re-use gets a new context stamped with the current continuity, keeps the original
+  // observedAt (so it only ages), and is otherwise identical to a fresh one. Role changes never opt in.
+  const shared = new Map();
+  const boundary = async () => readBoundary === null ? null : readBoundary();
   // Actor observations for dashboard requests share the single-flight core transport with background work. A request
   // already in flight is a short wait (at most 1.5 s in total), not a failed sign-in. observedAt is taken before the
   // reads, so waiting only ages the observation and freshness checks stay at least as strict.
@@ -46,6 +54,56 @@ export function createDiscordRoles({ transport, mapping, clock, readContinuity }
     }) };
     identity = record; record.promise.catch(() => { if (identity === record) identity = null; });
     return record.promise;
+  }
+  function prune() {
+    const now = clock();
+    for (const [key, value] of shared) if (shared.size >= 256 || now < value.observedAt || now - value.observedAt > PREPARATION_SHARE_MS) shared.delete(key);
+  }
+  async function prepare(userId, { share = false } = {}) {
+    requireId(userId); requireCondition(typeof share === 'boolean', 'INVALID_ROLE_CONTEXT');
+    const version = await stamp();
+    let observedAt = clock(); requireInteger(observedAt);
+    const now = observedAt, before = share ? await boundary() : null, kept = shared.get(userId);
+    let reads = before !== null && kept?.boundary === before && now >= kept.observedAt && now - kept.observedAt <= PREPARATION_SHARE_MS ? kept : null;
+    if (reads) observedAt = reads.observedAt;
+    else {
+      // The identity check is shared like actor observations: it ends on any gateway dispatch and never outlives
+      // IDENTITY_SHARE_MS.
+      await confirmIdentity(version);
+      const rawRoles = await transport.getRoles();
+      requireCondition(Array.isArray(rawRoles) && rawRoles.length <= 500, 'DISCORD_RESPONSE_INVALID');
+      reads = { rawRoles, bot: await transport.getMember(fixed.botUserId), rawMember: await transport.getMember(userId), observedAt };
+    }
+    const { rawRoles, bot, rawMember } = reads;
+    const roles = rawRoles.map(role => ({ id: role.id, position: role.position, managed: role.managed, permissions: role.permissions }));
+    const botRoleIds = memberRoles(bot, fixed.botUserId);
+    const memberRoleIds = rawMember === null ? [] : memberRoles(rawMember, userId);
+    let botTimedOut = false;
+    if (bot.communication_disabled_until != null) {
+      const until = Date.parse(bot.communication_disabled_until);
+      requireCondition(Number.isFinite(until), 'DISCORD_RESPONSE_INVALID');
+      botTimedOut = until > clock();
+    }
+    const context = Object.freeze({ guildId: fixed.guildId, userId, known: true, observedAt,
+      roles: Object.freeze(roles.map(Object.freeze)), botRoleIds: Object.freeze(botRoleIds), memberRoleIds: Object.freeze(memberRoleIds), botTimedOut });
+    const observation = { guildId: fixed.guildId, userId, known: true, observedAt, present: rawMember !== null,
+      crew: memberRoleIds.includes(fixed.crew), muzzled: memberRoleIds.includes(fixed.muzzled), whitelist: memberRoleIds.includes(fixed.whitelist) };
+    requireFreshObservation(observation, clock());
+    await same(version);
+    // Kept for re-use only if no authority change was recorded while reading (or since the shared reads were made).
+    if (before !== null) {
+      if (await boundary() === before) { if (reads !== kept) { prune(); shared.set(userId, { ...reads, boundary: before }); } }
+      else {
+        shared.delete(userId);
+        // A re-used read that an authority change overtook is discarded and read again, once.
+        if (reads === kept) return prepare(userId, { share });
+        requireCondition(false, 'OBSERVATION_INVALIDATED');
+      }
+    }
+    contexts.set(context, version);
+    mentionableRoles.set(context, new Set(rawRoles.filter(role => role.mentionable === true).map(role => role.id)));
+    requireFreshObservation(context, clock());
+    return { context, observation };
   }
   async function observe(userId) {
     requireId(userId);
@@ -109,35 +167,9 @@ export function createDiscordRoles({ transport, mapping, clock, readContinuity }
       requireFreshObservation(actor, clock());
       return actor;
     },
-    async prepare(userId) {
-      requireId(userId);
-      const version = await stamp();
-      const observedAt = clock(); requireInteger(observedAt);
-      const identity = await transport.getCurrentUser();
-      requireCondition(identity?.id === fixed.botUserId && identity.bot === true, 'DISCORD_AUTHORIZATION_FAILED');
-      const rawRoles = await transport.getRoles();
-      requireCondition(Array.isArray(rawRoles) && rawRoles.length <= 500, 'DISCORD_RESPONSE_INVALID');
-      const roles = rawRoles.map(role => ({ id: role.id, position: role.position, managed: role.managed, permissions: role.permissions }));
-      const bot = await transport.getMember(fixed.botUserId);
-      const botRoleIds = memberRoles(bot, fixed.botUserId);
-      const rawMember = await transport.getMember(userId);
-      const memberRoleIds = rawMember === null ? [] : memberRoles(rawMember, userId);
-      let botTimedOut = false;
-      if (bot.communication_disabled_until != null) {
-        const until = Date.parse(bot.communication_disabled_until);
-        requireCondition(Number.isFinite(until), 'DISCORD_RESPONSE_INVALID');
-        botTimedOut = until > clock();
-      }
-      const context = Object.freeze({ guildId: fixed.guildId, userId, known: true, observedAt,
-        roles: Object.freeze(roles.map(Object.freeze)), botRoleIds: Object.freeze(botRoleIds), memberRoleIds: Object.freeze(memberRoleIds), botTimedOut });
-      const observation = { guildId: fixed.guildId, userId, known: true, observedAt, present: rawMember !== null,
-        crew: memberRoleIds.includes(fixed.crew), muzzled: memberRoleIds.includes(fixed.muzzled), whitelist: memberRoleIds.includes(fixed.whitelist) };
-      requireFreshObservation(observation, clock());
-      await same(version); contexts.set(context, version);
-      mentionableRoles.set(context, new Set(rawRoles.filter(role => role.mentionable === true).map(role => role.id)));
-      requireFreshObservation(context, clock());
-      return { context, observation };
-    },
+    prepare,
+    /** The authority boundary, or null when sharing is unavailable. See prepare(). */
+    readAuthorityBoundary: boundary,
     async change(context, change) {
       requireCondition(contexts.has(context), 'UNTRUSTED_ROLE_CONTEXT');
       await same(contexts.get(context));

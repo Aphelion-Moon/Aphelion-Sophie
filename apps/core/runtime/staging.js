@@ -21,7 +21,7 @@ import { requireCondition } from '../../../contracts/validation.js';
 import { validateStagingRuntime } from './configuration.js';
 import { requireUnquarantinedDatabase } from './recovery.js';
 import { createAdministrationLane } from './administration.js';
-import { createDiscordTransport } from '../discord/transport.js';
+import { createDiscordTransport, createDiscordRateLimits } from '../discord/transport.js';
 import { createDiscordRoles } from '../discord/roles.js';
 import { createCaseMessageCapture } from '../discord/case-message-capture.js';
 import { createGatewayJournal } from '../storage/gateway-journal.js';
@@ -30,6 +30,7 @@ import { createGatewaySupervisor } from '../discord/gateway-supervisor.js';
 import { createInteractionVerifier } from '../security/interaction-verifier.js';
 import { createInteractionResponder } from '../discord/interaction-response.js';
 import { createInteractionHttpServer } from '../discord/interaction-http.js';
+import { createOutbox } from '../storage/outbox.js';
 import { createCaseReconciler } from '../discord/case-reconciler.js';
 import { createCaseInspectionStore } from '../storage/case-inspections.js';
 import { createCorePrincipals } from '../security/principals.js';
@@ -72,7 +73,7 @@ import { runtimeDatabaseAvailable } from '../storage/runtime-maintenance.js';
 import { createGuildState } from '../discord/guild-state.js';
 
 /** Explicit staging host. Construction starts no listener, connection, registration, migration or service. */
-export async function createStagingRuntime({ configuration, pool, aiControlPool = null, aiPreferenceJournal = null, aiWorker = null, aiKnowledge = null, aiKnowledgeAdmin = null, aiKnowledgeAdminFactory = null, aiApproval = null, aiActivationPool = null, aiRestoreCurrent = async () => false, token, clientSecret = null, fetch, connect, clock = Date.now, random = Math.random, onFault, configurationApplyEnabled = false }) {
+export async function createStagingRuntime({ configuration, pool, aiControlPool = null, aiPreferenceJournal = null, aiWorker = null, aiKnowledge = null, aiKnowledgeAdmin = null, aiKnowledgeAdminFactory = null, aiApproval = null, aiActivationPool = null, aiRestoreCurrent = async () => false, token, clientSecret = null, fetch, connect, clock = Date.now, random = Math.random, onFault, onTrace = () => {}, rateLimits = createDiscordRateLimits(), configurationApplyEnabled = false }) {
   validateStagingRuntime(configuration); const fixed = structuredClone(configuration);
   requireCondition(typeof onFault === 'function', 'TRUSTED_ADAPTERS_REQUIRED');
   await requireUnquarantinedDatabase(pool);
@@ -82,12 +83,16 @@ export async function createStagingRuntime({ configuration, pool, aiControlPool 
   let maintenanceObserved = false;
   const active = () => started && !stopping && !maintenanceObserved;
   const fault = code => { try { onFault(code); } catch { /* Never log original dependency errors or payloads. */ } };
+  // Timing diagnostics (fixed codes: outcome, milliseconds, request counts). Never faults, IDs or content.
+  const trace = code => { try { onTrace(code); } catch { /* Diagnostics never affect the runtime. */ } };
   const databaseActive = async () => {
     if (!active()) return false;
     if (await runtimeDatabaseAvailable(pool)) return true;
     maintenanceObserved = true; fault('RUNTIME_MAINTENANCE_ACTIVE'); return false;
   };
-  const transport = createDiscordTransport({ guildId: fixed.mapping.guildId, token, fetch, clock, enabled: databaseActive });
+  // Every transport below uses the same bot token, so they share Discord's buckets and must share one view of them.
+  // A supervising host passes its own registry so a restarted runtime keeps the cooldowns it already learned.
+  const transport = createDiscordTransport({ guildId: fixed.mapping.guildId, token, fetch, clock, enabled: databaseActive, limits: rateLimits });
   requireCondition(aiWorker===null || aiKnowledge!==null && aiControlPool!==null, 'AI_ADAPTERS_REQUIRED');
   let aiRuntime = null, activationRebind = null, activationFollow = null;
   const privacyEffects=aiControlPool===null?null:createAiEffects({pool:aiControlPool,guildId:fixed.mapping.guildId,clock});
@@ -108,26 +113,39 @@ export async function createStagingRuntime({ configuration, pool, aiControlPool 
   const enabled = async () => await databaseActive() && await observer.isCurrent();
   const gateway = createGatewaySupervisor({ observer, transport, connect, token, clock, random, enabled: active });
   const verifier = createInteractionVerifier({ publicKeyHex: fixed.publicKeyHex, applicationId: fixed.applicationId, guildId: fixed.mapping.guildId, clock });
-  const authRoles = createDiscordRoles({ transport: createDiscordTransport({ guildId: fixed.mapping.guildId, token, fetch, clock, enabled }),
+  const authRoles = createDiscordRoles({ transport: createDiscordTransport({ guildId: fixed.mapping.guildId, token, fetch, clock, enabled, limits: rateLimits }),
     mapping: fixed.mapping, clock, readContinuity: observer.readContinuity });
   const auth = fixed.dashboard === null ? null : createDashboardAuth({ configuration: fixed.dashboard,
     store: createDashboardAuthStore({ pool, configuration: fixed.dashboard, clock }),
     oauth: createDiscordOAuth({ configuration: fixed.dashboard, clientSecret, fetch, clock, enabled }), discord: authRoles, clock, enabled });
   const principals = auth === null ? verifier : createCorePrincipals({ interactions: verifier, dashboard: auth });
   const createAiLane=worker=>createAiRuntime({ configuration: fixed, corePool: pool, controlPool: aiControlPool, worker, knowledge: aiKnowledge,
-    observer, guildState, token, fetch, clock, enabled, onFault: fault,privacyCurrent:privacy.current,
+    observer, guildState, token, fetch, clock, enabled, rateLimits, onFault: fault,privacyCurrent:privacy.current,
     memory: aiPreferenceJournal === null ? null : createAiMemory({ pool: aiControlPool, guildId: fixed.mapping.guildId, journal: aiPreferenceJournal, clock }),
     ...(aiApproval === null ? {} : { readNotice: aiApproval.notice }) });
   if(aiWorker!==null)aiRuntime=createAiLane(aiWorker);
   const readSystemText = createSystemWordingReader({ pool, guildId: fixed.mapping.guildId });
-  const lane = () => createAdministrationLane({ configuration: fixed, pool, token, fetch, clock, enabled, observer, principals, verifier, onFault: fault, readSystemText, knowledge:aiKnowledge });
+  const lane = () => createAdministrationLane({ configuration: fixed, pool, token, fetch, clock, enabled, rateLimits, observer, principals, verifier, onFault: fault, onTrace: trace, readSystemText, knowledge:aiKnowledge });
   const requests = lane(), delivery = lane();
   const responder = createInteractionResponder({ verifier, applicationId: fixed.applicationId, fetch, clock, enabled, readSystemText, ...requests.responseAdapters });
-  const interactions = createInteractionHttpServer({ verifier, commands: requests.commands, respond: responder.respond,
+  // A recorded Shuttle change has already committed its render intent, so delivery starts now instead of at the next
+  // interval. The diagnostic is a fixed code: the command result and whole milliseconds, never IDs or content.
+  const interactionCommands = Object.freeze({ async execute(envelope) {
+    const startedAt = performance.now();
+    const result = await requests.commands.execute(envelope);
+    if (['shuttle.start', 'shuttle.control'].includes(envelope.command)) {
+      trace(`SHUTTLE_COMMAND_${String(result).toUpperCase().replace(/[^A-Z]/g, '_').slice(0, 32)}_${Math.min(99_999, Math.round(performance.now() - startedAt))}MS`);
+      if (['shuttle_recorded', 'shuttle_progress_recorded', 'shuttle_help_recorded', 'shuttle_help_paused'].includes(result)) wake();
+    }
+    return result;
+  } });
+  const interactions = createInteractionHttpServer({ verifier, commands: interactionCommands, respond: responder.respond,
     onboardingPanel: createOnboardingEntryPanel({ authorization: requests.authorization, transport: requests.transport, store: requests.store, policy: fixed.casePolicy,
       definitionId: fixed.definitionId, enabled, readSystemText }),
     caseIntake: requests.caseIntake, readSystemText, enabled, onFault: fault });
   const reconciler = createCaseReconciler({ store: createCaseInspectionStore({ pool, policy: fixed.casePolicy }), enabled });
+  // No Shuttle work waits for Staff: parked Shuttle jobs are rechecked on their own (see recheckParkedShuttleWork).
+  const shuttleOutbox = createOutbox({ pool });
   let dashboard = null;
   if (auth !== null) {
     const browser = lane(), { authorization, roles } = browser;
@@ -187,7 +205,7 @@ export async function createStagingRuntime({ configuration, pool, aiControlPool 
       presentation: await createDashboardPresentation() });
   }
   const owner = `staging.${randomUUID()}`;
-  let ticking = false;
+  let ticking = false, scheduled = false, wakeQueued = false;
   function tick() {
     if (ticking || !active()) return Promise.resolve();
     ticking = true;
@@ -197,6 +215,8 @@ export async function createStagingRuntime({ configuration, pool, aiControlPool 
         try {await knowledgeAdministration.start();knowledgeStarted=true;}catch{fault('KNOWLEDGE_SYNC_UNAVAILABLE');}
       }
       await reconciler.runOnce();
+      try { if (await shuttleOutbox.recheckParkedShuttleWork() > 0) trace('SHUTTLE_SELF_HEAL_REQUEUED'); }
+      catch { fault('SHUTTLE_SELF_HEAL_UNAVAILABLE'); }
       // Bounded round-robin: a busy case queue cannot starve membership or role revocation.
       for (const worker of delivery.workers) { if (!active()) break; await worker.runOnce(owner); }
     })().finally(() => { ticking = false; });
@@ -204,9 +224,19 @@ export async function createStagingRuntime({ configuration, pool, aiControlPool 
   }
   function schedule() {
     if (!active()) return;
+    clearTimeout(timer);
+    // A wake that arrived during the last tick may have committed after its worker ran; go again at once.
+    const delay = wakeQueued ? 0 : fixed.workerIntervalMs; wakeQueued = false;
     timer = setTimeout(() => {
       workerTask = tick().catch(() => fault('RUNTIME_WORKER_UNAVAILABLE')).finally(schedule);
-    }, fixed.workerIntervalMs);
+    }, delay);
+  }
+  /** Runs the normal tick now. Coalesced: one tick at a time, and only once automatic workers are running. */
+  function wake() {
+    if (!scheduled || !active()) return;
+    if (ticking) { wakeQueued = true; return; }
+    clearTimeout(timer);
+    workerTask = tick().catch(() => fault('RUNTIME_WORKER_UNAVAILABLE')).finally(schedule);
   }
   async function stop() {
     stopping = true; clearTimeout(timer);
@@ -231,7 +261,7 @@ export async function createStagingRuntime({ configuration, pool, aiControlPool 
         if(aiRuntime && aiWorker?.release)try {await activationRebind?.(aiWorker.release);await activationFollow?.();}catch{fault('AI_QUALIFICATION_REBIND_UNAVAILABLE');}
         if(aiRuntime)try {await aiRuntime.start();}catch{fault('AI_WORKER_CONNECTION_UNAVAILABLE');}
         preferenceExpiry?.start();
-        if (automaticWorkers) schedule();
+        if (automaticWorkers) { scheduled = true; schedule(); }
         return { interactions: interactionAddress, dashboard: dashboardAddress };
       } catch (error) { await stop(); throw error; }
     },

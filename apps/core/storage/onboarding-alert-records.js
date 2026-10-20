@@ -1,6 +1,5 @@
 import { randomBytes } from 'node:crypto';
 import { requireCondition } from '../../../contracts/validation.js';
-import { onboardingRoleSource } from './onboarding-role-source.js';
 
 /** Internal event recording. Returns a narrow intent for the caller's same transaction. */
 export async function recordOnboardingAlert(client, { guildId, userId, sessionId, kind, sourceId }) {
@@ -21,11 +20,4 @@ export async function recordOnboardingAlert(client, { guildId, userId, sessionId
   if (!alert) return null;
   return { kind: 'shuttle.alert', operationId: `shuttle-alert.${alert.id}.${alert.revision}`,
     guildId, userId, alertId: alert.id, revision: alert.revision };
-}
-
-/** Role failures can alert only the bound Onboarding, never other case types or alert jobs. */
-export async function recordOnboardingDeliveryAlert(client, claim) {
-  const source = await onboardingRoleSource(client, claim);
-  return source ? recordOnboardingAlert(client, { guildId: source.guild_id, userId: source.user_id,
-    sessionId: source.id, kind: 'delivery', sourceId: source.id }) : null;
 }

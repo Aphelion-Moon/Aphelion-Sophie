@@ -1,4 +1,4 @@
-import { screensOf } from './controller.js';
+import { previewsOf, screensOf } from './controller.js';
 import { renderMarkdown } from './markdown.js';
 
 /** Persistent form controls and local static previews; no HTML evaluation or remote embeds. */
@@ -9,7 +9,6 @@ export function createGuidanceView({ document, controller }) {
   const hidden = (id, value) => { byId(id).hidden = value; };
   const disabled = (id, value) => { byId(id).disabled = value; };
   const date = value => value ? new Date(value).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' }) : 'Date unavailable';
-  const setting = document => document?.helpPauses ? 'Staff help pauses progress.' : 'Staff help does not pause progress.';
   let state, reviewKey = null, selectedKey = null, conflictKey = null, historyKey = null, returnFocus = null, restoreFocus = false;
   let choices = [];
   let screenIndex = 0, screenStep = null, screenChoices = [], previewText = null;
@@ -29,7 +28,6 @@ export function createGuidanceView({ document, controller }) {
   function copyColumn(title, guidance) {
     const column = node('section', '', 'comparison-column'); column.append(node('h3', title));
     if (!guidance) { column.append(node('p', 'No published copy.', 'muted')); return column; }
-    column.append(node('p', setting(guidance), 'muted'));
     guidance.stages.forEach((page, index) => { const article = node('article', '', 'copy-page');
       article.append(node('h4', `${index + 1}. ${page.title || 'Untitled page'}`), node('p', page.body || '(No guidance yet.)')); column.append(article); });
     return column;
@@ -65,10 +63,10 @@ export function createGuidanceView({ document, controller }) {
           const sourceComparison = node('details'); sourceComparison.append(node('summary', 'Compare source copy with the current publication'));
           sourceComparison.append(comparison(review.currentPublishedVersion === null ? 'Current publication' : `Current publication · v${review.currentPublishedVersion}`,
             review.previous, `Proposed · v${review.publication.version}`, review.publication)); body.append(sourceComparison);
-          body.append(node('h3', 'Screen preview'), node('p', 'Separate screens use Next/Back before acknowledgement. Older copy without explicit screens keeps its original layout. Discord may render some formatting differently.', 'muted'));
+          body.append(node('h3', 'Message preview'), node('p', 'Each message is posted as plain text, together, before the step\'s Continue card. Discord may render some formatting differently.', 'muted'));
           for (const [index, page] of review.pages.entries()) {
-            const details = node('details'); details.open = index === 0; details.append(node('summary', `${index + 1}. ${page.title} · ${page.segments.length} screen${page.segments.length === 1 ? '' : 's'}`));
-            for (const [segment, text] of page.segments.entries()) details.append(node('p', `Screen ${segment + 1} of ${page.segments.length}`, 'small-label'), screenPreview(text));
+            const details = node('details'); details.open = index === 0; details.append(node('summary', `${index + 1}. ${page.title} · ${page.segments.length} message${page.segments.length === 1 ? '' : 's'}`));
+            for (const [segment, text] of page.segments.entries()) details.append(node('p', `Message ${segment + 1} of ${page.segments.length}${page.previews?.[segment] ? ' · link previews on' : ''}`, 'small-label'), screenPreview(text));
             body.append(details);
           }
         }
@@ -164,7 +162,7 @@ export function createGuidanceView({ document, controller }) {
       screenIndex = Math.min(screenIndex, screens.length - 1);
       if (screenChoices.length !== screens.length) {
         byId('screens').replaceChildren(); screenChoices = screens.map((_, index) => {
-          const button = node('button', `Screen ${index + 1}`);
+          const button = node('button', `Message ${index + 1}`);
           button.addEventListener('click', () => { screenIndex = index; render(state); });
           byId('screens').append(button); return button;
         });
@@ -174,17 +172,18 @@ export function createGuidanceView({ document, controller }) {
       disabled('remove-screen', locked || screens.length <= 1);
       disabled('screen-earlier', locked || screenIndex === 0); disabled('screen-later', locked || screenIndex === screens.length - 1);
       disabled('preview-back', screenIndex === 0); disabled('preview-next', screenIndex === screens.length - 1);
-      setText('screen-status', `Screen ${screenIndex + 1} of ${screens.length}`);
-      setText('screen-acknowledgement', screenIndex === screens.length - 1 ? 'Final screen · acknowledgement available here' : 'Next screen · acknowledgement follows the final screen');
+      setText('screen-status', `Message ${screenIndex + 1} of ${screens.length}`);
+      setText('screen-acknowledgement', screenIndex === screens.length - 1 ? 'Last message · the Continue card follows it' : 'More messages follow before the Continue card');
+      hidden('message-limit', screens.length <= 4);
+      byId('link-previews').checked = previewsOf(page)[screenIndex]; disabled('link-previews', locked);
       hidden('legacy-screens', !!page.screens);
-      if (previewText !== screens[screenIndex]) { previewText = screens[screenIndex]; byId('screen-preview').replaceChildren(renderMarkdown(document, previewText || 'Your screen preview appears here.')); }
+      if (previewText !== screens[screenIndex]) { previewText = screens[screenIndex]; byId('screen-preview').replaceChildren(renderMarkdown(document, previewText || 'Your message preview appears here.')); }
       resizeChoices(count); setText('journey-count', `${count} ${count === 1 ? 'step' : 'steps'}. One welcome.`);
       setText('page-number', `STEP ${String(state.page + 1).padStart(2, '0')} / ${String(count).padStart(2, '0')}`); setText('page-heading', page.title || 'Untitled step');
       setText('page-completion', page.title.trim() && page.body.trim() ? 'Text entered' : 'Needs text');
       for (const [id, value] of [['page-title', page.title], ['page-body', screens[screenIndex]]]) { if (byId(id).value !== value) byId(id).value = value; byId(id).readOnly = locked; }
       byId('page-body').maxLength = Math.min(1_800, 5_000 - (screens.join('\n\n').length - screens[screenIndex].length));
       setText('title-count', `${page.title.length} / 80`); setText('body-count', `${screens[screenIndex].length} / 1,800 · step ${page.body.length} / 5,000`);
-      byId('help-pauses').checked = state.document.helpPauses; disabled('help-pauses', locked);
       disabled('add-page', locked || count >= 20); disabled('remove-page', locked || count <= 1);
       disabled('move-up', locked || state.page === 0); disabled('move-down', locked || state.page === count - 1);
       for (const [index, choice] of choices.entries()) {
@@ -201,7 +200,7 @@ export function createGuidanceView({ document, controller }) {
       // Hidden fields must not retain guidance after permission loss or sign-out.
       byId('page-title').value = ''; byId('page-body').value = ''; byId('history-list').replaceChildren(); historyKey = null;
       byId('screen-preview').replaceChildren(); byId('screens').replaceChildren(); screenChoices = []; screenStep = null; previewText = null;
-      byId('help-pauses').checked = false; setText('title-count', ''); setText('body-count', '');
+      setText('title-count', ''); setText('body-count', '');
       setText('page-heading', ''); setText('journey-count', 'Your journey'); resizeChoices(0);
       setText('draft-status', ''); setText('publication-status', ''); setText('account', '');
     }
@@ -224,9 +223,9 @@ export function createGuidanceView({ document, controller }) {
   for (const [id, direction] of [['screen-earlier', -1], ['screen-later', 1]]) listen(id, 'click', () => {
     const target = screenIndex + direction; controller.moveScreen(state.page, screenIndex, direction); screenIndex = target; render(state);
   });
+  listen('link-previews', 'change', event => controller.setLinkPreview(state.page, screenIndex, event.target.checked));
   listen('preview-back', 'click', () => { screenIndex--; render(state); });
   listen('preview-next', 'click', () => { screenIndex++; render(state); });
-  listen('help-pauses', 'change', event => controller.updateHelp(event.target.checked));
   listen('add-page', 'click', () => { controller.addPage(); byId('page-title').focus(); });
   listen('move-up', 'click', () => { controller.movePage(-1); byId('page-title').focus(); });
   listen('move-down', 'click', () => { controller.movePage(1); byId('page-title').focus(); });

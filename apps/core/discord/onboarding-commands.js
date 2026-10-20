@@ -18,12 +18,22 @@ export function createOnboardingCommands({ authorization, discord, channels, sto
         if (await enabled() !== true) return 'disabled';
         if (envelope.command === 'shuttle.control') {
           const control = { screenId: envelope.screenId, channelId: envelope.channelId, messageId: envelope.messageId, controlVersion: envelope.controlVersion };
-          const { plan } = await store.describeOnboardingControl({ actor, observation, ...control });
-          const proof = await channels.inspect(plan, envelope.channelId);
-          if (await enabled() !== true) return 'disabled';
-          const result = await store.actOnOnboarding({ actor, interactionId: envelope.interactionId, action: envelope.action,
-            observation: await discord.observe(envelope.userId), proof, ...control });
-          return envelope.action === 'help' ? result.session.helpPaused ? 'shuttle_help_paused' : 'shuttle_help_recorded' : 'shuttle_progress_recorded';
+          try {
+            const { plan } = await store.describeOnboardingControl({ actor, observation, ...control });
+            const proof = await channels.inspect(plan, envelope.channelId);
+            if (await enabled() !== true) return 'disabled';
+            await store.actOnOnboarding({ actor, interactionId: envelope.interactionId, action: envelope.action,
+              observation: await discord.observe(envelope.userId), proof, ...control });
+            return 'shuttle_progress_recorded';
+          } catch (error) {
+            // The click already showed "Opening…" on its card. It recorded nothing, so the card is put back
+            // (or a pre-upgrade message is redrawn as the status card). Best effort; it grants nothing.
+            try {
+              if (await enabled() === true) await store.restoreOnboardingControl({ actor, interactionId: envelope.interactionId,
+                action: envelope.action, observation: await discord.observe(envelope.userId), ...control });
+            } catch { /* The error below still reaches the member. */ }
+            throw error;
+          }
         }
         const existing = await store.describeOnboardingEntryChannel({ actor, observation });
         if (existing !== null) {

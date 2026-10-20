@@ -1,5 +1,6 @@
 import { requireCondition, requireFreshObservation, requireId, requireInteger } from '../../../contracts/validation.js';
 import { validateRoleContext, validateRoleMapping } from '../../../modules/membership/discord-policy.js';
+import { PREPARATION_SHARE_MS } from './roles.js';
 import { CASE_CHANNEL_BITS, CASE_CLOSED_WRITE_BITS, caseChannelMode, validateCasePolicy, validateCasePlan, caseChannelPayload, caseMarker, requireCaseChannel, casePlanKey, caseIdentityKey } from '../../../modules/tickets/channel-policy.js';
 import { PERMISSIONS, channelPermissions, guildPermissions, validateOverwrites } from '../../../platform/authorization/discord-permissions.js';
 
@@ -26,6 +27,10 @@ export function createCaseChannels({ transport, roles, mapping, policy, clock, a
   const fixed = structuredClone(policy);
   const roleMapping = structuredClone(mapping);
   const prepared = new WeakMap(), observed = new WeakMap();
+  // Opt-in, like roles.prepare({ share }): a channel read may be re-used while the authority boundary is unchanged
+  // (no channel, role, member, authority or guild change recorded) and for at most PREPARATION_SHARE_MS.
+  const sharedChannels = new Map();
+  const boundary = async () => typeof roles.readAuthorityBoundary === 'function' ? roles.readAuthorityBoundary() : null;
   const key = casePlanKey;
   async function currentAudience(plan) {
     for (const grant of plan.audience?.participants ?? []) requireCondition(await authorizeCaseParticipant(grant) === true, 'CASE_AUDIENCE_CHANGED');
@@ -55,6 +60,24 @@ export function createCaseChannels({ transport, roles, mapping, policy, clock, a
     requireFreshObservation(record.context, clock()); prepared.delete(context);
     await roles.assertCurrent(record.context);
     return record;
+  }
+  async function inspect(plan, channelId, { share = false } = {}) {
+    requireId(channelId); requireCondition(typeof share === 'boolean', 'CASE_OBSERVATION_UNTRUSTED');
+    let startedAt = clock();
+    const version = await roles.readContinuity(), before = share ? await boundary() : null, kept = sharedChannels.get(channelId);
+    const reuse = before !== null && kept?.boundary === before && startedAt >= kept.observedAt && startedAt - kept.observedAt <= PREPARATION_SHARE_MS;
+    const raw = reuse ? kept.raw : await transport.getChannel(channelId);
+    if (reuse) startedAt = kept.observedAt;
+    requireCondition(raw?.id === channelId, 'CASE_CHANNEL_MISSING');
+    const proof = await certify(raw, plan, startedAt, version);
+    if (before !== null) {
+      if (await boundary() !== before) { sharedChannels.delete(channelId); if (reuse) return inspect(plan, channelId, { share }); }
+      else if (!reuse) {
+        for (const [key, value] of sharedChannels) if (sharedChannels.size >= 256 || clock() - value.observedAt > PREPARATION_SHARE_MS) sharedChannels.delete(key);
+        sharedChannels.set(channelId, { raw, observedAt: startedAt, boundary: before });
+      }
+    }
+    return proof;
   }
   return Object.freeze({
     guildId: fixed.guildId,
@@ -108,14 +131,7 @@ export function createCaseChannels({ transport, roles, mapping, policy, clock, a
       const matches = channels.filter(channel => channel?.topic === caseMarker(plan));
       return Promise.all(matches.map(channel => certify(channel, plan, startedAt, version, true)));
     },
-    async inspect(plan, channelId) {
-      requireId(channelId);
-      const startedAt = clock();
-      const version = await roles.readContinuity();
-      const raw = await transport.getChannel(channelId);
-      requireCondition(raw?.id === channelId, 'CASE_CHANNEL_MISSING');
-      return certify(raw, plan, startedAt, version);
-    },
+    inspect,
     async inspectPresence(plan, channelId) {
       validateCasePlan(plan); requireId(channelId);
       requireCondition(plan.guildId === fixed.guildId && plan.type === 'shuttle', 'OPERATION_DENIED');

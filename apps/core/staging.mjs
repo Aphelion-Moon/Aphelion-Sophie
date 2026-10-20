@@ -72,7 +72,7 @@ async function main() {
     // then resumes its durable journal before starting the normal runtime.
     const factory = ownerPool ? createConfigurableStagingRuntime : createStagingRuntime;
     const runtime = await factory({ ...(ownerPool ? { ownerPool } : {}), configuration, pool, ...credentials,
-      fetch, connect: url => new WebSocket(url), onFault: code => report({ fault: code }) });
+      fetch, connect: url => new WebSocket(url), onFault: code => report({ fault: code }), onTrace: code => report({ trace: code }) });
     await runRuntimeHost({ runtime, signal: controller.signal, report });
   } finally { process.off('SIGINT', signal); process.off('SIGTERM', signal); }
 }
