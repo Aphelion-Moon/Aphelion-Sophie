@@ -71,8 +71,15 @@ export function createCaseDispatcher({ outbox, store, roles, channels, enabled, 
           // its non-identifying marker; a second create request is never inferred safe.
           await ready(claim);
           possiblyAttempted = true;
-          const proof = await channels.create(preparation, plan);
-          await store.noteCaseChannel({ claim, proof });
+          let proof = await channels.create(preparation, plan);
+          // Recording the new channel re-checks its observation; the Gateway may still be catching up with this bot's own
+          // create. Re-read the same channel (never create again) rather than giving the claim back as uncertain.
+          for (let attempt = 1; ; attempt++) {
+            try { await store.noteCaseChannel({ claim, proof }); break; } catch (error) {
+              if (!['OBSERVATION_INVALIDATED', 'OBSERVATION_UNAVAILABLE', 'OBSERVATION_OUT_OF_ORDER'].includes(error?.code) || attempt >= 3) throw error;
+              proof = await channels.inspect(plan, proof.channelId);
+            }
+          }
           await outbox.continue(claim);
           return { status: 'progressed' };
         }

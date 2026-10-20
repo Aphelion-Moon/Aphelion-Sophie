@@ -164,7 +164,13 @@ export function createCaseChannels({ transport, roles, mapping, policy, clock, a
       const version = await validity();
       const openerName = plan.type === 'shuttle' && typeof roles.memberName === 'function' ? roles.memberName(context) : null;
       const raw = await transport.createCaseTextChannel(caseChannelPayload(plan, fixed, true, openerName));
-      return certify(raw, plan, startedAt, version, true);
+      try { return await certify(raw, plan, startedAt, version, true); } catch (error) {
+        // This bot's own CHANNEL_CREATE moves the authority boundary, so the observation taken before the POST is often
+        // overtaken by the channel it made. Read the channel afresh instead of reporting an uncertain create (which
+        // backed the whole provision off and re-ran it). Any other failure, or a channel that is not ours, still fails.
+        if (error?.code !== 'OBSERVATION_INVALIDATED' || typeof raw?.id !== 'string') throw error;
+        return inspect(plan, raw.id);
+      }
     },
     async setAudience(preparation, proof, plan, sealed) {
       const channel = await candidate(proof, plan), context = await consume(preparation, plan);

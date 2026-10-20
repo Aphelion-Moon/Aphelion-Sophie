@@ -79,11 +79,16 @@ export function createDiscordTransport({ guildId, token, fetch, clock, enabled, 
   requireCondition(limits?.cooldowns instanceof Map && limits.buckets instanceof Map, 'TRUSTED_ADAPTERS_REQUIRED');
   // Requests stay serial per transport, but a caller queues briefly behind the one in flight instead of failing at once:
   // a failed outbox step re-runs all of its reads, spends an attempt and backs off exponentially.
+  // Reads (GET) queue per rate-limit bucket instead, so independent reads (roles, a member, a channel) overlap rather than
+  // each waiting a full round trip; reads of one bucket and all writes stay in order.
   let tail = Promise.resolve(), sent = 0;
-  async function turn(budgetMs) {
-    const previous = tail; let release;
+  const readTails = new Map();
+  async function turn(budgetMs, readKey = null) {
+    const previous = readKey === null ? tail : readTails.get(readKey) ?? Promise.resolve(); let release;
     const mine = new Promise(resolve => { release = resolve; });
-    tail = previous.then(() => mine);
+    const next = previous.then(() => mine);
+    if (readKey === null) tail = next;
+    else { readTails.set(readKey, next); void next.then(() => { if (readTails.get(readKey) === next) readTails.delete(readKey); }); }
     let timer;
     const ready = await Promise.race([previous.then(() => true),
       new Promise(resolve => { timer = setTimeout(() => resolve(false), budgetMs); })]);
@@ -94,7 +99,7 @@ export function createDiscordTransport({ guildId, token, fetch, clock, enabled, 
   const blockedFor = key => Math.max(limits.globalUntil, limits.cooldowns.get(key) ?? 0) - clock();
   async function request(method, path, route, body = undefined, jsonResult = false, deadline = null) {
     const budget = () => Math.min(SHORT_WAIT_MS, deadline === null ? SHORT_WAIT_MS : deadline - clock() - 250);
-    const release = await turn(Math.max(1, budget()));
+    const release = await turn(Math.max(1, budget()), method === 'GET' ? limitKey(limits, method, path).key : null);
     try {
       // Checked after queueing, so the gate is current when the request leaves.
       requireCondition(await enabled() === true, 'DISCORD_TRANSPORT_DISABLED');

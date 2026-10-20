@@ -76,10 +76,11 @@ export function createDiscordRoles({ transport, mapping, clock, readContinuity, 
     else {
       // The identity check is shared like actor observations: it ends on any gateway dispatch and never outlives
       // IDENTITY_SHARE_MS.
-      await confirmIdentity(version);
-      const rawRoles = await transport.getRoles();
+      // Independent reads, all after the authority stamp and all checked against it below; they overlap rather than queue.
+      const [, rawRoles, bot, rawMember] = await Promise.all([confirmIdentity(version), transport.getRoles(),
+        transport.getMember(fixed.botUserId), transport.getMember(userId)]);
       requireCondition(Array.isArray(rawRoles) && rawRoles.length <= 500, 'DISCORD_RESPONSE_INVALID');
-      reads = { rawRoles, bot: await transport.getMember(fixed.botUserId), rawMember: await transport.getMember(userId), observedAt };
+      reads = { rawRoles, bot, rawMember, observedAt };
     }
     const { rawRoles, bot, rawMember } = reads;
     const roles = rawRoles.map(role => ({ id: role.id, position: role.position, managed: role.managed, permissions: role.permissions }));
@@ -152,17 +153,16 @@ export function createDiscordRoles({ transport, mapping, clock, readContinuity, 
       requireId(userId);
       const version = await authority();
       const observedAt = clock(); requireInteger(observedAt);
-      await confirmIdentity(version);
-      const guild = await patient(() => transport.getGuild());
+      // Independent reads after the authority stamp, overlapping rather than queueing; validated below as before.
+      const [, guild, roles, member] = await Promise.all([confirmIdentity(version), patient(() => transport.getGuild()),
+        patient(() => transport.getRoles()), patient(() => transport.getMember(userId))]);
       requireCondition(guild?.id === fixed.guildId, 'FOREIGN_GUILD'); requireId(guild.owner_id);
-      const roles = await patient(() => transport.getRoles());
       requireCondition(Array.isArray(roles) && roles.length >= 1 && roles.length <= 500, 'DISCORD_RESPONSE_INVALID');
       for (const role of roles) {
         requireId(role?.id); requireInteger(role.position, 0, 500);
         requireCondition(typeof role.permissions === 'string' && /^\d{1,32}$/.test(role.permissions), 'DISCORD_RESPONSE_INVALID');
       }
       requireCondition(new Set(roles.map(role => role.id)).size === roles.length && roles.some(role => role.id === fixed.guildId), 'DISCORD_RESPONSE_INVALID');
-      const member = await patient(() => transport.getMember(userId));
       const roleIds = member === null ? [] : memberRoles(member, userId);
       requireCondition(roleIds.every(id => roles.some(role => role.id === id)), 'ROLE_CONFIGURATION_INVALID');
       requireCondition(member === null || member.user.bot === undefined || typeof member.user.bot === 'boolean', 'DISCORD_RESPONSE_INVALID');

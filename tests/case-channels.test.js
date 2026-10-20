@@ -131,3 +131,25 @@ test('Shuttle category and channel names are bounded', async () => {
     await assert.rejects(discord.transport.createCaseTextChannel({ ...body, name }), /INVALID_CASE_CHANNEL_REQUEST/);
   }
 });
+
+test('a create overtaken by its own channel event is read again, never reported uncertain or created twice', async () => {
+  let stamp = 1;
+  const discord = simulatedCases({ readContinuity: () => `synthetic-continuity-${stamp}` });
+  // As live: this bot's CHANNEL_CREATE advances the authority stamp while the POST response is being certified.
+  discord.state.afterWrite = call => { if (call.method === 'POST') stamp++; };
+  const proof = await discord.channels.create(await discord.channels.prepare(casePlan), casePlan);
+  await discord.channels.verification.channel(proof, casePlan, true);
+  assert.equal(discord.state.calls.filter(call => call.method === 'POST').length, 1);
+  assert.ok(discord.state.calls.at(-1).method === 'GET', 'the new channel was read afresh');
+});
+
+test('independent reads overlap; reads of one bucket and all writes stay in order', async () => {
+  const discord = simulatedCases(); let active = 0, peak = 0, memberActive = 0, memberPeak = 0;
+  discord.state.before = async call => {
+    const member = /\/members\//u.test(call.path);
+    active++; peak = Math.max(peak, active); if (member) { memberActive++; memberPeak = Math.max(memberPeak, memberActive); }
+    await new Promise(resolve => setTimeout(resolve, 5)); active--; if (member) memberActive--; return null;
+  };
+  await discord.roles.prepare(USER);
+  assert.ok(peak >= 2, 'roles and a member read overlapped'); assert.equal(memberPeak, 1, 'member reads share a bucket and stay serial');
+});
