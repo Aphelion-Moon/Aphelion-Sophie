@@ -25,7 +25,10 @@ On Continue or Back the click is answered at once by updating its own card
 ("Opening…", buttons disabled). The worker then deletes the previous step's messages
 and card, posts the new step and its card in order, and edits the status card last.
 Pending and complete keep the last step's messages; only the cards change. A click
-that records nothing puts its card back. Ask Staff is no longer offered: its old
+that records nothing puts its card back. A click whose member reads are overtaken by
+Gateway traffic or a short Discord cooldown is tried again up to three times; still
+transient, the member is asked to try again in a moment. If putting the card back
+cannot read Discord, the member's own card is queued to be drawn again. Ask Staff is no longer offered: its old
 buttons answer that they are out of date, and help requests, alerts and pauses
 recorded before that change are still handled.
 

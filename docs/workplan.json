@@ -1,6 +1,6 @@
 {
   "schema_version": 2,
-  "revision": "2026-10-20-staging-20bd3e7",
+  "revision": "2026-10-20-shuttle-click-retry",
   "reference_plan_version": "1.1",
   "source": "Sophie-Implementation-Plans-v1.1/backlog.json",
   "owner_decisions": "docs/decisions/0001-owner-policy.md",
@@ -2929,6 +2929,16 @@
       "implemented": "Owner direction of 20 October: Staff take no part in the Shuttle. Migration 072 released earlier help pauses, closed open help requests and withdrew unsent notices; the help-pause rule is retired from the editor and drafts. Parked Whitelist grant/reconciliation, Shuttle message and Shuttle channel jobs are rechecked automatically (2 minutes after parking, doubling to 15); creates unanswered after 2 minutes are redone (a step is reposted, a status card restarts the run, a channel is recreated); duplicate Shuttle channels keep the opened or oldest channel; Whitelist delivery problems no longer alert Staff.",
       "evidence": "Offline: npm test 672 passed; repository check passed; storage (parallel, 4 shards) 1002 passed, 0 failed (new F21-F23, Q12; L04-L06, L15, L16, L21 rewritten for no-Staff recovery and the migration release). Installed on staging 20 October 13:55 UTC as pin 20bd3e7 (schema 072; folder deployment-20bd3e7-2026-10-20): prepare, cold preservation, migration 070->072 (103 tables and 16,177 rows kept identical; nothing to release; one grant: SELECT/INSERT/UPDATE on shuttle_screen_parts for the runtime), pre-start, service boundaries, installed 26/26 and dashboard 24/24 passed (the first installed and dashboard passes got 503 from the authenticated API routes within about 40 s of start; both rechecks passed).",
       "remaining": "Observe SHUTTLE_SELF_HEAL_REQUEUED and the automatic Whitelist recheck live on staging."
+    },
+    {
+      "title": "Shuttle clicks overtaken by Gateway traffic",
+      "tasks": [
+        "P14",
+        "P16"
+      ],
+      "implemented": "Staging 20bd3e7 showed a slow /whitelist start and first page (about 30 s) and a first Continue answered \"We couldn’t confirm that request\" with its card left on \"Opening…\". Member reads are checked against Gateway continuity, which every dispatch advances; the instant \"Opening…\" edit produces a MESSAGE_UPDATE during the click's own reads, and the command path, unlike the render worker, did not retry. Shuttle commands now retry transient read, cooldown and busy failures up to three times; still transient, members are asked to try again (reply.onboarding_retry) instead of being sent to Staff; a click that records nothing always puts its card back, falling back to a Discord-free release of the member's own card; a Shuttle channel that opens makes its waiting first page due at once; traces carry error codes (SHUTTLE_COMMAND_RETRIED/FAILED_<code>, SHUTTLE_RENDER_<outcome>_<code>, CASE_PROVISION_<outcome>_<code>). The same-day AI report was the member chatting in their Shuttle channel, correctly excluded.",
+      "evidence": "Offline: npm test 673 passed; repository check passed; storage first run 1004 passed, 1 failed (OC02: Discord refusing access was worded as busy; narrowed to transient codes only); new V21-V23. Final storage run 1005 passed, 0 failed (4 shards).",
+      "remaining": "Operator-approved staging install (source-only, no migration); live click-through; read CASE_PROVISION and SHUTTLE_COMMAND codes to confirm the cause and decide whether channel creation also needs a short retry for overtaken reads."
     }
   ],
   "next_steps": [

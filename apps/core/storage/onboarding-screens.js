@@ -237,6 +237,26 @@ export function createOnboardingScreenStore({ pool, clock, authorize, policy, ca
         return { restored: true };
       });
     },
+    /**
+     * The fallback when restoreOnboardingControl cannot read Discord (a burst of Gateway traffic or a rate limit), so a
+     * card is never left showing "Opening…". The signed click names its member; this only asks for that member's own
+     * current card to be drawn again. It records no progress, grants nothing and reads no Discord state: the render
+     * re-checks membership, eligibility and the channel before it writes.
+     */
+    async releaseOnboardingControl({ guildId, userId, interactionId, action, screenId, channelId, messageId }) {
+      requireId(guildId); requireId(userId); requireId(interactionId); requireId(channelId); requireId(messageId); requireScreenId(screenId);
+      if (!['advance', 'back', 'retry'].includes(action)) return { restored: false };
+      return inTransaction(pool, async client => {
+        const screen = (await client.query(`SELECT id, channel_id, current, part_generation FROM sophie_core.shuttle_screens
+          WHERE id = $1 AND guild_id = $2 AND user_id = $3 FOR UPDATE`, [screenId, guildId, userId])).rows[0];
+        if (!screen?.current || screen.channel_id !== channelId) return { restored: false };
+        const part = await client.query(`UPDATE sophie_core.shuttle_screen_parts SET rendered_sha256 = NULL
+          WHERE screen_id = $1 AND message_id = $2 AND kind = 'nav' AND NOT gone AND generation = $3`, [screen.id, messageId, screen.part_generation]);
+        if (!part.rowCount) return { restored: false };
+        await enqueue(client, { kind: 'shuttle.render', operationId: `screen.restore.${screen.id}.${interactionId}`, guildId, userId, screenId: screen.id });
+        return { restored: true };
+      });
+    },
     async inspectOnboardingRender({ claim, observation }) {
       return memberOperation(observation, async (client, member) => {
         const current = await renderState(client, member, claim);

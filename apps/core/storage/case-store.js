@@ -236,6 +236,11 @@ export function createCaseStore({ pool, clock, authorize, authorizeRecorded = as
         [plan.guildId, plan.id, action.version, rejectedReopen ? allowed ? 'ineligible' : 'revoked' : 'confirmed']);
         await finishClaim(client, claim, 'done', !contactAllowed ? 'CASE_CONTACT_REVOKED' : rejectedReopen ? allowed ? 'CASE_REQUESTER_LEFT' : 'CASE_AUTHORITY_REVOKED' : mode === 'sealed' && row.desired_access === 'open' ? 'CASE_REQUESTER_LEFT' : null);
         if (eligible && mode === 'open') await recordCaseDirectNotice(client, plan);
+        // The Shuttle's first page was queued with the channel and has been waiting for it, backing off as if Discord
+        // were unavailable. It can be drawn now; the wait spent none of its real attempts.
+        if (state === 'open' && plan.type === 'shuttle') await client.query(`UPDATE sophie_core.outbox
+          SET available_at = clock_timestamp(), attempts = 0 WHERE guild_id = $1 AND user_id = $2 AND kind = 'shuttle.render'
+            AND status = 'ready' AND available_at > clock_timestamp()`, [plan.guildId, member.userId]);
         return { settled: true, opened: eligible, retained: true, channelId: channel.id };
       });
     },

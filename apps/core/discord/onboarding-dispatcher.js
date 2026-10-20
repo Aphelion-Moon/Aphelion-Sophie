@@ -26,7 +26,8 @@ export function createOnboardingDispatcher({ outbox, store, roles, messages, ena
   function note(result, startedAt, calls, waitedMs) {
     const bound = (value, limit) => Math.min(limit, Math.max(0, Math.round(value)));
     try {
-      trace(`SHUTTLE_RENDER_${String(result.status).toUpperCase().replace(/[^A-Z]/g, '_')}_${bound(performance.now() - startedAt, 99_999)}MS_` +
+      const code = typeof result.code === 'string' && /^[A-Z][A-Z0-9_]{1,47}$/.test(result.code) ? `_${result.code}` : '';
+      trace(`SHUTTLE_RENDER_${String(result.status).toUpperCase().replace(/[^A-Z]/g, '_')}${code}_${bound(performance.now() - startedAt, 99_999)}MS_` +
         `${bound(requestCount() - calls, 999)}CALLS_${bound(waitedMs, 99_999)}WAITMS`);
     } catch { /* Diagnostics never affect delivery. */ }
   }

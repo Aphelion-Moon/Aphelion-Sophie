@@ -1,3 +1,4 @@
+import { ContractError } from '../../contracts/validation.js';
 import { closeTestCase } from '../../tests/fixtures/case-lifecycle.js';
 import assert from 'node:assert/strict';
 import { createCoreStore } from '../../apps/core/storage/core-store.js';
@@ -374,5 +375,57 @@ export async function runOnboardingScreenSuite(cluster, run) {
     assert.equal(messageWrites('POST').length, 3 + 2); assert.equal(messageWrites('PATCH').length, 1);
     assert.match((await group(current)).status.embeds[0].description, /\*\*2\. Synthetic page 2\*\*/);
     assert.equal((await session()).stepIndex, 1); assert.equal(await click(first, 'advance'), 'shuttle_stale');
+  });
+
+  // Member reads overtaken by Gateway traffic (any message, including this bot's own "Opening…" edit) for the first n reads.
+  const overtaken = n => {
+    let left = n;
+    const roles = Object.freeze({ ...discord.roles, observe: async userId => {
+      if (left-- > 0) throw new ContractError('OBSERVATION_INVALIDATED');
+      return discord.roles.observe(userId);
+    } });
+    return createOnboardingCommands({ authorization, discord: roles, channels: discord.channels, store, enabled: () => healthy,
+      definitionId: definition.id, limits, pause: async () => {} });
+  };
+  const signedClick = (screen, action) => verified(controlPayload(screen, action));
+
+  await scenario('V21 a click overtaken by Gateway traffic is tried again and records once', async () => {
+    const screen = await open();
+    assert.equal(await overtaken(2).execute(signedClick(screen, 'advance')), 'shuttle_progress_recorded');
+    assert.equal((await session()).stepIndex, 1); await drain(screens);
+    assert.equal((await currentScreen()).part_generation, 1);
+  });
+
+  await scenario('V22 a click still overtaken asks the member to try again and its card is drawn again without Discord reads', async () => {
+    const screen = await open(), edits = messageWrites('PATCH').length;
+    assert.equal(await overtaken(99).execute(signedClick(screen, 'advance')), 'shuttle_retry');
+    assert.equal((await session()).stepIndex, 0);
+    const nav = (await parts()).find(part => part.kind === 'nav' && part.message_id === screen.nav_message_id);
+    assert.equal(nav.rendered_sha256, null);
+    assert.ok((await rows('outbox')).some(job => job.kind === 'shuttle.render' && job.operation_id.startsWith('screen.restore.')));
+    await drain(screens);
+    // The card is rewritten in place (it may have been showing "Opening…"); the step and its progress are unchanged.
+    assert.equal(messageWrites('PATCH').length, edits + 1);
+    const shown = await group(); assert.equal(shown.nav.id, screen.nav_message_id);
+    assert.ok(shown.nav.components[0].components.some(button => !button.disabled));
+    assert.equal(await click(await currentScreen(), 'advance'), 'shuttle_progress_recorded');
+    // A release for someone else's card, an old card or a non-opening action queues nothing.
+    const released = await store.releaseOnboardingControl({ guildId: GUILD, userId: OTHER, interactionId: nextId(), action: 'advance',
+      screenId: screen.id, channelId: screen.channel_id, messageId: screen.nav_message_id });
+    assert.equal(released.restored, false);
+    assert.equal((await store.releaseOnboardingControl({ guildId: GUILD, userId: USER, interactionId: nextId(), action: 'help',
+      screenId: screen.id, channelId: screen.channel_id, messageId: screen.nav_message_id })).restored, false);
+  });
+
+  await scenario('V23 the first page is drawn as soon as its channel opens, not after its back-off', async () => {
+    assert.equal(await entry(), 'shuttle_recorded');
+    assert.equal((await screens.runOnce('before-channel')).status, 'retry_scheduled');
+    const waiting = (await rows('outbox')).find(job => job.kind === 'shuttle.render');
+    assert.ok(waiting.available_at > new Date() && waiting.attempts === 1);
+    await drain(cases);
+    const woken = (await rows('outbox')).find(job => job.kind === 'shuttle.render');
+    assert.ok(woken.available_at <= new Date()); assert.equal(woken.attempts, 0);
+    await drain(screens);
+    assert.equal((await currentScreen()).ready, true);
   });
 }

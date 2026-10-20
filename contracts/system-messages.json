@@ -414,6 +414,12 @@
     "max": 1800
   },
   {
+    "id": "reply.onboarding_retry",
+    "group": "Onboarding",
+    "source": "Discord was busy and that didn’t go through. Please try again in a moment.",
+    "max": 1800
+  },
+  {
     "id": "onboarding.ended.title",
     "group": "Onboarding",
     "source": "The Shuttle",

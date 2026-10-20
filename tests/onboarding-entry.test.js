@@ -56,3 +56,46 @@ test('starting Whitelist before any guide is published says so instead of sendin
   assert.equal(await commands('DEFINITION_NOT_FOUND').execute(start), 'shuttle_unpublished');
   assert.equal(await commands('DEFINITION_WITHDRAWN').execute(start), 'shuttle_review');
 });
+
+test('a Shuttle command overtaken by Gateway traffic or a short cooldown is tried again, then asks the member to retry', async () => {
+  const { ContractError } = await import('../contracts/validation.js');
+  const limits = { memberOpen: 1, guildPending: 1, cooldownMs: 1_000 };
+  const build = (failures, store = {}) => {
+    const traces = [], pauses = [], calls = { restore: 0, release: [] };
+    const commands = createOnboardingCommands({ definitionId: definition.id, limits, enabled: () => true,
+      trace: code => traces.push(code), pause: async ms => { pauses.push(ms); },
+      authorization: { resolveActor: async () => ({ guildId: GUILD, userId: USER }) },
+      discord: { guildId: GUILD, observe: async () => { const next = failures.shift(); if (next) throw next; return {}; } },
+      channels: { inspect: async () => ({}) },
+      store: { describeOnboardingEntryChannel: async () => null, openOnboarding: async () => {},
+        describeOnboardingControl: async () => ({ plan: {} }), actOnOnboarding: async () => {},
+        restoreOnboardingControl: async () => { calls.restore++; throw new ContractError('OBSERVATION_INVALIDATED'); },
+        releaseOnboardingControl: async value => { calls.release.push(value); return { restored: true }; }, ...store } });
+    return { commands, traces, pauses, calls };
+  };
+  const start = { command: 'shuttle.start', guildId: GUILD, userId: USER, targetId: USER, interactionId: '1' };
+  const click = { command: 'shuttle.control', action: 'advance', guildId: GUILD, userId: USER, targetId: USER, interactionId: '2',
+    screenId: 'a'.repeat(32), channelId: OTHER, messageId: OTHER, controlVersion: 0 };
+  // One overtaken read and one short cooldown: the command still records, waiting at most the reported cooldown.
+  const busy = Object.assign(new Error('RATE_LIMITED'), { code: 'RATE_LIMITED', retryAfterMs: 700 });
+  const retried = build([new ContractError('OBSERVATION_INVALIDATED'), busy]);
+  assert.equal(await retried.commands.execute(click), 'shuttle_progress_recorded');
+  assert.deepEqual(retried.pauses, [150, 700]);
+  assert.deepEqual(retried.traces, ['SHUTTLE_COMMAND_RETRIED_OBSERVATION_INVALIDATED', 'SHUTTLE_COMMAND_RETRIED_RATE_LIMITED']);
+  assert.equal(retried.calls.release.length, 0);
+  // Still overtaken after every retry: the member is asked to try again, and the card is queued to be drawn again
+  // without reading Discord once the normal restore cannot.
+  const exhausted = build(Array.from({ length: 8 }, () => new ContractError('OBSERVATION_INVALIDATED')));
+  assert.equal(await exhausted.commands.execute(click), 'shuttle_retry');
+  assert.deepEqual(exhausted.pauses, [150, 400, 1_000]);
+  assert.equal(exhausted.traces.at(-1), 'SHUTTLE_COMMAND_FAILED_OBSERVATION_INVALIDATED');
+  assert.deepEqual(exhausted.calls.release, [{ guildId: GUILD, userId: USER, interactionId: '2', action: 'advance',
+    screenId: click.screenId, channelId: OTHER, messageId: OTHER }]);
+  // A start is retried the same way; a denial or an out-of-date card is final at once.
+  assert.equal(await build([new ContractError('OBSERVATION_UNAVAILABLE')]).commands.execute(start), 'shuttle_recorded');
+  const denied = build([], { actOnOnboarding: async () => { throw new ContractError('STALE_SHUTTLE_CONTROL'); } });
+  assert.equal(await denied.commands.execute(click), 'shuttle_stale'); assert.deepEqual(denied.pauses, []);
+  // A failure a retry cannot fix keeps the general reply; its code reaches the operator's trace.
+  const odd = build([], { openOnboarding: async () => { throw new ContractError('SOMETHING_NEW'); } });
+  assert.equal(await odd.commands.execute(start), 'unavailable'); assert.deepEqual(odd.traces, ['SHUTTLE_COMMAND_FAILED_SOMETHING_NEW']);
+});

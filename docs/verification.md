@@ -1,5 +1,43 @@
 # Verification and release limits
 
+## Shuttle clicks overtaken by Gateway traffic — 20 October 2026 (prepared, not yet installed)
+
+Reported on staging 20bd3e7: `/whitelist start` and the new channel were slow, and the first Continue answered "We
+couldn’t confirm that request. Please ask Staff…". Trace `SHUTTLE_COMMAND_UNAVAILABLE_952MS`. No render or restore job
+was queued afterwards, so the card stayed on "Opening…".
+
+Cause, from code and the staging rows (the exact error code was not logged; the new traces record it):
+- **Click failure:** member reads are checked against the Gateway continuity, which advances on every dispatch, and with
+  AI live that includes message events. The instant "Opening…" edit of the clicked card makes Discord send a
+  `MESSAGE_UPDATE` while the click's own reads are in flight. The render worker retries `OBSERVATION_INVALIDATED`; the
+  command path did not. The card restore reads Discord too, so it failed the same way. This regression came with the
+  "Opening…" change.
+- **Slow first page:** it was queued with the channel and failed "channel pending" until the channel existed. Each
+  failure was treated as Discord being unavailable (2 s, 4 s, 8 s back-off; the channel took 3 attempts), and nothing
+  woke it when the channel opened. The page appeared about 30 s after `/whitelist start`.
+
+Fix:
+- The Shuttle commands retry `OBSERVATION_INVALIDATED`, `OBSERVATION_UNAVAILABLE`, `MEMBERSHIP_STALE`, `DISCORD_BUSY`,
+  `RATE_LIMITED` and `DISCORD_UNAVAILABLE` up to three times (150, 400 and 1,000 ms, or the reported cooldown up to 2 s).
+  This is safe because opening a run and every Shuttle change are keyed by the interaction.
+- Still transient after the retries, the member is told to try again in a moment (`reply.onboarding_retry`), not sent
+  to Staff. Failures a retry cannot fix (for example Discord refusing access) keep the general reply.
+- A click that records nothing always puts its card back. If the normal restore cannot read Discord,
+  `releaseOnboardingControl` queues the member's own current card to be drawn again. It records nothing, grants nothing
+  and reads nothing from Discord; the render re-checks everything.
+- When a Shuttle channel opens, its waiting first page is made due at once with its attempts reset.
+- Traces now carry codes: `SHUTTLE_COMMAND_RETRIED_<code>`, `SHUTTLE_COMMAND_FAILED_<code>`,
+  `SHUTTLE_RENDER_<outcome>_<code>_…`, and the new `CASE_PROVISION_<outcome>[_<code>]_<ms>MS`.
+
+AI chatter on the same day was not a fault: the two messages were in the member's private Shuttle channel, which is a
+case channel, and were correctly skipped (`AI_ADMISSION_SKIPPED_CHANNEL_NOT_CONFIGURED`). AI is enabled only in channel
+1551010229339037738 (qualified, one consenting member). No AI change was made.
+
+**Offline evidence:** `npm test` 673 passed; repository check passed. Storage: the first full run passed 1004 and failed
+OC02, which correctly caught that Discord refusing access must not be worded as "busy"; the wording was narrowed.
+After that change the full run passed 1005, 0 failed (4 shards). New V21–V23: retry after overtaken reads; card release without Discord; first page drawn as soon as its channel opens.
+Not yet run: staging install and a live click-through.
+
 ## Staging install of 20bd3e7 — 20 October 2026 (installed 13:55 UTC, schema 072)
 
 Owner request "Session is now elevated. Go redeploy us, please." Pin `20bd3e7` on `staging/admission-trace` = the
