@@ -8,6 +8,10 @@ import { GUILD, USER, OTHER } from './domain.js';
 import { PUBLIC_CHANNEL } from './automation.js';
 
 /** Synthetic qualification only. Uses the disposable test database, never an installed worker or provider. */
+// The shortest member interval the configuration allows is 1 s; tests wait it out in real time (the qualified lane's
+// clock follows real elapsed time), so a short one keeps them quick.
+export const QUALIFIED_MEMBER_INTERVAL_MS = 1_500;
+
 export async function qualifiedGatewayAi({ cluster, configuration, discord, clock }) {
   const admin = cluster.adminPool, checked = new Map(), admissions = new Map(), calls = { knowledge: [], lookups: [], worker: [], qualification: 0 };
   let heldReply = null;
@@ -29,7 +33,7 @@ export async function qualifiedGatewayAi({ cluster, configuration, discord, cloc
     { id: '915', type: 0, parent_id: configuration.casePolicy.categoryId },
     { id: '916', type: 0, parent_id: configuration.casePolicy.categoryId, excluded: true },
   ];
-  const profile = { ...defaultParticipation('addressed'), typing: false };
+  const profile = { ...defaultParticipation('addressed'), typing: false, memberIntervalMs: QUALIFIED_MEMBER_INTERVAL_MS };
   const document = canonicalAiConfiguration({ schemaVersion: 1, enabled: true, deadlineMs: 15000,
     channels: channels.map(channel => ({ channelId: channel.id, profile })), emojis: [] });
   const character = canonicalPersonality(DRAFT_PERSONALITY), configurationHash = aiDigest(document), personalityHash = aiDigest(character);

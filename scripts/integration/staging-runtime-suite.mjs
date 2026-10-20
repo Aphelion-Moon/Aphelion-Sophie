@@ -14,7 +14,7 @@ import { GUILD, USER, OTHER, LEAD, STAFF } from '../../tests/fixtures/domain.js'
 import { CREW, MUZZLED, WHITELIST } from '../../tests/fixtures/discord.js';
 import { DASHBOARD_COOKIES } from '../../contracts/dashboard-auth.js';
 import { automationDocument, automationEvent, PUBLIC_CHANNEL, SECOND_CHANNEL } from '../../tests/fixtures/automation.js';
-import { qualifiedGatewayAi } from '../../tests/fixtures/ai-exclusion.js';
+import { qualifiedGatewayAi, QUALIFIED_MEMBER_INTERVAL_MS } from '../../tests/fixtures/ai-exclusion.js';
 import { exerciseExcludedCaseArtifacts, assertNoCaseSentinelsInAiStorage } from '../../tests/fixtures/ai-case-artifacts.js';
 import { createCaseFormStore } from '../../apps/core/storage/case-forms.js';
 import { syntheticCaseForm, syntheticCaseValues, intakeSubmitPayload } from '../../tests/fixtures/case-intake.js';
@@ -29,7 +29,7 @@ async function signedHttp(address, signed) {
   });
 }
 export async function runStagingRuntimeSuite(cluster, run) {
-  async function fixture({ helpPauses = false, dashboard = true, automaticWorkers = false, ready = true, answers = false, automation = false, automationIngress = false, unavailableAi = false, unavailableAiWorker = false, qualifiedAi = false, knowledgeOnly = false, knowledgeAdministration = null } = {}) {
+  async function fixture({ helpPauses = false, dashboard = true, automaticWorkers = false, ready = true, answers = false, automation = false, automationIngress = false, unavailableAi = false, unavailableAiWorker = false, qualifiedAi = false, knowledgeOnly = false, knowledgeAdministration = null, gatewayLeaseMs = 30_000 } = {}) {
     const f = await onboardingWorkflow(cluster, { helpPauses, extraCapabilities: { 'case.forms.publish': [LEAD],
       'member.mute': [STAFF, LEAD], 'member.unmute': [STAFF, LEAD], ...(answers ? { 'answers.publish': [STAFF] } : {}), ...(automation ? { 'automation.publish': [STAFF] } : {}) } });
     if (qualifiedAi) {
@@ -62,7 +62,7 @@ export async function runStagingRuntimeSuite(cluster, run) {
         aiWorker: { start: async () => { throw Error('AI_WORKER_UNAVAILABLE'); }, stop: async () => {}, current: async () => assert.fail('no AI ingestion'), generate: async () => assert.fail('no AI ingestion') },
         aiKnowledge: { lookup: async () => assert.fail('no AI ingestion'), current: async () => true, currentReferences: async () => true } } :
       knowledgeOnly ? { aiKnowledge: { lookup: async query => { assert.equal(query, 'synthetic topic'); return []; }, current: async () => true } } : {});
-    const createHost = () => createStagingRuntime({ configuration: config, pool: f.pool, ...ai,
+    const createHost = () => createStagingRuntime({ configuration: config, pool: f.pool, gatewayLeaseMs, ...ai,
       aiKnowledgeAdminFactory:knowledgeAdministration===null?null:()=>knowledgeAdministration,token: SYNTHETIC_GATEWAY_TOKEN,
       clientSecret: syntheticClientSecret, fetch, connect: peer.connect, clock, random: () => 0.25, onFault: value => faults.push(value) });
     let runtime = await createHost();
@@ -535,14 +535,14 @@ export async function runStagingRuntimeSuite(cluster, run) {
     await f.send(f.identities.payload());
     const before = (await f.rows('gateway_lifecycle'))[0];
     await f.runtime.stop();
-    // Honor the actual existing 30-second ownership lease; do not clear a database gate to pass.
-    await new Promise(resolve => setTimeout(resolve, 31_000));
+    // Honour the actual ownership lease (shortened to 5 s for this host); do not clear a database gate to pass.
+    await new Promise(resolve => setTimeout(resolve, 5_500));
     await f.restart();
     assert.ok(f.peer.connections[1].received.some(packet => packet.op === 6 && packet.sequence === Number(before.sequence)));
     for (let index = 0; index < 4; index++) await f.runtime.runOnce();
     assert.ok(f.discord.state.members.get(USER).includes(MUZZLED));
     assert.ok((await f.rows('gateway_lifecycle'))[0].fence > before.fence); assert.deepEqual(f.faults, []);
-  }, { dashboard: false });
+  }, { dashboard: false, gatewayLeaseMs: 5_000 });
   await scenario('RT14 an observed maintenance barrier disables the existing host until an explicit restart', async f => {
     const operationId='a'.repeat(64);
     await f.admin.query(`INSERT INTO sophie_control.maintenance_operations
@@ -679,7 +679,7 @@ export async function runStagingRuntimeSuite(cluster, run) {
     // Expire the member interval before the negative probes. A recent public
     // request must not supply an unrelated quota reason to reject a sentinel.
     const intervalStart = f.clock.now;
-    await waitForGateway(() => f.clock.now - intervalStart >= 15000, 20000);
+    await waitForGateway(() => f.clock.now - intervalStart >= QUALIFIED_MEMBER_INTERVAL_MS, QUALIFIED_MEMBER_INTERVAL_MS + 5000);
     const excludedIds = [];
     for (const channel of channels.filter(value => value.id !== PUBLIC_CHANNEL)) {
       excludedIds.push(await sendMessage(channel.id, `EXCLUDED_SENTINEL_${channel.id}`));
@@ -694,7 +694,7 @@ export async function runStagingRuntimeSuite(cluster, run) {
     const secondPublicId = await sendMessage(PUBLIC_CHANNEL, 'public beacon');
     await waitForGateway(async () => (await cluster.adminPool.query('SELECT state FROM sophie_ai.request_receipts WHERE guild_id=$1 AND message_id=$2', [GUILD, secondPublicId])).rows[0]?.state === 'silent');
     const secondIntervalStart = f.clock.now;
-    await waitForGateway(() => f.clock.now - secondIntervalStart >= 15000, 20000);
+    await waitForGateway(() => f.clock.now - secondIntervalStart >= QUALIFIED_MEMBER_INTERVAL_MS, QUALIFIED_MEMBER_INTERVAL_MS + 5000);
     const held = f.aiProbe.holdNextReply(); let lateId;
     const writesBeforeRestriction = f.discord.state.calls.filter(call => call.method !== 'GET').length;
     try {

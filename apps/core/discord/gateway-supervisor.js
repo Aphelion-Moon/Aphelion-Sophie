@@ -5,8 +5,9 @@ import { gatewayClosePolicy, gatewayDiscovery, gatewayWireUrl, parseGatewayFrame
  * start() lives until stop or failure. Callers own that promise and must await shutdown.
  * enabled is a synchronous operator/recovery gate, independent of Gateway health.
  */
+// renewMs: how often the Gateway ownership lease is renewed; a third of the journal's lease (10 s of 30 s by default).
 export function createGatewaySupervisor({ observer, transport, connect, token, clock, random, enabled,
-  timers = { setTimeout, clearTimeout } }) {
+  timers = { setTimeout, clearTimeout }, renewMs = 10_000 }) {
   requireCondition(typeof token === 'string' && token.length >= 20 && token.length <= 2_000 && !/\s/.test(token), 'DISCORD_TOKEN_REQUIRED');
   const intents = observer.intents ?? 3;
   requireCondition([3, 33283].includes(intents), 'GATEWAY_INTENTS_INVALID');
@@ -18,6 +19,7 @@ export function createGatewaySupervisor({ observer, transport, connect, token, c
   let wake = null, renewalTimer = null, renewalWork = Promise.resolve();
   const permitted = () => running && enabled() === true;
   function jitter() { const value = random(); requireCondition(Number.isFinite(value) && value >= 0 && value < 1, 'GATEWAY_RANDOM_INVALID'); return value; }
+  requireInteger(renewMs, 1_000, 100_000);
   function now() { const value = clock(); requireInteger(value); return value; }
   const snapshot = () => ({ phase, code, failures });
   const pauseReason = reason => reason === 'GATEWAY_HEARTBEAT_MISSED' ? 'HEARTBEAT_MISSED' :
@@ -45,7 +47,7 @@ export function createGatewaySupervisor({ observer, transport, connect, token, c
         } catch { halt('GATEWAY_LEASE_UNAVAILABLE'); }
         if (running) renewLater();
       })().catch(() => { halt('GATEWAY_SUPERVISOR_FAILED'); });
-    }, 10_000);
+    }, renewMs);
   }
 
   function session({ connection, resume, url, discoveredAt }) {

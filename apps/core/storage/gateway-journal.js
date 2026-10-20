@@ -14,8 +14,10 @@ export const gatewayMappingHash = mapping => createHash('sha256').update(JSON.st
   mapping.muzzled,mapping.whitelist,mapping.staff,mapping.leadOps,[...mapping.externallyOwnedRoleIds].sort()])).digest('hex');
 
 /** Ordered metadata/revocations and a separate optional core case-content sink share one cursor commit. */
-export function createGatewayJournal({ pool, mapping, clock, caseCapture = null, automation = null }) {
+// leaseMs: how long Gateway ownership outlives its last renewal (30 s in every deployment; tests may shorten it).
+export function createGatewayJournal({ pool, mapping, clock, caseCapture = null, automation = null, leaseMs = 30_000 }) {
   validateRoleMapping(mapping); requireCondition(typeof clock === 'function', 'TRUSTED_ADAPTERS_REQUIRED');
+  requireInteger(leaseMs, 3_000, 300_000);
   requireCondition(caseCapture === null || (caseCapture.guildId === mapping.guildId &&
     ['prepare', 'inspect', 'content', 'discard'].every(key => typeof caseCapture[key] === 'function')), 'TRUSTED_ADAPTERS_REQUIRED');
   requireCondition(automation === null || (automation.guildId === mapping.guildId &&
@@ -74,9 +76,9 @@ export function createGatewayJournal({ pool, mapping, clock, caseCapture = null,
         await recordCaseCaptureGap(client, { guildId: fixed.guildId, from: row.capture_observed_at_ms === null ? null : Number(row.capture_observed_at_ms),
           reason: caseCapture === null ? 'capture-disabled' : 'gateway-owner-acquired' });
         await client.query(`UPDATE sophie_core.gateway_lifecycle SET lease_owner = $2, fence = $3,
-          lease_until = clock_timestamp() + interval '30 seconds', status = 'offline', capture_enabled = $4, automation_enabled = $6,
+          lease_until = clock_timestamp() + $7 * interval '1 millisecond', status = 'offline', capture_enabled = $4, automation_enabled = $6,
           session_id = CASE WHEN $5 THEN NULL ELSE session_id END, resume_url = CASE WHEN $5 THEN NULL ELSE resume_url END,
-          sequence = CASE WHEN $5 THEN NULL ELSE sequence END WHERE guild_id = $1`, [fixed.guildId, owner, fence, caseCapture !== null, changedCapture, automation !== null]);
+          sequence = CASE WHEN $5 THEN NULL ELSE sequence END WHERE guild_id = $1`, [fixed.guildId, owner, fence, caseCapture !== null, changedCapture, automation !== null, leaseMs]);
         let resume = null;
         if (row.session_id !== null && !changedCapture) {
           validateGatewaySession(row.session_id); validateGatewayUrl(row.resume_url); requireInteger(Number(row.sequence));
@@ -88,8 +90,8 @@ export function createGatewayJournal({ pool, mapping, clock, caseCapture = null,
     async renew(lease) {
       return inTransaction(pool, async client => {
         await locked(client, lease);
-        const result = await client.query(`UPDATE sophie_core.gateway_lifecycle SET lease_until = clock_timestamp() + interval '30 seconds'
-          WHERE guild_id = $1 AND lease_until > clock_timestamp()`, [fixed.guildId]);
+        const result = await client.query(`UPDATE sophie_core.gateway_lifecycle SET lease_until = clock_timestamp() + $2 * interval '1 millisecond'
+          WHERE guild_id = $1 AND lease_until > clock_timestamp()`, [fixed.guildId, leaseMs]);
         requireCondition(result.rowCount === 1, 'GATEWAY_LEASE_LOST');
       });
     },
