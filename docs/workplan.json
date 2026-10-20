@@ -1,6 +1,6 @@
 {
   "schema_version": 2,
-  "revision": "2026-10-20-fast-storage-tests",
+  "revision": "2026-10-20-staging-25b8085",
   "reference_plan_version": "1.1",
   "source": "Sophie-Implementation-Plans-v1.1/backlog.json",
   "owner_decisions": "docs/decisions/0001-owner-policy.md",
@@ -1379,7 +1379,7 @@
   ],
   "checkpoint": {
     "summary": "Deterministic administration, Whitelist onboarding, protected editors, role/permission configuration and the configurable staging host are implemented.",
-    "recorded_baseline": "Pinned 67c1f4a/schema072 (release sophie-mistral-67c1f4a, the runtime paths of f92272a, branch staging/admission-trace) installed 20 October 15:47 UTC as a source-only update of 334fd97 (14:57 UTC), itself on 20bd3e7 (installed 13:55 UTC with migrations 071-072, replacing 38e4f3a/schema070), with the owner-accepted Mistral processing policy unchanged, Go live in force and a 32 KB prompt budget. Hosting after the d8fb0e5 conversion: core and the AI worker are ordinary Manual services with trust v2 (no expiry); the supervisor is Disabled. Cold recovery point D:\\Backups\\sophie-staging\\schema072-20bd3e7-20261020.",
+    "recorded_baseline": "Pinned 25b8085/schema072 (release sophie-mistral-25b8085, the runtime paths of 5fc8442, branch staging/admission-trace) installed 20 October 17:05 UTC as a source-only update of 67c1f4a (15:47 UTC), 334fd97 (14:57 UTC), itself on 20bd3e7 (installed 13:55 UTC with migrations 071-072, replacing 38e4f3a/schema070), with the owner-accepted Mistral processing policy unchanged, Go live in force and a 32 KB prompt budget. Hosting after the d8fb0e5 conversion: core and the AI worker are ordinary Manual services with trust v2 (no expiry); the supervisor is Disabled. Cold recovery point D:\\Backups\\sophie-staging\\schema072-20bd3e7-20261020.",
     "current_work": "Shuttle message groups, faster page turns and no Staff intervention (owner-approved 20 October): status card, plain step messages and a navigation card; instant \"Opening…\" feedback; Ask Staff removed; shared rate limits, delivery wake-up, boundary-scoped observation sharing and response-confirmed writes; migration 071. Prepared on codex/sophie-social-ai; not yet installed. Open: staging install and live walk-through with timing comparison; Mistral zero data retention; fresh-session join-time consent test; worker denial qualification; production.",
     "evidence_note": "At 88359f6: npm test 643 passed; storage fast 957 passed with the three known order-dependent failures (J01, U08, S17). Conversion prepared and checked read-only in GitHub/.agent_docs/aphelion-sophie/deployment-d8fb0e5-2026-10-12/ (prepare.mjs passed, setup -WhatIf on WUFF); not yet installed. Details: docs/verification.md."
   },
@@ -2957,8 +2957,8 @@
         "P16"
       ],
       "implemented": "Owner reports on 67c1f4a: about 20 s to open a Whitelist ticket, and a step message that seemed not to delete before the next step. Discord's own delete events show the order was right, but the deletes were spread over 7 s by OBSERVATION_UNAVAILABLE retries; channel creation and the first page also failed on OBSERVATION_OUT_OF_ORDER and re-reads. A boundary read now waits up to 750 ms for dispatches already received to be recorded; an older membership observation that agrees with the stored one is kept; render and channel claims re-read overtaken observations within the claim; a first page whose channel is pending waits without reading Discord and is made due when the channel opens.",
-      "evidence": "Offline: npm test 674 passed; repository check passed; storage 1007 passed, 0 failed (4 shards, 835 s).",
-      "remaining": "Operator-approved staging install; timed walk-through of ticket opening and page turns."
+      "evidence": "Offline: npm test 674 passed; repository check passed; storage 1007 passed, 0 failed (4 shards, 835 s). Installed on staging 20 October 17:05 UTC as pin 25b8085 (source-only; prepare, pre-start, boundaries, installed and dashboard checks passed first time).",
+      "remaining": "Timed live walk-through of ticket opening and page turns on staging."
     },
     {
       "title": "Faster isolated database tests",

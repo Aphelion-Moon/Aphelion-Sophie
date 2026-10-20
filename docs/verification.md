@@ -35,7 +35,7 @@ IDs reused by different suites (`CA01`–`CA13`, `PA01`–`PA10`, …).
 - `node scripts/test-storage.mjs --order=reverse`: 1007 passed, 0 failed, 3 min 29 s.
 - Forward serial `node scripts/test-storage.mjs`: 1007 passed, 0 failed, 3 min 39 s (about 20 minutes before).
 
-## Slow ticket opening and lingering step messages — 20 October 2026 (prepared, not yet installed)
+## Slow ticket opening and lingering step messages — 20 October 2026 (installed 17:05 UTC as `25b8085`)
 
 Owner reports on `67c1f4a`: "It still takes like 20s to open a whitelist ticket", and "a message did not delete before
 the next step's messages were sent". The new trace codes showed:
@@ -67,8 +67,14 @@ Fix:
   makes it due at once. The reservation row is locked, so an opening that commits concurrently is never missed.
 
 **Offline evidence:** `npm test` 674 passed (new agreeing-observation check); repository check passed; storage (4 shards)
-1007 passed, 0 failed in 835 s (V23 now asserts the first page waits with no Discord call). Not yet run: staging install
-and a timed walk-through.
+1007 passed, 0 failed in 835 s (V23 now asserts the first page waits with no Discord call).
+
+**Staging install:** owner: "Build and run the staging install." Pin `25b8085` = the runtime paths of `5fc8442` on
+`67c1f4a` (this fix plus the configurable Gateway lease, which every deployment keeps at 30 s); release
+`sophie-mistral-25b8085`, schema 072 unchanged; folder `deployment-25b8085-2026-10-20`, source-only (10 files).
+Prepare (505 pinned and 505 installed files verified), pre-start, service boundaries, installed and dashboard checks all
+passed on the first run; core logged no fault after the restart. Not yet run: a timed walk-through of ticket opening and
+page turns.
 
 ## Shuttle lag, stutter and stale cards — 20 October 2026 (installed 15:47 UTC as `67c1f4a`)
 
