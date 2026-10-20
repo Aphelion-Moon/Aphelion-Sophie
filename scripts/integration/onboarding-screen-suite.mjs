@@ -417,11 +417,13 @@ export async function runOnboardingScreenSuite(cluster, run) {
       screenId: screen.id, channelId: screen.channel_id, messageId: screen.nav_message_id })).restored, false);
   });
 
-  await scenario('V23 the first page is drawn as soon as its channel opens, not after its back-off', async () => {
+  await scenario('V23 the first page waits for its channel without reading Discord and is drawn as soon as it opens', async () => {
     assert.equal(await entry(), 'shuttle_recorded');
-    assert.equal((await screens.runOnce('before-channel')).status, 'retry_scheduled');
+    const calls = discord.state.calls.length;
+    assert.equal((await screens.runOnce('before-channel')).status, 'waiting_for_channel');
+    assert.equal(discord.state.calls.length, calls);
     const waiting = (await rows('outbox')).find(job => job.kind === 'shuttle.render');
-    assert.ok(waiting.available_at > new Date() && waiting.attempts === 1);
+    assert.ok(waiting.available_at > new Date(Date.now() + 20_000) && waiting.attempts === 0 && waiting.status === 'ready');
     await drain(cases);
     const woken = (await rows('outbox')).find(job => job.kind === 'shuttle.render');
     assert.ok(woken.available_at <= new Date()); assert.equal(woken.attempts, 0);

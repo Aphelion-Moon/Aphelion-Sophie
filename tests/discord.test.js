@@ -164,7 +164,7 @@ test('T18 Shuttle render diagnostics are fixed codes with outcome, time, request
   const dispatcher = createOnboardingDispatcher({ enabled: async () => true, trace: code => traces.push(code), requestCount: () => count,
     outbox: { claim: async () => ({ claim: { guildId: GUILD, operationId: 'synthetic-op', owner: 'worker', fence: 1 }, userId: USER, kind: 'shuttle.render', parked: false, waitedMs: 1_234 }),
       requireDeliveryReady: async () => {}, renew: async () => {} },
-    store: { settleWatchedOnboardingRender: async () => false, inspectOnboardingRender: async () => { count += 2; return { settled: true, current: true }; } },
+    store: { settleWatchedOnboardingRender: async () => false, deferOnboardingRenderUntilCase: async () => false, inspectOnboardingRender: async () => { count += 2; return { settled: true, current: true }; } },
     roles: { guildId: GUILD, prepare: async () => ({ observation: {} }) }, messages: { guildId: GUILD } });
   assert.deepEqual(await dispatcher.runOnce('worker'), { status: 'settled', current: true });
   assert.equal(traces.length, 1);

@@ -12,6 +12,15 @@ export function createCaseDispatcher({ outbox, store, roles, channels, enabled, 
     await outbox.requireDeliveryReady(claim);
     await outbox.renew(claim);
   }
+  // Reads overtaken by the Gateway (this bot's own channel and permission changes make dispatches too) are read again
+  // within the claim, up to three times, before the claim is given back.
+  async function observed(work) {
+    for (let attempt = 1; ; attempt++) {
+      try { return await work(); } catch (error) {
+        if (!['OBSERVATION_INVALIDATED', 'OBSERVATION_UNAVAILABLE', 'OBSERVATION_OUT_OF_ORDER'].includes(error?.code) || attempt >= 3) throw error;
+      }
+    }
+  }
   // Fixed diagnostic codes only: the outcome and whole milliseconds. No IDs or channel names.
   function note(result, startedAt) {
     try {
@@ -35,7 +44,7 @@ export function createCaseDispatcher({ outbox, store, roles, channels, enabled, 
       try {
         requireCondition(claim.guildId === channels.guildId && claim.guildId === roles.guildId, 'CASE_CONFIGURATION_INVALID');
         await ready(claim);
-        const current = await store.inspectCaseProvision({ claim, observation: await roles.observe(job.userId) });
+        const current = await observed(async () => store.inspectCaseProvision({ claim, observation: await roles.observe(job.userId) }));
         if (current.settled) return { status: 'settled', code: current.reason };
         const { plan } = current;
         if (current.retiring) {
@@ -114,14 +123,16 @@ export function createCaseDispatcher({ outbox, store, roles, channels, enabled, 
           await channels.setAudience(preparation, proof, plan, access.mode);
         }
         await ready(claim);
-        const after = await channels.inspect(plan, channelId);
-        const afterOthers = [];
-        if (candidates.ids.length > 1) {
-          const observed = await channels.find(plan);
-          for (const candidate of observed) await store.noteCaseChannel({ claim, proof: candidate });
-          for (const id of candidates.ids.filter(id => id !== channelId)) afterOthers.push(observed.find(item => item.channelId === id) ?? await channels.inspect(plan, id));
-        }
-        const confirmed = await store.confirmCaseProvision({ claim, proof: after, otherProofs: afterOthers, observation: await roles.observe(job.userId) });
+        const confirmed = await observed(async () => {
+          const after = await channels.inspect(plan, channelId);
+          const afterOthers = [];
+          if (candidates.ids.length > 1) {
+            const found = await channels.find(plan);
+            for (const candidate of found) await store.noteCaseChannel({ claim, proof: candidate });
+            for (const id of candidates.ids.filter(id => id !== channelId)) afterOthers.push(found.find(item => item.channelId === id) ?? await channels.inspect(plan, id));
+          }
+          return store.confirmCaseProvision({ claim, proof: after, otherProofs: afterOthers, observation: await roles.observe(job.userId) });
+        });
         if (!confirmed.settled) {
           await outbox.continue(claim);
           return { status: 'progressed' };

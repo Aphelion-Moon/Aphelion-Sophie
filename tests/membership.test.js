@@ -70,6 +70,9 @@ test('T20 unknown, old and out-of-order observations cannot erase known roles', 
   assert.throws(() => observeMembership(current, observation({ observedAt: NOW - 6_000 }), NOW), { code: 'MEMBERSHIP_STALE' });
   assert.throws(() => observeMembership(current, observation({ observedAt: NOW - 1 }), NOW), { code: 'OBSERVATION_OUT_OF_ORDER' });
   assert.equal(current.observation.whitelist, true);
+  // An older observation that agrees with the stored one (concurrent lanes, shared reads) changes nothing and is kept.
+  const agreeing = observeMembership(current, { ...current.observation, observedAt: current.observation.observedAt - 1 }, NOW);
+  assert.deepEqual(agreeing, current);
 });
 
 test('T53 stale moderator writes and foreign membership observations are rejected', () => {

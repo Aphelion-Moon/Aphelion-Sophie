@@ -1,5 +1,40 @@
 # Verification and release limits
 
+## Slow ticket opening and lingering step messages — 20 October 2026 (prepared, not yet installed)
+
+Owner reports on `67c1f4a`: "It still takes like 20s to open a whitelist ticket", and "a message did not delete before
+the next step's messages were sent". The new trace codes showed:
+- **Channel creation** needed three claims: `OBSERVATION_OUT_OF_ORDER`, then `OBSERVATION_INVALIDATED` after its own
+  permission changes moved the authority boundary.
+- **The first page** was claimed again and again while the channel was pending, reading Discord each time and holding the
+  member's lease against the channel's job. After that it hit `OBSERVATION_OUT_OF_ORDER`, `DELIVERY_UNCERTAIN` (one
+  7-second attempt) and `OBSERVATION_UNAVAILABLE`.
+- **Page turns** retried on `OBSERVATION_UNAVAILABLE`. Discord's own delete events (capture ledger) show the order was
+  correct: all four messages of the old step were deleted before the first new one was posted. But the deletes were
+  spread over 7 s (15:56:31.9, 33.2, 36.1, 38.6), and the new step followed 0.5 s after the last, so the step's top
+  message lingered.
+
+Causes:
+- The authority boundary is deliberately absent while a received dispatch is still being recorded. Every post, edit or
+  delete of this bot's own messages makes one, so the next check failed instead of waiting a moment.
+- A shared delivery read keeps its original time. Membership refused it outright when a newer observation (for example
+  from the click lane) had already been stored, even when both agreed.
+- Render and channel claims re-read only `OBSERVATION_INVALIDATED` within the claim.
+
+Fix:
+- A boundary read waits up to 750 ms for dispatches already received to be recorded. If one of them was an authority
+  change, the boundary still moves and the check is still voided.
+- An older membership observation that agrees with the stored newer one is kept without change, as the actor authority
+  store already does. One that disagrees is still refused and read again.
+- Render and channel claims re-read overtaken, unavailable and out-of-order observations within the claim (three times).
+  The channel claim does so for its inspection and its final confirmation.
+- A first page whose channel is still pending steps aside without reading Discord (30 s fallback). Opening the channel
+  makes it due at once. The reservation row is locked, so an opening that commits concurrently is never missed.
+
+**Offline evidence:** `npm test` 674 passed (new agreeing-observation check); repository check passed; storage (4 shards)
+1007 passed, 0 failed in 835 s (V23 now asserts the first page waits with no Discord call). Not yet run: staging install
+and a timed walk-through.
+
 ## Shuttle lag, stutter and stale cards — 20 October 2026 (installed 15:47 UTC as `67c1f4a`)
 
 Owner report after a full walk-through on `334fd97`: "significant lag and stutter throughout navigating the pages", and a

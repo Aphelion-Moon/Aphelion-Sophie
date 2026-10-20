@@ -1,6 +1,6 @@
 {
   "schema_version": 2,
-  "revision": "2026-10-20-staging-67c1f4a",
+  "revision": "2026-10-20-shuttle-settle",
   "reference_plan_version": "1.1",
   "source": "Sophie-Implementation-Plans-v1.1/backlog.json",
   "owner_decisions": "docs/decisions/0001-owner-policy.md",
@@ -2949,6 +2949,16 @@
       "implemented": "After a full staging walk-through on 334fd97 (owner: \"significant lag and stutter\", and a stale card fixed only by /whitelist start), traces showed every click retried once after OBSERVATION_INVALIDATED (about 5 s) and render jobs needing 2-5 attempts; those retry traces exceeded the host's 64-character limit and were dropped. Role, member and channel observations are now checked against the authority boundary instead of the per-dispatch continuity (message reads keep the continuity; dashboard view reuse unchanged); delivery reads overtaken before any write retry after 250 ms; every Continue, Back or Check leaves a 20-second database watch that redraws its card unless it was replaced or put back, finishing without Discord calls when there is nothing to do; /whitelist start does not count a watch as its re-check; failure codes go on their own trace lines.",
       "evidence": "Offline: npm test 674 passed (new authority-boundary test); repository check passed; onboarding storage suites 97 passed (new V24, V25; V11 caught the watch suppressing the entry re-check). Full storage run 1007 passed, 0 failed (4 shards). Installed on staging 20 October 15:47 UTC as pin 67c1f4a (source-only; prepare, pre-start, boundaries, installed and dashboard checks passed first time).",
       "remaining": "Timed live walk-through on staging, compared with the 334fd97 run (about 5 s per click plus 2-5 s per render)."
+    },
+    {
+      "title": "Slow ticket opening and lingering step messages",
+      "tasks": [
+        "P14",
+        "P16"
+      ],
+      "implemented": "Owner reports on 67c1f4a: about 20 s to open a Whitelist ticket, and a step message that seemed not to delete before the next step. Discord's own delete events show the order was right, but the deletes were spread over 7 s by OBSERVATION_UNAVAILABLE retries; channel creation and the first page also failed on OBSERVATION_OUT_OF_ORDER and re-reads. A boundary read now waits up to 750 ms for dispatches already received to be recorded; an older membership observation that agrees with the stored one is kept; render and channel claims re-read overtaken observations within the claim; a first page whose channel is pending waits without reading Discord and is made due when the channel opens.",
+      "evidence": "Offline: npm test 674 passed; repository check passed; storage 1007 passed, 0 failed (4 shards, 835 s).",
+      "remaining": "Operator-approved staging install; timed walk-through of ticket opening and page turns."
     }
   ],
   "next_steps": [

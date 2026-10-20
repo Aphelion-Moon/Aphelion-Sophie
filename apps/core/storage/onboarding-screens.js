@@ -21,6 +21,8 @@ const NONCE_RETRY_MS = 60_000;
 export const ABANDON_UNCERTAIN_MS = 120_000;
 // How long after a click its card is checked: well beyond a click's retries (about 2 s) and its page render.
 export const OPENING_WATCH_MS = 20_000;
+// Fallback recheck for a first page waiting on its channel; opening the channel normally makes it due at once.
+export const CASE_WAIT_MS = 30_000;
 
 /**
  * Core-only metadata and deterministic controls. No case text input or generic endpoint.
@@ -261,6 +263,29 @@ export function createOnboardingScreenStore({ pool, clock, authorize, policy, ca
         await client.query(`UPDATE sophie_core.outbox SET available_at = clock_timestamp() + $3 * interval '1 millisecond'
           WHERE guild_id = $1 AND operation_id = $2 AND status = 'ready' AND attempts = 0`, [guildId, operationId, OPENING_WATCH_MS]);
         return { watched: true };
+      });
+    },
+    /**
+     * The first page is queued with its channel. Until the channel is open there is nothing to draw, so the render steps
+     * aside without reading Discord (and without holding the member's lease against the channel's own job). Opening
+     * the channel makes it due at once (confirmCaseProvision); CASE_WAIT_MS is only the fallback. The reservation row is
+     * locked, so an opening that commits concurrently is either seen here or wakes this job after it.
+     */
+    async deferOnboardingRenderUntilCase({ claim }) {
+      validateClaim(claim);
+      return inTransaction(pool, async client => {
+        const job = await lockClaim(client, claim);
+        if (job.kind !== 'shuttle.render') return false;
+        const state = (await client.query(`SELECT r.state FROM sophie_core.shuttle_screens v
+          JOIN sophie_core.shuttle_cases b ON b.session_id = v.session_id AND b.guild_id = v.guild_id AND b.user_id = v.user_id
+          JOIN sophie_core.case_reservations r ON r.id = b.case_id AND r.guild_id = b.guild_id AND r.user_id = b.user_id
+          WHERE v.id = $1 AND v.guild_id = $2 AND v.user_id = $3 AND v.current FOR SHARE OF r`,
+        [job.effect.screenId, claim.guildId, job.user_id])).rows[0]?.state;
+        if (state !== 'pending') return false;
+        await client.query(`UPDATE sophie_core.outbox SET status = 'ready', lease_owner = NULL, lease_until = NULL,
+          available_at = clock_timestamp() + $5 * interval '1 millisecond', attempts = GREATEST(attempts - 1, 0), last_error_code = 'SHUTTLE_CASE_PENDING'
+          WHERE guild_id = $1 AND operation_id = $2 AND lease_owner = $3 AND fence = $4`, [claim.guildId, claim.operationId, claim.owner, claim.fence, CASE_WAIT_MS]);
+        return true;
       });
     },
     /**
