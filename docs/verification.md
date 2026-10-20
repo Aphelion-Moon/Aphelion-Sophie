@@ -1,5 +1,23 @@
 # Verification and release limits
 
+## Staging install of 6c7de3b — 20 October 2026 (21:38 UTC, schema 073)
+
+Owner: "Merge it into main and redeploy Sophie so I can test it again." The Shuttle-category test branch was merged into
+`main` (6f1070a); the candidate is `main` at `6c7de3b`: artwork removed, Shuttle wording without Staff help,
+"<username>'s Shuttle" channels with an optional Shuttle category, and Sophie's own memories. Release
+`sophie-mistral-6c7de3b`; folder `deployment-6c7de3b-2026-10-20` (adapted from the 20bd3e7 schema update).
+
+- Prepare: 501 pinned and 505 installed files verified against Git; 71 changes, 8 removals (the artwork folder and
+  `contracts/brand-profile.js`); dependencies and provider profile unchanged.
+- Cold recovery point `D:\Backups\sophie-staging\schema073-6c7de3b-20261020`; 63 files written, 8 removed.
+- Migration 073 applied as the owner identity: 104 tables and 22,046 rows unchanged, both new tables empty; the AI
+  control identity got exactly the 7 documented grants. Core, control and knowledge identity checks passed.
+- Trust v2 renewed, journal unchanged, accepted processing policy byte-identical. Boundary, installation (501 source
+  files, 8 removals absent) and dashboard checks passed on the first run; all four services running.
+
+Automatic memory remains off: the installed policy has no `automaticMemory`. No Shuttle category is configured until
+the owner chooses one on the Permissions page.
+
 ## Sophie keeps her own memories — 20 October 2026
 
 Owner direction and choices in the decision log ("Sophie keeps her own memories"); design, notice draft and enabling
