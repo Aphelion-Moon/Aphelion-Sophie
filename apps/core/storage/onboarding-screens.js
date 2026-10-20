@@ -19,6 +19,8 @@ const NONCE_RETRY_MS = 60_000;
 // started is given up: a step message is posted again with its step, a status card starts a new run. Rarely, a member
 // may then see a duplicate message. Younger uncertain creates park and are rechecked automatically.
 export const ABANDON_UNCERTAIN_MS = 120_000;
+// How long after a click its card is checked: well beyond a click's retries (about 2 s) and its page render.
+export const OPENING_WATCH_MS = 20_000;
 
 /**
  * Core-only metadata and deterministic controls. No case text input or generic endpoint.
@@ -235,6 +237,48 @@ export function createOnboardingScreenStore({ pool, clock, authorize, policy, ca
         await enqueue(client, { kind: 'shuttle.render', operationId: `screen.restore.${screen.id}.${interactionId}`,
           guildId: member.guildId, userId: member.userId, screenId: screen.id });
         return { restored: true };
+      });
+    },
+    /**
+     * A Continue, Back or Check click has just turned its card into "Opening…" on Discord, so the recorded body of that
+     * card is no longer what Discord shows. This forgets it and queues a watch: OPENING_WATCH_MS later the card is drawn
+     * again unless it has been replaced (the click recorded a change) or redrawn (the click was put back) by then. It
+     * covers a click that never finishes, such as a restart in the middle. Database only; it records no progress.
+     */
+    async noteOnboardingOpening({ guildId, userId, interactionId, action, screenId, channelId, messageId }) {
+      requireId(guildId); requireId(userId); requireId(interactionId); requireId(channelId); requireId(messageId); requireScreenId(screenId);
+      if (!['advance', 'back', 'retry'].includes(action)) return { watched: false };
+      return inTransaction(pool, async client => {
+        const screen = (await client.query(`SELECT id, channel_id, current, part_generation FROM sophie_core.shuttle_screens
+          WHERE id = $1 AND guild_id = $2 AND user_id = $3 FOR UPDATE`, [screenId, guildId, userId])).rows[0];
+        if (!screen?.current || screen.channel_id !== channelId) return { watched: false };
+        const part = await client.query(`UPDATE sophie_core.shuttle_screen_parts SET rendered_sha256 = NULL
+          WHERE screen_id = $1 AND message_id = $2 AND kind = 'nav' AND NOT gone AND generation = $3`, [screen.id, messageId, screen.part_generation]);
+        if (!part.rowCount) return { watched: false };
+        const operationId = `screen.opened.${screen.id}.${interactionId}`;
+        await enqueue(client, { kind: 'shuttle.render', operationId, guildId, userId, screenId: screen.id,
+          watch: { messageId, generation: screen.part_generation } });
+        await client.query(`UPDATE sophie_core.outbox SET available_at = clock_timestamp() + $3 * interval '1 millisecond'
+          WHERE guild_id = $1 AND operation_id = $2 AND status = 'ready' AND attempts = 0`, [guildId, operationId, OPENING_WATCH_MS]);
+        return { watched: true };
+      });
+    },
+    /**
+     * A watch whose card was replaced or redrawn in the meantime has nothing to do: it is finished from the database
+     * alone, without reading Discord. Returns false for any other render, which proceeds as usual.
+     */
+    async settleWatchedOnboardingRender({ claim }) {
+      validateClaim(claim);
+      return inTransaction(pool, async client => {
+        const job = await lockClaim(client, claim);
+        const watch = job.kind === 'shuttle.render' ? job.effect?.watch : undefined;
+        if (!watch) return false;
+        const row = (await client.query(`SELECT s.current, s.part_generation, p.rendered_sha256 IS NOT NULL AS drawn, coalesce(p.gone, true) AS gone
+          FROM sophie_core.shuttle_screens s LEFT JOIN sophie_core.shuttle_screen_parts p ON p.screen_id = s.id AND p.message_id = $4 AND p.kind = 'nav'
+          WHERE s.id = $1 AND s.guild_id = $2 AND s.user_id = $3`, [job.effect.screenId, claim.guildId, job.user_id, watch.messageId])).rows[0];
+        if (row?.current && row.part_generation === watch.generation && !row.drawn && !row.gone) return false;
+        await finishClaim(client, claim, 'done');
+        return true;
       });
     },
     /**

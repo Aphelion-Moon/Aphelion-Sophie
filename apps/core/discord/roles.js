@@ -15,18 +15,23 @@ export const IDENTITY_SHARE_MS = 1_500;
 export const PREPARATION_SHARE_MS = 3_000;
 
 /** Projects HTTP responses immediately to role metadata; ignores nicknames and profiles. */
-export function createDiscordRoles({ transport, mapping, clock, readContinuity, readBoundary = null }) {
+export function createDiscordRoles({ transport, mapping, clock, readContinuity, readBoundary = null, readAuthority = null }) {
   validateRoleMapping(mapping);
   requireCondition(transport.guildId === mapping.guildId && typeof clock === 'function', 'FOREIGN_GUILD');
-  requireCondition(typeof readContinuity === 'function' && (readBoundary === null || typeof readBoundary === 'function'), 'CONTINUITY_ADAPTER_REQUIRED');
+  requireCondition(typeof readContinuity === 'function' && [readBoundary, readAuthority].every(read => read === null || typeof read === 'function'), 'CONTINUITY_ADAPTER_REQUIRED');
   const fixed = structuredClone(mapping);
   const contexts = new WeakMap();
   const mentionableRoles = new WeakMap();
   const stamp = async () => requireContinuityStamp(await readContinuity());
-  const same = async expected => requireCondition(await stamp() === expected, 'OBSERVATION_INVALIDATED');
+  // Role and member reads are overtaken by an authority change (a member, role, channel or guild event, or a reconnect;
+  // see the observer's readAuthorityBoundary), not by message traffic. With message events on, this bot's own posts and
+  // edits would otherwise overtake nearly every read made just after them. Without that adapter, the full continuity.
+  // Message reads elsewhere keep the full continuity (readContinuity below).
+  const authority = async () => requireContinuityStamp(await (readAuthority ?? readContinuity)());
+  const same = async expected => requireCondition(await authority() === expected, 'OBSERVATION_INVALIDATED');
   // The bot's own identity check carries no member authority, so observations and preparations made close together share one
-  // result. It never outlives IDENTITY_SHARE_MS and ends on any gateway dispatch, because the continuity stamp includes
-  // the gateway sequence. A failed check is never shared. Guild roles and member state are always read afresh.
+  // result. It never outlives IDENTITY_SHARE_MS and ends on any authority change (see `authority` below). A failed check
+  // is never shared. Guild roles and member state are always read afresh.
   let identity = null;
   // Opt-in for one Shuttle delivery that writes several messages in a row: its role and member reads may be re-used
   // while the Gateway records no member, authority, role, channel or guild change (the authority boundary) and for at
@@ -61,7 +66,7 @@ export function createDiscordRoles({ transport, mapping, clock, readContinuity, 
   }
   async function prepare(userId, { share = false } = {}) {
     requireId(userId); requireCondition(typeof share === 'boolean', 'INVALID_ROLE_CONTEXT');
-    const version = await stamp();
+    const version = await authority();
     let observedAt = clock(); requireInteger(observedAt);
     const now = observedAt, before = share ? await boundary() : null, kept = shared.get(userId);
     let reads = before !== null && kept?.boundary === before && now >= kept.observedAt && now - kept.observedAt <= PREPARATION_SHARE_MS ? kept : null;
@@ -107,7 +112,7 @@ export function createDiscordRoles({ transport, mapping, clock, readContinuity, 
   }
   async function observe(userId) {
     requireId(userId);
-    const version = await stamp();
+    const version = await authority();
     const startedAt = clock(); requireInteger(startedAt);
     const member = await transport.getMember(userId);
     const roles = member === null ? [] : memberRoles(member, userId);
@@ -122,6 +127,8 @@ export function createDiscordRoles({ transport, mapping, clock, readContinuity, 
     guildId: fixed.guildId,
     observe,
     readContinuity: stamp,
+    /** The stamp role and member observations are checked against; see `authority` above. */
+    readAuthority: authority,
     async assertCurrent(context) {
       requireCondition(contexts.has(context), 'UNTRUSTED_ROLE_CONTEXT');
       await same(contexts.get(context));
@@ -135,7 +142,7 @@ export function createDiscordRoles({ transport, mapping, clock, readContinuity, 
     },
     async observeActor(userId) {
       requireId(userId);
-      const version = await stamp();
+      const version = await authority();
       const observedAt = clock(); requireInteger(observedAt);
       await confirmIdentity(version);
       const guild = await patient(() => transport.getGuild());

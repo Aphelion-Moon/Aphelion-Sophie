@@ -164,7 +164,7 @@ test('T18 Shuttle render diagnostics are fixed codes with outcome, time, request
   const dispatcher = createOnboardingDispatcher({ enabled: async () => true, trace: code => traces.push(code), requestCount: () => count,
     outbox: { claim: async () => ({ claim: { guildId: GUILD, operationId: 'synthetic-op', owner: 'worker', fence: 1 }, userId: USER, kind: 'shuttle.render', parked: false, waitedMs: 1_234 }),
       requireDeliveryReady: async () => {}, renew: async () => {} },
-    store: { inspectOnboardingRender: async () => { count += 2; return { settled: true, current: true }; } },
+    store: { settleWatchedOnboardingRender: async () => false, inspectOnboardingRender: async () => { count += 2; return { settled: true, current: true }; } },
     roles: { guildId: GUILD, prepare: async () => ({ observation: {} }) }, messages: { guildId: GUILD } });
   assert.deepEqual(await dispatcher.runOnce('worker'), { status: 'settled', current: true });
   assert.equal(traces.length, 1);
@@ -231,4 +231,23 @@ test('T18 actor observations share only the bot identity check and always read m
   await assert.rejects(roles.observeActor(USER), /DISCORD_UNAVAILABLE/);
   await roles.observeActor(USER);
   assert.equal(identity(), 5, 'a failed identity check is never shared');
+});
+
+test('role observations follow the authority boundary when given one: message traffic no longer overtakes them, authority changes still do', async () => {
+  let continuity = 0, authority = 'boundary-1';
+  // Every read sees a new continuity stamp, as when message events (including this bot's own posts) arrive during it.
+  const rest = transportWith(async () => { continuity++; return response({ user: { id: USER }, roles: [CREW] }); });
+  const roles = createDiscordRoles({ transport: rest, mapping, clock: () => NOW, readContinuity: () => `continuity-${continuity}`, readAuthority: () => authority });
+  assert.equal((await roles.observe(USER)).crew, true);
+  assert.equal(await roles.readContinuity(), `continuity-${continuity}`); // Message reads keep the full continuity.
+  // A member, role, channel or guild change recorded during the read still invalidates it.
+  const changing = createDiscordRoles({ transport: transportWith(async () => { authority = 'boundary-2'; return response({ user: { id: USER }, roles: [CREW] }); }),
+    mapping, clock: () => NOW, readContinuity: () => 'stable', readAuthority: () => authority });
+  await assert.rejects(changing.observe(USER), /OBSERVATION_INVALIDATED/);
+  // While a dispatch is still being processed there is no boundary, and nothing is observed.
+  const pending = createDiscordRoles({ transport: rest, mapping, clock: () => NOW, readContinuity: () => 'stable', readAuthority: () => null });
+  await assert.rejects(pending.observe(USER), /OBSERVATION_UNAVAILABLE/);
+  // Without the adapter, the full continuity applies as before.
+  const legacy = createDiscordRoles({ transport: rest, mapping, clock: () => NOW, readContinuity: () => `continuity-${continuity}` });
+  await assert.rejects(legacy.observe(USER), /OBSERVATION_INVALIDATED/);
 });

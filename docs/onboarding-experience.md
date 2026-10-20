@@ -28,7 +28,12 @@ Pending and complete keep the last step's messages; only the cards change. A cli
 that records nothing puts its card back. A click whose member reads are overtaken by
 Gateway traffic or a short Discord cooldown is tried again up to three times; still
 transient, the member is asked to try again in a moment. If putting the card back
-cannot read Discord, the member's own card is queued to be drawn again. Ask Staff is no longer offered: its old
+cannot read Discord, the member's own card is queued to be drawn again. Every such
+click also leaves a 20-second watch on its card, so a click that never finishes (for
+example across a restart) cannot leave a card stuck on "Opening…"; the watch costs no
+Discord call when the card was already replaced or put back. Role, member and channel
+checks follow the authority boundary, so chat and Sophie's own posts no longer
+overtake them mid-click or mid-render. Ask Staff is no longer offered: its old
 buttons answer that they are out of date, and help requests, alerts and pauses
 recorded before that change are still handled.
 

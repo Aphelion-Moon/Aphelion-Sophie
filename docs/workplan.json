@@ -1,6 +1,6 @@
 {
   "schema_version": 2,
-  "revision": "2026-10-20-staging-334fd97",
+  "revision": "2026-10-20-shuttle-authority-boundary",
   "reference_plan_version": "1.1",
   "source": "Sophie-Implementation-Plans-v1.1/backlog.json",
   "owner_decisions": "docs/decisions/0001-owner-policy.md",
@@ -2939,6 +2939,16 @@
       "implemented": "Staging 20bd3e7 showed a slow /whitelist start and first page (about 30 s) and a first Continue answered \"We couldn’t confirm that request\" with its card left on \"Opening…\". Member reads are checked against Gateway continuity, which every dispatch advances; the instant \"Opening…\" edit produces a MESSAGE_UPDATE during the click's own reads, and the command path, unlike the render worker, did not retry. Shuttle commands now retry transient read, cooldown and busy failures up to three times; still transient, members are asked to try again (reply.onboarding_retry) instead of being sent to Staff; a click that records nothing always puts its card back, falling back to a Discord-free release of the member's own card; a Shuttle channel that opens makes its waiting first page due at once; traces carry error codes (SHUTTLE_COMMAND_RETRIED/FAILED_<code>, SHUTTLE_RENDER_<outcome>_<code>, CASE_PROVISION_<outcome>_<code>). The same-day AI report was the member chatting in their Shuttle channel, correctly excluded.",
       "evidence": "Offline: npm test 673 passed; repository check passed; storage first run 1004 passed, 1 failed (OC02: Discord refusing access was worded as busy; narrowed to transient codes only); new V21-V23. Final storage run 1005 passed, 0 failed (4 shards). Installed on staging 20 October 14:57 UTC as pin 334fd97 (source-only; prepare, pre-start, boundaries, installed and dashboard checks passed first time).",
       "remaining": "Live click-through on staging; read the SHUTTLE_COMMAND_RETRIED/FAILED and CASE_PROVISION codes to confirm the cause and decide whether channel creation also needs a short retry for overtaken reads."
+    },
+    {
+      "title": "Shuttle lag, stutter and stale cards",
+      "tasks": [
+        "P14",
+        "P16"
+      ],
+      "implemented": "After a full staging walk-through on 334fd97 (owner: \"significant lag and stutter\", and a stale card fixed only by /whitelist start), traces showed every click retried once after OBSERVATION_INVALIDATED (about 5 s) and render jobs needing 2-5 attempts; those retry traces exceeded the host's 64-character limit and were dropped. Role, member and channel observations are now checked against the authority boundary instead of the per-dispatch continuity (message reads keep the continuity; dashboard view reuse unchanged); delivery reads overtaken before any write retry after 250 ms; every Continue, Back or Check leaves a 20-second database watch that redraws its card unless it was replaced or put back, finishing without Discord calls when there is nothing to do; /whitelist start does not count a watch as its re-check; failure codes go on their own trace lines.",
+      "evidence": "Offline: npm test 674 passed (new authority-boundary test); repository check passed; onboarding storage suites 97 passed (new V24, V25; V11 caught the watch suppressing the entry re-check). Full storage run 1007 passed, 0 failed (4 shards).",
+      "remaining": "Operator-approved staging install; live walk-through comparing SHUTTLE_COMMAND/SHUTTLE_RENDER timings with the 334fd97 run (about 5 s per click plus 2-5 s render)."
     }
   ],
   "next_steps": [

@@ -58,8 +58,10 @@ export async function requestOnboardingScreen(client, member, session, reason, {
       await client.query(`UPDATE sophie_core.shuttle_screen_parts SET pending_sha256 = rendered_sha256
         WHERE screen_id = $1 AND generation = $2 AND NOT gone AND rendered_sha256 IS NOT NULL`, [previous.id, previous.part_generation]);
     }
+    // A click's watch (noteOnboardingOpening) waits on purpose and does not stand in for this re-check.
     const pending = (await client.query(`SELECT 1 FROM sophie_core.outbox WHERE guild_id = $1 AND kind = 'shuttle.render'
-      AND effect->>'screenId' = $2 AND (status IN ('ready', 'leased') OR (status = 'parked' AND NOT $3)) LIMIT 1`, [member.guildId, previous.id, recover])).rowCount > 0;
+      AND effect->>'screenId' = $2 AND NOT effect ? 'watch'
+      AND (status IN ('ready', 'leased') OR (status = 'parked' AND NOT $3)) LIMIT 1`, [member.guildId, previous.id, recover])).rowCount > 0;
     if (!pending) await enqueue(client, { kind: 'shuttle.render', operationId: `screen.refresh.${previous.id}.${reason}`,
       guildId: member.guildId, userId: member.userId, screenId: previous.id });
     return previous.id;

@@ -81,6 +81,14 @@ export function createOnboardingCommands({ authorization, discord, channels, sto
   return Object.freeze({
     async execute(envelope) {
       if (await enabled() !== true) return 'disabled';
+      // The click has already turned its card into "Opening…". Note that first, so the card is drawn again later even if
+      // this command never finishes (see noteOnboardingOpening). Database only; best effort.
+      if (envelope.command === 'shuttle.control' && ['advance', 'back', 'retry'].includes(envelope.action)) {
+        try {
+          await store.noteOnboardingOpening({ guildId: envelope.guildId, userId: envelope.userId, interactionId: envelope.interactionId,
+            action: envelope.action, screenId: envelope.screenId, channelId: envelope.channelId, messageId: envelope.messageId });
+        } catch { note('SHUTTLE_CONTROL_WATCH_UNAVAILABLE'); }
+      }
       const seen = { actor: null };
       for (let tries = 0; ; tries++) {
         try { return await attempt(envelope, seen); } catch (error) {

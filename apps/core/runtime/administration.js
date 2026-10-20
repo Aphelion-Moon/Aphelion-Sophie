@@ -51,9 +51,12 @@ import { inspectAutomationChannel } from '../storage/automation-channel-policy.j
 export function createAdministrationLane({ configuration, pool, token, fetch, clock, enabled, rateLimits, observer, principals, verifier, onFault, onTrace = () => {}, readSystemText, knowledge = null }) {
   const { mapping, casePolicy: policy, limits, definitionId, capabilityPolicy } = configuration;
   const transport = createDiscordTransport({ guildId: mapping.guildId, token, fetch, clock, enabled, ...(rateLimits ? { limits: rateLimits } : {}) });
-  const roles = createDiscordRoles({ transport, mapping, clock, readContinuity: observer.readContinuity, readBoundary: observer.readAuthorityBoundary ?? null });
+  // Role, member and channel observations are checked against the authority boundary, so message traffic (including
+  // this bot's own posts) no longer overtakes them; message reads keep the full continuity.
+  const readAuthority = observer.readAuthorityBoundary ?? null;
+  const roles = createDiscordRoles({ transport, mapping, clock, readContinuity: observer.readContinuity, readBoundary: readAuthority, readAuthority });
   const authorization = createCoreAuthorization({ principals, discord: roles, authorityStore: createActorAuthorityStore({ pool, clock }),
-    policy: capabilityPolicy, clock, isAuthorityCurrent: enabled, readContinuity: observer.readContinuity });
+    policy: capabilityPolicy, clock, isAuthorityCurrent: enabled, readContinuity: observer.readContinuity, readAuthority });
   const { authorize, authorizeRecorded, resolveCaseResponder, resolveCaseParticipant, authorizeCaseParticipant } = authorization;
   const channels = createCaseChannels({ transport, roles, mapping, policy, clock, authorizeCaseParticipant });
   const messageOptions = { transport, roles, channels, mapping, policy, clock };

@@ -428,4 +428,35 @@ export async function runOnboardingScreenSuite(cluster, run) {
     await drain(screens);
     assert.equal((await currentScreen()).ready, true);
   });
+
+  const watchDue = () => admin.query("UPDATE sophie_core.outbox SET available_at = clock_timestamp() - interval '1 second' WHERE operation_id LIKE 'screen.opened.%' AND status = 'ready'");
+  const opening = (screen, interactionId = nextId()) => store.noteOnboardingOpening({ guildId: GUILD, userId: USER, interactionId, action: 'advance',
+    screenId: screen.id, channelId: screen.channel_id, messageId: screen.nav_message_id });
+
+  await scenario('V24 a click that never finishes (a restart mid-click) has its card drawn again by its watch', async () => {
+    const screen = await open(), edits = messageWrites('PATCH').length;
+    assert.deepEqual(await opening(screen), { watched: true });
+    const watch = (await rows('outbox')).find(job => job.operation_id.startsWith('screen.opened.'));
+    assert.ok(watch.available_at > new Date(Date.now() + 15_000));
+    assert.equal((await parts()).find(part => part.message_id === screen.nav_message_id).rendered_sha256, null);
+    await drain(screens); assert.equal(messageWrites('PATCH').length, edits); // Not yet due.
+    await watchDue(); await drain(screens);
+    assert.equal(messageWrites('PATCH').length, edits + 1); assert.equal((await session()).stepIndex, 0);
+    assert.ok((await group()).nav.components[0].components.some(button => !button.disabled));
+    assert.equal(await click(await currentScreen(), 'advance'), 'shuttle_progress_recorded');
+  });
+
+  await scenario('V25 after a click that records, its watch finishes without any Discord call', async () => {
+    const screen = await open();
+    assert.equal(await click(screen, 'advance'), 'shuttle_progress_recorded'); await drain(screens);
+    assert.ok((await rows('outbox')).some(job => job.operation_id.startsWith('screen.opened.') && job.status === 'ready'));
+    const calls = discord.state.calls.length;
+    await watchDue(); assert.deepEqual(await screens.runOnce('watch'), { status: 'settled', watched: true });
+    assert.equal(discord.state.calls.length, calls);
+    assert.equal((await rows('outbox')).find(job => job.operation_id.startsWith('screen.opened.')).status, 'done');
+    // An out-of-date card, someone else's card or a non-opening action is not watched.
+    assert.deepEqual(await opening(screen), { watched: false });
+    assert.deepEqual(await store.noteOnboardingOpening({ guildId: GUILD, userId: OTHER, interactionId: nextId(), action: 'advance',
+      screenId: screen.id, channelId: screen.channel_id, messageId: (await currentScreen()).nav_message_id }), { watched: false });
+  });
 }

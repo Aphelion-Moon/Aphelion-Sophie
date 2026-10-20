@@ -1,5 +1,39 @@
 # Verification and release limits
 
+## Shuttle lag, stutter and stale cards — 20 October 2026 (prepared, not yet installed)
+
+Owner report after a full walk-through on `334fd97`: "significant lag and stutter throughout navigating the pages", and a
+ticket whose navigation buttons did not work until `/whitelist start` was used again.
+
+Evidence from that run:
+- Every Continue logged `SHUTTLE_COMMAND_RETRIED_OBSERVATION_INVALIDATED` and then recorded after 4.6–5.6 s.
+- Renders took 1.7–4.7 s with 7–16 Discord calls, and each render job needed 2–5 attempts.
+- Those retries were invisible: their trace lines, now carrying an error code, exceeded the host's 64-character limit and
+  were dropped.
+- The only run's last group was fully confirmed. The stale ticket was most likely the card the previous build left on
+  "Opening…" at 14:28.
+
+Cause: role, member and channel checks were validated against the Gateway continuity, which every dispatch advances.
+Message events (AI is live), the "Opening…" edit itself and each post of a step overtook the next check. Each render
+burned its three in-claim attempts and then backed off 2, 4, then 8 s.
+
+Fix:
+- Role, member and channel observations are checked against the authority boundary; message reads keep the full
+  continuity (decision log, "Role and channel checks follow the authority boundary").
+- Delivery reads overtaken before any write retry after 250 ms instead of backing off.
+- Every Continue, Back or Check first notes in the database that its card now shows "Opening…" and queues a watch 20 s
+  later. The watch redraws the card unless it was replaced (the click recorded) or redrawn (the click was put back). It
+  finishes from the database without any Discord call when there is nothing to do. This covers clicks that never finish,
+  including a restart in the middle.
+- Error codes now go on their own trace lines (`SHUTTLE_RENDER_CODE_<code>`, `CASE_PROVISION_CODE_<code>`, giving the
+  original failure).
+
+**Offline evidence:** `npm test` 674 passed (new authority-boundary test); repository check passed. Storage (4 shards)
+1007 passed, 0 failed. New V24 (an unfinished click's card is redrawn by its watch) and V25 (a recorded click's watch
+makes no Discord call). On the way there, V11 caught that a waiting watch suppressed the prompt re-check of
+`/whitelist start`, and five delivery suites caught an extra result field; both were corrected. Not yet run: staging
+install and a timed walk-through.
+
 ## Shuttle clicks overtaken by Gateway traffic — 20 October 2026 (installed 14:57 UTC as `334fd97`)
 
 Reported on staging 20bd3e7: `/whitelist start` and the new channel were slow, and the first Continue answered "We

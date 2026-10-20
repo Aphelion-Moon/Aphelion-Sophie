@@ -61,7 +61,7 @@ test('a Shuttle command overtaken by Gateway traffic or a short cooldown is trie
   const { ContractError } = await import('../contracts/validation.js');
   const limits = { memberOpen: 1, guildPending: 1, cooldownMs: 1_000 };
   const build = (failures, store = {}) => {
-    const traces = [], pauses = [], calls = { restore: 0, release: [] };
+    const traces = [], pauses = [], calls = { restore: 0, release: [], opened: 0 };
     const commands = createOnboardingCommands({ definitionId: definition.id, limits, enabled: () => true,
       trace: code => traces.push(code), pause: async ms => { pauses.push(ms); },
       authorization: { resolveActor: async () => ({ guildId: GUILD, userId: USER }) },
@@ -70,7 +70,8 @@ test('a Shuttle command overtaken by Gateway traffic or a short cooldown is trie
       store: { describeOnboardingEntryChannel: async () => null, openOnboarding: async () => {},
         describeOnboardingControl: async () => ({ plan: {} }), actOnOnboarding: async () => {},
         restoreOnboardingControl: async () => { calls.restore++; throw new ContractError('OBSERVATION_INVALIDATED'); },
-        releaseOnboardingControl: async value => { calls.release.push(value); return { restored: true }; }, ...store } });
+        releaseOnboardingControl: async value => { calls.release.push(value); return { restored: true }; },
+        noteOnboardingOpening: async () => { calls.opened++; return { watched: true }; }, ...store } });
     return { commands, traces, pauses, calls };
   };
   const start = { command: 'shuttle.start', guildId: GUILD, userId: USER, targetId: USER, interactionId: '1' };
@@ -82,7 +83,7 @@ test('a Shuttle command overtaken by Gateway traffic or a short cooldown is trie
   assert.equal(await retried.commands.execute(click), 'shuttle_progress_recorded');
   assert.deepEqual(retried.pauses, [150, 700]);
   assert.deepEqual(retried.traces, ['SHUTTLE_COMMAND_RETRIED_OBSERVATION_INVALIDATED', 'SHUTTLE_COMMAND_RETRIED_RATE_LIMITED']);
-  assert.equal(retried.calls.release.length, 0);
+  assert.equal(retried.calls.release.length, 0); assert.equal(retried.calls.opened, 1);
   // Still overtaken after every retry: the member is asked to try again, and the card is queued to be drawn again
   // without reading Discord once the normal restore cannot.
   const exhausted = build(Array.from({ length: 8 }, () => new ContractError('OBSERVATION_INVALIDATED')));

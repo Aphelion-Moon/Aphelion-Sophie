@@ -1151,3 +1151,23 @@ Parking itself is unchanged, so a Staff recheck still works, but any parked Shut
 reconciliation, Shuttle message, Shuttle channel) is rechecked automatically two minutes after it parks, doubling with
 each recheck up to fifteen minutes. Only a global rate-limit halt stays with the operator. Muzzled still blocks the
 Shuttle; that is moderation, not Shuttle intervention.
+
+### Role and channel checks follow the authority boundary — 20 October 2026
+
+After the first staging walk-through the owner reported "significant lag and stutter throughout navigating the pages"
+and asked for stale navigation cards to be fixed proactively. The traces showed every Continue retried once after
+`OBSERVATION_INVALIDATED` (about 5 s per click) and page renders needing two to five attempts. Role, member and channel
+observations were checked against the Gateway continuity, which every dispatch advances. With AI message events on, the
+"Opening…" edit of the clicked card, each post of a step and any chat in the server overtook them.
+
+Implementation decision under the owner's request, extending the write-verification choice in "Shuttle message groups"
+above:
+- Role, member and channel observations (roles, case channels, actor authorization) are checked against the authority
+  boundary. It advances on every member, authority, role, channel or guild event and on every reconnect, and it is
+  absent while any dispatch is still being processed.
+- Message reads (Shuttle message inspection, transcripts, automation sources, direct notices, child threads) keep the
+  full continuity.
+- Dashboard view reuse stays bound to the full continuity, per "Dashboard views may reuse a role check for 1.5 seconds".
+
+Without the boundary adapter (any journal that does not record it), the full continuity applies as before. No access
+rule changed: every check still reads Discord afresh, and any authority change still voids it.
