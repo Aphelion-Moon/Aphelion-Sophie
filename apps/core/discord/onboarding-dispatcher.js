@@ -8,6 +8,8 @@ const MAX_WRITES_PER_CLAIM = 16;
 // Any Gateway dispatch, including the event for this bot's own previous write, ends an observation's continuity.
 // A check overtaken that way is repeated with a new (usually shared) preparation instead of failing the job.
 const OBSERVATION_ATTEMPTS = 3;
+// Reads overtaken by the Gateway (or finishing after a newer one was recorded) are read again within the claim.
+const OVERTAKEN_CODES = Object.freeze(['OBSERVATION_INVALIDATED', 'OBSERVATION_UNAVAILABLE', 'OBSERVATION_OUT_OF_ORDER']);
 
 /**
  * Brings one Shuttle run's message group up to date: the status card first when it is new, then removal of an earlier
@@ -39,7 +41,7 @@ export function createOnboardingDispatcher({ outbox, store, roles, messages, ena
   async function observed(work) {
     for (let attempt = 1; ; attempt++) {
       try { return await work(); } catch (error) {
-        if (error?.code !== 'OBSERVATION_INVALIDATED' || attempt >= OBSERVATION_ATTEMPTS) throw error;
+        if (!OVERTAKEN_CODES.includes(error?.code) || attempt >= OBSERVATION_ATTEMPTS) throw error;
       }
     }
   }
@@ -50,6 +52,8 @@ export function createOnboardingDispatcher({ outbox, store, roles, messages, ena
       await ready(claim);
       // A click's watch whose card was already replaced or redrawn ends here, without reading Discord.
       if (await store.settleWatchedOnboardingRender({ claim })) return { status: 'settled', watched: true };
+      // A first page whose channel is still being created waits for it without reading Discord.
+      if (await store.deferOnboardingRenderUntilCase({ claim })) return { status: 'waiting_for_channel' };
       const current = await observed(async () => store.inspectOnboardingRender({ claim,
         observation: (await roles.prepare(userId, { share: true })).observation }));
       if (current.settled) return { status: 'settled', current: current.current };

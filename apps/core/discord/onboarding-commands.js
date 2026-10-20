@@ -6,7 +6,7 @@ import { validateTicketLimits } from '../../../modules/tickets/index.js';
 // any message in the server overtakes a read in flight, including this bot's own "Opening…" edit of the clicked card.
 // These, and short Discord cooldowns or a busy lane, clear in moments, so the command is tried again a few times. A
 // repeat is safe: opening a run and every Shuttle change are keyed by the interaction and commit atomically.
-const TRANSIENT_CODES = new Set(['OBSERVATION_INVALIDATED', 'OBSERVATION_UNAVAILABLE', 'MEMBERSHIP_STALE', 'DISCORD_BUSY',
+const TRANSIENT_CODES = new Set(['OBSERVATION_INVALIDATED', 'OBSERVATION_UNAVAILABLE', 'OBSERVATION_OUT_OF_ORDER', 'MEMBERSHIP_STALE', 'DISCORD_BUSY',
   'RATE_LIMITED', 'DISCORD_UNAVAILABLE']);
 const RETRY_DELAYS_MS = Object.freeze([150, 400, 1_000]);
 const RETRY_WAIT_LIMIT_MS = 2_000;

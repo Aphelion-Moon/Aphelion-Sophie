@@ -1,6 +1,6 @@
 import { ContractError } from '../../../contracts/validation.js';
 
-const OVERTAKEN_CODES = Object.freeze(['OBSERVATION_INVALIDATED', 'OBSERVATION_UNAVAILABLE', 'MEMBERSHIP_STALE']);
+const OVERTAKEN_CODES = Object.freeze(['OBSERVATION_INVALIDATED', 'OBSERVATION_UNAVAILABLE', 'OBSERVATION_OUT_OF_ORDER', 'MEMBERSHIP_STALE']);
 
 /** Persist Discord barriers even when the reporting worker no longer owns its lease. */
 export async function settleDeliveryFailure({ outbox, claim, error, possiblyAttempted, parkedCodes, noteUncertain }) {

@@ -42,7 +42,13 @@ export function observeMembership(member, observation, now) {
   validateObservation(observation, member);
   requireFreshObservation(observation, now);
   const previous = member.observation;
-  requireCondition(!previous || observation.observedAt >= previous.observedAt, 'OBSERVATION_OUT_OF_ORDER');
+  if (previous && observation.observedAt < previous.observedAt) {
+    // Concurrent lanes and shared delivery reads can finish out of order. An older observation that agrees with the
+    // newer stored one adds nothing: keep the stored record and its epochs. One that disagrees could undo a recorded
+    // change, so it is still refused (and read again by the caller).
+    requireCondition(['known', 'present', 'crew', 'muzzled', 'whitelist'].every(key => previous[key] === observation[key]), 'OBSERVATION_OUT_OF_ORDER');
+    return { ...member, observation: { ...previous } };
+  }
   const eligibilityLost = previous && ((previous.present && !observation.present) || (previous.whitelist && !observation.whitelist));
   const accessChanged = eligibilityLost || (previous && previous.muzzled !== observation.muzzled);
   return {

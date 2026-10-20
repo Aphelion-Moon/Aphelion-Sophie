@@ -2,6 +2,9 @@ import { ContractError, requireCondition, requireId, requireInteger } from '../.
 import { validateRoleMapping } from '../../../modules/membership/discord-policy.js';
 import { projectGatewayDispatch } from './gateway-projection.js';
 
+// The longest a boundary read waits for dispatches already received to be recorded.
+const SETTLE_MS = 750;
+
 /** Core socket supervisor owns this interface. It is never an HTTP/component handler. */
 export function createGatewayObserver({ journal, mapping, applicationId, clock, capacity = 64, ai = null }) {
   validateRoleMapping(mapping); requireId(applicationId); requireInteger(capacity, 1, 256);
@@ -58,6 +61,9 @@ export function createGatewayObserver({ journal, mapping, applicationId, clock, 
      * while any dispatch is still unprocessed. Offered only when the journal records that boundary.
      */
     ...(typeof journal.readAiContinuity === 'function' ? { async readAuthorityBoundary() {
+      // A dispatch still being recorded (every post, edit or delete of this bot's own messages makes one) is waited out
+      // briefly instead of failing the reader: whether it moved the boundary is known only once it is recorded.
+      if (pending > 0 && !failed) await Promise.race([tail, new Promise(resolve => setTimeout(resolve, SETTLE_MS))]);
       if (!healthy() || lease === null) return null;
       const handle = connection, current = connections, persisted = await journal.readAiContinuity(lease);
       return healthy() && connection === handle && connections === current && persisted !== null ? `${persisted}.${current}` : null;
