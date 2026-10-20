@@ -1184,3 +1184,27 @@ the audit, the owner chose:
 The audit found no scenario that duplicates another; colliding scenario IDs (`CA01`–`CA13` in three suites, `PA01`–`PA10`
 in two) name distinct checks. Details: [storage](../storage.md) and the
 [storage test inventory](../storage-test-inventory.md).
+
+### Production-test preparation: artwork, Shuttle wording, channel title and category — 20 October 2026
+
+The owner: "We also need to clean-up random references to staff helps in onboarding, such as `once any outstanding
+Staff help is resolved`. The onboarding tickets should have a specifically configurable category that they show up in.
+The title of the tickets for onboarding should be `[Discord_Username]'s Shuttle`. For now, as well, I want you to
+remove all of her custom art and assets, as well as removing references to them." The owner also directed that all
+branches be merged into `main` and work continue there; `codex/sophie-social-ai` was fast-forwarded into `main` and
+`staging/admission-trace` (deployment ports whose runtime code matches main) was merged keeping main's content.
+
+- **Artwork.** Sophie's four PNGs, both asset manifests and brand profiles, the brand-profile contract and the
+  dashboard avatar are removed; the dashboard shows "Sophie / Community Services" as text. This supersedes the
+  identity-asset rules of chapter 12 and the earlier "do not change source artwork" instruction. The planning
+  pack's prose is kept as a superseded record. Sophie's published character still calls her a neon chibi protogen;
+  that is personality text, changed only by the owner through the character editor.
+- **Staff-help wording.** Member-facing Shuttle replies no longer mention Staff help, and the Shuttle case type is
+  labelled "Shuttle". Wording kept only to recognise messages posted before Ask Staff was removed is unchanged.
+- **Channel title.** A new Shuttle channel is titled "<Discord username>'s Shuttle" from a fresh member read; the
+  username is not stored. Discord's channel-name rules apply to how it is shown.
+- **Category.** `casePolicy.shuttleCategoryId` is optional and chosen on the Permissions page. Unset keeps Shuttle
+  channels in the case category. Setting or changing it is a case-policy change applied through the reviewed apply
+  flow, and the category is recorded as a case exclusion for AI and automation.
+
+No migration, dependency or new Discord permission. Not deployed.

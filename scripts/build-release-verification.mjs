@@ -81,7 +81,7 @@ const evidence = {
   45: 'Configuration, source review, recovery and public-answer selection have synthetic HTTP/database/browser evidence. Stale authority, uncertain sends, exact receipts, revocation and quarantined jobs remain enforced. Full live T45 and owner publication/activation remain open; see docs/static-automation.md and current P18 evidence.',
   58: 'Local transactional control history and restored-ledger hashes are tested; tool-managed restores fence runtime, jobs and sessions. Independent durability, latest-state verification and replay are not implemented; see docs/recovery-controls.md. No full T58 pass.',
   49: 'Custom artwork removed on 20 October 2026 by owner direction. No Sophie image is bundled; the dashboard shows text identity only.',
-  50: 'Local developer review covers small/circular avatar crops, light/dark alpha, 320 CSS-pixel reflow, live-text fallback, keyboard quiet mode and failed images. Actual zoom, independent accessibility and Discord upload acceptance remain open.',
+  50: 'Text-only identity since the 20 October 2026 artwork removal. Earlier local review covered 320 CSS-pixel reflow, live-text fallback and keyboard quiet mode. Actual zoom and independent accessibility acceptance remain open.',
   59: 'Owner observed the configured two-open-case limit; atomic race/restart matrix remains an offline result.',
 };
 for (const item of catalogue.cases) {

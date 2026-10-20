@@ -195,6 +195,7 @@ Milestone entries preserve their checkpoint evidence. Current next steps and own
 | Shuttle lag, stutter and stale cards (P14, P16) | After a full staging walk-through on 334fd97 (owner: "significant lag and stutter", and a stale card fixed only by /whitelist start), traces showed every click retried once after OBSERVATION_INVALIDATED (about 5 s) and render jobs needing 2-5 attempts; those retry traces exceeded the host's 64-character limit and were dropped. Role, member and channel observations are now checked against the authority boundary instead of the per-dispatch continuity (message reads keep the continuity; dashboard view reuse unchanged); delivery reads overtaken before any write retry after 250 ms; every Continue, Back or Check leaves a 20-second database watch that redraws its card unless it was replaced or put back, finishing without Discord calls when there is nothing to do; /whitelist start does not count a watch as its re-check; failure codes go on their own trace lines. | Offline: npm test 674 passed (new authority-boundary test); repository check passed; onboarding storage suites 97 passed (new V24, V25; V11 caught the watch suppressing the entry re-check). Full storage run 1007 passed, 0 failed (4 shards). Installed on staging 20 October 15:47 UTC as pin 67c1f4a (source-only; prepare, pre-start, boundaries, installed and dashboard checks passed first time). | Timed live walk-through on staging, compared with the 334fd97 run (about 5 s per click plus 2-5 s per render). |
 | Slow ticket opening and lingering step messages (P14, P16) | Owner reports on 67c1f4a: about 20 s to open a Whitelist ticket, and a step message that seemed not to delete before the next step. Discord's own delete events show the order was right, but the deletes were spread over 7 s by OBSERVATION_UNAVAILABLE retries; channel creation and the first page also failed on OBSERVATION_OUT_OF_ORDER and re-reads. A boundary read now waits up to 750 ms for dispatches already received to be recorded; an older membership observation that agrees with the stored one is kept; render and channel claims re-read overtaken observations within the claim; a first page whose channel is pending waits without reading Discord and is made due when the channel opens. | Offline: npm test 674 passed; repository check passed; storage 1007 passed, 0 failed (4 shards, 835 s). Installed on staging 20 October 17:05 UTC as pin 25b8085 (source-only; prepare, pre-start, boundaries, installed and dashboard checks passed first time). | Timed live walk-through of ticket opening and page turns on staging. |
 | Faster isolated database tests (P27) | Owner: "Thirteen minutes per build is excessive." Per-scenario TRUNCATE resets became DELETE in replica mode (tests/fixtures/reset.js, one shared CORE_STATE_TABLES list); the synthetic test clusters run with fsync, synchronous_commit and full_page_writes off and initdb --no-sync (owner decision); shards take suites one at a time, longest first; each suite runs on its own copy of the migrated template database, so suites are order-independent (--order=reverse check); RT09 waits out a real 5 s Gateway lease (journal leaseMs option, deployments keep 30 s) and P19-RT22 uses a 1.5 s member interval; per-scenario SCENARIO_MS timings; storage test inventory generated from the suites. No scenario was merged or dropped: none duplicates another. | npm test 674 passed; repository check passed; storage (4 shards) 1007 passed, 0 failed in 68 s (835 s before); reverse-order serial 1007/0 in 3 min 29 s; forward serial 1007/0 in 3 min 39 s (about 20 minutes before). | None for speed. Optional: rename the scenario IDs reused across suites (CA01-CA13, PA01-PA10 and others) where evidence documents allow. |
+| Production-test preparation: artwork removed, Shuttle wording, channel title and category (P36, P14, P10, P11) | Owner direction of 20 October. All branches merged into main. Sophie's custom artwork, manifests, brand profiles and the dashboard avatar are removed (text identity only). Member-facing Shuttle replies no longer mention Staff help and the Shuttle case type is labelled "Shuttle". New Shuttle channels are titled "<Discord username>'s Shuttle" from a fresh member read (username not stored; tickets keep case-… names). An optional casePolicy.shuttleCategoryId, chosen on the Permissions page, places Shuttle channels in their own category; changing it advances the case-policy version, the apply step inventories and seals each retained channel into its case type's category, and the category is recorded as a case exclusion for AI and automation. | See docs/verification.md (20 October 2026, production-test preparation). | Not deployed. Choose the Shuttle category on the Permissions page and apply it after deployment; set the bot account avatar in Discord if wanted. |
 
 ## Next implementation sequence
 
@@ -223,7 +224,7 @@ These are bounded next steps within the task dependencies below. An unresolved l
 
 ## Task status
 
-Status counts: 1 complete; 32 in progress; 7 planned, not started. These are full-task statuses, not a percentage of code or release readiness.
+Status counts: 2 complete; 31 in progress; 7 planned, not started. These are full-task statuses, not a percentage of code or release readiness.
 
 An in-progress task can contain several verified milestones and still have unfinished implementation or acceptance. Acceptance IDs below link requirements to tasks; they do not assert that those specifications have passed.
 
@@ -265,7 +266,7 @@ An in-progress task can contain several verified milestones and still have unfin
 | P33 — Add selected read-only service adapters | planned_not_started | P31, P39 |
 | P34 — Add small community utilities | planned_not_started | P31 |
 | P35 — Establish maintenance and upgrade cadence | in_progress | P31 |
-| P36 — Import Sophie identity and source assets | in_progress | P03, P04 |
+| P36 — Sophie identity (custom artwork removed) | complete | P03, P04 |
 | P37 — Apply Sophie branding to interfaces and static copy | in_progress | P36, P08, P09, P13, P17 |
 | P38 — Review identity consistency and non-AI presentation | in_progress | P37, P19 |
 | P39 — Validate and activate direct knowledge independently of AI | in_progress | P19, P21, P22, P26 |
@@ -1234,30 +1235,28 @@ Full task deliverables:
 
 Boundary: No unattended production upgrades or recurring jobs without owner approval.
 
-## P36 — Import Sophie identity and source assets
+## P36 — Sophie identity (custom artwork removed)
 
-Status: **in_progress**. Phase: Foundation. Priority: P1.
+Status: **complete**. Phase: Foundation. Priority: P1.
 
 Depends on: P03, P04. Acceptance: T49.
 
-The shared bounded brand-profile contract validates the fixed Sophie identity, four selected original masters, provenance fields and static presentation boundaries. Dashboard startup and repository verification use it; original artwork and manifests are unchanged. Publication/distribution and any future derivative review remain open.
+Owner direction of 20 October 2026 removed all custom artwork. The four PNGs, both manifests and brand profiles, the brand-profile contract, its test, the repository asset check and the dashboard avatar route were removed; the planning pack HTML no longer embeds the images. The bot's Discord avatar is set on the account, outside this repository.
 
 Implemented scope:
 
-- Four original assets remain byte-identical; dashboard loads the manifest-selected avatar with hash checks.
-- Dashboard startup and repository checking validate both preserved profile/manifest pairs against the fixed identity and original master hashes, dimensions, transparency and paths. Nine focused contract/dashboard checks pass; no presentation or inference capability change.
+- Artwork and references removed; the former avatar path answers 404 (dashboard asset test).
 
 Remaining scope:
 
-- Owner publication/distribution review and explicit provenance/visual acceptance for any future derivatives. No identity editor or new artwork is approved by the fixed launch contract.
+- None. Git history still contains the former PNGs.
 
 Full task deliverables:
 
-- Four manifest-selected original PNGs in a versioned local asset root
-- Shared brand-profile contract, SHA-256 validation and source provenance
-- Legacy-human-art exclusion and explicit publication/derivative review records
+- Text identity Sophie / Community Services on every dashboard page
+- No bundled Sophie artwork, brand profile or asset manifest
 
-Boundary: No regeneration, relabelled artwork licence, remote asset loading, extra model runtime or technical service renaming.
+Boundary: No artwork is added, generated or restored without a new owner decision.
 
 ## P37 — Apply Sophie branding to interfaces and static copy
 

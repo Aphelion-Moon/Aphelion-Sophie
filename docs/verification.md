@@ -1,5 +1,27 @@
 # Verification and release limits
 
+## Production-test preparation: artwork, Shuttle wording, channel title and category — 20 October 2026
+
+Owner direction recorded in the decision log ("Production-test preparation"). All branches were merged into `main` first.
+
+- **Artwork removed.** No Sophie image, manifest or brand profile remains in the working tree; the dashboard shows text
+  identity and the former avatar path answers 404. The planning pack's SHA256SUMS were updated for the files removed
+  and the stripped Sophie-Plan.html.
+- **Shuttle wording.** Completion, busy, unavailable and setup-fault replies no longer mention Staff help; the Shuttle
+  case type is labelled "Shuttle".
+- **Channel title and category.** New Shuttle channels are named "<Discord username>'s Shuttle" and use
+  `casePolicy.shuttleCategoryId` when set (Permissions page). Apply inventories both categories and seals each retained
+  channel into its case type's category; the Shuttle category is recorded as a case exclusion.
+
+**Evidence:**
+- `npm test`: 673 passed (4 brand-profile tests removed with the contract; 3 added for the Shuttle title, category and
+  permission document).
+- Repository check passed.
+- Storage, 4 shards: 1007 passed, 0 failed, 69 s.
+
+**Not covered:** no isolated-database scenario yet applies a policy that sets or changes the Shuttle category, and no
+live Discord check of the channel name as Discord normalises it. Not deployed.
+
 ## Faster isolated database tests — 20 October 2026
 
 Owner: "Thirteen minutes per build is excessive." Audit and owner choices are in the decision log ("Faster isolated database
