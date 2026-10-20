@@ -21,7 +21,7 @@ import { requireCondition } from '../../../contracts/validation.js';
 import { validateStagingRuntime } from './configuration.js';
 import { requireUnquarantinedDatabase } from './recovery.js';
 import { createAdministrationLane } from './administration.js';
-import { createDiscordTransport } from '../discord/transport.js';
+import { createDiscordTransport, createDiscordRateLimits } from '../discord/transport.js';
 import { createDiscordRoles } from '../discord/roles.js';
 import { createCaseMessageCapture } from '../discord/case-message-capture.js';
 import { createGatewayJournal } from '../storage/gateway-journal.js';
@@ -72,7 +72,7 @@ import { runtimeDatabaseAvailable } from '../storage/runtime-maintenance.js';
 import { createGuildState } from '../discord/guild-state.js';
 
 /** Explicit staging host. Construction starts no listener, connection, registration, migration or service. */
-export async function createStagingRuntime({ configuration, pool, aiControlPool = null, aiPreferenceJournal = null, aiWorker = null, aiKnowledge = null, aiKnowledgeAdmin = null, aiKnowledgeAdminFactory = null, aiApproval = null, aiActivationPool = null, aiRestoreCurrent = async () => false, token, clientSecret = null, fetch, connect, clock = Date.now, random = Math.random, onFault, configurationApplyEnabled = false }) {
+export async function createStagingRuntime({ configuration, pool, aiControlPool = null, aiPreferenceJournal = null, aiWorker = null, aiKnowledge = null, aiKnowledgeAdmin = null, aiKnowledgeAdminFactory = null, aiApproval = null, aiActivationPool = null, aiRestoreCurrent = async () => false, token, clientSecret = null, fetch, connect, clock = Date.now, random = Math.random, onFault, rateLimits = createDiscordRateLimits(), configurationApplyEnabled = false }) {
   validateStagingRuntime(configuration); const fixed = structuredClone(configuration);
   requireCondition(typeof onFault === 'function', 'TRUSTED_ADAPTERS_REQUIRED');
   await requireUnquarantinedDatabase(pool);
@@ -87,7 +87,9 @@ export async function createStagingRuntime({ configuration, pool, aiControlPool 
     if (await runtimeDatabaseAvailable(pool)) return true;
     maintenanceObserved = true; fault('RUNTIME_MAINTENANCE_ACTIVE'); return false;
   };
-  const transport = createDiscordTransport({ guildId: fixed.mapping.guildId, token, fetch, clock, enabled: databaseActive });
+  // Every transport below uses the same bot token, so they share Discord's buckets and must share one view of them.
+  // A supervising host passes its own registry so a restarted runtime keeps the cooldowns it already learned.
+  const transport = createDiscordTransport({ guildId: fixed.mapping.guildId, token, fetch, clock, enabled: databaseActive, limits: rateLimits });
   requireCondition(aiWorker===null || aiKnowledge!==null && aiControlPool!==null, 'AI_ADAPTERS_REQUIRED');
   let aiRuntime = null, activationRebind = null, activationFollow = null;
   const privacyEffects=aiControlPool===null?null:createAiEffects({pool:aiControlPool,guildId:fixed.mapping.guildId,clock});
@@ -108,19 +110,19 @@ export async function createStagingRuntime({ configuration, pool, aiControlPool 
   const enabled = async () => await databaseActive() && await observer.isCurrent();
   const gateway = createGatewaySupervisor({ observer, transport, connect, token, clock, random, enabled: active });
   const verifier = createInteractionVerifier({ publicKeyHex: fixed.publicKeyHex, applicationId: fixed.applicationId, guildId: fixed.mapping.guildId, clock });
-  const authRoles = createDiscordRoles({ transport: createDiscordTransport({ guildId: fixed.mapping.guildId, token, fetch, clock, enabled }),
+  const authRoles = createDiscordRoles({ transport: createDiscordTransport({ guildId: fixed.mapping.guildId, token, fetch, clock, enabled, limits: rateLimits }),
     mapping: fixed.mapping, clock, readContinuity: observer.readContinuity });
   const auth = fixed.dashboard === null ? null : createDashboardAuth({ configuration: fixed.dashboard,
     store: createDashboardAuthStore({ pool, configuration: fixed.dashboard, clock }),
     oauth: createDiscordOAuth({ configuration: fixed.dashboard, clientSecret, fetch, clock, enabled }), discord: authRoles, clock, enabled });
   const principals = auth === null ? verifier : createCorePrincipals({ interactions: verifier, dashboard: auth });
   const createAiLane=worker=>createAiRuntime({ configuration: fixed, corePool: pool, controlPool: aiControlPool, worker, knowledge: aiKnowledge,
-    observer, guildState, token, fetch, clock, enabled, onFault: fault,privacyCurrent:privacy.current,
+    observer, guildState, token, fetch, clock, enabled, rateLimits, onFault: fault,privacyCurrent:privacy.current,
     memory: aiPreferenceJournal === null ? null : createAiMemory({ pool: aiControlPool, guildId: fixed.mapping.guildId, journal: aiPreferenceJournal, clock }),
     ...(aiApproval === null ? {} : { readNotice: aiApproval.notice }) });
   if(aiWorker!==null)aiRuntime=createAiLane(aiWorker);
   const readSystemText = createSystemWordingReader({ pool, guildId: fixed.mapping.guildId });
-  const lane = () => createAdministrationLane({ configuration: fixed, pool, token, fetch, clock, enabled, observer, principals, verifier, onFault: fault, readSystemText, knowledge:aiKnowledge });
+  const lane = () => createAdministrationLane({ configuration: fixed, pool, token, fetch, clock, enabled, rateLimits, observer, principals, verifier, onFault: fault, readSystemText, knowledge:aiKnowledge });
   const requests = lane(), delivery = lane();
   const responder = createInteractionResponder({ verifier, applicationId: fixed.applicationId, fetch, clock, enabled, readSystemText, ...requests.responseAdapters });
   const interactions = createInteractionHttpServer({ verifier, commands: requests.commands, respond: responder.respond,

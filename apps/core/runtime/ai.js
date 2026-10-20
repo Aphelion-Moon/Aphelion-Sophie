@@ -15,12 +15,12 @@ import { createAiEffects } from '../storage/ai-effects.js';
 import { createMeteredAiWorker } from './ai-provider.js';
 
 /** Core composition only. Inference receives a fixed turn payload, never this pool or Discord transport. */
-export function createAiRuntime({ configuration, corePool, controlPool, worker, knowledge, observer, guildState, token, fetch, clock, enabled, onFault,
+export function createAiRuntime({ configuration, corePool, controlPool, worker, knowledge, observer, guildState, token, fetch, clock, enabled, rateLimits, onFault,
   readNotice = async () => ({ revision: worker.provider === 'mistral' ? 2 : 1, binding: null, approved: worker.provider !== 'mistral' }), privacyCurrent = async () => false, memory = null }) {
   requireCondition(worker && typeof worker.generate === 'function' && typeof worker.current === 'function' && knowledge &&
     ['lookup','current','currentReferences'].every(name => typeof knowledge[name] === 'function'), 'AI_ADAPTERS_REQUIRED');
   const { mapping, casePolicy, capabilityPolicy } = configuration;
-  const transport = createDiscordTransport({ guildId: mapping.guildId, token, fetch, clock, enabled });
+  const transport = createDiscordTransport({ guildId: mapping.guildId, token, fetch, clock, enabled, ...(rateLimits ? { limits: rateLimits } : {}) });
   const observations = createAiObservations({ pool: corePool, transport, guildState, authorityStore: createActorAuthorityStore({ pool: corePool, clock }),
     capabilityPolicy, mapping, protectedCategoryId: casePolicy.categoryId, observer, clock, trace: onFault });
   const ingress = createAiIngress({ guildId: mapping.guildId, botUserId: mapping.botUserId, clock });

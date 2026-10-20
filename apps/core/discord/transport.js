@@ -44,23 +44,75 @@ function delayMs(value) {
   return Math.ceil(seconds * 1_000);
 }
 
+/**
+ * Discord limits belong to the bot token, not to one transport. Every transport built for the same token must share one
+ * registry, or each lane spends a bucket the others already emptied and earns real 429s. Holds timings only: no ids
+ * beyond a route's major parameter, no token and no response content.
+ */
+export function createDiscordRateLimits() {
+  return Object.seal({ cooldowns: new Map(), buckets: new Map(), globalUntil: 0, invalid: false });
+}
+
+const SHORT_WAIT_MS = 1_500;
+const MAX_TRACKED = 2_000;
+
+/** Discord buckets a route by its template and major parameter (channel, guild or webhook), never by other ids or the query. */
+function limitKey(limits, method, path) {
+  const bare = path.split('?')[0];
+  const major = /^\/(?:channels|guilds|webhooks)\/(\d+)/.exec(bare)?.[1] ?? '';
+  const template = `${method} ${bare.replace(/\/\d+(?=\/|$)/g, '/:id')}`;
+  return { template, major, key: `${limits.buckets.get(template) ?? template}|${major}` };
+}
+
+function forgetExpired(cooldowns, now) {
+  if (cooldowns.size < MAX_TRACKED) return;
+  for (const [key, until] of cooldowns) if (until <= now) cooldowns.delete(key);
+}
+
 /** Fixed Discord routes. No default fetch, environment-token lookup or live activation. */
-export function createDiscordTransport({ guildId, token, fetch, clock, enabled }) {
+export function createDiscordTransport({ guildId, token, fetch, clock, enabled, limits = createDiscordRateLimits(),
+  wait = ms => new Promise(resolve => setTimeout(resolve, ms)) }) {
   requireId(guildId);
   requireCondition(typeof token === 'string' && token.length >= 20 && !/\s/.test(token), 'DISCORD_TOKEN_REQUIRED');
-  requireCondition(typeof fetch === 'function' && typeof clock === 'function' && typeof enabled === 'function', 'TRUSTED_ADAPTERS_REQUIRED');
-  const cooldowns = new Map();
-  let globalUntil = 0;
-  let rateLimitInvalid = false;
-  let busy = false;
+  requireCondition(typeof fetch === 'function' && typeof clock === 'function' && typeof enabled === 'function' && typeof wait === 'function', 'TRUSTED_ADAPTERS_REQUIRED');
+  requireCondition(limits?.cooldowns instanceof Map && limits.buckets instanceof Map, 'TRUSTED_ADAPTERS_REQUIRED');
+  // Requests stay serial per transport, but a caller queues briefly behind the one in flight instead of failing at once:
+  // a failed outbox step re-runs all of its reads, spends an attempt and backs off exponentially.
+  let tail = Promise.resolve();
+  async function turn(budgetMs) {
+    const previous = tail; let release;
+    const mine = new Promise(resolve => { release = resolve; });
+    tail = previous.then(() => mine);
+    let timer;
+    const ready = await Promise.race([previous.then(() => true),
+      new Promise(resolve => { timer = setTimeout(() => resolve(false), budgetMs); })]);
+    clearTimeout(timer);
+    if (!ready) { release(); throw new DiscordError('DISCORD_BUSY', 250); }
+    return release;
+  }
+  const blockedFor = key => Math.max(limits.globalUntil, limits.cooldowns.get(key) ?? 0) - clock();
   async function request(method, path, route, body = undefined, jsonResult = false, deadline = null) {
-    requireCondition(await enabled() === true, 'DISCORD_TRANSPORT_DISABLED');
-    if (rateLimitInvalid) throw new DiscordError('DISCORD_RATE_LIMIT_INVALID');
-    const remaining = Math.max(globalUntil, cooldowns.get(route) ?? 0) - clock();
-    if (remaining > 0) throw new DiscordError('RATE_LIMITED', Math.ceil(remaining));
-    if (busy) throw new DiscordError('DISCORD_BUSY', 250);
-    if (deadline !== null) requireCondition(Number.isSafeInteger(deadline) && deadline > clock() && deadline - clock() <= 15000, 'AI_DEADLINE_EXPIRED');
-    busy = true;
+    const budget = () => Math.min(SHORT_WAIT_MS, deadline === null ? SHORT_WAIT_MS : deadline - clock() - 250);
+    const release = await turn(Math.max(1, budget()));
+    try {
+      // Checked after queueing, so the gate is current when the request leaves.
+      requireCondition(await enabled() === true, 'DISCORD_TRANSPORT_DISABLED');
+      if (limits.invalid) throw new DiscordError('DISCORD_RATE_LIMIT_INVALID');
+      // A short cooldown is waited out once by a sleep that sends nothing; a long or repeated one fails as before.
+      let remaining = blockedFor(limitKey(limits, method, path).key);
+      if (remaining > 0 && remaining <= budget()) {
+        await wait(Math.ceil(remaining));
+        requireCondition(await enabled() === true, 'DISCORD_TRANSPORT_DISABLED');
+        if (limits.invalid) throw new DiscordError('DISCORD_RATE_LIMIT_INVALID');
+        remaining = blockedFor(limitKey(limits, method, path).key);
+      }
+      if (remaining > 0) throw new DiscordError('RATE_LIMITED', Math.ceil(remaining));
+      if (deadline !== null) requireCondition(Number.isSafeInteger(deadline) && deadline > clock() && deadline - clock() <= 15000, 'AI_DEADLINE_EXPIRED');
+      return await send(method, path, route, body, jsonResult, deadline);
+    } finally { release(); }
+  }
+  async function send(method, path, route, body, jsonResult, deadline) {
+    const { template } = limitKey(limits, method, path);
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), deadline === null ? 5_000 : Math.max(1, Math.min(5_000, deadline - clock())));
     const write = method !== 'GET';
@@ -74,9 +126,16 @@ export function createDiscordTransport({ guildId, token, fetch, clock, enabled }
         ...(body === undefined ? {} : { body: JSON.stringify(body) }),
       });
       if (response.status >= 300 && response.status < 400) throw new DiscordError('DISCORD_RESPONSE_INVALID');
+      const bucket = response.headers.get('x-ratelimit-bucket');
+      if (typeof bucket === 'string' && /^[A-Za-z0-9:_-]{1,64}$/.test(bucket) && (limits.buckets.has(template) || limits.buckets.size < MAX_TRACKED)) {
+        limits.buckets.set(template, bucket);
+      }
+      const { key } = limitKey(limits, method, path);
+      forgetExpired(limits.cooldowns, clock());
       if (response.headers.get('x-ratelimit-remaining') === '0') {
+        // Reset-after is exact; only a missing value falls back to a conservative second.
         const delay = delayMs(response.headers.get('x-ratelimit-reset-after'));
-        cooldowns.set(route, clock() + Math.max(delay, 1_000));
+        limits.cooldowns.set(key, Math.max(limits.cooldowns.get(key) ?? 0, clock() + (delay || 1_000)));
       }
       if (response.status === 429) {
         let data;
@@ -86,12 +145,12 @@ export function createDiscordTransport({ guildId, token, fetch, clock, enabled }
         // An unbounded or unreadable limit cannot be guessed shorter. Halt this transport
         // for operator review instead of retrying early or feeding invalid-request limits.
         if (!delay || [response.headers.get('retry-after'), data.retry_after].some(value => Number(value) > 86_400)) {
-          rateLimitInvalid = true;
+          limits.invalid = true;
           throw new DiscordError('DISCORD_RATE_LIMIT_INVALID');
         }
         const retry = delay;
-        if (data.global === true || response.headers.get('x-ratelimit-global') === 'true') globalUntil = clock() + retry;
-        cooldowns.set(route, clock() + retry);
+        if (data.global === true || response.headers.get('x-ratelimit-global') === 'true') limits.globalUntil = Math.max(limits.globalUntil, clock() + retry);
+        limits.cooldowns.set(key, Math.max(limits.cooldowns.get(key) ?? 0, clock() + retry));
         throw new DiscordError('RATE_LIMITED', retry);
       }
       if ([400, 403].includes(response.status) && ['ticket-dm-open', 'ticket-dm-send'].includes(route)) {
@@ -124,7 +183,7 @@ export function createDiscordTransport({ guildId, token, fetch, clock, enabled }
     } catch (error) {
       if (error instanceof DiscordError) throw error;
       throw new DiscordError(write ? 'DELIVERY_UNCERTAIN' : 'DISCORD_UNAVAILABLE');
-    } finally { controller.abort(); clearTimeout(timeout); await response?.body?.cancel().catch(() => {}); busy = false; }
+    } finally { controller.abort(); clearTimeout(timeout); await response?.body?.cancel().catch(() => {}); }
   }
   return Object.freeze({
     guildId,
@@ -283,6 +342,6 @@ export function createDiscordTransport({ guildId, token, fetch, clock, enabled }
       requireCondition(typeof add === 'boolean', 'INVALID_ROLE_CHANGE');
       return request(add ? 'PUT' : 'DELETE', `/guilds/${guildId}/members/${userId}/roles/${roleId}`, 'role-write');
     },
-    cooldownRemaining() { const result = Math.max(globalUntil, ...cooldowns.values(), 0) - clock(); return Math.max(0, Math.ceil(result)); },
+    cooldownRemaining() { const result = Math.max(limits.globalUntil, ...limits.cooldowns.values(), 0) - clock(); return Math.max(0, Math.ceil(result)); },
   });
 }

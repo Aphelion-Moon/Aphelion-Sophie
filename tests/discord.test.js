@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { requireOwnedRoleChange, validateRoleMapping } from '../modules/membership/discord-policy.js';
-import { createDiscordTransport } from '../apps/core/discord/transport.js';
+import { createDiscordTransport, createDiscordRateLimits } from '../apps/core/discord/transport.js';
 import { createDiscordRoles } from '../apps/core/discord/roles.js';
 import { createRoleDispatcher } from '../apps/core/discord/dispatcher.js';
 import { GUILD, NOW, USER } from './fixtures/domain.js';
@@ -83,24 +83,69 @@ test('T20 malformed identities and missing role arrays fail closed', async () =>
 });
 
 test('T18 rate limits honour fractional retry-after and prevent calls to a cooled route', async () => {
-  let now = NOW; let calls = 0;
-  const rest = transportWith(async () => { calls++; return response({ retry_after: 65.5, global: false }, 429, { 'Retry-After': '66' }); }, { clock: () => now });
+  let now = NOW; let calls = 0; const waits = [];
+  // A frozen clock never ends a cooldown, so a short wait is observed but cannot release the call.
+  const rest = transportWith(async () => { calls++; return response({ retry_after: 65.5, global: false }, 429, { 'Retry-After': '66' }); },
+    { clock: () => now, wait: async ms => { waits.push(ms); } });
   await assert.rejects(rest.getMember(USER), error => error.code === 'RATE_LIMITED' && error.retryAfterMs === 66_000);
+  assert.deepEqual(waits, []);
   now += 65_000;
   await assert.rejects(rest.getMember(USER), error => error.code === 'RATE_LIMITED' && error.retryAfterMs === 1_000);
+  assert.deepEqual(waits, [1_000]);
   assert.equal(calls, 1);
 });
 
 test('T18 global limits stop other routes and reset-after pauses an exhausted successful route', async () => {
   let calls = 0;
-  const global = transportWith(async () => { calls++; return response({ retry_after: 2, global: true }, 429); });
+  const global = transportWith(async () => { calls++; return response({ retry_after: 2, global: true }, 429); }, { wait: async () => {} });
   await assert.rejects(global.getMember(USER), /RATE_LIMITED/);
   await assert.rejects(global.getRoles(), /RATE_LIMITED/);
   assert.equal(calls, 1);
-  const local = transportWith(async () => { calls++; return response(roleList(), 200, { 'X-RateLimit-Remaining': '0', 'X-RateLimit-Reset-After': '1.5' }); });
+  const local = transportWith(async () => { calls++; return response(roleList(), 200, { 'X-RateLimit-Remaining': '0', 'X-RateLimit-Reset-After': '1.5' }); }, { wait: async () => {} });
   await local.getRoles();
   await assert.rejects(local.getRoles(), error => error.retryAfterMs === 1_500);
   assert.equal(calls, 2);
+});
+
+test('T18 a short cooldown is waited out instead of failing the caller, and a long one still fails at once', async () => {
+  let now = NOW; let calls = 0; const waits = [];
+  const rest = transportWith(async () => { calls++; return response(roleList(), 200, { 'X-RateLimit-Remaining': '0', 'X-RateLimit-Reset-After': '0.4' }); },
+    { clock: () => now, wait: async ms => { waits.push(ms); now += ms; } });
+  await rest.getRoles();
+  await rest.getRoles();
+  assert.deepEqual(waits, [400]); assert.equal(calls, 2);
+  const long = transportWith(async () => { calls++; return response(roleList(), 200, { 'X-RateLimit-Remaining': '0', 'X-RateLimit-Reset-After': '5' }); },
+    { clock: () => now, wait: async () => assert.fail('NO_LONG_WAIT') });
+  await long.getRoles();
+  await assert.rejects(long.getRoles(), error => error.code === 'RATE_LIMITED' && error.retryAfterMs === 5_000);
+  assert.equal(calls, 3);
+});
+
+test('T18 transports sharing one registry respect each other\'s buckets; buckets follow the major channel', async () => {
+  const limits = createDiscordRateLimits(); let calls = 0;
+  const exhausted = async () => { calls++; return response({ id: '1' }, 200, { 'X-RateLimit-Remaining': '0', 'X-RateLimit-Reset-After': '30', 'X-RateLimit-Bucket': 'channel-read' }); };
+  const first = transportWith(exhausted, { limits, wait: async () => assert.fail('NO_LONG_WAIT') });
+  const second = transportWith(exhausted, { limits, wait: async () => assert.fail('NO_LONG_WAIT') });
+  await first.getChannel('1001');
+  // Another lane on the same token does not spend the bucket again and earn a real 429.
+  await assert.rejects(second.getChannel('1001'), /RATE_LIMITED/);
+  // A different channel is a different bucket; one busy case channel does not stall the others.
+  await second.getChannel('1002');
+  assert.equal(calls, 2);
+  // Unrelated transports keep their own registries.
+  await transportWith(exhausted).getChannel('1001');
+  assert.equal(calls, 3);
+});
+
+test('T18 concurrent requests on one transport queue behind each other instead of failing busy', async () => {
+  let active = 0, peak = 0, calls = 0;
+  const rest = transportWith(async () => {
+    calls++; active++; peak = Math.max(peak, active);
+    await new Promise(resolve => setTimeout(resolve, 5)); active--;
+    return response(roleList());
+  });
+  await Promise.all([rest.getRoles(), rest.getRoles(), rest.getRoles()]);
+  assert.equal(calls, 3); assert.equal(peak, 1);
 });
 
 test('T18 malformed rate limits halt retries, rather than immediately retrying', async () => {

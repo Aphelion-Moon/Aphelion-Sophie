@@ -48,9 +48,9 @@ import { createKnowledgeLookupCommands } from '../discord/knowledge-lookup.js';
 import { inspectAutomationChannel } from '../storage/automation-channel-policy.js';
 
 /** One request lane owns its proof issuers and serial transport. Workers use a separate lane. */
-export function createAdministrationLane({ configuration, pool, token, fetch, clock, enabled, observer, principals, verifier, onFault, readSystemText, knowledge = null }) {
+export function createAdministrationLane({ configuration, pool, token, fetch, clock, enabled, rateLimits, observer, principals, verifier, onFault, readSystemText, knowledge = null }) {
   const { mapping, casePolicy: policy, limits, definitionId, capabilityPolicy } = configuration;
-  const transport = createDiscordTransport({ guildId: mapping.guildId, token, fetch, clock, enabled });
+  const transport = createDiscordTransport({ guildId: mapping.guildId, token, fetch, clock, enabled, ...(rateLimits ? { limits: rateLimits } : {}) });
   const roles = createDiscordRoles({ transport, mapping, clock, readContinuity: observer.readContinuity });
   const authorization = createCoreAuthorization({ principals, discord: roles, authorityStore: createActorAuthorityStore({ pool, clock }),
     policy: capabilityPolicy, clock, isAuthorityCurrent: enabled, readContinuity: observer.readContinuity });
