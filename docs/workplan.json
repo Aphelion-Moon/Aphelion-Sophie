@@ -1462,17 +1462,19 @@
       "suggested_owner": "Repository maintainer; owner selects sounds and reviews scenes",
       "guardrail": "Sophie is not depicted and no runtime image generation is added. No more than three flashes a second. Audio is CC0 1.0 or CC BY 3.0/4.0 only.",
       "status": "in_progress",
-      "implementation_note": "Owner decisions of 21 October 2026 (\"The Shuttle becomes an Activity\", D1–D10; \"Shuttle Activity sounds chosen\"). Sound selection is done; the renderer, scenes and audio files are not started. Proposed look: the V1 plan mockups (title screen, departure lounge, pressure door).",
+      "implementation_note": "Owner decisions of 21 October 2026 (\"The Shuttle becomes an Activity\", D1–D10; sounds chosen and approved; encoding tool). Sounds are converted and approved; the scene engine, renderer and six scenes are built and tested offline. Remaining: Cozette and owner review of the art.",
       "completed_scope": [
         "Sound cue list (24 cues, including the owner-added MUS-02 arrival theme) and the owner's choice for each, with source, author and licence checked on each sound's page: legal/shuttle-activity-sounds.json. 23 CC0 1.0, one CC BY 4.0 credited in legal/THIRD-PARTY-NOTICES.",
         "Original audio received from the owner and verified on 21 October 2026: 24 of 24 SHA-256 hashes match the owner's checksum list and each header matches its source page; hashes and measured formats are pinned in legal/shuttle-activity-sounds.json. Originals stay uncommitted in .local/shuttle-sounds/.",
         "Encoding tool decided on 21 October 2026: a pinned FFmpeg LGPL Windows build (n9.0.2-17-g2a571b6068, SHA-256 recorded in legal/DEPENDENCIES.json), build time only on the development machine, producing Ogg Opus with MP3 fallbacks.",
         "Pinned FFmpeg build downloaded and checked on 21 October 2026: archive SHA-256 matches, libopus and libmp3lame present, no GPL or nonfree components; effective licence LGPL-3.0-or-later. Review: legal/ffmpeg-build-time-encoder.json.",
         "Sounds converted on 21 October 2026 by scripts/build-shuttle-sounds.mjs: 24 Ogg Opus files (4.6 MB) and 24 MP3 fallbacks (8.0 MB) in content/shuttle-activity/sounds/, with cut, loop and level data in content/shuttle-activity/sound-edits.json. Loops are crossfaded and padded; measured seam jumps are 0.06-1.3 times a normal sample step in both formats. Output hashes are pinned in the sounds record and were byte-identical on a second build. See docs/shuttle-activity-sounds.md.",
-        "Owner auditioned all 24 converted sounds on 21 October 2026 and approved every one without changes; a rebuild reproduced the approved hashes."
+        "Owner auditioned all 24 converted sounds on 21 October 2026 and approved every one without changes; a rebuild reproduced the approved hashes.",
+        "Scene engine and art on 21 October 2026: bounded scene format, validator and frame composer (modules/onboarding/scenes.js); canvas renderer and player (apps/activity/); six scenes with provenance, landscape and portrait (content/shuttle-activity/scenes/), written deterministically by scripts/author-shuttle-scenes.mjs. The door cannot draw open before Whitelist is confirmed. 10 tests in tests/shuttle-scenes.test.js and tests/shuttle-scene-player.test.js. See docs/shuttle-activity-scenes.md."
       ],
       "remaining_scope": [
-        "Scene format, validator, renderer and the six scenes with provenance records."
+        "Download and pin Cozette (MIT; needs go-ahead) and check every scene glyph renders in it.",
+        "Owner review of the scene art."
       ]
     },
     {
