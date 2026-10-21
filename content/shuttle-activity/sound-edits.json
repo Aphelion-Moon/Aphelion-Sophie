@@ -1,0 +1,352 @@
+{
+  "schemaVersion": 1,
+  "createdAt": "2026-10-21",
+  "method": "Chosen by analysing each original's loudness envelope on 21 October 2026; not chosen by ear. Times are seconds in the original. Loops are made seamless by crossfading the end of the window into its start; their output length is loop.length. The owner should audition before release.",
+  "processing": {
+    "sampleRate": 48000,
+    "resampler": "soxr, precision 28",
+    "oneShotPeakDbfs": -3,
+    "loopAndMusicLoudnessLufs": -23,
+    "loopAndMusicPeakCeilingDbfs": -1,
+    "opus": "libopus, VBR, application audio",
+    "mp3": "libmp3lame, VBR quality 4 (music: 2)"
+  },
+  "suggestedMix": {
+    "interface": 0.5,
+    "radio": 0.6,
+    "scenes": 0.8,
+    "ambience": 0.45,
+    "music": 0.6
+  },
+  "edits": {
+    "UI-01": {
+      "kind": "oneshot",
+      "start": 0,
+      "duration": 0.22,
+      "fadeIn": 0.003,
+      "fadeOut": 0.02,
+      "basis": "Leading and trailing near-silence removed (40 dB below the sound's own peak), with a short fade at each end.",
+      "gainDb": 32.3,
+      "levelBasis": "Peak normalised to -3 dBFS (measured true peak -35.3 dBFS).",
+      "opusKbps": 96,
+      "mp3Quality": 4
+    },
+    "UI-02": {
+      "kind": "oneshot",
+      "start": 0,
+      "duration": 0.33,
+      "fadeIn": 0.003,
+      "fadeOut": 0.02,
+      "basis": "Leading and trailing near-silence removed (40 dB below the sound's own peak), with a short fade at each end.",
+      "gainDb": -0.8,
+      "levelBasis": "Peak normalised to -3 dBFS (measured true peak -2.2 dBFS).",
+      "opusKbps": 96,
+      "mp3Quality": 4
+    },
+    "UI-03": {
+      "kind": "oneshot",
+      "start": 0.195,
+      "duration": 0.255,
+      "fadeIn": 0.003,
+      "fadeOut": 0.02,
+      "basis": "Leading and trailing near-silence removed (40 dB below the sound's own peak), with a short fade at each end.",
+      "gainDb": 9,
+      "levelBasis": "Peak normalised to -3 dBFS (measured true peak -12 dBFS).",
+      "opusKbps": 96,
+      "mp3Quality": 4
+    },
+    "UI-04": {
+      "kind": "oneshot",
+      "start": 0,
+      "duration": 0.22,
+      "fadeIn": 0.003,
+      "fadeOut": 0.02,
+      "basis": "Leading and trailing near-silence removed (40 dB below the sound's own peak), with a short fade at each end.",
+      "gainDb": -3,
+      "levelBasis": "Peak normalised to -3 dBFS (measured true peak 0 dBFS).",
+      "opusKbps": 48,
+      "mp3Quality": 4
+    },
+    "UI-05": {
+      "kind": "oneshot",
+      "start": 0,
+      "duration": 0.17,
+      "fadeIn": 0.003,
+      "fadeOut": 0.02,
+      "basis": "Leading and trailing near-silence removed (40 dB below the sound's own peak), with a short fade at each end.",
+      "gainDb": 5.5,
+      "levelBasis": "Peak normalised to -3 dBFS (measured true peak -8.5 dBFS).",
+      "opusKbps": 96,
+      "mp3Quality": 4
+    },
+    "DLG-01": {
+      "kind": "oneshot",
+      "start": 0,
+      "duration": 0.23,
+      "fadeIn": 0.003,
+      "fadeOut": 0.02,
+      "basis": "Leading and trailing near-silence removed (40 dB below the sound's own peak), with a short fade at each end.",
+      "gainDb": 0.8,
+      "levelBasis": "Peak normalised to -3 dBFS (measured true peak -3.8 dBFS).",
+      "opusKbps": 96,
+      "mp3Quality": 4
+    },
+    "DLG-02": {
+      "kind": "oneshot",
+      "start": 0,
+      "duration": 0.14,
+      "fadeIn": 0.003,
+      "fadeOut": 0.02,
+      "basis": "Leading and trailing near-silence removed (40 dB below the sound's own peak), with a short fade at each end.",
+      "gainDb": -0.1,
+      "levelBasis": "Peak normalised to -3 dBFS (measured true peak -2.9 dBFS).",
+      "opusKbps": 96,
+      "mp3Quality": 4
+    },
+    "DLG-03": {
+      "kind": "oneshot",
+      "start": 0,
+      "duration": 0.17,
+      "fadeIn": 0.003,
+      "fadeOut": 0.02,
+      "basis": "Leading and trailing near-silence removed (40 dB below the sound's own peak), with a short fade at each end.",
+      "gainDb": -1.1,
+      "levelBasis": "Peak normalised to -3 dBFS (measured true peak -1.9 dBFS).",
+      "opusKbps": 48,
+      "mp3Quality": 4
+    },
+    "DLG-04": {
+      "kind": "oneshot",
+      "start": 0,
+      "duration": 0.23,
+      "fadeIn": 0.003,
+      "fadeOut": 0.02,
+      "basis": "Leading and trailing near-silence removed (40 dB below the sound's own peak), with a short fade at each end.",
+      "gainDb": 2.4,
+      "levelBasis": "Peak normalised to -3 dBFS (measured true peak -5.4 dBFS).",
+      "opusKbps": 96,
+      "mp3Quality": 4
+    },
+    "DLG-05": {
+      "kind": "loop",
+      "start": 1,
+      "duration": 22,
+      "fadeIn": 0,
+      "fadeOut": 0,
+      "loop": {
+        "mode": "crossfade",
+        "length": 20,
+        "crossfade": 2
+      },
+      "basis": "Steadiest 22 s of the original (0.5 s loudness spread 3.38 dB), made seamless with a 2 s equal-power crossfade at the seam.",
+      "gainDb": 6.3,
+      "levelBasis": "Integrated loudness to -23 LUFS (measured -29.3 LUFS, true peak -7.3 dBFS); limited so the peak stays at -1 dBFS.",
+      "opusKbps": 24,
+      "mp3Quality": 4
+    },
+    "SC-01": {
+      "kind": "oneshot",
+      "start": 0.215,
+      "duration": 2.5,
+      "fadeIn": 0.005,
+      "fadeOut": 0.35,
+      "basis": "From the first sound for up to 2.5 s, faded out.",
+      "gainDb": -0.5,
+      "levelBasis": "Peak normalised to -3 dBFS (measured true peak -2.5 dBFS).",
+      "opusKbps": 96,
+      "mp3Quality": 4
+    },
+    "SC-02": {
+      "kind": "oneshot",
+      "start": 12.21,
+      "duration": 3.2,
+      "fadeIn": 0.005,
+      "fadeOut": 0.25,
+      "basis": "The 3.2 s with the most flap onsets (43 in 3 s), starting at an onset.",
+      "gainDb": -1.4,
+      "levelBasis": "Peak normalised to -3 dBFS (measured true peak -1.6 dBFS).",
+      "opusKbps": 96,
+      "mp3Quality": 4
+    },
+    "SC-03": {
+      "kind": "oneshot",
+      "start": 0,
+      "duration": 0.48,
+      "fadeIn": 0.003,
+      "fadeOut": 0.02,
+      "basis": "Leading and trailing near-silence removed (40 dB below the sound's own peak), with a short fade at each end.",
+      "gainDb": 1.1,
+      "levelBasis": "Peak normalised to -3 dBFS (measured true peak -4.1 dBFS).",
+      "opusKbps": 48,
+      "mp3Quality": 4
+    },
+    "SC-04": {
+      "kind": "oneshot",
+      "start": 3.49,
+      "duration": 5,
+      "fadeIn": 0.005,
+      "fadeOut": 0.6,
+      "basis": "The 5 s of the airlock sequence with the most energy, from just before its first onset, faded out.",
+      "gainDb": -2.8,
+      "levelBasis": "Peak normalised to -3 dBFS (measured true peak -0.2 dBFS).",
+      "opusKbps": 96,
+      "mp3Quality": 4
+    },
+    "SC-05": {
+      "kind": "oneshot",
+      "start": 0,
+      "duration": 1.3,
+      "fadeIn": 0.003,
+      "fadeOut": 0.02,
+      "basis": "Leading and trailing near-silence removed (40 dB below the sound's own peak), with a short fade at each end.",
+      "gainDb": 7.6,
+      "levelBasis": "Peak normalised to -3 dBFS (measured true peak -10.6 dBFS).",
+      "opusKbps": 96,
+      "mp3Quality": 4
+    },
+    "SC-06": {
+      "kind": "oneshot",
+      "start": 0,
+      "duration": 0.21,
+      "fadeIn": 0.003,
+      "fadeOut": 0.02,
+      "basis": "Leading and trailing near-silence removed (40 dB below the sound's own peak), with a short fade at each end.",
+      "gainDb": 2.3,
+      "levelBasis": "Peak normalised to -3 dBFS (measured true peak -5.3 dBFS).",
+      "opusKbps": 96,
+      "mp3Quality": 4
+    },
+    "AMB-01": {
+      "kind": "loop",
+      "start": 39.5,
+      "duration": 47,
+      "fadeIn": 0,
+      "fadeOut": 0,
+      "loop": {
+        "mode": "crossfade",
+        "length": 45,
+        "crossfade": 2
+      },
+      "basis": "Steadiest 47 s of the original (0.5 s loudness spread 1.41 dB), made seamless with a 2 s equal-power crossfade at the seam.",
+      "gainDb": 7.2,
+      "levelBasis": "Integrated loudness to -23 LUFS (measured -30.2 LUFS, true peak -14.7 dBFS).",
+      "opusKbps": 64,
+      "mp3Quality": 4
+    },
+    "AMB-02": {
+      "kind": "loop",
+      "start": 130.5,
+      "duration": 47,
+      "fadeIn": 0,
+      "fadeOut": 0,
+      "loop": {
+        "mode": "crossfade",
+        "length": 45,
+        "crossfade": 2
+      },
+      "basis": "Steadiest 47 s of the original (0.5 s loudness spread 0.64 dB), made seamless with a 2 s equal-power crossfade at the seam.",
+      "gainDb": 13.5,
+      "levelBasis": "Integrated loudness to -23 LUFS (measured -36.5 LUFS, true peak -24.6 dBFS).",
+      "opusKbps": 64,
+      "mp3Quality": 4
+    },
+    "AMB-03": {
+      "kind": "loop",
+      "start": 0.558,
+      "duration": 32,
+      "fadeIn": 0,
+      "fadeOut": 0,
+      "loop": {
+        "mode": "crossfade",
+        "length": 30,
+        "crossfade": 2
+      },
+      "basis": "The middle 32 s of the original, which is only slightly longer, made seamless with a 2 s equal-power crossfade at the seam.",
+      "gainDb": 15.8,
+      "levelBasis": "Integrated loudness to -23 LUFS (measured -38.8 LUFS, true peak -20.8 dBFS).",
+      "opusKbps": 64,
+      "mp3Quality": 4
+    },
+    "AMB-04": {
+      "kind": "loop",
+      "start": 0.44,
+      "duration": 15,
+      "fadeIn": 0,
+      "fadeOut": 0,
+      "loop": {
+        "mode": "crossfade",
+        "length": 13.5,
+        "crossfade": 1.5
+      },
+      "basis": "The middle 15 s of the original, which is only slightly longer, made seamless with a 1.5 s equal-power crossfade at the seam.",
+      "gainDb": -6.9,
+      "levelBasis": "Integrated loudness to -23 LUFS (measured -16.1 LUFS, true peak -1.7 dBFS).",
+      "opusKbps": 64,
+      "mp3Quality": 4
+    },
+    "AMB-05": {
+      "kind": "loop",
+      "start": 53,
+      "duration": 47,
+      "fadeIn": 0,
+      "fadeOut": 0,
+      "loop": {
+        "mode": "crossfade",
+        "length": 45,
+        "crossfade": 2
+      },
+      "basis": "Steadiest 47 s of the original (0.5 s loudness spread 2.79 dB), made seamless with a 2 s equal-power crossfade at the seam.",
+      "gainDb": -10.7,
+      "levelBasis": "Integrated loudness to -23 LUFS (measured -12.3 LUFS, true peak -0.4 dBFS).",
+      "opusKbps": 64,
+      "mp3Quality": 4
+    },
+    "AMB-06": {
+      "kind": "loop",
+      "start": 7.5,
+      "duration": 47,
+      "fadeIn": 0,
+      "fadeOut": 0,
+      "loop": {
+        "mode": "crossfade",
+        "length": 45,
+        "crossfade": 2
+      },
+      "basis": "Steadiest 47 s of the original (0.5 s loudness spread 0.66 dB), made seamless with a 2 s equal-power crossfade at the seam.",
+      "gainDb": -5.2,
+      "levelBasis": "Integrated loudness to -23 LUFS (measured -17.8 LUFS, true peak -6.9 dBFS).",
+      "opusKbps": 64,
+      "mp3Quality": 4
+    },
+    "MUS-01": {
+      "kind": "music",
+      "start": 0,
+      "duration": 111.695,
+      "fadeIn": 0,
+      "fadeOut": 0,
+      "loop": {
+        "mode": "whole"
+      },
+      "basis": "Whole track, unchanged apart from level. Fades and the restart gap are applied at playback.",
+      "gainDb": -9.5,
+      "levelBasis": "Integrated loudness to -23 LUFS (measured -13.5 LUFS, true peak 0 dBFS).",
+      "opusKbps": 112,
+      "mp3Quality": 2
+    },
+    "MUS-02": {
+      "kind": "music",
+      "start": 0,
+      "duration": 69.904,
+      "fadeIn": 0,
+      "fadeOut": 0,
+      "loop": {
+        "mode": "whole"
+      },
+      "basis": "Whole track, unchanged apart from level. Fades and the restart gap are applied at playback.",
+      "gainDb": -10.5,
+      "levelBasis": "Integrated loudness to -23 LUFS (measured -12.5 LUFS, true peak 0.4 dBFS).",
+      "opusKbps": 112,
+      "mp3Quality": 2
+    }
+  }
+}

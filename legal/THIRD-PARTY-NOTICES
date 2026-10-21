@@ -22,12 +22,13 @@ isolated synthetic tests. They are not redistributed in this repository.
 The PostgreSQL and installed command-line bundle notices remain with that
 distribution; recorded hashes are in legal/postgresql-test-runtime.json.
 
-Shuttle Activity sounds are selected but not yet bundled; see
-legal/shuttle-activity-sounds.json. All are CC0 1.0 except one, which will be
-credited here when it is bundled:
+Shuttle Activity sounds in content/shuttle-activity/sounds/ are converted from
+the sounds recorded in legal/shuttle-activity-sounds.json, with each change
+listed there. All are CC0 1.0 except one:
 "Suspension: Mellow Electro-Ambient Soundscape" by kjartan_abel
 (https://freesound.org/people/kjartan_abel/sounds/531854/), licensed under
-CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/).
+CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Changes: converted
+to Ogg Opus and MP3 at 48 kHz; level lowered by 9.5 dB.
 
 FFmpeg (LGPL-3.0-or-later build, pinned in legal/DEPENDENCIES.json and reviewed
 in legal/ffmpeg-build-time-encoder.json) is approved only as a build-time tool on

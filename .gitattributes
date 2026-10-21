@@ -17,5 +17,7 @@ legal/THIRD-PARTY-NOTICES text eol=lf
 *.md text eol=lf
 *.ps1 text eol=lf
 *.png binary
+*.opus binary
+*.mp3 binary
 # Preserve the supplied reference pack's byte-level checksums and provenance.
 Sophie-Implementation-Plans-v1.1/** -text

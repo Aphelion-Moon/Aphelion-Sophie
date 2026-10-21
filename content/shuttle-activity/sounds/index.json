@@ -1,0 +1,336 @@
+{
+  "schemaVersion": 1,
+  "generatedBy": "scripts/build-shuttle-sounds.mjs",
+  "sampleRate": 48000,
+  "suggestedMix": {
+    "interface": 0.5,
+    "radio": 0.6,
+    "scenes": 0.8,
+    "ambience": 0.45,
+    "music": 0.6
+  },
+  "sounds": [
+    {
+      "cue": "UI-01",
+      "name": "Focus tick",
+      "group": "interface",
+      "plays": "Moving between buttons and menu items, by mouse or keyboard.",
+      "kind": "oneshot",
+      "opus": "ui-01-focus-tick.opus",
+      "mp3": "ui-01-focus-tick.mp3",
+      "seconds": 0.22,
+      "samples": 10560,
+      "loop": null
+    },
+    {
+      "cue": "UI-02",
+      "name": "Confirm",
+      "group": "interface",
+      "plays": "Board the Shuttle, Continue and Complete Shuttle.",
+      "kind": "oneshot",
+      "opus": "ui-02-confirm.opus",
+      "mp3": "ui-02-confirm.mp3",
+      "seconds": 0.33,
+      "samples": 15840,
+      "loop": null
+    },
+    {
+      "cue": "UI-03",
+      "name": "Back",
+      "group": "interface",
+      "plays": "Back, closing a panel and leaving Settings.",
+      "kind": "oneshot",
+      "opus": "ui-03-back.opus",
+      "mp3": "ui-03-back.mp3",
+      "seconds": 0.255,
+      "samples": 12240,
+      "loop": null
+    },
+    {
+      "cue": "UI-04",
+      "name": "Unavailable",
+      "group": "interface",
+      "plays": "A control that cannot be used right now: Muzzled, withdrawn guidance, an out-of-date click.",
+      "kind": "oneshot",
+      "opus": "ui-04-unavailable.opus",
+      "mp3": "ui-04-unavailable.mp3",
+      "seconds": 0.22,
+      "samples": 10560,
+      "loop": null
+    },
+    {
+      "cue": "UI-05",
+      "name": "Settings toggle",
+      "group": "interface",
+      "plays": "Switching Motion, Text mode or sound on and off.",
+      "kind": "oneshot",
+      "opus": "ui-05-settings-toggle.opus",
+      "mp3": "ui-05-settings-toggle.mp3",
+      "seconds": 0.17,
+      "samples": 8160,
+      "loop": null
+    },
+    {
+      "cue": "DLG-01",
+      "name": "Text tick",
+      "group": "radio",
+      "plays": "While a line types out, one tick every few characters.",
+      "kind": "oneshot",
+      "opus": "dlg-01-text-tick.opus",
+      "mp3": "dlg-01-text-tick.mp3",
+      "seconds": 0.23,
+      "samples": 11040,
+      "loop": null
+    },
+    {
+      "cue": "DLG-02",
+      "name": "Next page",
+      "group": "radio",
+      "plays": "Moving to the next page inside a section.",
+      "kind": "oneshot",
+      "opus": "dlg-02-next-page.opus",
+      "mp3": "dlg-02-next-page.mp3",
+      "seconds": 0.14,
+      "samples": 6720,
+      "loop": null
+    },
+    {
+      "cue": "DLG-03",
+      "name": "Transmission opens",
+      "group": "radio",
+      "plays": "Sophie starts a new radio transmission (each new section).",
+      "kind": "oneshot",
+      "opus": "dlg-03-transmission-opens.opus",
+      "mp3": "dlg-03-transmission-opens.mp3",
+      "seconds": 0.17,
+      "samples": 8160,
+      "loop": null
+    },
+    {
+      "cue": "DLG-04",
+      "name": "Transmission closes",
+      "group": "radio",
+      "plays": "The end of a section, before Continue.",
+      "kind": "oneshot",
+      "opus": "dlg-04-transmission-closes.opus",
+      "mp3": "dlg-04-transmission-closes.mp3",
+      "seconds": 0.23,
+      "samples": 11040,
+      "loop": null
+    },
+    {
+      "cue": "DLG-05",
+      "name": "Static bed",
+      "group": "radio",
+      "plays": "Very quietly under Sophie's lines while text is on screen.",
+      "kind": "loop",
+      "opus": "dlg-05-static-bed.opus",
+      "mp3": "dlg-05-static-bed.mp3",
+      "seconds": 21,
+      "samples": 1008000,
+      "loop": {
+        "start": 0.5,
+        "end": 20.5
+      }
+    },
+    {
+      "cue": "SC-01",
+      "name": "Stop transition",
+      "group": "scenes",
+      "plays": "Moving from one stop's scene to the next.",
+      "kind": "oneshot",
+      "opus": "sc-01-stop-transition.opus",
+      "mp3": "sc-01-stop-transition.mp3",
+      "seconds": 2.5,
+      "samples": 120000,
+      "loop": null
+    },
+    {
+      "cue": "SC-02",
+      "name": "Split-flap board",
+      "group": "scenes",
+      "plays": "The departures board flipping in the lounge.",
+      "kind": "oneshot",
+      "opus": "sc-02-split-flap-board.opus",
+      "mp3": "sc-02-split-flap-board.mp3",
+      "seconds": 3.2,
+      "samples": 153600,
+      "loop": null
+    },
+    {
+      "cue": "SC-03",
+      "name": "Holo glitch",
+      "group": "scenes",
+      "plays": "New-era panels flickering in; small and rare.",
+      "kind": "oneshot",
+      "opus": "sc-03-holo-glitch.opus",
+      "mp3": "sc-03-holo-glitch.mp3",
+      "seconds": 0.48,
+      "samples": 23040,
+      "loop": null
+    },
+    {
+      "cue": "SC-04",
+      "name": "Pressure door opens",
+      "group": "scenes",
+      "plays": "The arrival door, once Whitelist is confirmed.",
+      "kind": "oneshot",
+      "opus": "sc-04-pressure-door-opens.opus",
+      "mp3": "sc-04-pressure-door-opens.mp3",
+      "seconds": 5,
+      "samples": 240000,
+      "loop": null
+    },
+    {
+      "cue": "SC-05",
+      "name": "Clearance confirmed",
+      "group": "scenes",
+      "plays": "Discord has confirmed the Whitelist role.",
+      "kind": "oneshot",
+      "opus": "sc-05-clearance-confirmed.opus",
+      "mp3": "sc-05-clearance-confirmed.mp3",
+      "seconds": 1.3,
+      "samples": 62400,
+      "loop": null
+    },
+    {
+      "cue": "SC-06",
+      "name": "Still waiting",
+      "group": "scenes",
+      "plays": "Check completion while the role is still pending.",
+      "kind": "oneshot",
+      "opus": "sc-06-still-waiting.opus",
+      "mp3": "sc-06-still-waiting.mp3",
+      "seconds": 0.21,
+      "samples": 10080,
+      "loop": null
+    },
+    {
+      "cue": "AMB-01",
+      "name": "Title screen and hangar",
+      "group": "ambience",
+      "plays": "Loop behind the title screen.",
+      "kind": "loop",
+      "opus": "amb-01-title-screen-and-hangar.opus",
+      "mp3": "amb-01-title-screen-and-hangar.mp3",
+      "seconds": 46,
+      "samples": 2208000,
+      "loop": {
+        "start": 0.5,
+        "end": 45.5
+      }
+    },
+    {
+      "cue": "AMB-02",
+      "name": "Departure lounge",
+      "group": "ambience",
+      "plays": "Loop behind the rules entry and The Brochure.",
+      "kind": "loop",
+      "opus": "amb-02-departure-lounge.opus",
+      "mp3": "amb-02-departure-lounge.mp3",
+      "seconds": 46,
+      "samples": 2208000,
+      "loop": {
+        "start": 0.5,
+        "end": 45.5
+      }
+    },
+    {
+      "cue": "AMB-03",
+      "name": "Baggage hall",
+      "group": "ambience",
+      "plays": "Loop behind Pack Your Bags.",
+      "kind": "loop",
+      "opus": "amb-03-baggage-hall.opus",
+      "mp3": "amb-03-baggage-hall.mp3",
+      "seconds": 31,
+      "samples": 1488000,
+      "loop": {
+        "start": 0.5,
+        "end": 30.5
+      }
+    },
+    {
+      "cue": "AMB-04",
+      "name": "Shuttle cabin",
+      "group": "ambience",
+      "plays": "Loop behind Board the Shuttle.",
+      "kind": "loop",
+      "opus": "amb-04-shuttle-cabin.opus",
+      "mp3": "amb-04-shuttle-cabin.mp3",
+      "seconds": 14.5,
+      "samples": 696000,
+      "loop": {
+        "start": 0.5,
+        "end": 14
+      }
+    },
+    {
+      "cue": "AMB-05",
+      "name": "Viewport",
+      "group": "ambience",
+      "plays": "Loop behind Admire the Lights.",
+      "kind": "loop",
+      "opus": "amb-05-viewport.opus",
+      "mp3": "amb-05-viewport.mp3",
+      "seconds": 46,
+      "samples": 2208000,
+      "loop": {
+        "start": 0.5,
+        "end": 45.5
+      }
+    },
+    {
+      "cue": "AMB-06",
+      "name": "New laboratory",
+      "group": "ambience",
+      "plays": "Loop behind Disembarking after the door opens.",
+      "kind": "loop",
+      "opus": "amb-06-new-laboratory.opus",
+      "mp3": "amb-06-new-laboratory.mp3",
+      "seconds": 46,
+      "samples": 2208000,
+      "loop": {
+        "start": 0.5,
+        "end": 45.5
+      }
+    },
+    {
+      "cue": "MUS-01",
+      "name": "Title theme",
+      "group": "music",
+      "plays": "The title screen only, quietly, on a loop.",
+      "kind": "music",
+      "opus": "mus-01-title-theme.opus",
+      "mp3": "mus-01-title-theme.mp3",
+      "seconds": 111.695,
+      "samples": 5361360,
+      "loop": {
+        "start": 0,
+        "end": 111.695,
+        "restartGapSeconds": 2,
+        "fadeInSeconds": 2,
+        "fadeOutSeconds": 4
+      },
+      "credit": "\"Suspension: Mellow Electro-Ambient Soundscape\" by kjartan_abel (https://freesound.org/people/kjartan_abel/sounds/531854/), licensed under CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Changes: Converted to Ogg Opus and MP3 at 48 kHz. Level lowered by 9.5 dB."
+    },
+    {
+      "cue": "MUS-02",
+      "name": "Arrival theme",
+      "group": "music",
+      "plays": "After Discord confirms Whitelist, at the end of Disembarking. Never before confirmation.",
+      "kind": "music",
+      "opus": "mus-02-arrival-theme.opus",
+      "mp3": "mus-02-arrival-theme.mp3",
+      "seconds": 69.904,
+      "samples": 3355392,
+      "loop": {
+        "start": 0,
+        "end": 69.904,
+        "restartGapSeconds": 2,
+        "fadeInSeconds": 2,
+        "fadeOutSeconds": 4
+      }
+    }
+  ]
+}

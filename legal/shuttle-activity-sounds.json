@@ -4,7 +4,7 @@
   "ownerDecision": "docs/decisions/0001-owner-policy.md (The Shuttle becomes an Activity, D10; Shuttle Activity sounds chosen)",
   "policy": "Audio assets only: CC0 1.0 and CC BY 3.0/4.0. NC, ND, SA and unclear licences are excluded. Each bundled file is pinned with its SHA-256; CC BY sounds are credited on the Credits screen and in legal/THIRD-PARTY-NOTICES, with any changes stated.",
   "selection": "The owner chose one option per cue in a private picker page on 21 October 2026. Licences were read from each sound's own page that day.",
-  "status": "Originals received from the owner on 21 October 2026 and verified: every SHA-256 matches the owner's checksum list, and format, channels, sample rate, bit depth and length match each source page. They are kept uncommitted in .local/shuttle-sounds/ (ignored by Git). Nothing has been changed or bundled.",
+  "status": "Originals verified (see each file). Converted to Ogg Opus with MP3 fallbacks by scripts/build-shuttle-sounds.mjs; outputs and their hashes are listed per cue. Cuts were chosen by analysis, not by ear, and await the owner's audition.",
   "encoding": {
     "tool": "FFmpeg LGPL-3.0-or-later build (legal/DEPENDENCIES.json buildTimeAudioEncoder; review in legal/ffmpeg-build-time-encoder.json), build time only on the development machine",
     "primary": "Ogg Opus",
@@ -53,7 +53,27 @@
           "seconds": 0.254
         }
       },
-      "changes": []
+      "changes": [
+        "Converted to Ogg Opus and MP3 at 48 kHz.",
+        "Cut to 0.22 s starting at 0 s, with 3 ms fade-in and 20 ms fade-out.",
+        "Level raised by 32.3 dB."
+      ],
+      "outputs": {
+        "opus": {
+          "path": "content/shuttle-activity/sounds/ui-01-focus-tick.opus",
+          "bytes": 3465,
+          "sha256": "5e3a95fbd18d3df56757202ec2f555e52b2645e689ecec72eae7075db611bd77",
+          "seconds": 0.22,
+          "kbps": 96
+        },
+        "mp3": {
+          "path": "content/shuttle-activity/sounds/ui-01-focus-tick.mp3",
+          "bytes": 6336,
+          "sha256": "8dce485c74a2c120569d801cdd2d8a42bce5d83377540eefa5e86a13412fd6b8",
+          "seconds": 0.22,
+          "lameVbrQuality": 4
+        }
+      }
     },
     {
       "cue": "UI-02",
@@ -96,7 +116,27 @@
           "seconds": 1.059
         }
       },
-      "changes": []
+      "changes": [
+        "Converted to Ogg Opus and MP3 at 48 kHz.",
+        "Cut to 0.33 s starting at 0 s, with 3 ms fade-in and 20 ms fade-out.",
+        "Level lowered by 0.8 dB."
+      ],
+      "outputs": {
+        "opus": {
+          "path": "content/shuttle-activity/sounds/ui-02-confirm.opus",
+          "bytes": 5413,
+          "sha256": "5f2955bc8a8e5cf30e9ce8025455600028805383b3dc37ff7ccb78822d0e953f",
+          "seconds": 0.33,
+          "kbps": 96
+        },
+        "mp3": {
+          "path": "content/shuttle-activity/sounds/ui-02-confirm.mp3",
+          "bytes": 6288,
+          "sha256": "10a1b847208c1ffd06d52789291a318ad269340f01073bd09bcc41faaa166a45",
+          "seconds": 0.33,
+          "lameVbrQuality": 4
+        }
+      }
     },
     {
       "cue": "UI-03",
@@ -139,7 +179,27 @@
           "seconds": 0.682
         }
       },
-      "changes": []
+      "changes": [
+        "Converted to Ogg Opus and MP3 at 48 kHz.",
+        "Cut to 0.255 s starting at 0.195 s, with 3 ms fade-in and 20 ms fade-out.",
+        "Level raised by 9 dB."
+      ],
+      "outputs": {
+        "opus": {
+          "path": "content/shuttle-activity/sounds/ui-03-back.opus",
+          "bytes": 4723,
+          "sha256": "8ab42243655b29d740e8309b3e4716e0a23f18fe1b06b541fb336d7a4b6b046b",
+          "seconds": 0.255,
+          "kbps": 96
+        },
+        "mp3": {
+          "path": "content/shuttle-activity/sounds/ui-03-back.mp3",
+          "bytes": 4176,
+          "sha256": "e8a06263c9bf93e587c478b9aed6b1f26df31705a453f835d9ead5ff9c150309",
+          "seconds": 0.255,
+          "lameVbrQuality": 4
+        }
+      }
     },
     {
       "cue": "UI-04",
@@ -182,7 +242,27 @@
           "seconds": 0.227
         }
       },
-      "changes": []
+      "changes": [
+        "Converted to Ogg Opus and MP3 at 48 kHz.",
+        "Cut to 0.22 s starting at 0 s, with 3 ms fade-in and 20 ms fade-out.",
+        "Level lowered by 3 dB."
+      ],
+      "outputs": {
+        "opus": {
+          "path": "content/shuttle-activity/sounds/ui-04-unavailable.opus",
+          "bytes": 2653,
+          "sha256": "af24bb935919f265dc33789347753290c9511f8bb9a7950f3f345ad276810270",
+          "seconds": 0.22,
+          "kbps": 48
+        },
+        "mp3": {
+          "path": "content/shuttle-activity/sounds/ui-04-unavailable.mp3",
+          "bytes": 2880,
+          "sha256": "1555d45ab335c5a069b2261b769a6fb09368df8f54dcea651d7bafc1f542eba5",
+          "seconds": 0.22,
+          "lameVbrQuality": 4
+        }
+      }
     },
     {
       "cue": "UI-05",
@@ -225,7 +305,27 @@
           "seconds": 0.188
         }
       },
-      "changes": []
+      "changes": [
+        "Converted to Ogg Opus and MP3 at 48 kHz.",
+        "Cut to 0.17 s starting at 0 s, with 3 ms fade-in and 20 ms fade-out.",
+        "Level raised by 5.5 dB."
+      ],
+      "outputs": {
+        "opus": {
+          "path": "content/shuttle-activity/sounds/ui-05-settings-toggle.opus",
+          "bytes": 2590,
+          "sha256": "2640d6a572d090c5ee50270ad6d415104afd96e8ec725c2112408169c69627ef",
+          "seconds": 0.17,
+          "kbps": 96
+        },
+        "mp3": {
+          "path": "content/shuttle-activity/sounds/ui-05-settings-toggle.mp3",
+          "bytes": 3264,
+          "sha256": "20e630e3bef91dccf52dcf83bad849b466f6675f2548d65bf75c8386135bb369",
+          "seconds": 0.17,
+          "lameVbrQuality": 4
+        }
+      }
     },
     {
       "cue": "DLG-01",
@@ -268,7 +368,27 @@
           "seconds": 0.302
         }
       },
-      "changes": []
+      "changes": [
+        "Converted to Ogg Opus and MP3 at 48 kHz.",
+        "Cut to 0.23 s starting at 0 s, with 3 ms fade-in and 20 ms fade-out.",
+        "Level raised by 0.8 dB."
+      ],
+      "outputs": {
+        "opus": {
+          "path": "content/shuttle-activity/sounds/dlg-01-text-tick.opus",
+          "bytes": 4974,
+          "sha256": "169c866b26281690856c5262901564b39c249e341c602b2552547f04e1518490",
+          "seconds": 0.23,
+          "kbps": 96
+        },
+        "mp3": {
+          "path": "content/shuttle-activity/sounds/dlg-01-text-tick.mp3",
+          "bytes": 3696,
+          "sha256": "895376c922f16a3cc80dc49de1e867bdcb214d85bde124d004d56207b284e424",
+          "seconds": 0.23,
+          "lameVbrQuality": 4
+        }
+      }
     },
     {
       "cue": "DLG-02",
@@ -311,7 +431,27 @@
           "seconds": 0.387
         }
       },
-      "changes": []
+      "changes": [
+        "Converted to Ogg Opus and MP3 at 48 kHz.",
+        "Cut to 0.14 s starting at 0 s, with 3 ms fade-in and 20 ms fade-out.",
+        "Level lowered by 0.1 dB."
+      ],
+      "outputs": {
+        "opus": {
+          "path": "content/shuttle-activity/sounds/dlg-02-next-page.opus",
+          "bytes": 3124,
+          "sha256": "ff233785f5c0c83a70705d2fdb9c0b84d33a446c61ef426380eee72e1179b9b8",
+          "seconds": 0.14,
+          "kbps": 96
+        },
+        "mp3": {
+          "path": "content/shuttle-activity/sounds/dlg-02-next-page.mp3",
+          "bytes": 3696,
+          "sha256": "4dcb992c41276ba87f73c423c02b8eda2efd2e682d997c384e0975fa1d0ff56a",
+          "seconds": 0.14,
+          "lameVbrQuality": 4
+        }
+      }
     },
     {
       "cue": "DLG-03",
@@ -355,7 +495,27 @@
           "seconds": 0.65
         }
       },
-      "changes": []
+      "changes": [
+        "Converted to Ogg Opus and MP3 at 48 kHz.",
+        "Cut to 0.17 s starting at 0 s, with 3 ms fade-in and 20 ms fade-out.",
+        "Level lowered by 1.1 dB."
+      ],
+      "outputs": {
+        "opus": {
+          "path": "content/shuttle-activity/sounds/dlg-03-transmission-opens.opus",
+          "bytes": 2049,
+          "sha256": "62963e30a942a78d1c4441f99984ea3189048af07216823604ffb46dbbe0c300",
+          "seconds": 0.17,
+          "kbps": 48
+        },
+        "mp3": {
+          "path": "content/shuttle-activity/sounds/dlg-03-transmission-opens.mp3",
+          "bytes": 2832,
+          "sha256": "a28afaeddc492f4631c1e944d093f0dbe4dfadcb68fb14015b84e6e5e2945609",
+          "seconds": 0.17,
+          "lameVbrQuality": 4
+        }
+      }
     },
     {
       "cue": "DLG-04",
@@ -398,7 +558,27 @@
           "seconds": 1.214
         }
       },
-      "changes": []
+      "changes": [
+        "Converted to Ogg Opus and MP3 at 48 kHz.",
+        "Cut to 0.23 s starting at 0 s, with 3 ms fade-in and 20 ms fade-out.",
+        "Level raised by 2.4 dB."
+      ],
+      "outputs": {
+        "opus": {
+          "path": "content/shuttle-activity/sounds/dlg-04-transmission-closes.opus",
+          "bytes": 4029,
+          "sha256": "32adfa6005775b5f4bba3977c8b864de8ea0ee67604fd363240f530c7ebcbc8d",
+          "seconds": 0.23,
+          "kbps": 96
+        },
+        "mp3": {
+          "path": "content/shuttle-activity/sounds/dlg-04-transmission-closes.mp3",
+          "bytes": 6000,
+          "sha256": "f6132773af9cb90ec940a70d4e03ecd7ff053d1f9df4dfddf5b35b83ac8e44df",
+          "seconds": 0.23,
+          "lameVbrQuality": 4
+        }
+      }
     },
     {
       "cue": "DLG-05",
@@ -441,7 +621,29 @@
           "seconds": 26.329
         }
       },
-      "changes": []
+      "changes": [
+        "Converted to Ogg Opus and MP3 at 48 kHz.",
+        "Cut to 22 s starting at 1 s and made into a 20 s seamless loop with a 2 s crossfade, padded by 0.5 s of its own audio on each side.",
+        "Level raised by 6.3 dB."
+      ],
+      "outputs": {
+        "opus": {
+          "path": "content/shuttle-activity/sounds/dlg-05-static-bed.opus",
+          "bytes": 67888,
+          "sha256": "d6eaf8b8b5caed2333a21aad4e9d7b163c48c79eae4bd79cabd76040fb1c60ec",
+          "seconds": 21,
+          "kbps": 24,
+          "seamRatio": 0.56
+        },
+        "mp3": {
+          "path": "content/shuttle-activity/sounds/dlg-05-static-bed.mp3",
+          "bytes": 110832,
+          "sha256": "6e31f74c5d6b8cb07ae656d87bd30c60ee6d3631302f8d21bb8ab9f16d3a6556",
+          "seconds": 21,
+          "lameVbrQuality": 4,
+          "seamRatio": 0.01
+        }
+      }
     },
     {
       "cue": "SC-01",
@@ -484,7 +686,27 @@
           "seconds": 7.367
         }
       },
-      "changes": []
+      "changes": [
+        "Converted to Ogg Opus and MP3 at 48 kHz.",
+        "Cut to 2.5 s starting at 0.215 s, with 5 ms fade-in and 350 ms fade-out.",
+        "Level lowered by 0.5 dB."
+      ],
+      "outputs": {
+        "opus": {
+          "path": "content/shuttle-activity/sounds/sc-01-stop-transition.opus",
+          "bytes": 22056,
+          "sha256": "3b9ce5f863b6d3503ff81e8b8ddb93de78a5377d13bbf3458d0b6ff230e666bd",
+          "seconds": 2.5,
+          "kbps": 96
+        },
+        "mp3": {
+          "path": "content/shuttle-activity/sounds/sc-01-stop-transition.mp3",
+          "bytes": 42840,
+          "sha256": "7fc80b268887358ca761b97c35b0085f22e09dd145218893305dfacab6974c36",
+          "seconds": 2.5,
+          "lameVbrQuality": 4
+        }
+      }
     },
     {
       "cue": "SC-02",
@@ -528,7 +750,27 @@
           "seconds": 124.053
         }
       },
-      "changes": []
+      "changes": [
+        "Converted to Ogg Opus and MP3 at 48 kHz.",
+        "Cut to 3.2 s starting at 12.21 s, with 5 ms fade-in and 250 ms fade-out.",
+        "Level lowered by 1.4 dB."
+      ],
+      "outputs": {
+        "opus": {
+          "path": "content/shuttle-activity/sounds/sc-02-split-flap-board.opus",
+          "bytes": 36789,
+          "sha256": "0231dd715fb059d8fe4d1101956b14edbabc41277ec06444032c93216921c329",
+          "seconds": 3.2,
+          "kbps": 96
+        },
+        "mp3": {
+          "path": "content/shuttle-activity/sounds/sc-02-split-flap-board.mp3",
+          "bytes": 45120,
+          "sha256": "95d6f1956d832c97099500972971a4130cd1e82c0474d199b59208ccef096a4a",
+          "seconds": 3.2,
+          "lameVbrQuality": 4
+        }
+      }
     },
     {
       "cue": "SC-03",
@@ -571,7 +813,27 @@
           "seconds": 0.48
         }
       },
-      "changes": []
+      "changes": [
+        "Converted to Ogg Opus and MP3 at 48 kHz.",
+        "Cut to 0.48 s starting at 0 s, with 3 ms fade-in and 20 ms fade-out.",
+        "Level raised by 1.1 dB."
+      ],
+      "outputs": {
+        "opus": {
+          "path": "content/shuttle-activity/sounds/sc-03-holo-glitch.opus",
+          "bytes": 2975,
+          "sha256": "1263b0a4c5ef7b90da343aa8ad69d800a9af6c7fc82852b0158960e90959202d",
+          "seconds": 0.48,
+          "kbps": 48
+        },
+        "mp3": {
+          "path": "content/shuttle-activity/sounds/sc-03-holo-glitch.mp3",
+          "bytes": 5616,
+          "sha256": "9e37928c6a2a67f973ca09a138ac2a0afe5d8b844ca09e9207410da04057b2ef",
+          "seconds": 0.48,
+          "lameVbrQuality": 4
+        }
+      }
     },
     {
       "cue": "SC-04",
@@ -615,7 +877,27 @@
           "seconds": 11.328
         }
       },
-      "changes": []
+      "changes": [
+        "Converted to Ogg Opus and MP3 at 48 kHz.",
+        "Cut to 5 s starting at 3.49 s, with 5 ms fade-in and 600 ms fade-out.",
+        "Level lowered by 2.8 dB."
+      ],
+      "outputs": {
+        "opus": {
+          "path": "content/shuttle-activity/sounds/sc-04-pressure-door-opens.opus",
+          "bytes": 57378,
+          "sha256": "7707aee361c1ea2c23bf2887a90111c9fdcc9868fc9aee26ff0b43c81ca3b0aa",
+          "seconds": 5,
+          "kbps": 96
+        },
+        "mp3": {
+          "path": "content/shuttle-activity/sounds/sc-04-pressure-door-opens.mp3",
+          "bytes": 75096,
+          "sha256": "234274802c1343a3a35eba8536309530343a3fff15d33673dd871a5f775c805d",
+          "seconds": 5,
+          "lameVbrQuality": 4
+        }
+      }
     },
     {
       "cue": "SC-05",
@@ -658,7 +940,27 @@
           "seconds": 1.376
         }
       },
-      "changes": []
+      "changes": [
+        "Converted to Ogg Opus and MP3 at 48 kHz.",
+        "Cut to 1.3 s starting at 0 s, with 3 ms fade-in and 20 ms fade-out.",
+        "Level raised by 7.6 dB."
+      ],
+      "outputs": {
+        "opus": {
+          "path": "content/shuttle-activity/sounds/sc-05-clearance-confirmed.opus",
+          "bytes": 19641,
+          "sha256": "023b0d891e651d91eb5cc8c16f3013f6d81a3c79f1612016502088037f4af99a",
+          "seconds": 1.3,
+          "kbps": 96
+        },
+        "mp3": {
+          "path": "content/shuttle-activity/sounds/sc-05-clearance-confirmed.mp3",
+          "bytes": 27864,
+          "sha256": "7ba550dde6bc7caa1aeaf111cb6e163a54d57b4190a779e335470ab66738f3ff",
+          "seconds": 1.3,
+          "lameVbrQuality": 4
+        }
+      }
     },
     {
       "cue": "SC-06",
@@ -701,7 +1003,27 @@
           "seconds": 0.213
         }
       },
-      "changes": []
+      "changes": [
+        "Converted to Ogg Opus and MP3 at 48 kHz.",
+        "Cut to 0.21 s starting at 0 s, with 3 ms fade-in and 20 ms fade-out.",
+        "Level raised by 2.3 dB."
+      ],
+      "outputs": {
+        "opus": {
+          "path": "content/shuttle-activity/sounds/sc-06-still-waiting.opus",
+          "bytes": 3646,
+          "sha256": "3869f729a41a9d52dc26907a5b27a58d3770eea1994a86e51ba6e440aff3bcdf",
+          "seconds": 0.21,
+          "kbps": 96
+        },
+        "mp3": {
+          "path": "content/shuttle-activity/sounds/sc-06-still-waiting.mp3",
+          "bytes": 3456,
+          "sha256": "cf08f8c3394301bdb20348514cc5f3f8c771de28087ec04ccd45f8a6e271fad2",
+          "seconds": 0.21,
+          "lameVbrQuality": 4
+        }
+      }
     },
     {
       "cue": "AMB-01",
@@ -744,7 +1066,29 @@
           "seconds": 136
         }
       },
-      "changes": []
+      "changes": [
+        "Converted to Ogg Opus and MP3 at 48 kHz.",
+        "Cut to 47 s starting at 39.5 s and made into a 45 s seamless loop with a 2 s crossfade, padded by 0.5 s of its own audio on each side.",
+        "Level raised by 7.2 dB."
+      ],
+      "outputs": {
+        "opus": {
+          "path": "content/shuttle-activity/sounds/amb-01-title-screen-and-hangar.opus",
+          "bytes": 325688,
+          "sha256": "b776d699c06382b04d3887f43987818ef656c14ee6aea45d381e152fa6072e29",
+          "seconds": 46,
+          "kbps": 64,
+          "seamRatio": 0.61
+        },
+        "mp3": {
+          "path": "content/shuttle-activity/sounds/amb-01-title-screen-and-hangar.mp3",
+          "bytes": 844416,
+          "sha256": "af2fe6bb062270b67afea7dc6263ae908b734acf1aa8b5b87c8423b518b6d34d",
+          "seconds": 46,
+          "lameVbrQuality": 4,
+          "seamRatio": 0.73
+        }
+      }
     },
     {
       "cue": "AMB-02",
@@ -787,7 +1131,29 @@
           "seconds": 180.019
         }
       },
-      "changes": []
+      "changes": [
+        "Converted to Ogg Opus and MP3 at 48 kHz.",
+        "Cut to 47 s starting at 130.5 s and made into a 45 s seamless loop with a 2 s crossfade, padded by 0.5 s of its own audio on each side.",
+        "Level raised by 13.5 dB."
+      ],
+      "outputs": {
+        "opus": {
+          "path": "content/shuttle-activity/sounds/amb-02-departure-lounge.opus",
+          "bytes": 324753,
+          "sha256": "efa2e422036f33eb976b39987956250364caa23e78a46e47289f92ff45f57335",
+          "seconds": 46,
+          "kbps": 64,
+          "seamRatio": 0.06
+        },
+        "mp3": {
+          "path": "content/shuttle-activity/sounds/amb-02-departure-lounge.mp3",
+          "bytes": 804096,
+          "sha256": "84dc22056f8dbeef076e7bd6416b5d8976fe1a91712a318ac21745ea6089e1c6",
+          "seconds": 46,
+          "lameVbrQuality": 4,
+          "seamRatio": 0.16
+        }
+      }
     },
     {
       "cue": "AMB-03",
@@ -830,7 +1196,29 @@
           "seconds": 33.116
         }
       },
-      "changes": []
+      "changes": [
+        "Converted to Ogg Opus and MP3 at 48 kHz.",
+        "Cut to 32 s starting at 0.558 s and made into a 30 s seamless loop with a 2 s crossfade, padded by 0.5 s of its own audio on each side.",
+        "Level raised by 15.8 dB."
+      ],
+      "outputs": {
+        "opus": {
+          "path": "content/shuttle-activity/sounds/amb-03-baggage-hall.opus",
+          "bytes": 249169,
+          "sha256": "b20490c73bddf01c0442b954616c8028de5aba0831db71f8992574975b8ca45d",
+          "seconds": 31,
+          "kbps": 64,
+          "seamRatio": 0.98
+        },
+        "mp3": {
+          "path": "content/shuttle-activity/sounds/amb-03-baggage-hall.mp3",
+          "bytes": 827520,
+          "sha256": "5a3e008d2dcb0cf384796c4b1e8ecd6755c2b7cc38add161c3a97449df6101f9",
+          "seconds": 31,
+          "lameVbrQuality": 4,
+          "seamRatio": 1.04
+        }
+      }
     },
     {
       "cue": "AMB-04",
@@ -873,7 +1261,29 @@
           "seconds": 15.879
         }
       },
-      "changes": []
+      "changes": [
+        "Converted to Ogg Opus and MP3 at 48 kHz.",
+        "Cut to 15 s starting at 0.44 s and made into a 13.5 s seamless loop with a 1.5 s crossfade, padded by 0.5 s of its own audio on each side.",
+        "Level lowered by 6.9 dB."
+      ],
+      "outputs": {
+        "opus": {
+          "path": "content/shuttle-activity/sounds/amb-04-shuttle-cabin.opus",
+          "bytes": 98744,
+          "sha256": "7194ad17a595d838770fa6eeeb9a576b0e5252b20f92c1734438705902c44536",
+          "seconds": 14.5,
+          "kbps": 64,
+          "seamRatio": 0.78
+        },
+        "mp3": {
+          "path": "content/shuttle-activity/sounds/amb-04-shuttle-cabin.mp3",
+          "bytes": 119616,
+          "sha256": "056fac815d637b5eef7f73bc53bc537e245f9b42eb2901253ce65c2bffb0b776",
+          "seconds": 14.5,
+          "lameVbrQuality": 4,
+          "seamRatio": 0.9
+        }
+      }
     },
     {
       "cue": "AMB-05",
@@ -917,7 +1327,29 @@
           "seconds": 115.278
         }
       },
-      "changes": []
+      "changes": [
+        "Converted to Ogg Opus and MP3 at 48 kHz.",
+        "Cut to 47 s starting at 53 s and made into a 45 s seamless loop with a 2 s crossfade, padded by 0.5 s of its own audio on each side.",
+        "Level lowered by 10.7 dB."
+      ],
+      "outputs": {
+        "opus": {
+          "path": "content/shuttle-activity/sounds/amb-05-viewport.opus",
+          "bytes": 392573,
+          "sha256": "238aaecf03a0666484ef9f6295ac7aa43e8a67c8c68511dad74dccdedc785d43",
+          "seconds": 46,
+          "kbps": 64,
+          "seamRatio": 1.26
+        },
+        "mp3": {
+          "path": "content/shuttle-activity/sounds/amb-05-viewport.mp3",
+          "bytes": 778032,
+          "sha256": "b9bdca4787b1c9a7513bd6f9732c44a0543aa199c3e5ff6b4c79c5615ca58a25",
+          "seconds": 46,
+          "lameVbrQuality": 4,
+          "seamRatio": 1.29
+        }
+      }
     },
     {
       "cue": "AMB-06",
@@ -960,7 +1392,29 @@
           "seconds": 64.62
         }
       },
-      "changes": []
+      "changes": [
+        "Converted to Ogg Opus and MP3 at 48 kHz.",
+        "Cut to 47 s starting at 7.5 s and made into a 45 s seamless loop with a 2 s crossfade, padded by 0.5 s of its own audio on each side.",
+        "Level lowered by 5.2 dB."
+      ],
+      "outputs": {
+        "opus": {
+          "path": "content/shuttle-activity/sounds/amb-06-new-laboratory.opus",
+          "bytes": 451007,
+          "sha256": "985e47f1111321ec3818338c9b2eaa81cb4f75e91e702a8f152047c6184d8876",
+          "seconds": 46,
+          "kbps": 64,
+          "seamRatio": 0.84
+        },
+        "mp3": {
+          "path": "content/shuttle-activity/sounds/amb-06-new-laboratory.mp3",
+          "bytes": 838800,
+          "sha256": "2b7142c768269a8cc20e097b422605142a376e63b15767f07f049609e36643d8",
+          "seconds": 46,
+          "lameVbrQuality": 4,
+          "seamRatio": 0.28
+        }
+      }
     },
     {
       "cue": "MUS-01",
@@ -1004,7 +1458,26 @@
           "seconds": 111.695
         }
       },
-      "changes": []
+      "changes": [
+        "Converted to Ogg Opus and MP3 at 48 kHz.",
+        "Level lowered by 9.5 dB."
+      ],
+      "outputs": {
+        "opus": {
+          "path": "content/shuttle-activity/sounds/mus-01-title-theme.opus",
+          "bytes": 1630556,
+          "sha256": "5fd33abd4ba6b68726f64a4cf1097365eb9b1b873dcfd41ddfb8758e7ae426f7",
+          "seconds": 111.695,
+          "kbps": 112
+        },
+        "mp3": {
+          "path": "content/shuttle-activity/sounds/mus-01-title-theme.mp3",
+          "bytes": 2319072,
+          "sha256": "1de5b52c9f1ced09a143f8964d168544c7bae99ef42e865abde95ec13a1ff7a0",
+          "seconds": 111.695,
+          "lameVbrQuality": 2
+        }
+      }
     },
     {
       "cue": "MUS-02",
@@ -1038,7 +1511,26 @@
           "seconds": 69.904
         }
       },
-      "changes": []
+      "changes": [
+        "Converted to Ogg Opus and MP3 at 48 kHz.",
+        "Level lowered by 10.5 dB."
+      ],
+      "outputs": {
+        "opus": {
+          "path": "content/shuttle-activity/sounds/mus-02-arrival-theme.opus",
+          "bytes": 1071865,
+          "sha256": "1f596566b37cf3fe18db1a3b8aac13b9d6fda8e6c0b0898265b8ed9c8650cb77",
+          "seconds": 69.904,
+          "kbps": 112
+        },
+        "mp3": {
+          "path": "content/shuttle-activity/sounds/mus-02-arrival-theme.mp3",
+          "bytes": 1467312,
+          "sha256": "6185c66c62daa897ff1a8e2e66f5640e3e982a1f7c34643ecd5e8bdec9cce10b",
+          "seconds": 69.904,
+          "lameVbrQuality": 2
+        }
+      }
     }
   ]
 }
