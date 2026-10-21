@@ -46,7 +46,17 @@
     "automaticUpdates": false,
     "decision": "docs/decisions/0004-staging-cloudflare.md",
     "notice": "legal/notices/cloudflared-2026.7.3.txt",
-    "officialAssetDigestVerified": true
+    "officialAssetDigestVerified": true,
+    "additionalHostnames": [
+      {
+        "hostname": "onboarding.a13.info",
+        "service": "http://127.0.0.1:38124",
+        "purpose": "Shuttle Activity closed screen",
+        "decision": "docs/decisions/0001-owner-policy.md (Shuttle Activity application and hostname)",
+        "tunnelConfigVersion": 3,
+        "addedAt": "2026-10-22"
+      }
+    ]
   },
   "buildTimeAudioEncoder": {
     "name": "FFmpeg",

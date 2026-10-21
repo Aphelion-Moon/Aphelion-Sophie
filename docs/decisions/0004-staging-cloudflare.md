@@ -21,6 +21,10 @@ Use a new remotely managed tunnel with only these ingress rules, in order:
 - `sophie.a13.info`, other paths → `http://127.0.0.1:38122`.
 - All other traffic → HTTP 404.
 
+Amended 21–22 October 2026 by owner decision ("Shuttle Activity application and hostname" in
+[0001](0001-owner-policy.md)): `onboarding.a13.info` → `http://127.0.0.1:38124` (the Shuttle Activity's closed
+screen) is added before the catch-all. Tunnel configuration version 3; the existing rules are unchanged.
+
 The dashboard origin is `https://sophie.a13.info`, with OAuth callback
 `https://sophie.a13.info/auth/callback`. Core still verifies Discord signatures,
 OAuth state, sessions, origin, CSRF and current authorization. Disable connector

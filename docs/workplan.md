@@ -223,11 +223,11 @@ These are bounded next steps within the task dependencies below. An unresolved l
 | Human brand/accessibility review and administration pilot approval | G2 presentation acceptance and live cutover. | Static approved-asset previews and developer keyboard/reflow checks. |
 | Policies collection and the separate owner-supplied Discord rules are selected; current publication review remains open. Exact DeepSeek account processing terms/notices and named restricted-audience clearance remain unresolved. Reply length and preferred language are the two selected explicit preference types. | Real member processing, reviewed source publication, remote preference use and each restricted context. | Synthetic source/worker/effect/control implementation; administration stays independent. |
 | P35 maintenance draft needs owner adoption after P31, named operators/reviewer/custodian and approved cadence/outage routes | Maintenance ownership, recurring reviews, drills and operational upgrades; no recurring jobs are authorized by the draft. | Local procedure draft completed: GitHub/.agent_docs/aphelion-sophie/maintenance-2026-10-04/procedure.md. Existing recovery destination/key-custody/RPO/RTO inputs remain separate. |
-| Production ingress for the Shuttle Activity (hostname and connector; ADR 0004 covers staging only) | P40 production deploy, P44 opening | Scene art, sound options, renderer and backend tests (P41–P43) |
+| Shuttle Activity closed screen as a service (onboarding.a13.info is routed since 22 October 2026) | P40 keeping the closed screen up across restarts | Backend, client and tester gate code with synthetic tests (P41-P43) |
 
 ## Task status
 
-Status counts: 2 complete; 32 in progress; 11 planned, not started. These are full-task statuses, not a percentage of code or release readiness.
+Status counts: 2 complete; 33 in progress; 10 planned, not started. These are full-task statuses, not a percentage of code or release readiness.
 
 An in-progress task can contain several verified milestones and still have unfinished implementation or acceptance. Acceptance IDs below link requirements to tasks; they do not assert that those specifications have passed.
 
@@ -273,7 +273,7 @@ An in-progress task can contain several verified milestones and still have unfin
 | P37 — Apply Sophie branding to interfaces and static copy | in_progress | P36, P08, P09, P13, P17 |
 | P38 — Review identity consistency and non-AI presentation | in_progress | P37, P19 |
 | P39 — Validate and activate direct knowledge independently of AI | in_progress | P19, P21, P22, P26 |
-| P40 — Shuttle Activity: production spike and tester gate | planned_not_started | P14, P16 |
+| P40 — Shuttle Activity: production spike and tester gate | in_progress | P14, P16 |
 | P41 — Shuttle Activity: backend, and the Shuttle leaves tickets | planned_not_started | P40, P14, P15, P16 |
 | P42 — Shuttle Activity: scene renderer, art and sounds | in_progress | P40 |
 | P43 — Shuttle Activity: visual novel client and main page | planned_not_started | P41, P42 |
@@ -1340,15 +1340,22 @@ Boundary: No dependency on P23-P25, P28 or a working model. Live activation stil
 
 ## P40 — Shuttle Activity: production spike and tester gate
 
-Status: **planned_not_started**. Phase: Shuttle Activity. Priority: P1.
+Status: **in_progress**. Phase: Shuttle Activity. Priority: P1.
 
 Depends on: P14, P16. Acceptance: T01, T02, T37.
 
-Owner decisions of 21 October 2026 ("The Shuttle becomes an Activity", D1–D10). Not started; the owner enables the Activity surface.
+Owner decisions of 21 October 2026 ("The Shuttle becomes an Activity" D1, D4, D5, D6, D8; "Shuttle Activity application and hostname"). The Activity uses Sophie's current application at onboarding.a13.info through the running sophie-staging connector. Not started: the supplied Cloudflare token lacks tunnel and DNS permission.
+
+Implemented scope:
+
+- Closed "not boarding yet" screen host built and tested on 21 October 2026 (apps/activity/closed-host.*, tests/activity-closed-host.test.js; see docs/shuttle-activity-closed-screen.md). Loopback only, two paths, strict CSP, no token or data.
+- Routed on 22 October 2026: sophie-staging tunnel configuration v3 adds onboarding.a13.info -> 127.0.0.1:38124 before the catch-all, with a proxied CNAME; v2 backed up. Closed screen started; public HTTPS checks passed for onboarding.a13.info (page, font, 404) and sophie.a13.info is unchanged.
 
 Remaining scope:
 
-- Owner choice of production ingress hostname and connector before the first production deploy.
+- Run the closed screen as an operator-approved Manual service; it currently runs as a process of the coding session.
+- Check the closed screen inside the Discord Activity frame on desktop, web, iOS and Android.
+- Sign-in round trip, instance lookup and the tester gate for named testers; Rules post launch button; platform report.
 
 Full task deliverables:
 

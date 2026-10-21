@@ -1335,3 +1335,30 @@ The 24 sounds were converted to Ogg Opus with MP3 fallbacks (build `618ef40`, se
 [Shuttle Activity sounds](../shuttle-activity-sounds.md)). The owner auditioned every one on a private page, in both
 formats and with each loop and its seam, and approved all 24 with no requested changes. The approved files are the
 outputs whose hashes are pinned in `legal/shuttle-activity-sounds.json`; changing the edit data needs a new audition.
+
+### Shuttle Activity application and hostname — 21 October 2026
+
+The owner: "For Sophie, we're going to keep the current bot details, and then we will make a separate application
+for testing down the road. Cloudflare connector is online … The activity can go at `onboarding.a13.info`. I can't
+enable the Activity at the moment because we don't have our URL Mapping configured."
+
+- **Application.** The Activity is built on the Discord application Sophie uses now. A separate testing application
+  comes later; until then the D8 tester gate is the only protection, so Activities stay disabled until the closed
+  "not boarding yet" screen is served.
+- **Hostname.** `onboarding.a13.info`, through the running Cloudflare connector: the `aphelion-bot-tunnel` service,
+  pinned cloudflared 2026.7.3, tunnel `sophie-staging`. This extends ADR 0004's single-hostname ingress to a second
+  hostname and settles D8's open ingress choice. Proposed route: `onboarding.a13.info` → `http://127.0.0.1:38124`,
+  placed before the catch-all, with a proxied DNS record pointing at the tunnel. Port 38123 is taken by the
+  connector's metrics listener.
+- **Not done.** The supplied token verifies as an active account token but has no Cloudflare Tunnel, DNS or zone
+  permission, so no tunnel or DNS change was made and nothing serves the hostname yet. The token was used only in
+  request headers and was not recorded.
+- **Order.** Serve the closed screen on the route, then set the URL mapping (root `/` → `onboarding.a13.info`), then
+  enable Activities, so a member who finds the new Launch command sees "not boarding yet" instead of an error.
+- **Update, 22 October 2026.** The owner enabled Activities before the route existed, then supplied a token with
+  Cloudflare Tunnel Edit, DNS Edit and Zone Read and asked: "Add the route and DNS record, then start the closed
+  screen." The `sophie-staging` configuration went from version 2 to 3 with only the new rule added before the
+  catch-all (backup of version 2 in `.local/cloudflare/`), and a proxied CNAME for `onboarding.a13.info` points at the
+  tunnel. No other tunnel, rule or record changed. The closed screen (`apps/activity/closed-host.mjs`) was started on
+  `127.0.0.1:38124` as a process of the coding session, not as a service, so it stops if that session ends; running
+  it as a service is a separate approval. Public HTTPS checks passed for both hostnames.
