@@ -35,7 +35,9 @@ with alt text for each Whitelist state that changes the picture.
 A scene is JSON with exactly `schema`, `id`, `title`, `alt`, `provenance` and `layouts`. Each layout has:
 
 - **Layers:** glyph rows with a matching colour mask, positioned on the grid. A layer may have up to 24 frames at up
-  to 12 frames a second, may apply only in some Whitelist states (`when`), may be opaque, and may slide with the door.
+  to 12 frames a second, may be opaque, and may slide with the door. A layer or effect can apply only in some states
+  (`when`): Whitelist status (`none`, `requested`, `confirmed`) and whether there is a run to show (`stop`: `none`
+  or `some`, which is `some` once the stop number and count are known).
 - **Effects** from a fixed list: `blink`, `flicker`, `drift`, `scan`, `pulse`, `flap` and `text`. Each has bounded
   parameters. There is no code, URL, HTML or free-form script anywhere in the format.
 
@@ -46,15 +48,19 @@ The validator enforces:
 - Every part fits the grid; ids are unique; unknown fields are refused.
 - **Photosensitivity:** blinking and flicker no faster than three times a second, and flicker over no more than 3% of
   the grid.
-- Text templates may use only the stop title, stop number and count, section and section count. Run state is
-  normalised before drawing: unknown characters become `?`, and text is never read as markup.
+- Text templates may use only the stop title, stop number and count, section and section count. Numbers can be
+  zero-padded to up to three digits, as in `{stopNumber:2}`. Run state is normalised before drawing: unknown characters
+  become `?`, and text is never read as markup.
 - **Truthfulness:** the door counts as open only when the Whitelist status is `confirmed`, whatever the animation
   value says. A requested or missing status always draws it shut.
 
 ## Rendering
 
-The composer returns rows of glyphs and colour keys. The canvas renderer draws block characters as exact rectangles
-and other glyphs with Cozette, the font chosen in D4. Cozette 1.30.0 (MIT) ships at
+The composer returns rows of glyphs and colour keys. The canvas renderer draws block shading as exact rectangles and
+single and double line characters as strokes that reach the cell edges, so borders join cleanly whatever the font.
+Other glyphs use Cozette, the font chosen in D4. The renderer measures the font's height and width, sizes each glyph
+to the cell's height, stretches it to the cell's width and centres it on the font's own metrics, so text keeps the
+grid's spacing. It re-measures once the web font has loaded. Cozette 1.30.0 (MIT) ships at
 `apps/activity/fonts/CozetteVector.woff2`, pinned with its hash in `legal/DEPENDENCIES.json` (`activityFont`). Its
 notice is in `legal/notices/cozette-1.30.0.txt`. The Activity page loads it under the family name the renderer
 expects:

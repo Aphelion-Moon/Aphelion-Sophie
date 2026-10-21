@@ -150,7 +150,9 @@ function hangar(name) {
   base.box(px, py, px + pw, conTop, 'h'); base.put(px + 4, conTop, '╪', 'h'); base.put(px + pw - 4, conTop, '╪', 'h');
   base.text(px + 2, py + 1, 'SHUTTLE LINK', 'c'); base.text(px + pw - 7, py + 1, '• LIVE', 'h');
   effects.push({ kind: 'blink', id: 'link-live', region: [px + pw - 7, py + 1, 1, 1], hz: 0.6, on: 'h', off: 'H' });
-  effects.push({ kind: 'text', id: 'link-stop', x: px + 2, y: py + 2, width: pw - 3, template: '» STOP {stopNumber} / {stopCount}', colour: 'c' });
+  effects.push({ kind: 'text', id: 'link-stop', x: px + 2, y: py + 2, width: pw - 3, template: '» STOP {stopNumber:2} / {stopCount:2}', colour: 'c', when: { stop: ['some'] } });
+  const noRun = new Art(w, h); noRun.text(px + 2, py + 2, '» READY TO BOARD', 'c');
+  layers.push(layer('link-no-run', noRun, { when: { stop: ['none'] } }));
   effects.push({ kind: 'scan', id: 'link-scan', region: [px + 2, py + 3, pw - 3, 1], speed: 1, glyph: '·', colour: 'H' });
   base.text(px + 2, py + 4, 'WHITELIST', 'h');
   for (const [state, label, key] of [['none', 'NOT REQUESTED', 'c'], ['requested', 'REQUESTED', 'a'], ['confirmed', 'CONFIRMED', 'c']]) {
@@ -182,7 +184,7 @@ function lounge(name) {
   base.put(bx + 4, by - 1, '│', 'd'); base.put(bx + bw - 5, by - 1, '│', 'd'); base.put(bx - 1, by, 'o', 'o'); base.put(bx + bw, by, 'o', 'o');
   base.text(bx + 2, by + 1, 'DEPARTURES', 'a'); base.text(bx + bw - 15, by + 1, 'SHUTTLE LINE', 'A');
   base.hline(bx + 1, bx + bw - 2, by + 2, '─', 'd');
-  effects.push({ kind: 'text', id: 'board-current', x: bx + 2, y: by + 3, width: bw - 14, template: '{stopNumber}  {stopTitle}', colour: 'a' });
+  effects.push({ kind: 'text', id: 'board-current', x: bx + 2, y: by + 3, width: bw - 14, template: '{stopNumber:2}  {stopTitle}', colour: 'a' });
   effects.push({ kind: 'flap', id: 'board-status', x: bx + bw - 12, y: by + 3, width: 10, texts: ['BOARDING'], period: 6, flip: 0.5, colour: 'a' });
   effects.push({ kind: 'blink', id: 'board-blink', region: [bx + bw - 12, by + 3, 10, 1], hz: 0.7, on: 'a', off: 'A' });
   for (let r = 1; r <= 4; r++) base.text(bx + 2, by + 3 + r, '--  ' + '-'.repeat(bw - 18) + '  ' + '-'.repeat(8), 'd');
@@ -223,11 +225,14 @@ function door(name) {
   base.hline(dx0 - 2, dx1 + 2, dy0 - 1, '▓', 'o'); base.hline(dx0 - 2, dx1 + 2, dy0, '▒', '.');
   const sten = port ? ' DOOR 07 · KEEP CLEAR ' : ' PRESSURE DOOR 07 · KEEP CLEAR ';
   const s0 = cx - Math.floor(sten.length / 2);
-  [...sten].forEach((ch, j) => { if (!(ch !== ' ' && hash(s0 + j, 9) < 0.12)) base.put(s0 + j, dy0 - 1, ch, 'r'); });
+  // Worn stencil: some letters are faded rather than missing, so the sign stays readable.
+  [...sten].forEach((ch, j) => base.put(s0 + j, dy0 - 1, ch, ch !== ' ' && hash(s0 + j, 9) < 0.12 ? 'A' : 'r'));
   base.text(cx - 1, dy0 - 3, '( )', 'o');
+  const lampIdle = new Art(w, h); lampIdle.put(cx, dy0 - 3, '●', 'A');
+  layers.push(layer('lamp-idle', lampIdle, { when: { whitelist: ['none'] } }));
   const lampWait = new Art(w, h); lampWait.put(cx, dy0 - 3, '●', 'a');
-  layers.push(layer('lamp-waiting', lampWait, { when: { whitelist: ['none', 'requested'] } }));
-  effects.push({ kind: 'blink', id: 'lamp-blink', region: [cx, dy0 - 3, 1, 1], hz: 1, on: 'a', off: 'A', when: { whitelist: ['none', 'requested'] } });
+  layers.push(layer('lamp-waiting', lampWait, { when: { whitelist: ['requested'] } }));
+  effects.push({ kind: 'blink', id: 'lamp-blink', region: [cx, dy0 - 3, 1, 1], hz: 1, on: 'a', off: 'A', when: { whitelist: ['requested'] } });
   const lampOpen = new Art(w, h); lampOpen.put(cx, dy0 - 3, '●', 'h');
   layers.push(layer('lamp-confirmed', lampOpen, { when: { whitelist: ['confirmed'] } }));
 
@@ -264,7 +269,12 @@ function door(name) {
   const conduit = []; for (let y = dy0; y < dy1; y++) conduit.push([cxR, y]);
   effects.push({ kind: 'pulse', id: 'conduit-slow', path: conduit, speed: 4, glyph: '•', colour: 'c', when: { whitelist: ['none', 'requested'] } });
   effects.push({ kind: 'pulse', id: 'conduit-fast', path: conduit, speed: 14, glyph: '•', colour: 'c', when: { whitelist: ['confirmed'] } });
-  const rows = { waiting: [['WHITELIST', 'REQUESTED'], ['DISCORD', 'WAITING'], ['DOOR', 'HELD']], open: [['WHITELIST', 'CONFIRMED'], ['DISCORD', 'APPLIED'], ['DOOR', 'OPEN']] };
+  const rows = {
+    idle: [['WHITELIST', 'NOT REQUESTED'], ['DISCORD', '--'], ['DOOR', 'HELD']],
+    waiting: [['WHITELIST', 'REQUESTED'], ['DISCORD', 'WAITING'], ['DOOR', 'HELD']],
+    open: [['WHITELIST', 'CONFIRMED'], ['DISCORD', 'APPLIED'], ['DOOR', 'OPEN']],
+  };
+  const PANEL_STATES = [['idle', ['none'], 'A'], ['waiting', ['requested'], 'a'], ['open', ['confirmed'], 'c']];
   if (!port) {
     base.hline(0, dx0 - 7, dy0 + 2, '═', 'H'); base.text(dx0 - 6, dy0 + 2, '[≡]', 'o'); base.put(dx0 - 5, dy0 + 2, '≡', 'h'); base.put(dx0 - 3, dy0 + 2, '═', 'H');
     const ix = 5, iy = dy0 + 5;
@@ -272,23 +282,25 @@ function door(name) {
       .forEach((ln, r) => [...ln].forEach((ch, j) => { if (ch !== ' ') base.put(ix + j, iy + r, ch, /[A-Z]/.test(ch) ? 'r' : (ch === '|' && j > 1 && j < ln.length - 2) ? 'd' : 'o'); }));
     const px = dx1 + 8, pw = Math.min(31, w - px - 2), py = dy0 + 1;
     base.box(px, py, px + pw, py + 6, 'h'); base.text(px + 2, py, ' ARRIVAL CONTROL ', 'h'); base.put(px, py + 3, '╪', 'h'); base.hline(dx1 + 3, px - 1, py + 3, '─', 'H');
-    for (const [state, list, key] of [['waiting', rows.waiting, 'a'], ['open', rows.open, 'c']]) {
+    for (const [state, when, key] of PANEL_STATES) {
       const art = new Art(w, h);
-      list.forEach(([k, v], r) => { art.text(px + 2, py + 2 + r, k, 'h'); art.text(px + 13, py + 2 + r, '» ' + v, key); });
-      layers.push(layer(`control-${state}`, art, { when: { whitelist: state === 'open' ? ['confirmed'] : ['none', 'requested'] } }));
+      rows[state].forEach(([k, v], r) => { art.text(px + 2, py + 2 + r, k, 'h'); art.text(px + 13, py + 2 + r, '» ' + v, key); });
+      layers.push(layer(`control-${state}`, art, { when: { whitelist: when } }));
     }
   } else {
     const px = dx1 + 7, pw = w - px - 1, py = dy0 + 1;
     base.box(px, py, px + pw, py + 4, 'h');
-    for (const [state, wl, dr, key] of [['waiting', 'WAIT', 'HELD', 'a'], ['open', 'OK', 'OPEN', 'c']]) {
-      const art = new Art(w, h);
+    const short = { idle: ['--', 'HELD'], waiting: ['WAIT', 'HELD'], open: ['OK', 'OPEN'] };
+    for (const [state, when, key] of PANEL_STATES) {
+      const art = new Art(w, h), [wl, dr] = short[state];
       art.text(px + 1, py + 1, 'WL', 'h'); art.text(px + 4, py + 1, wl, key); art.text(px + 1, py + 2, 'DOOR', 'h'); art.text(px + 6, py + 2, dr, key);
-      layers.push(layer(`control-${state}`, art, { when: { whitelist: state === 'open' ? ['confirmed'] : ['none', 'requested'] } }));
+      layers.push(layer(`control-${state}`, art, { when: { whitelist: when } }));
     }
   }
   // Order: frame and fittings, the laboratory behind the door, the sliding leaves, then lamp and control text.
   const byId = Object.fromEntries(layers.map(l => [l.id, l]));
-  return { layers: [layer('base', base), byId.laboratory, byId['leaf-left'], byId['leaf-right'], byId['lamp-waiting'], byId['lamp-confirmed'], byId['control-waiting'], byId['control-open']], effects };
+  return { layers: [layer('base', base), byId.laboratory, byId['leaf-left'], byId['leaf-right'], byId['lamp-idle'], byId['lamp-waiting'], byId['lamp-confirmed'],
+    byId['control-idle'], byId['control-waiting'], byId['control-open']], effects };
 }
 
 function strip(base, effects, x, y, width) {
@@ -416,7 +428,8 @@ const SCENES = [
   { id: 'viewport', title: 'Viewport', draw: viewport, alt: [{ text: 'A wide observation window in a heavy riveted frame. Outside, the curve of the station is dotted with amber and cyan lights, and a soft band of light drifts past the stars. An old camera on a tripod stands at the railing.' }] },
   { id: 'pressure-door', title: 'Pressure door and new laboratory', draw: door, alt: [
     { when: { whitelist: ['confirmed'] }, text: 'The pressure door has slid open. Cold white light floods out of a clean new laboratory with a crisp cyan workbench and terminal. The lamp above the door is cyan and the control panel reads: Whitelist confirmed, Discord applied, door open.' },
-    { text: 'A battered pressure door with hazard stripes and a stencilled number. New cyan conduits are bolted to its frame. An amber lamp above it blinks, and a cyan control panel reads: Whitelist requested, Discord waiting, door held.' },
+    { when: { whitelist: ['requested'] }, text: 'A battered pressure door with hazard stripes and a stencilled number. New cyan conduits are bolted to its frame. An amber lamp above it blinks, and a cyan control panel reads: Whitelist requested, Discord waiting, door held.' },
+    { text: 'A battered pressure door with hazard stripes and a stencilled number. New cyan conduits are bolted to its frame. The lamp above it is dim, and a cyan control panel reads: Whitelist not requested, door held.' },
   ] },
 ];
 

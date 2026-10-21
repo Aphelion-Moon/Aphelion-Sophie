@@ -54,6 +54,37 @@ test('P42 the pressure door stays shut and says so until Whitelist is confirmed'
   assert.match(sceneAlt(scene, { whitelist: 'requested' }), /door held/); assert.match(sceneAlt(scene, { whitelist: 'confirmed' }), /slid open/);
 });
 
+test('P42 before any request the door reports exactly that, and the title panel never shows an empty run', () => {
+  const door = scenes.find(([, s]) => s.id === 'pressure-door')[1];
+  const idle = composeScene(door, 'landscape', { state: { whitelist: 'none' } }).glyphs.join('\n');
+  assert.match(idle, /WHITELIST\s+» NOT REQUESTED/); assert.doesNotMatch(idle, /» REQUESTED|WAITING/);
+  assert.match(idle, /PRESSURE DOOR 07 · KEEP CLEAR/, 'worn stencil letters fade but stay readable');
+  assert.match(sceneAlt(door, { whitelist: 'none' }), /not requested/);
+  const portrait = composeScene(door, 'portrait', { state: { whitelist: 'none' } }).glyphs.join('\n');
+  assert.doesNotMatch(portrait, /WAIT/);
+  const hangar = scenes.find(([, s]) => s.id === 'hangar-viewport')[1];
+  for (const layout of ['landscape', 'portrait']) {
+    const empty = composeScene(hangar, layout, { state: {} }).glyphs.join('\n');
+    assert.match(empty, /READY TO BOARD/); assert.doesNotMatch(empty, /STOP 0/);
+    const running = composeScene(hangar, layout, { state: { stopNumber: 3, stopCount: 5 } }).glyphs.join('\n');
+    assert.match(running, /» STOP 03 \/ 05/); assert.doesNotMatch(running, /READY TO BOARD/);
+  }
+  const lounge = scenes.find(([, s]) => s.id === 'departure-lounge')[1];
+  assert.match(composeScene(lounge, 'landscape', { state: { ...STATE, stopNumber: 1 }, motion: false }).glyphs.join('\n'), /║ 01  Synthetic stop/);
+});
+
+test('P42 templates pad only numbers and conditions take only known states', () => {
+  const base = structuredClone(scenes[0][1]);
+  const add = (fx, code) => { const s = structuredClone(base); s.layouts.landscape.effects.push(fx); assert.throws(() => validateScene(s), new RegExp(code)); };
+  add({ kind: 'text', id: 'pad-title', x: 0, y: 0, width: 10, template: '{stopTitle:2}', colour: 'a' }, 'INVALID_SCENE_TEMPLATE');
+  add({ kind: 'text', id: 'raw-state', x: 0, y: 0, width: 10, template: '{whitelist}', colour: 'a' }, 'INVALID_SCENE_TEMPLATE');
+  add({ kind: 'text', id: 'wide-pad', x: 0, y: 0, width: 10, template: '{section:4}', colour: 'a' }, 'INVALID_SCENE_TEMPLATE');
+  add({ kind: 'blink', id: 'bad-stop', region: [0, 0, 1, 1], hz: 1, on: 'a', off: 'A', when: { stop: ['maybe'] } }, 'INVALID_SCENE_CONDITION');
+  add({ kind: 'blink', id: 'empty-when', region: [0, 0, 1, 1], hz: 1, on: 'a', off: 'A', when: {} }, 'INVALID_SCENE_CONDITION');
+  assert.equal(sceneState({ stopNumber: 2, stopCount: 0 }).stop, 'none');
+  assert.equal(sceneState({ stopNumber: 2, stopCount: 5 }).stop, 'some');
+});
+
 test('P42 run state is normalised for drawing and never interpreted as markup', () => {
   const s = sceneState({ stopTitle: '“Pack” <b>Bags</b> 🚀', stopNumber: 999, whitelist: 'granted', doorOpen: 7, extra: 'ignored' });
   assert.equal(s.stopTitle, '"Pack" <b>Bags</b> ??');

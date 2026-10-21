@@ -21,6 +21,10 @@ const ASCII = Array.from({ length: 95 }, (_, i) => String.fromCharCode(32 + i)).
 export const SCENE_GLYPHS = Object.freeze(new Set([...ASCII, ...'─│┌┐└┘├┤┬┴┼═║╔╗╚╝╟╢╪╱╲╭╮╯╰', ...'░▒▓█▀▄▌▐■□', ...'·•●◆»«≡']));
 export const SCENE_STATE_KEYS = Object.freeze(['stopTitle', 'stopNumber', 'stopCount', 'section', 'sections', 'whitelist', 'doorOpen']);
 export const SCENE_WHITELIST_STATES = Object.freeze(['none', 'requested', 'confirmed']);
+/** Whether the member has a run to show: 'some' once both stop number and stop count are known. */
+export const SCENE_STOP_STATES = Object.freeze(['none', 'some']);
+const TEMPLATE = /\{([a-zA-Z]+)(?::([1-3]))?\}/g;
+const NUMERIC_KEYS = Object.freeze(['stopNumber', 'stopCount', 'section', 'sections']);
 const EFFECT_KINDS = Object.freeze(['blink', 'flicker', 'drift', 'scan', 'pulse', 'flap', 'text']);
 const LIMITS = Object.freeze({ layers: 32, effects: 48, frames: 24, fps: 12, flashHz: 3, flickerArea: 0.03, path: 240, texts: 8, alt: 600 });
 const ID = /^[a-z][a-z0-9-]{0,47}$/;
@@ -45,8 +49,12 @@ function region(value, grid, code = 'INVALID_SCENE_REGION') {
 }
 function condition(when) {
   if (when === undefined) return;
-  exactKeys(when, ['whitelist'], [], 'INVALID_SCENE_CONDITION');
-  requireCondition(Array.isArray(when.whitelist) && when.whitelist.length >= 1 && when.whitelist.every(value => SCENE_WHITELIST_STATES.includes(value)), 'INVALID_SCENE_CONDITION');
+  exactKeys(when, [], ['whitelist', 'stop'], 'INVALID_SCENE_CONDITION');
+  requireCondition(Object.keys(when).length >= 1, 'INVALID_SCENE_CONDITION');
+  for (const [key, allowed] of [['whitelist', SCENE_WHITELIST_STATES], ['stop', SCENE_STOP_STATES]]) {
+    if (when[key] === undefined) continue;
+    requireCondition(Array.isArray(when[key]) && when[key].length >= 1 && when[key].every(value => allowed.includes(value)), 'INVALID_SCENE_CONDITION');
+  }
 }
 
 function layer(value, grid, ids) {
@@ -133,7 +141,10 @@ function effect(value, grid, ids) {
     case 'text': {
       requireInteger(value.x, 0, grid.cols - 1); requireInteger(value.y, 0, grid.rows - 1); requireInteger(value.width, 1, grid.cols - value.x);
       requireCondition(typeof value.template === 'string' && value.template.length <= 200, 'INVALID_SCENE_TEMPLATE');
-      const fixed = value.template.replace(/\{([a-zA-Z]+)\}/g, (_, key) => { requireCondition(SCENE_STATE_KEYS.includes(key) && key !== 'doorOpen', 'INVALID_SCENE_TEMPLATE'); return ''; });
+      const fixed = value.template.replace(TEMPLATE, (_, key, pad) => {
+        requireCondition(SCENE_STATE_KEYS.includes(key) && key !== 'doorOpen' && key !== 'whitelist' && (pad === undefined || NUMERIC_KEYS.includes(key)), 'INVALID_SCENE_TEMPLATE');
+        return '';
+      });
       requireCondition(!/[{}]/.test(fixed), 'INVALID_SCENE_TEMPLATE'); glyphs(fixed); colourKey(value.colour); break;
     }
   }
@@ -177,8 +188,9 @@ export function sceneState(input = {}) {
   const whitelist = SCENE_WHITELIST_STATES.includes(input.whitelist) ? input.whitelist : 'none';
   // Nothing may look open before Whitelist is confirmed, whatever the caller's animation says.
   const doorOpen = whitelist === 'confirmed' && typeof input.doorOpen === 'number' && Number.isFinite(input.doorOpen) ? Math.min(1, Math.max(0, input.doorOpen)) : 0;
-  return Object.freeze({ stopTitle: text(input.stopTitle, 48), stopNumber: count(input.stopNumber), stopCount: count(input.stopCount),
-    section: count(input.section), sections: count(input.sections), whitelist, doorOpen });
+  const stopNumber = count(input.stopNumber), stopCount = count(input.stopCount);
+  return Object.freeze({ stopTitle: text(input.stopTitle, 48), stopNumber, stopCount,
+    section: count(input.section), sections: count(input.sections), whitelist, doorOpen, stop: stopNumber >= 1 && stopCount >= 1 ? 'some' : 'none' });
 }
 
 function hash(a, b) {
@@ -187,7 +199,7 @@ function hash(a, b) {
   h ^= h >>> 16;
   return (h >>> 0) / 4294967296;
 }
-const matches = (when, state) => !when || when.whitelist.includes(state.whitelist);
+const matches = (when, state) => !when || ((!when.whitelist || when.whitelist.includes(state.whitelist)) && (!when.stop || when.stop.includes(state.stop)));
 
 /**
  * Composes one frame. With motion off, time is ignored and every effect shows its still state.
@@ -268,7 +280,7 @@ export function composeScene(scene, layoutName, { time = 0, state = {}, motion =
         break;
       }
       case 'text': {
-        const value = fx.template.replace(/\{([a-zA-Z]+)\}/g, (_, key) => String(s[key])).slice(0, fx.width);
+        const value = fx.template.replace(TEMPLATE, (_, key, pad) => pad ? String(s[key]).padStart(Number(pad), '0') : String(s[key])).slice(0, fx.width);
         [...value].forEach((ch, i) => put(fx.x + i, fx.y, ch, fx.colour));
         break;
       }

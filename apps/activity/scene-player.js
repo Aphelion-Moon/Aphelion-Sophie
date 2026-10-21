@@ -61,6 +61,8 @@ export function createScenePlayer({ host, canvas, altElement, palette, backgroun
     /** Pauses animation for a reason (hidden, pip, thermal); a still frame stays on screen. */
     setPaused(reason, on) { if (on) paused.add(reason); else paused.delete(reason); wake(); },
     refreshAlt() { if (scene && altElement) altElement.textContent = sceneAlt(scene, state); },
+    /** Call once the scene font has loaded, so glyphs are measured against it rather than a fallback. */
+    fontReady() { painter.fontChanged(); wake(); },
     get layout() { return layout; },
     destroy() { if (frameHandle !== null) scheduler.cancel(frameHandle); frameHandle = null; stopObserving(); },
   };
@@ -83,5 +85,6 @@ export function browserScenePlayer({ host, canvas, altElement, palette, backgrou
   player.setMotion(!reduce?.matches);
   reduce?.addEventListener?.('change', event => player.setMotion(!event.matches));
   document.addEventListener('visibilitychange', () => player.setPaused('hidden', document.hidden));
+  document.fonts?.load?.('16px Cozette').then(() => player.fontReady(), () => {});
   return player;
 }
