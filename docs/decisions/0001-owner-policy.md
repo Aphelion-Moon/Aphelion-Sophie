@@ -1228,3 +1228,77 @@ subjects with placeholders, never names or turn labels; a member can turn memory
 independent preference journal. Memory stays off until the owner re-accepts a processing policy with
 `automaticMemory: true` and a notice that discloses it; that changes the consent binding, so members opt in again.
 Details and the proposed notice text: [Sophie's own memories](../ai-memory.md). Not deployed; no policy change made.
+
+### The Shuttle becomes an Activity — 21 October 2026
+
+The owner's developer suggested a Discord Activity for onboarding. The owner asked for the Shuttle to become "an
+interactive visual novel, presenting the same information in a more immersive way", animated with ASCII art, with a
+main page like a video game's (ARC Raiders as the example), following the Aphelion art and style guidance. The owner
+reviewed the V1 plan ("Shuttle Visual Novel V1", its ten decisions D1–D10) and answered; four follow-up questions were
+answered the same day.
+
+- **D1 Activity surface.** "I can enable the activity surface." The owner enables Activities on Sophie's existing
+  Discord application, which creates Discord's default Launch entry-point command. The Embedded App SDK (MIT,
+  © 2024 Discord Inc.) is approved as a direct dependency: pinned with its hash, bundled, never auto-updated, with its
+  transitive and bundled licences reviewed when it is added.
+- **D2 Artwork.** "Make all the new art yourself. Remove any guidance which instructs you not to do so." The coding
+  agent makes the Activity's art: ASCII scenes, colour masks, effects and the Rules post banner. This supersedes, for
+  new art, the 20 October removal and the rule that no artwork is added without a new owner decision; AGENTS.md and
+  P36 are updated to match. Each asset gets a provenance record (made by the coding agent at owner direction, date,
+  commit); that record notes that machine-made art may not attract copyright in every jurisdiction. This is authored
+  source art: Sophie's AI still gains no image generation, and the Shuttle has no AI path.
+- **D3 Sophie.** "Sophie can just be included as a 'radio voice' for the intents of the story, we don't need to show
+  her face." Follow-up: she reads all of the published copy. Lines appear as radio transmissions from
+  Sophie · Community Services. No new copy, no portrait or likeness, and no synthesized voice, since the Shuttle stays
+  AI-free. A radio sound may accompany her lines (D10). These lines are the published static copy, not her AI
+  character, memories or replies.
+- **D4 Font.** Cozette (MIT) draws the scene grid, pinned with its hash; the scene validator checks that every
+  character used is in the font. Implementation decision: dialogue and interface text use the platform's own fonts
+  (nothing bundled, no licence step). Website fonts remain unverified.
+- **D5 Rules post.** "I want to have an embed that I can post into our Rules channel which launches the application
+  for people, or guides them to it. I want it to reflect the feel of the new activity." The public Shuttle entry panel
+  becomes this post, styled like the Activity. Its Board the Shuttle button answers with Discord's launch-activity
+  response, and a second route gives the text version to anyone whose client cannot open Activities. Copy stays
+  editable from the dashboard. Members need permission to use Activities in that channel; the spike confirms what
+  Discord requires. Where the Activity was launched grants nothing: every action checks current eligibility.
+- **D6 Presence.** Allowed. Implementation decision under that choice: presence names the Activity area and the
+  current stop only, never Whitelist, Muzzled or other eligibility state.
+- **D7 Tickets.** The owner asked whether the whole ticket system could go. Shown that tickets also carry Quick Help,
+  Admin Help, Report a Staffer, Tech and Database Support, Head Admin contact and player reports, and that the
+  published Shuttle copy sends feedback to #open-a-ticket, the owner chose: **the Shuttle leaves tickets.** New runs
+  no longer open a private Shuttle case or channel. The run lives in Sophie's database and is shown in the Activity,
+  with the text version from the Rules post as the fallback, and it stops counting against case quotas. Every other
+  ticket type is unchanged. Existing Shuttle cases, channels' records, transcripts and capture ledgers are kept with no
+  automatic expiry; runs already in a channel keep the 20 October channel rules until they close, and moving a
+  run in progress keeps its step. For new runs the record is the run itself: its receipts, acknowledgement and
+  Whitelist grant records, with no automatic expiry.
+- **D8 Production.** "We can just work on the production activity." Shown that enabling Activities gives every member
+  a Launch command at once, the owner chose the live application with a tester gate. Everyone except named testers
+  (configured user IDs) sees a closed "not boarding yet" screen until the owner opens it. Automated tests still use
+  synthetic data. Each production deploy and the opening remain recorded owner approvals. Still open: production
+  ingress. ADR 0004 approves cloudflared for isolated staging only, so the production hostname and connector need the
+  owner's choice before the first production deploy.
+- **D9 Main page.** All recommendations: V1 offers Board/Continue, Settings, Text mode and Credits; Station log and a
+  Codex are reserved and hidden; a public landing page is deferred. The owner expects the Activity to grow into
+  general information and community navigation of resources, so the main page is built as a registry of sections
+  with fixed action kinds. Information comes from MediaWiki (the current source) and approved knowledge. An AI-backed
+  section would need its own decision, and Shuttle state never enters such a path.
+- **D10 Sound.** "Use open source sounds. Provide me with options to select from for each one that you need."
+  Follow-up: CC0 and CC-BY. This is the recorded scope decision for audio assets: CC0 1.0 and CC BY 3.0/4.0 only;
+  NC, ND, SA and unclear licences are excluded. Each sound is pinned with its source URL, author, licence and SHA-256,
+  and CC-BY sounds are credited on the Credits screen and in a notices file. The coding agent proposes options for
+  each sound cue; nothing is bundled until the owner picks. Sound starts only after the member interacts, with volume
+  and mute in Settings.
+
+Plan tasks P40–P44 are in the [workplan](../workplan.md). No code, migration, dependency, permission or production
+change has been made.
+
+### Shuttle Activity sounds chosen — 21 October 2026
+
+The owner picked one sound for each of the 23 proposed cues in a private picker page offering CC0 and CC BY options.
+On the title theme the owner wrote: "I want you to use Outer Space Loop for after whitelist is confirmed at the end of
+the onboarding process. I really enjoyed that track. Otherwise, Suspension is good for the title theme." That adds a
+24th cue, **MUS-02 Arrival theme**, which plays only after Discord confirms Whitelist; Suspension stays the title
+theme. 23 sounds are CC0 1.0; Suspension (kjartan_abel) is CC BY 4.0 and is credited on the Credits screen and in
+`legal/THIRD-PARTY-NOTICES`. The choices, sources, authors and licences are in
+`legal/shuttle-activity-sounds.json`. No audio has been fetched, changed or bundled yet, so no file hash is recorded.

@@ -1266,7 +1266,7 @@
         "T49"
       ],
       "suggested_owner": "Repository maintainer; separate human review where required",
-      "guardrail": "No artwork is added, generated or restored without a new owner decision.",
+      "guardrail": "Sophie is not depicted (radio voice only, owner decision of 21 October 2026). Shuttle Activity art is made by the coding agent under that decision, with provenance records.",
       "status": "complete",
       "implementation_note": "Owner direction of 20 October 2026 removed all custom artwork. The four PNGs, both manifests and brand profiles, the brand-profile contract, its test, the repository asset check and the dashboard avatar route were removed; the planning pack HTML no longer embeds the images. The bot's Discord avatar is set on the account, outside this repository.",
       "completed_scope": [
@@ -1373,6 +1373,159 @@
       "remaining_scope": [
         "Owner-reviewed current Policies extracts and separate Discord rules publication; complete source-bound 40-question G3, invalidation/recovery and destination/member acceptance before operator-approved direct-lookup activation."
       ]
+    },
+    {
+      "id": "P40",
+      "title": "Shuttle Activity: production spike and tester gate",
+      "phase": "Shuttle Activity",
+      "priority": "P1",
+      "depends_on": [
+        "P14",
+        "P16"
+      ],
+      "deliverables": [
+        "Owner enables Activities on the production application; URL mapping to an owner-chosen production ingress (ADR 0004 covers staging only)",
+        "Tester gate: configured tester user IDs; everyone else sees a closed \"not boarding yet\" screen",
+        "Sign-in round trip (identify and rpc.activities.write), Activity instance lookup with the bot token, and a launch-activity response from a Rules post button",
+        "Platform report for Windows desktop, web, iOS and Android: launch time, layout modes, presence, the launch notice in the channel and the Activities permission",
+        "Cozette coverage and rendering check; Rules post banner format chosen (ANSI code block or pre-rendered image)"
+      ],
+      "acceptance_tests": [
+        "T01",
+        "T02",
+        "T37"
+      ],
+      "suggested_owner": "Repository maintainer and owner",
+      "guardrail": "Production application behind the tester gate only. Each deploy and the opening need recorded owner approval. No production secrets in prompts; no Shuttle copy or member data in logs.",
+      "status": "planned_not_started",
+      "implementation_note": "Owner decisions of 21 October 2026 (\"The Shuttle becomes an Activity\", D1–D10). Not started; the owner enables the Activity surface.",
+      "remaining_scope": [
+        "Owner choice of production ingress hostname and connector before the first production deploy."
+      ]
+    },
+    {
+      "id": "P41",
+      "title": "Shuttle Activity: backend, and the Shuttle leaves tickets",
+      "phase": "Shuttle Activity",
+      "priority": "P1",
+      "depends_on": [
+        "P40",
+        "P14",
+        "P15",
+        "P16"
+      ],
+      "deliverables": [
+        "/activity routes in core for sign-in, state, Board/Continue, Back, Complete and Check; short-lived in-memory session tokens bound to user, instance, membership episode and revocation epochs",
+        "New Shuttle runs without a private case or channel, not counted against case quotas; existing Shuttle cases, records, transcripts and capture ledgers retained",
+        "Runs in progress move into the Activity at the same step; existing Shuttle channels keep their rules until they close",
+        "The same store methods and checks as the signed controls; Whitelist completion only after observed delivery",
+        "Text version from the Rules post sharing the same run"
+      ],
+      "acceptance_tests": [
+        "T13",
+        "T14",
+        "T15",
+        "T18",
+        "T19",
+        "T22",
+        "T26",
+        "T53",
+        "T54",
+        "T55",
+        "T57"
+      ],
+      "suggested_owner": "Repository maintainer",
+      "guardrail": "No AI path. Current eligibility on every action; never grant from a client response, launch location or presence. Other ticket types unchanged; no Shuttle record deleted.",
+      "status": "planned_not_started",
+      "implementation_note": "Owner decisions of 21 October 2026 (\"The Shuttle becomes an Activity\", D1–D10). Not started."
+    },
+    {
+      "id": "P42",
+      "title": "Shuttle Activity: scene renderer, art and sounds",
+      "phase": "Shuttle Activity",
+      "priority": "P1",
+      "depends_on": [
+        "P40"
+      ],
+      "deliverables": [
+        "Bounded scene format and validator: size, characters present in Cozette, colour keys, frames, fixed effect kinds, file size and alt text",
+        "Glyph-grid renderer: canvas backdrop under HTML text, 12 fps cap, still frames for reduced motion, picture-in-picture, heat warnings and hidden pages",
+        "Six scenes made by the coding agent (hangar viewport, departure lounge, baggage hall, boarding ramp and cabin, viewport, pressure door and new lab) with provenance records",
+        "Sound cue list with CC0/CC-BY options for owner selection; chosen sounds pinned with source, author, licence and SHA-256, with credits and notices"
+      ],
+      "acceptance_tests": [
+        "T02",
+        "T43",
+        "T49",
+        "T60"
+      ],
+      "suggested_owner": "Repository maintainer; owner selects sounds and reviews scenes",
+      "guardrail": "Sophie is not depicted and no runtime image generation is added. No more than three flashes a second. Audio is CC0 1.0 or CC BY 3.0/4.0 only.",
+      "status": "in_progress",
+      "implementation_note": "Owner decisions of 21 October 2026 (\"The Shuttle becomes an Activity\", D1–D10; \"Shuttle Activity sounds chosen\"). Sound selection is done; the renderer, scenes and audio files are not started. Proposed look: the V1 plan mockups (title screen, departure lounge, pressure door).",
+      "completed_scope": [
+        "Sound cue list (24 cues, including the owner-added MUS-02 arrival theme) and the owner's choice for each, with source, author and licence checked on each sound's page: legal/shuttle-activity-sounds.json. 23 CC0 1.0, one CC BY 4.0 credited in legal/THIRD-PARTY-NOTICES."
+      ],
+      "remaining_scope": [
+        "Fetch the chosen audio and pin each file's SHA-256; record cut and loop points and any changes (the CC BY credit must state changes).",
+        "Scene format, validator, renderer and the six scenes with provenance records."
+      ]
+    },
+    {
+      "id": "P43",
+      "title": "Shuttle Activity: visual novel client and main page",
+      "phase": "Shuttle Activity",
+      "priority": "P1",
+      "depends_on": [
+        "P41",
+        "P42"
+      ],
+      "deliverables": [
+        "Title screen built on a section registry with fixed action kinds; V1 sections Board/Continue, Settings, Text mode and Credits; Station log and Codex reserved and hidden",
+        "Scene player: stops, sections and pages, Sophie reading the published copy as radio transmissions, and a log",
+        "Truthful screens for every run state: new, in progress, Whitelist requested, complete, Muzzled, withdrawn guidance and departed",
+        "Settings for text speed, motion, text mode, text size, volume and mute",
+        "Focused, portrait and picture-in-picture layouts; presence naming the area and current stop only",
+        "Accessibility: keyboard, screen readers through text mode, contrast and reduced motion"
+      ],
+      "acceptance_tests": [
+        "T13",
+        "T14",
+        "T42",
+        "T43",
+        "T52",
+        "T53",
+        "T54"
+      ],
+      "suggested_owner": "Repository maintainer",
+      "guardrail": "Published copy is shown as written; art and sound cannot change its meaning, hide errors or fake progress. No AI-backed section without a separate owner decision.",
+      "status": "planned_not_started",
+      "implementation_note": "Owner decisions of 21 October 2026 (\"The Shuttle becomes an Activity\", D1–D10). Not started."
+    },
+    {
+      "id": "P44",
+      "title": "Shuttle Activity: Rules post, editor and opening",
+      "phase": "Shuttle Activity",
+      "priority": "P1",
+      "depends_on": [
+        "P43"
+      ],
+      "deliverables": [
+        "Rules post styled like the Activity, replacing the public Shuttle entry panel: Board the Shuttle answers with a launch-activity response, plus a text route; copy editable from the dashboard",
+        "Per-stop scene picker in the Shuttle editor, saved with the publication",
+        "docs/shuttle-activity.md plus verification and workplan updates",
+        "Tester acceptance on the production application, then the owner-approved opening"
+      ],
+      "acceptance_tests": [
+        "T05",
+        "T19",
+        "T42",
+        "T55"
+      ],
+      "suggested_owner": "Repository maintainer and owner",
+      "guardrail": "Opening the Activity to all members is a separate recorded owner approval.",
+      "status": "planned_not_started",
+      "implementation_note": "Owner decisions of 21 October 2026 (\"The Shuttle becomes an Activity\", D1–D10). Not started."
     }
   ],
   "checkpoint": {
@@ -3059,6 +3212,15 @@
       ],
       "work": "Address the reported Onboarding failures first. Then qualify final guidance/mappings, existing-role ownership, Muzzled and fresh-run revocation, no-AI/privacy, restart/uncertain-effect recovery, independent latest-history recovery, Windows identity/service packaging and approved production handoff. Preserve the broader feature backlog without making unrelated functionality a prerequisite for the next Onboarding test.",
       "exit_evidence": "Build-specific applicable release evidence and explicit operator approval; no production-ready claim from this human-test checkpoint."
+    },
+    {
+      "title": "Start the Shuttle Activity",
+      "tasks": [
+        "P40",
+        "P42"
+      ],
+      "work": "The owner enables Activities on the production application and chooses its production ingress. Then run the P40 spike behind the tester gate. Scene work and the sound options (P42) can start alongside.",
+      "exit_evidence": "Spike report per platform and a verified tester gate. Sound choices are recorded in legal/shuttle-activity-sounds.json; the audio files are not yet fetched."
     }
   ],
   "release_inputs": [
@@ -3111,6 +3273,11 @@
       "input": "P35 maintenance draft needs owner adoption after P31, named operators/reviewer/custodian and approved cadence/outage routes",
       "affected_work": "Maintenance ownership, recurring reviews, drills and operational upgrades; no recurring jobs are authorized by the draft.",
       "independent_work": "Local procedure draft completed: GitHub/.agent_docs/aphelion-sophie/maintenance-2026-10-04/procedure.md. Existing recovery destination/key-custody/RPO/RTO inputs remain separate."
+    },
+    {
+      "input": "Production ingress for the Shuttle Activity (hostname and connector; ADR 0004 covers staging only)",
+      "affected_work": "P40 production deploy, P44 opening",
+      "independent_work": "Scene art, sound options, renderer and backend tests (P41–P43)"
     }
   ],
   "ai_workstream": {

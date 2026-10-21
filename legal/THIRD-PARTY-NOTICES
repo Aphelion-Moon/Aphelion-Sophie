@@ -21,3 +21,10 @@ Existing PostgreSQL executables and supporting DLLs are used read-only for
 isolated synthetic tests. They are not redistributed in this repository.
 The PostgreSQL and installed command-line bundle notices remain with that
 distribution; recorded hashes are in legal/postgresql-test-runtime.json.
+
+Shuttle Activity sounds are selected but not yet bundled; see
+legal/shuttle-activity-sounds.json. All are CC0 1.0 except one, which will be
+credited here when it is bundled:
+"Suspension: Mellow Electro-Ambient Soundscape" by kjartan_abel
+(https://freesound.org/people/kjartan_abel/sounds/531854/), licensed under
+CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/).

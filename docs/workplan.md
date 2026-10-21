@@ -207,6 +207,7 @@ These are bounded next steps within the task dependencies below. An unresolved l
 3. **Resolve provider terms and complete owner-led worker/chat acceptance** (P07, P19, P21, P22, P23, P24, P25, P32). The approved pinned 335a3f2/schema069 staging update is complete; use the running dashboard for owner review. Resolve provider/factual inputs using the prepared notice and retention annex. Complete exact owner publications, separately authorized worker isolation/stop checks, current member consent and actual worker/Discord acceptance before processing. Keep the independent journal and trust receipts current through reviewed renewals; no automatic source redeployment or member activation. Exit evidence: Current installed package, identities, configured ACL/firewall scope, Gateway and anonymous dashboard checks are recorded. Still needed: actual worker file/network denials and child termination, accepted provider evidence/publications/current consent, live privacy/departure/answer tests and measured end-to-end latency.
 4. **Privately verify deployed configuration and apply workflow** (P03, P05, P08, P11, P15). Sign in with the existing Lead ops role at /permissions. Verify Crew/base, Whitelist, Muzzled, Staff/lead ops, feature grants, responders and category; review/apply an intentional change and verify progress, preserved restrictions and case access. Do not inspect private data through agent tools or repeat bootstrap/deployment. Exit evidence: Owner pass/fail with client/time and no private content. Keep the held recovery path and fresh Whitelist-run rule; no old-policy or schema054 rollback.
 5. **After feedback: qualify Onboarding production gates** (P01, P02, P05, P06, P07, P09, P13, P14, P26, P27, P29, P30, P31). Address the reported Onboarding failures first. Then qualify final guidance/mappings, existing-role ownership, Muzzled and fresh-run revocation, no-AI/privacy, restart/uncertain-effect recovery, independent latest-history recovery, Windows identity/service packaging and approved production handoff. Preserve the broader feature backlog without making unrelated functionality a prerequisite for the next Onboarding test. Exit evidence: Build-specific applicable release evidence and explicit operator approval; no production-ready claim from this human-test checkpoint.
+6. **Start the Shuttle Activity** (P40, P42). The owner enables Activities on the production application and chooses its production ingress. Then run the P40 spike behind the tester gate. Scene work and the sound options (P42) can start alongside. Exit evidence: Spike report per platform and a verified tester gate. Sound choices are recorded in legal/shuttle-activity-sounds.json; the audio files are not yet fetched.
 
 ## Inputs and release gates still open
 
@@ -222,10 +223,11 @@ These are bounded next steps within the task dependencies below. An unresolved l
 | Human brand/accessibility review and administration pilot approval | G2 presentation acceptance and live cutover. | Static approved-asset previews and developer keyboard/reflow checks. |
 | Policies collection and the separate owner-supplied Discord rules are selected; current publication review remains open. Exact DeepSeek account processing terms/notices and named restricted-audience clearance remain unresolved. Reply length and preferred language are the two selected explicit preference types. | Real member processing, reviewed source publication, remote preference use and each restricted context. | Synthetic source/worker/effect/control implementation; administration stays independent. |
 | P35 maintenance draft needs owner adoption after P31, named operators/reviewer/custodian and approved cadence/outage routes | Maintenance ownership, recurring reviews, drills and operational upgrades; no recurring jobs are authorized by the draft. | Local procedure draft completed: GitHub/.agent_docs/aphelion-sophie/maintenance-2026-10-04/procedure.md. Existing recovery destination/key-custody/RPO/RTO inputs remain separate. |
+| Production ingress for the Shuttle Activity (hostname and connector; ADR 0004 covers staging only) | P40 production deploy, P44 opening | Scene art, sound options, renderer and backend tests (P41–P43) |
 
 ## Task status
 
-Status counts: 2 complete; 31 in progress; 7 planned, not started. These are full-task statuses, not a percentage of code or release readiness.
+Status counts: 2 complete; 32 in progress; 11 planned, not started. These are full-task statuses, not a percentage of code or release readiness.
 
 An in-progress task can contain several verified milestones and still have unfinished implementation or acceptance. Acceptance IDs below link requirements to tasks; they do not assert that those specifications have passed.
 
@@ -271,6 +273,11 @@ An in-progress task can contain several verified milestones and still have unfin
 | P37 — Apply Sophie branding to interfaces and static copy | in_progress | P36, P08, P09, P13, P17 |
 | P38 — Review identity consistency and non-AI presentation | in_progress | P37, P19 |
 | P39 — Validate and activate direct knowledge independently of AI | in_progress | P19, P21, P22, P26 |
+| P40 — Shuttle Activity: production spike and tester gate | planned_not_started | P14, P16 |
+| P41 — Shuttle Activity: backend, and the Shuttle leaves tickets | planned_not_started | P40, P14, P15, P16 |
+| P42 — Shuttle Activity: scene renderer, art and sounds | in_progress | P40 |
+| P43 — Shuttle Activity: visual novel client and main page | planned_not_started | P41, P42 |
+| P44 — Shuttle Activity: Rules post, editor and opening | planned_not_started | P43 |
 
 ## P00 — Freeze scope and deployment inputs
 
@@ -1257,7 +1264,7 @@ Full task deliverables:
 - Text identity Sophie / Community Services on every dashboard page
 - No bundled Sophie artwork, brand profile or asset manifest
 
-Boundary: No artwork is added, generated or restored without a new owner decision.
+Boundary: Sophie is not depicted (radio voice only, owner decision of 21 October 2026). Shuttle Activity art is made by the coding agent under that decision, with provenance records.
 
 ## P37 — Apply Sophie branding to interfaces and static copy
 
@@ -1330,3 +1337,105 @@ Full task deliverables:
 - Operator-approved direct lookup activation and independent disable/fallback check
 
 Boundary: No dependency on P23-P25, P28 or a working model. Live activation still requires approved source collections and destination policy.
+
+## P40 — Shuttle Activity: production spike and tester gate
+
+Status: **planned_not_started**. Phase: Shuttle Activity. Priority: P1.
+
+Depends on: P14, P16. Acceptance: T01, T02, T37.
+
+Owner decisions of 21 October 2026 ("The Shuttle becomes an Activity", D1–D10). Not started; the owner enables the Activity surface.
+
+Remaining scope:
+
+- Owner choice of production ingress hostname and connector before the first production deploy.
+
+Full task deliverables:
+
+- Owner enables Activities on the production application; URL mapping to an owner-chosen production ingress (ADR 0004 covers staging only)
+- Tester gate: configured tester user IDs; everyone else sees a closed "not boarding yet" screen
+- Sign-in round trip (identify and rpc.activities.write), Activity instance lookup with the bot token, and a launch-activity response from a Rules post button
+- Platform report for Windows desktop, web, iOS and Android: launch time, layout modes, presence, the launch notice in the channel and the Activities permission
+- Cozette coverage and rendering check; Rules post banner format chosen (ANSI code block or pre-rendered image)
+
+Boundary: Production application behind the tester gate only. Each deploy and the opening need recorded owner approval. No production secrets in prompts; no Shuttle copy or member data in logs.
+
+## P41 — Shuttle Activity: backend, and the Shuttle leaves tickets
+
+Status: **planned_not_started**. Phase: Shuttle Activity. Priority: P1.
+
+Depends on: P40, P14, P15, P16. Acceptance: T13, T14, T15, T18, T19, T22, T26, T53, T54, T55, T57.
+
+Owner decisions of 21 October 2026 ("The Shuttle becomes an Activity", D1–D10). Not started.
+
+Full task deliverables:
+
+- /activity routes in core for sign-in, state, Board/Continue, Back, Complete and Check; short-lived in-memory session tokens bound to user, instance, membership episode and revocation epochs
+- New Shuttle runs without a private case or channel, not counted against case quotas; existing Shuttle cases, records, transcripts and capture ledgers retained
+- Runs in progress move into the Activity at the same step; existing Shuttle channels keep their rules until they close
+- The same store methods and checks as the signed controls; Whitelist completion only after observed delivery
+- Text version from the Rules post sharing the same run
+
+Boundary: No AI path. Current eligibility on every action; never grant from a client response, launch location or presence. Other ticket types unchanged; no Shuttle record deleted.
+
+## P42 — Shuttle Activity: scene renderer, art and sounds
+
+Status: **in_progress**. Phase: Shuttle Activity. Priority: P1.
+
+Depends on: P40. Acceptance: T02, T43, T49, T60.
+
+Owner decisions of 21 October 2026 ("The Shuttle becomes an Activity", D1–D10; "Shuttle Activity sounds chosen"). Sound selection is done; the renderer, scenes and audio files are not started. Proposed look: the V1 plan mockups (title screen, departure lounge, pressure door).
+
+Implemented scope:
+
+- Sound cue list (24 cues, including the owner-added MUS-02 arrival theme) and the owner's choice for each, with source, author and licence checked on each sound's page: legal/shuttle-activity-sounds.json. 23 CC0 1.0, one CC BY 4.0 credited in legal/THIRD-PARTY-NOTICES.
+
+Remaining scope:
+
+- Fetch the chosen audio and pin each file's SHA-256; record cut and loop points and any changes (the CC BY credit must state changes).
+- Scene format, validator, renderer and the six scenes with provenance records.
+
+Full task deliverables:
+
+- Bounded scene format and validator: size, characters present in Cozette, colour keys, frames, fixed effect kinds, file size and alt text
+- Glyph-grid renderer: canvas backdrop under HTML text, 12 fps cap, still frames for reduced motion, picture-in-picture, heat warnings and hidden pages
+- Six scenes made by the coding agent (hangar viewport, departure lounge, baggage hall, boarding ramp and cabin, viewport, pressure door and new lab) with provenance records
+- Sound cue list with CC0/CC-BY options for owner selection; chosen sounds pinned with source, author, licence and SHA-256, with credits and notices
+
+Boundary: Sophie is not depicted and no runtime image generation is added. No more than three flashes a second. Audio is CC0 1.0 or CC BY 3.0/4.0 only.
+
+## P43 — Shuttle Activity: visual novel client and main page
+
+Status: **planned_not_started**. Phase: Shuttle Activity. Priority: P1.
+
+Depends on: P41, P42. Acceptance: T13, T14, T42, T43, T52, T53, T54.
+
+Owner decisions of 21 October 2026 ("The Shuttle becomes an Activity", D1–D10). Not started.
+
+Full task deliverables:
+
+- Title screen built on a section registry with fixed action kinds; V1 sections Board/Continue, Settings, Text mode and Credits; Station log and Codex reserved and hidden
+- Scene player: stops, sections and pages, Sophie reading the published copy as radio transmissions, and a log
+- Truthful screens for every run state: new, in progress, Whitelist requested, complete, Muzzled, withdrawn guidance and departed
+- Settings for text speed, motion, text mode, text size, volume and mute
+- Focused, portrait and picture-in-picture layouts; presence naming the area and current stop only
+- Accessibility: keyboard, screen readers through text mode, contrast and reduced motion
+
+Boundary: Published copy is shown as written; art and sound cannot change its meaning, hide errors or fake progress. No AI-backed section without a separate owner decision.
+
+## P44 — Shuttle Activity: Rules post, editor and opening
+
+Status: **planned_not_started**. Phase: Shuttle Activity. Priority: P1.
+
+Depends on: P43. Acceptance: T05, T19, T42, T55.
+
+Owner decisions of 21 October 2026 ("The Shuttle becomes an Activity", D1–D10). Not started.
+
+Full task deliverables:
+
+- Rules post styled like the Activity, replacing the public Shuttle entry panel: Board the Shuttle answers with a launch-activity response, plus a text route; copy editable from the dashboard
+- Per-stop scene picker in the Shuttle editor, saved with the publication
+- docs/shuttle-activity.md plus verification and workplan updates
+- Tester acceptance on the production application, then the owner-approved opening
+
+Boundary: Opening the Activity to all members is a separate recorded owner approval.

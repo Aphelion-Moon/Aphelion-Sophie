@@ -21,9 +21,9 @@ Human admission happens before Discord entry. Crew is the default role except wh
 
 ## Sophie identity rules
 
-Use Sophie (she/her), Community Services. Her custom artwork was removed on 20 October 2026 by owner direction: the repository bundles no Sophie images or brand files, the dashboard shows her name as text only, and Discord shows whatever avatar is set on the bot account. Do not add, generate or restore artwork without a new owner decision.
+Use Sophie (she/her), Community Services. Her custom artwork was removed on 20 October 2026 by owner direction: the repository bundles no Sophie images or brand files, the dashboard shows her name as text only, and Discord shows whatever avatar is set on the bot account. Sophie herself is not depicted; in the Shuttle Activity she is a radio voice (text only, no face). By owner direction of 21 October 2026 the coding agent makes the Shuttle Activity's art itself (ASCII scenes, effects and the Rules post banner), with a provenance record for each asset.
 
-Branding is shared presentation, not an AI dependency. Tickets/Shuttle can show the normal bot avatar and static approved templates, never a generative mascot, ticket-summary control or AI data path. Style cannot change permission checks, state transitions or truthfulness. The approved AI workstream permits persistent owner-published character and approved knowledge, member-written notes, Sophie's own memories under an accepted notice that discloses them (see docs/ai-memory.md), and named restricted contexts. It permits configurable participation in explicitly enabled, individually opted-in non-ticket contexts. Do not add image generation, voice, animation, autonomous personality changes, model training, invented lore authority or a second bot identity.
+Branding is shared presentation, not an AI dependency. Tickets can show the normal bot avatar and static approved templates. The Shuttle Activity can show its authored scene art, animation and approved sounds. Neither has a generative mascot, ticket-summary control or AI data path. Style cannot change permission checks, state transitions or truthfulness. The approved AI workstream permits persistent owner-published character and approved knowledge, member-written notes, Sophie's own memories under an accepted notice that discloses them (see docs/ai-memory.md), and named restricted contexts. It permits configurable participation in explicitly enabled, individually opted-in non-ticket contexts. Sophie's AI does not gain image generation, synthesized voice, an animated likeness, autonomous personality changes, model training, invented lore authority or a second bot identity.
 
 Website CSS/fonts/official insignia remain unverified. New exact style values are proposals, not extracted site facts. Keep technical identifiers stable unless an explicit migration is approved. The original WUFF addendum remains the hardware overlay; do not publish the raw host dump or alter existing game services.
 
@@ -37,7 +37,7 @@ Keep configuration as bounded data, not executable code or untrusted compiler sc
 
 ## Development and review
 
-Use synthetic data and staging credentials. No production secrets, real player reports, age-check documents or transcripts in prompts, fixtures or screenshots. Do not make production changes without recorded operator approval.
+Use synthetic data and staging credentials. No production secrets, real player reports, age-check documents or transcripts in prompts, fixtures or screenshots. Do not make production changes without recorded operator approval. The Shuttle Activity is the exception to staging-first work: it is built on the production application behind a tester gate (owner decision, 21 October 2026), and each production deploy is still a recorded approval.
 
 A PR includes task/requirement/test IDs; scope; dependency/licence changes; permission and migration impact; tests actually run and skipped; rollback procedure; and documentation updates. Use small reviewable commits. A test specification is not a passed test.
 

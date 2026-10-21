@@ -1,0 +1,822 @@
+{
+  "schemaVersion": 1,
+  "selectedAt": "2026-10-21",
+  "ownerDecision": "docs/decisions/0001-owner-policy.md (The Shuttle becomes an Activity, D10; Shuttle Activity sounds chosen)",
+  "policy": "Audio assets only: CC0 1.0 and CC BY 3.0/4.0. NC, ND, SA and unclear licences are excluded. Each bundled file is pinned with its SHA-256; CC BY sounds are credited on the Credits screen and in legal/THIRD-PARTY-NOTICES, with any changes stated.",
+  "selection": "The owner chose one option per cue in a private picker page on 21 October 2026. Licences were read from each sound's own page that day.",
+  "status": "Selected. No audio has been fetched, changed or bundled. The owner is downloading the original files on another machine (handoff of 21 October 2026).",
+  "sounds": [
+    {
+      "cue": "UI-01",
+      "name": "Focus tick",
+      "plays": "Moving between buttons and menu items, by mouse or keyboard.",
+      "source": "Freesound",
+      "soundId": 757328,
+      "title": "UI hover item",
+      "author": "steaq",
+      "page": "https://freesound.org/people/steaq/sounds/757328/",
+      "licence": "CC0-1.0",
+      "licenceUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+      "seconds": 0.254,
+      "upload": {
+        "format": "Wave (.wav)",
+        "channels": "Stereo",
+        "sampleRate": "44.1 kHz",
+        "bitDepth": "16 bit",
+        "duration": "0:00.253",
+        "listedSize": "44.0 KB"
+      },
+      "preview": {
+        "hqMp3": "https://cdn.freesound.org/previews/757/757328_1474204-hq.mp3",
+        "hqMp3Bytes": 9082,
+        "hqOgg": "https://cdn.freesound.org/previews/757/757328_1474204-hq.ogg",
+        "hqOggBytes": 9382
+      },
+      "attribution": null,
+      "file": {
+        "fetched": false,
+        "path": null,
+        "sha256": null
+      },
+      "changes": []
+    },
+    {
+      "cue": "UI-02",
+      "name": "Confirm",
+      "plays": "Board the Shuttle, Continue and Complete Shuttle.",
+      "source": "Freesound",
+      "soundId": 542044,
+      "title": "GASP_UI_Confirm.wav",
+      "author": "Rob_Marion",
+      "page": "https://freesound.org/people/Rob_Marion/sounds/542044/",
+      "licence": "CC0-1.0",
+      "licenceUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+      "seconds": 1.059,
+      "upload": {
+        "format": "Wave (.wav)",
+        "channels": "Stereo",
+        "sampleRate": "48 kHz",
+        "bitDepth": "24 bit",
+        "duration": "0:01.058",
+        "listedSize": "297.8 KB"
+      },
+      "preview": {
+        "hqMp3": "https://cdn.freesound.org/previews/542/542044_6856600-hq.mp3",
+        "hqMp3Bytes": 23400,
+        "hqOgg": "https://cdn.freesound.org/previews/542/542044_6856600-hq.ogg",
+        "hqOggBytes": 20894
+      },
+      "attribution": null,
+      "file": {
+        "fetched": false,
+        "path": null,
+        "sha256": null
+      },
+      "changes": []
+    },
+    {
+      "cue": "UI-03",
+      "name": "Back",
+      "plays": "Back, closing a panel and leaving Settings.",
+      "source": "Freesound",
+      "soundId": 418231,
+      "title": "UI back sound",
+      "author": "KieranKeegan",
+      "page": "https://freesound.org/people/KieranKeegan/sounds/418231/",
+      "licence": "CC0-1.0",
+      "licenceUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+      "seconds": 0.682,
+      "upload": {
+        "format": "Wave (.wav)",
+        "channels": "Stereo",
+        "sampleRate": "44.1 kHz",
+        "bitDepth": "16 bit",
+        "duration": "0:00.682",
+        "listedSize": "117.8 KB"
+      },
+      "preview": {
+        "hqMp3": "https://cdn.freesound.org/previews/418/418231_6616210-hq.mp3",
+        "hqMp3Bytes": 18579,
+        "hqOgg": "https://cdn.freesound.org/previews/418/418231_6616210-hq.ogg",
+        "hqOggBytes": 16705
+      },
+      "attribution": null,
+      "file": {
+        "fetched": false,
+        "path": null,
+        "sha256": null
+      },
+      "changes": []
+    },
+    {
+      "cue": "UI-04",
+      "name": "Unavailable",
+      "plays": "A control that cannot be used right now: Muzzled, withdrawn guidance, an out-of-date click.",
+      "source": "Freesound",
+      "soundId": 249300,
+      "title": "Access Denied",
+      "author": "suntemple",
+      "page": "https://freesound.org/people/suntemple/sounds/249300/",
+      "licence": "CC0-1.0",
+      "licenceUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+      "seconds": 0.227,
+      "upload": {
+        "format": "Wave (.wav)",
+        "channels": "Mono",
+        "sampleRate": "44.1 kHz",
+        "bitDepth": "16 bit",
+        "duration": "0:00.226",
+        "listedSize": "19.6 KB"
+      },
+      "preview": {
+        "hqMp3": "https://cdn.freesound.org/previews/249/249300_4404552-hq.mp3",
+        "hqMp3Bytes": 6994,
+        "hqOgg": "https://cdn.freesound.org/previews/249/249300_4404552-hq.ogg",
+        "hqOggBytes": 6930
+      },
+      "attribution": null,
+      "file": {
+        "fetched": false,
+        "path": null,
+        "sha256": null
+      },
+      "changes": []
+    },
+    {
+      "cue": "UI-05",
+      "name": "Settings toggle",
+      "plays": "Switching Motion, Text mode or sound on and off.",
+      "source": "Freesound",
+      "soundId": 690300,
+      "title": "Flashlight Switch Click",
+      "author": "Ralph0o7",
+      "page": "https://freesound.org/people/Ralph0o7/sounds/690300/",
+      "licence": "CC0-1.0",
+      "licenceUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+      "seconds": 0.188,
+      "upload": {
+        "format": "Wave (.wav)",
+        "channels": "Stereo",
+        "sampleRate": "44.1 kHz",
+        "bitDepth": "24 bit",
+        "duration": "0:00.187",
+        "listedSize": "48.6 KB"
+      },
+      "preview": {
+        "hqMp3": "https://cdn.freesound.org/previews/690/690300_13580458-hq.mp3",
+        "hqMp3Bytes": 5217,
+        "hqOgg": "https://cdn.freesound.org/previews/690/690300_13580458-hq.ogg",
+        "hqOggBytes": 7911
+      },
+      "attribution": null,
+      "file": {
+        "fetched": false,
+        "path": null,
+        "sha256": null
+      },
+      "changes": []
+    },
+    {
+      "cue": "DLG-01",
+      "name": "Text tick",
+      "plays": "While a line types out, one tick every few characters.",
+      "source": "Freesound",
+      "soundId": 667418,
+      "title": "character reveal HZA 02-06-2022.wav",
+      "author": "hz37",
+      "page": "https://freesound.org/people/hz37/sounds/667418/",
+      "licence": "CC0-1.0",
+      "licenceUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+      "seconds": 0.302,
+      "upload": {
+        "format": "Wave (.wav)",
+        "channels": "Stereo",
+        "sampleRate": "48 kHz",
+        "bitDepth": "24 bit",
+        "duration": "0:00.301",
+        "listedSize": "87.2 KB"
+      },
+      "preview": {
+        "hqMp3": "https://cdn.freesound.org/previews/667/667418_123355-hq.mp3",
+        "hqMp3Bytes": 8064,
+        "hqOgg": "https://cdn.freesound.org/previews/667/667418_123355-hq.ogg",
+        "hqOggBytes": 9596
+      },
+      "attribution": null,
+      "file": {
+        "fetched": false,
+        "path": null,
+        "sha256": null
+      },
+      "changes": []
+    },
+    {
+      "cue": "DLG-02",
+      "name": "Next page",
+      "plays": "Moving to the next page inside a section.",
+      "source": "Freesound",
+      "soundId": 428069,
+      "title": "newagesoup_FX_GUI_38.wav",
+      "author": "newagesoup",
+      "page": "https://freesound.org/people/newagesoup/sounds/428069/",
+      "licence": "CC0-1.0",
+      "licenceUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+      "seconds": 0.387,
+      "upload": {
+        "format": "Wave (.wav)",
+        "channels": "Stereo",
+        "sampleRate": "44.1 kHz",
+        "bitDepth": "24 bit",
+        "duration": "0:00.386",
+        "listedSize": "100.7 KB"
+      },
+      "preview": {
+        "hqMp3": "https://cdn.freesound.org/previews/428/428069_4067257-hq.mp3",
+        "hqMp3Bytes": 7512,
+        "hqOgg": "https://cdn.freesound.org/previews/428/428069_4067257-hq.ogg",
+        "hqOggBytes": 7360
+      },
+      "attribution": null,
+      "file": {
+        "fetched": false,
+        "path": null,
+        "sha256": null
+      },
+      "changes": []
+    },
+    {
+      "cue": "DLG-03",
+      "name": "Transmission opens",
+      "plays": "Sophie starts a new radio transmission (each new section).",
+      "source": "Freesound",
+      "soundId": 321906,
+      "title": "Walkie Talkie - Roger Beep",
+      "author": "bruce965",
+      "page": "https://freesound.org/people/bruce965/sounds/321906/",
+      "licence": "CC0-1.0",
+      "licenceUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+      "seconds": 0.65,
+      "upload": {
+        "format": "Flac (.flac)",
+        "channels": "Mono",
+        "sampleRate": "44.1 kHz",
+        "bitDepth": "16 bit",
+        "duration": "0:00.650",
+        "listedSize": "12.8 KB"
+      },
+      "preview": {
+        "hqMp3": "https://cdn.freesound.org/previews/321/321906_1755779-hq.mp3",
+        "hqMp3Bytes": 8525,
+        "hqOgg": "https://cdn.freesound.org/previews/321/321906_1755779-hq.ogg",
+        "hqOggBytes": 9101
+      },
+      "attribution": null,
+      "note": "A roger beep, used here to open transmissions.",
+      "file": {
+        "fetched": false,
+        "path": null,
+        "sha256": null
+      },
+      "changes": []
+    },
+    {
+      "cue": "DLG-04",
+      "name": "Transmission closes",
+      "plays": "The end of a section, before Continue.",
+      "source": "Freesound",
+      "soundId": 524205,
+      "title": "Radio Sign Off / Squelch",
+      "author": "JovianSounds",
+      "page": "https://freesound.org/people/JovianSounds/sounds/524205/",
+      "licence": "CC0-1.0",
+      "licenceUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+      "seconds": 1.214,
+      "upload": {
+        "format": "Wave (.wav)",
+        "channels": "Stereo",
+        "sampleRate": "44.1 kHz",
+        "bitDepth": "24 bit",
+        "duration": "0:01.214",
+        "listedSize": "314.5 KB"
+      },
+      "preview": {
+        "hqMp3": "https://cdn.freesound.org/previews/524/524205_9561949-hq.mp3",
+        "hqMp3Bytes": 12197,
+        "hqOgg": "https://cdn.freesound.org/previews/524/524205_9561949-hq.ogg",
+        "hqOggBytes": 10268
+      },
+      "attribution": null,
+      "file": {
+        "fetched": false,
+        "path": null,
+        "sha256": null
+      },
+      "changes": []
+    },
+    {
+      "cue": "DLG-05",
+      "name": "Static bed",
+      "plays": "Very quietly under Sophie's lines while text is on screen.",
+      "source": "Freesound",
+      "soundId": 257881,
+      "title": "Short Wave Radio Noise 5",
+      "author": "zmobie",
+      "page": "https://freesound.org/people/zmobie/sounds/257881/",
+      "licence": "CC0-1.0",
+      "licenceUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+      "seconds": 26.329,
+      "upload": {
+        "format": "Wave (.wav)",
+        "channels": "Mono",
+        "sampleRate": "7.119 kHz",
+        "bitDepth": "16 bit",
+        "duration": "0:26.329",
+        "listedSize": "366.1 KB"
+      },
+      "preview": {
+        "hqMp3": "https://cdn.freesound.org/previews/257/257881_3262745-hq.mp3",
+        "hqMp3Bytes": 183240,
+        "hqOgg": "https://cdn.freesound.org/previews/257/257881_3262745-hq.ogg",
+        "hqOggBytes": 89357
+      },
+      "attribution": null,
+      "file": {
+        "fetched": false,
+        "path": null,
+        "sha256": null
+      },
+      "changes": []
+    },
+    {
+      "cue": "SC-01",
+      "name": "Stop transition",
+      "plays": "Moving from one stop's scene to the next.",
+      "source": "Freesound",
+      "soundId": 415594,
+      "title": "CRT computer monitor startup",
+      "author": "corkob",
+      "page": "https://freesound.org/people/corkob/sounds/415594/",
+      "licence": "CC0-1.0",
+      "licenceUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+      "seconds": 7.367,
+      "upload": {
+        "format": "Wave (.wav)",
+        "channels": "Stereo",
+        "sampleRate": "48 kHz",
+        "bitDepth": "24 bit",
+        "duration": "0:07.367",
+        "listedSize": "2.0 MB"
+      },
+      "preview": {
+        "hqMp3": "https://cdn.freesound.org/previews/415/415594_4043130-hq.mp3",
+        "hqMp3Bytes": 175608,
+        "hqOgg": "https://cdn.freesound.org/previews/415/415594_4043130-hq.ogg",
+        "hqOggBytes": 142171
+      },
+      "attribution": null,
+      "file": {
+        "fetched": false,
+        "path": null,
+        "sha256": null
+      },
+      "changes": []
+    },
+    {
+      "cue": "SC-02",
+      "name": "Split-flap board",
+      "plays": "The departures board flipping in the lounge.",
+      "source": "Freesound",
+      "soundId": 261244,
+      "title": "Split Flap Display",
+      "author": "ngruber",
+      "page": "https://freesound.org/people/ngruber/sounds/261244/",
+      "licence": "CC0-1.0",
+      "licenceUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+      "seconds": 124.053,
+      "upload": {
+        "format": "AIFF (.aiff)",
+        "channels": "Stereo",
+        "sampleRate": "44.1 kHz",
+        "bitDepth": "16 bit",
+        "duration": "2:04.052",
+        "listedSize": "20.9 MB"
+      },
+      "preview": {
+        "hqMp3": "https://cdn.freesound.org/previews/261/261244_2736862-hq.mp3",
+        "hqMp3Bytes": 2352741,
+        "hqOgg": "https://cdn.freesound.org/previews/261/261244_2736862-hq.ogg",
+        "hqOggBytes": 2363213
+      },
+      "attribution": null,
+      "note": "Two-minute recording; single flips and short flurries are to be cut from it.",
+      "file": {
+        "fetched": false,
+        "path": null,
+        "sha256": null
+      },
+      "changes": []
+    },
+    {
+      "cue": "SC-03",
+      "name": "Holo glitch",
+      "plays": "New-era panels flickering in; small and rare.",
+      "source": "Freesound",
+      "soundId": 458065,
+      "title": "Digital Glitch_v1.wav",
+      "author": "tadaizm",
+      "page": "https://freesound.org/people/tadaizm/sounds/458065/",
+      "licence": "CC0-1.0",
+      "licenceUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+      "seconds": 0.48,
+      "upload": {
+        "format": "Wave (.wav)",
+        "channels": "Mono",
+        "sampleRate": "48 kHz",
+        "bitDepth": "32 bit",
+        "duration": "0:00.480",
+        "listedSize": "105.3 KB"
+      },
+      "preview": {
+        "hqMp3": "https://cdn.freesound.org/previews/458/458065_1316332-hq.mp3",
+        "hqMp3Bytes": 13248,
+        "hqOgg": "https://cdn.freesound.org/previews/458/458065_1316332-hq.ogg",
+        "hqOggBytes": 10728
+      },
+      "attribution": null,
+      "file": {
+        "fetched": false,
+        "path": null,
+        "sha256": null
+      },
+      "changes": []
+    },
+    {
+      "cue": "SC-04",
+      "name": "Pressure door opens",
+      "plays": "The arrival door, once Whitelist is confirmed.",
+      "source": "Freesound",
+      "soundId": 607265,
+      "title": "Sci-Fi Doors-Airlock Sound Effect",
+      "author": "RyanKingArt",
+      "page": "https://freesound.org/people/RyanKingArt/sounds/607265/",
+      "licence": "CC0-1.0",
+      "licenceUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+      "seconds": 11.292,
+      "upload": {
+        "format": "Mp3 (.mp3)",
+        "channels": "Stereo",
+        "sampleRate": "48 kHz",
+        "bitrate": "192 kbps",
+        "duration": "0:11.291",
+        "listedSize": "266.1 KB"
+      },
+      "preview": {
+        "hqMp3": "https://cdn.freesound.org/previews/607/607265_11069322-hq.mp3",
+        "hqMp3Bytes": 268464,
+        "hqOgg": "https://cdn.freesound.org/previews/607/607265_11069322-hq.ogg",
+        "hqOggBytes": 243076
+      },
+      "attribution": null,
+      "note": "A longer airlock sequence; to be cut to fit. The upload itself is MP3.",
+      "file": {
+        "fetched": false,
+        "path": null,
+        "sha256": null
+      },
+      "changes": []
+    },
+    {
+      "cue": "SC-05",
+      "name": "Clearance confirmed",
+      "plays": "Discord has confirmed the Whitelist role.",
+      "source": "Freesound",
+      "soundId": 415762,
+      "title": "Notification Correct",
+      "author": "TheBuilder15",
+      "page": "https://freesound.org/people/TheBuilder15/sounds/415762/",
+      "licence": "CC0-1.0",
+      "licenceUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+      "seconds": 1.376,
+      "upload": {
+        "format": "Wave (.wav)",
+        "channels": "Stereo",
+        "sampleRate": "44.1 kHz",
+        "bitDepth": "16 bit",
+        "duration": "0:01.376",
+        "listedSize": "244.8 KB"
+      },
+      "preview": {
+        "hqMp3": "https://cdn.freesound.org/previews/415/415762_6090639-hq.mp3",
+        "hqMp3Bytes": 36060,
+        "hqOgg": "https://cdn.freesound.org/previews/415/415762_6090639-hq.ogg",
+        "hqOggBytes": 35109
+      },
+      "attribution": null,
+      "file": {
+        "fetched": false,
+        "path": null,
+        "sha256": null
+      },
+      "changes": []
+    },
+    {
+      "cue": "SC-06",
+      "name": "Still waiting",
+      "plays": "Check completion while the role is still pending.",
+      "source": "Freesound",
+      "soundId": 250104,
+      "title": "Computer Beep",
+      "author": "phatcorns",
+      "page": "https://freesound.org/people/phatcorns/sounds/250104/",
+      "licence": "CC0-1.0",
+      "licenceUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+      "seconds": 0.213,
+      "upload": {
+        "format": "Wave (.wav)",
+        "channels": "Stereo",
+        "sampleRate": "44.1 kHz",
+        "bitDepth": "24 bit",
+        "duration": "0:00.213",
+        "listedSize": "55.9 KB"
+      },
+      "preview": {
+        "hqMp3": "https://cdn.freesound.org/previews/250/250104_2772007-hq.mp3",
+        "hqMp3Bytes": 5947,
+        "hqOgg": "https://cdn.freesound.org/previews/250/250104_2772007-hq.ogg",
+        "hqOggBytes": 8286
+      },
+      "attribution": null,
+      "file": {
+        "fetched": false,
+        "path": null,
+        "sha256": null
+      },
+      "changes": []
+    },
+    {
+      "cue": "AMB-01",
+      "name": "Title screen and hangar",
+      "plays": "Loop behind the title screen.",
+      "source": "Freesound",
+      "soundId": 848926,
+      "title": "ambience_small hangar",
+      "author": "michaelkroz",
+      "page": "https://freesound.org/people/michaelkroz/sounds/848926/",
+      "licence": "CC0-1.0",
+      "licenceUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+      "seconds": 136,
+      "upload": {
+        "format": "Wave (.wav)",
+        "channels": "Stereo",
+        "sampleRate": "48 kHz",
+        "bitDepth": "24 bit",
+        "duration": "2:16.000",
+        "listedSize": "37.4 MB"
+      },
+      "preview": {
+        "hqMp3": "https://cdn.freesound.org/previews/848/848926_9246803-hq.mp3",
+        "hqMp3Bytes": 3082464,
+        "hqOgg": "https://cdn.freesound.org/previews/848/848926_9246803-hq.ogg",
+        "hqOggBytes": 2771083
+      },
+      "attribution": null,
+      "file": {
+        "fetched": false,
+        "path": null,
+        "sha256": null
+      },
+      "changes": []
+    },
+    {
+      "cue": "AMB-02",
+      "name": "Departure lounge",
+      "plays": "Loop behind the rules entry and The Brochure.",
+      "source": "Freesound",
+      "soundId": 353159,
+      "title": "Room Tone, Sci Fi, Large Hall",
+      "author": "Kinoton",
+      "page": "https://freesound.org/people/Kinoton/sounds/353159/",
+      "licence": "CC0-1.0",
+      "licenceUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+      "seconds": 180.019,
+      "upload": {
+        "format": "Wave (.wav)",
+        "channels": "Stereo",
+        "sampleRate": "48 kHz",
+        "bitDepth": "24 bit",
+        "duration": "3:00.019",
+        "listedSize": "49.4 MB"
+      },
+      "preview": {
+        "hqMp3": "https://cdn.freesound.org/previews/353/353159_2247456-hq.mp3",
+        "hqMp3Bytes": 4092240,
+        "hqOgg": "https://cdn.freesound.org/previews/353/353159_2247456-hq.ogg",
+        "hqOggBytes": 3566371
+      },
+      "attribution": null,
+      "file": {
+        "fetched": false,
+        "path": null,
+        "sha256": null
+      },
+      "changes": []
+    },
+    {
+      "cue": "AMB-03",
+      "name": "Baggage hall",
+      "plays": "Loop behind Pack Your Bags.",
+      "source": "Freesound",
+      "soundId": 454082,
+      "title": "metal rollers conveyor belt with no belt to bring boxes to store basement normal and slow prickly gritty movement.flac",
+      "author": "kyles",
+      "page": "https://freesound.org/people/kyles/sounds/454082/",
+      "licence": "CC0-1.0",
+      "licenceUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+      "seconds": 33.116,
+      "upload": {
+        "format": "Flac (.flac)",
+        "channels": "Stereo",
+        "sampleRate": "48 kHz",
+        "bitDepth": "24 bit",
+        "duration": "0:33.116",
+        "listedSize": "5.6 MB"
+      },
+      "preview": {
+        "hqMp3": "https://cdn.freesound.org/previews/454/454082_612689-hq.mp3",
+        "hqMp3Bytes": 859200,
+        "hqOgg": "https://cdn.freesound.org/previews/454/454082_612689-hq.ogg",
+        "hqOggBytes": 879668
+      },
+      "attribution": null,
+      "file": {
+        "fetched": false,
+        "path": null,
+        "sha256": null
+      },
+      "changes": []
+    },
+    {
+      "cue": "AMB-04",
+      "name": "Shuttle cabin",
+      "plays": "Loop behind Board the Shuttle.",
+      "source": "Freesound",
+      "soundId": 182047,
+      "title": "karma-ron - fx background drone spaceship (requested).wav",
+      "author": "Karma-Ron",
+      "page": "https://freesound.org/people/Karma-Ron/sounds/182047/",
+      "licence": "CC0-1.0",
+      "licenceUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+      "seconds": 15.88,
+      "upload": {
+        "format": "Wave (.wav)",
+        "channels": "Stereo",
+        "sampleRate": "44.1 kHz",
+        "bitDepth": "32 bit",
+        "duration": "0:15.879",
+        "listedSize": "5.3 MB"
+      },
+      "preview": {
+        "hqMp3": "https://cdn.freesound.org/previews/182/182047_16058-hq.mp3",
+        "hqMp3Bytes": 287111,
+        "hqOgg": "https://cdn.freesound.org/previews/182/182047_16058-hq.ogg",
+        "hqOggBytes": 213038
+      },
+      "attribution": null,
+      "file": {
+        "fetched": false,
+        "path": null,
+        "sha256": null
+      },
+      "changes": []
+    },
+    {
+      "cue": "AMB-05",
+      "name": "Viewport",
+      "plays": "Loop behind Admire the Lights.",
+      "source": "Freesound",
+      "soundId": 425984,
+      "title": "Space Drone Ambience 01",
+      "author": "Magmi.Soundtracks",
+      "page": "https://freesound.org/people/Magmi.Soundtracks/sounds/425984/",
+      "licence": "CC0-1.0",
+      "licenceUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+      "seconds": 115.266,
+      "upload": {
+        "format": "Mp3 (.mp3)",
+        "channels": "Stereo",
+        "sampleRate": "44.1 kHz",
+        "bitrate": "192 kbps",
+        "duration": "1:55.266",
+        "listedSize": "2.6 MB"
+      },
+      "preview": {
+        "hqMp3": "https://cdn.freesound.org/previews/425/425984_6900479-hq.mp3",
+        "hqMp3Bytes": 2596784,
+        "hqOgg": "https://cdn.freesound.org/previews/425/425984_6900479-hq.ogg",
+        "hqOggBytes": 2278877
+      },
+      "attribution": null,
+      "note": "The upload itself is MP3.",
+      "file": {
+        "fetched": false,
+        "path": null,
+        "sha256": null
+      },
+      "changes": []
+    },
+    {
+      "cue": "AMB-06",
+      "name": "New laboratory",
+      "plays": "Loop behind Disembarking after the door opens.",
+      "source": "Freesound",
+      "soundId": 211683,
+      "title": "control_room.wav",
+      "author": "Diboz",
+      "page": "https://freesound.org/people/Diboz/sounds/211683/",
+      "licence": "CC0-1.0",
+      "licenceUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+      "seconds": 64.62,
+      "upload": {
+        "format": "Wave (.wav)",
+        "channels": "Stereo",
+        "sampleRate": "44.1 kHz",
+        "bitDepth": "16 bit",
+        "duration": "1:04.620",
+        "listedSize": "10.9 MB"
+      },
+      "preview": {
+        "hqMp3": "https://cdn.freesound.org/previews/211/211683_3930831-hq.mp3",
+        "hqMp3Bytes": 1602366,
+        "hqOgg": "https://cdn.freesound.org/previews/211/211683_3930831-hq.ogg",
+        "hqOggBytes": 1479165
+      },
+      "attribution": null,
+      "file": {
+        "fetched": false,
+        "path": null,
+        "sha256": null
+      },
+      "changes": []
+    },
+    {
+      "cue": "MUS-01",
+      "name": "Title theme",
+      "plays": "The title screen only, quietly, on a loop.",
+      "source": "Freesound",
+      "soundId": 531854,
+      "title": "Suspension: Mellow Electro-Ambient Soundscape",
+      "author": "kjartan_abel",
+      "page": "https://freesound.org/people/kjartan_abel/sounds/531854/",
+      "licence": "CC-BY-4.0",
+      "licenceUrl": "https://creativecommons.org/licenses/by/4.0/",
+      "seconds": 111.695,
+      "upload": {
+        "format": "Wave (.wav)",
+        "channels": "Stereo",
+        "sampleRate": "48 kHz",
+        "bitDepth": "16 bit",
+        "duration": "1:51.694",
+        "listedSize": "20.5 MB"
+      },
+      "preview": {
+        "hqMp3": "https://cdn.freesound.org/previews/531/531854_6738752-hq.mp3",
+        "hqMp3Bytes": 2607840,
+        "hqOgg": "https://cdn.freesound.org/previews/531/531854_6738752-hq.ogg",
+        "hqOggBytes": 2200480
+      },
+      "attribution": "\"Suspension: Mellow Electro-Ambient Soundscape\" by kjartan_abel (https://freesound.org/people/kjartan_abel/sounds/531854/), licensed under CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/).",
+      "ownerNote": "Otherwise, Suspension is good for the title theme.",
+      "file": {
+        "fetched": false,
+        "path": null,
+        "sha256": null
+      },
+      "changes": []
+    },
+    {
+      "cue": "MUS-02",
+      "name": "Arrival theme",
+      "plays": "After Discord confirms Whitelist, at the end of Disembarking. Never before confirmation.",
+      "source": "OpenGameArt",
+      "title": "Outer Space Loop",
+      "author": "wipics",
+      "page": "https://opengameart.org/content/outer-space-loop",
+      "licence": "CC0-1.0",
+      "licenceUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+      "upload": {
+        "url": "https://opengameart.org/sites/default/files/outer_space_2.mp3",
+        "name": "outer_space.mp3",
+        "listedSize": "1.7 Mb",
+        "format": "MP3"
+      },
+      "attribution": null,
+      "ownerNote": "I want you to use Outer Space Loop for after whitelist is confirmed at the end of the onboarding process. I really enjoyed that track.",
+      "file": {
+        "fetched": false,
+        "path": null,
+        "sha256": null
+      },
+      "changes": []
+    }
+  ]
+}
