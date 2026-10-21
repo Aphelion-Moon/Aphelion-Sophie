@@ -30,6 +30,10 @@ listed there. All are CC0 1.0 except one:
 CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Changes: converted
 to Ogg Opus and MP3 at 48 kHz; level lowered by 9.5 dB.
 
+The Shuttle Activity bundles the Cozette font (CozetteVector 1.30.0,
+apps/activity/fonts/CozetteVector.woff2), Copyright (c) 2020, Ines, under the
+MIT License; its notice is in legal/notices/cozette-1.30.0.txt.
+
 FFmpeg (LGPL-3.0-or-later build, pinned in legal/DEPENDENCIES.json and reviewed
 in legal/ffmpeg-build-time-encoder.json) is approved only as a build-time tool on
 the development machine, to convert those sounds. It is not redistributed with

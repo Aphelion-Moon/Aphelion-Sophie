@@ -75,6 +75,25 @@
       "libmp3lame"
     ]
   },
+  "activityFont": {
+    "name": "Cozette (CozetteVector)",
+    "version": "1.30.0",
+    "license": "MIT",
+    "copyright": "Copyright (c) 2020, Ines",
+    "release": "https://github.com/the-moonwitch/Cozette/releases/tag/v.1.30.0",
+    "asset": "CozetteVector.woff2",
+    "bytes": 124356,
+    "sha256": "7acfc852d16b31eceb7b7b46c34f841fe896508ad23e21443d243d782ece230d",
+    "officialAssetDigestVerified": true,
+    "path": "apps/activity/fonts/CozetteVector.woff2",
+    "notice": "legal/notices/cozette-1.30.0.txt",
+    "noticeSha256": "5d7f0dad37ceef2dc1e9c23e85fbf18629c4eaffe9a919fa4f5b618b46766d23",
+    "use": "Bundled with the Shuttle Activity client to draw the ASCII scenes",
+    "bundled": true,
+    "automaticUpdates": false,
+    "coverage": "Maps every character in SCENE_GLYPHS (138) to a glyph; checked by tests/shuttle-font.test.js",
+    "decision": "docs/decisions/0001-owner-policy.md (The Shuttle becomes an Activity, D4)"
+  },
   "models": [],
   "candidateRegister": "Sophie-Implementation-Plans-v1.1/dependency-register.json",
   "scope": "Development source and pinned PostgreSQL driver; production runtime distribution remains gated"

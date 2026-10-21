@@ -54,7 +54,18 @@ The validator enforces:
 ## Rendering
 
 The composer returns rows of glyphs and colour keys. The canvas renderer draws block characters as exact rectangles
-and other glyphs with the configured font (Cozette once it is downloaded and pinned). The canvas is hidden from
+and other glyphs with Cozette, the font chosen in D4. Cozette 1.30.0 (MIT) ships at
+`apps/activity/fonts/CozetteVector.woff2`, pinned with its hash in `legal/DEPENDENCIES.json` (`activityFont`). Its
+notice is in `legal/notices/cozette-1.30.0.txt`. The Activity page loads it under the family name the renderer
+expects:
+
+```css
+@font-face { font-family: Cozette; src: url(fonts/CozetteVector.woff2) format('woff2'); font-display: block; }
+```
+
+`tests/shuttle-font.test.js` checks the file and notice hashes, and that the font maps every character in
+`SCENE_GLYPHS` and every character the committed scenes use. Widening `SCENE_GLYPHS` fails that test until the font
+covers the new character. The canvas is hidden from
 assistive technology; the page shows the scene's alt text. Playback stops on a still frame when reduced motion is
 set, the Motion setting is off, the page is hidden, or the player is paused for picture-in-picture or a heat warning.
 The door's opening animation still plays once after confirmation, then the player goes idle.
@@ -71,6 +82,5 @@ node scripts/author-shuttle-scenes.mjs
 
 ## Still open
 
-- Download and pin Cozette (MIT), then check every glyph in `SCENE_GLYPHS` renders in it.
 - Owner review of the scene art.
 - Wiring the player into the Activity client and its title screen (P43).

@@ -1384,7 +1384,7 @@ Status: **in_progress**. Phase: Shuttle Activity. Priority: P1.
 
 Depends on: P40. Acceptance: T02, T43, T49, T60.
 
-Owner decisions of 21 October 2026 ("The Shuttle becomes an Activity", D1–D10; sounds chosen and approved; encoding tool). Sounds are converted and approved; the scene engine, renderer and six scenes are built and tested offline. Remaining: Cozette and owner review of the art.
+Owner decisions of 21 October 2026 ("The Shuttle becomes an Activity", D1–D10; sounds chosen and approved; encoding tool). Sounds are converted and approved; the scene engine, renderer and six scenes are built and tested offline. Cozette is pinned. Remaining: owner review of the art.
 
 Implemented scope:
 
@@ -1395,10 +1395,10 @@ Implemented scope:
 - Sounds converted on 21 October 2026 by scripts/build-shuttle-sounds.mjs: 24 Ogg Opus files (4.6 MB) and 24 MP3 fallbacks (8.0 MB) in content/shuttle-activity/sounds/, with cut, loop and level data in content/shuttle-activity/sound-edits.json. Loops are crossfaded and padded; measured seam jumps are 0.06-1.3 times a normal sample step in both formats. Output hashes are pinned in the sounds record and were byte-identical on a second build. See docs/shuttle-activity-sounds.md.
 - Owner auditioned all 24 converted sounds on 21 October 2026 and approved every one without changes; a rebuild reproduced the approved hashes.
 - Scene engine and art on 21 October 2026: bounded scene format, validator and frame composer (modules/onboarding/scenes.js); canvas renderer and player (apps/activity/); six scenes with provenance, landscape and portrait (content/shuttle-activity/scenes/), written deterministically by scripts/author-shuttle-scenes.mjs. The door cannot draw open before Whitelist is confirmed. 10 tests in tests/shuttle-scenes.test.js and tests/shuttle-scene-player.test.js. See docs/shuttle-activity-scenes.md.
+- Cozette 1.30.0 (MIT) downloaded on 21 October 2026, hash matched the release digest, bundled at apps/activity/fonts/CozetteVector.woff2 and pinned in legal/DEPENDENCIES.json with its notice. It maps all 138 SCENE_GLYPHS; tests/shuttle-font.test.js checks hashes and coverage.
 
 Remaining scope:
 
-- Download and pin Cozette (MIT; needs go-ahead) and check every scene glyph renders in it.
 - Owner review of the scene art.
 
 Full task deliverables:
