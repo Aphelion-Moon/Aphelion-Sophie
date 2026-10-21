@@ -6,10 +6,10 @@
   "selection": "The owner chose one option per cue in a private picker page on 21 October 2026. Licences were read from each sound's own page that day.",
   "status": "Originals received from the owner on 21 October 2026 and verified: every SHA-256 matches the owner's checksum list, and format, channels, sample rate, bit depth and length match each source page. They are kept uncommitted in .local/shuttle-sounds/ (ignored by Git). Nothing has been changed or bundled.",
   "encoding": {
-    "tool": "FFmpeg LGPL build (legal/DEPENDENCIES.json buildTimeAudioEncoder), build time only on the development machine",
+    "tool": "FFmpeg LGPL-3.0-or-later build (legal/DEPENDENCIES.json buildTimeAudioEncoder; review in legal/ffmpeg-build-time-encoder.json), build time only on the development machine",
     "primary": "Ogg Opus",
     "fallback": "MP3, served only to clients that cannot play Ogg Opus (Safari and iOS before 18.4)",
-    "status": "Decided 21 October 2026; not run yet. Each converted file will be pinned with its SHA-256 next to its source."
+    "status": "Decided and the pinned build verified on 21 October 2026; no sound converted yet. Each converted file will be pinned with its SHA-256 next to its source."
   },
   "sounds": [
     {

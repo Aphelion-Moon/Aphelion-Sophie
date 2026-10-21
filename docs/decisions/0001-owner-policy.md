@@ -1311,8 +1311,9 @@ The owner later downloaded the 24 originals; their hashes and formats were verif
 Windows build, used only at build time on the dev machine) as the encoding tool: Ogg Opus for every sound with an MP3
 fallback for older iPhones."
 
-- **Scope.** This is the recorded scope decision for a non-MIT toolchain: FFmpeg, LGPL-2.1-or-later, the LGPL
-  variant of BtbN's Windows build (no `--enable-gpl`, no nonfree components). It runs only on the development machine
+- **Scope.** This is the recorded scope decision for a non-MIT toolchain: FFmpeg, the LGPL variant of BtbN's Windows
+  build (no `--enable-gpl`, no nonfree components). This build is configured with `--enable-version3`, so its
+  effective licence is LGPL-3.0-or-later (corrected after download; first recorded as 2.1-or-later). It runs only on the development machine
   to convert the chosen sounds. It is not redistributed, bundled, installed as a service or run on the production
   host, and its licence does not extend to the converted audio, which keeps each sound's own licence.
 - **Pinned build.** `ffmpeg-n9.0.2-17-g2a571b6068-win64-lgpl-9.0.zip` from release `autobuild-2026-09-30-13-08`
@@ -1322,6 +1323,8 @@ fallback for older iPhones."
 - **Output.** Ogg Opus for every sound, plus an MP3 copy of each served only to clients that cannot play Ogg Opus
   (Safari and iOS before 18.4; Discord supports iOS 16 and later). Cuts, fades, loudness and loop points are applied
   during conversion or stored as data. Any change to the CC BY track is stated in its credit.
-- **Not yet done.** Downloading the build needs its own go-ahead. On first use, the zip's hash is checked against the
-  value above, and the Opus (libopus) and MP3 (libmp3lame) encoders are confirmed present in the build. The licences
-  of the components bundled in the build are reviewed then and recorded in `legal/DEPENDENCIES.json`.
+- **Downloaded and checked.** At the owner's request the zip was downloaded into `.local/tools/ffmpeg/` (ignored by
+  Git). Its SHA-256 matched the value above. `libopus` and `libmp3lame` are present, and GPL-only and nonfree
+  libraries are disabled. The archive carries only FFmpeg's LGPL-3.0 text, not notices for its statically linked
+  libraries; those were not reviewed one by one because nothing is redistributed, and that review is required before
+  any redistribution. Details: `legal/ffmpeg-build-time-encoder.json`.

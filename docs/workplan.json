@@ -1466,10 +1466,11 @@
       "completed_scope": [
         "Sound cue list (24 cues, including the owner-added MUS-02 arrival theme) and the owner's choice for each, with source, author and licence checked on each sound's page: legal/shuttle-activity-sounds.json. 23 CC0 1.0, one CC BY 4.0 credited in legal/THIRD-PARTY-NOTICES.",
         "Original audio received from the owner and verified on 21 October 2026: 24 of 24 SHA-256 hashes match the owner's checksum list and each header matches its source page; hashes and measured formats are pinned in legal/shuttle-activity-sounds.json. Originals stay uncommitted in .local/shuttle-sounds/.",
-        "Encoding tool decided on 21 October 2026: a pinned FFmpeg LGPL Windows build (n9.0.2-17-g2a571b6068, SHA-256 recorded in legal/DEPENDENCIES.json), build time only on the development machine, producing Ogg Opus with MP3 fallbacks."
+        "Encoding tool decided on 21 October 2026: a pinned FFmpeg LGPL Windows build (n9.0.2-17-g2a571b6068, SHA-256 recorded in legal/DEPENDENCIES.json), build time only on the development machine, producing Ogg Opus with MP3 fallbacks.",
+        "Pinned FFmpeg build downloaded and checked on 21 October 2026: archive SHA-256 matches, libopus and libmp3lame present, no GPL or nonfree components; effective licence LGPL-3.0-or-later. Review: legal/ffmpeg-build-time-encoder.json."
       ],
       "remaining_scope": [
-        "Download the pinned FFmpeg build (needs go-ahead), verify its hash, confirm libopus and libmp3lame, review bundled licences; then convert, set cut and loop points and pin each output hash. State any change to the CC BY track in its credit.",
+        "Convert the sounds to Ogg Opus with MP3 fallbacks, set cut and loop points and pin each output hash. State any change to the CC BY track in its credit.",
         "Scene format, validator, renderer and the six scenes with provenance records."
       ]
     },
@@ -3222,7 +3223,7 @@
         "P42"
       ],
       "work": "The owner enables Activities on the production application and chooses its production ingress. Then run the P40 spike behind the tester gate. Scene work and the sound options (P42) can start alongside.",
-      "exit_evidence": "Spike report per platform and a verified tester gate. Sound originals are verified and the encoding tool is decided (pinned FFmpeg LGPL build); converting waits on its download."
+      "exit_evidence": "Spike report per platform and a verified tester gate. Sound originals are verified and the pinned FFmpeg build is downloaded and reviewed; converting the sounds is next."
     }
   ],
   "release_inputs": [
@@ -3280,11 +3281,6 @@
       "input": "Production ingress for the Shuttle Activity (hostname and connector; ADR 0004 covers staging only)",
       "affected_work": "P40 production deploy, P44 opening",
       "independent_work": "Scene art, sound options, renderer and backend tests (P41–P43)"
-    },
-    {
-      "input": "Download of the pinned build-time FFmpeg (decided 21 October 2026; download not yet approved)",
-      "affected_work": "P42 converted sound files, cut and loop points",
-      "independent_work": "Scene format, renderer, scenes and backend (P41-P43)"
     }
   ],
   "ai_workstream": {
