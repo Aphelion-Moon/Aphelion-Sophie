@@ -1464,10 +1464,11 @@
       "status": "in_progress",
       "implementation_note": "Owner decisions of 21 October 2026 (\"The Shuttle becomes an Activity\", D1–D10; \"Shuttle Activity sounds chosen\"). Sound selection is done; the renderer, scenes and audio files are not started. Proposed look: the V1 plan mockups (title screen, departure lounge, pressure door).",
       "completed_scope": [
-        "Sound cue list (24 cues, including the owner-added MUS-02 arrival theme) and the owner's choice for each, with source, author and licence checked on each sound's page: legal/shuttle-activity-sounds.json. 23 CC0 1.0, one CC BY 4.0 credited in legal/THIRD-PARTY-NOTICES."
+        "Sound cue list (24 cues, including the owner-added MUS-02 arrival theme) and the owner's choice for each, with source, author and licence checked on each sound's page: legal/shuttle-activity-sounds.json. 23 CC0 1.0, one CC BY 4.0 credited in legal/THIRD-PARTY-NOTICES.",
+        "Original audio received from the owner and verified on 21 October 2026: 24 of 24 SHA-256 hashes match the owner's checksum list and each header matches its source page; hashes and measured formats are pinned in legal/shuttle-activity-sounds.json. Originals stay uncommitted in .local/shuttle-sounds/."
       ],
       "remaining_scope": [
-        "Fetch the chosen audio and pin each file's SHA-256; record cut and loop points and any changes (the CC BY credit must state changes).",
+        "Choose and approve an audio encoding tool (licence scope decision), then convert for the Activity and set cut and loop points; state any change to the CC BY track in its credit.",
         "Scene format, validator, renderer and the six scenes with provenance records."
       ]
     },
@@ -3220,7 +3221,7 @@
         "P42"
       ],
       "work": "The owner enables Activities on the production application and chooses its production ingress. Then run the P40 spike behind the tester gate. Scene work and the sound options (P42) can start alongside.",
-      "exit_evidence": "Spike report per platform and a verified tester gate. Sound choices are recorded in legal/shuttle-activity-sounds.json; the audio files are not yet fetched."
+      "exit_evidence": "Spike report per platform and a verified tester gate. Sound originals are received and verified (legal/shuttle-activity-sounds.json); converting them waits on the encoding tool decision."
     }
   ],
   "release_inputs": [
@@ -3278,6 +3279,11 @@
       "input": "Production ingress for the Shuttle Activity (hostname and connector; ADR 0004 covers staging only)",
       "affected_work": "P40 production deploy, P44 opening",
       "independent_work": "Scene art, sound options, renderer and backend tests (P41–P43)"
+    },
+    {
+      "input": "Audio encoding tool for the Shuttle Activity sounds (licence scope decision; most originals are WAV, 158 MB in total)",
+      "affected_work": "P42 converted sound files, cut and loop points",
+      "independent_work": "Scene format, renderer, scenes and backend (P41-P43)"
     }
   ],
   "ai_workstream": {

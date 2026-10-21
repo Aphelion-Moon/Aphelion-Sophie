@@ -4,7 +4,7 @@
   "ownerDecision": "docs/decisions/0001-owner-policy.md (The Shuttle becomes an Activity, D10; Shuttle Activity sounds chosen)",
   "policy": "Audio assets only: CC0 1.0 and CC BY 3.0/4.0. NC, ND, SA and unclear licences are excluded. Each bundled file is pinned with its SHA-256; CC BY sounds are credited on the Credits screen and in legal/THIRD-PARTY-NOTICES, with any changes stated.",
   "selection": "The owner chose one option per cue in a private picker page on 21 October 2026. Licences were read from each sound's own page that day.",
-  "status": "Selected. No audio has been fetched, changed or bundled. The owner is downloading the original files on another machine (handoff of 21 October 2026).",
+  "status": "Originals received from the owner on 21 October 2026 and verified: every SHA-256 matches the owner's checksum list, and format, channels, sample rate, bit depth and length match each source page. They are kept uncommitted in .local/shuttle-sounds/ (ignored by Git). Nothing has been changed or bundled.",
   "sounds": [
     {
       "cue": "UI-01",
@@ -34,9 +34,18 @@
       },
       "attribution": null,
       "file": {
-        "fetched": false,
-        "path": null,
-        "sha256": null
+        "fetched": true,
+        "receivedAt": "2026-10-21",
+        "name": "757328__steaq__ui-hover-item.wav",
+        "bytes": 45052,
+        "sha256": "c06325f8ff2a8bd90a754658a045e350d5a31543bc8ebe2b1f53ebb71e79d985",
+        "measured": {
+          "format": "WAV",
+          "channels": 2,
+          "sampleRate": 44100,
+          "bitDepth": 16,
+          "seconds": 0.254
+        }
       },
       "changes": []
     },
@@ -68,9 +77,18 @@
       },
       "attribution": null,
       "file": {
-        "fetched": false,
-        "path": null,
-        "sha256": null
+        "fetched": true,
+        "receivedAt": "2026-10-21",
+        "name": "542044__rob_marion__gasp_ui_confirm.wav",
+        "bytes": 304988,
+        "sha256": "ac73b624a6e6f6469d4712c1e1281b14a29d858a8128e648758cc1783c7ab737",
+        "measured": {
+          "format": "WAV",
+          "channels": 2,
+          "sampleRate": 48000,
+          "bitDepth": 24,
+          "seconds": 1.059
+        }
       },
       "changes": []
     },
@@ -102,9 +120,18 @@
       },
       "attribution": null,
       "file": {
-        "fetched": false,
-        "path": null,
-        "sha256": null
+        "fetched": true,
+        "receivedAt": "2026-10-21",
+        "name": "418231__kierankeegan__ui-back-sound.wav",
+        "bytes": 120612,
+        "sha256": "65069bdb472574e0704da0caf0c71a1ae6238b94c604780c26f9213577dd5cb3",
+        "measured": {
+          "format": "WAV",
+          "channels": 2,
+          "sampleRate": 44100,
+          "bitDepth": 16,
+          "seconds": 0.682
+        }
       },
       "changes": []
     },
@@ -136,9 +163,18 @@
       },
       "attribution": null,
       "file": {
-        "fetched": false,
-        "path": null,
-        "sha256": null
+        "fetched": true,
+        "receivedAt": "2026-10-21",
+        "name": "249300__suntemple__access-denied.wav",
+        "bytes": 20044,
+        "sha256": "c5bc5c041eacd809eeb17dc52affc003c0c86cb699a66ce097810f5ea557b3af",
+        "measured": {
+          "format": "WAV",
+          "channels": 1,
+          "sampleRate": 44100,
+          "bitDepth": 16,
+          "seconds": 0.227
+        }
       },
       "changes": []
     },
@@ -170,9 +206,18 @@
       },
       "attribution": null,
       "file": {
-        "fetched": false,
-        "path": null,
-        "sha256": null
+        "fetched": true,
+        "receivedAt": "2026-10-21",
+        "name": "690300__ralph0o7__flashlight-switch-click.wav",
+        "bytes": 49796,
+        "sha256": "d8fdcec36986c130e7801b639dd15fe742a76cf50658e7288ca36514f81ea983",
+        "measured": {
+          "format": "WAV",
+          "channels": 2,
+          "sampleRate": 44100,
+          "bitDepth": 24,
+          "seconds": 0.188
+        }
       },
       "changes": []
     },
@@ -204,9 +249,18 @@
       },
       "attribution": null,
       "file": {
-        "fetched": false,
-        "path": null,
-        "sha256": null
+        "fetched": true,
+        "receivedAt": "2026-10-21",
+        "name": "667418__hz37__character-reveal-hza-02-06-2022.wav",
+        "bytes": 89316,
+        "sha256": "c23fb4e2993b4f900529ccbf2b420ff6180d9124db1246e14bc703b55d9d04e6",
+        "measured": {
+          "format": "WAV",
+          "channels": 2,
+          "sampleRate": 48000,
+          "bitDepth": 24,
+          "seconds": 0.302
+        }
       },
       "changes": []
     },
@@ -238,9 +292,18 @@
       },
       "attribution": null,
       "file": {
-        "fetched": false,
-        "path": null,
-        "sha256": null
+        "fetched": true,
+        "receivedAt": "2026-10-21",
+        "name": "428069__newagesoup__newagesoup_fx_gui_38.wav",
+        "bytes": 103132,
+        "sha256": "78623ab70d93b9c839b214a22cdd0f812e56b3ad13795a923ee7e01e6779caff",
+        "measured": {
+          "format": "WAV",
+          "channels": 2,
+          "sampleRate": 44100,
+          "bitDepth": 24,
+          "seconds": 0.387
+        }
       },
       "changes": []
     },
@@ -273,9 +336,18 @@
       "attribution": null,
       "note": "A roger beep, used here to open transmissions.",
       "file": {
-        "fetched": false,
-        "path": null,
-        "sha256": null
+        "fetched": true,
+        "receivedAt": "2026-10-21",
+        "name": "321906__bruce965__walkie-talkie-roger-beep.flac",
+        "bytes": 13120,
+        "sha256": "f802fad02451ceaec7426f374d8edee888ca6c8d97593247387bcaf7581f104f",
+        "measured": {
+          "format": "FLAC",
+          "channels": 1,
+          "sampleRate": 44100,
+          "bitDepth": 16,
+          "seconds": 0.65
+        }
       },
       "changes": []
     },
@@ -307,9 +379,18 @@
       },
       "attribution": null,
       "file": {
-        "fetched": false,
-        "path": null,
-        "sha256": null
+        "fetched": true,
+        "receivedAt": "2026-10-21",
+        "name": "524205__joviansounds__radio-sign-off-squelch.wav",
+        "bytes": 322072,
+        "sha256": "9df948a5c815f38a527951922d479d8162f8f64a30411ac84193368a7000d8f5",
+        "measured": {
+          "format": "WAV",
+          "channels": 2,
+          "sampleRate": 44100,
+          "bitDepth": 24,
+          "seconds": 1.214
+        }
       },
       "changes": []
     },
@@ -341,9 +422,18 @@
       },
       "attribution": null,
       "file": {
-        "fetched": false,
-        "path": null,
-        "sha256": null
+        "fetched": true,
+        "receivedAt": "2026-10-21",
+        "name": "257881__zmobie__short-wave-radio-noise-5.wav",
+        "bytes": 374916,
+        "sha256": "e797e887c0ac55d66efa7829aef87089f88cf07d2720881902fc9988b80c0d44",
+        "measured": {
+          "format": "WAV",
+          "channels": 1,
+          "sampleRate": 7119,
+          "bitDepth": 16,
+          "seconds": 26.329
+        }
       },
       "changes": []
     },
@@ -375,9 +465,18 @@
       },
       "attribution": null,
       "file": {
-        "fetched": false,
-        "path": null,
-        "sha256": null
+        "fetched": true,
+        "receivedAt": "2026-10-21",
+        "name": "415594__corkob__crt-computer-monitor-startup.wav",
+        "bytes": 2123710,
+        "sha256": "9dfc33d74feddd948e7fe393925cee95b70fc99604de2c0d5dd0599fbc01eceb",
+        "measured": {
+          "format": "WAV",
+          "channels": 2,
+          "sampleRate": 48000,
+          "bitDepth": 24,
+          "seconds": 7.367
+        }
       },
       "changes": []
     },
@@ -410,9 +509,18 @@
       "attribution": null,
       "note": "Two-minute recording; single flips and short flurries are to be cut from it.",
       "file": {
-        "fetched": false,
-        "path": null,
-        "sha256": null
+        "fetched": true,
+        "receivedAt": "2026-10-21",
+        "name": "261244__ngruber__split-flap-display.aiff",
+        "bytes": 21885176,
+        "sha256": "1ae72c7c63dab06a0151c2acacfcb709e22aa1a285cd7f8089c2407cb56c024a",
+        "measured": {
+          "format": "AIFF",
+          "channels": 2,
+          "sampleRate": 44100,
+          "bitDepth": 16,
+          "seconds": 124.053
+        }
       },
       "changes": []
     },
@@ -444,9 +552,18 @@
       },
       "attribution": null,
       "file": {
-        "fetched": false,
-        "path": null,
-        "sha256": null
+        "fetched": true,
+        "receivedAt": "2026-10-21",
+        "name": "458065__tadaizm__digital-glitch_v1.wav",
+        "bytes": 107876,
+        "sha256": "4ba830cb90fddbc4f350f6f732e566abc5fc6b96610993272ac32ef34119b67b",
+        "measured": {
+          "format": "WAV",
+          "channels": 1,
+          "sampleRate": 48000,
+          "bitDepth": 32,
+          "seconds": 0.48
+        }
       },
       "changes": []
     },
@@ -479,9 +596,18 @@
       "attribution": null,
       "note": "A longer airlock sequence; to be cut to fit. The upload itself is MP3.",
       "file": {
-        "fetched": false,
-        "path": null,
-        "sha256": null
+        "fetched": true,
+        "receivedAt": "2026-10-21",
+        "name": "607265__ryankingart__sci-fi-doors-airlock-sound-effect.mp3",
+        "bytes": 272493,
+        "sha256": "af339b124cfdba4c8a7bd4851bf2d6494950ccf6bdedf01dfc892fbbd9dbb93c",
+        "measured": {
+          "format": "MP3",
+          "channels": 2,
+          "sampleRate": 48000,
+          "bitrate": "192 kbps",
+          "seconds": 11.328
+        }
       },
       "changes": []
     },
@@ -513,9 +639,18 @@
       },
       "attribution": null,
       "file": {
-        "fetched": false,
-        "path": null,
-        "sha256": null
+        "fetched": true,
+        "receivedAt": "2026-10-21",
+        "name": "415762__thebuilder15__notification-correct.wav",
+        "bytes": 250704,
+        "sha256": "414801644df0499264ccb0bafa22f68e851b9ce72c8b2a207fc416ae6adefb12",
+        "measured": {
+          "format": "WAV",
+          "channels": 2,
+          "sampleRate": 44100,
+          "bitDepth": 16,
+          "seconds": 1.376
+        }
       },
       "changes": []
     },
@@ -547,9 +682,18 @@
       },
       "attribution": null,
       "file": {
-        "fetched": false,
-        "path": null,
-        "sha256": null
+        "fetched": true,
+        "receivedAt": "2026-10-21",
+        "name": "250104__phatcorns__computer-beep.wav",
+        "bytes": 57208,
+        "sha256": "69737f41640d4c887d266608ebff136acc9023d20c61ebaee965ac1a32e689cb",
+        "measured": {
+          "format": "WAV",
+          "channels": 2,
+          "sampleRate": 44100,
+          "bitDepth": 24,
+          "seconds": 0.213
+        }
       },
       "changes": []
     },
@@ -581,9 +725,18 @@
       },
       "attribution": null,
       "file": {
-        "fetched": false,
-        "path": null,
-        "sha256": null
+        "fetched": true,
+        "receivedAt": "2026-10-21",
+        "name": "848926__michaelkroz__ambience_small-hangar.wav",
+        "bytes": 39168080,
+        "sha256": "bc81e61cd89bd4f2364a761b5024363871a7a0c8bf20ba00cc9e2a29bd3ea400",
+        "measured": {
+          "format": "WAV",
+          "channels": 2,
+          "sampleRate": 48000,
+          "bitDepth": 24,
+          "seconds": 136
+        }
       },
       "changes": []
     },
@@ -615,9 +768,18 @@
       },
       "attribution": null,
       "file": {
-        "fetched": false,
-        "path": null,
-        "sha256": null
+        "fetched": true,
+        "receivedAt": "2026-10-21",
+        "name": "353159__kinoton__room-tone-sci-fi-large-hall.wav",
+        "bytes": 51850760,
+        "sha256": "d3592d5216d426d5ddee90134a85cb8a786b0d6587cbb4bae42e77d42283a227",
+        "measured": {
+          "format": "WAV",
+          "channels": 2,
+          "sampleRate": 48000,
+          "bitDepth": 24,
+          "seconds": 180.019
+        }
       },
       "changes": []
     },
@@ -649,9 +811,18 @@
       },
       "attribution": null,
       "file": {
-        "fetched": false,
-        "path": null,
-        "sha256": null
+        "fetched": true,
+        "receivedAt": "2026-10-21",
+        "name": "454082__kyles__metal-rollers-conveyor-belt-with-no-belt-to-bring-boxes-to-store-basement-normal-and-slow-prickly-gritty-movement.flac",
+        "bytes": 5910295,
+        "sha256": "a7593dbf7da01bcac43675df79b9905d2279a8360360140cc57eb6ea08c4f081",
+        "measured": {
+          "format": "FLAC",
+          "channels": 2,
+          "sampleRate": 48000,
+          "bitDepth": 24,
+          "seconds": 33.116
+        }
       },
       "changes": []
     },
@@ -683,9 +854,18 @@
       },
       "attribution": null,
       "file": {
-        "fetched": false,
-        "path": null,
-        "sha256": null
+        "fetched": true,
+        "receivedAt": "2026-10-21",
+        "name": "182047__karma-ron__karma-ron-fx-background-drone-spaceship-requested.wav",
+        "bytes": 5602450,
+        "sha256": "7fd32d312fa698e1fd23538b00614c4ee15cd4ccbf0562bbffcd0f409e891c8e",
+        "measured": {
+          "format": "WAV",
+          "channels": 2,
+          "sampleRate": 44100,
+          "bitDepth": 32,
+          "seconds": 15.879
+        }
       },
       "changes": []
     },
@@ -718,9 +898,18 @@
       "attribution": null,
       "note": "The upload itself is MP3.",
       "file": {
-        "fetched": false,
-        "path": null,
-        "sha256": null
+        "fetched": true,
+        "receivedAt": "2026-10-21",
+        "name": "425984__magmisoundtracks__space-drone-ambience-01.mp3",
+        "bytes": 2766750,
+        "sha256": "ead45738383cd2aee1678a18a434f0b407887524815241b8f43efdef4ba9abe2",
+        "measured": {
+          "format": "MP3",
+          "channels": 2,
+          "sampleRate": 44100,
+          "bitrate": "192 kbps",
+          "seconds": 115.278
+        }
       },
       "changes": []
     },
@@ -752,9 +941,18 @@
       },
       "attribution": null,
       "file": {
-        "fetched": false,
-        "path": null,
-        "sha256": null
+        "fetched": true,
+        "receivedAt": "2026-10-21",
+        "name": "211683__diboz__control_room.wav",
+        "bytes": 11399406,
+        "sha256": "0d3fdd453c5fbc41175ddc67ba2c7913088de079cf73088b892be9e536f02473",
+        "measured": {
+          "format": "WAV",
+          "channels": 2,
+          "sampleRate": 44100,
+          "bitDepth": 16,
+          "seconds": 64.62
+        }
       },
       "changes": []
     },
@@ -787,9 +985,18 @@
       "attribution": "\"Suspension: Mellow Electro-Ambient Soundscape\" by kjartan_abel (https://freesound.org/people/kjartan_abel/sounds/531854/), licensed under CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/).",
       "ownerNote": "Otherwise, Suspension is good for the title theme.",
       "file": {
-        "fetched": false,
-        "path": null,
-        "sha256": null
+        "fetched": true,
+        "receivedAt": "2026-10-21",
+        "name": "531854__kjartan_abel__suspension-mellow-electro-ambient-soundscape.wav",
+        "bytes": 21445512,
+        "sha256": "3223eb7e413523b855c82749b0fb7edd0018ffb04aac7e3fe2c07130f7852e99",
+        "measured": {
+          "format": "WAV",
+          "channels": 2,
+          "sampleRate": 48000,
+          "bitDepth": 16,
+          "seconds": 111.695
+        }
       },
       "changes": []
     },
@@ -812,9 +1019,18 @@
       "attribution": null,
       "ownerNote": "I want you to use Outer Space Loop for after whitelist is confirmed at the end of the onboarding process. I really enjoyed that track.",
       "file": {
-        "fetched": false,
-        "path": null,
-        "sha256": null
+        "fetched": true,
+        "receivedAt": "2026-10-21",
+        "name": "outer_space_2.mp3",
+        "bytes": 1681785,
+        "sha256": "a47fd0a3b89b697203b7b3bdbaedd6c02f1aae663a723f4287f3c1181c37115e",
+        "measured": {
+          "format": "MP3",
+          "channels": 2,
+          "sampleRate": 44100,
+          "bitrate": "192 kbps",
+          "seconds": 69.904
+        }
       },
       "changes": []
     }
