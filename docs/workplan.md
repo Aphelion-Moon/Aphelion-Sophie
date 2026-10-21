@@ -207,7 +207,7 @@ These are bounded next steps within the task dependencies below. An unresolved l
 3. **Resolve provider terms and complete owner-led worker/chat acceptance** (P07, P19, P21, P22, P23, P24, P25, P32). The approved pinned 335a3f2/schema069 staging update is complete; use the running dashboard for owner review. Resolve provider/factual inputs using the prepared notice and retention annex. Complete exact owner publications, separately authorized worker isolation/stop checks, current member consent and actual worker/Discord acceptance before processing. Keep the independent journal and trust receipts current through reviewed renewals; no automatic source redeployment or member activation. Exit evidence: Current installed package, identities, configured ACL/firewall scope, Gateway and anonymous dashboard checks are recorded. Still needed: actual worker file/network denials and child termination, accepted provider evidence/publications/current consent, live privacy/departure/answer tests and measured end-to-end latency.
 4. **Privately verify deployed configuration and apply workflow** (P03, P05, P08, P11, P15). Sign in with the existing Lead ops role at /permissions. Verify Crew/base, Whitelist, Muzzled, Staff/lead ops, feature grants, responders and category; review/apply an intentional change and verify progress, preserved restrictions and case access. Do not inspect private data through agent tools or repeat bootstrap/deployment. Exit evidence: Owner pass/fail with client/time and no private content. Keep the held recovery path and fresh Whitelist-run rule; no old-policy or schema054 rollback.
 5. **After feedback: qualify Onboarding production gates** (P01, P02, P05, P06, P07, P09, P13, P14, P26, P27, P29, P30, P31). Address the reported Onboarding failures first. Then qualify final guidance/mappings, existing-role ownership, Muzzled and fresh-run revocation, no-AI/privacy, restart/uncertain-effect recovery, independent latest-history recovery, Windows identity/service packaging and approved production handoff. Preserve the broader feature backlog without making unrelated functionality a prerequisite for the next Onboarding test. Exit evidence: Build-specific applicable release evidence and explicit operator approval; no production-ready claim from this human-test checkpoint.
-6. **Start the Shuttle Activity** (P40, P42). The owner enables Activities on the production application and chooses its production ingress. Then run the P40 spike behind the tester gate. Scene work and the sound options (P42) can start alongside. Exit evidence: Spike report per platform and a verified tester gate. Sound originals are received and verified (legal/shuttle-activity-sounds.json); converting them waits on the encoding tool decision.
+6. **Start the Shuttle Activity** (P40, P42). The owner enables Activities on the production application and chooses its production ingress. Then run the P40 spike behind the tester gate. Scene work and the sound options (P42) can start alongside. Exit evidence: Spike report per platform and a verified tester gate. Sound originals are verified and the encoding tool is decided (pinned FFmpeg LGPL build); converting waits on its download.
 
 ## Inputs and release gates still open
 
@@ -224,7 +224,7 @@ These are bounded next steps within the task dependencies below. An unresolved l
 | Policies collection and the separate owner-supplied Discord rules are selected; current publication review remains open. Exact DeepSeek account processing terms/notices and named restricted-audience clearance remain unresolved. Reply length and preferred language are the two selected explicit preference types. | Real member processing, reviewed source publication, remote preference use and each restricted context. | Synthetic source/worker/effect/control implementation; administration stays independent. |
 | P35 maintenance draft needs owner adoption after P31, named operators/reviewer/custodian and approved cadence/outage routes | Maintenance ownership, recurring reviews, drills and operational upgrades; no recurring jobs are authorized by the draft. | Local procedure draft completed: GitHub/.agent_docs/aphelion-sophie/maintenance-2026-10-04/procedure.md. Existing recovery destination/key-custody/RPO/RTO inputs remain separate. |
 | Production ingress for the Shuttle Activity (hostname and connector; ADR 0004 covers staging only) | P40 production deploy, P44 opening | Scene art, sound options, renderer and backend tests (P41–P43) |
-| Audio encoding tool for the Shuttle Activity sounds (licence scope decision; most originals are WAV, 158 MB in total) | P42 converted sound files, cut and loop points | Scene format, renderer, scenes and backend (P41-P43) |
+| Download of the pinned build-time FFmpeg (decided 21 October 2026; download not yet approved) | P42 converted sound files, cut and loop points | Scene format, renderer, scenes and backend (P41-P43) |
 
 ## Task status
 
@@ -1391,10 +1391,11 @@ Implemented scope:
 
 - Sound cue list (24 cues, including the owner-added MUS-02 arrival theme) and the owner's choice for each, with source, author and licence checked on each sound's page: legal/shuttle-activity-sounds.json. 23 CC0 1.0, one CC BY 4.0 credited in legal/THIRD-PARTY-NOTICES.
 - Original audio received from the owner and verified on 21 October 2026: 24 of 24 SHA-256 hashes match the owner's checksum list and each header matches its source page; hashes and measured formats are pinned in legal/shuttle-activity-sounds.json. Originals stay uncommitted in .local/shuttle-sounds/.
+- Encoding tool decided on 21 October 2026: a pinned FFmpeg LGPL Windows build (n9.0.2-17-g2a571b6068, SHA-256 recorded in legal/DEPENDENCIES.json), build time only on the development machine, producing Ogg Opus with MP3 fallbacks.
 
 Remaining scope:
 
-- Choose and approve an audio encoding tool (licence scope decision), then convert for the Activity and set cut and loop points; state any change to the CC BY track in its credit.
+- Download the pinned FFmpeg build (needs go-ahead), verify its hash, confirm libopus and libmp3lame, review bundled licences; then convert, set cut and loop points and pin each output hash. State any change to the CC BY track in its credit.
 - Scene format, validator, renderer and the six scenes with provenance records.
 
 Full task deliverables:
@@ -1402,7 +1403,7 @@ Full task deliverables:
 - Bounded scene format and validator: size, characters present in Cozette, colour keys, frames, fixed effect kinds, file size and alt text
 - Glyph-grid renderer: canvas backdrop under HTML text, 12 fps cap, still frames for reduced motion, picture-in-picture, heat warnings and hidden pages
 - Six scenes made by the coding agent (hangar viewport, departure lounge, baggage hall, boarding ramp and cabin, viewport, pressure door and new lab) with provenance records
-- Sound cue list with CC0/CC-BY options for owner selection; chosen sounds pinned with source, author, licence and SHA-256, with credits and notices
+- Sound cue list with CC0/CC-BY options for owner selection; chosen sounds pinned with source, author, licence and SHA-256, with credits and notices; converted to Ogg Opus with MP3 fallbacks by the pinned build-time FFmpeg
 
 Boundary: Sophie is not depicted and no runtime image generation is added. No more than three flashes a second. Audio is CC0 1.0 or CC BY 3.0/4.0 only.
 

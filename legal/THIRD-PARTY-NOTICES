@@ -28,3 +28,7 @@ credited here when it is bundled:
 "Suspension: Mellow Electro-Ambient Soundscape" by kjartan_abel
 (https://freesound.org/people/kjartan_abel/sounds/531854/), licensed under
 CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/).
+
+FFmpeg (LGPL-2.1-or-later build, pinned in legal/DEPENDENCIES.json) is approved
+only as a build-time tool on the development machine, to convert those sounds.
+It is not redistributed with or run by Sophie.

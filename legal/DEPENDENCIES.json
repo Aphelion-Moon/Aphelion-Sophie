@@ -48,6 +48,27 @@
     "notice": "legal/notices/cloudflared-2026.7.3.txt",
     "officialAssetDigestVerified": true
   },
+  "buildTimeAudioEncoder": {
+    "name": "FFmpeg",
+    "version": "n9.0.2-17-g2a571b6068",
+    "variant": "BtbN win64 lgpl (static executables)",
+    "platform": "Windows amd64",
+    "license": "LGPL-2.1-or-later with bundled components under their original terms",
+    "release": "https://github.com/BtbN/FFmpeg-Builds/releases/tag/autobuild-2026-09-30-13-08",
+    "asset": "ffmpeg-n9.0.2-17-g2a571b6068-win64-lgpl-9.0.zip",
+    "bytes": 171535354,
+    "sha256": "6b264b9e6019103f601d98c292bd332fd87acf1c5e941ddff4fb71760fe63432",
+    "officialAssetDigestVerified": true,
+    "downloaded": false,
+    "installedByThisWork": false,
+    "use": "Development machine only, at build time, to convert the Shuttle Activity sounds to Ogg Opus with MP3 fallbacks",
+    "buildTimeOnlyApproved": true,
+    "productionDeploymentApproved": false,
+    "redistributionApproved": false,
+    "automaticUpdates": false,
+    "bundledComponentsReview": "Pending until the build is downloaded: confirm libopus and libmp3lame are present and record the bundled licences",
+    "decision": "docs/decisions/0001-owner-policy.md (Audio encoding tool for the Shuttle Activity, 21 October 2026)"
+  },
   "models": [],
   "candidateRegister": "Sophie-Implementation-Plans-v1.1/dependency-register.json",
   "scope": "Development source and pinned PostgreSQL driver; production runtime distribution remains gated"

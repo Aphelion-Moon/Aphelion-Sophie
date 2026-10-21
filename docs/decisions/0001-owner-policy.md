@@ -1302,3 +1302,26 @@ the onboarding process. I really enjoyed that track. Otherwise, Suspension is go
 theme. 23 sounds are CC0 1.0; Suspension (kjartan_abel) is CC BY 4.0 and is credited on the Credits screen and in
 `legal/THIRD-PARTY-NOTICES`. The choices, sources, authors and licences are in
 `legal/shuttle-activity-sounds.json`. No audio has been fetched, changed or bundled yet, so no file hash is recorded.
+
+### Audio encoding tool for the Shuttle Activity — 21 October 2026
+
+The owner later downloaded the 24 originals; their hashes and formats were verified and pinned in
+`legal/shuttle-activity-sounds.json`. They are mostly WAV (158 MB) and must be converted to ship. Shown five routes
+(FFmpeg LGPL, opus-tools, LAME, the Windows AAC encoder, no encoder), the owner chose: "Record FFmpeg (a pinned LGPL
+Windows build, used only at build time on the dev machine) as the encoding tool: Ogg Opus for every sound with an MP3
+fallback for older iPhones."
+
+- **Scope.** This is the recorded scope decision for a non-MIT toolchain: FFmpeg, LGPL-2.1-or-later, the LGPL
+  variant of BtbN's Windows build (no `--enable-gpl`, no nonfree components). It runs only on the development machine
+  to convert the chosen sounds. It is not redistributed, bundled, installed as a service or run on the production
+  host, and its licence does not extend to the converted audio, which keeps each sound's own licence.
+- **Pinned build.** `ffmpeg-n9.0.2-17-g2a571b6068-win64-lgpl-9.0.zip` from release `autobuild-2026-09-30-13-08`
+  (171,535,354 bytes; SHA-256 `6b264b9e6019103f601d98c292bd332fd87acf1c5e941ddff4fb71760fe63432`, matching both the
+  release's `checksums.sha256` and GitHub's asset digest). It is the last build of September 2026, which the
+  publisher keeps for two years. No automatic updates; a different build needs a new record.
+- **Output.** Ogg Opus for every sound, plus an MP3 copy of each served only to clients that cannot play Ogg Opus
+  (Safari and iOS before 18.4; Discord supports iOS 16 and later). Cuts, fades, loudness and loop points are applied
+  during conversion or stored as data. Any change to the CC BY track is stated in its credit.
+- **Not yet done.** Downloading the build needs its own go-ahead. On first use, the zip's hash is checked against the
+  value above, and the Opus (libopus) and MP3 (libmp3lame) encoders are confirmed present in the build. The licences
+  of the components bundled in the build are reviewed then and recorded in `legal/DEPENDENCIES.json`.
