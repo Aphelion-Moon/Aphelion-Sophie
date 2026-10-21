@@ -4,7 +4,14 @@
   "ownerDecision": "docs/decisions/0001-owner-policy.md (The Shuttle becomes an Activity, D10; Shuttle Activity sounds chosen)",
   "policy": "Audio assets only: CC0 1.0 and CC BY 3.0/4.0. NC, ND, SA and unclear licences are excluded. Each bundled file is pinned with its SHA-256; CC BY sounds are credited on the Credits screen and in legal/THIRD-PARTY-NOTICES, with any changes stated.",
   "selection": "The owner chose one option per cue in a private picker page on 21 October 2026. Licences were read from each sound's own page that day.",
-  "status": "Originals verified (see each file). Converted to Ogg Opus with MP3 fallbacks by scripts/build-shuttle-sounds.mjs; outputs and their hashes are listed per cue. Cuts were chosen by analysis, not by ear, and await the owner's audition.",
+  "status": "Originals verified (see each file). Converted to Ogg Opus with MP3 fallbacks by scripts/build-shuttle-sounds.mjs; outputs and their hashes are listed per cue. Owner review is recorded under \"review\".",
+  "review": {
+    "result": "Approved: all 24 sounds, with no requested changes.",
+    "by": "Owner",
+    "at": "2026-10-21",
+    "method": "Private audition page playing the committed outputs of build 618ef40 in both formats, with loops played between their markers and a seam check.",
+    "approvedOutputs": "The output hashes listed per cue at 618ef40."
+  },
   "encoding": {
     "tool": "FFmpeg LGPL-3.0-or-later build (legal/DEPENDENCIES.json buildTimeAudioEncoder; review in legal/ffmpeg-build-time-encoder.json), build time only on the development machine",
     "primary": "Ogg Opus",

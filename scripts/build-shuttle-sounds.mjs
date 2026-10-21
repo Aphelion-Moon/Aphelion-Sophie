@@ -116,7 +116,7 @@ for (const sound of manifest.sounds) {
   console.log(sound.cue.padEnd(7), String(outputs.opus.bytes).padStart(8), String(outputs.mp3.bytes).padStart(8), outputs.opus.seconds, outputs.mp3.seconds, outputs.opus.seamRatio ?? '', outputs.mp3.seamRatio ?? '');
 }
 
-manifest.status = 'Originals verified (see each file). Converted to Ogg Opus with MP3 fallbacks by scripts/build-shuttle-sounds.mjs; outputs and their hashes are listed per cue. Cuts were chosen by analysis, not by ear, and await the owner\'s audition.';
+manifest.status = 'Originals verified (see each file). Converted to Ogg Opus with MP3 fallbacks by scripts/build-shuttle-sounds.mjs; outputs and their hashes are listed per cue. Owner review is recorded under "review".';
 await writeFile(resolve(root, manifestPath), `${JSON.stringify(manifest, null, 2)}\n`);
 await writeFile(resolve(root, `${outputDir}/index.json`), `${JSON.stringify(index, null, 2)}\n`);
 const total = manifest.sounds.reduce((sum, s) => ({ opus: sum.opus + s.outputs.opus.bytes, mp3: sum.mp3 + s.outputs.mp3.bytes }), { opus: 0, mp3: 0 });

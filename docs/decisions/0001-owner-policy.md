@@ -1328,3 +1328,10 @@ fallback for older iPhones."
   libraries are disabled. The archive carries only FFmpeg's LGPL-3.0 text, not notices for its statically linked
   libraries; those were not reviewed one by one because nothing is redistributed, and that review is required before
   any redistribution. Details: `legal/ffmpeg-build-time-encoder.json`.
+
+### Shuttle Activity sounds approved — 21 October 2026
+
+The 24 sounds were converted to Ogg Opus with MP3 fallbacks (build `618ef40`, see
+[Shuttle Activity sounds](../shuttle-activity-sounds.md)). The owner auditioned every one on a private page, in both
+formats and with each loop and its seam, and approved all 24 with no requested changes. The approved files are the
+outputs whose hashes are pinned in `legal/shuttle-activity-sounds.json`; changing the edit data needs a new audition.

@@ -1468,10 +1468,10 @@
         "Original audio received from the owner and verified on 21 October 2026: 24 of 24 SHA-256 hashes match the owner's checksum list and each header matches its source page; hashes and measured formats are pinned in legal/shuttle-activity-sounds.json. Originals stay uncommitted in .local/shuttle-sounds/.",
         "Encoding tool decided on 21 October 2026: a pinned FFmpeg LGPL Windows build (n9.0.2-17-g2a571b6068, SHA-256 recorded in legal/DEPENDENCIES.json), build time only on the development machine, producing Ogg Opus with MP3 fallbacks.",
         "Pinned FFmpeg build downloaded and checked on 21 October 2026: archive SHA-256 matches, libopus and libmp3lame present, no GPL or nonfree components; effective licence LGPL-3.0-or-later. Review: legal/ffmpeg-build-time-encoder.json.",
-        "Sounds converted on 21 October 2026 by scripts/build-shuttle-sounds.mjs: 24 Ogg Opus files (4.6 MB) and 24 MP3 fallbacks (8.0 MB) in content/shuttle-activity/sounds/, with cut, loop and level data in content/shuttle-activity/sound-edits.json. Loops are crossfaded and padded; measured seam jumps are 0.06-1.3 times a normal sample step in both formats. Output hashes are pinned in the sounds record and were byte-identical on a second build. See docs/shuttle-activity-sounds.md."
+        "Sounds converted on 21 October 2026 by scripts/build-shuttle-sounds.mjs: 24 Ogg Opus files (4.6 MB) and 24 MP3 fallbacks (8.0 MB) in content/shuttle-activity/sounds/, with cut, loop and level data in content/shuttle-activity/sound-edits.json. Loops are crossfaded and padded; measured seam jumps are 0.06-1.3 times a normal sample step in both formats. Output hashes are pinned in the sounds record and were byte-identical on a second build. See docs/shuttle-activity-sounds.md.",
+        "Owner auditioned all 24 converted sounds on 21 October 2026 and approved every one without changes; a rebuild reproduced the approved hashes."
       ],
       "remaining_scope": [
-        "Owner audition of the cut, loop and level choices (chosen by analysis, not by ear); adjust sound-edits.json and rebuild if needed.",
         "Scene format, validator, renderer and the six scenes with provenance records."
       ]
     },
@@ -3224,7 +3224,7 @@
         "P42"
       ],
       "work": "The owner enables Activities on the production application and chooses its production ingress. Then run the P40 spike behind the tester gate. Scene work and the sound options (P42) can start alongside.",
-      "exit_evidence": "Spike report per platform and a verified tester gate. Sounds are converted with pinned hashes (docs/shuttle-activity-sounds.md) and await the owner's audition."
+      "exit_evidence": "Spike report per platform and a verified tester gate. Sounds are converted, hash-pinned and approved by the owner (docs/shuttle-activity-sounds.md)."
     }
   ],
   "release_inputs": [

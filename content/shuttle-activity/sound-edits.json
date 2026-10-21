@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "createdAt": "2026-10-21",
-  "method": "Chosen by analysing each original's loudness envelope on 21 October 2026; not chosen by ear. Times are seconds in the original. Loops are made seamless by crossfading the end of the window into its start; their output length is loop.length. The owner should audition before release.",
+  "method": "Chosen by analysing each original's loudness envelope on 21 October 2026; not chosen by ear. Times are seconds in the original. Loops are made seamless by crossfading the end of the window into its start; their output length is loop.length. The owner auditioned the results on 21 October 2026 and approved all 24 without changes.",
   "processing": {
     "sampleRate": 48000,
     "resampler": "soxr, precision 28",

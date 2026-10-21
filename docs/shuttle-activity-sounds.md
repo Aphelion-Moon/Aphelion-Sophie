@@ -31,7 +31,8 @@ production. Use `--ffmpeg` and `--originals` to point at other locations.
 ## How the cuts were chosen
 
 The cut and loop points were chosen by analysing each original's loudness envelope, not by ear. Each cue's reasoning is
-in `sound-edits.json` under `basis`. They need the owner's audition before release.
+in `sound-edits.json` under `basis`. The owner auditioned the results on 21 October 2026, in both formats with loops
+and their seams, and approved all 24 without changes. Any later change to the edit data needs a new audition.
 
 - **One-shots** lose leading and trailing near-silence (40 dB below the sound's own peak) and get a short fade at each
   end. Three are cut further: the stop transition keeps up to 2.5 s from its first sound, the split-flap keeps the
