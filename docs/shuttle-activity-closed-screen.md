@@ -25,23 +25,41 @@ node apps/activity/closed-host.mjs
 ```
 
 It must run on the host whose `sophie-staging` connector routes `onboarding.a13.info` to `http://127.0.0.1:38124`.
-Port 38123 is the connector's metrics listener. Installing it as a long-running service is a production change and
-needs recorded operator approval, like the existing `aphelion-bot` services.
+Port 38123 is the connector's metrics listener.
+
+On the host it runs as the Manual service `aphelion-bot-activity` under `NT SERVICE\aphelion-bot-activity`, using
+Sophie's pinned Node runtime and the same WinSW wrapper as the other `aphelion-bot` services. Install or update it from
+an elevated PowerShell 7:
+
+```powershell
+.\ops\windows\Setup-ActivityService.ps1 -WhatIf
+.\ops\windows\Setup-ActivityService.ps1
+Restart-Service aphelion-bot-activity
+```
+
+The script copies five committed files (the page, handler, entry point, font and `legal/DEPENDENCIES.json`) into
+`C:\Aphelion\Sophie\activity\source`, refusing uncommitted changes or a font that doesn't match its pin, and writes a
+manifest of their hashes and the source commit to `C:\Aphelion\Sophie\activity\manifest.json`. The account can read
+its own copy, run the Node runtime (granted per file, because the runtime's files carry their own protected
+permissions) and write only `C:\Aphelion\Sophie\logs\activity`. Like the other services it is Manual, so it does
+not start by itself after the host restarts.
 
 ## Status (22 October 2026)
 
 - Built and tested on loopback (`npm test` 700 passed; a local start, request and stop of the entry script passed).
 - Routed: `sophie-staging` tunnel configuration version 3 sends `onboarding.a13.info` to `http://127.0.0.1:38124`,
   and a proxied CNAME points the hostname at the tunnel. Version 2 is backed up in `.local/cloudflare/`.
-- Running as a process of the coding session, not as a service: it stops when that session ends or the host
-  restarts. Making it a Manual service alongside the `aphelion-bot` services (`ops/windows/Setup-StagingServices.ps1`)
-  needs operator approval.
+- Running as the Manual service `aphelion-bot-activity` since 22 October 2026 (owner approved), from commit
+  `b9f7c11` per its manifest. The first start failed because the account could not run `node.exe`; the session
+  copy had already been stopped, so the closed screen was down for about a minute until it was restarted. The setup
+  now grants the runtime files directly, and the second handover left a gap of a few seconds.
 - Public HTTPS checks: `/` returns 200 with "Not boarding yet", the font returns 200 with its pinned size, other
   paths return 404; `sophie.a13.info` still answers as before (303 to sign-in, interactions POST-only).
 - Not checked: the page as Discord shows it inside the Activity frame.
 
 ## Rollback
 
-Stop the host. Restore tunnel configuration version 2 from the backup (or delete the `onboarding.a13.info` rule in
-the dashboard) and delete the `onboarding.a13.info` DNS record. Disabling Activities in the Developer Portal removes
+Stop the service (`Stop-Service aphelion-bot-activity`); to remove it, run
+`C:\Aphelion\Sophie\services\activity\aphelion-bot-activity.exe uninstall`. Restore tunnel configuration version 2 from
+the backup (or delete the `onboarding.a13.info` rule in the dashboard) and delete the `onboarding.a13.info` DNS record. Disabling Activities in the Developer Portal removes
 the Launch command. No data is involved.

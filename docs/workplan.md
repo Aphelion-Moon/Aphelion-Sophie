@@ -223,7 +223,6 @@ These are bounded next steps within the task dependencies below. An unresolved l
 | Human brand/accessibility review and administration pilot approval | G2 presentation acceptance and live cutover. | Static approved-asset previews and developer keyboard/reflow checks. |
 | Policies collection and the separate owner-supplied Discord rules are selected; current publication review remains open. Exact DeepSeek account processing terms/notices and named restricted-audience clearance remain unresolved. Reply length and preferred language are the two selected explicit preference types. | Real member processing, reviewed source publication, remote preference use and each restricted context. | Synthetic source/worker/effect/control implementation; administration stays independent. |
 | P35 maintenance draft needs owner adoption after P31, named operators/reviewer/custodian and approved cadence/outage routes | Maintenance ownership, recurring reviews, drills and operational upgrades; no recurring jobs are authorized by the draft. | Local procedure draft completed: GitHub/.agent_docs/aphelion-sophie/maintenance-2026-10-04/procedure.md. Existing recovery destination/key-custody/RPO/RTO inputs remain separate. |
-| Shuttle Activity closed screen as a service (onboarding.a13.info is routed since 22 October 2026) | P40 keeping the closed screen up across restarts | Backend, client and tester gate code with synthetic tests (P41-P43) |
 
 ## Task status
 
@@ -1350,10 +1349,10 @@ Implemented scope:
 
 - Closed "not boarding yet" screen host built and tested on 21 October 2026 (apps/activity/closed-host.*, tests/activity-closed-host.test.js; see docs/shuttle-activity-closed-screen.md). Loopback only, two paths, strict CSP, no token or data.
 - Routed on 22 October 2026: sophie-staging tunnel configuration v3 adds onboarding.a13.info -> 127.0.0.1:38124 before the catch-all, with a proxied CNAME; v2 backed up. Closed screen started; public HTTPS checks passed for onboarding.a13.info (page, font, 404) and sophie.a13.info is unchanged.
+- Closed screen running as the Manual service aphelion-bot-activity (NT SERVICE account, pinned Node, reviewed WinSW wrapper) since 22 October 2026, installed by ops/windows/Setup-ActivityService.ps1 from a hash-recorded copy of b9f7c11; public HTTPS checks passed after the handover.
 
 Remaining scope:
 
-- Run the closed screen as an operator-approved Manual service; it currently runs as a process of the coding session.
 - Check the closed screen inside the Discord Activity frame on desktop, web, iOS and Android.
 - Sign-in round trip, instance lookup and the tester gate for named testers; Rules post launch button; platform report.
 

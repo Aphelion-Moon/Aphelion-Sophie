@@ -1400,13 +1400,13 @@
       "status": "in_progress",
       "implementation_note": "Owner decisions of 21 October 2026 (\"The Shuttle becomes an Activity\" D1, D4, D5, D6, D8; \"Shuttle Activity application and hostname\"). The Activity uses Sophie's current application at onboarding.a13.info through the running sophie-staging connector. Not started: the supplied Cloudflare token lacks tunnel and DNS permission.",
       "remaining_scope": [
-        "Run the closed screen as an operator-approved Manual service; it currently runs as a process of the coding session.",
         "Check the closed screen inside the Discord Activity frame on desktop, web, iOS and Android.",
         "Sign-in round trip, instance lookup and the tester gate for named testers; Rules post launch button; platform report."
       ],
       "completed_scope": [
         "Closed \"not boarding yet\" screen host built and tested on 21 October 2026 (apps/activity/closed-host.*, tests/activity-closed-host.test.js; see docs/shuttle-activity-closed-screen.md). Loopback only, two paths, strict CSP, no token or data.",
-        "Routed on 22 October 2026: sophie-staging tunnel configuration v3 adds onboarding.a13.info -> 127.0.0.1:38124 before the catch-all, with a proxied CNAME; v2 backed up. Closed screen started; public HTTPS checks passed for onboarding.a13.info (page, font, 404) and sophie.a13.info is unchanged."
+        "Routed on 22 October 2026: sophie-staging tunnel configuration v3 adds onboarding.a13.info -> 127.0.0.1:38124 before the catch-all, with a proxied CNAME; v2 backed up. Closed screen started; public HTTPS checks passed for onboarding.a13.info (page, font, 404) and sophie.a13.info is unchanged.",
+        "Closed screen running as the Manual service aphelion-bot-activity (NT SERVICE account, pinned Node, reviewed WinSW wrapper) since 22 October 2026, installed by ops/windows/Setup-ActivityService.ps1 from a hash-recorded copy of b9f7c11; public HTTPS checks passed after the handover."
       ]
     },
     {
@@ -3285,11 +3285,6 @@
       "input": "P35 maintenance draft needs owner adoption after P31, named operators/reviewer/custodian and approved cadence/outage routes",
       "affected_work": "Maintenance ownership, recurring reviews, drills and operational upgrades; no recurring jobs are authorized by the draft.",
       "independent_work": "Local procedure draft completed: GitHub/.agent_docs/aphelion-sophie/maintenance-2026-10-04/procedure.md. Existing recovery destination/key-custody/RPO/RTO inputs remain separate."
-    },
-    {
-      "input": "Shuttle Activity closed screen as a service (onboarding.a13.info is routed since 22 October 2026)",
-      "affected_work": "P40 keeping the closed screen up across restarts",
-      "independent_work": "Backend, client and tester gate code with synthetic tests (P41-P43)"
     }
   ],
   "ai_workstream": {

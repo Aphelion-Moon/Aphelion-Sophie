@@ -1362,3 +1362,8 @@ enable the Activity at the moment because we don't have our URL Mapping configur
   tunnel. No other tunnel, rule or record changed. The closed screen (`apps/activity/closed-host.mjs`) was started on
   `127.0.0.1:38124` as a process of the coding session, not as a service, so it stops if that session ends; running
   it as a service is a separate approval. Public HTTPS checks passed for both hostnames.
+- **Service, 22 October 2026.** The owner: "Approved: commit this work, then add the closed screen as a Manual service
+  alongside the aphelion-bot services, using the existing setup pattern, and start it." `aphelion-bot-activity` now
+  runs as `NT SERVICE\aphelion-bot-activity` with the pinned Node runtime and the reviewed WinSW wrapper, from a
+  hash-recorded copy of commit `b9f7c11` (`ops/windows/Setup-ActivityService.ps1`). Its first start failed on
+  `node.exe` permissions and the closed screen was down for about a minute; it was restored, fixed and handed over.

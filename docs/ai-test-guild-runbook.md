@@ -37,12 +37,15 @@ After the conversion. Before it (7764723), the supervisor also runs with control
 | Service (all Manual) | Account | Runs |
 | --- | --- | --- |
 | `aphelion-bot-postgres` | `NT SERVICE\aphelion-bot-postgres` | Staging PostgreSQL 17.11 on 127.0.0.1:52435, data in `C:\Aphelion\Sophie\staging\postgres-data`, from Sophie's own hash-verified binary copy in `C:\Aphelion\Sophie\postgres` |
-| `aphelion-bot-tunnel` | `NT SERVICE\aphelion-bot-tunnel` | Pinned cloudflared for the `sophie-staging` tunnel (`sophie.a13.info`) |
+| `aphelion-bot-tunnel` | `NT SERVICE\aphelion-bot-tunnel` | Pinned cloudflared for the `sophie-staging` tunnel (`sophie.a13.info`, and `onboarding.a13.info` since 22 October 2026) |
+| `aphelion-bot-activity` | `NT SERVICE\aphelion-bot-activity` | Shuttle Activity closed screen on 127.0.0.1:38124 for `onboarding.a13.info`, from its own copy in `C:\Aphelion\Sophie\activity\source`; no token, database or member data |
 | `aphelion-bot` | `NT SERVICE\aphelion-bot` | `apps/core/installed.mjs`; listeners 127.0.0.1:38121/38122 and the worker channel 127.0.0.1:47552 |
 | `aphelion-bot-ai-worker` | `NT SERVICE\aphelion-bot-ai-worker` | `apps/knowledge-worker/main.mjs`; reads `trust\worker.json` and the provider key, dials core; restarted by WinSW/SCM if it exits |
 | `aphelion-bot-ai-supervisor` | `NT SERVICE\aphelion-bot-ai-supervisor` | Retired: **Disabled**, kept only so `rollback.ps1` can restore the 7764723 hosting |
 
-Start order: postgres, tunnel, core, worker (the worker waits and retries until core listens). Wait at least 31 seconds
+Start order: postgres, tunnel, core, worker (the worker waits and retries until core listens). The activity service is
+independent of the others and only needs the tunnel to be reachable; `ops/windows/Setup-ActivityService.ps1` installs
+and updates it. Wait at least 31 seconds
 between stopping and starting core, because its Gateway ownership lease fails closed (`GATEWAY_OWNER_ACTIVE`) until
 then. Setup is reproducible with `ops/windows/Setup-StagingServices.ps1` and `ops/windows/Setup-InferenceAccount.ps1`.
 Both are idempotent and support `-WhatIf`; the latter also upgrades a supervisor-era worker wrapper in place.
