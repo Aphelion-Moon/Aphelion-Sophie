@@ -144,6 +144,16 @@ const CARP = [
   spriteFrame(['  __', '}<(((o>', '  ~~'], ['  hh', 'hhhhhhi', '  HH']),
   spriteFrame(['  __', '}<(((o>', '   ~~'], ['  hh', 'hhhhhhi', '   HH']),
 ];
+/** A sprite frame facing the other way: rows reversed and paired brackets swapped, so a fish swims head first. */
+function mirrorFrame(frame) {
+  const swap = { '(': ')', ')': '(', '<': '>', '>': '<', '{': '}', '}': '{', '[': ']', ']': '[', '/': '\\', '\\': '/' };
+  const width = Math.max(...frame.text.map(row => [...row].length));
+  const flip = (row, fill) => [...row.padEnd(width, fill)].reverse().map(ch => swap[ch] ?? ch).join('').replace(/\s+$/, '');
+  const text = frame.text.map(row => flip(row, ' '));
+  return { text, colours: frame.colours.map((row, r) => [...row.padEnd(width, ' ')].reverse().join('').slice(0, [...text[r]].length)) };
+}
+// Carp swim right to left across every window, so they face left.
+const CARP_LEFT = CARP.map(mirrorFrame);
 
 // ---------- scene: hangar viewport (title screen) ----------
 function hangar(name) {
@@ -215,7 +225,7 @@ function hangar(name) {
     const art = new Art(w, h); art.text(px + 2, py + 2, label, key);
     layers.push(layer(`link-${state}`, art, { when: { link: [state], ...(stop ? { stop } : {}) } }));
   }
-  effects.push({ kind: 'sprite', id: 'carp-hangar', frames: CARP, from: [w + 2, port ? 36 : 16], to: [-10, port ? 39 : 21], duration: port ? 10 : 16, every: 60, offset: 18, fps: 2 });
+  effects.push({ kind: 'sprite', id: 'carp-hangar', frames: CARP_LEFT, from: [w + 2, port ? 36 : 16], to: [-10, port ? 39 : 21], duration: port ? 10 : 16, every: 60, offset: 18, fps: 2 });
   effects.push({ kind: 'scan', id: 'link-scan', region: [px + 2, py + 3, pw - 3, 1], speed: 1, glyph: '·', colour: 'H' });
   base.text(px + 2, py + 4, 'WHITELIST', 'h');
   for (const [state, label, key] of [['none', 'NOT REQUESTED', 'c'], ['requested', 'REQUESTED', 'a'], ['confirmed', 'CONFIRMED', 'c']]) {
@@ -728,7 +738,7 @@ function cabin(name) {
   base.text(padX, padY, '/////  KEEP  CLEAR  /////', 'r'); base.text(padX - 2, padY + 1, '[' + '='.repeat(27) + ']', 'o');
   for (let x = bx0 + 3; x < bx1 - 2; x += 8) base.put(x, padY + 1, '•', 'a');
   effects.push({ kind: 'drift', id: 'bay-stars', region: [bx0 + 2, by0 + 1, bx1 - bx0 - 3, padY - by0 - 2], seed: 41, density: 0.03, speed: 0.5, glyphs: ".·'", colours: '..I' });
-  effects.push({ kind: 'sprite', id: 'carp-bay', frames: CARP, from: [bx1 - 8, by0 + 2], to: [bx0 - 6, by0 + 4], duration: 12, every: 70, offset: 25, fps: 2 });
+  effects.push({ kind: 'sprite', id: 'carp-bay', frames: CARP_LEFT, from: [bx1 - 8, by0 + 2], to: [bx0 - 6, by0 + 4], duration: 12, every: 70, offset: 25, fps: 2 });
   // We crush sea-lions with shuttles: one is sunning itself on the pad as the shuttle's shadow grows.
   const lion = new Art(w, h);
   prop(lion, padX + 10, padY - 3, ['   ,-.', ' _/ o \\', '(     _>'], ['   III', ' IIIIII', 'IIIIIIII']);
@@ -778,7 +788,7 @@ function viewport(name) {
   const band = effects.find(fx => fx.id === 'lights-band');
   band.when = { beat: ['none', 'valuable', 'photos', 'lucky'] };
   effects.push({ ...band, id: 'lights-festive', glyphs: '~~-*~~-', colours: '1234567', density: 0.08, when: { beat: ['enjoy'] } });
-  effects.push({ kind: 'sprite', id: 'carp-outside', frames: CARP, from: [ix0 + iw, iy0 + 5], to: [ix0 - 8, iy0 + 8], duration: 14, every: 80, offset: 12, fps: 2 });
+  effects.push({ kind: 'sprite', id: 'carp-outside', frames: CARP_LEFT, from: [ix0 + iw, iy0 + 5], to: [ix0 - 8, iy0 + 8], duration: 14, every: 80, offset: 12, fps: 2 });
   effects.push({ kind: 'sprite', id: 'shooting-star', frames: [spriteFrame(['*'], 'c')], from: [ix0 + 8, iy0 + 1], to: [ix0 + 36, iy0 + 7], duration: 1.5, every: 33, offset: 9 });
   // The observation deck: a bench, a potted plant, the deck sign and a photo booth.
   const deckY = fy1 + 6, floorY = h - 3;

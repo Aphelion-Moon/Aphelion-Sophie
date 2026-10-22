@@ -175,3 +175,14 @@ test('P42 the baggage belt runs with the bags, and each bag keeps its shape and 
     assert.match(still, /\[====\]|\[▒▒▒▒\]|\[▓▓▓▓\]/, layout);
   }
 });
+
+test('P43 fish swim head first: every carp faces the way it travels', () => {
+  let carp = 0;
+  for (const [, scene] of scenes) for (const layout of Object.values(scene.layouts)) for (const fx of layout.effects) {
+    if (fx.kind !== 'sprite' || !fx.id.startsWith('carp')) continue;
+    carp++;
+    const left = fx.to[0] < fx.from[0];
+    for (const frame of fx.frames) assert.match(frame.text.join('\n'), left ? /<o\)/ : /\(o>/, `${scene.id} ${fx.id}`);
+  }
+  assert.ok(carp >= 6);
+});

@@ -4,7 +4,7 @@
 
 Owner review of `052864c` (decision log, "Shuttle Activity layout: reading column and status window").
 
-- `npm test` 744 passed (T-ACT-MOM-02 now checks Ten Thousand lands on the page that links the comic; T-ACT-MOM-04
+- `npm test` 745 passed (carp now face the way they swim; T-ACT-MOM-02 now checks Ten Thousand lands on the page that links the comic; T-ACT-MOM-04
   new). Scene tests: bags are single fixed figures moving at the belt's speed and handing over at the scanner, bags rest on the belt with motion
   off, and every glyph is clipped to its cell. Repository check passed.
 - Preview harness: title, a reading stop and a pop-up stop at 1100x620 and 375x812. Sampled every 100 ms through a stop
