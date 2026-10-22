@@ -123,7 +123,7 @@ async function server(overrides = {}) {
     async act(input) { calls.push(['act', input]); return { run: { stop: 1 }, queued: input.action === 'advance' }; },
     ...overrides.store };
   let woken = 0;
-  const http = createActivityHttpServer({ configuration: activityConfiguration(), port: 38125, assets, enabled: async () => true, onFault: code => calls.push(['fault', code]),
+  const http = createActivityHttpServer({ configuration: activityConfiguration(), applicationId: APP, port: 38125, assets, enabled: async () => true, onFault: code => calls.push(['fault', code]),
     wake: () => { woken++; }, clock: () => NOW, pause: async () => {},
     auth: { signIn: async input => { calls.push(['signIn', input]); return { token: 'a'.repeat(64), accessToken: 'x', scopes: ['identify'], expiresIn: 3600 }; },
       authenticate: async token => { if (token !== 'a'.repeat(64)) throw new ContractError('ACTIVITY_SESSION_INVALID'); return { guildId: GUILD, userId: USER }; },
@@ -181,6 +181,7 @@ test('T-ACT-CORE-08 API routes: bearer sign-in, fresh member context, closed sha
     assert.equal((await request('/api/shuttle/act', { method: 'POST', body: { requestId: 'd'.repeat(32) }, headers: { 'content-type': 'text/plain' } })).status, 400);
     assert.equal((await request('/api/session/end', { method: 'POST' })).status, 204);
     assert.equal((await request('/api/unknown')).status, 404);
+    assert.deepEqual(await (await request('/api/config', { token: null })).json(), { applicationId: APP });
   } finally { await http.close(); }
 });
 

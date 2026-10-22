@@ -1,5 +1,5 @@
 import { createServer } from 'node:http';
-import { ContractError, requireCondition } from '../../../contracts/validation.js';
+import { ContractError, requireCondition, requireId } from '../../../contracts/validation.js';
 import { validateActivityConfiguration } from '../../../modules/onboarding/activity.js';
 
 // Scripts, styles, fonts, sounds and API calls come from this origin only; no inline code, frames or third parties.
@@ -25,13 +25,14 @@ const OUTCOMES = [
 
 /**
  * The Shuttle Activity's listener in core (P40/P41), the only process holding the Discord token. It serves the client
- * files given to it and four JSON routes: sign in, read the Shuttle, board, and Continue/Back/Check. Requests carry an
+ * files given to it and JSON routes to read its public application ID, sign in, read the Shuttle, board, and
+ * Continue/Back/Check. Requests carry an
  * in-memory bearer token, not cookies; each Shuttle request resolves the member through core principals, reads Discord
  * afresh and authorizes again in the store. Logs are fixed codes only. No AI, no ticket data, no case routes.
  */
-export function createActivityHttpServer({ configuration, port, assets, auth, authorization, discord, store, enabled, onFault, wake = () => {}, clock = Date.now,
+export function createActivityHttpServer({ configuration, applicationId, port, assets, auth, authorization, discord, store, enabled, onFault, wake = () => {}, clock = Date.now,
   pause = ms => new Promise(resolve => setTimeout(resolve, ms)) }) {
-  validateActivityConfiguration(configuration);
+  validateActivityConfiguration(configuration); requireId(applicationId);
   requireCondition(assets instanceof Map && assets.has('/') && typeof auth?.signIn === 'function' && typeof authorization?.resolveActor === 'function' &&
     typeof discord?.observe === 'function' && typeof store?.describe === 'function' && typeof enabled === 'function' && typeof onFault === 'function' &&
     typeof wake === 'function', 'TRUSTED_ADAPTERS_REQUIRED');
@@ -117,6 +118,8 @@ export function createActivityHttpServer({ configuration, port, assets, auth, au
       if (!['GET', 'HEAD'].includes(request.method)) { send(response, 405, { error: 'method' }, { Allow: 'GET, HEAD' }); return; }
       serveFile(request, response, path); return;
     }
+    // The public application ID the SDK needs; no member, token or Discord read involved.
+    if (path === '/api/config' && request.method === 'GET') { send(response, 200, { applicationId }); return; }
     if (stopping || await enabled() !== true) { send(response, 503, { error: 'unavailable' }, { 'Retry-After': '30' }); return; }
     if (active >= MAX_ACTIVE) { send(response, 503, { error: 'retry' }, { 'Retry-After': '2' }); return; }
     active++;

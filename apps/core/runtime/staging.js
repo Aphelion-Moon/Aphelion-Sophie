@@ -224,7 +224,7 @@ export async function createStagingRuntime({ configuration, pool, aiControlPool 
   let activity = null, activityListening = false;
   if (activityAuth !== null) {
     const visitor = lane();
-    activity = createActivityHttpServer({ configuration: fixed.activity, port: fixed.activity.port,
+    activity = createActivityHttpServer({ configuration: fixed.activity, applicationId: fixed.applicationId, port: fixed.activity.port,
       assets: await loadActivityClient(fileURLToPath(new URL('../../../', import.meta.url))), auth: activityAuth,
       authorization: visitor.authorization, discord: visitor.roles, enabled, onFault: fault, wake: () => wake(), clock,
       store: createShuttleActivityStore({ pool, clock, authorize: visitor.authorization.authorize, definitionId: fixed.definitionId, status: fixed.activity.status }) });

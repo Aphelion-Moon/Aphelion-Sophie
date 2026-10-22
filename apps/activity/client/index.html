@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="dark">
+<meta name="referrer" content="no-referrer">
+<title>The Shuttle</title>
+<link rel="stylesheet" href="/apps/activity/client/app.css">
+<script type="module" src="/apps/activity/client/app.js"></script>
+</head>
+<body>
+<main id="shuttle" data-view="splash" data-text-size="normal">
+  <div id="stage">
+    <canvas id="scene" role="img" aria-labelledby="scene-alt"></canvas>
+    <p id="scene-alt" class="sr-only"></p>
+    <div class="scanlines" aria-hidden="true"></div>
+  </div>
+
+  <section id="splash" class="layer" aria-label="The Shuttle">
+    <p class="press"><span class="press-mark" aria-hidden="true">▌</span><span id="press-text">Press any key or tap to begin</span></p>
+  </section>
+
+  <section id="title" class="layer" hidden aria-label="Main menu">
+    <nav class="menu-panel">
+      <p class="menu-kicker"><span class="kicker-mark" aria-hidden="true">◆</span> Shuttle Service · Aphelion</p>
+      <ul id="menu" class="menu"></ul>
+      <p id="notice" class="notice" role="status" hidden></p>
+    </nav>
+  </section>
+
+  <section id="radio" class="layer" hidden aria-labelledby="radio-speaker">
+    <div class="radio-panel">
+      <header class="radio-head">
+        <span class="rx" aria-hidden="true">RX</span>
+        <h2 id="radio-speaker" class="radio-speaker">Sophie · Community Services</h2>
+        <span id="radio-stop" class="radio-stop"></span>
+      </header>
+      <div id="radio-text" class="radio-text" aria-hidden="true"></div>
+      <div id="radio-live" class="sr-only" aria-live="polite"></div>
+      <footer class="radio-controls">
+        <button id="radio-back" type="button" class="control">◂ <span>Back</span></button>
+        <span id="radio-progress" class="radio-progress" aria-hidden="true"></span>
+        <button id="radio-forward" type="button" class="control primary"><span>Continue</span> ▸</button>
+      </footer>
+    </div>
+    <button id="radio-menu" type="button" class="corner" aria-label="Menu">≡ Menu</button>
+  </section>
+
+  <section id="settings" class="layer sheet" hidden aria-labelledby="settings-heading">
+    <div class="sheet-panel">
+      <h2 id="settings-heading" class="sheet-heading">Settings</h2>
+      <div class="setting-group">
+        <label class="setting"><span>Music</span><input type="range" min="0" max="100" step="5" data-level="music"></label>
+        <label class="setting"><span>Ambience</span><input type="range" min="0" max="100" step="5" data-level="ambience"></label>
+        <label class="setting"><span>Sophie’s radio</span><input type="range" min="0" max="100" step="5" data-level="radio"></label>
+        <label class="setting"><span>Effects</span><input type="range" min="0" max="100" step="5" data-level="effects"></label>
+      </div>
+      <fieldset class="setting-choice"><legend>Sound</legend>
+        <label><input type="radio" name="sound" value="on"> On</label><label><input type="radio" name="sound" value="off"> Off</label>
+      </fieldset>
+      <fieldset class="setting-choice"><legend>Motion</legend>
+        <label><input type="radio" name="motion" value="system"> Device setting</label><label><input type="radio" name="motion" value="on"> On</label><label><input type="radio" name="motion" value="off"> Off</label>
+      </fieldset>
+      <fieldset class="setting-choice"><legend>Text</legend>
+        <label><input type="radio" name="text" value="typed"> Typed out</label><label><input type="radio" name="text" value="instant"> All at once</label>
+      </fieldset>
+      <fieldset class="setting-choice"><legend>Text size</legend>
+        <label><input type="radio" name="size" value="normal"> Normal</label><label><input type="radio" name="size" value="large"> Large</label>
+      </fieldset>
+      <button type="button" class="control primary" data-close>Close</button>
+    </div>
+  </section>
+
+  <section id="credits" class="layer sheet" hidden aria-labelledby="credits-heading">
+    <div class="sheet-panel credits">
+      <h2 id="credits-heading" class="sheet-heading">Credits</h2>
+      <p>Sophie, Community Services, speaks for the Aphelion Staff team. Her lines are the published Shuttle guidance, unchanged.</p>
+      <p>Scenes, effects and the rules post banner were made for Aphelion by the coding agent at the owner’s direction.</p>
+      <p>Music: “Suspension: Mellow Electro-Ambient Soundscape” by kjartan_abel
+        (<a href="https://freesound.org/people/kjartan_abel/sounds/531854/" data-external>Freesound</a>), licensed under
+        <a href="https://creativecommons.org/licenses/by/4.0/" data-external>CC BY 4.0</a>; converted to Ogg Opus and MP3 and made quieter.
+        “Outer Space Loop” by wipics, CC0. Other sounds: CC0 contributors listed in the Shuttle sounds record.</p>
+      <p>Type: Cozette by Ines, MIT License. Discord Embedded App SDK, MIT License, with zod, uuid and eventemitter3 (MIT) and big-integer (Unlicense).</p>
+      <button type="button" class="control primary" data-close>Close</button>
+    </div>
+  </section>
+
+  <div id="toast" class="toast" role="status" hidden></div>
+  <footer class="status-bar">
+    <span id="signal" class="signal" data-state="linking">Establishing link…</span>
+    <span class="build">The Shuttle · Aphelion</span>
+  </footer>
+</main>
+</body>
+</html>
