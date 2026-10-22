@@ -1,16 +1,18 @@
 // Converts the chosen Shuttle Activity sound originals to Ogg Opus with MP3 fallbacks using the pinned
 // build-time FFmpeg (owner decision of 21 October 2026). Development machine only; never run in production.
-// Usage: node scripts/build-shuttle-sounds.mjs [--ffmpeg <ffmpeg.exe>] [--originals <dir>]
+// Usage: node scripts/build-shuttle-sounds.mjs [--ffmpeg <ffmpeg.exe>] [--originals <dir>[;<dir>...]]
+// Originals are looked up by file name in each folder in turn: the 21 October set, then the story's (22 October).
 import { createHash } from 'node:crypto';
 import { spawnSync } from 'node:child_process';
-import { mkdir, readFile, writeFile } from 'node:fs/promises';
+import { existsSync } from 'node:fs';
+import { mkdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
 const option = name => { const i = process.argv.indexOf(name); return i > 0 ? process.argv[i + 1] : null; };
 const ffmpeg = resolve(root, option('--ffmpeg') ?? '.local/tools/ffmpeg/extracted/ffmpeg-n9.0.2-17-g2a571b6068-win64-lgpl-9.0/bin/ffmpeg.exe');
-const originals = resolve(root, option('--originals') ?? '.local/shuttle-sounds/shuttle-sounds-originals');
+const originals = (option('--originals') ?? '.local/shuttle-sounds/shuttle-sounds-originals;.local/shuttle-sounds/story-originals').split(';').map(dir => resolve(root, dir));
 const outputDir = 'content/shuttle-activity/sounds';
 const RATE = 48000;
 // Loops carry this much of their own wrapped-around audio on each side, so codec start-up and decoder delay fall
@@ -73,12 +75,16 @@ function seamRatio(x, start, end) {
 const slug = text => text.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
 const group = cue => ({ UI: 'interface', DLG: 'radio', SC: 'scenes', AMB: 'ambience', MUS: 'music' })[cue.split('-')[0]];
 await mkdir(resolve(root, outputDir), { recursive: true });
+// Outputs of a replaced or removed cue are deleted once the new index is written.
+const indexPath = `${outputDir}/index.json`;
+const previous = existsSync(resolve(root, indexPath)) ? (await json(indexPath)).sounds.flatMap(sound => [sound.opus, sound.mp3]) : [];
 const index = { schemaVersion: 1, generatedBy: 'scripts/build-shuttle-sounds.mjs', sampleRate: RATE, suggestedMix, sounds: [] };
 
 for (const sound of manifest.sounds) {
   const edit = edits[sound.cue];
   if (!edit) throw new Error(`EDIT_MISSING: ${sound.cue}`);
-  const source = resolve(originals, sound.file.name);
+  const source = originals.map(dir => resolve(dir, sound.file.name)).find(path => existsSync(path));
+  if (!source) throw new Error(`ORIGINAL_MISSING: ${sound.cue}`);
   if (sha256(await readFile(source)) !== sound.file.sha256) throw new Error(`ORIGINAL_HASH_MISMATCH: ${sound.cue}`);
   const base = `${outputDir}/${slug(sound.cue)}-${slug(sound.name)}`;
   const common = ['-y', '-i', source, '-filter_complex', graph(edit), '-map', '[out]', '-map_metadata', '-1', '-fflags', '+bitexact', '-flags:a', '+bitexact'];
@@ -118,6 +124,11 @@ for (const sound of manifest.sounds) {
 
 manifest.status = 'Originals verified (see each file). Converted to Ogg Opus with MP3 fallbacks by scripts/build-shuttle-sounds.mjs; outputs and their hashes are listed per cue. Owner review is recorded under "review".';
 await writeFile(resolve(root, manifestPath), `${JSON.stringify(manifest, null, 2)}\n`);
-await writeFile(resolve(root, `${outputDir}/index.json`), `${JSON.stringify(index, null, 2)}\n`);
+await writeFile(resolve(root, indexPath), `${JSON.stringify(index, null, 2)}\n`);
+const current = new Set(index.sounds.flatMap(sound => [sound.opus, sound.mp3]));
+for (const name of previous.filter(name => !current.has(name))) {
+  await rm(resolve(root, `${outputDir}/${name}`), { force: true });
+  console.log('removed', name);
+}
 const total = manifest.sounds.reduce((sum, s) => ({ opus: sum.opus + s.outputs.opus.bytes, mp3: sum.mp3 + s.outputs.mp3.bytes }), { opus: 0, mp3: 0 });
 console.log(JSON.stringify({ sounds: manifest.sounds.length, opusBytes: total.opus, mp3Bytes: total.mp3 }));

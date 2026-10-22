@@ -1,16 +1,42 @@
 {
   "schemaVersion": 1,
   "selectedAt": "2026-10-21",
-  "ownerDecision": "docs/decisions/0001-owner-policy.md (The Shuttle becomes an Activity, D10; Shuttle Activity sounds chosen)",
+  "ownerDecision": "docs/decisions/0001-owner-policy.md (The Shuttle becomes an Activity, D10; Shuttle Activity sounds chosen; The Shuttle as a story, 22 October 2026)",
   "policy": "Audio assets only: CC0 1.0 and CC BY 3.0/4.0. NC, ND, SA and unclear licences are excluded. Each bundled file is pinned with its SHA-256; CC BY sounds are credited on the Credits screen and in legal/THIRD-PARTY-NOTICES, with any changes stated.",
-  "selection": "The owner chose one option per cue in a private picker page on 21 October 2026. Licences were read from each sound's own page that day.",
+  "selection": "The owner chose one option per cue in a private picker page on 21 October 2026, and the story's cues (with a new AMB-06 for the arrival concourse) in a second private picker on 22 October 2026; those sounds carry selectedAt. Licences were read from each sound's own page on the day it was chosen. SC-07 (the launch roll) is still being chosen.",
   "status": "Originals verified (see each file). Converted to Ogg Opus with MP3 fallbacks by scripts/build-shuttle-sounds.mjs; outputs and their hashes are listed per cue. Owner review is recorded under \"review\".",
   "review": {
-    "result": "Approved: all 24 sounds, with no requested changes.",
+    "result": "Approved on 21 October 2026: all 24 sounds of that selection, with no requested changes. AMB-06 (New laboratory) was then replaced by the owner's 22 October pick, which is approved with the story's sounds below.",
     "by": "Owner",
     "at": "2026-10-21",
     "method": "Private audition page playing the committed outputs of build 618ef40 in both formats, with loops played between their markers and a seam check.",
-    "approvedOutputs": "The output hashes listed per cue at 618ef40."
+    "approvedOutputs": "The output hashes listed per cue at 618ef40.",
+    "story": {
+      "result": "Approved: all 17 story sounds, with no requested changes.",
+      "cues": [
+        "DLG-06",
+        "SC-08",
+        "SC-09",
+        "SC-10",
+        "SC-11",
+        "SC-12",
+        "SC-13",
+        "SC-14",
+        "SC-15",
+        "SC-16",
+        "SC-17",
+        "SC-18",
+        "SC-19",
+        "SC-20",
+        "SC-21",
+        "AMB-06",
+        "AMB-07"
+      ],
+      "by": "Owner",
+      "at": "2026-10-22",
+      "method": "Private audition page playing the outputs of the 22 October build in both formats, with loops played between their markers and a seam check.",
+      "approvedOutputs": "The output hashes listed for these cues on 22 October 2026; the rebuild that produced them reproduced the 23 unchanged outputs approved on 21 October."
+    }
   },
   "encoding": {
     "tool": "FFmpeg LGPL-3.0-or-later build (legal/DEPENDENCIES.json buildTimeAudioEncoder; review in legal/ffmpeg-build-time-encoder.json), build time only on the development machine",
@@ -653,6 +679,64 @@
       }
     },
     {
+      "cue": "DLG-06",
+      "name": "Companion blip",
+      "plays": "Each line Rook, Pip or a passenger says in a speech bubble.",
+      "source": "Freesound",
+      "soundId": 842201,
+      "title": "Videogame Talk Beep",
+      "author": "nugsano",
+      "page": "https://freesound.org/people/nugsano/sounds/842201/",
+      "licence": "CC0-1.0",
+      "licenceUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+      "selectedAt": "2026-10-22",
+      "seconds": 0.105,
+      "upload": {
+        "format": "M4a (.m4a)",
+        "channels": "Stereo",
+        "sampleRate": "44.1 kHz",
+        "bitrate": "231 kbps",
+        "duration": "0:00.139",
+        "listedSize": "3.9 KB"
+      },
+      "attribution": null,
+      "file": {
+        "fetched": true,
+        "receivedAt": "2026-10-22",
+        "name": "842201__nugsano__videogame-talk-beep.m4a",
+        "bytes": 4027,
+        "sha256": "c81463fda689a08fc2bddb163ccb4cf7f23ab018e21144291445748fd3e4ac32",
+        "measured": {
+          "format": "M4A (AAC)",
+          "channels": 2,
+          "sampleRate": 44100,
+          "bitrate": "173 kbps",
+          "seconds": 0.105
+        }
+      },
+      "outputs": {
+        "opus": {
+          "path": "content/shuttle-activity/sounds/dlg-06-companion-blip.opus",
+          "bytes": 2512,
+          "sha256": "731bb30c990d2df40eb36ab3b55dc1af87e9c6029b07cc6ec4525b2f652e37da",
+          "seconds": 0.1,
+          "kbps": 96
+        },
+        "mp3": {
+          "path": "content/shuttle-activity/sounds/dlg-06-companion-blip.mp3",
+          "bytes": 3936,
+          "sha256": "5d73bc72bd3c47bcc4c0c859d34c164b54f1fa2c7eb3dd54d05a9abb6514ee38",
+          "seconds": 0.1,
+          "lameVbrQuality": 4
+        }
+      },
+      "changes": [
+        "Converted to Ogg Opus and MP3 at 48 kHz.",
+        "Cut to 0.1 s starting at 0 s, with 3 ms fade-in and 20 ms fade-out.",
+        "Level raised by 8.4 dB."
+      ]
+    },
+    {
       "cue": "SC-01",
       "name": "Stop transition",
       "plays": "Moving from one stop's scene to the next.",
@@ -1033,6 +1117,818 @@
       }
     },
     {
+      "cue": "SC-08",
+      "name": "The bump",
+      "plays": "The THUMP when the shuttle meets the sea lion on the launch rail.",
+      "source": "Freesound",
+      "soundId": 257928,
+      "title": "Body Thud.wav",
+      "author": "Kane53126",
+      "page": "https://freesound.org/people/Kane53126/sounds/257928/",
+      "licence": "CC0-1.0",
+      "licenceUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+      "selectedAt": "2026-10-22",
+      "seconds": 1.667,
+      "upload": {
+        "format": "Wave (.wav)",
+        "channels": "Stereo",
+        "sampleRate": "48 kHz",
+        "bitDepth": "24 bit",
+        "duration": "0:01.666",
+        "listedSize": "469.9 KB"
+      },
+      "attribution": null,
+      "file": {
+        "fetched": true,
+        "receivedAt": "2026-10-22",
+        "name": "257928__kane53126__body-thud.wav",
+        "bytes": 481156,
+        "sha256": "2a0363e51f2075c7d2d10e4d9dda3362945424ca1d3779d6394c8c591b2d16e4",
+        "measured": {
+          "format": "WAV",
+          "channels": 2,
+          "sampleRate": 48000,
+          "bitDepth": 24,
+          "seconds": 1.667
+        }
+      },
+      "outputs": {
+        "opus": {
+          "path": "content/shuttle-activity/sounds/sc-08-the-bump.opus",
+          "bytes": 21917,
+          "sha256": "c3abd3d598a5f2cd19fb0d9c1297516abf0aab40079160abedbc542ddc19b559",
+          "seconds": 1.655,
+          "kbps": 96
+        },
+        "mp3": {
+          "path": "content/shuttle-activity/sounds/sc-08-the-bump.mp3",
+          "bytes": 10392,
+          "sha256": "0ef5d325f8dc7be1f589bf1693b50359a98d28c07b5fd0deaad1087d322478b1",
+          "seconds": 1.655,
+          "lameVbrQuality": 4
+        }
+      },
+      "changes": [
+        "Converted to Ogg Opus and MP3 at 48 kHz.",
+        "Cut to 1.655 s starting at 0.005 s, with 3 ms fade-in and 20 ms fade-out.",
+        "Level lowered by 3 dB."
+      ]
+    },
+    {
+      "cue": "SC-09",
+      "name": "Sea lion",
+      "plays": "The sea lion on the launch rail, under \"Explain.\" and \"Explain again.\"",
+      "source": "Freesound",
+      "soundId": 680733,
+      "title": "Sea Lion 1.wav",
+      "author": "nifvimp",
+      "page": "https://freesound.org/people/nifvimp/sounds/680733/",
+      "licence": "CC0-1.0",
+      "licenceUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+      "selectedAt": "2026-10-22",
+      "seconds": 0.717,
+      "upload": {
+        "format": "Wave (.wav)",
+        "channels": "Stereo",
+        "sampleRate": "44.1 kHz",
+        "bitDepth": "24 bit",
+        "duration": "0:00.716",
+        "listedSize": "185.3 KB"
+      },
+      "attribution": null,
+      "file": {
+        "fetched": true,
+        "receivedAt": "2026-10-22",
+        "name": "680733__nifvimp__sea-lion-1.wav",
+        "bytes": 189776,
+        "sha256": "a5994fa88be347d1b3697b7f31cc7dd915f12d2d4f20f4d18e49d4155d472008",
+        "measured": {
+          "format": "WAV",
+          "channels": 2,
+          "sampleRate": 44100,
+          "bitDepth": 24,
+          "seconds": 0.717
+        }
+      },
+      "outputs": {
+        "opus": {
+          "path": "content/shuttle-activity/sounds/sc-09-sea-lion.opus",
+          "bytes": 6449,
+          "sha256": "fda38f0ae9e7260eb50dce22147144038d142eebf9ba865837dd87dc44d3210b",
+          "seconds": 0.71,
+          "kbps": 96
+        },
+        "mp3": {
+          "path": "content/shuttle-activity/sounds/sc-09-sea-lion.mp3",
+          "bytes": 8880,
+          "sha256": "bb77ae43f5c756f07a610d1f2403c62af3b86e5d58577ca728a25f87d761de44",
+          "seconds": 0.71,
+          "lameVbrQuality": 4
+        }
+      },
+      "changes": [
+        "Converted to Ogg Opus and MP3 at 48 kHz.",
+        "Cut to 0.71 s starting at 0 s, with 3 ms fade-in and 20 ms fade-out.",
+        "Level raised by 4.2 dB."
+      ]
+    },
+    {
+      "cue": "SC-10",
+      "name": "Camera shutter",
+      "plays": "The photo booth on the observation deck taking the picture.",
+      "source": "Freesound",
+      "soundId": 151795,
+      "title": "Polaroid Impulse \"Shutter\"",
+      "author": "JamesMontour",
+      "page": "https://freesound.org/people/JamesMontour/sounds/151795/",
+      "licence": "CC0-1.0",
+      "licenceUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+      "selectedAt": "2026-10-22",
+      "seconds": 3.883,
+      "upload": {
+        "format": "Wave (.wav)",
+        "channels": "Stereo",
+        "sampleRate": "48 kHz",
+        "bitDepth": "24 bit",
+        "duration": "0:03.882",
+        "listedSize": "1.1 MB"
+      },
+      "attribution": null,
+      "file": {
+        "fetched": true,
+        "receivedAt": "2026-10-22",
+        "name": "151795__jamesmontour__polaroid-impulse-shutter.wav",
+        "bytes": 1119364,
+        "sha256": "4c35fe9264464b71f00e12de49baf382094d5f4828bc885411ded84a31821809",
+        "measured": {
+          "format": "WAV",
+          "channels": 2,
+          "sampleRate": 48000,
+          "bitDepth": 24,
+          "seconds": 3.883
+        }
+      },
+      "outputs": {
+        "opus": {
+          "path": "content/shuttle-activity/sounds/sc-10-camera-shutter.opus",
+          "bytes": 32208,
+          "sha256": "ce1040fab5c950218692b2230d12b9c4b2878a505ca6a57e4693dbe2b866e218",
+          "seconds": 3.315,
+          "kbps": 96
+        },
+        "mp3": {
+          "path": "content/shuttle-activity/sounds/sc-10-camera-shutter.mp3",
+          "bytes": 39816,
+          "sha256": "300d89bf713719622d2d6c82ee6d0de9651a42c157d2395d1c863edafe2a1d87",
+          "seconds": 3.315,
+          "lameVbrQuality": 4
+        }
+      },
+      "changes": [
+        "Converted to Ogg Opus and MP3 at 48 kHz.",
+        "Cut to 3.315 s starting at 0.015 s, with 3 ms fade-in and 20 ms fade-out.",
+        "Level raised by 2.9 dB."
+      ]
+    },
+    {
+      "cue": "SC-11",
+      "name": "Bike horn",
+      "plays": "The clown's HONK in the baggage hall.",
+      "source": "Freesound",
+      "soundId": 482657,
+      "title": "Clown Horn 1_1",
+      "author": "Joao_Janz",
+      "page": "https://freesound.org/people/Joao_Janz/sounds/482657/",
+      "licence": "CC0-1.0",
+      "licenceUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+      "selectedAt": "2026-10-22",
+      "seconds": 1.363,
+      "upload": {
+        "format": "Wave (.wav)",
+        "channels": "Stereo",
+        "sampleRate": "48 kHz",
+        "bitDepth": "24 bit",
+        "duration": "0:01.362",
+        "listedSize": "383.4 KB"
+      },
+      "attribution": null,
+      "file": {
+        "fetched": true,
+        "receivedAt": "2026-10-22",
+        "name": "482657__joao_janz__clown-horn-1_1.wav",
+        "bytes": 392576,
+        "sha256": "a79aeaca5e37aa77e668b5cb58f44d0294d4856a73f0fd15996895f2a7cbe2c6",
+        "measured": {
+          "format": "WAV",
+          "channels": 2,
+          "sampleRate": 48000,
+          "bitDepth": 24,
+          "seconds": 1.363
+        }
+      },
+      "outputs": {
+        "opus": {
+          "path": "content/shuttle-activity/sounds/sc-11-bike-horn.opus",
+          "bytes": 9687,
+          "sha256": "3037fefedb788f681ea4955b9f16c9c83556f38ff291878358c3b839bc804615",
+          "seconds": 0.725,
+          "kbps": 96
+        },
+        "mp3": {
+          "path": "content/shuttle-activity/sounds/sc-11-bike-horn.mp3",
+          "bytes": 10776,
+          "sha256": "0c4f5501488bf76c72b28a606fa1c23bf9e7a512101415221e4218e005f26750",
+          "seconds": 0.725,
+          "lameVbrQuality": 4
+        }
+      },
+      "changes": [
+        "Converted to Ogg Opus and MP3 at 48 kHz.",
+        "Cut to 0.725 s starting at 0.075 s, with 3 ms fade-in and 20 ms fade-out.",
+        "Level raised by 15.9 dB."
+      ]
+    },
+    {
+      "cue": "SC-12",
+      "name": "Extinguisher",
+      "plays": "The firebot foaming the burning BLASTWAVE bag in the baggage hall.",
+      "source": "Freesound",
+      "soundId": 561328,
+      "title": "Extintor en taller.wav",
+      "author": "RamonFranch",
+      "page": "https://freesound.org/people/RamonFranch/sounds/561328/",
+      "licence": "CC0-1.0",
+      "licenceUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+      "selectedAt": "2026-10-22",
+      "seconds": 3.5,
+      "upload": {
+        "format": "Wave (.wav)",
+        "channels": "Stereo",
+        "sampleRate": "48 kHz",
+        "bitDepth": "24 bit",
+        "duration": "0:03.500",
+        "listedSize": "986.8 KB"
+      },
+      "attribution": null,
+      "file": {
+        "fetched": true,
+        "receivedAt": "2026-10-22",
+        "name": "561328__ramonfranch__extintor-en-taller.wav",
+        "bytes": 1010474,
+        "sha256": "f8e1ff9cb3f76aab47d0437190cde55803f2398a3b046ff986daec63b2a490af",
+        "measured": {
+          "format": "WAV",
+          "channels": 2,
+          "sampleRate": 48000,
+          "bitDepth": 24,
+          "seconds": 3.5
+        }
+      },
+      "outputs": {
+        "opus": {
+          "path": "content/shuttle-activity/sounds/sc-12-extinguisher.opus",
+          "bytes": 12885,
+          "sha256": "d8134612343c77701e8e0be226e8ab83a241310de8885ff7cc97bbe26d89eb22",
+          "seconds": 1.325,
+          "kbps": 96
+        },
+        "mp3": {
+          "path": "content/shuttle-activity/sounds/sc-12-extinguisher.mp3",
+          "bytes": 20592,
+          "sha256": "cb1b086209ded779ea15937102c8ab20d8314fcb9673d35cefa17e963dda9650",
+          "seconds": 1.325,
+          "lameVbrQuality": 4
+        }
+      },
+      "changes": [
+        "Converted to Ogg Opus and MP3 at 48 kHz.",
+        "Cut to 1.325 s starting at 0.195 s, with 5 ms fade-in and 350 ms fade-out.",
+        "Level lowered by 2.9 dB."
+      ]
+    },
+    {
+      "cue": "SC-13",
+      "name": "Disposal chute",
+      "plays": "A refused bag dropping down the disposal chute at the belt.",
+      "source": "Freesound",
+      "soundId": 682473,
+      "title": "Whoosh",
+      "author": "SimoSC",
+      "page": "https://freesound.org/people/SimoSC/sounds/682473/",
+      "licence": "CC0-1.0",
+      "licenceUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+      "selectedAt": "2026-10-22",
+      "seconds": 0.708,
+      "upload": {
+        "format": "Wave (.wav)",
+        "channels": "Stereo",
+        "sampleRate": "44.1 kHz",
+        "bitDepth": "16 bit",
+        "duration": "0:00.708",
+        "listedSize": "122.2 KB"
+      },
+      "attribution": null,
+      "file": {
+        "fetched": true,
+        "receivedAt": "2026-10-22",
+        "name": "682473__simosc__whoosh.wav",
+        "bytes": 125178,
+        "sha256": "1f14d41818e9c58a324d5a03e42edeeff66a7fa55a5010907622b1cb8d724529",
+        "measured": {
+          "format": "WAV",
+          "channels": 2,
+          "sampleRate": 44100,
+          "bitDepth": 16,
+          "seconds": 0.708
+        }
+      },
+      "outputs": {
+        "opus": {
+          "path": "content/shuttle-activity/sounds/sc-13-disposal-chute.opus",
+          "bytes": 9734,
+          "sha256": "f5bc6dc844372abe88d8d18af8e160a80c103404434dc66f929317be25a71aba",
+          "seconds": 0.645,
+          "kbps": 96
+        },
+        "mp3": {
+          "path": "content/shuttle-activity/sounds/sc-13-disposal-chute.mp3",
+          "bytes": 7176,
+          "sha256": "8cc26107220b34f66afb16ff872fdd7e32a2a3ea1c8a60570e20c43f4cd6fdf5",
+          "seconds": 0.645,
+          "lameVbrQuality": 4
+        }
+      },
+      "changes": [
+        "Converted to Ogg Opus and MP3 at 48 kHz.",
+        "Cut to 0.645 s starting at 0.055 s, with 3 ms fade-in and 20 ms fade-out.",
+        "Level raised by 6.9 dB."
+      ]
+    },
+    {
+      "cue": "SC-14",
+      "name": "Scanner refuse",
+      "plays": "The belt scanner refusing a bag (DENIED).",
+      "source": "Freesound",
+      "soundId": 844147,
+      "title": "sfx_wrong_generic.wav",
+      "author": "Mihacappy",
+      "page": "https://freesound.org/people/Mihacappy/sounds/844147/",
+      "licence": "CC0-1.0",
+      "licenceUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+      "selectedAt": "2026-10-22",
+      "seconds": 0.776,
+      "upload": {
+        "format": "Wave (.wav)",
+        "channels": "Stereo",
+        "sampleRate": "48 kHz",
+        "bitDepth": "16 bit",
+        "duration": "0:00.775",
+        "listedSize": "145.5 KB"
+      },
+      "attribution": null,
+      "file": {
+        "fetched": true,
+        "receivedAt": "2026-10-22",
+        "name": "844147__mihacappy__sfx_wrong_generic.wav",
+        "bytes": 148956,
+        "sha256": "80d44dbfcd6327026ea6b4b5ba1bb9ffe7449cef302dbcbc0889ef580b3966b4",
+        "measured": {
+          "format": "WAV",
+          "channels": 2,
+          "sampleRate": 48000,
+          "bitDepth": 16,
+          "seconds": 0.776
+        }
+      },
+      "outputs": {
+        "opus": {
+          "path": "content/shuttle-activity/sounds/sc-14-scanner-refuse.opus",
+          "bytes": 10538,
+          "sha256": "ced07f8ae4bccf429d2d47dd9e2268fd4b05425ff591aaf8b72f70eafd222bbd",
+          "seconds": 0.75,
+          "kbps": 96
+        },
+        "mp3": {
+          "path": "content/shuttle-activity/sounds/sc-14-scanner-refuse.mp3",
+          "bytes": 7344,
+          "sha256": "7d180b8d153a64ddf7905d06d08e2a8cefbc76baa6e4e825feb373abb6ef1ab8",
+          "seconds": 0.75,
+          "lameVbrQuality": 4
+        }
+      },
+      "changes": [
+        "Converted to Ogg Opus and MP3 at 48 kHz.",
+        "Cut to 0.75 s starting at 0 s, with 3 ms fade-in and 20 ms fade-out.",
+        "Level raised by 5.9 dB."
+      ]
+    },
+    {
+      "cue": "SC-15",
+      "name": "Stamp",
+      "plays": "The boarding checklist completing on the arrivals deck, and clearance starting after Complete Shuttle.",
+      "source": "Freesound",
+      "soundId": 362622,
+      "title": "Stamp",
+      "author": "kermite607",
+      "page": "https://freesound.org/people/kermite607/sounds/362622/",
+      "licence": "CC0-1.0",
+      "licenceUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+      "selectedAt": "2026-10-22",
+      "seconds": 0.642,
+      "upload": {
+        "format": "Wave (.wav)",
+        "channels": "Stereo",
+        "sampleRate": "48 kHz",
+        "bitDepth": "16 bit",
+        "duration": "0:00.641",
+        "listedSize": "120.3 KB"
+      },
+      "attribution": null,
+      "file": {
+        "fetched": true,
+        "receivedAt": "2026-10-22",
+        "name": "362622__kermite607__stamp.wav",
+        "bytes": 123220,
+        "sha256": "5d8b236719433cd8863621f405ff20574de35eacaf1e24d3391485552446db69",
+        "measured": {
+          "format": "WAV",
+          "channels": 2,
+          "sampleRate": 48000,
+          "bitDepth": 16,
+          "seconds": 0.642
+        }
+      },
+      "outputs": {
+        "opus": {
+          "path": "content/shuttle-activity/sounds/sc-15-stamp.opus",
+          "bytes": 8540,
+          "sha256": "4e72b150226f9a47e8801e290a2ca384767e62f8acfc5e1f59d8306e3ce64f4d",
+          "seconds": 0.555,
+          "kbps": 96
+        },
+        "mp3": {
+          "path": "content/shuttle-activity/sounds/sc-15-stamp.mp3",
+          "bytes": 12912,
+          "sha256": "488286d1361a8f31f32191f735fead4f9133cf02ad687df3e49708a432a716a1",
+          "seconds": 0.555,
+          "lameVbrQuality": 4
+        }
+      },
+      "changes": [
+        "Converted to Ogg Opus and MP3 at 48 kHz.",
+        "Cut to 0.555 s starting at 0.045 s, with 3 ms fade-in and 20 ms fade-out.",
+        "Level raised by 2 dB."
+      ]
+    },
+    {
+      "cue": "SC-16",
+      "name": "Paper slip",
+      "plays": "The note going into the feedback box on the arrivals deck.",
+      "source": "Freesound",
+      "soundId": 444431,
+      "title": "Sliding Envelope.wav",
+      "author": "MTJohnson",
+      "page": "https://freesound.org/people/MTJohnson/sounds/444431/",
+      "licence": "CC0-1.0",
+      "licenceUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+      "selectedAt": "2026-10-22",
+      "seconds": 1.152,
+      "upload": {
+        "format": "Wave (.wav)",
+        "channels": "Stereo",
+        "sampleRate": "48 kHz",
+        "bitDepth": "24 bit",
+        "duration": "0:01.151",
+        "listedSize": "327.6 KB"
+      },
+      "attribution": null,
+      "file": {
+        "fetched": true,
+        "receivedAt": "2026-10-22",
+        "name": "444431__mtjohnson__sliding-envelope.wav",
+        "bytes": 335466,
+        "sha256": "d7c1707ca42e62f2c7f27a3ef85ac25c9556632aabf6c7a11905f6dbc584bf9f",
+        "measured": {
+          "format": "WAV",
+          "channels": 2,
+          "sampleRate": 48000,
+          "bitDepth": 24,
+          "seconds": 1.152
+        }
+      },
+      "outputs": {
+        "opus": {
+          "path": "content/shuttle-activity/sounds/sc-16-paper-slip.opus",
+          "bytes": 8309,
+          "sha256": "d1180a0dc84757c8900dd7d9668a4a1bcecff059b03d186ee8ca503771ce79f2",
+          "seconds": 0.815,
+          "kbps": 96
+        },
+        "mp3": {
+          "path": "content/shuttle-activity/sounds/sc-16-paper-slip.mp3",
+          "bytes": 12096,
+          "sha256": "ce503f4ffe9371013a72602b5fd8ef4094903b40c9410d98766a53012f2338eb",
+          "seconds": 0.815,
+          "lameVbrQuality": 4
+        }
+      },
+      "changes": [
+        "Converted to Ogg Opus and MP3 at 48 kHz.",
+        "Cut to 0.815 s starting at 0.145 s, with 3 ms fade-in and 20 ms fade-out.",
+        "Level raised by 23.8 dB."
+      ]
+    },
+    {
+      "cue": "SC-17",
+      "name": "Seatbelt",
+      "plays": "FASTEN STRAPS, before the launch.",
+      "source": "Freesound",
+      "soundId": 371191,
+      "title": "Seatbelt.wav",
+      "author": "Plutoniumisotop",
+      "page": "https://freesound.org/people/Plutoniumisotop/sounds/371191/",
+      "licence": "CC0-1.0",
+      "licenceUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+      "selectedAt": "2026-10-22",
+      "seconds": 0.692,
+      "upload": {
+        "format": "Wave (.wav)",
+        "channels": "Stereo",
+        "sampleRate": "44.1 kHz",
+        "bitDepth": "32 bit",
+        "duration": "0:00.692",
+        "listedSize": "238.7 KB"
+      },
+      "attribution": null,
+      "file": {
+        "fetched": true,
+        "receivedAt": "2026-10-22",
+        "name": "371191__plutoniumisotop__seatbelt.wav",
+        "bytes": 244476,
+        "sha256": "075a8bf61cffe8f595c3537c61ac58cc1a5b24fe6fa329f9acbfbc81ce332274",
+        "measured": {
+          "format": "WAV",
+          "channels": 2,
+          "sampleRate": 44100,
+          "bitDepth": 32,
+          "seconds": 0.692
+        }
+      },
+      "outputs": {
+        "opus": {
+          "path": "content/shuttle-activity/sounds/sc-17-seatbelt.opus",
+          "bytes": 5322,
+          "sha256": "f6134631c4a6c6df33d8bfee8b8cf13b3b7647c65b39c079c646547c8c939dd2",
+          "seconds": 0.325,
+          "kbps": 96
+        },
+        "mp3": {
+          "path": "content/shuttle-activity/sounds/sc-17-seatbelt.mp3",
+          "bytes": 9024,
+          "sha256": "602f1d4cb87326210c17355f101dcdae234a4dd72b87ac05c2e86f743c3c29ca",
+          "seconds": 0.325,
+          "lameVbrQuality": 4
+        }
+      },
+      "changes": [
+        "Converted to Ogg Opus and MP3 at 48 kHz.",
+        "Cut to 0.325 s starting at 0.025 s, with 3 ms fade-in and 20 ms fade-out.",
+        "Level lowered by 2.1 dB."
+      ]
+    },
+    {
+      "cue": "SC-18",
+      "name": "Party popper",
+      "plays": "The confetti popper on the observation deck.",
+      "source": "Freesound",
+      "soundId": 458398,
+      "title": "Balloon Pop / Christmas cracker / Confetti Cannon",
+      "author": "Breviceps",
+      "page": "https://freesound.org/people/Breviceps/sounds/458398/",
+      "licence": "CC0-1.0",
+      "licenceUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+      "selectedAt": "2026-10-22",
+      "seconds": 0.354,
+      "upload": {
+        "format": "Wave (.wav)",
+        "channels": "Stereo",
+        "sampleRate": "44.1 kHz",
+        "bitDepth": "16 bit",
+        "duration": "0:00.353",
+        "listedSize": "61.0 KB"
+      },
+      "attribution": null,
+      "file": {
+        "fetched": true,
+        "receivedAt": "2026-10-22",
+        "name": "458398__breviceps__balloon-pop-christmas-cracker-confetti-cannon.wav",
+        "bytes": 62472,
+        "sha256": "1ef0a82776f19cc7752e0dbfcb7ce9b4253eab4e5706ca9df32354b662226d3c",
+        "measured": {
+          "format": "WAV",
+          "channels": 2,
+          "sampleRate": 44100,
+          "bitDepth": 16,
+          "seconds": 0.354
+        }
+      },
+      "outputs": {
+        "opus": {
+          "path": "content/shuttle-activity/sounds/sc-18-party-popper.opus",
+          "bytes": 3771,
+          "sha256": "c02bad72f95a40d7235cd45e4b19554eaeaa24dc54e9e865a217106ab6c6cb64",
+          "seconds": 0.28,
+          "kbps": 96
+        },
+        "mp3": {
+          "path": "content/shuttle-activity/sounds/sc-18-party-popper.mp3",
+          "bytes": 6696,
+          "sha256": "5d0f9e44acc18f8b5557cd659c37b499ea6e660c4cc45512d7276424c4a3b7d3",
+          "seconds": 0.28,
+          "lameVbrQuality": 4
+        }
+      },
+      "changes": [
+        "Converted to Ogg Opus and MP3 at 48 kHz.",
+        "Cut to 0.28 s starting at 0 s, with 3 ms fade-in and 20 ms fade-out.",
+        "Level lowered by 5.7 dB."
+      ]
+    },
+    {
+      "cue": "SC-19",
+      "name": "Mop",
+      "plays": "The janitor mopping the arrivals deck.",
+      "source": "Freesound",
+      "soundId": 497178,
+      "title": "4 - mop - rinse the mop in a bucket full of foamed water.wav",
+      "author": "16FPanskaLelkova_Veronika",
+      "page": "https://freesound.org/people/16FPanskaLelkova_Veronika/sounds/497178/",
+      "licence": "CC0-1.0",
+      "licenceUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+      "selectedAt": "2026-10-22",
+      "seconds": 6.519,
+      "upload": {
+        "format": "Wave (.wav)",
+        "channels": "Stereo",
+        "sampleRate": "48 kHz",
+        "bitDepth": "24 bit",
+        "duration": "0:06.518",
+        "listedSize": "1.8 MB"
+      },
+      "attribution": null,
+      "file": {
+        "fetched": true,
+        "receivedAt": "2026-10-22",
+        "name": "497178__16fpanskalelkova_veronika__4-mop-rinse-the-mop-in-a-bucket-full-of-foamed-water.wav",
+        "bytes": 1890532,
+        "sha256": "053ec6e2993ba6b1aceead28653ff75d7d9d8e1d5bd3776946108106d5ced81f",
+        "measured": {
+          "format": "WAV",
+          "channels": 2,
+          "sampleRate": 48000,
+          "bitDepth": 24,
+          "seconds": 6.519
+        }
+      },
+      "outputs": {
+        "opus": {
+          "path": "content/shuttle-activity/sounds/sc-19-mop.opus",
+          "bytes": 34575,
+          "sha256": "b9eb6ad9163f2dc95e4c5218a6dada863d7a2ef145582419d9c9938fc40c2f26",
+          "seconds": 4,
+          "kbps": 96
+        },
+        "mp3": {
+          "path": "content/shuttle-activity/sounds/sc-19-mop.mp3",
+          "bytes": 47184,
+          "sha256": "3b803be335be04f6e7d9745413fc30716ec33b5be3ee2cbf8bdacd52e564a1df",
+          "seconds": 4,
+          "lameVbrQuality": 4
+        }
+      },
+      "changes": [
+        "Converted to Ogg Opus and MP3 at 48 kHz.",
+        "Cut to 4 s starting at 0 s, with 5 ms fade-in and 350 ms fade-out.",
+        "Level raised by 10.7 dB."
+      ]
+    },
+    {
+      "cue": "SC-20",
+      "name": "Corgi",
+      "plays": "Ian barking once as he trots through the departure lounge.",
+      "source": "Freesound",
+      "soundId": 630648,
+      "title": "single bark - small to medium dog",
+      "author": "haulaway",
+      "page": "https://freesound.org/people/haulaway/sounds/630648/",
+      "licence": "CC0-1.0",
+      "licenceUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+      "selectedAt": "2026-10-22",
+      "seconds": 1.44,
+      "upload": {
+        "format": "Mp3 (.mp3)",
+        "channels": "Mono",
+        "sampleRate": "44.1 kHz",
+        "bitrate": "96 kbps",
+        "duration": "0:01.439",
+        "listedSize": "16.7 KB"
+      },
+      "attribution": null,
+      "file": {
+        "fetched": true,
+        "receivedAt": "2026-10-22",
+        "name": "630648__haulaway__single-bark-small-to-medium-dog.mp3",
+        "bytes": 17056,
+        "sha256": "945196fdb9694f594dd3bebfdf308cba456618fadf12cec3deee2129fd2762f7",
+        "measured": {
+          "format": "MP3",
+          "channels": 1,
+          "sampleRate": 44100,
+          "bitrate": "92 kbps",
+          "seconds": 1.44
+        }
+      },
+      "outputs": {
+        "opus": {
+          "path": "content/shuttle-activity/sounds/sc-20-corgi.opus",
+          "bytes": 3993,
+          "sha256": "94baafaa459fce3db551bd05cc91337ad73ca6a34cb525301fe0f1a4de6708b5",
+          "seconds": 0.595,
+          "kbps": 48
+        },
+        "mp3": {
+          "path": "content/shuttle-activity/sounds/sc-20-corgi.mp3",
+          "bytes": 6168,
+          "sha256": "d985203dff9040340c6bc6776c7b8dcf0574d2f252ade1e4f488d61fd021db97",
+          "seconds": 0.595,
+          "lameVbrQuality": 4
+        }
+      },
+      "changes": [
+        "Converted to Ogg Opus and MP3 at 48 kHz.",
+        "Cut to 0.595 s starting at 0.725 s, with 3 ms fade-in and 20 ms fade-out.",
+        "Level raised by 4.6 dB."
+      ]
+    },
+    {
+      "cue": "SC-21",
+      "name": "Bag relights",
+      "plays": "The BLASTWAVE bag lighting itself again after the firebot puts it out.",
+      "source": "Freesound",
+      "soundId": 831929,
+      "title": "Flamethrower",
+      "author": "1bob",
+      "page": "https://freesound.org/people/1bob/sounds/831929/",
+      "licence": "CC0-1.0",
+      "licenceUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+      "selectedAt": "2026-10-22",
+      "seconds": 0.987,
+      "upload": {
+        "format": "Wave (.wav)",
+        "channels": "Mono",
+        "sampleRate": "44.1 kHz",
+        "bitDepth": "16 bit",
+        "duration": "0:00.986",
+        "listedSize": "85.1 KB"
+      },
+      "attribution": null,
+      "file": {
+        "fetched": true,
+        "receivedAt": "2026-10-22",
+        "name": "831929__1bob__flamethrower.wav",
+        "bytes": 87144,
+        "sha256": "deffb6fe6cd673c76a06b8517236dc0fc4b0aa37b5b058afecc024dafb32d589",
+        "measured": {
+          "format": "WAV",
+          "channels": 1,
+          "sampleRate": 44100,
+          "bitDepth": 16,
+          "seconds": 0.987
+        }
+      },
+      "outputs": {
+        "opus": {
+          "path": "content/shuttle-activity/sounds/sc-21-bag-relights.opus",
+          "bytes": 5247,
+          "sha256": "d987969b8d0d71c9f54a4c184dab9f462c52b8f6381b1ef5c7d33d9f5118761a",
+          "seconds": 0.88,
+          "kbps": 48
+        },
+        "mp3": {
+          "path": "content/shuttle-activity/sounds/sc-21-bag-relights.mp3",
+          "bytes": 10272,
+          "sha256": "0d87954dcba53a43c321917ebecb8910739193c8dcce9df4c92d6f0efc028dd1",
+          "seconds": 0.88,
+          "lameVbrQuality": 4
+        }
+      },
+      "changes": [
+        "Converted to Ogg Opus and MP3 at 48 kHz.",
+        "Cut to 0.88 s starting at 0 s, with 3 ms fade-in and 20 ms fade-out.",
+        "Level raised by 8.7 dB."
+      ]
+    },
+    {
       "cue": "AMB-01",
       "name": "Title screen and hangar",
       "plays": "Loop behind the title screen.",
@@ -1360,68 +2256,124 @@
     },
     {
       "cue": "AMB-06",
-      "name": "New laboratory",
-      "plays": "Loop behind Disembarking after the door opens.",
+      "name": "Arrival concourse",
+      "plays": "Loop behind Disembarking after the door opens: the station concourse.",
       "source": "Freesound",
-      "soundId": 211683,
-      "title": "control_room.wav",
-      "author": "Diboz",
-      "page": "https://freesound.org/people/Diboz/sounds/211683/",
+      "soundId": 757318,
+      "title": "Generic Interior Walla",
+      "author": "brunoboselli",
+      "page": "https://freesound.org/people/brunoboselli/sounds/757318/",
       "licence": "CC0-1.0",
       "licenceUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
-      "seconds": 64.62,
+      "selectedAt": "2026-10-22",
+      "seconds": 33.05,
       "upload": {
         "format": "Wave (.wav)",
         "channels": "Stereo",
-        "sampleRate": "44.1 kHz",
-        "bitDepth": "16 bit",
-        "duration": "1:04.620",
-        "listedSize": "10.9 MB"
-      },
-      "preview": {
-        "hqMp3": "https://cdn.freesound.org/previews/211/211683_3930831-hq.mp3",
-        "hqMp3Bytes": 1602366,
-        "hqOgg": "https://cdn.freesound.org/previews/211/211683_3930831-hq.ogg",
-        "hqOggBytes": 1479165
+        "sampleRate": "48 kHz",
+        "bitDepth": "24 bit",
+        "duration": "0:33.049",
+        "listedSize": "9.1 MB"
       },
       "attribution": null,
       "file": {
         "fetched": true,
-        "receivedAt": "2026-10-21",
-        "name": "211683__diboz__control_room.wav",
-        "bytes": 11399406,
-        "sha256": "0d3fdd453c5fbc41175ddc67ba2c7913088de079cf73088b892be9e536f02473",
+        "receivedAt": "2026-10-22",
+        "name": "757318__brunoboselli__generic-interior-walla.wav",
+        "bytes": 9519022,
+        "sha256": "8f2abcb11b39ac648eb189754c96b006950cddcb54be79d24bfcb1c222463cd5",
         "measured": {
           "format": "WAV",
           "channels": 2,
-          "sampleRate": 44100,
-          "bitDepth": 16,
-          "seconds": 64.62
+          "sampleRate": 48000,
+          "bitDepth": 24,
+          "seconds": 33.05
+        }
+      },
+      "replaces": "New laboratory: Freesound 211683, chosen on 2026-10-21",
+      "outputs": {
+        "opus": {
+          "path": "content/shuttle-activity/sounds/amb-06-arrival-concourse.opus",
+          "bytes": 198819,
+          "sha256": "cbec0591374d143d7c1302506c1cd275996666f5488dfd3944d147ab295679ad",
+          "seconds": 31,
+          "kbps": 64,
+          "seamRatio": 2.13
+        },
+        "mp3": {
+          "path": "content/shuttle-activity/sounds/amb-06-arrival-concourse.mp3",
+          "bytes": 533520,
+          "sha256": "1c22aea0e1239fe43dc28c1884d750585ab8f9a6c603156961131bae8f07d0c1",
+          "seconds": 31,
+          "lameVbrQuality": 4,
+          "seamRatio": 1.53
         }
       },
       "changes": [
         "Converted to Ogg Opus and MP3 at 48 kHz.",
-        "Cut to 47 s starting at 7.5 s and made into a 45 s seamless loop with a 2 s crossfade, padded by 0.5 s of its own audio on each side.",
-        "Level lowered by 5.2 dB."
-      ],
+        "Cut to 32 s starting at 0.525 s and made into a 30 s seamless loop with a 2 s crossfade, padded by 0.5 s of its own audio on each side.",
+        "Level raised by 11.2 dB."
+      ]
+    },
+    {
+      "cue": "AMB-07",
+      "name": "Departure bay",
+      "plays": "Loop behind the departure bay while the passengers board.",
+      "source": "Freesound",
+      "soundId": 135058,
+      "title": "Industrial Ambience Room Tone Air Conditioning Footsteps At End.wav",
+      "author": "mzui",
+      "page": "https://freesound.org/people/mzui/sounds/135058/",
+      "licence": "CC0-1.0",
+      "licenceUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+      "selectedAt": "2026-10-22",
+      "seconds": 77.986,
+      "upload": {
+        "format": "Wave (.wav)",
+        "channels": "Stereo",
+        "sampleRate": "48 kHz",
+        "bitDepth": "16 bit",
+        "duration": "1:17.986",
+        "listedSize": "14.3 MB"
+      },
+      "attribution": null,
+      "file": {
+        "fetched": true,
+        "receivedAt": "2026-10-22",
+        "name": "135058__mzui__industrial-ambience-room-tone-air-conditioning-footsteps-at-end.wav",
+        "bytes": 14973432,
+        "sha256": "f9b535faa8489f083bf8e4529e2f870caf402399f12df38ed251fedc96380faa",
+        "measured": {
+          "format": "WAV",
+          "channels": 2,
+          "sampleRate": 48000,
+          "bitDepth": 16,
+          "seconds": 77.986
+        }
+      },
       "outputs": {
         "opus": {
-          "path": "content/shuttle-activity/sounds/amb-06-new-laboratory.opus",
-          "bytes": 451007,
-          "sha256": "985e47f1111321ec3818338c9b2eaa81cb4f75e91e702a8f152047c6184d8876",
+          "path": "content/shuttle-activity/sounds/amb-07-departure-bay.opus",
+          "bytes": 330271,
+          "sha256": "14ac6d555de59da9cf15ac7e22cb6505132675cfe87393d33e4f2aedd46a78c1",
           "seconds": 46,
           "kbps": 64,
-          "seamRatio": 0.84
+          "seamRatio": 1.42
         },
         "mp3": {
-          "path": "content/shuttle-activity/sounds/amb-06-new-laboratory.mp3",
-          "bytes": 838800,
-          "sha256": "2b7142c768269a8cc20e097b422605142a376e63b15767f07f049609e36643d8",
+          "path": "content/shuttle-activity/sounds/amb-07-departure-bay.mp3",
+          "bytes": 835584,
+          "sha256": "29da1edf83b5d2f3afad0781d9eca4cc07763fffe1607c1d5f36dc2683c0e790",
           "seconds": 46,
           "lameVbrQuality": 4,
-          "seamRatio": 0.28
+          "seamRatio": 0.61
         }
-      }
+      },
+      "changes": [
+        "Converted to Ogg Opus and MP3 at 48 kHz.",
+        "Cut to 47 s starting at 1.5 s and made into a 45 s seamless loop with a 2 s crossfade, padded by 0.5 s of its own audio on each side.",
+        "Level raised by 20.9 dB."
+      ]
     },
     {
       "cue": "MUS-01",
