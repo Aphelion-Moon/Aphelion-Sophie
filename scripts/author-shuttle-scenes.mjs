@@ -212,7 +212,11 @@ function hangar(name) {
     effects.push({ kind: 'blink', id: `lamp-${i + 1}`, region: [x0 + i * 4 + 1, sy, 1, 1], hz: [0.6, 1.1, 0.8, 1.3, 0.7][i], on: 'a', off: 'A' });
   }
   base.text(x0, sy + 3, '(o)   (o)   (o)', 'o');
-  for (let y = conTop + 1; y < h; y++) { const x = sx + 20 + ((y - conTop) % 3 === 0 ? 1 : 0) + Math.floor((y - conTop) / 3); base.put(x, y, (y - conTop) % 3 === 0 ? '╲' : '│', 'h'); }
+  // A cyan seam fills a crack in the old metal: straight runs with a step across every third row, drawn from line pieces
+  // that meet at the cell edges so it reads as one unbroken line (a diagonal piece cannot meet a vertical one).
+  for (let y = conTop + 1, x = sx + 20; y < h; y++) {
+    if ((y - conTop) % 3 === 0 && y < h - 1) { base.put(x, y, '└', 'h'); base.put(x + 1, y, '┐', 'h'); x++; } else base.put(x, y, '│', 'h');
+  }
   const pw = pwid, px = port ? pleft : Math.min(w - pw - 2, x0 + 2), py = panelTop;
   base.fill(px, py, px + pw, panelBottom, ' ', ' ');
   base.box(px, py, px + pw, panelBottom, 'h'); base.put(px + 4, panelBottom, '╪', 'h'); base.put(px + pw - 4, panelBottom, '╪', 'h');
