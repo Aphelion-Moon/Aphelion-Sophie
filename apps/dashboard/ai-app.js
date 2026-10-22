@@ -1,6 +1,6 @@
 import { createDashboardApi } from './api.js';
 import { mountDashboardShell } from './shell.js';
-import { canonicalAiConfiguration, defaultParticipation, AI_MODES } from '../../modules/assistant/participation.js';
+import { canonicalAiConfiguration, defaultParticipation, defaultAiContexts, AI_CONTEXTS, AI_GAMES, AI_MODES, AI_REPLY_LIMIT } from '../../modules/assistant/participation.js';
 import { canonicalPersonality, DRAFT_PERSONALITY } from '../../modules/assistant/personality.js';
 import { canonicalAiBudget, DEFAULT_AI_BUDGET } from '../../modules/assistant/budget.js';
 import { createMemoryAudit } from './ai-memories-view.js';
@@ -8,7 +8,7 @@ import { createMemoryAudit } from './ai-memories-view.js';
 const api = createDashboardApi({ fetch: window.fetch.bind(window) }), el = id => document.getElementById(id);
 const names = { ignore: 'Ignore', addressed: 'Mentions and replies only', questions: 'Answer supported questions', reactive: 'Read and react; speak when asked', conversational: 'Join the conversation' };
 let phase = 'loading', busy = false, dirty = false, pending = null, pendingRequestId = null, session = null;
-let configuration = { schemaVersion: 1, enabled: false, deadlineMs: 15000, channels: [], emojis: [] }, character = structuredClone(DRAFT_PERSONALITY);
+let configuration = { schemaVersion: 2, enabled: false, deadlineMs: 15000, channels: [], emojis: [], contexts: defaultAiContexts() }, character = structuredClone(DRAFT_PERSONALITY);
 let configurationRevision = 0, personalityRevision = 0;
 let budget = { ...DEFAULT_AI_BUDGET }, budgetRevision = 0;
 let workerPoll=null,lastWorker=null,aiDisabled=true;
@@ -64,6 +64,31 @@ function field(parent, label, value, change, attributes = {}) {
   if (attributes.type === 'checkbox') { wrapper.className = 'check-field'; wrapper.append(input, ` ${label}`); } else wrapper.append(label, input);
   parent.append(wrapper); return input;
 }
+function upgradeConfiguration(document) {
+  if (document.schemaVersion === 2) return structuredClone(document);
+  return { ...structuredClone(document), schemaVersion: 2, contexts: { ...defaultAiContexts(), chat: { ...defaultAiContexts().chat, deadlineMs: document.deadlineMs } },
+    channels: document.channels.map(channel => ({ ...structuredClone(channel), context: 'chat' })) };
+}
+const contextTitles = { chat: 'Chat', support: 'Support', staff: 'Staff' };
+const gameTitles = { 'ss13-meridian': 'SS13 · Meridian Rift', 'ss14-wolfgate': 'SS14 · Wolfgate' };
+// Each context is a kind of room: its own brief, reply length, output budget, deadline, code search and game.
+function contexts() {
+  el('contexts').replaceChildren();
+  for (const name of AI_CONTEXTS) {
+    const context = configuration.contexts[name], box = document.createElement('fieldset'), legend = document.createElement('legend');
+    legend.textContent = contextTitles[name]; box.className = 'ai-card'; box.append(legend);
+    field(box, 'Brief for Sophie in these channels (tone and focus; it cannot grant anything)', context.brief, value => { context.brief = value; }, { multiline: true, maxlength: 2000, rows: 4 });
+    const limits = document.createElement('div'); limits.className = 'ai-grid'; box.append(limits);
+    field(limits, 'Longest reply, characters', context.replyChars, value => { context.replyChars = value; }, { type: 'number', min: 300, max: AI_REPLY_LIMIT, step: 100 });
+    field(limits, 'Model output budget, tokens', context.outputTokens, value => { context.outputTokens = value; }, { type: 'number', min: 128, max: 2048, step: 64 });
+    field(limits, 'Time allowed for a reply, seconds', context.deadlineMs / 1000, value => { context.deadlineMs = value * 1000; }, { type: 'number', min: 5, max: 30, step: 1 });
+    const label = document.createElement('label'), select = document.createElement('select'); label.textContent = 'Game these channels are about';
+    for (const [value, text] of [['', 'Either / not set'], ...AI_GAMES.map(game => [game, gameTitles[game]])]) { const option = document.createElement('option'); option.value = value; option.textContent = text; select.append(option); }
+    select.value = context.game ?? ''; select.addEventListener('change', () => { context.game = select.value || null; changed(); }); label.append(select); limits.append(label);
+    field(box, 'Search the community’s code on GitHub when asked about code', context.codeSearch, value => { context.codeSearch = value; }, { type: 'checkbox' });
+    el('contexts').append(box);
+  }
+}
 function channels() {
   el('channels').replaceChildren();
   configuration.channels.forEach((channel, index) => {
@@ -74,6 +99,9 @@ function channels() {
     const label = document.createElement('label'); label.textContent = 'Participation mode'; const select = document.createElement('select');
     for (const mode of AI_MODES) { const option = document.createElement('option'); option.value = mode; option.textContent = names[mode]; select.append(option); }
     select.value = channel.profile.mode; select.addEventListener('change', () => { channel.profile.mode = select.value; if (select.value === 'reactive') channel.profile.reactions = true; changed(); channels(); }); label.append(select); basics.append(label);
+    const contextLabel = document.createElement('label'), contextSelect = document.createElement('select'); contextLabel.textContent = 'Context';
+    for (const name of AI_CONTEXTS) { const option = document.createElement('option'); option.value = name; option.textContent = contextTitles[name]; contextSelect.append(option); }
+    contextSelect.value = channel.context ?? 'chat'; contextSelect.addEventListener('change', () => { channel.context = contextSelect.value; changed(); }); contextLabel.append(contextSelect); basics.append(contextLabel);
     field(box, 'Allow approved social reactions', channel.profile.reactions, value => { channel.profile.reactions = value; }, { type: 'checkbox' });
     field(box, 'Show brief typing when an addressed request starts', channel.profile.typing, value => { channel.profile.typing = value; }, { type: 'checkbox' });
     field(box, 'Quiet hours: wait to be addressed', channel.profile.quietHours !== null, value => { channel.profile.quietHours = value ? { startMinute: 1320, endMinute: 480, utcOffsetMinutes: 0 } : null; channels(); }, { type: 'checkbox' });
@@ -122,9 +150,9 @@ async function load() {
     await memoryAudit.load();
     const part = value => { if (value === null || value === undefined) throw Object.assign(Error(), { kind: 'denied' }); return value; };
     if (session.canControlAi) {
-      const current = part(overview.configuration); configuration = current.publication?.document ?? configuration; configurationRevision = current.publication?.revision ?? 0;
+      const current = part(overview.configuration); configuration = upgradeConfiguration(current.publication?.document ?? configuration); configurationRevision = current.publication?.revision ?? 0;
       el('participation').hidden = false; el('desired-enabled').checked = configuration.enabled; el('deadline').value = configuration.deadlineMs / 1000;
-      el('active-state').textContent = `Saved revision ${configurationRevision}.`; channels(); emojis();
+      el('active-state').textContent = `Saved revision ${configurationRevision}.`; channels(); contexts(); emojis();
       aiDisabled = current.disabled; el('overview').hidden = false; el('overview-ai').textContent = current.disabled ? 'Disabled' : 'Allowed where each channel and member qualifies';
       const savedBudget = part(overview.budgetPublication); budget = savedBudget.publication?.document ?? { ...DEFAULT_AI_BUDGET }; budgetRevision = savedBudget.publication?.revision ?? 0;
       const spending = part(overview.budget); el('budget').hidden = false;
@@ -233,7 +261,7 @@ async function review(kind) {
 el('retry').addEventListener('click', () => phase === 'denied' ? location.reload() : perform(load));
 el('logout').addEventListener('click', () => perform(async () => { await api.logout(); clear(); phase = 'denied'; }));
 {
-  el('add-channel').addEventListener('click', () => { if (configuration.channels.length < 100) { configuration.channels.push({ channelId: '', profile: defaultParticipation() }); changed(); channels(); } });
+  el('add-channel').addEventListener('click', () => { if (configuration.channels.length < 100) { configuration.channels.push({ channelId: '', profile: defaultParticipation(), context: 'chat' }); changed(); channels(); } });
   el('add-emoji').addEventListener('click', () => { if (configuration.emojis.length < 16) { configuration.emojis.push({ key: '', id: null, name: '' }); changed(); emojis(); } });
   el('add-example').addEventListener('click', () => { if (character.examples.length < 8) { character.examples.push({ member: '', sophie: '' }); changed(); examples(); } });
   for (const kind of ['configuration', 'personality', 'budget']) el(`review-${kind}`).addEventListener('click', () => perform(() => review(kind)));

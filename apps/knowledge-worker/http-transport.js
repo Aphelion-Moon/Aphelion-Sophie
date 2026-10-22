@@ -3,6 +3,7 @@ import { lookup as dnsLookup } from 'node:dns';
 import { Readable, Transform } from 'node:stream';
 import { requireCondition } from '../../contracts/validation.js';
 import { isPublicAiAddress } from './public-address.js';
+import { AI_DEADLINE_MS } from '../../modules/assistant/participation.js';
 import { MISTRAL_ENDPOINT } from './mistral-client.js';
 
 const endpoint = MISTRAL_ENDPOINT;
@@ -28,7 +29,7 @@ export function publicAiLookup(resolve = dnsLookup) {
 export function createMistralTransport({ requestImpl = request, lookup = publicAiLookup() } = {}) {
   requireCondition(typeof requestImpl === 'function' && typeof lookup === 'function', 'TRUSTED_ADAPTERS_REQUIRED');
   const agent = new Agent({ keepAlive:true, maxSockets:1, maxTotalSockets:1, maxFreeSockets:1,
-    maxCachedSessions:0, timeout:15000, rejectUnauthorized:true, proxyEnv:{}, lookup, family:4, autoSelectFamily:false });
+    maxCachedSessions:0, timeout:AI_DEADLINE_MS, rejectUnauthorized:true, proxyEnv:{}, lookup, family:4, autoSelectFamily:false });
   const requests = new Set(), lifetime = new AbortController(); let stopped = false, closing = null;
   return Object.freeze({
     fetch(url, options) {
@@ -69,7 +70,7 @@ export function createMistralTransport({ requestImpl = request, lookup = publicA
         outgoing.once('error', () => reject(Error('AI_HTTP_UNAVAILABLE')));
         outgoing.once('close', () => { clearTimeout(timer); requests.delete(outgoing); });
         // This hard upper bound also covers headers and whitespace-only bodies; the original turn signal is tighter.
-        timer = setTimeout(fail,14000); timer.unref?.();
+        timer = setTimeout(fail,AI_DEADLINE_MS - 1000); timer.unref?.();
         outgoing.end(options.body);
       });
     },

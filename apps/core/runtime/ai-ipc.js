@@ -1,5 +1,6 @@
 import { ContractError, requireCondition, requireKeys } from '../../../contracts/validation.js';
 import { validateAiOutput } from '../../../modules/assistant/output.js';
+import { AI_DEADLINE_MS } from '../../../modules/assistant/participation.js';
 import { createAiIpcChannel } from '../../knowledge-worker/ipc-channel.js';
 import { canonicalAiWorkerIdentity, aiWorkerPayload, validateAiPreparedMetadata } from '../../knowledge-worker/ipc-contract.js';
 
@@ -43,7 +44,7 @@ export function createAiIpcClient({ identity, key, connect, qualified, clock = D
       requireCondition(await current(payload),'AI_WORKER_NOT_QUALIFIED');
       requireCondition(!context.signal?.aborted,'AI_IPC_CLOSED');
       const outbound = aiWorkerPayload(payload,fixed), deadline = Math.min(payload.local?.deadline,context.deadline ?? payload.local?.deadline);
-      requireCondition(Number.isSafeInteger(deadline) && deadline > clock() && deadline <= clock()+15000,'AI_IPC_DEADLINE_INVALID');
+      requireCondition(Number.isSafeInteger(deadline) && deadline > clock() && deadline <= clock()+AI_DEADLINE_MS,'AI_IPC_DEADLINE_INVALID');
       const channel = await openChannel(context.signal,deadline);
       const abort = () => channel.close(); context.signal?.addEventListener('abort',abort,{once:true});
       try {

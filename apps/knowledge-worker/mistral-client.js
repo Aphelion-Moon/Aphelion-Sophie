@@ -3,6 +3,7 @@ import { requireCondition, requireId, requireInteger } from '../../contracts/val
 import { validateAiOutput } from '../../modules/assistant/output.js';
 import { createAiOutputSchema, validateAiPrompt, freezeAiMaterial } from './prompt-contract.js';
 import { AI_REDACTION_VERSION, redactAiIdentifiers } from './redaction.js';
+import { AI_DEADLINE_MS } from '../../modules/assistant/participation.js';
 
 // A dated identifier, never a mutable "-latest" alias. Changing it is a provider change that needs requalification.
 export const MISTRAL_MODEL = 'mistral-small-2603';
@@ -29,7 +30,7 @@ export function mistralUsage(value) {
 }
 
 /** Release binding for the fixed request profile. It never includes the provider key. */
-export function mistralProfileHash({ acceptedFingerprints, maxPromptBytes = 32768, outputTokens = 384 }) {
+export function mistralProfileHash({ acceptedFingerprints, maxPromptBytes = 32768, outputTokens = 2048 }) {
   return createHash('sha256').update(JSON.stringify({schema:1,provider:'mistral',endpoint,model:MISTRAL_MODEL,
     redaction:AI_REDACTION_VERSION,cachePartition:'worker-private-hmac-v1',identity:'pinned-model-id-v1',
     maxPromptBytes,outputTokens,reasoning:'none',stream:false,temperature:0.4,responseFormat:'json_object',acceptedFingerprints:[...new Set(acceptedFingerprints)].sort()})).digest('hex');
@@ -41,11 +42,11 @@ export function mistralProfileHash({ acceptedFingerprints, maxPromptBytes = 3276
  * the worker runs only while the operator-approved list names the pinned model, and holds on any other
  * returned model. This detects an alias or model substitution, not a silent rebuild behind the same ID.
  */
-export function createMistralClient({ apiKey, fetchImpl = fetch, clock = Date.now, onUsage = () => {}, maxPromptBytes = 32768, outputTokens = 384,
+export function createMistralClient({ apiKey, fetchImpl = fetch, clock = Date.now, onUsage = () => {}, maxPromptBytes = 32768, outputTokens = 2048,
   acceptedFingerprints = [] }) {
   requireCondition(typeof apiKey === 'string' && /^[a-zA-Z0-9_-]{16,256}$/u.test(apiKey), 'AI_WORKER_KEY_REQUIRED');
   requireCondition([fetchImpl, clock, onUsage].every(fn => typeof fn === 'function'), 'TRUSTED_ADAPTERS_REQUIRED');
-  requireInteger(maxPromptBytes, 4096, 32768); requireInteger(outputTokens, 64, 512);
+  requireInteger(maxPromptBytes, 4096, 32768); requireInteger(outputTokens, 64, 2048);
   requireCondition(Array.isArray(acceptedFingerprints) && acceptedFingerprints.length <= 16 && acceptedFingerprints.every(value =>
     typeof value === 'string' && /^[a-zA-Z0-9._-]{1,96}$/u.test(value)), 'AI_IDENTITY_POLICY_INVALID');
   const fingerprints = new Set(acceptedFingerprints), preparedTurns = new WeakSet(), consumed = new WeakSet();
@@ -97,7 +98,7 @@ export function createMistralClient({ apiKey, fetchImpl = fetch, clock = Date.no
       const replyShape = contract.outcomes.includes('reply') ? ' A conversational reply looks like {"kind":"reply","text":"...","purpose":"conversation","support":"current_conversation","citations":[]}.' : '';
       selected.splice(selected.length - 1, 0, { role: 'system', content: `${guidance ? `${guidance}\n` : ''}Return one JSON object matching this turn's schema.${replyShape} Silence is {"kind":"silent"}. No markdown or extra fields.\n${JSON.stringify(schema)}` });
       const body = { model: MISTRAL_MODEL, messages: selected, prompt_cache_key: cacheKey, reasoning_effort: 'none',
-        stream: false, max_tokens: outputTokens, temperature: 0.4, response_format: { type: 'json_object' } };
+        stream: false, max_tokens: turnTokens(contract), temperature: 0.4, response_format: { type: 'json_object' } };
       const serialized = JSON.stringify(body), bytes = Buffer.byteLength(serialized, 'utf8');
       if (bytes <= maxPromptBytes) {
         const blocks = messages.flatMap((_message, index) => removed.has(index) || index === contractMessageIndex ? [] :
@@ -110,11 +111,13 @@ export function createMistralClient({ apiKey, fetchImpl = fetch, clock = Date.no
       for (const index of trimGroups[group++]) removed.add(index);
     }
   }
+  // A context's budget (owner decision, 23 October 2026), never more than the qualified profile's largest output.
+  const turnTokens = contract => Math.min(outputTokens, contract.outputTokens ?? 384);
   function prepared(value,started) {
     const result = freezeAiMaterial({ ...value,
-      outputTokens, estimateQuality: 'conservative-byte-estimate',
+      outputTokens: turnTokens(value.contract), estimateQuality: 'conservative-byte-estimate',
       diagnostics: value.blocks.map((block, index) => ({ ...block, bytes: Buffer.byteLength(value.messages[index].content, 'utf8') })),
-      comparison:{protocol:compareHash({...value.body,messages:undefined}),milliseconds:Math.max(0,Math.min(15000,clock()-started)),
+      comparison:{protocol:compareHash({...value.body,messages:undefined}),milliseconds:Math.max(0,Math.min(AI_DEADLINE_MS,clock()-started)),
         blocks:value.blocks.map((block,index)=>({kind:block.kind,digest:compareHash([block,value.messages[index]]),bytes:Buffer.byteLength(value.messages[index].content,'utf8')}))} });
     preparedTurns.add(result); return result;
   }
@@ -128,7 +131,7 @@ export function createMistralClient({ apiKey, fetchImpl = fetch, clock = Date.no
       const { body, contract, sources, serialized } = turn;
       consumed.add(turn);
       if (body === null) return { kind: 'silent' };
-      const started = clock(), abort = AbortSignal.any([signal, AbortSignal.timeout(Math.max(1, Math.min(14000, deadline - started)))]);
+      const started = clock(), abort = AbortSignal.any([signal, AbortSignal.timeout(Math.max(1, Math.min(AI_DEADLINE_MS - 1000, deadline - started)))]);
       active++; let reader, response, networkStarted = false, transportFailed = false;
       try {
         requireCondition(await beforeDispatch() === true && !abort.aborted && clock() < deadline, 'AI_DISPATCH_REVOKED');
@@ -167,10 +170,10 @@ export function createMistralClient({ apiKey, fetchImpl = fetch, clock = Date.no
         requireCondition(!abort.aborted && clock() < deadline, 'AI_DEADLINE_EXPIRED');
         requireCondition(responseBody.model === MISTRAL_MODEL && responseBody.choices?.length === 1 && responseBody.choices[0].finish_reason === 'stop', 'AI_FINAL_OUTPUT_REQUIRED');
         const message = responseBody.choices[0].message;
-        requireCondition(message?.role === 'assistant' && typeof message.content === 'string' && message.content.length <= 8192 &&
+        requireCondition(message?.role === 'assistant' && typeof message.content === 'string' && message.content.length <= 16384 &&
           !message.tool_calls?.length && !message.function_call && !message.reasoning_content, 'AI_FINAL_OUTPUT_REQUIRED');
         const output = validateAiOutput(JSON.parse(message.content), { outcomes: contract.outcomes, answerOnly: contract.answerOnly,
-          sources, emojiKeys: contract.emojiKeys, ...(contract.memoryLabels === undefined ? {} : { memoryLabels: contract.memoryLabels }) });
+          sources, emojiKeys: contract.emojiKeys, replyChars: contract.replyChars, ...(contract.memoryLabels === undefined ? {} : { memoryLabels: contract.memoryLabels }) });
         requireCondition(!abort.aborted && clock() < deadline, 'AI_DEADLINE_EXPIRED');
         return output;
       } catch {

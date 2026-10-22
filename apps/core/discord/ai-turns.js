@@ -138,7 +138,7 @@ export function createAiTurns({ admission, scheduler, context, knowledge, messag
       if (generated.state !== 'completed') { const state = ['expired', 'cancelled'].includes(generated.state) ? generated.state : 'unavailable'; await admission.settle(request, state); return { state, stage, reason: String(generated.state).toUpperCase() }; }
       stage = 'VALIDATE';
       const output = validateAiOutput(generated.result, { outcomes: request.decision.outcomes, answerOnly: request.decision.answerOnly,
-        sources, emojiKeys: request.config.emojis.map(emoji => emoji.key), ...(remembered === null ? {} : { memoryLabels: [...speakers.values()] }) });
+        sources, emojiKeys: request.config.emojis.map(emoji => emoji.key), replyChars: request.context?.replyChars ?? 1600, ...(remembered === null ? {} : { memoryLabels: [...speakers.values()] }) });
       if (output.kind === 'silent') { await admission.settle(request, 'silent'); await remember(request, speakers, output, remembered); return { state: 'silent', stage }; }
       stage = 'DELIVER';
       if (!await dependenciesCurrent(request, sources, history, saved, remembered) || !await admission.beginDelivery(request)) {
@@ -148,7 +148,7 @@ export function createAiTurns({ admission, scheduler, context, knowledge, messag
       // Deadline is propagated through the actual Discord request; no late-send queue or fallback destination.
       requireCondition(clock() < request.deadline, 'AI_DEADLINE_EXPIRED'); attempted = true;
       effect = output.kind === 'reply'
-        ? await messages.reply(request, renderAiReply(output, sources), dependencies, sources)
+        ? await messages.reply(request, renderAiReply(output, sources, { replyChars: request.context?.replyChars ?? 1600 }), dependencies, sources)
         : await messages.react(request, request.config.emojis.find(emoji => emoji.key === output.emojiKey), dependencies, sources);
       // A sent reply stays. It is withdrawn only by an explicit event (opt-out, departure, source edit or delete), which
       // marks its effect for cleanup even while this turn is still settling.

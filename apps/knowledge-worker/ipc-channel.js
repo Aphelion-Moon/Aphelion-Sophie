@@ -1,8 +1,9 @@
 import { createHash, createCipheriv, createDecipheriv, hkdfSync, randomBytes } from 'node:crypto';
 import { ContractError, requireCondition, requireKeys } from '../../contracts/validation.js';
+import { AI_DEADLINE_MS } from '../../modules/assistant/participation.js';
 
 const profiles=Object.freeze({
-  inference:{frame:1048576,total:2097152,messages:24,lifetime:15000,domain:'sophie-ai-ipc-v2'},
+  inference:{frame:1048576,total:2097152,messages:24,lifetime:AI_DEADLINE_MS,domain:'sophie-ai-ipc-v2'},
   control:{frame:8192,total:32768,messages:4,lifetime:5000,domain:'sophie-ai-control-v2'},
 });
 

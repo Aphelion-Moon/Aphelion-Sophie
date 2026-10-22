@@ -1,4 +1,5 @@
 import { requireCondition, requireInteger, requireKeys } from '../../contracts/validation.js';
+import { AI_DEADLINE_MS, AI_REPLY_LIMIT } from '../../modules/assistant/participation.js';
 import { MEMORY_PROPOSAL_LIMIT, MEMORY_SCOPES, MEMORY_SUBJECT_LIMIT, MEMORY_TEXT_LENGTH, validateMemoryLabels } from '../../modules/assistant/memories.js';
 
 const blockKinds=['authoring','example','evidence','history','memory','contract','question'];
@@ -8,7 +9,7 @@ export function validateAiComparison(value) {
   requireKeys(value,['protocol','blocks','milliseconds'],'AI_DIAGNOSTICS_INVALID');
   const hash=value=>typeof value==='string' && /^[a-f0-9]{64}$/u.test(value);
   requireCondition(hash(value.protocol) && Array.isArray(value.blocks) && value.blocks.length<=55,'AI_DIAGNOSTICS_INVALID');
-  requireInteger(value.milliseconds,0,15000);
+  requireInteger(value.milliseconds,0,AI_DEADLINE_MS);
   for(const block of value.blocks){
     requireKeys(block,['kind','digest','bytes'],'AI_DIAGNOSTICS_INVALID');
     requireCondition(blockKinds.includes(block.kind) && hash(block.digest),'AI_DIAGNOSTICS_INVALID');requireInteger(block.bytes,0,32768);
@@ -50,8 +51,10 @@ export function firstChangedAiBlock(previous, current) {
 
 /** Generation constraints do not replace core's independent output and authority checks. */
 export function createAiOutputSchema(contract) {
-  requireKeys(contract, ['outcomes', 'answerOnly', 'sourceIds', 'emojiKeys', ...(Object.hasOwn(contract ?? {}, 'memoryLabels') ? ['memoryLabels'] : [])], 'AI_OUTPUT_CONTRACT_INVALID');
-  const { outcomes, answerOnly, sourceIds, emojiKeys, memoryLabels } = contract;
+  const optional = ['memoryLabels', 'replyChars', 'outputTokens'].filter(key => Object.hasOwn(contract ?? {}, key));
+  requireKeys(contract, ['outcomes', 'answerOnly', 'sourceIds', 'emojiKeys', ...optional], 'AI_OUTPUT_CONTRACT_INVALID');
+  const { outcomes, answerOnly, sourceIds, emojiKeys, memoryLabels, replyChars = 1600, outputTokens = 384 } = contract;
+  requireInteger(replyChars, 300, AI_REPLY_LIMIT); requireInteger(outputTokens, 128, 2048);
   if (memoryLabels !== undefined) validateMemoryLabels(memoryLabels);
   requireCondition(Array.isArray(outcomes) && outcomes.length <= 3 && outcomes.includes('silent') &&
     new Set(outcomes).size === outcomes.length && outcomes.every(kind => ['silent','reply','react'].includes(kind)) &&
@@ -67,7 +70,7 @@ export function createAiOutputSchema(contract) {
   const oneOf = [object({ kind: { const: 'silent' } })];
   if (outcomes.includes('react') && emojiKeys.length) oneOf.push(object({ kind: { const: 'react' }, emojiKey: { enum: [...emojiKeys] } }));
   if (outcomes.includes('reply')) {
-    const common = { kind: { const: 'reply' }, text: { type: 'string', minLength: 1, maxLength: 1600 },
+    const common = { kind: { const: 'reply' }, text: { type: 'string', minLength: 1, maxLength: replyChars },
       purpose: { enum: answerOnly ? ['answer'] : ['answer', 'conversation'] } };
     if (!answerOnly) oneOf.push(object({ ...common, support: { enum: ['current_conversation','general_knowledge'] },
       citations: { type: 'array', maxItems: 0, items: { type: 'string' } } }));

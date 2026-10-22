@@ -38,7 +38,7 @@ test('SAI AT-07/13 disable completes callers promptly but holds an uncooperative
 test('SAI AT-13 expired turns reserve delivery time and do not begin inference', async () => {
   const scheduler = createAiScheduler({ execute: async () => assert.fail('expired work must not execute') });
   const now = Date.now(); assert.equal((await scheduler.submit(request('a', { receivedAt: now - 14000, deadline: now + 1000 }))).state, 'expired');
-  assert.throws(() => scheduler.submit(request('b', { receivedAt: now, deadline: now + 15001 })), /AI_DEADLINE_INVALID/);
+  assert.throws(() => scheduler.submit(request('b', { receivedAt: now, deadline: now + 30001 })), /AI_DEADLINE_INVALID/);
 });
 
 test('SAI AT-03 queued input is reauthorized immediately before model ingestion', async () => {

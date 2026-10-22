@@ -1,5 +1,5 @@
 import { requireCondition, requireInteger } from '../../../contracts/validation.js';
-import { canonicalAiConfiguration, participationDecision } from '../../../modules/assistant/participation.js';
+import { aiContextFor, canonicalAiConfiguration, participationDecision } from '../../../modules/assistant/participation.js';
 import { canonicalPersonality } from '../../../modules/assistant/personality.js';
 import { aiDigest } from './ai-controls.js';
 import { inTransaction } from './transaction.js';
@@ -73,7 +73,8 @@ export function createAiAdmission({ pool, guildId, ingress, inspectContext, insp
       const oldest = Math.min(...[context, member].map(value => Number.isSafeInteger(value.checkedAt) ? value.checkedAt : now));
       return skip(`OBSERVATION_STALE_${Math.min(99, Math.max(0, Math.floor((now - oldest) / 1000)))}S`);
     }
-    return { config, character, profile: channel.profile, deadline: event.receivedAt + config.deadlineMs,
+    const turnContext = aiContextFor(config, event.channelId);
+    return { config, character, profile: channel.profile, context: turnContext, deadline: event.receivedAt + turnContext.deadlineMs,
       capabilities: { reply: context.canReply, react: context.canReact },
       binding: { epoch: Number(state.epoch), configurationHash: configuration.sha256, personalityHash: personality.sha256,
         boundaryEpoch: Number(qualification.boundary_epoch), audienceHash: context.audienceHash, consentEpoch: Number(consent.epoch),

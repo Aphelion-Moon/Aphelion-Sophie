@@ -1,6 +1,7 @@
 import { createServer } from 'node:net';
 import { requireCondition, requireInteger } from '../../../contracts/validation.js';
 import { canonicalAiWorkerIdentity } from '../../knowledge-worker/ipc-contract.js';
+import { AI_DEADLINE_MS } from '../../../modules/assistant/participation.js';
 import { aiBootPipe, authenticateAiBootPipe } from '../../knowledge-worker/boot-pipe.js';
 import { createAiWorkerQualification } from '../../knowledge-worker/qualification.js';
 
@@ -65,7 +66,7 @@ export function createAiWorkerInbox({identity,key,qualified,revocationSignal,cre
     },
     async take({signal:requestSignal,deadline}) {
       requireCondition(phase==='listening' && requestSignal instanceof AbortSignal && waiters.length<capacity &&
-        Number.isSafeInteger(deadline) && deadline>Date.now() && deadline<=Date.now()+15000,'AI_WORKER_UNAVAILABLE');
+        Number.isSafeInteger(deadline) && deadline>Date.now() && deadline<=Date.now()+AI_DEADLINE_MS,'AI_WORKER_UNAVAILABLE');
       const timeout=new AbortController(),combined=AbortSignal.any([signal,requestSignal,timeout.signal]);
       // A connected worker always has an idle connection ready; a short wait covers its reconnection after a turn.
       const timer=setTimeout(()=>timeout.abort(),Math.max(1,Math.min(2000,deadline-Date.now())));let waiter=null,abort;

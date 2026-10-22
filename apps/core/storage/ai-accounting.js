@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto';
 import { requireCondition, requireId, requireInteger } from '../../../contracts/validation.js';
 import { canonicalAiBudget, aiBudgetPeriods, aiReservationNanos, aiUsageCostNanos } from '../../../modules/assistant/budget.js';
 import { inTransaction } from './transaction.js';
+import { AI_DEADLINE_MS } from '../../../modules/assistant/participation.js';
 
 export const AI_ACCOUNTING_RETENTION = Object.freeze({ resolvedDays:90, dailyDays:90, monthlyDays:400, batch:500, maxAttemptRows:200000 });
 
@@ -50,7 +51,7 @@ export function createAiAccounting({ pool, guildId }) {
         await lock(client); await expire(client);
         const at = await now(client), periods = aiBudgetPeriods(at);
         const active = (await client.query('SELECT * FROM sophie_ai.budget_policies WHERE guild_id=$1', [guildId])).rows[0];
-        if (!active || active.held || deadline <= at || deadline > at + 15000) return null;
+        if (!active || active.held || deadline <= at || deadline > at + AI_DEADLINE_MS) return null;
         const policy = canonicalAiBudget(active.document);
         if (policy.priceValidUntil === null || policy.priceValidUntil <= at) return null;
         const admitted = (await client.query(`SELECT r.* FROM sophie_ai.request_receipts r JOIN sophie_ai.state s USING(guild_id)

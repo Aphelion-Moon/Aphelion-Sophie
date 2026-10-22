@@ -22,7 +22,8 @@
 <section id="participation" class="panel case-panel" hidden><h2>Channels and reactions</h2><p class="section-intro">Where Sophie joins in and how often. Tickets and onboarding are always excluded.</p>
 <p id="active-state" class="muted"></p>
 <label class="check-field"><input id="desired-enabled" type="checkbox"> Request AI enabled</label><p class="field-hint">Saving a request does not activate an unqualified worker. Current release and audience checks must pass.</p>
-<label for="deadline">Maximum complete-response time, seconds</label><input id="deadline" type="number" min="1" max="15" value="15">
+<label for="deadline">Default response time, seconds</label><input id="deadline" type="number" min="1" max="30" value="15">
+<h3>Contexts</h3><p class="muted">Each channel belongs to one context, so Sophie knows what kind of room she is in. Staff channels also need their own qualification.</p><div id="contexts"></div>
 <h3>Channels</h3><p class="muted">New channels and threads are ignored until explicitly configured and qualified.</p><div id="channels"></div><button id="add-channel">Add channel</button>
 <h3>Approved social reactions</h3><p class="muted">Choose up to 16 reactions Sophie may use. Operational status symbols are reserved. Custom emojis must belong to this server and be available when she reacts.</p><div id="emojis"></div><button id="add-emoji">Add reaction</button>
 <details><summary>How participation works</summary><p>Each member chooses whether Sophie may process their messages. Tickets and onboarding are always excluded. New channels and threads are ignored until explicitly configured and qualified.</p><p>Restricted conversations need their own audience and worker qualification.</p></details>

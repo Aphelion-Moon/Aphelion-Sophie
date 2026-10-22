@@ -1,7 +1,7 @@
 import { createHash } from 'node:crypto';
 import { requireCondition, requireId, requireInteger, requireKeys } from '../../../contracts/validation.js';
 import { operatorGrant } from '../../../contracts/operator-grant.js';
-import { canonicalAiConfiguration } from '../../../modules/assistant/participation.js';
+import { canonicalAiConfiguration, defaultAiContexts } from '../../../modules/assistant/participation.js';
 import { canonicalPersonality } from '../../../modules/assistant/personality.js';
 import { inTransaction } from './transaction.js';
 import { canonicalAiBudget, DEFAULT_AI_BUDGET } from '../../../modules/assistant/budget.js';
@@ -123,7 +123,7 @@ export function createAiControls({ pool, guildId, authorize, inspectChannel, mem
       return {diagnostic:after.disabled || after.epoch!==before.epoch?null:diagnostic};
     },
     async current({ actor, kind }) {
-      publication(kind, kind === 'configuration' ? { schemaVersion: 1, enabled: false, deadlineMs: 15000, channels: [], emojis: [] } :
+      publication(kind, kind === 'configuration' ? { schemaVersion: 2, enabled: false, deadlineMs: 15000, channels: [], emojis: [], contexts: defaultAiContexts() } :
         kind === 'budget' ? DEFAULT_AI_BUDGET : { core: 'Sophie', examples: [] });
       return transaction(actor, capability(kind), async (client, state) => ({ publication: await current(client, kind),
         disabled: state.disabled, epoch: Number(state.epoch), activation: 'qualification-required' }));
