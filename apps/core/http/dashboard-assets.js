@@ -34,6 +34,8 @@ const assets = [
   ['/case-delivery', '../../dashboard/case-delivery.html', 'text/html; charset=utf-8'],
   ['/shuttle-assistance', '../../dashboard/shuttle-assistance.html', 'text/html; charset=utf-8'],
   ['/shuttle-delivery', '../../dashboard/shuttle-delivery.html', 'text/html; charset=utf-8'],
+  ['/activity', '../../dashboard/activity.html', 'text/html; charset=utf-8'],
+  ['/dashboard/activity-app.js', '../../dashboard/activity-app.js', 'text/javascript; charset=utf-8'],
   ...['assistance-app', 'assistance-controller', 'assistance-view', 'shuttle-delivery-app'].map(name => [`/dashboard/${name}.js`, `../../dashboard/${name}.js`, 'text/javascript; charset=utf-8']),
   ...['delivery-app', 'delivery-controller', 'delivery-view'].map(name => [`/dashboard/${name}.js`, `../../dashboard/${name}.js`, 'text/javascript; charset=utf-8']),
   ['/moderation', '../../dashboard/moderation.html', 'text/html; charset=utf-8'],

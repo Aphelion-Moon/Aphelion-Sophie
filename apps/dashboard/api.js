@@ -155,6 +155,8 @@ export function createDashboardApi({ fetch, navigate = path => globalThis.locati
     permissionRetryApplication: body => request('/api/permissions/retryApplication', body),
     systemWording: () => request('/api/system-wording'),
     saveSystemWording: body => request('/api/system-wording/save', body),
+    activityLayout: () => request('/api/activity-layout'),
+    publishActivityLayout: body => request('/api/activity-layout/publish', body),
     draft: (revision = null) => request(`/api/onboarding/draft${revision === null ? '' : `?revision=${number(revision)}`}`),
     history(kind, before = null) {
       if (!['drafts', 'publications'].includes(kind)) throw new DashboardFailure('invalid', 400);

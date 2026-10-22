@@ -123,7 +123,7 @@ async function server(overrides = {}) {
     async act(input) { calls.push(['act', input]); return { run: { stop: 1 }, queued: input.action === 'advance' }; },
     ...overrides.store };
   let woken = 0;
-  const http = createActivityHttpServer({ configuration: activityConfiguration(), applicationId: APP, port: 38125, assets, enabled: async () => true, onFault: code => calls.push(['fault', code]),
+  const http = createActivityHttpServer({ configuration: activityConfiguration(), applicationId: APP, guildId: GUILD, port: 38125, assets, channels: overrides.channels ?? null, enabled: async () => true, onFault: code => calls.push(['fault', code]),
     wake: () => { woken++; }, clock: () => NOW, pause: async () => {},
     auth: { signIn: async input => { calls.push(['signIn', input]); return { token: 'a'.repeat(64), accessToken: 'x', scopes: ['identify'], expiresIn: 3600 }; },
       authenticate: async token => { if (token !== 'a'.repeat(64)) throw new ContractError('ACTIVITY_SESSION_INVALID'); return { guildId: GUILD, userId: USER }; },
@@ -181,7 +181,7 @@ test('T-ACT-CORE-08 API routes: bearer sign-in, fresh member context, closed sha
     assert.equal((await request('/api/shuttle/act', { method: 'POST', body: { requestId: 'd'.repeat(32) }, headers: { 'content-type': 'text/plain' } })).status, 400);
     assert.equal((await request('/api/session/end', { method: 'POST' })).status, 204);
     assert.equal((await request('/api/unknown')).status, 404);
-    assert.deepEqual(await (await request('/api/config', { token: null })).json(), { applicationId: APP });
+    assert.deepEqual(await (await request('/api/config', { token: null })).json(), { applicationId: APP, guildId: GUILD });
   } finally { await http.close(); }
 });
 
@@ -202,4 +202,33 @@ test('T-ACT-CORE-09 refusals map to fixed words; transient Discord reads are ret
     assert.equal(response.status, 503); assert.deepEqual(await response.json(), { error: 'unavailable' });
     assert.deepEqual(broken.calls.filter(([name]) => name === 'fault'), [['fault', 'ACTIVITY_REQUEST_UNAVAILABLE']]);
   } finally { await broken.http.close(); }
+});
+
+test('T-ACT-CORE-10 run views carry visible channel links, arrival channels only once confirmed, and a channel failure never blocks the Shuttle', async () => {
+  const resolved = [], GENERAL = '100000000000000301', RIFT = '100000000000000302';
+  const channels = { async resolve(input) {
+    resolved.push(input);
+    return { mentions: { '#general': { id: GENERAL, name: 'general' } }, arrival: input.arrival?.length ? [{ id: RIFT, name: 'meridian-rift', note: 'SS 13' }] : [] };
+  } };
+  const view = (changes, curated = []) => Object.defineProperty({ stop: 4, whitelist: 'none', pages: ['Say hi in #general.'], ...changes }, 'arrivalChannels', { value: curated, enumerable: false });
+  let shown = view({});
+  const { http, request } = await server({ channels, store: { async describe() { return { state: 'run', run: shown }; } } });
+  try {
+    let body = await (await request('/api/shuttle')).json();
+    assert.deepEqual(body.run.channels, { '#general': { id: GENERAL, name: 'general' } });
+    assert.equal(body.run.arrival, undefined); assert.equal(resolved.at(-1).arrival, null); assert.equal(resolved.at(-1).userId, USER);
+    shown = view({ whitelist: 'confirmed' }, [{ channelId: RIFT, note: 'SS 13' }]);
+    body = await (await request('/api/shuttle')).json();
+    assert.deepEqual(body.run.arrival, [{ id: RIFT, name: 'meridian-rift', note: 'SS 13' }]);
+    assert.equal(JSON.stringify(body).includes('arrivalChannels'), false);
+    shown = view({ whitelist: 'confirmed' });
+    assert.deepEqual((await (await request('/api/shuttle')).json()).run.arrival, [{ id: GENERAL, name: 'general' }], 'without a curated list, the final stop\'s channels');
+  } finally { await http.close(); }
+  const failing = await server({ channels: { async resolve() { throw new Error('discord down'); } },
+    store: { async describe() { return { state: 'run', run: view({ whitelist: 'confirmed' }) }; } } });
+  try {
+    const body = await (await failing.request('/api/shuttle')).json();
+    assert.deepEqual(body.run.channels, {}); assert.deepEqual(body.run.arrival, []);
+    assert.deepEqual(failing.calls.filter(([name]) => name === 'fault'), [['fault', 'ACTIVITY_CHANNELS_UNAVAILABLE']]);
+  } finally { await failing.http.close(); }
 });

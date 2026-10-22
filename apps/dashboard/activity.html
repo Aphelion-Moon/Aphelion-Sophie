@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="color-scheme" content="dark">
+  <title>Activity layout · Sophie</title><link rel="stylesheet" href="/dashboard/styles.css"><script type="module" src="/dashboard/activity-app.js"></script>
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to content</a>
+  <header class="topbar"><div class="identity"><div><strong>Sophie</strong><span>Community Services</span></div></div>
+    <div class="header-actions"><label class="quiet"><input id="quiet" type="checkbox"> Quiet mode</label><button id="logout" class="subtle" hidden>Sign out</button></div></header>
+  <main id="main" tabindex="-1">
+    <nav class="service-nav" aria-label="Community Services"><!-- service-navigation --></nav>
+    <div class="page-heading"><div><p class="eyebrow">APHELION / COMMUNITY SERVICES</p><h1>Activity layout</h1><p class="intro">Choose the scene for each Shuttle stop, what each section stages, and the channels listed when a member arrives. This changes only what the Shuttle Activity draws and links. Discord access and the Shuttle copy stay as they are.</p></div></div>
+    <p id="notice" class="notice" role="status"></p><p id="error" class="error-box" role="alert" hidden></p>
+    <section id="gate" class="gate panel"><h2 id="gate-title">Loading your workspace…</h2><p>Guidance publishers can edit the Activity layout.</p><a id="signin" class="button primary" href="/auth/start" hidden>Sign in with Discord</a><button id="gate-retry">Try again</button></section>
+    <noscript><p class="error-box">This page needs JavaScript.</p></noscript>
+    <div id="workspace" class="activity-workspace" hidden>
+      <section class="panel"><h2>Stops</h2><p class="muted">Each stop shows its scene. A section can stage one of that scene’s moments and open a viewscreen. “Default” keeps the shipped choice.</p>
+        <div id="stops"></div></section>
+      <section class="panel"><h2>Arrival channels</h2>
+        <p class="muted">Listed on the arrival screen once Discord confirms Whitelist. Each member sees only the channels they can view at that moment. With no channels here, the arrival screen lists the channels the final stop names.</p>
+        <ol id="arrival" class="arrival-list"></ol><button id="add-channel">Add a channel</button><p id="arrival-validation" class="muted" role="status"></p></section>
+      <div class="actions"><button id="publish" class="primary">Publish layout</button><button id="reload">Reload published layout</button></div>
+    </div>
+  </main>
+</body>
+</html>

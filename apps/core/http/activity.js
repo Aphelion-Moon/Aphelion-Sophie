@@ -30,9 +30,9 @@ const OUTCOMES = [
  * in-memory bearer token, not cookies; each Shuttle request resolves the member through core principals, reads Discord
  * afresh and authorizes again in the store. Logs are fixed codes only. No AI, no ticket data, no case routes.
  */
-export function createActivityHttpServer({ configuration, applicationId, port, assets, auth, authorization, discord, store, enabled, onFault, wake = () => {}, clock = Date.now,
+export function createActivityHttpServer({ configuration, applicationId, guildId, port, assets, auth, authorization, discord, store, channels = null, enabled, onFault, wake = () => {}, clock = Date.now,
   pause = ms => new Promise(resolve => setTimeout(resolve, ms)) }) {
-  validateActivityConfiguration(configuration); requireId(applicationId);
+  validateActivityConfiguration(configuration); requireId(applicationId); requireId(guildId);
   requireCondition(assets instanceof Map && assets.has('/') && typeof auth?.signIn === 'function' && typeof authorization?.resolveActor === 'function' &&
     typeof discord?.observe === 'function' && typeof store?.describe === 'function' && typeof enabled === 'function' && typeof onFault === 'function' &&
     typeof wake === 'function', 'TRUSTED_ADAPTERS_REQUIRED');
@@ -71,9 +71,29 @@ export function createActivityHttpServer({ configuration, applicationId, port, a
   }
   const only = (value, keys) => requireCondition(Object.keys(value).length === keys.length && keys.every(key => Object.hasOwn(value, key)), 'ACTIVITY_BODY_INVALID');
   /** The member behind a request, resolved and observed afresh. */
-  async function member(request) {
+  /** The signed-in member's fresh context; `seen.userId` records who it is for the channel links. */
+  async function member(request, seen = {}) {
     const proof = await auth.authenticate(bearer(request));
+    seen.userId = proof.userId;
     return { actor: await authorization.resolveActor(proof), observation: await discord.observe(proof.userId) };
+  }
+  /**
+   * Channel links for a run: the channels its copy names, and after confirmation the arrival list (curated, or else the
+   * channels the final stop names), each only if the member can see it now. Never blocks the Shuttle.
+   */
+  async function withChannels(result, userId) {
+    const run = result?.run;
+    if (!run || channels === null) return result;
+    const confirmed = run.whitelist === 'confirmed';
+    try {
+      const found = await channels.resolve({ userId, pages: run.pages, arrival: confirmed ? run.arrivalChannels ?? [] : null });
+      run.channels = found.mentions;
+      if (confirmed) {
+        const named = [...new Map(Object.values(found.mentions).map(channel => [channel.id, { id: channel.id, name: channel.name }])).values()];
+        run.arrival = found.arrival.length ? found.arrival : named;
+      }
+    } catch { fault('ACTIVITY_CHANNELS_UNAVAILABLE'); run.channels = {}; if (confirmed) run.arrival = []; }
+    return result;
   }
   async function attempt(work) {
     for (let tries = 0; ; tries++) {
@@ -93,16 +113,19 @@ export function createActivityHttpServer({ configuration, applicationId, port, a
     }
     if (path === '/api/session/end' && request.method === 'POST') { auth.signOut(bearer(request)); send(response, 204, null); return; }
     if (path === '/api/shuttle' && request.method === 'GET') {
-      send(response, 200, await attempt(async () => store.describe(await member(request)))); return;
+      const seen = {}, result = await attempt(async () => store.describe(await member(request, seen)));
+      send(response, 200, await withChannels(result, seen.userId)); return;
     }
     if (path === '/api/shuttle/board' && request.method === 'POST') {
       const body = await readJson(request); only(body, ['requestId']);
-      const result = await attempt(async () => store.board({ ...await member(request), requestId: body.requestId }));
-      send(response, 200, { run: result.run }); return;
+      const seen = {}, result = await attempt(async () => store.board({ ...await member(request, seen), requestId: body.requestId }));
+      send(response, 200, { run: (await withChannels(result, seen.userId)).run }); return;
     }
     if (path === '/api/shuttle/act' && request.method === 'POST') {
       const body = await readJson(request); only(body, ['requestId', 'action', 'expectedVersion']);
-      const result = await attempt(async () => store.act({ ...await member(request), requestId: body.requestId, action: body.action, expectedVersion: body.expectedVersion }));
+      const seen = {}, result = await attempt(async () => store.act({ ...await member(request, seen), requestId: body.requestId, action: body.action,
+        expectedVersion: body.expectedVersion }));
+      await withChannels(result, seen.userId);
       // A recorded grant intent is delivered now rather than at the next interval.
       if (result.queued) wake();
       send(response, 200, { run: result.run }); return;
@@ -119,7 +142,7 @@ export function createActivityHttpServer({ configuration, applicationId, port, a
       serveFile(request, response, path); return;
     }
     // The public application ID the SDK needs; no member, token or Discord read involved.
-    if (path === '/api/config' && request.method === 'GET') { send(response, 200, { applicationId }); return; }
+    if (path === '/api/config' && request.method === 'GET') { send(response, 200, { applicationId, guildId }); return; }
     if (stopping || await enabled() !== true) { send(response, 503, { error: 'unavailable' }, { 'Retry-After': '30' }); return; }
     if (active >= MAX_ACTIVE) { send(response, 503, { error: 'retry' }, { 'Retry-After': '2' }); return; }
     active++;

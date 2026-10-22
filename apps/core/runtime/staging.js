@@ -44,6 +44,10 @@ import { createActivityAuth } from '../security/activity-auth.js';
 import { createActivityHttpServer } from '../http/activity.js';
 import { createShuttleActivityStore } from '../storage/shuttle-activity.js';
 import { loadActivityClient } from '../../activity/client-assets.js';
+import { loadActivityContent } from '../../activity/content.js';
+import { createActivityChannels } from '../discord/activity-channels.js';
+import { createActivityLayoutStore } from '../storage/activity-layout.js';
+import { createActivityLayoutHttp } from '../http/activity-layout.js';
 import { createDashboardPresentation } from '../http/dashboard-assets.js';
 import { createOnboardingAuthoringStore } from '../storage/onboarding-authoring.js';
 import { createOnboardingAuthoringHttp } from '../http/onboarding-authoring.js';
@@ -162,6 +166,8 @@ export async function createStagingRuntime({ configuration, pool, aiControlPool 
   const reconciler = createCaseReconciler({ store: createCaseInspectionStore({ pool, policy: fixed.casePolicy }), enabled });
   // No Shuttle work waits for Staff: parked Shuttle jobs are rechecked on their own (see recheckParkedShuttleWork).
   const shuttleOutbox = createOutbox({ pool });
+  // The shipped Activity content (default moments, scene beats, viewscreens), read once for the editor and run views.
+  const activityContent = auth !== null || activityAuth !== null ? await loadActivityContent(fileURLToPath(new URL('../../../', import.meta.url))) : null;
   let dashboard = null;
   if (auth !== null) {
     const browser = lane(), { authorization, roles } = browser;
@@ -218,16 +224,20 @@ export async function createStagingRuntime({ configuration, pool, aiControlPool 
       wording: createSystemWordingHttp({ auth, authorization, store: createSystemWordingStore({ pool, authorize: authorization.authorize, guildId: fixed.mapping.guildId, definitionId: fixed.definitionId }) }),
       authoring: createOnboardingAuthoringHttp({ auth, authorization, store: createOnboardingAuthoringStore({ pool, authorize: authorization.authorize,
         guildId: fixed.mapping.guildId, definitionId: fixed.definitionId }) }),
+      activityLayout: createActivityLayoutHttp({ auth, authorization, store: createActivityLayoutStore({ pool, authorize: authorization.authorize,
+        guildId: fixed.mapping.guildId, definitionId: fixed.definitionId, ...activityContent }) }),
       formAuthoring: createCaseFormAuthoringHttp({ auth, authorization, store: createCaseFormAuthoringStore({ pool, authorize: authorization.authorize, guildId: fixed.mapping.guildId }) }),
       presentation: await createDashboardPresentation() });
   }
   let activity = null, activityListening = false;
   if (activityAuth !== null) {
     const visitor = lane();
-    activity = createActivityHttpServer({ configuration: fixed.activity, applicationId: fixed.applicationId, port: fixed.activity.port,
+    activity = createActivityHttpServer({ configuration: fixed.activity, applicationId: fixed.applicationId, guildId: fixed.mapping.guildId, port: fixed.activity.port,
       assets: await loadActivityClient(fileURLToPath(new URL('../../../', import.meta.url))), auth: activityAuth,
       authorization: visitor.authorization, discord: visitor.roles, enabled, onFault: fault, wake: () => wake(), clock,
-      store: createShuttleActivityStore({ pool, clock, authorize: visitor.authorization.authorize, definitionId: fixed.definitionId, status: fixed.activity.status }) });
+      channels: createActivityChannels({ transport: visitor.transport, roles: visitor.roles, guildId: fixed.mapping.guildId, clock }),
+      store: createShuttleActivityStore({ pool, clock, authorize: visitor.authorization.authorize, definitionId: fixed.definitionId, status: fixed.activity.status,
+        defaults: activityContent.defaults }) });
   }
   const owner = `staging.${randomUUID()}`;
   let ticking = false, scheduled = false, wakeQueued = false;
