@@ -162,5 +162,5 @@ node scripts/author-shuttle-viewscreens.mjs
 ## Still open
 
 - Owner review of the fifth pass (the picked designs, the full-page title screen, the BLASTWAVE cycle, walk-behind
-  depth and the mothroaches) in the test Discord, once it is installed.
+  depth and the mothroaches) in the test Discord, installed as `ceb46cb`.
 - None for sound: SC-07 (the launch roll) is approved, so every scene cue has its sound.

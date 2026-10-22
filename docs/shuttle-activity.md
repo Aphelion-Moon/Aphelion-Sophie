@@ -228,8 +228,10 @@ Activity and in channels, read the story; runs already in progress keep version 
 
 The fifth pass (the owner's picks from a design picker for nearly every asset, walk-behind depth, mothroaches, the
 BLASTWAVE fire cycle, the full-page title screen with the menu in a terminal window, the launch post's new wording,
-and story fixes: no button name for the last step, no unused entry part) is built and tested offline. It is not
-installed, and its story copy is not published yet; both need owner approval.
+and story fixes: no button name for the last step, no unused entry part) is built, tested offline and installed as
+`sophie-mistral-ceb46cb` (source-only, 18:55 UTC, owner approval). Its fixed story copy is published as Shuttle
+version 4 (18:57 UTC) with the host-only command; runs already in progress keep version 3. The owner re-posts the
+launch post with `/whitelist post` to show the new wording.
 
 Not yet checked: mobile clients, and whether Discord opens `discord.com/channels` links inside the app.
 

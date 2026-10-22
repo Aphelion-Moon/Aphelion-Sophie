@@ -1610,4 +1610,14 @@ against other ASCII art, with an artifact to pick between designs; and similar p
 - **Launch post.** New default wording in Sophie's voice; the banner stays (the owner kept the current one in the
   picker, after first asking for a new one); one Board the Shuttle button.
 
-The owner approved the plan; installing the build and publishing the story as version 4 each need their own approval.
+The owner approved the plan; installing the build and publishing the story as version 4 each needed their own
+approval.
+
+- **Installed and published.** On the owner's approval ("Approved: install the fifth pass (source-only update) in the
+  test Discord, then publish the fixed story as Shuttle version 4 with the host-only command."):
+  - `ceb46cb` was installed at 18:55 UTC: 15 files, no migration, route, service or configuration change; core was
+    down 33 seconds and all checks passed;
+  - the host-only command published the story as Shuttle version 4 (`887fddc7…`) at 18:57 UTC, with the owner as
+    author; runs in progress keep version 3.
+
+  Folder `.agent_docs/aphelion-sophie/deployment-ceb46cb-2026-10-22`.

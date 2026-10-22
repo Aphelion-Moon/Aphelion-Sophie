@@ -1,5 +1,34 @@
 # Verification and release limits
 
+## Staging install of ceb46cb and the story's version 4 — 22 October 2026 (schema 075)
+
+Owner approval: "Approved: install the fifth pass (source-only update) in the test Discord, then publish the fixed
+story as Shuttle version 4 with the host-only command." Folder `deployment-ceb46cb-2026-10-22`, adapted from
+`cf0c125`.
+
+- **Offline:** see the fifth pass below (`npm test` 787, repository check, storage 1029, none failed).
+- **Install.**
+  - 706 pinned files were verified against Git, and the installed `cf0c125` against its trusted manifest.
+  - 15 files were written, all changed and none new: the Activity page, stylesheet, `shuttle.js` and
+    `presenter.js`, the scene player, the scene module, the eight scenes and `contracts/system-messages.json`. None
+    were removed. No migration, configuration, credential, route, listener, service or schedule change.
+  - Recovery point `D:Backupssophie-stagingsource-only-ceb46cb-20261022` preserved.
+  - Core and the worker stopped at 18:55:05 UTC and were running again by 18:55:38 UTC.
+  - Pre-start (trust v2 for `sophie-mistral-ceb46cb`), boundary, installation (65 checks, including the 14 changed
+    Activity files served byte for byte and core's messages answering 404) and dashboard checks passed.
+- **Public.** `onboarding.a13.info` serves the page and the 14 changed Activity files byte for byte against the pinned
+  source, `/api/config` answers, and `/api/shuttle` answers 401. The publishing command, its module and core's
+  messages answer 404 on `onboarding.a13.info` and `sophie.a13.info`.
+- **Story version 4,** with the host-only command and the owner as author:
+  - status first: draft revision 3 and version 3 published, as recorded;
+  - saved draft revision 4 (`b5be96be…`), which the review found valid: version 4, five stages with 3, 2, 2, 2 and 2
+    messages; version 3 had 1 run in progress and 1 complete;
+  - published revision 4 as Shuttle version 4 (`887fddc7…`) at 18:57:27 UTC, expecting version 3 published;
+  - both hashes equal those recomputed from the committed `content/onboarding/story-draft.json`;
+  - existing runs keep version 3.
+
+Not checked yet: the owner's review in the test Discord, and the re-posted launch post.
+
 ## Shuttle Activity fifth pass: picked designs, full-page title and depth — 22 October 2026 (schema 075, built offline)
 
 Owner review of the fourth pass and the approved plan (decision log, "Shuttle Activity fifth pass"). Covers the owner's

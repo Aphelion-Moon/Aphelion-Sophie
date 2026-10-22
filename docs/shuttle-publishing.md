@@ -51,6 +51,8 @@ Each publication is still a recorded owner approval. Withdrawing a version stays
 - Installed as `sophie-mistral-cf0c125` on 22 October 2026 (16:57 UTC).
 - First used the same day to publish the story copy: draft revision 3 became Shuttle version 3 at 17:00 UTC, with the
   owner as author. See verification.md.
+- Used again after `ceb46cb` was installed: draft revision 4 (the story without button names for the last step)
+  became Shuttle version 4 at 18:57 UTC.
 
 ## Tests
 
