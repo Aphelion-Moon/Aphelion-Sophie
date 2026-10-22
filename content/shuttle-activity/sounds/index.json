@@ -218,6 +218,18 @@
       "loop": null
     },
     {
+      "cue": "SC-07",
+      "name": "Launch roll",
+      "group": "scenes",
+      "plays": "The shuttle rolling out on the launch rail and lifting off, under the forward view.",
+      "kind": "oneshot",
+      "opus": "sc-07-launch-roll.opus",
+      "mp3": "sc-07-launch-roll.mp3",
+      "seconds": 7,
+      "samples": 336000,
+      "loop": null
+    },
+    {
       "cue": "SC-08",
       "name": "The bump",
       "group": "scenes",

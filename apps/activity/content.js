@@ -7,9 +7,9 @@ import { ACTIVITY_STOP_SCENES } from '../../modules/onboarding/activity.js';
 /**
  * Story-pass sound cues the owner is still choosing (the Story Sound Picker, 22 October 2026). A scene may name one
  * before its file exists; until then it plays nothing. Each moves into sounds/index.json once picked and encoded.
- * SC-07 (the launch roll) is in its second round; the other sixteen were picked and encoded on 22 October.
+ * All of them, SC-07 (the launch roll) last, were picked and encoded on 22 October, so none is pending now.
  */
-export const PENDING_SOUND_CUES = Object.freeze(['SC-07']);
+export const PENDING_SOUND_CUES = Object.freeze([]);
 
 /**
  * The shipped Shuttle Activity content core needs beside the client files: the default moments, each scene's beats

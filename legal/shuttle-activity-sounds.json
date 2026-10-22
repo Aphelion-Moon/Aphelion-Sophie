@@ -3,7 +3,7 @@
   "selectedAt": "2026-10-21",
   "ownerDecision": "docs/decisions/0001-owner-policy.md (The Shuttle becomes an Activity, D10; Shuttle Activity sounds chosen; The Shuttle as a story, 22 October 2026)",
   "policy": "Audio assets only: CC0 1.0 and CC BY 3.0/4.0. NC, ND, SA and unclear licences are excluded. Each bundled file is pinned with its SHA-256; CC BY sounds are credited on the Credits screen and in legal/THIRD-PARTY-NOTICES, with any changes stated.",
-  "selection": "The owner chose one option per cue in a private picker page on 21 October 2026, and the story's cues (with a new AMB-06 for the arrival concourse) in a second private picker on 22 October 2026; those sounds carry selectedAt. Licences were read from each sound's own page on the day it was chosen. SC-07 (the launch roll) is still being chosen.",
+  "selection": "The owner chose one option per cue in a private picker page on 21 October 2026, and the story's cues (with a new AMB-06 for the arrival concourse) in a second private picker on 22 October 2026; those sounds carry selectedAt. Licences were read from each sound's own page on the day it was chosen. SC-07 (the launch roll) was chosen in a second round the same day, after the owner turned down the first options.",
   "status": "Originals verified (see each file). Converted to Ogg Opus with MP3 fallbacks by scripts/build-shuttle-sounds.mjs; outputs and their hashes are listed per cue. Owner review is recorded under \"review\".",
   "review": {
     "result": "Approved on 21 October 2026: all 24 sounds of that selection, with no requested changes. AMB-06 (New laboratory) was then replaced by the owner's 22 October pick, which is approved with the story's sounds below.",
@@ -36,6 +36,13 @@
       "at": "2026-10-22",
       "method": "Private audition page playing the outputs of the 22 October build in both formats, with loops played between their markers and a seam check.",
       "approvedOutputs": "The output hashes listed for these cues on 22 October 2026; the rebuild that produced them reproduced the 23 unchanged outputs approved on 21 October."
+    },
+    "awaiting": {
+      "cues": [
+        "SC-07"
+      ],
+      "since": "2026-10-22",
+      "note": "Picked by the owner in the second round on 22 October 2026 and encoded by the same script and edit method. Not auditioned yet, so not approved for install."
     }
   },
   "encoding": {
@@ -1115,6 +1122,65 @@
           "lameVbrQuality": 4
         }
       }
+    },
+    {
+      "cue": "SC-07",
+      "name": "Launch roll",
+      "plays": "The shuttle rolling out on the launch rail and lifting off, under the forward view.",
+      "source": "Freesound",
+      "soundId": 338367,
+      "title": "Deep 04 low rumbling, drone",
+      "author": "cabled_mess",
+      "page": "https://freesound.org/people/cabled_mess/sounds/338367/",
+      "licence": "CC0-1.0",
+      "licenceUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+      "selectedAt": "2026-10-22",
+      "seconds": 12.468,
+      "upload": {
+        "format": "Wave (.wav)",
+        "channels": "Stereo",
+        "sampleRate": "44.1 kHz",
+        "bitDepth": "24 bit",
+        "duration": "0:12.467",
+        "listedSize": "3.1 MB"
+      },
+      "attribution": null,
+      "file": {
+        "fetched": true,
+        "receivedAt": "2026-10-22",
+        "name": "338367__cabled_mess__deep-04-low-rumbling-drone.wav",
+        "bytes": 3299050,
+        "sha256": "8cf9f83fea16754cea6df929f4267574d970ec9354e3f2d14051349c5789e734",
+        "measured": {
+          "format": "WAV",
+          "channels": 2,
+          "sampleRate": 44100,
+          "bitDepth": 24,
+          "seconds": 12.468
+        },
+        "hashSource": "Computed on receipt on 22 October 2026; the owner sent this file without a hash list."
+      },
+      "outputs": {
+        "opus": {
+          "path": "content/shuttle-activity/sounds/sc-07-launch-roll.opus",
+          "bytes": 76760,
+          "sha256": "f5748bb85c4bce6962e141642423edc70c1e2b7e396f8575aa745e40357bd2d7",
+          "seconds": 7,
+          "kbps": 96
+        },
+        "mp3": {
+          "path": "content/shuttle-activity/sounds/sc-07-launch-roll.mp3",
+          "bytes": 44160,
+          "sha256": "141ba45032b1e41cafa261e82a005c563b529c4628f860bf3b6895d8085e26f7",
+          "seconds": 7,
+          "lameVbrQuality": 4
+        }
+      },
+      "changes": [
+        "Converted to Ogg Opus and MP3 at 48 kHz.",
+        "Cut to 7 s starting at 0 s, with 600 ms fade-in and 2000 ms fade-out.",
+        "Level lowered by 1.6 dB."
+      ]
     },
     {
       "cue": "SC-08",
