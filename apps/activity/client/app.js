@@ -4,6 +4,7 @@ import { createSoundboard } from './audio.js';
 import { connectDiscord, insideDiscord } from './discord.js';
 import { SCENE_BACKGROUND, SCENE_PALETTE } from './palette.js';
 import { createShuttle } from './shuttle.js';
+import { createViewscreens } from './viewscreen.js';
 
 /** Browser wiring for the Shuttle Activity (P43): real fetch, Web Audio, animation frames, storage and Discord. */
 const SOUND_BASE = '/content/shuttle-activity/sounds/';
@@ -22,16 +23,18 @@ const index = await json(`${SOUND_BASE}index.json`).catch(() => ({ sounds: [], s
 const sound = createSoundboard({ index, base: SOUND_BASE, createContext: () => new AudioContext({ latencyHint: 'interactive' }),
   canPlayOpus: new Audio().canPlayType('audio/ogg; codecs=opus') !== '',
   fetchBytes: async path => { const response = await fetch(path); if (!response.ok) throw new Error('SOUND_UNAVAILABLE'); return response.arrayBuffer(); } });
+const viewscreens = createViewscreens({ canvas: document.getElementById('viewscreen-art'), palette: SCENE_PALETTE, background: SCENE_BACKGROUND,
+  pixelRatio: () => Math.min(2, globalThis.devicePixelRatio || 1), load: id => json(`/content/shuttle-activity/viewscreens/${id}.json`) });
 const reduce = globalThis.matchMedia?.('(prefers-reduced-motion: reduce)');
 const timers = {
   now: () => performance.now(),
   after: (ms, fn) => setTimeout(fn, ms), every: (ms, fn) => setInterval(fn, ms), clear: handle => { clearTimeout(handle); clearInterval(handle); },
   frame: fn => requestAnimationFrame(fn), cancelFrame: handle => { if (handle !== undefined) cancelAnimationFrame(handle); },
 };
-shuttle = createShuttle({ document, api, player, loadScene, sound, storage, timers, reducedMotion: () => reduce?.matches === true,
+shuttle = createShuttle({ document, api, player, loadScene, sound, storage, timers, viewscreens, reducedMotion: () => reduce?.matches === true,
   async connect(handlers) {
     if (!insideDiscord(location.search)) return null;
-    const { applicationId } = await api.config();
-    return connectDiscord({ applicationId, api, ...handlers });
+    const { applicationId, guildId } = await api.config();
+    return connectDiscord({ applicationId, guildId, api, ...handlers });
   } });
 await shuttle.start();

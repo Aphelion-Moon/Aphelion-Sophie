@@ -1,43 +1,58 @@
-import { TEXT, dialogueControls, presence, sceneStateFor, soundscape, titleMenu, transmissionChunks } from './presenter.js';
+import { ANNOUNCEMENTS, CODEX, KEYS, TEXT, TIPS, cueEvent, cueSheet, dialogueControls, linkState, momentFor, presence, sceneStateFor, soundscape,
+  titleMenu, transmissionChunks } from './presenter.js';
 import { parseMarkdown, plainText, renderMarkdown } from './markdown.js';
 
 const SETTINGS_KEY = 'shuttle.settings.v1';
-const DEFAULT_SETTINGS = Object.freeze({ levels: { music: 60, ambience: 70, radio: 80, effects: 80 }, sound: 'on', motion: 'system', text: 'typed', size: 'normal' });
-const TYPE_CPS = 90, POLL_MS = 5_000, POLL_LIMIT_MS = 10 * 60_000, RETRY_AFTER_MS = 120_000;
-// Sophie's radio comes in at the start of each stage she speaks in and trails off after this long (owner feedback,
-// 22 October 2026); text ticks, at most this often, stop with her while the text keeps typing.
-const SPEECH_MS = 2_400, TICK_MS = 110;
+const DEFAULT_SETTINGS = Object.freeze({ levels: { master: 100, music: 60, ambience: 70, radio: 80, effects: 80 }, sound: 'on', motion: 'system',
+  text: 'typed', speed: 'normal', size: 'normal' });
+const TYPE_CPS = Object.freeze({ slow: 45, normal: 90, fast: 180 });
+const POLL_MS = 5_000, POLL_LIMIT_MS = 10 * 60_000, RETRY_AFTER_MS = 120_000;
+// Text ticks, at most this often, sound only while Sophie speaks: briefly at each stage and page (owner feedback,
+// 22 October 2026). The rest of the copy types out quietly.
+const TICK_MS = 110, WIPE_MS = 400, BANNER_MS = 4_500, TIP_MS = 12_000, CLOWN_MS = 6_000, LOG_LIMIT = 80, SWIPE_PX = 60;
+const KONAMI = Object.freeze(['ArrowUp', 'ArrowUp', 'ArrowDown', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'ArrowLeft', 'ArrowRight', 'b', 'a']);
+const SHEETS = Object.freeze(['settings', 'credits', 'codex', 'log', 'keys']);
 
 /**
  * The Shuttle Activity's front end (P43): a title screen, Sophie's radio transmissions over the stop scenes, and the
  * arrival door. Every platform piece is passed in, so the same code runs in Discord's frame and in a local preview.
- * The server decides every state; this only shows it. The door opens only when the server reports Whitelist confirmed.
+ * The server decides every state; this only shows it. The door opens only when the server reports Whitelist confirmed,
+ * and arrival channels are only those core reported the member can see.
  */
-export function createShuttle({ document, api, connect, player, loadScene, sound, storage, timers, reducedMotion = () => false }) {
+export function createShuttle({ document, api, connect, player, loadScene, sound, storage, timers, viewscreens = null, reducedMotion = () => false,
+  random = Math.random }) {
   const $ = id => document.getElementById(id);
   const root = $('shuttle');
   let view = 'splash', described = null, run = null, chunks = [''], chunk = 0, busy = false, started = false, linked = false;
   let discord = null, typing = null, poll = null, pendingSince = null, toastTimer = null, speechTimer = null, talking = false;
+  let currentScene = null, cues = [], cueHandlers = {}, sectionScreen = null, bannerTimer = null, transitTimer = null, tipTimer = null;
+  let tip = Math.floor(random() * TIPS.length), konamiAt = 0, log = [], swipe = null, lastSwipe = -Infinity;
   let settings = loadSettings();
 
   function loadSettings() {
-    try { const saved = JSON.parse(storage?.getItem(SETTINGS_KEY) ?? 'null'); if (saved && typeof saved === 'object') return { ...DEFAULT_SETTINGS, ...saved, levels: { ...DEFAULT_SETTINGS.levels, ...saved.levels } }; }
-    catch { /* Private window or blocked storage: defaults. */ }
+    try {
+      const saved = JSON.parse(storage?.getItem(SETTINGS_KEY) ?? 'null');
+      if (saved && typeof saved === 'object') return { ...DEFAULT_SETTINGS, ...saved, levels: { ...DEFAULT_SETTINGS.levels, ...saved.levels } };
+    } catch { /* Private window or blocked storage: defaults. */ }
     return structuredClone(DEFAULT_SETTINGS);
   }
   function saveSettings() { try { storage?.setItem(SETTINGS_KEY, JSON.stringify(settings)); } catch { /* Not essential. */ } }
+  const motionOn = () => settings.motion === 'system' ? !reducedMotion() : settings.motion === 'on';
   function applySettings() {
     for (const [group, value] of Object.entries(settings.levels)) {
+      if (group === 'master') { sound.setMaster(value / 100); continue; }
       for (const target of group === 'effects' ? ['interface', 'scenes'] : [group]) sound.setLevel(target, value / 100);
     }
     sound.setMuted(settings.sound === 'off');
-    const motion = settings.motion === 'system' ? !reducedMotion() : settings.motion === 'on';
+    const motion = motionOn();
     player.setMotion(motion); root.dataset.motion = motion ? 'on' : 'off'; root.dataset.textSize = settings.size;
   }
 
   function show(next) {
     view = next; root.dataset.view = next;
     for (const id of ['splash', 'title', 'radio']) $(id).hidden = id !== next;
+    if (next !== 'radio') closeViewscreen(true);
+    if (next === 'radio') { timers.clear(tipTimer); tipTimer = null; }
   }
   function signal(state) {
     const element = $('signal'); element.dataset.state = state;
@@ -47,24 +62,73 @@ export function createShuttle({ document, api, connect, player, loadScene, sound
     const element = $('toast'); element.textContent = text; element.hidden = false;
     timers.clear(toastTimer); toastTimer = timers.after(ms, () => { element.hidden = true; });
   }
+  function showTip() { for (const element of document.querySelectorAll('[data-tip]')) element.textContent = `${TEXT.tip}: ${TIPS[tip % TIPS.length]}`; }
+  function rotateTips() {
+    showTip(); timers.clear(tipTimer);
+    tipTimer = timers.every(TIP_MS, () => { tip++; showTip(); });
+  }
   async function scene(id, state) {
-    try { player.setScene(await loadScene(id)); } catch { /* Keep the last scene; the copy still shows. */ }
+    try { player.setScene(await loadScene(id)); currentScene = id; } catch { /* Keep the last scene; the copy still shows. */ }
     player.setState(state);
   }
+  /** A short static wipe between two scenes; the swap happens behind it. None with motion off. */
+  function swapScene(id, loaded, state) {
+    const swap = () => { if (loaded) { try { player.setScene(loaded); currentScene = id; } catch { /* Keep the last scene. */ } } player.setState(state()); };
+    if (!loaded || id === currentScene || !motionOn()) { swap(); return; }
+    const stage = $('stage'); stage.dataset.wipe = 'on';
+    timers.after(WIPE_MS / 2, swap); timers.after(WIPE_MS, () => { delete stage.dataset.wipe; });
+  }
+  function banner(text) {
+    if (!text) return;
+    const element = $('banner'); element.textContent = text; element.hidden = false;
+    timers.clear(bannerTimer); bannerTimer = timers.after(BANNER_MS, () => { element.hidden = true; });
+  }
+
+  // Cue sheets: sounds, scene changes and Sophie's radio filter in one after another ------------------------------------
+  function runCues(steps, handlers = {}) {
+    cancelCues(); cueHandlers = handlers;
+    for (const step of steps) {
+      const entry = { step, handle: null };
+      entry.handle = timers.after(step.at, () => { cues = cues.filter(item => item !== entry); perform(step); });
+      cues.push(entry);
+    }
+  }
+  function cancelCues() { for (const entry of cues) timers.clear(entry.handle); cues = []; }
+  function perform(step) {
+    if (step.action === 'play') sound.play(step.value);
+    else if (step.action === 'ambience') sound.ambience(step.value, step.fades);
+    else if (step.action === 'music') sound.music(step.value, step.fades);
+    else if (step.action === 'transit') showTransit(step.value);
+    else if (step.action === 'speak') speakBriefly(step.value);
+    else cueHandlers[step.action]?.();
+  }
+  /** Skipping ahead: the scene, the sound beds, Sophie and the text arrive now; one-shot sounds and the ride are dropped. */
+  function flushCues() {
+    const rest = cues; cancelCues(); hideTransit();
+    for (const { step } of rest) if (step.action !== 'play' && step.action !== 'transit') perform(step);
+  }
+  const revealing = () => cues.some(entry => entry.step.action === 'reveal' || entry.step.action === 'transition');
+  function showTransit(ms) {
+    if (!run) return;
+    $('transit-text').textContent = `${TEXT.transit} · Stop ${run.stop + 1}/${run.stops.length}`;
+    $('transit').hidden = false;
+    timers.clear(transitTimer); transitTimer = timers.after(ms, hideTransit);
+  }
+  function hideTransit() { timers.clear(transitTimer); transitTimer = null; $('transit').hidden = true; }
 
   // Title screen ---------------------------------------------------------------------------------------------------
   async function showTitle() {
-    stopPolling(); stopTyping(); show('title'); run = null;
-    const state = described?.state === 'run' ? sceneStateFor(described.run) : { whitelist: described?.whitelist ?? 'none', stopNumber: 0, stopCount: 0 };
-    await scene('hangar-viewport', state);
-    const sounds = soundscape('title'); sound.ambience(sounds.ambience); sound.music(sounds.music); speaking(false);
-    renderMenu(); discord?.setPresence(presence(null));
+    stopPolling(); stopTyping(); cancelCues(); hideTransit(); speaking(false); show('title'); run = null;
+    const state = described?.state === 'run' ? sceneStateFor(described.run) : { whitelist: described?.whitelist ?? 'none', stopNumber: 0, stopCount: 0, beat: 'none' };
+    await scene('hangar-viewport', { ...state, link: linkState(described) });
+    runCues(cueSheet('title'));
+    renderMenu(); rotateTips(); discord?.setPresence(presence(null));
   }
   function renderMenu() {
-    const menu = titleMenu(described), list = $('menu');
+    const menu = titleMenu(described, { log: log.length > 0 }), list = $('menu');
     list.replaceChildren(...menu.items.map((item, index) => {
       const button = document.createElement('button');
-      button.type = 'button'; button.className = `menu-item${index === 0 && !['settings', 'credits'].includes(item.id) ? ' primary' : ''}`;
+      button.type = 'button'; button.className = `menu-item${index === 0 && !SHEETS.includes(item.id) ? ' primary' : ''}`;
       button.textContent = item.label; button.dataset.action = item.id;
       button.addEventListener('click', () => choose(item.id));
       button.addEventListener('focus', () => sound.play('UI-01'));
@@ -76,49 +140,102 @@ export function createShuttle({ document, api, connect, player, loadScene, sound
   }
   async function choose(id) {
     if (busy) return;
-    if (id === 'settings' || id === 'credits') { sound.play('UI-02'); openSheet(id); return; }
+    if (SHEETS.includes(id)) { sound.play('UI-02'); openSheet(id); return; }
     if (id === 'board') {
       sound.play('UI-02');
-      await guarded(async () => { const { run: next } = await api.board(); sound.play('SC-01'); await enterRun(next); });
+      await guarded(async () => { const { run: next } = await api.board(); log = []; await enterRun(next); });
       return;
     }
-    if ((id === 'resume' || id === 'arrival') && described?.run) { sound.play('UI-02'); sound.play('SC-01'); await enterRun(described.run); }
+    if ((id === 'resume' || id === 'arrival') && described?.run) { sound.play('UI-02'); await enterRun(described.run); }
   }
 
   // Sophie's radio -------------------------------------------------------------------------------------------------
   function sceneFor(next) {
     return next.status === 'pending' || next.status === 'boarded' ? 'pressure-door' : next.stops[next.stop]?.scene ?? 'departure-lounge';
   }
+  const momentNow = () => run?.status === 'reading' ? momentFor(chunks, chunk, run.moments ?? {}) : { beat: 'none', viewscreen: null };
+  const stateNow = () => sceneStateFor(run, chunk, chunks.length, momentNow().beat);
+  /**
+   * Shows a run from the server. A new stop, clearance or arrival plays its cue sheet: the scene changes behind a wipe
+   * (after the ride between stops, when motion is on), the sound beds cross-fade, then Sophie comes in with the text.
+   */
   async function enterRun(next, { atEnd = false } = {}) {
     const previous = run; run = next;
     chunks = transmissionChunks(run.pages); chunk = atEnd ? chunks.length - 1 : 0;
-    show('radio');
-    await scene(sceneFor(run), sceneStateFor(run, chunk, chunks.length));
-    const sounds = soundscape('run', run); sound.music(sounds.music); sound.ambience(sounds.ambience);
-    if (!previous || previous.stop !== run.stop || previous.status !== run.status) { sound.play('DLG-03'); speakBriefly(); }
-    renderTransmission(); discord?.setPresence(presence(run));
+    const event = cueEvent(previous, run), sceneId = sceneFor(run);
+    show('radio'); discord?.setPresence(presence(run));
     if (run.status === 'pending') startPolling(); else stopPolling();
-    if (run.status === 'boarded' && run.whitelist === 'confirmed' && previous?.status !== 'boarded') {
-      sound.play('SC-05'); timers.after(500, () => sound.play('SC-04'));
-    }
+    preloadAhead();
+    if (event === null) { await scene(sceneId, stateNow()); renderTransmission(); return; }
+    sectionScreen = null; closeViewscreen(true); holdTransmission();
+    const loaded = loadScene(sceneId).catch(() => null);
+    const transit = event === 'stop' && previous?.status === 'reading' && run.stop > previous.stop && motionOn();
+    runCues(cueSheet(event, run, { transit }), {
+      transition: async () => { swapScene(sceneId, await loaded, stateNow); if (event === 'stop') banner(ANNOUNCEMENTS[sceneId]); },
+      reveal: renderTransmission,
+    });
+  }
+  function preloadAhead() {
+    const following = run.stops[run.stop + 1];
+    if (run.status === 'reading') loadScene(following?.scene ?? 'pressure-door').catch(() => {});
+    if (following) { const { ambience } = soundscape('run', { ...run, stop: run.stop + 1 }); if (ambience) sound.preload([ambience]); }
+    if (run.stop >= run.stops.length - 1) sound.preload(['SC-04', 'SC-05', 'AMB-06', 'MUS-02']);
   }
   function transmissionText() {
     if (run.status === 'reading') return chunks[chunk];
-    if (run.status === 'pending') return pendingSince !== null && timers.now() - pendingSince > RETRY_AFTER_MS ? `${TEXT.pending}\n\n${TEXT.pendingLong}` : TEXT.pending;
+    if (run.status === 'pending') {
+      return `${pendingSince !== null && timers.now() - pendingSince > RETRY_AFTER_MS ? `${TEXT.pending}\n\n${TEXT.pendingLong}` : TEXT.pending}\n\n-# ${TEXT.hop}`;
+    }
     if (run.status === 'boarded') return run.whitelist === 'confirmed' ? (run.mode === 'refresh' ? TEXT.refreshed : TEXT.confirmed) : TEXT.pending;
     return TEXT.paused;
   }
+  function header() {
+    $('radio-stop').textContent = run.status === 'reading' ? `Stop ${run.stop + 1}/${run.stops.length} · ${run.stops[run.stop].title}` : run.status === 'boarded' ? 'Arrived' : 'Clearance';
+  }
+  /** The radio before Sophie comes in: the stop is known, the text is still on its way. */
+  function holdTransmission() {
+    stopTyping();
+    const waiting = document.createElement('p'); waiting.className = 'receiving'; waiting.textContent = TEXT.receiving;
+    $('radio-text').replaceChildren(waiting); $('radio-live').textContent = ''; $('radio-progress').textContent = '';
+    $('radio-view').hidden = true; $('arrival').hidden = true;
+    header(); renderControls();
+  }
   function renderTransmission() {
     stopTyping();
-    const text = transmissionText(), tree = parseMarkdown(text), box = $('radio-text');
-    box.replaceChildren(renderMarkdown(document, tree, { onLink: href => discord?.openLink(href) }));
+    const moment = momentNow(), text = transmissionText(), tree = parseMarkdown(text), box = $('radio-text'), channels = run.channels ?? {};
+    box.replaceChildren(renderMarkdown(document, tree, { onLink: href => discord?.openLink(href), channels, onChannel: openChannel }));
     box.scrollTop = 0;
-    $('radio-live').textContent = plainText(tree);
-    $('radio-stop').textContent = run.status === 'reading' ? `Stop ${run.stop + 1}/${run.stops.length} · ${run.stops[run.stop].title}` : run.status === 'boarded' ? 'Arrived' : 'Clearance';
+    $('radio-live').textContent = plainText(tree, channels);
+    header();
     $('radio-progress').textContent = run.status === 'reading' && chunks.length > 1 ? chunks.map((_, index) => index === chunk ? '■' : index < chunk ? '▪' : '□').join(' ') : '';
-    player.setState(sceneStateFor(run, chunk, chunks.length));
+    player.setState(sceneStateFor(run, chunk, chunks.length, moment.beat));
+    renderArrival();
+    $('radio-view').hidden = moment.viewscreen === null;
+    if (moment.viewscreen !== sectionScreen) { sectionScreen = moment.viewscreen; if (moment.viewscreen) openViewscreen(moment.viewscreen); }
+    if (run.status === 'reading') remember();
     renderControls();
     if (run.status === 'reading' && settings.text === 'typed') typewrite(box);
+  }
+  /** After confirmation: the channels core reported the member can now see, as links into Discord. */
+  function renderArrival() {
+    const section = $('arrival'), arrived = run.status === 'boarded' && run.whitelist === 'confirmed';
+    section.hidden = !arrived;
+    if (!arrived) return;
+    $('arrival-heading').textContent = TEXT.arrival;
+    const list = (run.arrival ?? []).map(channel => {
+      const button = document.createElement('button'); button.type = 'button'; button.className = 'arrival-card';
+      const name = document.createElement('span'); name.className = 'arrival-name'; name.textContent = `#${channel.name}`; button.append(name);
+      if (channel.note) { const note = document.createElement('span'); note.className = 'arrival-note'; note.textContent = channel.note; button.append(note); }
+      button.addEventListener('click', () => openChannel(channel));
+      const item = document.createElement('li'); item.append(button); return item;
+    });
+    if (!list.length) { const none = document.createElement('li'); none.className = 'arrival-none'; none.textContent = TEXT.arrivalNone; list.push(none); }
+    $('arrival-list').replaceChildren(...list);
+  }
+  async function openChannel(channel) {
+    sound.play('UI-02');
+    const opened = discord?.guildId ? await discord.openLink(`https://discord.com/channels/${discord.guildId}/${channel.id}`) : false;
+    if (!opened) toast(TEXT.findChannel.replace('{name}', `#${channel.name}`));
   }
   function renderControls() {
     const controls = dialogueControls(run, chunk, chunks.length);
@@ -127,26 +244,23 @@ export function createShuttle({ document, api, connect, player, loadScene, sound
     forward.disabled = busy || !controls.forward.enabled;
     forward.querySelector('span').textContent = controls.forward.label;
   }
-  /**
-   * Sophie's radio: the static, the RX lamp and the text ticks. She speaks briefly as each stage begins and then trails
-   * off; the rest of the copy arrives quietly (owner feedback, 22 October 2026: she should not talk non-stop).
-   */
+  /** Sophie's radio: the static, the RX lamp, the text ticks and the music ducking under her. */
   function speaking(on) {
     timers.clear(speechTimer); speechTimer = null; talking = on;
     $('radio').dataset.speaking = on ? 'on' : 'off';
-    sound.radio(on);
+    sound.radio(on); sound.duck(on);
   }
-  function speakBriefly() { speaking(true); speechTimer = timers.after(SPEECH_MS, () => speaking(false)); }
+  function speakBriefly(ms) { speaking(true); speechTimer = timers.after(ms, () => speaking(false)); }
   function typewrite(box) {
     const walker = document.createTreeWalker(box, 4), nodes = [];
     while (walker.nextNode()) nodes.push(walker.currentNode);
-    const texts = nodes.map(node => node.data);
+    const texts = nodes.map(node => node.data), cps = TYPE_CPS[settings.speed] ?? TYPE_CPS.normal;
     nodes.forEach(node => { node.data = ''; });
     let index = 0, offset = 0, lastTick = 0, last = timers.now();
     const finish = () => { nodes.forEach((node, i) => { node.data = texts[i]; }); timers.cancelFrame(typing?.frame); typing = null; };
     const step = () => {
       const now = timers.now();
-      let budget = Math.max(1, Math.round((now - last) * TYPE_CPS / 1000)); last = now;
+      let budget = Math.max(1, Math.round((now - last) * cps / 1000)); last = now;
       while (budget > 0 && index < nodes.length) {
         const take = Math.min(budget, texts[index].length - offset);
         offset += take; budget -= take; nodes[index].data = texts[index].slice(0, offset);
@@ -159,13 +273,26 @@ export function createShuttle({ document, api, connect, player, loadScene, sound
     typing = { finish, frame: timers.frame(step) };
   }
   function stopTyping() { typing?.finish(); }
+  /** The station log keeps each transmission of this run once, for re-reading from the title screen. */
+  function remember() {
+    const key = `${run.stop}:${chunk}`;
+    if (log.some(entry => entry.key === key)) return;
+    log.push({ key, title: `Stop ${run.stop + 1} · ${run.stops[run.stop].title}`, text: chunks[chunk] });
+    if (log.length > LOG_LIMIT) log.shift();
+  }
 
+  /** A page within a stop: the page sound, then Sophie briefly with the new text. */
+  function turnPage(next) {
+    chunk = next; stopTyping(); closeViewscreen(true);
+    runCues(cueSheet('page', run), { reveal: renderTransmission });
+  }
   async function forward() {
     if (!run || busy) return;
+    if (revealing()) { flushCues(); return; }
     if (typing) { stopTyping(); return; }
     const { forward: control } = dialogueControls(run, chunk, chunks.length);
     if (!control.enabled) return;
-    if (control.action === 'next-chunk') { chunk++; sound.play('DLG-02'); renderTransmission(); return; }
+    if (control.action === 'next-chunk') { turnPage(chunk + 1); return; }
     if (control.action === 'check') { await check(true); return; }
     if (control.action === 'menu') { $('radio-menu').click(); return; }
     sound.play('DLG-04'); sound.play('UI-02');
@@ -173,20 +300,50 @@ export function createShuttle({ document, api, connect, player, loadScene, sound
   }
   async function back() {
     if (!run || busy) return;
+    if (revealing()) flushCues();
     if (typing) stopTyping();
     const { back: control } = dialogueControls(run, chunk, chunks.length);
     if (!control.enabled) return;
+    if (control.action === 'previous-chunk') { turnPage(chunk - 1); return; }
     sound.play('UI-03');
-    if (control.action === 'previous-chunk') { chunk--; renderTransmission(); return; }
     await act('back');
   }
   async function act(action) {
     await guarded(async () => {
       const before = run, { run: next } = await api.act(action, run.version);
-      if (next.stop !== before.stop) sound.play('SC-01');
       if (next.status === 'pending' && before.status !== 'pending') pendingSince = timers.now();
       await enterRun(next, { atEnd: action === 'back' });
     });
+  }
+
+  // Viewscreens: art and links a section opens; Esc or the next page closes them ------------------------------------
+  async function openViewscreen(id, { asked = false } = {}) {
+    if (!viewscreens) return;
+    let screen;
+    try { screen = await viewscreens.load(id); } catch { return; }
+    if (view !== 'radio' || (!asked && momentNow().viewscreen !== id)) return;
+    $('viewscreen-title').textContent = screen.title; $('viewscreen-alt').textContent = screen.alt;
+    $('viewscreen-links').replaceChildren(...screen.links.map(link => {
+      const button = document.createElement('button'); button.type = 'button'; button.className = 'viewscreen-link';
+      const label = document.createElement('span'); label.textContent = link.label;
+      const host = document.createElement('span'); host.className = 'viewscreen-host'; host.textContent = new URL(link.url).host;
+      button.append(label, host); button.addEventListener('click', () => { sound.play('UI-02'); discord?.openLink(link.url); });
+      const item = document.createElement('li'); item.append(button); return item;
+    }));
+    $('viewscreen').hidden = false; viewscreens.paint(screen);
+    sound.play('SC-03');
+    if (asked) $('viewscreen-close').focus();
+  }
+  function closeViewscreen(quiet = false) {
+    if ($('viewscreen').hidden) return false;
+    $('viewscreen').hidden = true;
+    if (!quiet) sound.play('UI-03');
+    return true;
+  }
+  function toggleViewscreen() {
+    const { viewscreen } = momentNow();
+    if (!viewscreen) return;
+    if (!closeViewscreen()) openViewscreen(viewscreen, { asked: true });
   }
 
   // Clearance ------------------------------------------------------------------------------------------------------
@@ -234,22 +391,47 @@ export function createShuttle({ document, api, connect, player, loadScene, sound
     if (described.state === 'run' && view === 'radio') await enterRun(described.run); else await showTitle();
   }
 
-  // Sheets and input -----------------------------------------------------------------------------------------------
+  // Sheets, easter eggs and input ----------------------------------------------------------------------------------
   let sheetReturn = null;
   function openSheet(id) {
     sheetReturn = document.activeElement; $(id).hidden = false;
     if (id === 'settings') syncSettingsForm();
+    if (id === 'log') renderLog();
     $(id).querySelector('input, button, a')?.focus();
   }
   function closeSheets() {
     let closed = false;
-    for (const id of ['settings', 'credits']) if (!$(id).hidden) { $(id).hidden = true; closed = true; }
+    for (const id of SHEETS) if (!$(id).hidden) { $(id).hidden = true; closed = true; }
     if (closed) { sound.play('UI-03'); sheetReturn?.focus?.(); }
     return closed;
   }
+  function renderLog() {
+    const entries = log.map(entry => {
+      const item = document.createElement('li'), title = document.createElement('h3');
+      title.className = 'log-title'; title.textContent = entry.title;
+      item.append(title, renderMarkdown(document, parseMarkdown(entry.text), { onLink: href => discord?.openLink(href) }));
+      return item;
+    });
+    if (!entries.length) { const none = document.createElement('li'); none.textContent = TEXT.logEmpty; entries.push(none); }
+    $('log-list').replaceChildren(...entries);
+  }
+  function definitions(list, pairs) {
+    $(list).replaceChildren(...pairs.flatMap(([term, text]) => {
+      const dt = document.createElement('dt'), dd = document.createElement('dd'); dt.textContent = term; dd.textContent = text; return [dt, dd];
+    }));
+  }
+  function konami(key) {
+    const got = key.length === 1 ? key.toLowerCase() : key;
+    konamiAt = got === KONAMI[konamiAt] ? konamiAt + 1 : got === 'ArrowUp' ? (konamiAt === 2 ? 2 : 1) : 0;
+    if (konamiAt < KONAMI.length) return;
+    konamiAt = 0;
+    if (!motionOn()) { toast(TEXT.honk, 2_000); return; }
+    const car = $('clown'); car.hidden = false;
+    timers.after(CLOWN_MS, () => { car.hidden = true; });
+  }
   function syncSettingsForm() {
     for (const input of $('settings').querySelectorAll('input[data-level]')) input.value = String(settings.levels[input.dataset.level]);
-    for (const name of ['sound', 'motion', 'text', 'size']) {
+    for (const name of ['sound', 'motion', 'text', 'speed', 'size']) {
       for (const input of $('settings').querySelectorAll(`input[name="${name}"]`)) input.checked = input.value === settings[name];
     }
   }
@@ -257,7 +439,7 @@ export function createShuttle({ document, api, connect, player, loadScene, sound
     for (const input of $('settings').querySelectorAll('input[data-level]')) {
       input.addEventListener('input', () => { settings.levels[input.dataset.level] = Number(input.value); applySettings(); saveSettings(); });
     }
-    for (const name of ['sound', 'motion', 'text', 'size']) {
+    for (const name of ['sound', 'motion', 'text', 'speed', 'size']) {
       for (const input of $('settings').querySelectorAll(`input[name="${name}"]`)) {
         input.addEventListener('change', () => { if (!input.checked) return; settings[name] = input.value; applySettings(); saveSettings(); sound.play('UI-05'); });
       }
@@ -271,7 +453,7 @@ export function createShuttle({ document, api, connect, player, loadScene, sound
     if (started) return;
     started = true;
     try { await sound.unlock(); } catch { /* Sound stays off; the Shuttle still works. */ }
-    sound.preload(['UI-01', 'UI-02', 'UI-03', 'DLG-01', 'DLG-02', 'DLG-03', 'DLG-04', 'SC-01']);
+    sound.preload(['UI-01', 'UI-02', 'UI-03', 'DLG-01', 'DLG-02', 'DLG-03', 'DLG-04', 'SC-01', 'SC-02', 'SC-03']);
     sound.play('UI-02');
     if (described?.state === 'run' && ['pending', 'boarded'].includes(described.run.status)) await enterRun(described.run);
     else await showTitle();
@@ -280,17 +462,37 @@ export function createShuttle({ document, api, connect, player, loadScene, sound
     $('splash').parentElement.addEventListener('pointerdown', () => { if (view === 'splash') begin(); });
     $('radio-forward').addEventListener('click', forward);
     $('radio-back').addEventListener('click', back);
-    $('radio-text').addEventListener('click', event => { if (!event.target.closest('a') && typing) stopTyping(); });
+    $('radio-text').addEventListener('click', event => {
+      if (event.target.closest('a, button') || timers.now() - lastSwipe < 400) return;
+      if (revealing()) flushCues(); else if (typing) stopTyping();
+    });
+    $('radio-view').addEventListener('click', toggleViewscreen);
+    $('viewscreen-close').addEventListener('click', () => closeViewscreen());
+    $('transit').addEventListener('click', flushCues);
     $('radio-menu').addEventListener('click', async () => { sound.play('UI-03'); try { described = await api.describe(); } catch { /* Keep the last state. */ } await showTitle(); });
+    // Swipe left for the next page, right for the previous one (touch and pen; a mouse uses the buttons).
+    $('radio').addEventListener('pointerdown', event => { swipe = event.pointerType === 'mouse' ? null : { x: event.clientX, y: event.clientY }; });
+    $('radio').addEventListener('pointerup', event => {
+      if (!swipe) return;
+      const dx = event.clientX - swipe.x, dy = event.clientY - swipe.y; swipe = null;
+      if (Math.abs(dx) < SWIPE_PX || Math.abs(dy) > Math.abs(dx) / 2 || event.target.closest('button, a')) return;
+      lastSwipe = timers.now();
+      if (dx < 0) forward(); else back();
+    });
     document.addEventListener('keydown', event => {
       if (event.altKey || event.ctrlKey || event.metaKey) return;
-      if (view === 'splash') { begin(); return; }
-      if (event.key === 'Escape') { if (!closeSheets() && view === 'radio') $('radio-menu').click(); return; }
-      if (!$('settings').hidden || !$('credits').hidden) return;
+      konami(event.key);
+      // The key that leaves the splash must not also press the title menu's first item.
+      if (view === 'splash') { event.preventDefault(); begin(); return; }
+      if (event.key === 'Escape') { if (!closeSheets() && !closeViewscreen() && view === 'radio') $('radio-menu').click(); return; }
+      if (SHEETS.some(id => !$(id).hidden)) return;
+      if (event.key === '?') { sound.play('UI-02'); openSheet('keys'); return; }
       const onControl = event.target.closest?.('button, a, input');
+      if (['l', 'L'].includes(event.key) && log.length) { sound.play('UI-02'); openSheet('log'); return; }
       if (view === 'radio' && !onControl) {
         if (['ArrowRight', 'Enter', ' '].includes(event.key)) { event.preventDefault(); forward(); }
         if (['ArrowLeft', 'Backspace'].includes(event.key)) { event.preventDefault(); back(); }
+        if (['v', 'V'].includes(event.key)) toggleViewscreen();
       }
       if (view === 'title' && ['ArrowDown', 'ArrowUp'].includes(event.key)) {
         const items = [...$('menu').querySelectorAll('button')], at = items.indexOf(document.activeElement);
@@ -302,9 +504,11 @@ export function createShuttle({ document, api, connect, player, loadScene, sound
 
   return Object.freeze({
     async start() {
-      bindSettings(); bindInput(); applySettings(); signal('linking');
-      $('press-text').textContent = TEXT.pressStart;
-      await scene('hangar-viewport', { whitelist: 'none' });
+      bindSettings(); bindInput(); applySettings(); signal('linking'); showTip();
+      definitions('codex-list', CODEX); definitions('keys-list', KEYS);
+      $('press-text').textContent = TEXT.pressStart; $('radio-channel').textContent = TEXT.radio;
+      $('radio-view').textContent = TEXT.view; $('transit-skip').textContent = TEXT.skip;
+      await scene('hangar-viewport', { whitelist: 'none', link: 'none' });
       try {
         discord = await connect({ onLayout: mode => player.setPaused('pip', mode === 1), onThermal: state => player.setPaused('heat', state >= 2) });
         if (discord === null) { described = { state: 'outside' }; signal('lost'); }
@@ -313,7 +517,7 @@ export function createShuttle({ document, api, connect, player, loadScene, sound
         described = { state: error?.word === 'closed' ? 'closed' : error?.word === 'signin' || error?.word === 'denied' ? 'signin' : 'failed' }; signal('lost');
       }
       if (view === 'title') await showTitle();
-      else if (view === 'splash' && described?.state === 'run') player.setState(sceneStateFor(described.run));
+      else if (view === 'splash') player.setState({ ...(described?.state === 'run' ? sceneStateFor(described.run) : {}), link: linkState(described) });
     },
     setSignal: online => signal(online ? (linked ? 'linked' : 'linking') : 'lost'),
     get view() { return view; },

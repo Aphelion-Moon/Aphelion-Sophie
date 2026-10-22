@@ -11,8 +11,9 @@ export function insideDiscord(search) {
  * Connects to the Discord client that frames the Activity and signs the member in through core (P40). The OAuth code
  * goes to core, which checks the instance and issues the bearer token; the SDK is then authenticated so it can show
  * the presence line. Layout (picture-in-picture) and heat events pause animation. Only the commands below are used.
+ * openLink reports whether Discord opened the link (false when declined or unavailable).
  */
-export async function connectDiscord({ applicationId, api, onLayout = () => {}, onThermal = () => {} }) {
+export async function connectDiscord({ applicationId, guildId, api, onLayout = () => {}, onThermal = () => {} }) {
   const sdk = new DiscordSDK(applicationId, { disableConsoleLogOverride: true });
   await sdk.ready();
   const { code } = await sdk.commands.authorize({ client_id: applicationId, response_type: 'code', state: '', prompt: 'none',
@@ -24,8 +25,10 @@ export async function connectDiscord({ applicationId, api, onLayout = () => {}, 
   await sdk.subscribe(Events.ACTIVITY_LAYOUT_MODE_UPDATE, ({ layout_mode: mode }) => onLayout(mode)).catch(() => {});
   await sdk.subscribe(Events.THERMAL_STATE_UPDATE, ({ thermal_state: state }) => onThermal(state)).catch(() => {});
   return Object.freeze({
-    platform: sdk.platform,
-    async openLink(url) { try { await sdk.commands.openExternalLink({ url }); } catch { /* Declined or unavailable: nothing to do. */ } },
+    platform: sdk.platform, guildId,
+    async openLink(url) {
+      try { return (await sdk.commands.openExternalLink({ url }))?.opened !== false; } catch { return false; }
+    },
     async setPresence(activity) {
       if (!presence) return;
       try { await sdk.commands.setActivity({ activity: { type: 0, ...activity } }); } catch { presence = false; }

@@ -31,16 +31,17 @@ test('T-ACT-CLI-01 transmissions keep every character of the copy, in order, wit
 });
 
 test('T-ACT-CLI-02 the title menu follows the server state; refusals show fixed notices and no boarding', () => {
-  assert.deepEqual(titleMenu({ state: 'ready', mode: 'qualification' }).items.map(item => item.id), ['board', 'settings', 'credits']);
+  assert.deepEqual(titleMenu({ state: 'ready', mode: 'qualification' }).items.map(item => item.id), ['board', 'codex', 'settings', 'credits']);
+  assert.deepEqual(titleMenu({ state: 'ready', mode: 'qualification' }, { log: true }).items.map(item => item.id), ['board', 'log', 'codex', 'settings', 'credits']);
   assert.equal(titleMenu({ state: 'ready', mode: 'refresh' }).items[0].label, TEXT.refresher);
   for (const state of ['closed', 'unavailable', 'elsewhere', 'unpublished', 'outside', 'signin', 'failed']) {
     const menu = titleMenu({ state });
-    assert.deepEqual(menu.items.map(item => item.id), ['settings', 'credits'], state);
+    assert.deepEqual(menu.items.map(item => item.id), ['codex', 'settings', 'credits'], state);
     assert.equal(menu.notice, TEXT[state], state);
   }
   assert.equal(titleMenu({ state: 'run', run: run({ stop: 2 }) }).items[0].label, `${TEXT.resume} · 3/5`);
   assert.equal(titleMenu({ state: 'run', run: run({ status: 'pending', whitelist: 'requested' }) }).items[0].label, TEXT.check);
-  assert.deepEqual(titleMenu({ state: 'run', run: run({ status: 'boarded', whitelist: 'confirmed' }) }).items.map(item => item.id), ['arrival', 'board', 'settings', 'credits']);
+  assert.deepEqual(titleMenu({ state: 'run', run: run({ status: 'boarded', whitelist: 'confirmed' }) }).items.map(item => item.id), ['arrival', 'board', 'codex', 'settings', 'credits']);
   assert.equal(titleMenu(null).notice, null);
 });
 
@@ -58,12 +59,14 @@ test('T-ACT-CLI-03 controls: pages before stops, Complete on the last page of th
 });
 
 test('T-ACT-CLI-04 scenes, sound and presence: arrival music only after confirmation; presence names no copy', () => {
-  assert.deepEqual(sceneStateFor(run({ stop: 1 }), 1, 4), { stopTitle: 'Stop 2', stopNumber: 2, stopCount: 5, section: 2, sections: 4, whitelist: 'none' });
+  assert.deepEqual(sceneStateFor(run({ stop: 1 }), 1, 4), { stopTitle: 'Stop 2', stopNumber: 2, stopCount: 5, section: 2, sections: 4, whitelist: 'none', beat: 'none', link: 'ready' });
+  assert.equal(sceneStateFor(run({ stop: 1 }), 1, 4, 'pride').beat, 'pride');
+  assert.equal(sceneStateFor(run({ status: 'boarded', stop: 4, whitelist: 'confirmed' })).link, 'arrived');
   assert.deepEqual(soundscape('title'), { ambience: 'AMB-01', music: 'MUS-01' });
   assert.deepEqual(soundscape('run', run({ stop: 2 })), { ambience: 'AMB-04', music: null });
   assert.equal(soundscape('run', run({ status: 'pending', stop: 4, whitelist: 'requested' })).music, null);
   assert.deepEqual(soundscape('run', run({ status: 'boarded', stop: 4, whitelist: 'confirmed' })), { ambience: 'AMB-06', music: 'MUS-02' });
-  assert.deepEqual(presence(run({ stop: 3 })), { details: 'Boarding the Shuttle', state: 'Stop 4 of 5' });
+  assert.deepEqual(presence(run({ stop: 3 })), { details: 'Riding the Arrivals Shuttle', state: 'Stop 4 of 5' });
   assert.deepEqual(presence(null), { details: 'At the Shuttle terminal' });
   assert.doesNotMatch(JSON.stringify(presence(run({ stops: [{ title: 'Secret title', scene: 'viewport' }] }))), /Secret/);
 });

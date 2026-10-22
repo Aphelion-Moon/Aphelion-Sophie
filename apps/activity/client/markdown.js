@@ -1,10 +1,20 @@
 /**
  * The subset of Discord markdown the published Shuttle copy uses, parsed to a small tree and built as DOM nodes
  * (P43). No HTML is ever parsed or injected: every character of the copy ends up in a text node. Links open through
- * Discord's own confirmation (openExternalLink), and only https links become links at all.
+ * Discord's own confirmation (openExternalLink), and only https links become links at all. Channel names and mentions
+ * become channel chips only for channels core reported the member can see; otherwise they stay plain text.
  */
 
 const MENTIONS = Object.freeze({ '@': '@member', '@!': '@member', '@&': '@role', '#': '#channel' });
+/** A few common shortcodes, as Discord shows them. Anything else stays as written. */
+export const EMOJI = Object.freeze({
+  wink: '😉', smile: '😄', slight_smile: '🙂', grin: '😁', blush: '😊', joy: '😂', sweat_smile: '😅', upside_down: '🙃', thinking: '🤔',
+  heart: '❤️', wave: '👋', tada: '🎉', sparkles: '✨', rocket: '🚀', star: '⭐', stars: '🌠', milky_way: '🌌', rainbow: '🌈',
+  rainbow_flag: '🏳️‍🌈', transgender_flag: '🏳️‍⚧️', warning: '⚠️', white_check_mark: '✅', x: '❌', eyes: '👀', pray: '🙏',
+  thumbsup: '👍', '+1': '👍', point_right: '👉', camera: '📷', wolf: '🐺', seal: '🦭', fish: '🐟', bell: '🔔', lock: '🔒',
+  information_source: 'ℹ️', exclamation: '❗', question: '❓', no_entry: '⛔', partying_face: '🥳',
+});
+const CHANNEL_BEFORE = /[\s(*_>]/;
 
 export function safeLink(value) {
   try { const url = new URL(value); return url.protocol === 'https:' && !url.username && !url.password ? url.href : null; }
@@ -19,7 +29,7 @@ export function parseInline(text) {
   let plain = '';
   const flush = () => { if (plain) { nodes.push({ type: 'text', text: plain }); plain = ''; } };
   for (let i = 0; i < text.length;) {
-    const rest = text.slice(i);
+    const rest = text.slice(i), after = i === 0 || /\s/.test(text[i - 1]);
     if (rest[0] === '\\' && rest.length > 1 && /[\\*_~|`#>\-[\]()<:]/.test(rest[1])) { plain += rest[1]; i += 2; continue; }
     let match;
     if ((match = /^`([^`]+)`/.exec(rest))) { flush(); nodes.push({ type: 'code', text: match[1] }); i += match[0].length; continue; }
@@ -32,8 +42,18 @@ export function parseInline(text) {
     if ((match = /^https:\/\/[^\s<]+[^\s<.,:;"')\]!?]/.exec(rest)) && safeLink(match[0])) {
       flush(); nodes.push({ type: 'link', href: safeLink(match[0]), children: [{ type: 'text', text: match[0] }] }); i += match[0].length; continue;
     }
-    if ((match = /^<(@!|@&|@|#)(\d{1,20})>/.exec(rest))) { flush(); nodes.push({ type: 'mention', text: MENTIONS[match[1]] }); i += match[0].length; continue; }
-    if ((match = /^<a?:(\w{1,32}):\d{1,20}>/.exec(rest))) { flush(); nodes.push({ type: 'text', text: `:${match[1]}:` }); i += match[0].length; continue; }
+    if ((match = /^<(@!|@&|@|#)(\d{1,20})>/.exec(rest))) {
+      flush(); nodes.push({ type: 'mention', text: MENTIONS[match[1]], ...(match[1] === '#' ? { channel: match[2] } : {}) }); i += match[0].length; continue;
+    }
+    if ((i === 0 || CHANNEL_BEFORE.test(text[i - 1])) && (match = /^#([a-z0-9][a-z0-9_-]{0,99})/i.exec(rest))) {
+      flush(); nodes.push({ type: 'channel', name: match[1].toLowerCase(), text: match[0] }); i += match[0].length; continue;
+    }
+    if (after && (match = /^@([A-Za-z0-9_][A-Za-z0-9_.]{1,31})/.exec(rest))) {
+      const name = match[1].replace(/\.+$/, '');
+      flush(); nodes.push({ type: 'at', text: `@${name}` }); i += 1 + name.length; continue;
+    }
+    if ((match = /^<a?:(\w{1,32}):\d{1,20}>/.exec(rest))) { flush(); nodes.push({ type: 'text', text: EMOJI[match[1]] ?? `:${match[1]}:` }); i += match[0].length; continue; }
+    if ((match = /^:([a-z0-9_+-]{1,32}):/.exec(rest)) && Object.hasOwn(EMOJI, match[1])) { flush(); nodes.push({ type: 'text', text: EMOJI[match[1]] }); i += match[0].length; continue; }
     if ((match = /^<t:(-?\d{1,13})(?::[tTdDfFR])?>/.exec(rest))) { flush(); nodes.push({ type: 'time', seconds: Number(match[1]) }); i += match[0].length; continue; }
     const pair = INLINE_PAIRS.find(([marker]) => rest.startsWith(marker));
     if (pair) {
@@ -96,20 +116,30 @@ export function parseMarkdown(text) {
   return blocks;
 }
 
+/** The channel a channel node or mention names, if core reported it as visible to the member. */
+function channelOf(node, channels) {
+  if (node.type === 'channel') return channels[`#${node.name}`] ?? null;
+  return node.channel ? channels[`<#${node.channel}>`] ?? null : null;
+}
+
 /** Plain text of a tree, for screen readers and tests. */
-export function plainText(nodes) {
+export function plainText(nodes, channels = {}) {
   return nodes.map(node => {
-    if (node.type === 'text' || node.type === 'code' || node.type === 'codeblock' || node.type === 'mention') return node.text;
+    if ((node.type === 'channel' || node.type === 'mention') && channelOf(node, channels)) return `#${channelOf(node, channels).name}`;
+    if (['text', 'code', 'codeblock', 'mention', 'channel', 'at'].includes(node.type)) return node.text;
     if (node.type === 'break') return '\n';
     if (node.type === 'time') return new Date(node.seconds * 1000).toUTCString();
-    if (node.type === 'list') return node.items.map(item => plainText(item.children)).join('\n');
-    const inner = plainText(node.children ?? []);
+    if (node.type === 'list') return node.items.map(item => plainText(item.children, channels)).join('\n');
+    const inner = plainText(node.children ?? [], channels);
     return ['paragraph', 'heading', 'subtext', 'quote'].includes(node.type) ? `${inner}\n` : inner;
   }).join('');
 }
 
-/** Builds DOM nodes for a tree. `onLink(href)` opens a link; nothing navigates the Activity's own frame. */
-export function renderMarkdown(document, nodes, { onLink }) {
+/**
+ * Builds DOM nodes for a tree. `onLink(href)` opens a link and `onChannel({ id, name })` a channel chip; nothing
+ * navigates the Activity's own frame. `channels` maps '#name' and '<#id>' to channels the member can see.
+ */
+export function renderMarkdown(document, nodes, { onLink, channels = {}, onChannel = null }) {
   const fragment = document.createDocumentFragment();
   const element = (tag, className, children) => {
     const node = document.createElement(tag);
@@ -122,7 +152,16 @@ export function renderMarkdown(document, nodes, { onLink }) {
       case 'text': return document.createTextNode(node.text);
       case 'break': return document.createElement('br');
       case 'code': return element('code', null, [document.createTextNode(node.text)]);
-      case 'mention': return element('span', 'md-mention', [document.createTextNode(node.text)]);
+      case 'channel': case 'mention': {
+        const channel = channelOf(node, channels);
+        if (channel && onChannel) {
+          const chip = element('button', 'md-channel', [document.createTextNode(`#${channel.name}`)]);
+          chip.type = 'button'; chip.addEventListener('click', event => { event.stopPropagation(); onChannel(channel); });
+          return chip;
+        }
+        return node.type === 'channel' ? document.createTextNode(node.text) : element('span', 'md-mention', [document.createTextNode(node.text)]);
+      }
+      case 'at': return element('span', 'md-at', [document.createTextNode(node.text)]);
       case 'time': return element('time', null, [document.createTextNode(new Date(node.seconds * 1000).toLocaleString())]);
       case 'strong': return element('strong', null, inline(node.children));
       case 'em': return element('em', null, inline(node.children));
@@ -143,7 +182,7 @@ export function renderMarkdown(document, nodes, { onLink }) {
       case 'heading': fragment.append(element(`h${block.level + 1}`, 'md-heading', inline(block.children))); break;
       case 'subtext': fragment.append(element('p', 'md-subtext', inline(block.children))); break;
       case 'codeblock': fragment.append(element('pre', null, [element('code', null, [document.createTextNode(block.text)])])); break;
-      case 'quote': fragment.append(element('blockquote', null, [renderMarkdown(document, block.children, { onLink })])); break;
+      case 'quote': fragment.append(element('blockquote', null, [renderMarkdown(document, block.children, { onLink, channels, onChannel })])); break;
       case 'list': {
         const list = element(block.ordered ? 'ol' : 'ul', null, block.items.map(item => element('li', item.depth ? `md-depth-${item.depth}` : null, inline(item.children))));
         if (block.ordered && block.start !== 1) list.start = block.start;

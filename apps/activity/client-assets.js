@@ -37,6 +37,10 @@ export async function loadActivityClient(root) {
   for (const name of (await readdir(resolve(root, 'content/shuttle-activity/scenes'))).filter(name => name.endsWith('.json')).sort()) {
     await add(`content/shuttle-activity/scenes/${name}`);
   }
+  for (const name of (await readdir(resolve(root, 'content/shuttle-activity/viewscreens'))).filter(name => name.endsWith('.json')).sort()) {
+    await add(`content/shuttle-activity/viewscreens/${name}`);
+  }
+  await add('content/shuttle-activity/moments.json');
   await add('content/shuttle-activity/sounds/index.json');
   for (const sound of (await json('legal/shuttle-activity-sounds.json')).sounds) {
     for (const output of [sound.outputs.opus, sound.outputs.mp3]) await add(output.path, output.sha256);

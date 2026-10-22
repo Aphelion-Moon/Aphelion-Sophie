@@ -17,7 +17,7 @@ main[data-text-size="large"] { --text: 20px; }
 button, input { font: inherit; color: inherit; }
 :focus-visible { outline: 2px solid var(--holo); outline-offset: 2px; }
 
-#shuttle { position: fixed; inset: 0; display: grid; grid-template-rows: minmax(0, 1fr) auto auto;
+#shuttle { position: fixed; inset: 0; display: grid; grid-template-rows: minmax(0, 1fr) auto auto; grid-template-columns: minmax(0, 1fr);
   padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left); }
 #stage { grid-row: 1 / 3; grid-column: 1; position: relative; min-height: 0; display: flex; align-items: center; justify-content: center; overflow: hidden; }
 #scene { display: block; image-rendering: pixelated; }
@@ -26,7 +26,7 @@ button, input { font: inherit; color: inherit; }
 .layer { grid-column: 1; z-index: 1; }
 
 /* Splash */
-#splash { grid-row: 1 / 3; display: flex; align-items: flex-end; justify-content: center; padding: 0 var(--gutter) 12vh; pointer-events: none; }
+#splash { grid-row: 1 / 3; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; gap: 14px; padding: 0 var(--gutter) 10vh; pointer-events: none; }
 .press { margin: 0; padding: 6px 14px; background: rgba(10, 10, 8, .78); border: 1px solid var(--amber-dim); color: var(--amber);
   letter-spacing: .14em; text-transform: uppercase; animation: blink 1.6s steps(2, jump-none) infinite; }
 .press-mark { color: var(--holo); margin-right: 8px; }
@@ -38,28 +38,35 @@ button, input { font: inherit; color: inherit; }
 .menu-kicker { margin: 0 0 10px; color: var(--ivory-dim); font-size: .8em; letter-spacing: .16em; text-transform: uppercase; }
 .kicker-mark { color: var(--holo); }
 .menu { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; }
-.menu-item { width: 100%; text-align: left; background: none; border: 0; padding: 8px 10px 8px 24px; position: relative; cursor: pointer;
+.menu-item { width: 100%; min-height: 44px; text-align: left; background: none; border: 0; padding: 8px 10px 8px 24px; position: relative; cursor: pointer;
   color: var(--ivory); letter-spacing: .12em; text-transform: uppercase; font-size: 1.15em; }
 .menu-item::before { content: ''; position: absolute; left: 6px; top: 50%; width: 8px; height: 2px; background: var(--amber-dim); }
 .menu-item:hover, .menu-item:focus-visible { color: var(--amber); background: rgba(255, 184, 77, .08); outline: none; }
 .menu-item:hover::before, .menu-item:focus-visible::before { content: '»'; width: auto; height: auto; top: 8px; left: 6px; background: none; color: var(--holo); }
 .menu-item.primary { color: var(--amber); font-size: 1.35em; }
+.tip { margin: 10px 0 0; color: var(--ivory-dim); font-size: .8em; letter-spacing: .04em; max-width: 46ch; }
+#splash .tip { text-align: center; background: rgba(10, 10, 8, .7); padding: 4px 10px; }
 .notice { margin: 10px 0 0; padding: 8px 10px; border: 1px dashed var(--amber-dim); color: var(--ivory); background: rgba(27, 26, 21, .9); }
 
 /* Sophie's radio */
 /* Landscape: the transmission sits over the lower part of the scene, which keeps its full height. */
 #radio { grid-row: 2; position: relative; padding: 0 var(--gutter) 8px; }
 .radio-panel { max-width: 960px; margin: 0 auto; background: rgba(20, 19, 15, .96); border: 1px solid var(--rule); border-top: 2px solid var(--holo-dim);
-  display: grid; grid-template-rows: auto minmax(0, 1fr) auto; max-height: 38vh; }
+  display: grid; grid-template-rows: auto minmax(0, 1fr) auto auto; grid-template-columns: minmax(0, 1fr); max-height: 42vh; }
 .radio-head { display: flex; align-items: center; gap: 10px; padding: 6px 12px; border-bottom: 1px solid var(--rule); background: var(--panel); }
 .rx { color: var(--bay); background: var(--holo-dim); padding: 0 5px; font-size: .8em; letter-spacing: .1em; opacity: .6; }
 /* The RX lamp is lit only while Sophie is speaking (a transmission is coming in). */
 #radio[data-speaking="on"] .rx { background: var(--holo); opacity: 1; animation: pulse .8s ease-in-out infinite; }
+.radio-channel { color: var(--ivory-dim); font-size: .75em; letter-spacing: .14em; text-transform: uppercase; white-space: nowrap; }
+.chip { background: var(--panel); border: 1px solid var(--holo-dim); color: var(--holo); padding: 2px 10px; min-height: 32px; min-width: 32px; cursor: pointer;
+  letter-spacing: .1em; text-transform: uppercase; font-size: .8em; }
+.chip:hover { border-color: var(--holo); color: var(--cold); }
 .radio-speaker { margin: 0; min-width: 0; font-size: .9em; font-weight: normal; letter-spacing: .12em; text-transform: uppercase; color: var(--holo);
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .radio-stop { margin-left: auto; min-width: 0; max-width: 50%; color: var(--amber); font-size: .85em; letter-spacing: .08em; text-transform: uppercase;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.radio-text { padding: 12px 16px; overflow-y: auto; overscroll-behavior: contain; min-height: 7em; cursor: pointer; }
+.radio-text { padding: 12px 16px; overflow-y: auto; overscroll-behavior: contain; min-height: 7em; cursor: pointer; touch-action: pan-y; }
+.receiving { color: var(--holo-dim); letter-spacing: .12em; text-transform: uppercase; animation: blink 1s steps(2, jump-none) infinite; }
 .radio-text > :first-child { margin-top: 0; }
 .radio-text > :last-child { margin-bottom: 0; }
 .radio-controls { display: flex; align-items: center; gap: 10px; padding: 8px 12px; border-top: 1px solid var(--rule); }
@@ -78,6 +85,9 @@ h2.md-heading { font-size: 1.3em; }
 .md-spoiler { background: var(--rule); color: var(--rule); }
 .md-spoiler:hover, .md-spoiler:focus { color: var(--ivory); }
 .md-mention { color: var(--holo); }
+.md-at { color: var(--holo); background: rgba(114, 230, 255, .1); padding: 0 2px; }
+.md-channel { font: inherit; color: var(--holo); background: rgba(114, 230, 255, .12); border: 1px solid var(--holo-dim); padding: 0 6px; cursor: pointer; }
+.md-channel:hover, .md-channel:focus-visible { color: var(--cold); border-color: var(--holo); }
 .md-link, .credits a { color: var(--holo); text-decoration: underline; text-underline-offset: 3px; }
 .radio-text code { background: var(--panel); padding: 0 4px; }
 .radio-text pre { background: var(--panel); padding: 8px; overflow-x: auto; }
@@ -87,6 +97,56 @@ h2.md-heading { font-size: 1.3em; }
 .radio-text ul > li::before { content: '·'; color: var(--holo); margin-left: -1em; margin-right: .6em; }
 .md-depth-1 { margin-left: 1.2em; }
 .md-depth-2 { margin-left: 2.4em; }
+
+/* Arrival: the channels Discord now shows the member */
+.arrival { border-top: 1px solid var(--rule); padding: 8px 12px; max-height: 30vh; overflow-y: auto; }
+.arrival-heading { margin: 0 0 6px; color: var(--holo); font-weight: normal; font-size: .85em; letter-spacing: .14em; text-transform: uppercase; }
+.arrival-list { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 15em), 1fr)); gap: 6px; }
+.arrival-card { width: 100%; min-height: 44px; text-align: left; display: grid; gap: 2px; padding: 6px 10px; cursor: pointer; background: var(--panel);
+  border: 1px solid var(--rule); border-left: 3px solid var(--holo); }
+.arrival-card:hover, .arrival-card:focus-visible { border-color: var(--holo); }
+.arrival-name { color: var(--holo); }
+.arrival-note { color: var(--ivory-dim); font-size: .85em; }
+.arrival-none { color: var(--ivory-dim); }
+
+/* Viewscreen: art and links a section opens over the scene */
+.viewscreen { position: fixed; z-index: 2; top: calc(10px + env(safe-area-inset-top)); right: var(--gutter); width: min(440px, calc(100% - 2 * var(--gutter)));
+  max-height: 56vh; overflow-y: auto; background: rgba(10, 10, 8, .95); border: 1px solid var(--holo-dim); border-top: 2px solid var(--holo);
+  box-shadow: 0 0 0 1px rgba(114, 230, 255, .15), 0 0 24px rgba(114, 230, 255, .12); animation: flicker .35s steps(3, jump-none) 1; }
+.viewscreen-head { display: flex; align-items: center; gap: 10px; padding: 6px 10px; border-bottom: 1px solid var(--rule); }
+.viewscreen-kicker { color: var(--holo-dim); font-size: .7em; letter-spacing: .16em; text-transform: uppercase; }
+.viewscreen-title { margin: 0; min-width: 0; flex: 1; color: var(--holo); font-weight: normal; font-size: .9em; letter-spacing: .1em; text-transform: uppercase;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.viewscreen-art { padding: 10px; display: flex; justify-content: center; }
+.viewscreen-art canvas { display: block; image-rendering: pixelated; }
+.viewscreen-links { list-style: none; margin: 0; padding: 0 10px 10px; display: grid; gap: 6px; }
+.viewscreen-link { width: 100%; min-height: 44px; display: flex; justify-content: space-between; gap: 10px; align-items: center; padding: 6px 10px; cursor: pointer;
+  background: var(--panel); border: 1px solid var(--rule); color: var(--ivory); text-align: left; }
+.viewscreen-link:hover, .viewscreen-link:focus-visible { border-color: var(--holo); color: var(--cold); }
+.viewscreen-host { color: var(--holo-dim); font-size: .8em; }
+
+/* Scene effects: the wipe between scenes, the station announcement, the ride between stops and the clown car */
+.wipe { position: absolute; inset: 0; pointer-events: none; opacity: 0;
+  background: repeating-linear-gradient(to bottom, rgba(232, 223, 198, .16) 0 1px, transparent 1px 3px), var(--bay); }
+#stage[data-wipe="on"] .wipe { animation: wipe .4s linear 1; }
+.banner { position: absolute; top: 10px; left: 50%; transform: translateX(-50%); margin: 0; max-width: calc(100% - 2 * var(--gutter)); padding: 4px 12px;
+  background: rgba(10, 10, 8, .88); border: 1px solid var(--amber-dim); color: var(--amber); font-size: .85em; letter-spacing: .08em; text-transform: uppercase;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; animation: flicker .35s steps(3, jump-none) 1; }
+.transit { position: fixed; inset: 0; z-index: 2; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; cursor: pointer;
+  background: var(--bay); overflow: hidden; }
+/* Stars streaking past: thin dashes on tiles of different sizes, so they never line up, moving at different speeds. */
+.streaks { position: absolute; inset: 0; opacity: .8; }
+.streaks::before, .streaks::after { content: ''; position: absolute; inset: 0; animation: streak-a .5s linear infinite; }
+.streaks::before { background-image: radial-gradient(14px 1px, rgba(232, 223, 198, .7) 96%, transparent), radial-gradient(9px 1px, rgba(232, 223, 198, .5) 96%, transparent),
+  radial-gradient(22px 1px, rgba(232, 223, 198, .8) 96%, transparent);
+  background-size: 140px 29px, 190px 41px, 230px 53px; background-position: 0 0, 37px 11px, 91px 23px; }
+.streaks::after { background-image: radial-gradient(18px 1px, rgba(114, 230, 255, .6) 96%, transparent), radial-gradient(11px 1px, rgba(114, 230, 255, .45) 96%, transparent);
+  background-size: 170px 37px, 260px 61px; background-position: 53px 7px, 120px 30px; animation-name: streak-b; animation-duration: .35s; }
+.transit-text { position: relative; margin: 0; padding: 4px 14px; background: rgba(10, 10, 8, .85); border: 1px solid var(--holo-dim); color: var(--holo);
+  letter-spacing: .16em; text-transform: uppercase; }
+.transit-skip { position: relative; margin: 0; color: var(--ivory-dim); font-size: .75em; letter-spacing: .12em; text-transform: uppercase; }
+.clown-car { position: absolute; bottom: 18%; left: 0; margin: 0; color: var(--rose); font: inherit; line-height: 1.1; pointer-events: none;
+  text-shadow: 0 0 6px rgba(255, 92, 157, .5); animation: drive 6s linear 1 forwards; }
 
 /* Controls */
 .control { background: var(--panel); border: 1px solid var(--rule); padding: 8px 14px; cursor: pointer; letter-spacing: .1em; text-transform: uppercase;
@@ -107,6 +167,12 @@ h2.md-heading { font-size: 1.3em; }
 .setting-choice legend { color: var(--ivory-dim); padding: 0 6px; letter-spacing: .1em; text-transform: uppercase; font-size: .85em; }
 .setting-choice input { accent-color: var(--holo); }
 .credits p { color: var(--ivory); }
+.codex-list { margin: 0 0 12px; display: grid; grid-template-columns: minmax(7em, auto) 1fr; gap: 6px 14px; }
+.codex-list dt { color: var(--amber); }
+.codex-list dd { margin: 0; color: var(--ivory); }
+.log-list { list-style: none; margin: 0 0 12px; padding: 0; display: grid; gap: 14px; }
+.log-title { margin: 0 0 4px; color: var(--holo); font-weight: normal; font-size: .8em; letter-spacing: .12em; text-transform: uppercase; }
+.log-list p { margin: 0 0 .6em; }
 
 /* Status line and messages */
 .status-bar { grid-row: 3; display: flex; justify-content: space-between; gap: 12px; padding: 4px var(--gutter); font-size: .75em; color: var(--ivory-dim);
@@ -118,6 +184,11 @@ h2.md-heading { font-size: 1.3em; }
   background: var(--panel); border: 1px solid var(--amber-dim); padding: 8px 12px; color: var(--ivory); }
 
 @keyframes blink { 50% { opacity: .35; } }
+@keyframes wipe { 0% { opacity: 0; transform: translateY(-100%); } 45%, 55% { opacity: 1; transform: none; } 100% { opacity: 0; transform: translateY(100%); } }
+@keyframes flicker { 0% { opacity: 0; } 33% { opacity: .8; } 66% { opacity: .4; } 100% { opacity: 1; } }
+@keyframes streak-a { to { background-position: -140px 0, -153px 11px, -139px 23px; } }
+@keyframes streak-b { to { background-position: -117px 7px, -140px 30px; } }
+@keyframes drive { from { transform: translateX(-30ch); } to { transform: translateX(100vw); } }
 @keyframes pulse { 50% { opacity: .55; } }
 
 /* Portrait and narrow: the scene above, the transmission below it. */
@@ -126,9 +197,16 @@ h2.md-heading { font-size: 1.3em; }
   #shuttle[data-view="radio"] #stage { grid-row: 1; }
   .radio-panel { max-height: 52vh; }
   .corner { top: auto; bottom: calc(100% + 6px); }
-  .menu-panel { width: 100%; }
+  .menu-panel { width: 100%; padding: 10px 12px 8px; }
+  /* The title menu stays below the hangar's Shuttle Link panel. */
+  #title { align-items: flex-end; }
+  .menu-item { font-size: 1em; padding-top: 6px; padding-bottom: 6px; }
+  .menu-item.primary { font-size: 1.15em; }
+  #title .tip { display: none; }
+  .radio-channel { display: none; }
+  .viewscreen { top: calc(8px + env(safe-area-inset-top)); left: var(--gutter); right: var(--gutter); width: auto; max-height: 48vh; }
 }
 @media (prefers-reduced-motion: reduce) {
-  .press, #radio[data-speaking="on"] .rx { animation: none; }
+  .press, #radio[data-speaking="on"] .rx, .receiving, .viewscreen, .banner, .streaks::before, .streaks::after { animation: none; }
 }
-main[data-motion="off"] .press, main[data-motion="off"] #radio[data-speaking="on"] .rx { animation: none; }
+main[data-motion="off"] :is(.press, #radio[data-speaking="on"] .rx, .receiving, .viewscreen, .banner) { animation: none; }
