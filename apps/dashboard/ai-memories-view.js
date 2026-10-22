@@ -1,25 +1,20 @@
-/** What Sophie remembers about the signed-in member: they can switch it off, edit or delete each memory, or delete them all. */
+/** What Sophie remembers about the signed-in member: they can edit or delete each memory. Memory follows their Yes or No. */
 export function createMemoryList({ api, document, perform, identity, saved = () => {} }) {
   const el = id => document.getElementById(id); let current = null;
   const node = (tag, text = '') => { const result = document.createElement(tag); result.textContent = text; return result; };
   const button = (text, action, className = '') => { const result = node('button', text); result.type = 'button'; if (className) result.className = className;
     result.addEventListener('click', () => perform(action)); return result; };
   function clear() {
-    current = null; el('memories').replaceChildren(); el('memories-state').textContent = ''; el('remembering').checked = false;
-    for (const id of ['remembering', 'save-remembering', 'forget-all']) el(id).disabled = true;
+    current = null; el('memories').replaceChildren(); el('memories-state').textContent = '';
   }
   function render(value) {
     const actor = identity();
     if (!actor || value.actorId !== actor.userId || value.guildId !== actor.guildId || typeof value.available !== 'boolean' ||
       !Array.isArray(value.memories)) { clear(); throw Error('AI_MEMORY_RESULT_INVALID'); }
     current = value; el('memories').replaceChildren();
-    el('remembering').checked = value.remembering === true;
-    for (const id of ['remembering', 'save-remembering']) el(id).disabled = !value.available;
-    el('forget-all').disabled = !value.available || value.memories.length === 0;
     el('memories-state').textContent = !value.available ? 'Sophie’s memories are unavailable right now.' : value.active !== true
       ? 'Sophie is not keeping memories at the moment. Anything listed here was kept earlier.'
-      : value.remembering ? `Sophie remembers ${value.memories.length} thing${value.memories.length === 1 ? '' : 's'} that mention you.`
-        : 'You have turned memory off: Sophie keeps and uses nothing new about you.';
+      : `Sophie remembers ${value.memories.length} thing${value.memories.length === 1 ? '' : 's'} that mention you.`;
     if (value.available && value.memories.length === 0) el('memories').append(node('li', 'Nothing yet.'));
     for (const memory of value.memories) {
       const item = node('li'), text = node('span', memory.text);
@@ -36,14 +31,6 @@ export function createMemoryList({ api, document, perform, identity, saved = () 
     }
   }
   async function load() { render(await api.aiMemories()); }
-  el('save-remembering').addEventListener('click', () => perform(async () => {
-    if (!current?.available) return;
-    render(await api.aiRemembering({ enabled: el('remembering').checked, confirmed: true })); saved();
-  }));
-  el('forget-all').addEventListener('click', () => perform(async () => {
-    if (!current?.available) return;
-    render(await api.aiForgetAllMemories({ confirmed: true })); saved();
-  }));
   clear(); return Object.freeze({ load, clear });
 }
 

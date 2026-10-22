@@ -95,7 +95,7 @@ test('host tolerates reconnect and held configuration, then drains a pending hea
 
 test('registered recovery commands are accepted by the existing signed parser and keep guild-only fields', () => {
   const f = syntheticInteractions(), commands = administrationCommandDefinitions();
-  assert.deepEqual(commands.map(command => command.name), ['whitelist', 'ticket', 'answer', 'lookup', 'mute', 'unmute']);
+  assert.deepEqual(commands.map(command => command.name), ['whitelist', 'ticket', 'answer', 'lookup', 'sophie', 'mute', 'unmute']);
   for (const command of commands) { assert.equal('contexts' in command, false); assert.ok(command.options.length <= 25); }
   for (const name of ['whitelist', 'ticket']) for (const action of ['issues', 'recover', 'choose']) {
     const option = commands.find(command => command.name === name).options.find(item => item.name === action); assert.ok(option);
@@ -122,7 +122,7 @@ test('registration checks the application and exact guild before writes, upserts
   applicationId = '99'; await assert.rejects(registerStagingCommands({ transport, applicationId: APPLICATION, botUserId: BOT, confirmGuildId: GUILD }), /GATEWAY_IDENTITY_MISMATCH/);
   assert.equal(calls.some(call => call.method !== 'GET'), false);
   applicationId = APPLICATION; const result = await registerStagingCommands({ transport, applicationId: APPLICATION, botUserId: BOT, confirmGuildId: GUILD });
-  assert.equal(result.length, 6); assert.equal(calls.filter(call => call.method === 'POST').length, 6);
+  assert.equal(result.length, 7); assert.equal(calls.filter(call => call.method === 'POST').length, 7);
 });
 
 test('command registration waits out a short per-route cooldown for the same command and stops on long limits', async () => {
@@ -135,7 +135,7 @@ test('command registration waits out a short per-route cooldown for the same com
     return { id: '99', application_id: APPLICATION, guild_id: GUILD, type: 1, name: definition.name };
   } };
   const result = await registerStagingCommands({ transport, applicationId: APPLICATION, botUserId: BOT, confirmGuildId: GUILD, sleep: async ms => { waits.push(ms); } });
-  assert.equal(result.length, 6); assert.deepEqual(waits, [4250]); assert.equal(attempts[4], attempts[5]);
+  assert.equal(result.length, 7); assert.deepEqual(waits, [4250]); assert.equal(attempts[4], attempts[5]);
   const stuck = { ...identity, async upsertGuildCommand() { throw limited(600_000); } };
   await assert.rejects(registerStagingCommands({ transport: stuck, applicationId: APPLICATION, botUserId: BOT, confirmGuildId: GUILD, sleep: async () => assert.fail('NO_WAIT') }), /RATE_LIMITED/);
   let repeated = 0; const always = { ...identity, async upsertGuildCommand() { repeated++; throw limited(1000); } };

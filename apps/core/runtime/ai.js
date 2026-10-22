@@ -9,14 +9,16 @@ import { createAiMessages } from '../discord/ai-messages.js';
 import { createDiscordTransport } from '../discord/transport.js';
 import { createActorAuthorityStore } from '../storage/actor-authority.js';
 import { createAiAdmission } from '../storage/ai-admission.js';
-import { aiDigest } from '../storage/ai-controls.js';
+import { aiDigest, recordAiInvitation } from '../storage/ai-controls.js';
+import { renderSophieInvitation } from '../../../modules/assistant/member-panel.js';
+import { defaultSystemText } from '../../../contracts/system-messages.js';
 import { createAiAccounting } from '../storage/ai-accounting.js';
 import { createAiEffects } from '../storage/ai-effects.js';
 import { createMeteredAiWorker } from './ai-provider.js';
 
 /** Core composition only. Inference receives a fixed turn payload, never this pool or Discord transport. */
 export function createAiRuntime({ configuration, corePool, controlPool, worker, knowledge, observer, guildState, token, fetch, clock, enabled, rateLimits, onFault,
-  readNotice = async () => ({ revision: worker.provider === 'mistral' ? 2 : 1, binding: null, approved: worker.provider !== 'mistral' }), privacyCurrent = async () => false, memory = null, memories = null }) {
+  readNotice = async () => ({ revision: worker.provider === 'mistral' ? 2 : 1, binding: null, approved: worker.provider !== 'mistral' }), privacyCurrent = async () => false, memory = null, memories = null, readSystemText = async () => defaultSystemText }) {
   requireCondition(worker && typeof worker.generate === 'function' && typeof worker.current === 'function' && knowledge &&
     ['lookup','current','currentReferences'].every(name => typeof knowledge[name] === 'function'), 'AI_ADAPTERS_REQUIRED');
   const { mapping, casePolicy, capabilityPolicy } = configuration;
@@ -27,7 +29,11 @@ export function createAiRuntime({ configuration, corePool, controlPool, worker, 
   let recovered = false;
   const admission = createAiAdmission({ pool: controlPool, guildId: mapping.guildId, ingress, ...observations, clock,
     noticeRevision: worker.provider === 'mistral' ? 2 : 1, readNotice, privacyCurrent, trace: reason => onFault(`AI_ADMISSION_SKIPPED_${reason}`),
-    inspectContext: async event => recovered ? observations.inspectContext(event) : null });
+    inspectContext: async event => recovered ? observations.inspectContext(event) : null,
+    // Fire and forget: the invitation is a fixed core message and never delays or changes admission.
+    invite: ({ channelId, userId, messageId }) => { void (async () => {
+      if (await recordAiInvitation(controlPool, mapping.guildId, userId)) await transport.sendSophieInvitation(channelId, messageId, renderSophieInvitation(await readSystemText()));
+    })().catch(() => onFault('AI_INVITATION_UNAVAILABLE')); } });
   const accounting = createAiAccounting({ pool: controlPool, guildId: mapping.guildId });
   const inference = worker.provider === 'mistral' ? createMeteredAiWorker({ worker, accounting }) : worker;
   // Inference is a remote API call, not local CPU work: two turns in different channels may generate at once.

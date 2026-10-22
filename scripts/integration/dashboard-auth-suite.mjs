@@ -59,7 +59,7 @@ export async function runDashboardAuthSuite(cluster, run) {
     const flow = await f.begin(); f.provider.state.before = () => { throw new Error('synthetic-private-provider-diagnostic'); };
     await assert.rejects(f.complete(flow), /^ContractError: OAUTH_PROVIDER_UNAVAILABLE$/);
     f.provider.state.before = null; await assert.rejects(f.complete(flow), /DASHBOARD_LOGIN_INVALID/);
-    f.provider.state.tokenOverride = { scope: 'identify email' }; await assert.rejects(f.login(), /OAUTH_RESPONSE_INVALID/);
+    f.provider.state.tokenOverride = { scope: 'identify email' }; await assert.rejects(f.login(), /OAUTH_SCOPE_UNEXPECTED/);
     f.provider.state.tokenOverride = null; f.provider.state.userOverride = { bot: true };
     await assert.rejects(f.login(), /OAUTH_IDENTITY_INVALID/); f.provider.state.userOverride = null;
     await assert.rejects(f.login(BOT), /OPERATION_DENIED/);

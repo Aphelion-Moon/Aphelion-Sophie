@@ -53,8 +53,9 @@ export async function qualifiedGatewayAi({ cluster, configuration, discord, cloc
       release_sha256,evidence_sha256,configuration_sha256,personality_sha256,restricted,active,restore_ready)
       VALUES($1,$2,1,$3,'synthetic-public',$4,$4,$5,$6,false,true,true)`,
     [GUILD, channel.id, audienceHash, 'c'.repeat(64), configurationHash, personalityHash]);
-    await admin.query(`INSERT INTO sophie_ai.consents(guild_id,channel_id,user_id,epoch,enabled,presence_epoch,notice_revision)
-      VALUES($1,$2,$3,1,true,1,1)`, [GUILD, channel.id, USER]);
+    // One server-wide Yes (owner decision, 23 October 2026); channel qualification still decides where Sophie takes part.
+    await admin.query(`INSERT INTO sophie_ai.member_consents(guild_id,user_id,epoch,enabled,presence_epoch,notice_revision)
+      VALUES($1,$2,1,true,1,1) ON CONFLICT DO NOTHING`, [GUILD, USER]);
   }
   // Observe admission reaching each qualification, so bounded ingress capacity cannot silently skip a sentinel.
   async function query(client, text, values) {
@@ -105,8 +106,8 @@ export async function qualifiedGatewayAi({ cluster, configuration, discord, cloc
       await client.query(`INSERT INTO sophie_ai.qualifications(guild_id,channel_id,boundary_epoch,audience_sha256,worker_domain,
         release_sha256,evidence_sha256,configuration_sha256,personality_sha256,restricted,active,restore_ready)
         VALUES($1,$2,1,$3,'synthetic-public',$4,$4,$5,$6,false,true,true)`, [GUILD, channelId, audience, 'c'.repeat(64), hash, personalityHash]);
-      await client.query(`INSERT INTO sophie_ai.consents(guild_id,channel_id,user_id,epoch,enabled,presence_epoch,notice_revision)
-        VALUES($1,$2,$3,1,true,1,1)`, [GUILD, channelId, USER]);
+      await client.query(`INSERT INTO sophie_ai.member_consents(guild_id,user_id,epoch,enabled,presence_epoch,notice_revision)
+        VALUES($1,$2,1,true,1,1) ON CONFLICT DO NOTHING`, [GUILD, USER]);
       await client.query('COMMIT');
     } catch (error) { await client.query('ROLLBACK'); throw error; }
     finally { client.release(); }

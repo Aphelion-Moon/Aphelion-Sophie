@@ -42,7 +42,11 @@ export async function requireInstalledAiDatabase(pool,kind) {
         ('sophie_ai.consents','DELETE'),('sophie_ai.request_receipts','DELETE'),
         -- Schema073: Sophie's own memories; preference saves re-stamp them even while memory is off.
         ('sophie_ai.memories','SELECT'),('sophie_ai.memories','INSERT'),('sophie_ai.memories','UPDATE'),('sophie_ai.memories','DELETE'),
-        ('sophie_ai.memory_optouts','SELECT'),('sophie_ai.memory_optouts','INSERT'),('sophie_ai.memory_optouts','DELETE')) required(table_name,privilege)`)).rows[0];
+        ('sophie_ai.memory_optouts','SELECT'),('sophie_ai.memory_optouts','INSERT'),('sophie_ai.memory_optouts','DELETE'),
+        -- Schema076: one server-wide choice per member and the daily invitation limit.
+        ('sophie_ai.member_consents','SELECT'),('sophie_ai.member_consents','INSERT'),('sophie_ai.member_consents','UPDATE'),('sophie_ai.member_consents','DELETE'),
+        ('sophie_ai.consent_invitations','SELECT'),('sophie_ai.consent_invitations','INSERT'),('sophie_ai.consent_invitations','UPDATE'),
+        ('sophie_ai.consent_invitations','DELETE')) required(table_name,privilege)`)).rows[0];
     requireCondition(access?.privacy_access===true,'AI_DATABASE_PRIVILEGES_MISSING');
   }
 }

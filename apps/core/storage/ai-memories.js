@@ -27,7 +27,7 @@ export async function eraseAiMemories(client, guildId, userId) {
 
 /**
  * Sophie's own memories (owner decision, 20 October 2026). Core-only: the worker never reads or writes them. A memory is
- * usable only while every subject has memory on, has no departure pending and still holds the preference epoch the
+ * usable only while every subject has said Yes, has memory on, has no departure pending and still holds the preference epoch the
  * memory was written under, so a restored backup cannot bring back what a member deleted.
  */
 export function createAiMemories({ pool, guildId, journal, privacyCurrent, clock = Date.now }) {
@@ -42,9 +42,12 @@ export function createAiMemories({ pool, guildId, journal, privacyCurrent, clock
       [guildId, userIds])).rows.map(item => [item.user_id, Number(item.epoch)]));
     const out = new Set((await client.query('SELECT user_id FROM sophie_ai.memory_optouts WHERE guild_id=$1 AND user_id=ANY($2::text[])',
       [guildId, userIds])).rows.map(item => item.user_id));
+    // A memory follows its subject's server-wide Yes (owner decision, 23 October 2026): saying No hides it, Yes again restores it.
+    const agreed = new Set((await client.query('SELECT user_id FROM sophie_ai.member_consents WHERE guild_id=$1 AND user_id=ANY($2::text[]) AND enabled',
+      [guildId, userIds])).rows.map(item => item.user_id));
     for (const userId of userIds) {
       // privacyCurrent checks the independent journal watermark and pending departures; a mismatch starts erasure.
-      const usable = !out.has(userId) && await (held ? privacyCurrent(userId, client) : privacyCurrent(userId)) === true;
+      const usable = agreed.has(userId) && !out.has(userId) && await (held ? privacyCurrent(userId, client) : privacyCurrent(userId)) === true;
       states.set(userId, { usable, epoch: epochs.get(userId) ?? 0 });
     }
     return states;

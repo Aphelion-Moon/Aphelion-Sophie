@@ -23,6 +23,17 @@ function publication(kind, document) {
   return kind === 'configuration' ? canonicalAiConfiguration(document) : kind === 'budget' ? canonicalAiBudget(document) : canonicalPersonality(document);
 }
 
+/** Records a "Set up Sophie" invitation unless the member has made a choice or saw one in the last day. Core only. */
+export async function recordAiInvitation(pool, guildId, userId) {
+  requireId(guildId); requireId(userId);
+  return inTransaction(pool, async client => {
+    if ((await client.query('SELECT 1 FROM sophie_ai.member_consents WHERE guild_id=$1 AND user_id=$2', [guildId, userId])).rowCount) return false;
+    return (await client.query(`INSERT INTO sophie_ai.consent_invitations(guild_id,user_id) SELECT $1,$2 WHERE EXISTS(SELECT 1 FROM sophie_ai.state WHERE guild_id=$1)
+      ON CONFLICT(guild_id,user_id) DO UPDATE SET invited_at=clock_timestamp()
+      WHERE sophie_ai.consent_invitations.invited_at < clock_timestamp() - interval '1 day' RETURNING 1`, [guildId, userId])).rowCount === 1;
+  });
+}
+
 /** Authenticated controls own desired state. Activation requires separate installation evidence. */
 export function createAiControls({ pool, guildId, authorize, inspectChannel, memberPresence, invalidate = () => {}, noticeRevision = 2,
   noticeApproved = async () => false, readNotice = async () => ({ revision: noticeRevision, text: null, approved: await noticeApproved() }), preferenceJournal = null, privacyCurrent = null, memories = null, memoriesActive = async () => false, clock = Date.now, workerStatus=()=>({connected:false,release:null,observedAt:null}),readDiagnostic=async()=>null }) {
@@ -43,6 +54,8 @@ export function createAiControls({ pool, guildId, authorize, inspectChannel, mem
       result = await work(client, state); await access(actor, action, scope); return result;
     }).finally(() => { if (typeof changes==='function' ? changes(result) : changes) invalidate(); });
   }
+  const withdrawReplies = (client, userId) => client.query(`UPDATE sophie_ai.effects SET state='cleanup',updated_at=clock_timestamp() WHERE guild_id=$1
+    AND state NOT IN ('removed','cleanup') AND EXISTS(SELECT 1 FROM jsonb_array_elements(dependencies) d WHERE d->>'userId'=$2)`, [guildId, userId]);
   // Sophie's own memories: each member manages what names them (ai.self); the owner audits all of them (ai.memory.audit).
   function memoryControls() {
     const unavailable = { available: false, remembering: false, memories: [] };
@@ -193,25 +206,23 @@ export function createAiControls({ pool, guildId, authorize, inspectChannel, mem
         return { resolved:true,duplicate:false };
       });
     },
-    async consent({ actor, channelId, enabled, expectedEpoch, acceptedNoticeRevision, acceptedNoticeBinding = null }) {
-      requireId(channelId); requireInteger(expectedEpoch); requireInteger(acceptedNoticeRevision, 1);
+    // Owner decision, 23 October 2026: one Yes or No for the whole server. A Yes covers replies, the member's notes and
+    // Sophie's memories under the notice it accepts; channel qualification still decides where Sophie takes part.
+    async memberConsent({ actor, enabled, expectedEpoch, acceptedNoticeRevision, acceptedNoticeBinding = null }) {
+      requireInteger(expectedEpoch); requireInteger(acceptedNoticeRevision, 1);
       const notice = enabled ? await readNotice() : null;
       if (enabled && acceptedNoticeBinding !== null) { hash(acceptedNoticeBinding); requireCondition(typeof notice.text === 'string' && notice.text.length > 0 && notice.text.length <= 8000, 'AI_NOTICE_STALE'); }
       requireCondition(typeof enabled === 'boolean' && (!enabled || acceptedNoticeRevision === notice.revision), 'AI_NOTICE_STALE');
       return transaction(actor, 'ai.self', async client => {
-        const prior = (await client.query('SELECT * FROM sophie_ai.consents WHERE guild_id=$1 AND channel_id=$2 AND user_id=$3 FOR UPDATE', [guildId, channelId, actor.userId])).rows[0];
+        const prior = (await client.query('SELECT * FROM sophie_ai.member_consents WHERE guild_id=$1 AND user_id=$2 FOR UPDATE', [guildId, actor.userId])).rows[0];
         requireCondition(Number(prior?.epoch ?? 0) === expectedEpoch, 'AI_CONSENT_STALE');
-        if (!enabled && !prior) return { channelId, enabled: false, epoch: 0, noticeRevision: acceptedNoticeRevision };
-        // Opt-out does not depend on continuing channel visibility or a working inference service.
+        // Saying No is always possible and needs no notice, channel or working inference service.
         if (enabled) {
           requireCondition(privacyCurrent===null || await privacyCurrent(actor.userId,client),'AI_DELETION_PENDING');
           const currentNotice = await readNotice();
           requireCondition(notice.approved === true && currentNotice.approved === true && currentNotice.revision === acceptedNoticeRevision, 'AI_NOTICE_UNAPPROVED');
           if (notice.revision !== 1) requireCondition(typeof acceptedNoticeBinding === 'string' && /^[a-f0-9]{64}$/u.test(acceptedNoticeBinding), 'AI_NOTICE_STALE');
           requireCondition((notice.binding ?? null) === acceptedNoticeBinding && (currentNotice.binding ?? null) === acceptedNoticeBinding, 'AI_NOTICE_STALE');
-          const configuration = await current(client, 'configuration');
-          requireCondition(configuration?.document.channels.some(channel => channel.channelId === channelId && channel.profile.mode !== 'ignore') &&
-            await inspectChannel(client, channelId) !== null, 'AI_CHANNEL_UNAVAILABLE');
         }
         const presence = await memberPresence(actor); requireInteger(presence);
         if (enabled) {
@@ -224,35 +235,48 @@ export function createAiControls({ pool, guildId, authorize, inspectChannel, mem
         const savedRevision = enabled ? acceptedNoticeRevision : prior?.notice_revision ?? acceptedNoticeRevision;
         const receipt = enabled && acceptedNoticeBinding !== null ? { revision: acceptedNoticeRevision, binding: acceptedNoticeBinding,
           text: notice.text, acceptedAt: new Date(clock()).toISOString() } : enabled ? null : prior?.receipt ?? null;
-        await client.query(`INSERT INTO sophie_ai.consents(guild_id,channel_id,user_id,epoch,enabled,presence_epoch,notice_revision,receipt)
-          VALUES($1,$2,$3,$4,$5,$6,$7,$8) ON CONFLICT(guild_id,channel_id,user_id) DO UPDATE SET
+        await client.query(`INSERT INTO sophie_ai.member_consents(guild_id,user_id,epoch,enabled,presence_epoch,notice_revision,receipt)
+          VALUES($1,$2,$3,$4,$5,$6,$7) ON CONFLICT(guild_id,user_id) DO UPDATE SET
           epoch=EXCLUDED.epoch,enabled=EXCLUDED.enabled,presence_epoch=EXCLUDED.presence_epoch,notice_revision=EXCLUDED.notice_revision,receipt=EXCLUDED.receipt,updated_at=clock_timestamp()`,
-        [guildId, channelId, actor.userId, epoch, enabled, presence, savedRevision, receipt]);
-        // Opt-out withdraws Sophie's delivered replies in this channel that drew on this member's messages. Delivered replies
-        // are no longer re-verified, so the withdrawal is explicit and commits with the consent change.
-        if (!enabled) await client.query(`UPDATE sophie_ai.effects SET state='cleanup',updated_at=clock_timestamp() WHERE guild_id=$1 AND channel_id=$2
-          AND state NOT IN ('removed','cleanup') AND EXISTS(SELECT 1 FROM jsonb_array_elements(dependencies) d WHERE d->>'userId'=$3)`, [guildId, channelId, actor.userId]);
-        return { channelId, enabled, epoch, noticeRevision: savedRevision };
-      }, { userId: actor.userId }, result => result?.epoch !== 0);
+        [guildId, actor.userId, epoch, enabled, presence, savedRevision, receipt]);
+        // Saying No withdraws Sophie's delivered replies that drew on this member's messages, in every channel. Delivered
+        // replies are no longer re-verified, so the withdrawal is explicit and commits with the choice.
+        if (!enabled) await withdrawReplies(client, actor.userId);
+        return { enabled, epoch, noticeRevision: savedRevision };
+      }, { userId: actor.userId }, true);
     },
-    ownConsents: ({ actor, afterChannelId = null, channelId = null }) => {
-      for (const id of [afterChannelId,channelId]) if (id !== null) requireId(id);
-      requireCondition(afterChannelId === null || channelId === null, 'AI_INPUT_INVALID');
+    /** The member's own choice and the notice a Yes would accept. `current` is true only while a Yes matches that notice. */
+    ownChoice: ({ actor }) => transaction(actor, 'ai.self', async client => {
+      if (privacyCurrent!==null && !await privacyCurrent(actor.userId,client)) return { noticeRevision, noticeText: null, noticeBinding: null, optInAvailable: false,
+        deletionPending: true, choice: { enabled: false, epoch: null, noticeRevision: null, current: false } };
+      const notice = await readNotice().catch(() => ({ revision: noticeRevision, text: null, approved: false }));
+      const bound = notice.revision===1 || typeof notice.binding==='string' && /^[a-f0-9]{64}$/u.test(notice.binding);
+      const row = (await client.query('SELECT epoch,enabled,notice_revision,receipt FROM sophie_ai.member_consents WHERE guild_id=$1 AND user_id=$2', [guildId, actor.userId])).rows[0];
+      const current = row?.enabled===true && notice.approved===true && row.notice_revision===notice.revision &&
+        (notice.revision===1 && (notice.binding ?? null)===null || row.receipt?.binding===notice.binding);
+      return { noticeRevision: notice.revision, noticeText: notice.text ?? null, noticeBinding: notice.binding ?? null, optInAvailable: notice.approved===true && bound,
+        deletionPending: false, choice: { enabled: row?.enabled===true, epoch: Number(row?.epoch ?? 0), noticeRevision: row?.notice_revision ?? null, current } };
+    }, { userId: actor.userId }),
+    /**
+     * "Delete my data": the choice becomes No at once and Sophie's replies that drew on the member are withdrawn. The
+     * keep-on-leave choice is cleared so the erasure the caller then queues (the one a departure gets) removes everything.
+     */
+    prepareDeletion: async ({ actor, confirmed }) => { requireCondition(confirmed === true, 'AI_CONFIRMATION_REQUIRED');
       return transaction(actor, 'ai.self', async client => {
-        if(privacyCurrent!==null && !await privacyCurrent(actor.userId,client))return {noticeRevision,noticeText:'AI data cleanup or recovery is pending. Processing is unavailable.',noticeBinding:null,optInAvailable:false,channels:[],nextAfterChannelId:null};
-        const notice=await readNotice().catch(()=>({revision:noticeRevision,text:'Processing approval is unavailable. You can still opt out.',approved:false}));
-        const bound=notice.revision===1 || typeof notice.binding==='string' && /^[a-f0-9]{64}$/u.test(notice.binding);
-        const rows=(await client.query(`SELECT channel_id AS "channelId",epoch,enabled,notice_revision AS "noticeRevision"
-          FROM sophie_ai.consents WHERE guild_id=$1 AND user_id=$2 AND ($3::text IS NULL OR channel_id>$3) AND ($4::text IS NULL OR channel_id=$4)
-          ORDER BY channel_id LIMIT 101`,[guildId,actor.userId,afterChannelId,channelId])).rows;
-        return {noticeRevision:notice.revision,noticeText:notice.text,noticeBinding:notice.binding??null,optInAvailable:notice.approved===true && bound,
-          channels:rows.slice(0,100).map(row=>({...row,epoch:Number(row.epoch)})),nextAfterChannelId:rows.length>100?rows[99].channelId:null};
-      }, { userId: actor.userId });
-    },
+        await client.query(`UPDATE sophie_ai.member_consents SET enabled=false,epoch=epoch+1,updated_at=clock_timestamp()
+          WHERE guild_id=$1 AND user_id=$2 AND enabled`, [guildId, actor.userId]);
+        await client.query('UPDATE sophie_ai.consents SET enabled=false,epoch=epoch+1 WHERE guild_id=$1 AND user_id=$2 AND enabled', [guildId, actor.userId]);
+        await client.query('UPDATE sophie_ai.response_preferences SET retain_on_leave=false WHERE guild_id=$1 AND user_id=$2', [guildId, actor.userId]);
+        await withdrawReplies(client, actor.userId);
+        return { prepared: true };
+      }, { userId: actor.userId }, true); },
     exportConsents: ({ actor }) => transaction(actor, 'ai.self', async client => {
       requireCondition(privacyCurrent===null || await privacyCurrent(actor.userId,client),'AI_DELETION_PENDING');
+      const choice = (await client.query(`SELECT epoch,enabled,notice_revision AS "noticeRevision",receipt,updated_at AS "updatedAt"
+        FROM sophie_ai.member_consents WHERE guild_id=$1 AND user_id=$2`, [guildId, actor.userId])).rows[0];
       return {
-      scope: 'Latest acceptance per channel and current choice; not a complete historical audit',
+      scope: 'Your current server-wide choice with the notice you accepted, and any earlier per-channel choices; not a complete historical audit',
+      choice: choice ? { ...choice, epoch: Number(choice.epoch) } : null,
       channels: (await client.query(`SELECT channel_id AS "channelId",epoch,enabled,notice_revision AS "noticeRevision",receipt,updated_at AS "updatedAt"
         FROM sophie_ai.consents WHERE guild_id=$1 AND user_id=$2 ORDER BY channel_id`, [guildId, actor.userId])).rows.map(row=>({...row,epoch:Number(row.epoch)})),
       };

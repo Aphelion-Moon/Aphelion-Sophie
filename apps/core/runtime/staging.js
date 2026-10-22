@@ -32,6 +32,8 @@ import { createGatewaySupervisor } from '../discord/gateway-supervisor.js';
 import { createInteractionVerifier } from '../security/interaction-verifier.js';
 import { createInteractionResponder } from '../discord/interaction-response.js';
 import { createInteractionHttpServer } from '../discord/interaction-http.js';
+import { createSophieMemberCommands } from '../discord/sophie-member.js';
+import { createAiMemberControls } from './ai-member.js';
 import { createOutbox } from '../storage/outbox.js';
 import { createCaseReconciler } from '../discord/case-reconciler.js';
 import { createCaseInspectionStore } from '../storage/case-inspections.js';
@@ -108,8 +110,9 @@ export async function createStagingRuntime({ configuration, pool, aiControlPool 
   let aiRuntime = null, activationRebind = null, activationFollow = null;
   const privacyEffects=aiControlPool===null?null:createAiEffects({pool:aiControlPool,guildId:fixed.mapping.guildId,clock});
   const privacyMessages=privacyEffects===null?null:createAiMessages({transport,botUserId:fixed.mapping.botUserId,effects:privacyEffects,clock,canReact:async()=>false});
+  const aiDepartures=createAiDepartures({pool,guildId:fixed.mapping.guildId});
   const privacy=aiControlPool===null?null:createAiPrivacy({pool:aiControlPool,guildId:fixed.mapping.guildId,journal:aiPreferenceJournal,
-    departures:createAiDepartures({pool,guildId:fixed.mapping.guildId}),invalidate:()=>aiRuntime?.invalidate(),onFault:fault,
+    departures:aiDepartures,invalidate:()=>aiRuntime?.invalidate(),onFault:fault,
     removeEffect:effect=>privacyMessages.remove({guildId:fixed.mapping.guildId,channelId:effect.channel_id},{messageId:effect.message_id,owner:effect.owner,id:effect.receipt_id})});
   // Sophie's own memories exist only with the independent journal; they are used only while an accepted notice discloses them.
   const aiMemories=privacy===null||aiPreferenceJournal===null?null:createAiMemories({pool:aiControlPool,guildId:fixed.mapping.guildId,journal:aiPreferenceJournal,privacyCurrent:privacy.current,clock});
@@ -142,11 +145,23 @@ export async function createStagingRuntime({ configuration, pool, aiControlPool 
     observer, guildState, token, fetch, clock, enabled, rateLimits, onFault: fault,privacyCurrent:privacy.current,
     memory: aiPreferenceJournal === null ? null : createAiMemory({ pool: aiControlPool, guildId: fixed.mapping.guildId, journal: aiPreferenceJournal, clock }),
     memories: aiMemories === null ? null : { ...aiMemories, enabled: async () => aiApproval !== null && typeof aiApproval.automaticMemory === 'function' && await aiApproval.automaticMemory() },
+    readSystemText: createSystemWordingReader({ pool, guildId: fixed.mapping.guildId }),
     ...(aiApproval === null ? {} : { readNotice: aiApproval.notice }) });
   if(aiWorker!==null)aiRuntime=createAiLane(aiWorker);
   const readSystemText = createSystemWordingReader({ pool, guildId: fixed.mapping.guildId });
-  const lane = () => createAdministrationLane({ configuration: fixed, pool, token, fetch, clock, enabled, rateLimits, observer, principals, verifier, onFault: fault, onTrace: trace, readSystemText, knowledge:aiKnowledge });
-  const requests = lane(), delivery = lane();
+  // One set of member AI controls per authorization lane: the Discord panel and the dashboard share the same use cases.
+  const aiMemberControls = authorization => aiControlPool === null || privacy === null ? null : createAiMemberControls({ clock,
+    requestErasure: userId => aiDepartures.request(userId).then(() => aiRuntime?.invalidate()),
+    controls: createAiControls({ pool: aiControlPool, guildId: fixed.mapping.guildId, authorize: authorization.authorize, preferenceJournal: aiPreferenceJournal,
+      privacyCurrent: privacy.current, clock, memories: aiMemories, invalidate: () => aiRuntime?.invalidate(),
+      memoriesActive: async () => aiApproval !== null && typeof aiApproval.automaticMemory === 'function' && await aiApproval.automaticMemory(),
+      ...(aiApproval === null ? {} : { readNotice: aiApproval.notice }), memberPresence: actor => authorization.aiMemberPresence(actor),
+      inspectChannel: async () => null }) });
+  const sophieMemberFactory = aiControlPool === null || privacy === null ? null : ({ authorization, transport: laneTransport, verifier: laneVerifier, enabled: laneEnabled, readSystemText: laneText }) =>
+    createSophieMemberCommands({ authorization, member: aiMemberControls(authorization), verifier: laneVerifier, transport: laneTransport,
+      guildId: fixed.mapping.guildId, enabled: laneEnabled, readSystemText: laneText });
+  const lane = (extra = {}) => createAdministrationLane({ configuration: fixed, pool, token, fetch, clock, enabled, rateLimits, observer, principals, verifier, onFault: fault, onTrace: trace, readSystemText, knowledge:aiKnowledge, ...extra });
+  const requests = lane({ sophieMemberFactory }), delivery = lane();
   const responder = createInteractionResponder({ verifier, applicationId: fixed.applicationId, fetch, clock, enabled, readSystemText, ...requests.responseAdapters });
   // A recorded Shuttle change has already committed its render intent, so delivery starts now instead of at the next
   // interval. The diagnostic is a fixed code: the command result and whole milliseconds, never IDs or content.
@@ -163,7 +178,7 @@ export async function createStagingRuntime({ configuration, pool, aiControlPool 
   const interactions = createInteractionHttpServer({ verifier, commands: interactionCommands, respond: responder.respond,
     onboardingPanel: createOnboardingEntryPanel({ authorization: requests.authorization, transport: requests.transport, store: requests.store, policy: fixed.casePolicy,
       definitionId: fixed.definitionId, enabled, readSystemText }),
-    caseIntake: requests.caseIntake, readSystemText, enabled, onFault: fault, activityOpen: fixed.activity?.status === 'open' });
+    caseIntake: requests.caseIntake, sophiePanel: requests.sophieMember, readSystemText, enabled, onFault: fault, activityOpen: fixed.activity?.status === 'open' });
   const reconciler = createCaseReconciler({ store: createCaseInspectionStore({ pool, policy: fixed.casePolicy }), enabled });
   // No Shuttle work waits for Staff: parked Shuttle jobs are rechecked on their own (see recheckParkedShuttleWork).
   const shuttleOutbox = createOutbox({ pool });
@@ -184,7 +199,7 @@ export async function createStagingRuntime({ configuration, pool, aiControlPool 
       invalidate: () => aiRuntime?.invalidate() });
     activationRebind = activation === null ? null : activation.rebind; activationFollow = activation === null ? null : activation.follow;
     const knowledgeLookup = aiKnowledge === null ? null : createKnowledgeLookupHttp({ auth, authorization, knowledge: aiKnowledge, clock });
-    const ai = aiControlPool === null ? null : createAiControlsHttp({ auth, authorization, trace: fault, controls: { ...createAiControls({
+    const ai = aiControlPool === null ? null : createAiControlsHttp({ auth, authorization, trace: fault, member: aiMemberControls(authorization), controls: { ...createAiControls({
       pool: aiControlPool, guildId: fixed.mapping.guildId, authorize: authorization.authorize, preferenceJournal:aiPreferenceJournal, privacyCurrent:privacy.current,clock, memories: aiMemories,
       memoriesActive: async () => aiApproval !== null && typeof aiApproval.automaticMemory === 'function' && await aiApproval.automaticMemory(),
       workerStatus:()=>aiRuntime?.workerStatus?.()??{connected:false,release:null,observedAt:null},

@@ -1,6 +1,7 @@
 import { createPublicKey, verify } from 'node:crypto';
 import { parseAnswerCommand } from '../../../modules/answers/discord.js';
 import { parseLookupCommand } from '../../../modules/assistant/lookup.js';
+import { parseSophieCommand, parseSophieControl, parseSophieNotes, SOPHIE_CONTROL_PREFIX, SOPHIE_NOTES_FORM } from '../../../modules/assistant/member-panel.js';
 import { requireAnswerName } from '../../../modules/answers/index.js';
 import { parseAnswerReplyControl } from '../../../modules/tickets/answer-replies.js';
 import { parseCaseTags, requireCaseLabels } from '../../../modules/tickets/labels.js';
@@ -40,13 +41,31 @@ export function createInteractionVerifier({ publicKeyHex, applicationId, guildId
       requireCondition(payload.application_id === applicationId, 'FOREIGN_APPLICATION');
       if (payload.type === 1) return Object.freeze({ kind: 'ping' });
       requireCondition((payload.type === 2 && payload.data?.type === 1) || payload.type === 3 || payload.type === 5, 'INTERACTION_TYPE_UNSUPPORTED');
-      requireCondition(payload.guild_id === guildId && payload.context === 0 &&
-        payload.authorizing_integration_owners?.['0'] === guildId, 'FOREIGN_GUILD');
-      requireId(payload.id); requireId(payload.channel_id); requireId(payload.member?.user?.id);
-      requireCondition(payload.member.user.bot !== true, 'BOT_ACTOR_DENIED');
+      // The member's own Sophie panel also works in their DMs with the bot (a bot-DM interaction of this guild install):
+      // only its buttons and notes form, and core then resolves the member against this one configured guild.
+      const sophieCustomId = typeof payload.data?.custom_id === 'string' && payload.data.custom_id.startsWith(SOPHIE_CONTROL_PREFIX);
+      const direct = payload.context === 1 && payload.guild_id === undefined && sophieCustomId && (payload.type === 3 || payload.type === 5);
+      if (direct) {
+        requireCondition(payload.authorizing_integration_owners?.['0'] === '0' && payload.member === undefined, 'FOREIGN_GUILD');
+        requireId(payload.id); requireId(payload.channel_id); requireId(payload.user?.id);
+        requireCondition(payload.user.bot !== true, 'BOT_ACTOR_DENIED');
+      } else {
+        requireCondition(payload.guild_id === guildId && payload.context === 0 &&
+          payload.authorizing_integration_owners?.['0'] === guildId, 'FOREIGN_GUILD');
+        requireId(payload.id); requireId(payload.channel_id); requireId(payload.member?.user?.id);
+        requireCondition(payload.member.user.bot !== true, 'BOT_ACTOR_DENIED');
+      }
+      const actorId = direct ? payload.user.id : payload.member.user.id;
       // Never retain incoming roles, resolved entities or source messages in routing envelopes.
-      let command, targetId, formValues = null, replyText = null, lookupQuery = null, control = {};
-      if (payload.type === 5) {
+      let command, targetId, formValues = null, replyText = null, lookupQuery = null, sophieNotes = null, control = {};
+      if (sophieCustomId && payload.type === 5) {
+        requireCondition(payload.data.custom_id === SOPHIE_NOTES_FORM, 'INTERACTION_FORM_INVALID');
+        sophieNotes = parseSophieNotes(payload.data); command = 'sophie.notes.save'; targetId = actorId;
+      } else if (sophieCustomId) {
+        requireId(payload.message?.id);
+        requireCondition(payload.data.component_type === 2 && payload.data.values === undefined && payload.data.resolved === undefined, 'INTERACTION_COMPONENT_UNSUPPORTED');
+        ({ command, ...control } = parseSophieControl(payload.data.custom_id)); targetId = actorId;
+      } else if (payload.type === 5) {
         const parsed = parseCaseFormSubmission(payload.data); command = 'ticket.submit'; targetId = payload.member.user.id;
         control = { formToken: parsed.formToken }; formValues = parsed.values;
       } else if (payload.type === 3) {
@@ -82,6 +101,8 @@ export function createInteractionVerifier({ publicKeyHex, applicationId, guildId
           }
           else { command = 'shuttle.control'; control = { ...parseOnboardingControl(payload.data.custom_id), messageId: payload.message.id }; }
         }
+      } else if (payload.data.name === 'sophie') {
+        ({ command } = parseSophieCommand(payload.data.options)); targetId = payload.member.user.id;
       } else if (payload.data.name === 'lookup') {
         lookupQuery=parseLookupCommand(payload.data.options);command='knowledge.lookup';targetId=payload.member.user.id;
       } else if (payload.data.name === 'answer') {
@@ -196,8 +217,8 @@ export function createInteractionVerifier({ publicKeyHex, applicationId, guildId
       }
       requireCondition(typeof payload.token === 'string' && /^[A-Za-z0-9._-]{20,2048}$/.test(payload.token), 'INTERACTION_TOKEN_INVALID');
       const envelope = Object.freeze({ kind: 'command', interactionId: payload.id, guildId, channelId: payload.channel_id,
-        userId: payload.member.user.id, command, targetId, ...control });
-      verified.set(envelope, { verifiedAt: now, token: payload.token, expiresAt: Math.min(now, signedAt) + 900_000, formValues, replyText, lookupQuery });
+        userId: actorId, command, targetId, ...(command.startsWith('sophie.') ? { component: payload.type !== 2, direct } : {}), ...control });
+      verified.set(envelope, { verifiedAt: now, token: payload.token, expiresAt: Math.min(now, signedAt) + 900_000, formValues, replyText, lookupQuery, sophieNotes });
       return envelope;
     },
     resolvePrincipal(envelope) {
@@ -225,6 +246,12 @@ export function createInteractionVerifier({ publicKeyHex, applicationId, guildId
       const record=verified.get(envelope),now=clock();
       requireCondition(envelope?.command==='knowledge.lookup' && typeof record?.lookupQuery==='string' && record.verifiedAt<=now && now-record.verifiedAt<=300000,'UNTRUSTED_LOOKUP');
       const query=record.lookupQuery;record.lookupQuery=null;return query;
+    },
+    /** Sophie panel adapter only. The member's notes never enter routing or generic receipts. */
+    takeSophieNotes(envelope) {
+      const record = verified.get(envelope), now = clock();
+      requireCondition(envelope?.command === 'sophie.notes.save' && Array.isArray(record?.sophieNotes) && record.verifiedAt <= now && now - record.verifiedAt <= 300_000, 'UNTRUSTED_SOPHIE_NOTES');
+      const notes = record.sophieNotes; record.sophieNotes = null; return notes;
     },
     /** Core response adapter only. The secret is not stored in the public envelope or database. */
     replyCredentials(envelope) {

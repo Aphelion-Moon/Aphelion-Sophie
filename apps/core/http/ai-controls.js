@@ -1,25 +1,43 @@
-import { requireCondition, requireId, requireKeys } from '../../../contracts/validation.js';
+import { requireCondition, requireKeys } from '../../../contracts/validation.js';
 
 export const AI_ROUTES = Object.freeze({ '/api/ai/publication': 'GET', '/api/ai/review': 'POST', '/api/ai/publish': 'POST',
-  '/api/ai/disable': 'POST', '/api/ai/consents': 'GET', '/api/ai/consents/export': 'GET', '/api/ai/consent': 'POST', '/api/ai/budget': 'GET', '/api/ai/resolve-spending': 'POST',
+  '/api/ai/disable': 'POST', '/api/ai/budget': 'GET', '/api/ai/resolve-spending': 'POST',
   '/api/ai/review-spending-hold': 'POST', '/api/ai/clear-spending-hold': 'POST',
   '/api/ai/worker':'GET',
   '/api/ai/review-activation':'POST', '/api/ai/activate':'POST',
-  '/api/ai/diagnostics':'GET','/api/ai/overview':'GET','/api/ai/preferences':'GET','/api/ai/preferences/export':'GET', '/api/ai/save-preferences':'POST', '/api/ai/delete-preferences':'POST','/api/ai/save-retention':'POST',
-  '/api/ai/memories':'GET', '/api/ai/memory-audit':'GET', '/api/ai/forget-memory':'POST', '/api/ai/edit-memory':'POST', '/api/ai/forget-all-memories':'POST',
-  '/api/ai/remembering':'POST', '/api/ai/remove-memory':'POST' });
+  '/api/ai/diagnostics':'GET','/api/ai/overview':'GET',
+  '/api/ai/memories':'GET', '/api/ai/memory-audit':'GET', '/api/ai/forget-memory':'POST', '/api/ai/edit-memory':'POST', '/api/ai/remove-memory':'POST',
+  // The member's own Sophie choices and data (owner decision, 23 October 2026), the same use cases as the Discord panel.
+  '/api/ai/me':'GET', '/api/ai/me/export':'GET', '/api/ai/me/choice':'POST', '/api/ai/me/notes':'POST', '/api/ai/me/retention':'POST',
+  '/api/ai/me/forget':'POST', '/api/ai/me/delete':'POST' });
+const MEMBER_ROUTES = Object.freeze({ '/api/ai/me': ['status', []], '/api/ai/me/export': ['exportData', []], '/api/ai/me/choice': ['setChoice', ['enabled', 'noticeRevision', 'noticeBinding']],
+  '/api/ai/me/notes': ['saveNotes', ['notes']], '/api/ai/me/retention': ['setRetainOnLeave', ['retainOnLeave']], '/api/ai/me/forget': ['forgetMemories', ['confirmed']],
+  '/api/ai/me/delete': ['deleteData', ['confirmed']] });
 
-export function createAiControlsHttp({ auth, authorization, controls, trace = () => {} }) {
+export function createAiControlsHttp({ auth, authorization, controls, member = null, trace = () => {} }) {
+  async function memberRoute({ path, method, query, body, credentials }) {
+    requireCondition(member !== null, 'AI_MEMORY_UNAVAILABLE');
+    const [operation, keys] = MEMBER_ROUTES[path];
+    requireCondition([...query].length === 0 && (method === 'GET' ? body === null : true), 'AI_INPUT_INVALID');
+    if (method === 'POST') requireKeys(body, keys, 'AI_INPUT_INVALID');
+    if (keys.includes('confirmed')) requireCondition(body.confirmed === true, 'AI_CONFIRMATION_REQUIRED');
+    if (operation === 'setChoice') requireCondition(typeof body.enabled === 'boolean' && (body.noticeRevision === null || Number.isSafeInteger(body.noticeRevision)) &&
+      (body.noticeBinding === null || typeof body.noticeBinding === 'string' && /^[a-f0-9]{64}$/u.test(body.noticeBinding)), 'AI_INPUT_INVALID');
+    if (operation === 'saveNotes') requireCondition(Array.isArray(body.notes), 'AI_PREFERENCE_INVALID');
+    const { proof } = await auth.authenticate({ ...credentials, method });
+    const actor = await authorization.resolveActor(proof, { reuse: true });
+    const { confirmed: _confirmed, ...fields } = body ?? {};
+    const result = await member[operation]({ ...fields, actor });
+    await auth.resolvePrincipal(proof);
+    return { ...result, actorId: actor.userId, guildId: actor.guildId };
+  }
   return Object.freeze({ async execute({ path, method, query, body, credentials }) {
     requireCondition(Object.hasOwn(AI_ROUTES, path) && AI_ROUTES[path] === method, 'AI_INPUT_INVALID');
+    if (Object.hasOwn(MEMBER_ROUTES, path)) return memberRoute({ path, method, query, body, credentials });
     let operation, fields;
     if (method === 'GET') {
       requireCondition(body === null, 'AI_INPUT_INVALID');
-      if(path==='/api/ai/consents'){
-        const keys=[...query.keys()];
-        requireCondition(keys.length<=1 && keys.every(key=>['afterChannelId','channelId'].includes(key)),'AI_INPUT_INVALID');
-        fields=Object.fromEntries(query);Object.values(fields).forEach(requireId);operation='ownConsents';
-      } else if(path==='/api/ai/diagnostics'){
+      if(path==='/api/ai/diagnostics'){
         requireCondition([...query.keys()].length===1 && query.has('channelId'),'AI_INPUT_INVALID');
         fields={channelId:query.get('channelId')};operation='diagnostics';
       } else if (path === '/api/ai/memory-audit') {
@@ -33,28 +51,21 @@ export function createAiControlsHttp({ auth, authorization, controls, trace = ()
       } else if (path === '/api/ai/publication') {
         requireCondition([...query.keys()].length === 1 && query.has('kind'), 'AI_INPUT_INVALID');
         fields = { kind: query.get('kind') }; operation = 'current';
-      } else { requireCondition([...query].length === 0, 'AI_INPUT_INVALID'); fields = {}; operation = path === '/api/ai/worker' ? 'workerStatus' : path === '/api/ai/budget' ? 'budgetStatus' : ['/api/ai/preferences','/api/ai/preferences/export'].includes(path) ? 'ownPreferences' : 'ownConsents'; }
+      } else { requireCondition([...query].length === 0, 'AI_INPUT_INVALID'); fields = {}; operation = path === '/api/ai/worker' ? 'workerStatus' : 'budgetStatus'; }
     } else {
       requireCondition([...query].length === 0, 'AI_INPUT_INVALID'); operation = path.split('/').at(-1);
       const keys = { review: ['kind', 'expectedRevision', 'document'], publish: ['kind', 'expectedRevision', 'document', 'requestId', 'reviewSha256', 'confirmed'],
-        disable: [], consent: ['channelId', 'enabled', 'expectedEpoch', 'acceptedNoticeRevision'], 'resolve-spending':['messageId','fence','requestId','confirmed'],
+        disable: [], 'resolve-spending':['messageId','fence','requestId','confirmed'],
         'review-spending-hold': ['expectedRevision','evidenceHash'], 'clear-spending-hold': ['expectedRevision','evidenceHash','reviewSha256','requestId','confirmed'],
         'review-activation':['channelId'], activate:['channelId','reviewSha256','requestId','confirmed'],
-        'save-preferences':['expectedEpoch','settings','confirmed'], 'delete-preferences':['expectedEpoch','confirmed'],'save-retention':['expectedEpoch','retainOnLeave','confirmed'],
-        'forget-memory':['id','confirmed'], 'edit-memory':['id','text','confirmed'], 'forget-all-memories':['confirmed'], remembering:['enabled','confirmed'], 'remove-memory':['id','confirmed'] };
-      const optionalBinding = operation === 'consent' && body && Object.hasOwn(body, 'acceptedNoticeBinding') ? ['acceptedNoticeBinding'] : [];
-      requireKeys(body, [...keys[operation], ...optionalBinding], 'AI_INPUT_INVALID'); fields = body;
+        'forget-memory':['id','confirmed'], 'edit-memory':['id','text','confirmed'], 'remove-memory':['id','confirmed'] };
+      requireKeys(body, keys[operation], 'AI_INPUT_INVALID'); fields = body;
       if (operation === 'resolve-spending') operation = 'resolveSpending';
       if (operation === 'review-spending-hold') operation = 'reviewSpendingHold';
       if (operation === 'clear-spending-hold') operation = 'clearSpendingHold';
-      if (operation === 'save-preferences') operation = 'savePreferences';
-      if (operation === 'save-retention') operation = 'saveRetention';
-      if (operation === 'delete-preferences') operation = 'deletePreferences';
       if (operation === 'review-activation') operation = 'reviewActivation';
-      operation = { 'forget-memory': 'forgetMemory', 'edit-memory': 'editMemory', 'forget-all-memories': 'forgetAllMemories', remembering: 'setRemembering',
-        'remove-memory': 'removeMemory' }[operation] ?? operation;
+      operation = { 'forget-memory': 'forgetMemory', 'edit-memory': 'editMemory', 'remove-memory': 'removeMemory' }[operation] ?? operation;
     }
-    if (path === '/api/ai/consents/export') operation = 'exportConsents';
     const { proof } = await auth.authenticate({ ...credentials, method });
     const actor = await authorization.resolveActor(proof, { reuse: true });
     // The AI page's whole saved state in one request. Each part still authorizes its own capability; a part the
@@ -68,10 +79,6 @@ export function createAiControlsHttp({ auth, authorization, controls, trace = ()
       worker: await permitted('WORKER', () => controls.workerStatus({ actor })),
       personality: await permitted('PERSONALITY', () => controls.current({ actor, kind: 'personality' })) } : await controls[operation]({ ...fields, actor });
     await auth.resolvePrincipal(proof);
-    if(path==='/api/ai/preferences/export'){
-      requireCondition(result.available===true,'AI_PREFERENCE_JOURNAL_UNAVAILABLE');
-      requireCondition(result.quarantined===false,'AI_PREFERENCE_RESTORE_QUARANTINED');
-    }
     return { ...result, actorId: actor.userId, guildId: actor.guildId };
   } });
 }

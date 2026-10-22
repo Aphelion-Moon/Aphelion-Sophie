@@ -48,7 +48,7 @@ import { createKnowledgeLookupCommands } from '../discord/knowledge-lookup.js';
 import { inspectAutomationChannel } from '../storage/automation-channel-policy.js';
 
 /** One request lane owns its proof issuers and serial transport. Workers use a separate lane. */
-export function createAdministrationLane({ configuration, pool, token, fetch, clock, enabled, rateLimits, observer, principals, verifier, onFault, onTrace = () => {}, readSystemText, knowledge = null }) {
+export function createAdministrationLane({ configuration, pool, token, fetch, clock, enabled, rateLimits, observer, principals, verifier, onFault, onTrace = () => {}, readSystemText, knowledge = null, sophieMemberFactory = null }) {
   const { mapping, casePolicy: policy, limits, definitionId, capabilityPolicy } = configuration;
   const transport = createDiscordTransport({ guildId: mapping.guildId, token, fetch, clock, enabled, ...(rateLimits ? { limits: rateLimits } : {}) });
   // Role, member and channel observations are checked against the authority boundary, so message traffic (including
@@ -84,7 +84,9 @@ export function createAdministrationLane({ configuration, pool, token, fetch, cl
   const lookupChannels=createAutomationChannels({transport});
   const knowledgeLookup=knowledge===null ? null:createKnowledgeLookupCommands({authorization,verifier,knowledge,guildId:mapping.guildId,enabled,clock,
     inspectChannel:channelId=>inspectAutomationChannel(pool,{guildId:mapping.guildId,protectedCategoryId:policy.categoryId,channels:lookupChannels,channelId})});
-  const commands = createAdministrationCommands({ onboardingClosure: createOnboardingChannelClosure({ authorization, roles, channels, store, enabled }), moderation: createModerationCommands(common),
+  // The member's own Sophie panel (owner decision, 23 October 2026); present only where the AI controls are composed.
+  const sophieMember = sophieMemberFactory === null ? null : sophieMemberFactory({ authorization, transport, verifier, enabled, readSystemText });
+  const commands = createAdministrationCommands({ sophieMember, onboardingClosure: createOnboardingChannelClosure({ authorization, roles, channels, store, enabled }), moderation: createModerationCommands(common),
     onboarding: createOnboardingCommands({ ...common, channels, definitionId, limits, trace: onTrace }), assistance, deliveryIssues, caseLifecycle, caseStaff,
     caseIntake, caseContacts, caseDeliveryIssues, publicAnswers, caseAnswers, knowledgeLookup, caseParticipants: createCaseParticipants(common),
     caseReplies: createCaseReplyCommands({ ...common, verifier, replies: replyStore, guildId: mapping.guildId }) });
@@ -108,7 +110,7 @@ export function createAdministrationLane({ configuration, pool, token, fetch, cl
     createAutomationDispatcher({outbox,store:automationDelivery,messages:automationMessages,enabled}),
     createOnboardingCleanup({ store, roles, enabled, clock })];
   return { transport, roles, channels, authorization, store, intakeStore, replyStore, issueStore, intakeMessages: answers, replyMessages,
-    screenMessages: screens, alertMessages: alerts, commands, workers, caseIntake, automationRecovery,
+    screenMessages: screens, alertMessages: alerts, commands, workers, caseIntake, automationRecovery, sophieMember,
     responseAdapters: { onboardingNavigation: createOnboardingNavigation({ ...common, channels }), onboardingAssistance: assistance,
-      onboardingDeliveryIssues: deliveryIssues, caseLifecycle, caseStaff, caseIntake, caseContacts, caseDeliveryIssues, publicAnswers, caseAnswers, knowledgeLookup } };
+      onboardingDeliveryIssues: deliveryIssues, caseLifecycle, caseStaff, caseIntake, caseContacts, caseDeliveryIssues, publicAnswers, caseAnswers, knowledgeLookup, sophieMember } };
 }

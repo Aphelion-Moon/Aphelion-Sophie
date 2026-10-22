@@ -48,7 +48,14 @@ export function createAiIngress({ guildId, botUserId, clock }) {
       const followUp = partner?.userId === raw.author.id && receivedAt - partner.at < AI_FOLLOW_UP_MS;
       proofs.set(proof, { raw, receivedAt, kind:payload.t, followUp }); return proof;
     },
-    inspect(proof) { const { raw, receivedAt, kind } = held(proof); return { guildId, channelId: raw.channel_id, userId: raw.author.id, messageId: raw.id, receivedAt, kind }; },
+    inspect(proof) {
+      const { raw, receivedAt, kind } = held(proof);
+      // Metadata only (mentions and reply reference, never text): whether a new message calls on Sophie, so a member who has not
+      // chosen yet can be shown the static Set up Sophie invitation.
+      const callsSophie = kind === 'MESSAGE_CREATE' && (Array.isArray(raw.mentions) && raw.mentions.some(item => item.id === botUserId) ||
+        raw.type === 19 && raw.message_reference?.channel_id === raw.channel_id && raw.referenced_message?.author?.id === botUserId);
+      return { guildId, channelId: raw.channel_id, userId: raw.author.id, messageId: raw.id, receivedAt, kind, callsSophie };
+    },
     content(proof) {
       const { raw, followUp } = held(proof);
       // No embedded snapshot attribution shortcut; no fetching references or URLs to fill missing content.

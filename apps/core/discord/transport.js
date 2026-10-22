@@ -8,6 +8,7 @@ import { stagingRolePayload, stagingChannelPayload } from './staging-resources.j
 import { ticketDirectNotice } from '../../../modules/tickets/direct-notice.js';
 import { automationPayload, automationEmoji } from '../../../modules/automation/delivery.js';
 import { validateAiMessagePayload } from '../../../modules/assistant/output.js';
+import { validateSophiePanel } from '../../../modules/assistant/member-panel.js';
 import { contactStaffControl } from '../../../modules/tickets/intake.js';
 import { shuttleChannelName } from '../../../modules/tickets/channel-policy.js';
 
@@ -212,6 +213,20 @@ export function createDiscordTransport({ guildId, token, fetch, clock, enabled, 
         components: [contactStaffControl()],
         nonce: messageId, enforce_nonce: true, message_reference: { message_id: messageId, channel_id: channelId, fail_if_not_exists: true } }, true, deadline);
     },
+    /** The member's own Sophie panel, sent to their DMs at their request. Fixed panel components only. */
+    async createSophieDm(userId) {
+      requireId(userId); return request('POST', '/users/@me/channels', 'sophie-dm-open', { recipient_id: userId }, true);
+    },
+    async sendSophieDm(dmChannelId, panel) {
+      requireId(dmChannelId); validateSophiePanel(panel);
+      return request('POST', `/channels/${dmChannelId}/messages`, 'sophie-dm-send', { ...panel, allowed_mentions: { parse: [] } }, true);
+    },
+    /** The static "Set up Sophie" invitation: a non-pinging reply carrying only the panel button. No AI output. */
+    async sendSophieInvitation(channelId, messageId, invitation) {
+      requireId(channelId); requireId(messageId); validateSophiePanel(invitation);
+      return request('POST', `/channels/${channelId}/messages`, 'sophie-invite', { ...invitation, nonce: messageId, enforce_nonce: true,
+        allowed_mentions: { parse: [], replied_user: false }, message_reference: { message_id: messageId, channel_id: channelId, fail_if_not_exists: false } }, true);
+    },
     async indicateAiTyping(channelId, deadline) {
       requireId(channelId);
       return request('POST', `/channels/${channelId}/typing`, 'ai-typing', undefined, false, deadline);
@@ -272,7 +287,7 @@ export function createDiscordTransport({ guildId, token, fetch, clock, enabled, 
     },
     async upsertGuildCommand(applicationId, definition) {
       requireId(applicationId);
-      requireCondition(definition?.type === 1 && ['whitelist', 'ticket', 'answer', 'lookup', 'mute', 'unmute'].includes(definition.name), 'COMMAND_REGISTRATION_INVALID');
+      requireCondition(definition?.type === 1 && ['whitelist', 'ticket', 'answer', 'lookup', 'sophie', 'mute', 'unmute'].includes(definition.name), 'COMMAND_REGISTRATION_INVALID');
       return request('POST', `/applications/${applicationId}/guilds/${guildId}/commands`, 'guild-command', definition, true);
     },
     async getGuild() { return request('GET', `/guilds/${guildId}`, 'guild'); },

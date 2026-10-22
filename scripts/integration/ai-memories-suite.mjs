@@ -22,6 +22,10 @@ export async function runAiMemoriesSuite(cluster, run) {
     privacyCurrent, memories, memoriesActive: async () => true,
     authorize: async (action, actor, scope) => action === 'ai.self' ? scope.userId === actor.userId : action === 'ai.memory.audit' && auditor });
   await admin.query('INSERT INTO sophie_ai.state(guild_id) VALUES($1) ON CONFLICT DO NOTHING', [guildId]);
+  // A memory follows its subjects' server-wide Yes (owner decision, 23 October 2026); both synthetic members said Yes.
+  const choose = (userId, enabled) => admin.query(`INSERT INTO sophie_ai.member_consents(guild_id,user_id,epoch,enabled,presence_epoch,notice_revision)
+    VALUES($1,$2,1,$3,1,2) ON CONFLICT(guild_id,user_id) DO UPDATE SET enabled=$3,epoch=sophie_ai.member_consents.epoch+1`, [guildId, userId, enabled]);
+  for (const userId of [alice.userId, bob.userId]) await choose(userId, true);
   const rows = async () => (await admin.query('SELECT * FROM sophie_ai.memories WHERE guild_id=$1 ORDER BY created_at', [guildId])).rows;
   const prompt = (userIds, channel = channelId) => memories.forPrompt({ channelId: channel, userIds });
   const member = (userId, text) => ({ scope: 'member', subjects: [userId], text });
@@ -36,6 +40,10 @@ export async function runAiMemoriesSuite(cluster, run) {
     assert.deepEqual((await prompt([alice.userId])).map(item => item.scope), ['member'], 'a memory naming someone who opted out is not used');
     assert.equal(await memories.record({ channelId, memories: [member(bob.userId, '{1} plays medical')] }), 0, 'nothing new is kept about them');
     await controls.setRemembering({ actor: bob, enabled: true, confirmed: true });
+    assert.equal((await prompt([alice.userId])).length, 2);
+    await choose(bob.userId, false);
+    assert.deepEqual((await prompt([alice.userId])).map(item => item.scope), ['member'], 'saying No hides every memory that names them');
+    await choose(bob.userId, true);
     assert.equal((await prompt([alice.userId])).length, 2);
   });
 

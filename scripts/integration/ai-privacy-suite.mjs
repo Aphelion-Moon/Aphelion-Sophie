@@ -11,13 +11,16 @@ import { requireInstalledAiDatabase } from '../../apps/core/runtime/installed.js
 
 export async function runAiPrivacySuite(cluster,run) {
   const {adminPool:admin,corePool:pool}=cluster,guildId='929',actor={guildId,userId:'202',capabilityEpoch:1,policyVersion:1};
-  await run('AI-D11 installed control rejects any missing schema066 deletion or schema073 memory grant',async()=>{
+  await run('AI-D11 installed control rejects any missing schema066 deletion, schema073 memory or schema076 choice grant',async()=>{
     await admin.query('CREATE ROLE sophie_test_departure_control NOLOGIN');
     await admin.query('GRANT USAGE ON SCHEMA sophie_ai TO sophie_test_departure_control');
     const grants=[['request_tombstones','SELECT'],['request_tombstones','INSERT'],['effect_erasure','SELECT'],
       ['effect_erasure','INSERT'],['effect_erasure','DELETE'],['consents','DELETE'],['request_receipts','DELETE'],
       // Schema073: Sophie's own memories.
-      ['memories','SELECT'],['memories','INSERT'],['memories','UPDATE'],['memories','DELETE'],['memory_optouts','SELECT'],['memory_optouts','INSERT'],['memory_optouts','DELETE']];
+      ['memories','SELECT'],['memories','INSERT'],['memories','UPDATE'],['memories','DELETE'],['memory_optouts','SELECT'],['memory_optouts','INSERT'],['memory_optouts','DELETE'],
+      // Schema076: one server-wide choice per member and the daily invitation limit.
+      ['member_consents','SELECT'],['member_consents','INSERT'],['member_consents','UPDATE'],['member_consents','DELETE'],
+      ['consent_invitations','SELECT'],['consent_invitations','INSERT'],['consent_invitations','UPDATE'],['consent_invitations','DELETE']];
     for(const [table,privilege] of grants) await admin.query(`GRANT ${privilege} ON sophie_ai.${table} TO sophie_test_departure_control`);
     const client=await admin.connect();
     async function inspect(){await client.query('BEGIN');try{
@@ -33,7 +36,7 @@ export async function runAiPrivacySuite(cluster,run) {
       await inspect();
     }finally{client.release();}
   });
-  await admin.query('GRANT SELECT,INSERT,UPDATE,DELETE ON sophie_ai.consents,sophie_ai.request_receipts,sophie_ai.request_tombstones,sophie_ai.effect_erasure,sophie_ai.response_preferences TO sophie_test_core');
+  await admin.query('GRANT SELECT,INSERT,UPDATE,DELETE ON sophie_ai.consents,sophie_ai.member_consents,sophie_ai.consent_invitations,sophie_ai.request_receipts,sophie_ai.request_tombstones,sophie_ai.effect_erasure,sophie_ai.response_preferences TO sophie_test_core');
   await admin.query('INSERT INTO sophie_core.capability_policies(guild_id,version,policy) VALUES($1,1,$2)',[guildId,{guildId,version:1}]);
   await admin.query('INSERT INTO sophie_core.actor_authority(guild_id,user_id,capability_epoch,policy_version,observation) VALUES($1,$2,1,1,$3)',[guildId,actor.userId,{guildId,userId:actor.userId,present:true}]);
   const path=resolve(cluster.recovery.directory,'departure-privacy.jsonl'),id='8'.repeat(64);
@@ -52,7 +55,9 @@ export async function runAiPrivacySuite(cluster,run) {
   const retention=async value=>controls.saveRetention({actor,expectedEpoch:(await own()).epoch,retainOnLeave:value,confirmed:true});
   const leave=()=>recordAiDeparture(pool,guildId,actor.userId);
   async function consent() {await pool.query(`INSERT INTO sophie_ai.consents(guild_id,user_id,channel_id,epoch,enabled,presence_epoch,notice_revision)
-    VALUES($1,$2,'303',1,true,1,1) ON CONFLICT(guild_id,channel_id,user_id) DO UPDATE SET enabled=true`,[guildId,actor.userId]);}
+    VALUES($1,$2,'303',1,true,1,1) ON CONFLICT(guild_id,channel_id,user_id) DO UPDATE SET enabled=true`,[guildId,actor.userId]);
+    await pool.query(`INSERT INTO sophie_ai.member_consents(guild_id,user_id,epoch,enabled,presence_epoch,notice_revision)
+    VALUES($1,$2,1,true,1,1) ON CONFLICT(guild_id,user_id) DO UPDATE SET enabled=true`,[guildId,actor.userId]);}
   async function receipt(id,userId=actor.userId) {await pool.query(`INSERT INTO sophie_ai.request_receipts(guild_id,message_id,channel_id,user_id,input_revision,state,deadline)
     VALUES($1,$2,'303',$3,$4,'admitted',clock_timestamp()+interval '15 seconds')`,[guildId,id,userId,'a'.repeat(64)]);}
   await run('DS08-D01 departure defaults to deletion and preserves only deletion/replay fences',async()=>{
@@ -61,7 +66,7 @@ export async function runAiPrivacySuite(cluster,run) {
     await assert.rejects(controls.saveRetention({actor,expectedEpoch:saved.epoch,retainOnLeave:true,confirmed:true}),/AI_DELETION_PENDING/);
     await privacy().maintain();assert.equal(await departures.pending(actor.userId),false);
     assert.equal((await row()).settings,null);assert.equal((await row()).retain_on_leave,false);
-    for(const table of ['consents','request_receipts'])assert.equal((await pool.query(`SELECT 1 FROM sophie_ai.${table} WHERE guild_id=$1 AND user_id=$2`,[guildId,actor.userId])).rowCount,0);
+    for(const table of ['consents','member_consents','request_receipts'])assert.equal((await pool.query(`SELECT 1 FROM sophie_ai.${table} WHERE guild_id=$1 AND user_id=$2`,[guildId,actor.userId])).rowCount,0);
     assert.equal((await pool.query('SELECT message_hash FROM sophie_ai.request_tombstones WHERE guild_id=$1',[guildId])).rows[0].message_hash,aiReceiptHash(guildId,'701'));
     const epoch=await journal.read(guildId,actor.userId);await privacy().maintain();assert.equal(await journal.read(guildId,actor.userId),epoch);
   });
@@ -70,7 +75,8 @@ export async function runAiPrivacySuite(cluster,run) {
     await pool.query("UPDATE sophie_ai.request_receipts SET state='delivered' WHERE guild_id=$1 AND message_id='706'",[guildId]);
     await leave();await privacy().maintain();
     const kept=await own();assert.equal(kept.retainOnLeave,true);assert.deepEqual(kept.settings,saved.settings);assert.equal(kept.expiresAt,saved.expiresAt);
-    assert.equal((await controls.ownConsents({actor})).channels[0].enabled,false);
+    assert.equal((await controls.ownChoice({actor})).choice.enabled,false);
+    assert.equal((await pool.query('SELECT enabled FROM sophie_ai.consents WHERE guild_id=$1 AND user_id=$2',[guildId,actor.userId])).rows[0].enabled,false);
     assert.equal((await pool.query("SELECT state FROM sophie_ai.request_receipts WHERE guild_id=$1 AND message_id='706'",[guildId])).rows[0].state,'delivered');
     const stale=kept.epoch;await retention(false);
     await assert.rejects(controls.saveRetention({actor,expectedEpoch:stale,retainOnLeave:true,confirmed:true}),/AI_PREFERENCE_STALE/);
@@ -83,7 +89,7 @@ export async function runAiPrivacySuite(cluster,run) {
       [guildId,actor.userId,old.epoch,old.settings,old.expires_at,old.departure_epoch]);await consent();
     assert.equal(await privacy().current(actor.userId),false);assert.equal((await own()).settings,null);
     await privacy().maintain();assert.equal((await own()).retainOnLeave,false);assert.equal((await own()).settings,null);
-    assert.deepEqual((await controls.ownConsents({actor})).channels,[]);
+    assert.deepEqual((await controls.ownChoice({actor})).choice,{enabled:false,epoch:0,noticeRevision:null,current:false});
   });
   await run('DS08-D04 unresolved effects keep erasure pending; late acknowledgement permits exact cleanup then deletion',async()=>{
     await save();await receipt('702');await receipt('703','404');

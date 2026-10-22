@@ -60,10 +60,13 @@ export function createDashboardApi({ fetch, navigate = path => globalThis.locati
     },
     aiReviewActivation:body=>request('/api/ai/review-activation',body),
     aiActivate:body=>request('/api/ai/activate',body),
-    aiPreferences: () => request('/api/ai/preferences'),
-    aiSavePreferences: body => request('/api/ai/save-preferences',body),
-    aiSaveRetention: body => request('/api/ai/save-retention',body),
-    aiDeletePreferences: body => request('/api/ai/delete-preferences',body),
+    // The member's own Sophie choices and data: the same use cases as the Discord panel.
+    aiMe: () => request('/api/ai/me'),
+    aiMeChoice: body => request('/api/ai/me/choice',body),
+    aiMeNotes: body => request('/api/ai/me/notes',body),
+    aiMeRetention: body => request('/api/ai/me/retention',body),
+    aiMeForget: body => request('/api/ai/me/forget',body),
+    aiMeDelete: body => request('/api/ai/me/delete',body),
     aiMemories: () => request('/api/ai/memories'),
     aiMemoryAudit: (before = null) => {
       if(before!==null && (typeof before!=='string' || !/^[0-9a-f-]{36}$/u.test(before)))throw new DashboardFailure('invalid',400);
@@ -71,8 +74,6 @@ export function createDashboardApi({ fetch, navigate = path => globalThis.locati
     },
     aiForgetMemory: body => request('/api/ai/forget-memory',body),
     aiEditMemory: body => request('/api/ai/edit-memory',body),
-    aiForgetAllMemories: body => request('/api/ai/forget-all-memories',body),
-    aiRemembering: body => request('/api/ai/remembering',body),
     aiRemoveMemory: body => request('/api/ai/remove-memory',body),
     knowledgeLookup: query => request('/api/knowledge/lookup', { query }),
     knowledgeCatalogue: () => request('/api/ai/knowledge'),
@@ -97,8 +98,6 @@ export function createDashboardApi({ fetch, navigate = path => globalThis.locati
     aiResolveSpending: body => request('/api/ai/resolve-spending', body),
     aiReviewSpendingHold: body => request('/api/ai/review-spending-hold', body),
     aiClearSpendingHold: body => request('/api/ai/clear-spending-hold', body),
-    aiConsents: (query = {}) => request('/api/ai/consents' + (Object.keys(query).length ? '?' + new URLSearchParams(query) : '')),
-    aiConsent: body => request('/api/ai/consent', body),
     async session() {
       let value;
       try {

@@ -84,11 +84,24 @@ const messages = Object.freeze({
   "shuttle_busy": "reply.onboarding_busy",
   "shuttle_review": "reply.onboarding_review",
   "shuttle_unpublished": "reply.onboarding_unpublished",
-  "shuttle_retry": "reply.onboarding_retry"
+  "shuttle_retry": "reply.onboarding_retry",
+  "sophie_panel": "ai.panel.title"
 });
 
+// A member's own Sophie data export is the only file a reply carries: one JSON attachment, sent as multipart.
+function replyBody({ files = null, ...payload }) {
+  const json = { 'Content-Type': 'application/json', 'User-Agent': 'Sophie/0.1.0' };
+  if (files === null) return { headers: json, body: JSON.stringify(payload) };
+  requireCondition(Array.isArray(files) && files.length === 1 && files[0].name === 'sophie-my-data.json' && typeof files[0].content === 'string' &&
+    Buffer.byteLength(files[0].content) <= 8_000_000, 'INTERACTION_RESPONSE_INVALID');
+  const form = new FormData();
+  form.append('payload_json', JSON.stringify({ ...payload, attachments: [{ id: 0, filename: files[0].name }] }));
+  form.append('files[0]', new Blob([files[0].content], { type: 'application/json' }), files[0].name);
+  return { headers: { 'User-Agent': 'Sophie/0.1.0' }, body: form };
+}
+
 /** Only edits a verified interaction's own ephemeral response with bounded static presentation. */
-export function createInteractionResponder({ verifier, applicationId, fetch, clock, enabled, onboardingNavigation = null, onboardingAssistance = null, onboardingDeliveryIssues = null, caseLifecycle = null, caseStaff = null, caseIntake = null, caseDeliveryIssues = null, caseContacts = null, publicAnswers = null, caseAnswers = null, knowledgeLookup = null, readSystemText = async () => defaultSystemText, wait = ms => new Promise(resolve => setTimeout(resolve, ms)) }) {
+export function createInteractionResponder({ verifier, applicationId, fetch, clock, enabled, onboardingNavigation = null, onboardingAssistance = null, onboardingDeliveryIssues = null, caseLifecycle = null, caseStaff = null, caseIntake = null, caseDeliveryIssues = null, caseContacts = null, publicAnswers = null, caseAnswers = null, sophieMember = null, knowledgeLookup = null, readSystemText = async () => defaultSystemText, wait = ms => new Promise(resolve => setTimeout(resolve, ms)) }) {
   requireId(applicationId);
   requireCondition(typeof fetch === 'function' && typeof clock === 'function' && typeof enabled === 'function', 'TRUSTED_ADAPTERS_REQUIRED');
   requireCondition(onboardingNavigation === null || typeof onboardingNavigation.resolve === 'function', 'TRUSTED_ADAPTERS_REQUIRED');
@@ -102,6 +115,7 @@ export function createInteractionResponder({ verifier, applicationId, fetch, clo
   requireCondition(publicAnswers === null || typeof publicAnswers.view === 'function', 'TRUSTED_ADAPTERS_REQUIRED');
   requireCondition(knowledgeLookup===null || ['view','current'].every(key=>typeof knowledgeLookup[key]==='function'),'TRUSTED_ADAPTERS_REQUIRED');
   requireCondition(caseAnswers === null || typeof caseAnswers.view === 'function', 'TRUSTED_ADAPTERS_REQUIRED');
+  requireCondition(sophieMember === null || typeof sophieMember.view === 'function', 'TRUSTED_ADAPTERS_REQUIRED');
   let cooldownUntil = 0, paused = false;
   return Object.freeze({
     async respond(envelope, status) {
@@ -116,6 +130,7 @@ export function createInteractionResponder({ verifier, applicationId, fetch, clo
       const text = await readSystemText();
       let body = { content: text(messages[status]), embeds: [], components: [] },lookupView=null;
       if(status==='knowledge_lookup' && knowledgeLookup!==null){lookupView=await knowledgeLookup.view(envelope);body=knowledgeLookupReply(lookupView);}
+      if (status === 'sophie_panel' && sophieMember !== null) body = await sophieMember.view(envelope);
       if (status === 'public_answer' && publicAnswers !== null) body = answerLookupReply(await publicAnswers.view(envelope), text);
       if (status === 'case_answer_review' && caseAnswers !== null) body = answerReplyReviewMessage(await caseAnswers.view(envelope), text);
       if (status === 'case_contact' && caseContacts !== null) body = caseContactReply(await caseContacts.view(envelope), text);
@@ -149,8 +164,7 @@ export function createInteractionResponder({ verifier, applicationId, fetch, clo
       try {
         response = await fetch(`https://discord.com/api/v10/webhooks/${applicationId}/${encodeURIComponent(credentials.token)}${update ? '?wait=true' : '/messages/@original'}`, {
           method: update ? 'POST' : 'PATCH', redirect: 'error', signal: controller.signal,
-          headers: { 'Content-Type': 'application/json', 'User-Agent': 'Sophie/0.1.0' },
-          body: JSON.stringify({ ...body, ...(update ? { flags: 64 } : {}), allowed_mentions: { parse: [], users: [], roles: [], replied_user: false } }),
+          ...replyBody({ ...body, ...(update ? { flags: 64 } : {}), allowed_mentions: { parse: [], users: [], roles: [], replied_user: false } }),
         });
         if (response.status === 429) {
           let seconds = Number(response.headers.get('retry-after'));

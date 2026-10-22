@@ -1744,5 +1744,281 @@
     "group": "Onboarding",
     "source": "Channel closure requested. Retained records stay saved. Use /whitelist start after closure to begin again.",
     "max": 1800
+  },
+  {
+    "id": "ai.panel.title",
+    "group": "Sophie AI",
+    "source": "Sophie and you",
+    "max": 80
+  },
+  {
+    "id": "ai.panel.yes",
+    "group": "Sophie AI",
+    "source": "You said yes. Sophie can talk with you, use the notes you give her, and remember things about you. You can change your mind at any time.",
+    "max": 600
+  },
+  {
+    "id": "ai.panel.renew",
+    "group": "Sophie AI",
+    "source": "Sophie’s notice has changed since you said yes, so she won’t talk with you until you read it and say yes again.",
+    "max": 600
+  },
+  {
+    "id": "ai.panel.no",
+    "group": "Sophie AI",
+    "source": "You said no. Sophie won’t read or reply to your messages, and nothing about you goes to her AI.",
+    "max": 600
+  },
+  {
+    "id": "ai.panel.none",
+    "group": "Sophie AI",
+    "source": "You haven’t chosen yet. Sophie only talks with members who say yes. Saying no changes nothing else about your access.",
+    "max": 600
+  },
+  {
+    "id": "ai.panel.deleting",
+    "group": "Sophie AI",
+    "source": "Your Sophie data is being deleted. Press Refresh in a minute to see when it’s done.",
+    "max": 600
+  },
+  {
+    "id": "ai.panel.unavailable",
+    "group": "Sophie AI",
+    "source": "Sophie’s settings are unavailable right now. Please try again in a few minutes.",
+    "max": 600
+  },
+  {
+    "id": "ai.panel.notes",
+    "group": "Sophie AI",
+    "source": "Notes you’ve given Sophie: {count} of 8.",
+    "max": 200
+  },
+  {
+    "id": "ai.panel.memories",
+    "group": "Sophie AI",
+    "source": "Things Sophie remembers about you: {count}.",
+    "max": 200
+  },
+  {
+    "id": "ai.panel.retain_on",
+    "group": "Sophie AI",
+    "source": "If you leave the server, your Sophie data is kept.",
+    "max": 200
+  },
+  {
+    "id": "ai.panel.retain_off",
+    "group": "Sophie AI",
+    "source": "If you leave the server, your Sophie data is deleted.",
+    "max": 200
+  },
+  {
+    "id": "ai.notice.title",
+    "group": "Sophie AI",
+    "source": "Sophie’s notice",
+    "max": 80
+  },
+  {
+    "id": "ai.notice.intro",
+    "group": "Sophie AI",
+    "source": "Please read this before you say yes.",
+    "max": 300
+  },
+  {
+    "id": "ai.notice.unavailable",
+    "group": "Sophie AI",
+    "source": "Saying yes isn’t available right now. You can still say no, get a copy of your data or delete it.",
+    "max": 600
+  },
+  {
+    "id": "ai.notes.title",
+    "group": "Sophie AI",
+    "source": "Tell Sophie about you",
+    "max": 45
+  },
+  {
+    "id": "ai.notes.label",
+    "group": "Sophie AI",
+    "source": "One note per line, up to 8",
+    "max": 45
+  },
+  {
+    "id": "ai.notes.placeholder",
+    "group": "Sophie AI",
+    "source": "For example: I play engineers. Please call me Sam.",
+    "max": 100
+  },
+  {
+    "id": "ai.confirm.delete",
+    "group": "Sophie AI",
+    "source": "Delete everything Sophie keeps about you? This removes your notes, her memories of you and your choices, and Sophie stops talking with you until you say yes again. It can’t be undone.",
+    "max": 600
+  },
+  {
+    "id": "ai.confirm.forget",
+    "group": "Sophie AI",
+    "source": "Make Sophie forget everything she remembers about you? Your notes and your choice stay. It can’t be undone.",
+    "max": 600
+  },
+  {
+    "id": "ai.reply.saved",
+    "group": "Sophie AI",
+    "source": "Saved.",
+    "max": 300
+  },
+  {
+    "id": "ai.reply.yes",
+    "group": "Sophie AI",
+    "source": "Thanks! Sophie can talk with you now, in the channels where she takes part.",
+    "max": 300
+  },
+  {
+    "id": "ai.reply.no",
+    "group": "Sophie AI",
+    "source": "Done. Sophie won’t talk with you, and her replies that used your messages are being removed.",
+    "max": 300
+  },
+  {
+    "id": "ai.reply.notes_invalid",
+    "group": "Sophie AI",
+    "source": "Those notes couldn’t be saved. Use up to 8 lines of up to 200 characters each.",
+    "max": 300
+  },
+  {
+    "id": "ai.reply.forgotten",
+    "group": "Sophie AI",
+    "source": "Sophie has forgotten what she remembered about you.",
+    "max": 300
+  },
+  {
+    "id": "ai.reply.deleting",
+    "group": "Sophie AI",
+    "source": "Your data is queued for deletion. Sophie won’t talk with you until you say yes again.",
+    "max": 300
+  },
+  {
+    "id": "ai.reply.export",
+    "group": "Sophie AI",
+    "source": "Here’s a copy of everything Sophie keeps about you.",
+    "max": 300
+  },
+  {
+    "id": "ai.reply.dm_sent",
+    "group": "Sophie AI",
+    "source": "I’ve sent this panel to your DMs.",
+    "max": 300
+  },
+  {
+    "id": "ai.reply.dm_closed",
+    "group": "Sophie AI",
+    "source": "I couldn’t send you a DM. Check that you allow direct messages from members of this server.",
+    "max": 300
+  },
+  {
+    "id": "ai.reply.stale",
+    "group": "Sophie AI",
+    "source": "That changed while you were looking. Here’s the current version.",
+    "max": 300
+  },
+  {
+    "id": "ai.invite",
+    "group": "Sophie AI",
+    "source": "Hi! I only talk with members who’ve said yes. Press the button to choose; it only takes a moment.",
+    "max": 600
+  },
+  {
+    "id": "ai.button.yes",
+    "group": "Sophie AI",
+    "source": "Yes, talk with me",
+    "max": 80
+  },
+  {
+    "id": "ai.button.renew",
+    "group": "Sophie AI",
+    "source": "Read the new notice",
+    "max": 80
+  },
+  {
+    "id": "ai.button.no",
+    "group": "Sophie AI",
+    "source": "No",
+    "max": 80
+  },
+  {
+    "id": "ai.button.agree",
+    "group": "Sophie AI",
+    "source": "I agree",
+    "max": 80
+  },
+  {
+    "id": "ai.button.back",
+    "group": "Sophie AI",
+    "source": "Back",
+    "max": 80
+  },
+  {
+    "id": "ai.button.notes",
+    "group": "Sophie AI",
+    "source": "Tell Sophie about me",
+    "max": 80
+  },
+  {
+    "id": "ai.button.export",
+    "group": "Sophie AI",
+    "source": "Get my data",
+    "max": 80
+  },
+  {
+    "id": "ai.button.forget",
+    "group": "Sophie AI",
+    "source": "Forget memories",
+    "max": 80
+  },
+  {
+    "id": "ai.button.forget_confirm",
+    "group": "Sophie AI",
+    "source": "Yes, forget them",
+    "max": 80
+  },
+  {
+    "id": "ai.button.delete",
+    "group": "Sophie AI",
+    "source": "Delete my data",
+    "max": 80
+  },
+  {
+    "id": "ai.button.delete_confirm",
+    "group": "Sophie AI",
+    "source": "Yes, delete everything",
+    "max": 80
+  },
+  {
+    "id": "ai.button.retain_on",
+    "group": "Sophie AI",
+    "source": "Keep my data if I leave",
+    "max": 80
+  },
+  {
+    "id": "ai.button.retain_off",
+    "group": "Sophie AI",
+    "source": "Delete my data if I leave",
+    "max": 80
+  },
+  {
+    "id": "ai.button.dm",
+    "group": "Sophie AI",
+    "source": "Send to my DMs",
+    "max": 80
+  },
+  {
+    "id": "ai.button.refresh",
+    "group": "Sophie AI",
+    "source": "Refresh",
+    "max": 80
+  },
+  {
+    "id": "ai.button.setup",
+    "group": "Sophie AI",
+    "source": "Set up Sophie",
+    "max": 80
   }
 ]

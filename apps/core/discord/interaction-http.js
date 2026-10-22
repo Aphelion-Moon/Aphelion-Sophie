@@ -3,6 +3,7 @@ import { createServer } from 'node:http';
 import { requireCondition, requireInteger } from '../../../contracts/validation.js';
 import { caseFormModal, ticketEntryPanel } from '../../../modules/tickets/intake.js';
 import { renderOnboardingOpening } from '../../../modules/onboarding/screens.js';
+import { sophieNotesModal } from '../../../modules/assistant/member-panel.js';
 
 const MAX_BODY = 262_144;
 // Shuttle entry replies poll for the new private channel for up to ~32 s. A few may wait at once without holding the
@@ -12,9 +13,10 @@ const messages = {"disabled":"initial.disabled","busy":"initial.busy","denied":"
 const message = content => ({ type: 4, data: { content, flags: 64, allowed_mentions: { parse: [] } } });
 
 /** Loopback-only receiver. External TLS/proxy configuration is a separate release gate. */
-export function createInteractionHttpServer({ verifier, commands, respond, enabled, onFault, caseIntake = null, onboardingPanel = null, initialBudgetMs = 2_500, readSystemText = async () => defaultSystemText, activityOpen = false }) {
+export function createInteractionHttpServer({ verifier, commands, respond, enabled, onFault, caseIntake = null, onboardingPanel = null, sophiePanel = null, initialBudgetMs = 2_500, readSystemText = async () => defaultSystemText, activityOpen = false }) {
   requireCondition(typeof respond === 'function' && typeof enabled === 'function' && typeof onFault === 'function', 'TRUSTED_ADAPTERS_REQUIRED');
-  requireCondition(caseIntake === null || typeof caseIntake.prepare === 'function', 'TRUSTED_ADAPTERS_REQUIRED'); requireInteger(initialBudgetMs, 50, 2_500);
+  requireCondition(caseIntake === null || typeof caseIntake.prepare === 'function', 'TRUSTED_ADAPTERS_REQUIRED');
+  requireCondition(sophiePanel === null || typeof sophiePanel.notes === 'function', 'TRUSTED_ADAPTERS_REQUIRED'); requireInteger(initialBudgetMs, 50, 2_500);
   requireCondition(typeof activityOpen === 'boolean', 'TRUSTED_ADAPTERS_REQUIRED');
   const running = new Set();
   let reserved = false, stopping = false, waitingReplies = 0;
@@ -86,6 +88,20 @@ export function createInteractionHttpServer({ verifier, commands, respond, enabl
       } finally { live = false; clearTimeout(timer); }
       return;
     }
+    // Tell Sophie about me: the notes form opens with the member's current notes, read within the initial deadline.
+    if (envelope.command === 'sophie.notes') {
+      let live = true, timer, task;
+      const isCurrent = () => live && !stopping && !response.destroyed && performance.now() < initialDeadline;
+      response.once('close', () => { live = false; });
+      task = Promise.resolve().then(async () => isCurrent() && sophiePanel !== null ? sophiePanel.notes(envelope, { isCurrent }) : null)
+        .catch(() => null).finally(() => { running.delete(task); reserved = false; });
+      running.add(task);
+      try {
+        const notes = await Promise.race([task, new Promise(resolve => { timer = setTimeout(() => resolve(null), Math.max(0, initialDeadline - performance.now())); })]);
+        if (!response.destroyed) send(response, 200, Array.isArray(notes) && isCurrent() ? sophieNotesModal(notes, text) : message(text(messages.unavailable)));
+      } finally { live = false; clearTimeout(timer); }
+      return;
+    }
     // A modal is an initial response, never an edit of a deferred acknowledgement.
     if (opensModal) {
       if (caseIntake === null) { reserved = false; send(response, 200, message(text(messages.ticket_form_unavailable))); return; }
@@ -131,7 +147,7 @@ export function createInteractionHttpServer({ verifier, commands, respond, enabl
     const opening = envelope.command === 'shuttle.control' && ['advance', 'back', 'retry'].includes(envelope.action) &&
       Number.isSafeInteger(envelope.controlVersion);
     send(response, 200, opening ? { type: 7, data: renderOnboardingOpening({ screenId: envelope.screenId, controlVersion: envelope.controlVersion }, text) }
-      : envelope.command === 'shuttle.control' ? { type: 6 } : { type: 5, data: { flags: 64 } });
+      : envelope.command === 'shuttle.control' || envelope.component === true && envelope.command.startsWith('sophie.') ? { type: 6 } : { type: 5, data: { flags: 64 } });
   }
   const server = createServer({ maxHeaderSize: 16_384 }, (request, response) => {
     handle(request, response).catch(() => {

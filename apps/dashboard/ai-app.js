@@ -3,15 +3,13 @@ import { mountDashboardShell } from './shell.js';
 import { canonicalAiConfiguration, defaultParticipation, AI_MODES } from '../../modules/assistant/participation.js';
 import { canonicalPersonality, DRAFT_PERSONALITY } from '../../modules/assistant/personality.js';
 import { canonicalAiBudget, DEFAULT_AI_BUDGET } from '../../modules/assistant/budget.js';
-import { createPreferenceEditor } from './ai-preferences-view.js';
-import { createMemoryAudit, createMemoryList } from './ai-memories-view.js';
+import { createMemoryAudit } from './ai-memories-view.js';
 
 const api = createDashboardApi({ fetch: window.fetch.bind(window) }), el = id => document.getElementById(id);
-const personal = window.location.pathname === '/ai-preferences';
 const names = { ignore: 'Ignore', addressed: 'Mentions and replies only', questions: 'Answer supported questions', reactive: 'Read and react; speak when asked', conversational: 'Join the conversation' };
 let phase = 'loading', busy = false, dirty = false, pending = null, pendingRequestId = null, session = null;
 let configuration = { schemaVersion: 1, enabled: false, deadlineMs: 15000, channels: [], emojis: [] }, character = structuredClone(DRAFT_PERSONALITY);
-let configurationRevision = 0, personalityRevision = 0, consentRows = [], consentNext = null, noticeRevision = 1, noticeBinding = null;
+let configurationRevision = 0, personalityRevision = 0;
 let budget = { ...DEFAULT_AI_BUDGET }, budgetRevision = 0;
 let workerPoll=null,lastWorker=null,aiDisabled=true;
 function stopWorkerPoll(){clearTimeout(workerPoll);workerPoll=null;}
@@ -20,23 +18,18 @@ function clearDiagnostic(){diagnosticGeneration++;clearTimeout(diagnosticTimer);
 window.addEventListener('pagehide',()=>{clearDiagnostic();stopWorkerPoll();});
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState!=='visible')clearDiagnostic();});
 const requestId=()=>[...crypto.getRandomValues(new Uint8Array(32))].map(value=>value.toString(16).padStart(2,'0')).join('');
-const preferences = personal ? createPreferenceEditor({api,document,perform,identity:()=>session,changed,saved:()=>{dirty=false;}}) : null;
-const memoryList = personal ? createMemoryList({api,document,perform,identity:()=>session}) : null;
-const memoryAudit = personal ? null : createMemoryAudit({api,document,perform});
+const memoryAudit = createMemoryAudit({api,document,perform});
 const notice = text => { el('notice').textContent = text; };
 function changed() { dirty = true; pending = null; pendingRequestId = null; if (el('review')) el('review').hidden = true; if (el('review-content')) el('review-content').textContent = ''; }
 function clear() {
   clearDiagnostic();stopWorkerPoll();lastWorker=null;el('diagnostic-channel')?.replaceChildren();el('setup-steps')?.replaceChildren();
-  preferences?.clear();
-  el('workspace').hidden = true; changed(); consentRows = []; consentNext = null; configuration.channels = []; configuration.emojis = []; character = { core: '', examples: [] };
-  if (el('more-consents')) el('more-consents').hidden = true;
-  for (const id of ['channels', 'emojis', 'examples', 'consents', 'unresolved-spending','budget-balances']) el(id)?.replaceChildren();
+  el('workspace').hidden = true; changed(); configuration.channels = []; configuration.emojis = []; character = { core: '', examples: [] };
+  for (const id of ['channels', 'emojis', 'examples', 'unresolved-spending','budget-balances']) el(id)?.replaceChildren();
   for (const id of ['overview-ai','overview-worker','overview-spend','worker-phase','worker-revision']) if (el(id)) el(id).textContent = '';
-  for (const id of ['character-core', 'consent-channel']) if (el(id)) el(id).value = '';
+  for (const id of ['character-core']) if (el(id)) el(id).value = '';
   for (const id of ['monthly-budget', 'price-valid-until', 'hold-evidence']) if (el(id)) el(id).value = '';
   for (const id of ['budget-state', 'budget-rates']) if (el(id)) el(id).textContent = '';
   if (el('worker-state')) el('worker-state').textContent = '';
-  if (el('accept-notice')) el('accept-notice').checked = false;
 }
 const unapproved = 'No processing approval is installed on this server yet, so no channel can go live. Installing one is the separate provider and privacy clearance step.';
 const refusals = { AI_PROCESSING_UNAPPROVED: unapproved, AI_ACTIVATION_UNAVAILABLE: unapproved,
@@ -54,7 +47,7 @@ async function perform(work) {
     if (error.kind === 'denied') { clear(); phase = 'denied'; }
     el('error').textContent = refusals[error.code] ?? (error.kind === 'conflict' ? 'This version changed. Reload before editing again.' : error.kind === 'denied' ? 'Your access has changed. Sign in again or contact the publisher.'
       : error.kind === 'connection' ? 'The server did not answer in time. Check the current state before retrying.' : 'The operation could not be confirmed. Check the current state before retrying.');
-    if (!personal && (error.code === 'AI_PROCESSING_UNAPPROVED' || error.code === 'AI_ACTIVATION_UNAVAILABLE')) {
+    if ((error.code === 'AI_PROCESSING_UNAPPROVED' || error.code === 'AI_ACTIVATION_UNAVAILABLE')) {
       // A standing gate: the section keeps the explanation and the button stays off until the next load.
       el('activation-blocked').textContent = unapproved; el('activation-blocked').hidden = false; el('review-activation').disabled = true;
       el('activation-blocked').scrollIntoView({ block: 'nearest' }); return;
@@ -118,32 +111,10 @@ function examples() {
     const remove = document.createElement('button'); remove.className = 'text-button ai-remove'; remove.textContent = 'Remove example'; remove.addEventListener('click', () => { character.examples.splice(index, 1); changed(); examples(); }); box.append(remove); el('examples').append(box);
   });
 }
-async function consents(append = false) {
-  const current = await api.aiConsents(append ? { afterChannelId: consentNext } : {});
-  consentRows = append ? [...consentRows, ...current.channels] : current.channels;
-  consentNext = current.nextAfterChannelId; el('more-consents').hidden = consentNext === null;
-  noticeRevision = current.noticeRevision; el('consents').replaceChildren();
-  noticeBinding = current.noticeBinding ?? null; el('accept-notice').checked = false;
-  if(el('processing-notice'))el('processing-notice').textContent=current.noticeText??'AI processing is awaiting operator review.';
-  if(el('consent-notice'))el('consent-notice').textContent=current.optInAvailable===true
-    ? 'External AI processing is available only under the reviewed notice below, in an approved channel, with your current opt-in.'
-    : 'External AI processing is awaiting current provider and operator approval. New opt-ins are unavailable; you can still opt out.';
-  el('opt-in').disabled = current.optInAvailable !== true;
-  el('accept-notice').disabled = current.optInAvailable !== true;
-  if (consentRows.length === 0) { const empty = document.createElement('li'); empty.className = 'muted'; empty.textContent = 'You have not opted in to any channel.'; el('consents').append(empty); }
-  for (const row of consentRows) {
-    const item = document.createElement('li'), name = document.createElement('span'), state = document.createElement('span');
-    name.textContent = `Channel ${row.channelId}`; state.className = row.enabled ? 'badge ai-on' : 'badge'; state.textContent = row.enabled ? 'Opted in' : 'Opted out'; name.append(' ', state); item.append(name);
-    if (row.enabled) { const button = document.createElement('button'); button.textContent = 'Opt out'; button.addEventListener('click', () => perform(async () => {
-      await api.aiConsent({ channelId: row.channelId, enabled: false, expectedEpoch: row.epoch, acceptedNoticeRevision: noticeRevision }); await consents(); notice('Opted out. Pending use is invalidated.');
-    })); item.append(button); } el('consents').append(item);
-  }
-}
 async function load() {
   stopWorkerPoll(); let workerSnapshot = null;
   session = await api.session(); el('logout').hidden = false;
-  if (personal) { if (!session.aiAvailable) throw Object.assign(Error(), { kind: 'denied' }); await consents(); await preferences.load(); await memoryList.load(); }
-  else {
+  {
     if (!session.canControlAi && !session.canEditPersonality) throw Object.assign(Error(), { kind: 'denied' });
     // One request for every saved part this page shows; a part the server withholds means access changed.
     const overview = await api.aiOverview();
@@ -261,14 +232,7 @@ async function review(kind) {
 // A denied page reloads fully so an expired session reaches sign-in instead of retrying the same cookie.
 el('retry').addEventListener('click', () => phase === 'denied' ? location.reload() : perform(load));
 el('logout').addEventListener('click', () => perform(async () => { await api.logout(); clear(); phase = 'denied'; }));
-if (personal) el('more-consents').addEventListener('click', () => perform(async () => { if (consentNext !== null) await consents(true); }));
-if (personal) el('opt-in').addEventListener('click', () => perform(async () => {
-  if (!el('accept-notice').checked) { notice('Read and accept the processing notice first.'); return; }
-  const channelId = el('consent-channel').value.trim(), current = await api.aiConsents({ channelId });
-  await api.aiConsent({ channelId, enabled: true, expectedEpoch: current.channels.find(row => row.channelId === channelId)?.epoch ?? 0, acceptedNoticeRevision: noticeRevision, acceptedNoticeBinding: noticeBinding });
-  el('accept-notice').checked = false; await consents(); notice('Your channel choice was saved. Processing still requires an active qualified channel.');
-}));
-else {
+{
   el('add-channel').addEventListener('click', () => { if (configuration.channels.length < 100) { configuration.channels.push({ channelId: '', profile: defaultParticipation() }); changed(); channels(); } });
   el('add-emoji').addEventListener('click', () => { if (configuration.emojis.length < 16) { configuration.emojis.push({ key: '', id: null, name: '' }); changed(); emojis(); } });
   el('add-example').addEventListener('click', () => { if (character.examples.length < 8) { character.examples.push({ member: '', sophie: '' }); changed(); examples(); } });
@@ -309,7 +273,7 @@ else {
   el('disable-ai').addEventListener('click', () => perform(async () => { await api.aiDisable(); await load(); notice('AI disabled. Administration continues independently.'); }));
 }
 const controller = { snapshot: () => ({ phase, busy, dirty, pending }), start: () => perform(load), checkAccess: () => perform(async () => {
-  const fresh = await api.session(); if (fresh.userId!==session?.userId || fresh.guildId!==session?.guildId || (personal ? !fresh.aiAvailable : (!fresh.canControlAi && !fresh.canEditPersonality) || fresh.canControlAi !== session?.canControlAi || fresh.canEditPersonality !== session?.canEditPersonality)) {
+  const fresh = await api.session(); if (fresh.userId!==session?.userId || fresh.guildId!==session?.guildId || ((!fresh.canControlAi && !fresh.canEditPersonality) || fresh.canControlAi !== session?.canControlAi || fresh.canEditPersonality !== session?.canEditPersonality)) {
     clear(); phase = 'denied'; notice('Access changed. Reload before continuing.');
   }
 }) };

@@ -204,6 +204,13 @@ GRANT SELECT, INSERT, UPDATE, DELETE ON sophie_ai.memories TO sophie_stage_contr
 GRANT SELECT, INSERT, DELETE ON sophie_ai.memory_optouts TO sophie_stage_control;
 ```
 
+Migration 076 replaces per-channel opt-in with one server-wide choice per member. The AI control identity needs, before
+core starts:
+
+```sql
+GRANT SELECT, INSERT, UPDATE, DELETE ON sophie_ai.member_consents, sophie_ai.consent_invitations TO sophie_stage_control;
+```
+
 Startup checks privileges and all 32 migration hashes before opening listeners.
 An owner/superuser credential, table DELETE/TRUNCATE, core schema CREATE, writable
 migration metadata or missing/altered migration fails closed. Do not grant the

@@ -8,7 +8,7 @@ import { aiReceiptHash } from './ai-privacy.js';
 
 /** Atomic metadata receipts and pacing. Content stays in the returned transient handoff only. */
 export function createAiAdmission({ pool, guildId, ingress, inspectContext, inspectMember, clock, noticeRevision = 1,
-  readNotice = async () => ({ revision: noticeRevision, binding: null, approved: noticeRevision === 1 }), privacyCurrent = async () => true, trace = () => {} }) {
+  readNotice = async () => ({ revision: noticeRevision, binding: null, approved: noticeRevision === 1 }), privacyCurrent = async () => true, trace = () => {}, invite = null }) {
   requireInteger(noticeRevision, 1);
   requireCondition(ingress.guildId === guildId && [inspectContext, inspectMember, clock, readNotice].every(fn => typeof fn === 'function'), 'TRUSTED_ADAPTERS_REQUIRED');
   const gatherOwner = randomUUID();
@@ -36,8 +36,13 @@ export function createAiAdmission({ pool, guildId, ingress, inspectContext, insp
     if (!config.enabled || !channel || channel.profile.mode === 'ignore') return skip('CHANNEL_NOT_CONFIGURED');
     const qualification = (await client.query('SELECT * FROM sophie_ai.qualifications WHERE guild_id=$1 AND channel_id=$2', [guildId, event.channelId])).rows[0];
     if (!qualification?.active || !qualification.restore_ready || qualification.configuration_sha256 !== configuration.sha256 || qualification.personality_sha256 !== personality.sha256) return skip('QUALIFICATION_MISMATCH');
-    const consent = (await client.query('SELECT * FROM sophie_ai.consents WHERE guild_id=$1 AND channel_id=$2 AND user_id=$3', [guildId, event.channelId, event.userId])).rows[0];
-    if (!consent?.enabled || !await noticeMatches(consent)) return skip(consent?.enabled ? 'NOTICE_MISMATCH' : 'NO_CONSENT');
+    // One server-wide choice per member (owner decision, 23 October 2026); per-channel rows no longer admit anything.
+    const consent = (await client.query('SELECT * FROM sophie_ai.member_consents WHERE guild_id=$1 AND user_id=$2', [guildId, event.userId])).rows[0];
+    if (!consent?.enabled || !await noticeMatches(consent)) {
+      // A member with no choice at all who calls on Sophie may get the static, non-AI invitation (rate-limited by its owner).
+      if (!consent && event.callsSophie === true && invite !== null) { try { invite({ channelId: event.channelId, userId: event.userId, messageId: event.messageId }); } catch { /* Never affects admission. */ } }
+      return skip(consent?.enabled ? 'NOTICE_MISMATCH' : 'NO_CONSENT');
+    }
     // These trusted core adapters read current exclusion/ACL/member metadata, never case content.
     const context = await inspectContext(event), member = await inspectMember(event);
     if (!context?.eligible) return skip(context === null ? 'CONTEXT_UNAVAILABLE' : 'CONTEXT_INELIGIBLE');
@@ -56,7 +61,7 @@ export function createAiAdmission({ pool, guildId, ingress, inspectContext, insp
     const latest = (await client.query(`SELECT s.epoch AS control_epoch,s.disabled,q.boundary_epoch,q.active,q.restore_ready,
       c.epoch AS consent_epoch,c.enabled,c.presence_epoch FROM sophie_ai.state s
       JOIN sophie_ai.qualifications q ON q.guild_id=s.guild_id AND q.channel_id=$2
-      JOIN sophie_ai.consents c ON c.guild_id=s.guild_id AND c.channel_id=q.channel_id AND c.user_id=$3
+      JOIN sophie_ai.member_consents c ON c.guild_id=s.guild_id AND c.user_id=$3
       WHERE s.guild_id=$1`, [guildId,event.channelId,event.userId])).rows[0];
     if (!latest || latest.disabled || !latest.active || !latest.restore_ready || !latest.enabled ||
       Number(latest.control_epoch) !== Number(state.epoch) || Number(latest.boundary_epoch) !== Number(qualification.boundary_epoch) ||

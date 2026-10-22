@@ -27,6 +27,8 @@ export function createAiPrivacy({pool,guildId,journal,departures,invalidate=()=>
       await client.query('SELECT pg_advisory_xact_lock(182745,56)');
       const row=await preference(client,job.userId);
       if(!row && !(await client.query(`SELECT 1 FROM sophie_ai.consents WHERE guild_id=$1 AND user_id=$2
+        UNION ALL SELECT 1 FROM sophie_ai.member_consents WHERE guild_id=$1 AND user_id=$2
+        UNION ALL SELECT 1 FROM sophie_ai.consent_invitations WHERE guild_id=$1 AND user_id=$2
         UNION ALL SELECT 1 FROM sophie_ai.request_receipts WHERE guild_id=$1 AND user_id=$2
         UNION ALL SELECT 1 FROM sophie_ai.memories WHERE guild_id=$1 AND $2=ANY(subject_ids)
         UNION ALL SELECT 1 FROM sophie_ai.effects WHERE guild_id=$1 AND EXISTS(SELECT 1 FROM jsonb_array_elements(dependencies) d WHERE d->>'userId'=$2) LIMIT 1`,[guildId,job.userId])).rowCount)return true;
@@ -36,6 +38,7 @@ export function createAiPrivacy({pool,guildId,journal,departures,invalidate=()=>
       // A retention choice is authoritative only when its independent write watermark agrees.
       const retained=trusted && row?.retain_on_leave===true;
       await client.query('UPDATE sophie_ai.consents SET enabled=false,epoch=epoch+1 WHERE guild_id=$1 AND user_id=$2 AND enabled',[guildId,job.userId]);
+      await client.query('UPDATE sophie_ai.member_consents SET enabled=false,epoch=epoch+1 WHERE guild_id=$1 AND user_id=$2 AND enabled',[guildId,job.userId]);
       await client.query("UPDATE sophie_ai.request_receipts SET state='cancelled',updated_at=clock_timestamp() WHERE guild_id=$1 AND user_id=$2 AND state IN ('gathering','admitted','sending')",[guildId,job.userId]);
       if (retained) return true;
       // Leaving removes every memory Sophie kept that names the member (owner decision, 20 October 2026).
@@ -58,6 +61,8 @@ export function createAiPrivacy({pool,guildId,journal,departures,invalidate=()=>
           retain_on_leave=false,departure_epoch=$4,updated_at=clock_timestamp()`,[guildId,job.userId,epoch,job.epoch]);
       }
       await client.query('DELETE FROM sophie_ai.consents WHERE guild_id=$1 AND user_id=$2',[guildId,job.userId]);
+      await client.query('DELETE FROM sophie_ai.member_consents WHERE guild_id=$1 AND user_id=$2',[guildId,job.userId]);
+      await client.query('DELETE FROM sophie_ai.consent_invitations WHERE guild_id=$1 AND user_id=$2',[guildId,job.userId]);
       // Never-dispatched reservations can be released; uncertain charges still need the existing resolution flow.
       const reserved=(await client.query(`SELECT p.* FROM sophie_ai.provider_attempts p JOIN sophie_ai.request_receipts r USING(guild_id,message_id)
         WHERE p.guild_id=$1 AND r.user_id=$2 AND p.state='reserved' FOR UPDATE OF p`,[guildId,job.userId])).rows;
@@ -86,7 +91,7 @@ export function createAiPrivacy({pool,guildId,journal,departures,invalidate=()=>
   return Object.freeze({current,async maintain() {
     // Restore scans are bounded and advance across the membership set. They read AI metadata only.
     const users=(await pool.query(`SELECT user_id FROM (SELECT user_id FROM sophie_ai.response_preferences WHERE guild_id=$1
-      UNION SELECT user_id FROM sophie_ai.consents WHERE guild_id=$1 UNION SELECT user_id FROM sophie_ai.request_receipts WHERE guild_id=$1) members
+      UNION SELECT user_id FROM sophie_ai.consents WHERE guild_id=$1 UNION SELECT user_id FROM sophie_ai.member_consents WHERE guild_id=$1 UNION SELECT user_id FROM sophie_ai.request_receipts WHERE guild_id=$1) members
       WHERE ($2::text IS NULL OR user_id>$2) ORDER BY user_id LIMIT 50`,[guildId,cursor])).rows;
     cursor=users.length===50?users.at(-1).user_id:null;
     for(const {user_id:userId} of users) await current(userId);
