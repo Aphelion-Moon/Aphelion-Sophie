@@ -29,7 +29,7 @@ export function validateActivityLayout(value, { viewscreens = null } = {}) {
   for (const stop of Object.values(value.stops)) {
     exactKeys(stop, [], ['scene', 'moments'], code);
     if (stop.scene !== undefined) requireCondition(ACTIVITY_STOP_SCENES.includes(stop.scene), code);
-    if (stop.moments !== undefined) validateStageMoments(stop.moments, viewscreens);
+    if (stop.moments !== undefined) validateStageMoments(stop.moments, viewscreens, new Set(ACTIVITY_STOP_SCENES));
   }
   requireCondition(Array.isArray(value.arrival) && value.arrival.length <= LIMITS.arrival, code);
   const seen = new Set();
@@ -45,7 +45,7 @@ export function validateActivityLayout(value, { viewscreens = null } = {}) {
 /** A fixed key order, so the document hashes the same after a database round trip. Validates first. */
 export function canonicalActivityLayout(value, options = {}) {
   validateActivityLayout(value, options);
-  const moment = item => ({ beat: item.beat, ...(item.viewscreen === undefined ? {} : { viewscreen: item.viewscreen }) });
+  const moment = item => ({ beat: item.beat, ...(item.viewscreen === undefined ? {} : { viewscreen: item.viewscreen }), ...(item.scene === undefined ? {} : { scene: item.scene }) });
   return { schema: value.schema,
     stops: Object.fromEntries(Object.keys(value.stops).sort().map(id => [id, { ...(value.stops[id].scene === undefined ? {} : { scene: value.stops[id].scene }),
       ...(value.stops[id].moments === undefined ? {} : { moments: Object.fromEntries(Object.keys(value.stops[id].moments).sort().map(key => [key, moment(value.stops[id].moments[key])])) }) }])),

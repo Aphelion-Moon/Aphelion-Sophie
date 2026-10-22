@@ -2,7 +2,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
-import { TEXT, CHUNK_LIMIT, dialogueControls, presence, sceneStateFor, soundscape, titleMenu, transmissionChunks } from '../apps/activity/client/presenter.js';
+import { ANNOUNCEMENTS, TEXT, CHUNK_LIMIT, dialogueControls, presence, sceneStateFor, soundscape, titleMenu, transmissionChunks } from '../apps/activity/client/presenter.js';
+import { ACTIVITY_STOP_SCENES } from '../modules/onboarding/activity.js';
 import { parseInline, parseMarkdown, plainText, safeLink } from '../apps/activity/client/markdown.js';
 import { createSoundboard } from '../apps/activity/client/audio.js';
 import { createShuttleApi } from '../apps/activity/client/api.js';
@@ -59,7 +60,7 @@ test('T-ACT-CLI-03 controls: pages before stops, Complete on the last page of th
 });
 
 test('T-ACT-CLI-04 scenes, sound and presence: arrival music only after confirmation; presence names no copy', () => {
-  assert.deepEqual(sceneStateFor(run({ stop: 1 }), 1, 4), { stopTitle: 'Stop 2', stopNumber: 2, stopCount: 5, section: 2, sections: 4, whitelist: 'none', beat: 'none', link: 'ready' });
+  assert.deepEqual(sceneStateFor(run({ stop: 1 }), 1, 4), { stopTitle: 'Stop 2', stopNumber: 2, stopCount: 5, section: 2, sections: 4, whitelist: 'none', beat: 'none', link: 'ready', crew: null, online: null });
   assert.equal(sceneStateFor(run({ stop: 1 }), 1, 4, 'pride').beat, 'pride');
   assert.equal(sceneStateFor(run({ status: 'boarded', stop: 4, whitelist: 'confirmed' })).link, 'arrived');
   assert.deepEqual(soundscape('title'), { ambience: 'AMB-01', music: 'MUS-01' });
@@ -155,4 +156,8 @@ test('T-ACT-CLI-08 the listener serves the page, its module graph, the pinned SD
   const page = assets.get('/').body.toString('utf8');
   assert.doesNotMatch(page, /<script(?![^>]*type="module" src="\/apps\/activity\/client\/app\.js")/);
   assert.doesNotMatch(page, /\sstyle=|\son[a-z]+=/);
+});
+
+test('T-ACT-CLI-11 every scene a stop or section can show has its station announcement', () => {
+  for (const scene of ACTIVITY_STOP_SCENES) assert.match(ANNOUNCEMENTS[scene] ?? '', /^Attention: /, scene);
 });

@@ -48,9 +48,13 @@ export function validateViewscreen(value) {
   return value;
 }
 
-/** A moment: the beat a section stages and, optionally, the viewscreen it opens. */
-export function validateMoment(value, viewscreens = null) {
-  exactKeys(value, ['beat'], ['viewscreen'], 'INVALID_MOMENT');
+/**
+ * A moment: the beat a section stages and, optionally, the viewscreen it opens and the scene it is set in (when a
+ * section has a scene of its own). scenes, when given, is the set of scene ids a stop may use.
+ */
+export function validateMoment(value, viewscreens = null, scenes = null) {
+  exactKeys(value, ['beat'], ['viewscreen', 'scene'], 'INVALID_MOMENT');
+  if (value.scene !== undefined) requireCondition(typeof value.scene === 'string' && ID.test(value.scene) && (scenes === null || scenes.has(value.scene)), 'INVALID_MOMENT');
   requireCondition(typeof value.beat === 'string' && BEAT.test(value.beat), 'INVALID_MOMENT');
   if (value.viewscreen !== undefined) {
     requireCondition(typeof value.viewscreen === 'string' && ID.test(value.viewscreen) && (viewscreens === null || viewscreens.has(value.viewscreen)), 'INVALID_MOMENT');
@@ -67,22 +71,22 @@ export function headingKey(text) {
 }
 
 /** Moments for one stage, keyed by headingKey(). */
-export function validateStageMoments(value, viewscreens = null) {
+export function validateStageMoments(value, viewscreens = null, scenes = null) {
   requireRecord(value, 'INVALID_MOMENTS');
   const keys = Object.keys(value);
   requireCondition(keys.length <= LIMITS.headings, 'INVALID_MOMENTS');
   for (const key of keys) {
     requireCondition(key.length > 0 && key.length <= LIMITS.heading && key === key.toLowerCase().trim() && !/[\u0000-\u001f]/.test(key), 'INVALID_MOMENTS');
-    validateMoment(value[key], viewscreens);
+    validateMoment(value[key], viewscreens, scenes);
   }
 }
 
 /** The default moments document: stage id -> heading -> moment. */
-export function validateMoments(value, viewscreens = null) {
+export function validateMoments(value, viewscreens = null, scenes = null) {
   exactKeys(value, ['schema', 'stages'], [], 'INVALID_MOMENTS');
   requireCondition(value.schema === 1, 'INVALID_MOMENTS');
   requireRecord(value.stages, 'INVALID_MOMENTS');
   requireCondition(Object.keys(value.stages).length <= 20 && Object.keys(value.stages).every(id => ID.test(id)), 'INVALID_MOMENTS');
-  for (const stage of Object.values(value.stages)) validateStageMoments(stage, viewscreens);
+  for (const stage of Object.values(value.stages)) validateStageMoments(stage, viewscreens, scenes);
   return value;
 }

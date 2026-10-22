@@ -38,16 +38,18 @@ export function createActivityLayoutStore({ pool, authorize, guildId, definition
       ORDER BY d.version DESC LIMIT 1`, [definitionId])).rows[0];
     return row ? canonicalPublication(row.publication).stages : [];
   }
-  /** Beats must belong to the scene the stop will use; viewscreens must exist; stages must be published ones. */
+  /** Beats must belong to the scene the section will use (its own, or the stop's); stages must be published ones. */
   function requireConsistent(document, stages) {
     const ids = new Set(stages.map(stage => stage.id));
     requireCondition(Object.keys(document.stops).every(id => ids.has(id)), 'ACTIVITY_LAYOUT_UNKNOWN_STOP');
     if (!stages.length) return;
     const layout = effectiveLayout({ stages, defaults, layout: document });
     for (const stop of layout.stops) {
-      const beats = sceneBeats.get(stop.scene) ?? [];
       const own = document.stops[stop.id]?.moments ?? {};
-      for (const moment of Object.values(own)) requireCondition(moment.beat === 'none' || beats.includes(moment.beat), 'ACTIVITY_LAYOUT_UNKNOWN_BEAT');
+      for (const moment of Object.values(own)) {
+        const beats = sceneBeats.get(moment.scene ?? stop.scene) ?? [];
+        requireCondition(moment.beat === 'none' || beats.includes(moment.beat), 'ACTIVITY_LAYOUT_UNKNOWN_BEAT');
+      }
     }
   }
   return Object.freeze({

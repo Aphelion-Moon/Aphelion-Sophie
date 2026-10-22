@@ -147,32 +147,203 @@ test('P43 sprites cross only in their window, never with motion off, and stay sm
     effects: [...lounge.layouts.landscape.effects, huge] } } }), error => error.code === 'INVALID_SCENE_SPRITE');
 });
 
-test('P42 the baggage belt runs with the bags, and each bag keeps its shape and tag all the way through', () => {
+/** A synthetic scene: one blank layer and the given landscape effects, to test one effect at a time. */
+function synthetic(effects, beats) {
+  const blank = { layers: [{ id: 'base', x: 0, y: 0, frames: [{ text: ['.'], colours: ['d'] }] }], effects: [] };
+  return validateScene({ schema: 1, id: 'synthetic', title: 'Synthetic', ...(beats ? { beats } : {}), alt: [{ text: 'A synthetic test scene.' }],
+    provenance: scenes[0][1].provenance, layouts: { landscape: { ...blank, effects }, portrait: blank } });
+}
+const grid = (scene, input) => composeScene(scene, 'landscape', { ...input, state: { ...STATE, ...input.state } }).glyphs;
+const cells = (row, from, to) => [...row].slice(from, to).join('');
+const one = (text, key = 'a') => ({ text: [text], colours: [key.repeat([...text].length)] });
+const rejects = (effect, code, beats) => assert.throws(() => synthetic([effect], beats), error => error.code === code, effect.id);
+
+const BELT = { kind: 'conveyor', id: 'belt', y: 10, from: 0, to: 60, gate: 30, gateWidth: 4, speed: 10, spacing: 30,
+  items: [{ art: one('[A]'), weight: '12.0 KG', divert: false }, { art: one('[B]'), weight: '9.5 KG', divert: true }],
+  tags: { '*': { before: ['a1', 'b1'], after: ['a2', ''], beforeColour: 'p', afterColour: '4' },
+    rush: { before: ['r1', 'r2'], after: ['r3', ''], beforeColour: 'p', afterColour: '4' } },
+  chute: [40, 20], readout: { x: 30, y: 5, width: 8, colour: 'a', deniedColour: 'p' } };
+
+test('P44 a conveyor carries each item at one speed through its gate, and a refused item leaves the belt for the chute', () => {
+  const scene = synthetic([BELT], ['rush']), at = (time, beat = 'none') => grid(scene, { time, state: { beat } });
+  // A rides the belt ten cells a second with its own tag; B was refused at the gate and is on its way to the chute.
+  let g = at(0.5);
+  assert.equal(cells(g[11], 5, 8), '[A]'); assert.equal(cells(g[10], 5, 7), 'a1');
+  assert.equal(cells(g[12], 35, 38), '[B]', 'off the belt, heading down to the chute');
+  g = at(1);
+  assert.equal(cells(g[11], 10, 13), '[A]'); assert.equal(cells(g[16], 37, 40), '[B]');
+  assert.doesNotMatch(g.join('\n'), /b1|b2/, 'a refused item loses its tag once it leaves the belt');
+  g = at(1.5);
+  assert.equal(cells(g[11], 15, 18), '[A]'); assert.doesNotMatch(g.join('\n'), /\[B\]/, 'gone down the chute');
+  // Past the gate an item wears its after tag; the tags follow the section being read.
+  g = at(3.5);
+  assert.equal(cells(g[11], 35, 38), '[A]'); assert.equal(cells(g[10], 35, 37), 'a2'); assert.equal(cells(g[10], 5, 7), 'b1');
+  g = at(3.5, 'rush');
+  assert.equal(cells(g[10], 35, 37), 'r3'); assert.equal(cells(g[10], 5, 7), 'r2');
+  // Inside the gate (and behind its pillars) an item is out of sight.
+  assert.doesNotMatch(at(3).join('\n'), /\[A\]/);
+});
+
+test('P44 the conveyor readout shows the item inside the gate, exactly while it is inside', () => {
+  const scene = synthetic([BELT], ['rush']), readout = time => cells(grid(scene, { time })[5], 30, 38);
+  assert.equal(readout(0), 'DENIED  ', 'B is in the gate at the start');
+  assert.equal(readout(2), '- - -   ', 'nothing in the gate');
+  assert.equal(readout(3), '12.0 KG ', 'A is in the gate');
+  assert.equal(readout(3.25), '12.0 KG '); assert.equal(readout(3.35), '- - -   ', 'A has left the gate (by its centre)');
+  // With motion off items rest at their spacing, whatever the clock says.
+  const still = time => composeScene(scene, 'landscape', { time, state: STATE, motion: false }).glyphs;
+  assert.deepEqual(still(0), still(51.3)); assert.equal(cells(still(0)[11], 0, 3), '[A]'); assert.equal(cells(still(0)[5], 30, 36), 'DENIED');
+});
+
+test('P44 the conveyor is bounded: enough items to fill the belt, tags only for declared beats, a chute on the grid', () => {
+  rejects({ ...BELT, spacing: 20 }, 'INVALID_SCENE_CONVEYOR', ['rush']);
+  rejects({ ...BELT, tags: { ...BELT.tags, other: BELT.tags.rush } }, 'INVALID_SCENE_CONVEYOR', ['rush']);
+  rejects({ ...BELT, tags: { rush: BELT.tags.rush } }, 'INVALID_SCENE_CONVEYOR', ['rush']);
+  rejects({ ...BELT, items: [BELT.items[0], { ...BELT.items[1], art: one('[TOO-WIDE-BAG]') }] }, 'INVALID_SCENE_CONVEYOR', ['rush']);
+  rejects({ ...BELT, chute: [200, 5] }, 'INVALID_SCENE_CONVEYOR', ['rush']);
+  rejects({ ...BELT, tags: { '*': { ...BELT.tags['*'], before: ['a1'] } } }, 'INVALID_SCENE_CONVEYOR', ['rush']);
+});
+
+test('P44 the baggage belt: Meridian for SS 13 bags and Wolfgate for SS 14 while migrating; refused bags are labelled for the section and go to disposals', () => {
   const hall = scenes.find(([, s]) => s.id === 'baggage-hall')[1];
+  const SS13 = ['BUBBER', 'SPLURT', 'NOVA', 'OCULIS', 'RATWOOD', 'MARINES'], SS14 = ['MONOLITH', 'HARDLIGHT', 'AFTERLIGHT', 'FRONTIER', 'WAYFARER'];
   for (const layout of ['landscape', 'portrait']) {
-    const { layers, effects } = hall.layouts[layout];
-    const belt = layers.find(item => item.id === 'belt');
-    const first = (frame, ch) => Math.min(...frame.text.map(row => [...row].indexOf(ch)).filter(x => x >= 0));
-    assert.equal(first(belt.frames[1], '╪') - first(belt.frames[0], '╪'), 1, `${layout}: the rails move right`);
-    const bags = effects.filter(fx => fx.kind === 'sprite' && fx.id.startsWith('bag-'));
-    assert.ok(bags.length >= 24, layout);
-    for (const bag of bags) {
-      // One fixed figure, moving right at the belt's speed (one cell per belt frame).
-      assert.equal(bag.frames.length, 1, bag.id);
-      assert.ok(bag.to[0] > bag.from[0] && bag.to[1] === bag.from[1], bag.id);
-      assert.ok(Math.abs((bag.to[0] - bag.from[0]) / bag.duration - belt.fps) < 1e-9, bag.id);
-      assert.ok(bag.still !== undefined || bags.some(other => other.id !== bag.id && other.still !== undefined && other.id.split('-')[1] === bag.id.split('-')[1]), bag.id);
+    const belt = hall.layouts[layout].effects.find(fx => fx.kind === 'conveyor');
+    assert.equal(belt.items.filter(item => item.divert).length, 2, layout);
+    const { before, after } = belt.tags.migrating;
+    belt.items.forEach((item, i) => assert.equal(after[i], item.divert ? '' : SS13.includes(before[i]) ? 'MERIDIAN' : SS14.includes(before[i]) ? 'WOLFGATE' : '?', `${layout} ${before[i]}`));
+    for (const origin of [...SS13, ...SS14]) assert.ok(before.includes(origin), `${layout} ${origin}`);
+    const refused = beat => belt.items.flatMap((item, i) => item.divert ? [belt.tags[beat].before[i]] : []);
+    assert.deepEqual(refused('*'), ['CONTRABAND', 'TOXICITY']); assert.deepEqual(refused('migrating'), ['BIGOTRY', 'BLASTWAVE']);
+    assert.deepEqual(refused('past'), ['GRUDGES', 'OLD DRAMA']); assert.deepEqual(refused('looc'), ['METAGAME', 'ASSUMPTION']);
+    assert.ok(belt.tags['*'].after.every((tag, i) => tag === (belt.items[i].divert ? '' : 'OK')), layout);
+    // The chute point is inside the disposal's mouth, and bags rest on the belt with motion off.
+    const still = composeScene(hall, layout, { state: STATE, motion: false }).glyphs;
+    assert.equal([...still[belt.chute[1]]][belt.chute[0]], '_', `${layout} chute`); assert.match(still.join('\n'), /DISPOSAL/);
+    assert.match(still.join('\n'), /\[====\]|\[▒▒▒▒\]|\[▓▓▓▓\]/, layout);
+    // Over a run the scale reads weights and refusals, and both destinations go past.
+    const seen = Array.from({ length: 160 }, (_, i) => composeScene(hall, layout, { time: i / 4, state: { ...STATE, beat: 'migrating' } }).glyphs.join('\n')).join('\n');
+    for (const word of ['DENIED', ' KG', 'MERIDIAN', 'WOLFGATE']) assert.ok(seen.includes(word), `${layout} ${word}`);
+  }
+  // The BLASTWAVE bag burns, is foamed out by the firebot and lights itself again, slowly (no flashing).
+  const fire = hall.layouts.landscape.layers.find(item => item.id === 'blastwave');
+  assert.ok(fire.frames.every(frame => frame.text.join('').includes('[BLASTWAVE]')) && fire.fps <= 2);
+  assert.ok(fire.frames.some(frame => frame.text.join('').includes('░▒░')) && fire.frames.some(frame => /\^/.test(frame.text.join(''))));
+});
+
+const TALK = { kind: 'dialogue', id: 'talk', speakers: [[20, 20], [40, 20]], width: 16, style: 'say', line: 2, pause: 1, colours: 'ca',
+  exchanges: [[[0, 'Is this seat free?'], [1, 'It is.']], [[0, 'Thanks!']]] };
+
+test('P44 a dialogue shows one line at a time in a bubble over whoever is speaking, then pauses and moves on', () => {
+  const scene = synthetic([TALK]), at = (time, extra = {}) => grid(scene, { time, ...extra });
+  let g = at(0.5);
+  assert.equal(cells(g[17], 15, 28), '"Is this seat'); assert.equal(cells(g[18], 15, 21), 'free?"'); assert.equal([...g[19]][20], '╲');
+  g = at(2.5);
+  assert.equal(cells(g[18], 37, 45), '"It is."'); assert.equal([...g[19]][40], '╱');
+  assert.doesNotMatch(at(4.5).join('\n'), /"/, 'a pause between exchanges');
+  assert.match(at(5.5).join('\n'), /"Thanks!"/); assert.match(at(8.5).join('\n'), /"Is this seat/, 'the exchanges repeat');
+  // A delay lets people walk in first; the beat clock starts the talk when the section opens; motion off keeps the opening line.
+  const later = synthetic([{ ...TALK, delay: 3 }]);
+  assert.doesNotMatch(grid(later, { time: 1 }).join('\n'), /"/); assert.match(grid(later, { time: 3.5 }).join('\n'), /"Is this seat/);
+  const onBeat = synthetic([{ ...TALK, clock: 'beat' }]);
+  assert.match(grid(onBeat, { time: 100.5, beatTime: 0.5 }).join('\n'), /"Is this seat/);
+  assert.doesNotMatch(grid(scene, { time: 100.5 }).join('\n'), /"Is this seat/);
+  assert.match(composeScene(later, 'landscape', { time: 99, state: STATE, motion: false }).glyphs.join('\n'), /"Is this seat/);
+  // LOOC talk is wrapped in double brackets.
+  assert.match(grid(synthetic([{ ...TALK, style: 'looc', width: 30 }]), { time: 0.5 }).join('\n'), /\(\( Is this seat free\? \)\)/);
+});
+
+test('P44 dialogues are bounded: two speakers, short words, a few short lines, known styles', () => {
+  rejects({ ...TALK, speakers: [[1, 1], [2, 2], [3, 3]] }, 'INVALID_SCENE_DIALOGUE');
+  rejects({ ...TALK, style: 'shout' }, 'INVALID_SCENE_DIALOGUE');
+  rejects({ ...TALK, exchanges: [[[0, 'Antidisestablishmentarianism']]] }, 'INVALID_SCENE_DIALOGUE');
+  rejects({ ...TALK, exchanges: Array(7).fill([[0, 'Hi']]) }, 'INVALID_SCENE_DIALOGUE');
+  rejects({ ...TALK, exchanges: [[[2, 'Who?']]] }, 'INVALID_SCENE_DIALOGUE');
+  rejects({ ...TALK, exchanges: [[[0, 'x '.repeat(70)]]] }, 'INVALID_SCENE_DIALOGUE');
+  rejects({ ...TALK, clock: 'wall' }, 'INVALID_SCENE_DIALOGUE');
+});
+
+const WALK = { kind: 'sprite', id: 'walker', frames: [one('A'), one('B'), one('S')], from: [0, 10], to: [10, 10], duration: 2, hold: 5, every: 10, fps: 2, rest: true };
+
+test('P44 sprites can walk in, stop and stay (sitting down), keep the section clock and stay inside a window', () => {
+  const at = (scene, time, extra = {}) => grid(scene, { time, ...extra })[10];
+  const walker = synthetic([WALK]);
+  assert.equal([...at(walker, 0.25)][1], 'A'); assert.equal([...at(walker, 0.75)][4], 'B');
+  assert.equal([...at(walker, 3)][10], 'S', 'arrived, in its resting pose'); assert.equal([...at(walker, 6.9)][10], 'S');
+  assert.doesNotMatch(at(walker, 7.5), /[ABS]/, 'gone once the hold is over');
+  assert.equal([...composeScene(walker, 'landscape', { time: 0, state: STATE, motion: false }).glyphs[10]][10], 'S', 'motion off: already there');
+  const onBeat = synthetic([{ ...WALK, clock: 'beat' }]);
+  assert.equal([...at(onBeat, 3, { beatTime: 0.25 })][1], 'A');
+  const windowed = synthetic([{ ...WALK, clip: [5, 0, 10, 20] }]);
+  assert.doesNotMatch(at(windowed, 0.25), /A/, 'outside the window, behind the frame'); assert.equal([...at(windowed, 3)][10], 'S');
+  rejects({ ...WALK, hold: undefined }, 'INVALID_SCENE_SPRITE');
+  rejects({ ...WALK, every: 6 }, 'INVALID_SCENE_SPRITE');
+  rejects({ ...WALK, clip: [90, 0, 10, 5] }, 'INVALID_SCENE_SPRITE');
+  rejects({ ...WALK, hold: 700, every: 600 }, 'INVALID_SCENE_SPRITE');
+});
+
+test('P44 text can be centred or right-aligned, and the station counts are digits or dashes, never anything else', () => {
+  const scene = synthetic([{ kind: 'text', id: 'crew', x: 10, y: 5, width: 10, template: '{crew}', colour: 'c', align: 'right' },
+    { kind: 'text', id: 'online', x: 10, y: 6, width: 10, template: '{online}', colour: 'c', align: 'center' }]);
+  const g = grid(scene, { state: { crew: 1234, online: 56 } });
+  assert.equal(cells(g[5], 10, 20), '      1234'); assert.equal(cells(g[6], 10, 20), '    56    ');
+  assert.equal(cells(grid(scene, { state: {} })[5], 18, 20), '--');
+  for (const value of [-1, 1.5, '12', 1e9, null]) assert.equal(sceneState({ crew: value }).crew, '--', String(value));
+  assert.equal(sceneState({ online: 0 }).online, '0');
+  rejects({ kind: 'text', id: 'skew', x: 0, y: 0, width: 5, template: '{crew}', colour: 'c', align: 'justify' }, 'INVALID_SCENE_EFFECT');
+});
+
+test('P44 Board the Shuttle has a scene for each section: boarders walk to the ramp and up it, riders take seats, the sea lion gets bumped', () => {
+  const scene = id => scenes.find(([, s]) => s.id === id)[1];
+  for (const layout of ['landscape', 'portrait']) {
+    // Each boarder's ramp climb starts where and when the walk across the bay ends.
+    const sprites = scene('landing-bay').layouts[layout].effects.filter(fx => fx.kind === 'sprite' && fx.id.startsWith('boarder-'));
+    assert.ok(sprites.length >= 10, layout);
+    for (const walk of sprites.filter(fx => fx.id.endsWith('-walk'))) {
+      const ramp = sprites.find(fx => fx.id === walk.id.replace('-walk', '-ramp'));
+      assert.deepEqual(ramp.from, walk.to, walk.id); assert.equal(ramp.every, walk.every);
+      const gap = ((walk.offset - ramp.offset - walk.duration) % walk.every + walk.every) % walk.every;
+      assert.ok(gap < 1e-9 || walk.every - gap < 1e-9, walk.id);
     }
-    // A bag goes into the scanner and comes out of it at the same moment and place.
-    for (const into of bags.filter(bag => /-in(-tag)?$/.test(bag.id))) {
-      const out = bags.find(bag => bag.id === into.id.replace('-in', '-out'));
-      assert.deepEqual(out.from, into.to, into.id);
-      assert.ok(Math.abs(((into.offset - out.offset - into.duration) % into.every + into.every) % into.every) < 1e-9 ||
-        Math.abs(((into.offset - out.offset - into.duration) % into.every + into.every) % into.every - into.every) < 1e-9, into.id);
-    }
-    // With motion off, bags rest on the belt rather than vanishing.
-    const still = composeScene(hall, layout, { time: 0, state: STATE, motion: false }).glyphs.join('\n');
-    assert.match(still, /\[====\]|\[▒▒▒▒\]|\[▓▓▓▓\]/, layout);
+    // The shared seat: passengers sit down and stay, and someone asks before sitting; with motion off the question shows.
+    const cabin = scene('boarding-cabin'), seated = composeScene(cabin, layout, { time: 0, state: { ...STATE, beat: 'seat' }, motion: false }).glyphs.join('\n');
+    assert.match(seated, /ONE PASSENGER PER SEAT/); assert.match(seated, /"Is this seat free\?"/);
+    assert.ok(cabin.layouts[layout].effects.filter(fx => fx.kind === 'sprite' && fx.rest && fx.clock === 'beat').length >= 4, layout);
+    // The bump: the window and the cabin run in step, and the cabin jolts only on the bump frames.
+    const strike = scene('cabin-turbulence').layouts[layout].layers;
+    const approach = strike.find(item => item.id === 'approach'), shake = strike.find(item => item.id === 'turbulence');
+    assert.equal(approach.frames.length, shake.frames.length); assert.equal(approach.fps, shake.fps);
+    const bump = approach.frames.findIndex(frame => frame.text.join('').includes('THUMP'));
+    assert.ok(bump > 0 && shake.frames[bump].text.join('').includes('!') && !shake.frames[0].text.join('').includes('!'), layout);
+    assert.ok(approach.frames.at(-1).text.join('').includes('(__o__>'), 'the sea lion is dazed, not hurt');
+  }
+});
+
+test('P44 Admire the Lights: two crew play out the lucky ten thousand, and the window traffic stays behind the glass', () => {
+  const view = scenes.find(([, s]) => s.id === 'viewport')[1];
+  for (const layout of ['landscape', 'portrait']) {
+    const { effects } = view.layouts[layout];
+    const talk = effects.find(fx => fx.id === 'lucky-talk');
+    assert.deepEqual(talk.exchanges.map(exchange => exchange[0][1].split(' ').slice(0, 3).join(' ')),
+      ['Did you know', "You've never added", 'Ever seen a', "You haven't met"]);
+    assert.ok(talk.exchanges.every(exchange => exchange.map(([speaker]) => speaker).join('') === '010'), 'one knows, one learns');
+    const lucky = composeScene(view, layout, { time: 0, state: { ...STATE, beat: 'lucky' }, motion: false }).glyphs.join('\n');
+    assert.match(lucky, /TODAY: {2}10,000/); assert.match(lucky, /"Did you know/);
+    assert.doesNotMatch(composeScene(view, layout, { time: 0, state: STATE, motion: false }).glyphs.join('\n'), /"Did you know|10,000/);
+    for (const fx of effects.filter(item => item.kind === 'sprite' && ['comet', 'cargo', 'greytide', 'carp-1', 'meteor-1'].includes(item.id))) assert.ok(fx.clip, `${layout} ${fx.id}`);
+  }
+});
+
+test('P44 Disembarking shows the station counts on its board, and nothing about any member', () => {
+  const door = scenes.find(([, s]) => s.id === 'pressure-door')[1];
+  const landscape = composeScene(door, 'landscape', { state: { ...STATE, crew: 1234, online: 56 }, motion: false }).glyphs.join('\n');
+  assert.match(landscape, /CREW ABOARD\s+1234/); assert.match(landscape, /ONLINE NOW\s+56/); assert.doesNotMatch(landscape, /PUSH TO TALK/);
+  assert.match(composeScene(door, 'landscape', { state: STATE, motion: false }).glyphs.join('\n'), /CREW ABOARD\s+--/);
+  const portrait = composeScene(door, 'portrait', { state: { ...STATE, crew: 1234, online: 56 }, motion: false }).glyphs.join('\n');
+  assert.match(portrait, /1234/); assert.match(portrait, /56/);
+  const allowed = ['crew', 'online', 'stopTitle', 'stopNumber', 'stopCount', 'section', 'sections'];
+  for (const layout of Object.values(door.layouts)) for (const fx of layout.effects.filter(item => item.kind === 'text')) {
+    for (const [, key] of fx.template.matchAll(/\{(\w+)/g)) assert.ok(allowed.includes(key), key);
   }
 });
 

@@ -2,6 +2,7 @@ import { readFile, readdir } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { validateScene } from '../../modules/onboarding/scenes.js';
 import { validateMoments, validateViewscreen } from '../../modules/onboarding/activity-media.js';
+import { ACTIVITY_STOP_SCENES } from '../../modules/onboarding/activity.js';
 
 /**
  * The shipped Shuttle Activity content core needs beside the client files: the default moments, each scene's beats
@@ -17,6 +18,9 @@ export async function loadActivityContent(root) {
   for (const name of await list('content/shuttle-activity/scenes')) {
     const scene = await json(`content/shuttle-activity/scenes/${name}`); validateScene(scene); sceneBeats.set(scene.id, Object.freeze([...(scene.beats ?? [])]));
   }
-  const defaults = validateMoments(await json('content/shuttle-activity/moments.json'), new Set(viewscreens.keys()));
+  const defaults = validateMoments(await json('content/shuttle-activity/moments.json'), new Set(viewscreens.keys()), new Set(ACTIVITY_STOP_SCENES));
+  for (const [stage, moments] of Object.entries(defaults.stages)) for (const moment of Object.values(moments)) {
+    if (moment.scene !== undefined && !(sceneBeats.get(moment.scene) ?? []).includes(moment.beat) && moment.beat !== 'none') throw new Error(`ACTIVITY_MOMENT_BEAT ${stage}`);
+  }
   return Object.freeze({ defaults, sceneBeats, viewscreens });
 }

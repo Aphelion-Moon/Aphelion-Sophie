@@ -216,4 +216,24 @@ export async function runShuttleActivitySuite(cluster, run) {
     await admin.query(`UPDATE sophie_core.activity_layouts SET document = jsonb_set(document, '{arrival}', '[]'::jsonb)`);
     await assert.rejects(shown.describe(await member(OTHER)), error => error.code === 'ACTIVITY_LAYOUT_CORRUPT');
   });
+
+  await scenario('SA10 a section can stage its own scene: the layout takes it only with a beat that scene draws, and runs carry it', async () => {
+    const content = await loadActivityContent(fileURLToPath(new URL('../../', import.meta.url)));
+    const [first] = publication.stages;
+    const defaults = { schema: 1, stages: { [first.id]: { 'synthetic heading': { beat: 'adult' } } } };
+    const layouts = createActivityLayoutStore({ pool, authorize: authorization.authorize, guildId: GUILD, definitionId: definition.id, defaults,
+      sceneBeats: content.sceneBeats, viewscreens: content.viewscreens });
+    const editor = await interactionActor(OTHER), key = n => n.toString(16).padStart(64, '0');
+    const publish = (n, moment) => layouts.publishActivityLayout({ actor: editor, requestId: key(n), expectedVersion: 0,
+      document: { schema: 1, stops: { [first.id]: { moments: { 'another heading': moment } } }, arrival: [] } });
+    // The first stop's own scene (the departure lounge) has no 'together' beat; the landing bay has, and no 'seat'.
+    await assert.rejects(publish(1, { beat: 'together' }), error => error.code === 'ACTIVITY_LAYOUT_UNKNOWN_BEAT');
+    await assert.rejects(publish(2, { beat: 'seat', scene: 'landing-bay' }), error => error.code === 'ACTIVITY_LAYOUT_UNKNOWN_BEAT');
+    await assert.rejects(publish(3, { beat: 'together', scene: 'not-a-scene' }), error => error.code === 'INVALID_MOMENT');
+    assert.equal((await publish(4, { beat: 'together', scene: 'landing-bay' })).version, 1);
+    const shown = createShuttleActivityStore({ pool, clock: () => now, authorize: authorization.authorize, definitionId: definition.id, status: 'testing', defaults });
+    const { run } = await shown.board({ ...await member(OTHER), requestId: requestId() });
+    assert.deepEqual(run.moments['another heading'], { beat: 'together', scene: 'landing-bay' });
+    assert.equal(run.stops[0].scene, 'departure-lounge', 'the stop keeps its scene; only that section changes');
+  });
 }

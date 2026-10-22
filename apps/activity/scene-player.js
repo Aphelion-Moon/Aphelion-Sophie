@@ -13,7 +13,7 @@ export function createScenePlayer({ host, canvas, altElement, palette, backgroun
   const painter = createSceneCanvas(canvas, { palette, background, font });
   const paused = new Set();
   let scene = null, layout = 'landscape', state = {}, motion = true, frameHandle = null, lastDraw = -Infinity;
-  let confirmedAt = null, size = { width: 0, height: 0 };
+  let confirmedAt = null, beatAt = 0, size = { width: 0, height: 0 };
   const DOOR_SECONDS = 1.8;
 
   function chooseLayout() {
@@ -30,7 +30,8 @@ export function createScenePlayer({ host, canvas, altElement, palette, backgroun
   }
   function render(now) {
     if (!scene || !size.width) return;
-    const frame = composeScene(scene, layout, { time: now, motion: motion && paused.size === 0, state: { ...state, doorOpen: doorOpen(now) } });
+    // People who walk in and talk keep their own clock, from the moment the section (beat) or scene began.
+    const frame = composeScene(scene, layout, { time: now, beatTime: Math.max(0, now - beatAt), motion: motion && paused.size === 0, state: { ...state, doorOpen: doorOpen(now) } });
     painter.draw(frame, SCENE_COLOURS);
     lastDraw = now;
   }
@@ -48,11 +49,12 @@ export function createScenePlayer({ host, canvas, altElement, palette, backgroun
 
   return {
     /** Shows a validated scene. */
-    setScene(next) { scene = validateScene(next); wake(); this.refreshAlt(); },
+    setScene(next) { scene = validateScene(next); beatAt = clock(); wake(); this.refreshAlt(); },
     /** Updates run state from the server: stop, section and Whitelist status. */
     setState(next) {
-      const was = state.whitelist;
+      const was = state.whitelist, wasBeat = state.beat;
       state = { ...state, ...next };
+      if (state.beat !== wasBeat) beatAt = clock();
       if (state.whitelist === 'confirmed' && was !== 'confirmed') confirmedAt = clock();
       if (state.whitelist !== 'confirmed') confirmedAt = null;
       wake(); this.refreshAlt();

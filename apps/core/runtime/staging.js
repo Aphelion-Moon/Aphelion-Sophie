@@ -46,6 +46,7 @@ import { createShuttleActivityStore } from '../storage/shuttle-activity.js';
 import { loadActivityClient } from '../../activity/client-assets.js';
 import { loadActivityContent } from '../../activity/content.js';
 import { createActivityChannels } from '../discord/activity-channels.js';
+import { createActivityStation } from '../discord/activity-station.js';
 import { createActivityLayoutStore } from '../storage/activity-layout.js';
 import { createActivityLayoutHttp } from '../http/activity-layout.js';
 import { createDashboardPresentation } from '../http/dashboard-assets.js';
@@ -236,6 +237,7 @@ export async function createStagingRuntime({ configuration, pool, aiControlPool 
       assets: await loadActivityClient(fileURLToPath(new URL('../../../', import.meta.url))), auth: activityAuth,
       authorization: visitor.authorization, discord: visitor.roles, enabled, onFault: fault, wake: () => wake(), clock,
       channels: createActivityChannels({ transport: visitor.transport, roles: visitor.roles, guildId: fixed.mapping.guildId, clock }),
+      station: createActivityStation({ transport: visitor.transport, guildId: fixed.mapping.guildId, clock }),
       store: createShuttleActivityStore({ pool, clock, authorize: visitor.authorization.authorize, definitionId: fixed.definitionId, status: fixed.activity.status,
         defaults: activityContent.defaults }) });
   }

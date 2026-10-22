@@ -1,15 +1,14 @@
-import { ANNOUNCEMENTS, CODEX, KEYS, TEXT, TIPS, cueEvent, cueSheet, dialogueControls, linkState, momentFor, presence, sceneStateFor, soundscape,
-  titleMenu, transmissionChunks } from './presenter.js';
+import { ANNOUNCEMENTS, CODEX, KEYS, TEXT, TIPS, TYPE_CPS, cueEvent, cueSheet, dialogueControls, linkState, momentFor, presence, sceneStateFor, soundscape,
+  speechMs, titleMenu, transmissionChunks } from './presenter.js';
 import { parseMarkdown, plainText, renderMarkdown } from './markdown.js';
 
 const SETTINGS_KEY = 'shuttle.settings.v1';
 const DEFAULT_SETTINGS = Object.freeze({ levels: { master: 100, music: 60, ambience: 70, radio: 80, effects: 80 }, sound: 'on', motion: 'system',
   text: 'typed', speed: 'normal', size: 'normal' });
-const TYPE_CPS = Object.freeze({ slow: 45, normal: 90, fast: 180 });
 const POLL_MS = 5_000, POLL_LIMIT_MS = 10 * 60_000, RETRY_AFTER_MS = 120_000;
 // Text ticks, at most this often, sound only while Sophie speaks: briefly at each stage and page (owner feedback,
 // 22 October 2026). The rest of the copy types out quietly.
-const TICK_MS = 110, WIPE_MS = 400, BANNER_MS = 4_500, TIP_MS = 12_000, CLOWN_MS = 6_000, LOG_LIMIT = 80, SWIPE_PX = 60;
+const TICK_MS = 110, TRAIL_MS = 1_500, WIPE_MS = 400, BANNER_MS = 4_500, TIP_MS = 12_000, CLOWN_MS = 6_000, LOG_LIMIT = 80, SWIPE_PX = 60;
 const KONAMI = Object.freeze(['ArrowUp', 'ArrowUp', 'ArrowDown', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'ArrowLeft', 'ArrowRight', 'b', 'a']);
 const SHEETS = Object.freeze(['settings', 'credits', 'codex', 'log', 'keys']);
 
@@ -24,7 +23,7 @@ export function createShuttle({ document, api, connect, player, loadScene, sound
   const $ = id => document.getElementById(id);
   const root = $('shuttle');
   let view = 'splash', described = null, run = null, chunks = [''], chunk = 0, busy = false, started = false, linked = false;
-  let discord = null, typing = null, poll = null, pendingSince = null, toastTimer = null, speechTimer = null, talking = false;
+  let discord = null, typing = null, poll = null, pendingSince = null, toastTimer = null, speechTimer = null, trailTimer = null, talking = false;
   let currentScene = null, cues = [], cueHandlers = {}, sectionScreen = null, statusScreen = null, showRadio = false, bannerTimer = null, transitTimer = null, tipTimer = null;
   let tip = Math.floor(random() * TIPS.length), konamiAt = 0, log = [], swipe = null, lastSwipe = -Infinity;
   let settings = loadSettings();
@@ -154,7 +153,16 @@ export function createShuttle({ document, api, connect, player, loadScene, sound
   function sceneFor(next) {
     return next.status === 'pending' || next.status === 'boarded' ? 'pressure-door' : next.stops[next.stop]?.scene ?? 'departure-lounge';
   }
-  const momentNow = () => run?.status === 'reading' ? momentFor(chunks, chunk, run.moments ?? {}) : { beat: 'none', viewscreen: null };
+  const momentNow = () => run?.status === 'reading' ? momentFor(chunks, chunk, run.moments ?? {}) : { beat: 'none', viewscreen: null, scene: null };
+  /** The scene for what is on screen now: the section's own scene, if it has one, or the stop's. */
+  const sceneNow = () => momentNow().scene ?? sceneFor(run);
+  /** A page that opens a section with a scene of its own changes scene behind the usual wipe. */
+  async function followScene() {
+    const id = sceneNow();
+    if (id === currentScene) return;
+    let loaded = null; try { loaded = await loadScene(id); } catch { return; }
+    if (sceneNow() === id) swapScene(id, loaded, stateNow);
+  }
   const stateNow = () => sceneStateFor(run, chunk, chunks.length, momentNow().beat);
   /**
    * Shows a run from the server. A new stop, clearance or arrival plays its cue sheet: the scene changes behind a wipe
@@ -163,7 +171,7 @@ export function createShuttle({ document, api, connect, player, loadScene, sound
   async function enterRun(next, { atEnd = false } = {}) {
     const previous = run; run = next;
     chunks = transmissionChunks(run.pages); chunk = atEnd ? chunks.length - 1 : 0;
-    const event = cueEvent(previous, run), sceneId = sceneFor(run);
+    const event = cueEvent(previous, run), sceneId = sceneNow();
     show('radio'); discord?.setPresence(presence(run));
     if (run.status === 'pending') startPolling(); else stopPolling();
     preloadAhead();
@@ -171,7 +179,7 @@ export function createShuttle({ document, api, connect, player, loadScene, sound
     sectionScreen = null; showRadio = false; holdTransmission();
     const loaded = loadScene(sceneId).catch(() => null);
     const transit = event === 'stop' && previous?.status === 'reading' && run.stop > previous.stop && motionOn();
-    runCues(cueSheet(event, run, { transit }), {
+    runCues(cueSheet(event, run, { transit, speech: speechFor() }), {
       transition: async () => { swapScene(sceneId, await loaded, stateNow); if (event === 'stop') banner(ANNOUNCEMENTS[sceneId]); },
       reveal: renderTransmission,
     });
@@ -179,6 +187,7 @@ export function createShuttle({ document, api, connect, player, loadScene, sound
   function preloadAhead() {
     const following = run.stops[run.stop + 1];
     if (run.status === 'reading') loadScene(following?.scene ?? 'pressure-door').catch(() => {});
+    for (const moment of Object.values(run.moments ?? {})) if (moment.scene) loadScene(moment.scene).catch(() => {});
     if (following) { const { ambience } = soundscape('run', { ...run, stop: run.stop + 1 }); if (ambience) sound.preload([ambience]); }
     if (run.stop >= run.stops.length - 1) sound.preload(['SC-04', 'SC-05', 'AMB-06', 'MUS-02']);
   }
@@ -210,6 +219,7 @@ export function createShuttle({ document, api, connect, player, loadScene, sound
     header();
     $('radio-progress').textContent = run.status === 'reading' && chunks.length > 1 ? chunks.map((_, index) => index === chunk ? '■' : index < chunk ? '▪' : '□').join(' ') : '';
     player.setState(sceneStateFor(run, chunk, chunks.length, moment.beat));
+    followScene();
     renderArrival();
     // A new section's extra material replaces the radio in the status window; V switches back for that section.
     if (moment.viewscreen !== sectionScreen) { sectionScreen = moment.viewscreen; showRadio = false; }
@@ -246,10 +256,15 @@ export function createShuttle({ document, api, connect, player, loadScene, sound
     forward.disabled = busy || !controls.forward.enabled;
     forward.querySelector('span').textContent = controls.forward.label;
   }
-  /** Sophie's radio: the static, the RX lamp and voice meter, the text ticks and the music ducking under her. */
+  /**
+   * Sophie's radio: the static, the RX lamp and voice meter, the text ticks and the music ducking under her. When she
+   * stops, the meter shrinks over the same trail-off as the static, then stands by.
+   */
   function speaking(on) {
-    timers.clear(speechTimer); speechTimer = null; talking = on;
-    root.dataset.speaking = on ? 'on' : 'off'; $('status-state').textContent = on ? TEXT.transmitting : TEXT.standby;
+    timers.clear(speechTimer); speechTimer = null; timers.clear(trailTimer); trailTimer = null;
+    const was = talking; talking = on;
+    root.dataset.speaking = on ? 'on' : was ? 'trailing' : 'off'; $('status-state').textContent = on || was ? TEXT.transmitting : TEXT.standby;
+    if (!on && was) trailTimer = timers.after(TRAIL_MS, () => { root.dataset.speaking = 'off'; $('status-state').textContent = TEXT.standby; });
     sound.radio(on); sound.duck(on);
   }
   function speakBriefly(ms) { speaking(true); speechTimer = timers.after(ms, () => speaking(false)); }
@@ -286,8 +301,10 @@ export function createShuttle({ document, api, connect, player, loadScene, sound
   /** A page within a stop: the page sound, then Sophie briefly with the new text. */
   function turnPage(next) {
     chunk = next; stopTyping();
-    runCues(cueSheet('page', run), { reveal: renderTransmission });
+    runCues(cueSheet('page', run, { speech: speechFor() }), { reveal: renderTransmission });
   }
+  /** Sophie speaks for a time tied to what is on screen: half its typing time at the member's speed, 2 to 6 seconds. */
+  const speechFor = () => speechMs(transmissionText(), settings.text === 'instant' ? 'normal' : settings.speed);
   async function forward() {
     if (!run || busy) return;
     if (revealing()) { flushCues(); return; }
@@ -320,10 +337,21 @@ export function createShuttle({ document, api, connect, player, loadScene, sound
 
   // Status window: Sophie's radio standing by, or the art and links of the section being read --------------------------
   function setStatus(id) {
-    if (id === statusScreen) return;
+    if (id !== null && id === statusScreen) return;
     statusScreen = id;
-    if (id === null || !viewscreens) { $('viewscreen').hidden = true; $('status-radio').hidden = false; return; }
+    if (id === null || !viewscreens) { $('viewscreen').hidden = true; renderStandby(); return; }
     openViewscreen(id);
+  }
+  /** Standing by: Sophie's radio, or at the last stop and on arrival the member's own boarding pass when core sent it. */
+  function renderStandby() {
+    const pass = view === 'radio' && run?.pass && (run.status !== 'reading' || run.stop === run.stops.length - 1) ? run.pass : null;
+    $('status-radio').hidden = pass !== null; $('status-pass').hidden = pass === null;
+    if (!pass) return;
+    $('pass-name').textContent = pass.name;
+    $('pass-since').textContent = pass.joined
+      ? TEXT.aboardSince.replace('{date}', new Date(`${pass.joined}T00:00:00Z`).toLocaleDateString(undefined, { timeZone: 'UTC', year: 'numeric', month: 'short', day: 'numeric' })) : '';
+    $('pass-access').textContent = TEXT.passAccess[run.whitelist] ?? TEXT.passAccess.none;
+    $('status-pass').dataset.access = run.whitelist;
   }
   async function openViewscreen(id, { quiet = false } = {}) {
     let screen;
@@ -337,7 +365,7 @@ export function createShuttle({ document, api, connect, player, loadScene, sound
       button.append(label, host); button.addEventListener('click', () => { sound.play('UI-02'); discord?.openLink(link.url); });
       const item = document.createElement('li'); item.append(button); return item;
     }));
-    $('status-radio').hidden = true; $('viewscreen').hidden = false;
+    $('status-radio').hidden = true; $('status-pass').hidden = true; $('viewscreen').hidden = false;
     paintScreen(screen);
     if (!quiet) sound.play('SC-03');
   }
@@ -520,7 +548,7 @@ export function createShuttle({ document, api, connect, player, loadScene, sound
       bindSettings(); bindInput(); applySettings(); signal('linking'); showTip();
       definitions('codex-list', CODEX); definitions('keys-list', KEYS);
       $('press-text').textContent = TEXT.pressStart; $('status-title').textContent = TEXT.radio; $('status-state').textContent = TEXT.standby;
-      $('transit-skip').textContent = TEXT.skip;
+      $('transit-skip').textContent = TEXT.skip; $('pass-kicker').textContent = TEXT.pass;
       await scene('hangar-viewport', { whitelist: 'none', link: 'none' });
       try {
         discord = await connect({ onLayout: mode => player.setPaused('pip', mode === 1), onThermal: state => player.setPaused('heat', state >= 2) });

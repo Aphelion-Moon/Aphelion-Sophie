@@ -49,13 +49,28 @@ main[data-speaking="on"] .status-state { color: var(--holo); }
 .status-radio { padding: 10px 12px 12px; }
 .callsign { margin: 0; color: var(--cold); font-size: 1.25em; letter-spacing: .2em; text-transform: uppercase; }
 .callsign-sub { margin: 2px 0 8px; color: var(--ivory-dim); font-size: .8em; letter-spacing: .08em; }
-/* The voice meter: flat while she stands by, moving while she speaks. It is a radio, not a likeness. */
-.wave { display: flex; align-items: center; gap: 3px; height: 26px; }
-.wave i { flex: 1; height: 2px; background: var(--holo-dim); }
-main[data-speaking="on"] .wave i { background: var(--holo); animation: meter .5s ease-in-out infinite alternate; }
-main[data-speaking="on"] .wave i:nth-child(3n) { animation-duration: .37s; }
-main[data-speaking="on"] .wave i:nth-child(3n + 1) { animation-duration: .61s; animation-delay: -.2s; }
-main[data-speaking="on"] .wave i:nth-child(4n) { animation-duration: .44s; animation-delay: -.1s; }
+/* The voice meter: a symmetric scope, flat while she stands by, moving while she speaks and shrinking as her signal
+   trails off with the static. It is a radio, not a likeness. */
+.wave { display: flex; align-items: center; gap: 2px; height: 28px; }
+.wave i { flex: 1; height: 2px; background: var(--holo-dim); border-radius: 1px; transition: background-color .4s; }
+main:is([data-speaking="on"], [data-speaking="trailing"]) .wave i { animation: meter .52s ease-in-out infinite alternate; }
+main[data-speaking="on"] .wave i { background: var(--holo); }
+main[data-speaking="trailing"] .wave i { animation-name: meter-low; }
+.wave i:nth-child(2n) { animation-delay: -.13s; }
+.wave i:nth-child(3n) { animation-duration: .37s; }
+.wave i:nth-child(4n + 1) { animation-duration: .61s; animation-delay: -.29s; }
+.wave i:nth-child(5n) { animation-duration: .44s; animation-delay: -.07s; }
+.wave i:is(:nth-child(-n + 4), :nth-last-child(-n + 4)) { animation-name: meter-edge; }
+main[data-speaking="trailing"] .wave i:is(:nth-child(-n + 4), :nth-last-child(-n + 4)) { animation-name: meter-low; }
+
+/* Boarding pass: the member's own name and date, shown only to them at the end of the journey. */
+.status-pass { padding: 10px 12px; }
+.pass-kicker { margin: 0 0 6px; color: var(--holo-dim); font-size: .75em; letter-spacing: .16em; text-transform: uppercase; }
+.pass-name { margin: 0; color: var(--cold); font-size: 1.2em; letter-spacing: .06em; overflow-wrap: anywhere; }
+.pass-since { margin: 2px 0 8px; color: var(--ivory-dim); font-size: .85em; }
+.pass-access { margin: 0; padding: 3px 8px; display: inline-block; border: 1px solid var(--amber-dim); color: var(--amber); font-size: .8em; letter-spacing: .1em;
+  text-transform: uppercase; }
+.status-pass[data-access="confirmed"] .pass-access { border-color: var(--holo); color: var(--holo); }
 .status .tip { margin: 10px 0 0; }
 .viewscreen { padding: 8px 10px 10px; animation: flicker .35s steps(3, jump-none) 1; }
 .viewscreen-title { margin: 0 0 6px; color: var(--holo); font-weight: normal; font-size: .85em; letter-spacing: .1em; text-transform: uppercase; }
@@ -206,7 +221,9 @@ h2.md-heading { font-size: 1.3em; }
 @keyframes streak-b { to { background-position: -117px 7px, -140px 30px; } }
 @keyframes drive { from { transform: translateX(-30ch); } to { transform: translateX(100vw); } }
 @keyframes pulse { 50% { opacity: .55; } }
-@keyframes meter { from { height: 2px; } to { height: 24px; } }
+@keyframes meter { from { height: 2px; } to { height: 26px; } }
+@keyframes meter-edge { from { height: 2px; } to { height: 10px; } }
+@keyframes meter-low { from { height: 2px; } to { height: 7px; } }
 
 /* Portrait and narrow: the scene above, the column below it. */
 @media (orientation: portrait), (max-width: 720px) {
@@ -222,6 +239,12 @@ h2.md-heading { font-size: 1.3em; }
   .callsign-sub { display: none; }
   .wave { height: 18px; }
   .status .tip { display: none; }
+  /* The pass fits the short status window: four tight lines. */
+  .status-pass { padding: 6px 10px; }
+  .pass-kicker { margin: 0 0 2px; }
+  .pass-name { font-size: 1.05em; }
+  .pass-since { margin: 0 0 4px; font-size: .8em; }
+  .pass-access { padding: 1px 6px; font-size: .7em; }
   .menu-item { font-size: 1em; min-height: 40px; padding-top: 6px; padding-bottom: 6px; }
   .menu-item.primary { font-size: 1.1em; }
   .menu-panel { padding: 8px 10px; }

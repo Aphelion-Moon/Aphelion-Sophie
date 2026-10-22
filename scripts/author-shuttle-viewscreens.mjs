@@ -2,7 +2,7 @@
 // moments: which section of the published copy stages which scene beat and opens which viewscreen. Owner decisions of
 // 21-22 October 2026 (the coding agent makes the art; ASCII and links only, no third-party images).
 // Output is deterministic. Usage: node scripts/author-shuttle-viewscreens.mjs
-import { mkdir, writeFile } from 'node:fs/promises';
+import { mkdir, readdir, writeFile } from 'node:fs/promises';
 import { validateMoments, validateViewscreen } from '../modules/onboarding/activity-media.js';
 
 const outputDir = new URL('../content/shuttle-activity/viewscreens/', import.meta.url);
@@ -24,6 +24,25 @@ function paint(lines, fallback, rules = [], spans = []) {
   }).join(''));
 }
 const BOX = /[─│┌┐└┘├┤┬┴┼═║╔╗╚╝]/;
+/** A line of text centred in a field of the given width (odd widths share one centre column). */
+const centre = (text, width) => { const pad = width - [...text].length, left = Math.floor(pad / 2); return ' '.repeat(left) + text + ' '.repeat(pad - left); };
+/** A colour span for the first occurrence of text on a row. */
+const spanOf = (lines, row, text, key) => { const at = lines[row].indexOf(text); if (at < 0) throw new Error(`span ${text}`); return [row, at, at + [...text].length, key]; };
+/** Lines framed in a box, each centred. */
+const framed = (width, rows) => ['┌' + '─'.repeat(width - 2) + '┐', ...rows.map(row => '│' + centre(row, width - 2) + '│'), '└' + '─'.repeat(width - 2) + '┘'];
+const TEN_THOUSAND = framed(37, ['PEOPLE LEARNING THIS TODAY', '', '1 0 , 0 0 0', '', 'o  o  o  o  o  o  o  o  o', '/|\\/|\\/|\\/|\\/|\\/|\\/|\\/|\\/|\\', '/ \\/ \\/ \\/ \\/ \\/ \\/ \\/ \\/ \\', '', 'Lucky them. Lucky you.']);
+// An open book on a lectern: two equal pages either side of the spine, the bookmark hanging at the centre.
+const BOOK = [
+  '  __________   __________  ',
+  ' /          \\ /          \\ ',
+  '|' + centre('RULES', 12) + '|' + centre('WIKI', 12) + '|',
+  '|   ~~~~~~   |   ~~~~~~   |',
+  '|   ~~~~~~   |   ~~~~~~   |',
+  '|   ~~~~     |     ~~~~   |',
+  ' \\__________\\|/__________/ ',
+  '            |▌|            ',
+  '        ____|_|____        ',
+];
 
 const VIEWSCREENS = [
   {
@@ -49,20 +68,10 @@ const VIEWSCREENS = [
   {
     id: 'ten-thousand', title: 'Today\'s lucky ten thousand',
     alt: 'A station display counts the people learning something for the first time today: ten thousand. A row of small figures stands under it.',
-    lines: [
-      '┌────────────────────────────────────┐',
-      '│   PEOPLE LEARNING THIS TODAY       │',
-      '│                                    │',
-      '│          1 0 , 0 0 0               │',
-      '│                                    │',
-      '│   o  o  o  o  o  o  o  o  o  o     │',
-      '│  /|\\/|\\/|\\/|\\/|\\/|\\/|\\/|\\/|\\/|\\    │',
-      '│  / \\/ \\/ \\/ \\/ \\/ \\/ \\/ \\/ \\/ \\    │',
-      '│                                    │',
-      '│   Lucky them. Lucky you.           │',
-      '└────────────────────────────────────┘',
-    ],
-    rules: [[BOX, 'H']], spans: [[1, 4, 30, 'h'], [3, 11, 24, 'c'], [5, 4, 33, 'a'], [6, 3, 34, 'A'], [7, 3, 34, 'A'], [9, 4, 26, 'i']],
+    lines: TEN_THOUSAND,
+    rules: [[BOX, 'H']],
+    spans: [spanOf(TEN_THOUSAND, 1, 'PEOPLE LEARNING THIS TODAY', 'h'), spanOf(TEN_THOUSAND, 3, '1 0 , 0 0 0', 'c'), spanOf(TEN_THOUSAND, 5, 'o  o  o  o  o  o  o  o  o', 'a'),
+      spanOf(TEN_THOUSAND, 6, '/|\\/|\\/|\\/|\\/|\\/|\\/|\\/|\\/|\\', 'A'), spanOf(TEN_THOUSAND, 7, '/ \\/ \\/ \\/ \\/ \\/ \\/ \\/ \\/ \\', 'A'), spanOf(TEN_THOUSAND, 9, 'Lucky them. Lucky you.', 'i')],
     fallback: 'I',
     links: [{ label: 'xkcd: Ten Thousand', url: 'https://xkcd.com/1053/' }],
   },
@@ -88,17 +97,8 @@ const VIEWSCREENS = [
   {
     id: 'rules', title: 'Recommended reading',
     alt: 'An old rulebook, open on a lectern, with a new cyan bookmark. The wiki is the authority for game rules.',
-    lines: [
-      '     ________   ________',
-      '    /        \\ /        \\',
-      '   |  RULES   |  WIKI    |',
-      '   |  ~~~~~   |  ~~~~~   |',
-      '   |  ~~~~~   |  ~~~~~   |',
-      '   |________/ \\________|',
-      '            |▌|',
-      '         ___|_|___',
-    ],
-    rules: [[/[~]/, 'I'], [/[▌]/, 'h']], spans: [[2, 6, 11, 'a'], [2, 17, 21, 'h']],
+    lines: BOOK,
+    rules: [[/[~]/, 'I'], [/[▌]/, 'h']], spans: [spanOf(BOOK, 2, 'RULES', 'a'), spanOf(BOOK, 2, 'WIKI', 'h')],
     fallback: 'o',
     links: [
       { label: 'Start with our recommended reading', url: 'https://meridian-wiki.a13.info/wiki/Policies#RP-01' },
@@ -164,9 +164,10 @@ const MOMENTS = {
       "don't assume your character knows their friends or enemies": { beat: 'looc' },
     },
     'board-the-shuttle': {
-      'you are not travelling alone': { beat: 'together' },
+      // Each section of Board the Shuttle has its own scene; the shared seat stays in the stop's cabin.
+      'you are not travelling alone': { beat: 'together', scene: 'landing-bay' },
       "a shared seat is not an invitation into someone's lap": { beat: 'seat' },
-      'we crush sea-lions with shuttles': { beat: 'sealion', viewscreen: 'sealion' },
+      'we crush sea-lions with shuttles': { beat: 'sealion', viewscreen: 'sealion', scene: 'cabin-turbulence' },
     },
     'admire-the-lights': {
       'we are here to enjoy ourselves': { beat: 'enjoy' },
@@ -194,6 +195,8 @@ for (const def of VIEWSCREENS) {
   await writeFile(new URL(`${def.id}.json`, outputDir), `${JSON.stringify(screen, null, 1)}\n`);
   console.log(def.id);
 }
-validateMoments(MOMENTS, ids);
+// Scenes come from author-shuttle-scenes.mjs; run that first when a moment names a new scene.
+const scenes = new Set((await readdir(new URL('../scenes/', outputDir))).filter(file => file.endsWith('.json')).map(file => file.slice(0, -5)));
+validateMoments(MOMENTS, ids, scenes);
 await writeFile(new URL('../moments.json', outputDir), `${JSON.stringify(MOMENTS, null, 2)}\n`);
 console.log('moments', Object.keys(MOMENTS.stages).length, 'stages');

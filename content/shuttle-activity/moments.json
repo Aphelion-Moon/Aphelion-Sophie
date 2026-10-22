@@ -40,14 +40,16 @@
     },
     "board-the-shuttle": {
       "you are not travelling alone": {
-        "beat": "together"
+        "beat": "together",
+        "scene": "landing-bay"
       },
       "a shared seat is not an invitation into someone's lap": {
         "beat": "seat"
       },
       "we crush sea-lions with shuttles": {
         "beat": "sealion",
-        "viewscreen": "sealion"
+        "viewscreen": "sealion",
+        "scene": "cabin-turbulence"
       }
     },
     "admire-the-lights": {

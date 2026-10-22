@@ -9,7 +9,8 @@ import { onboardingStepMessages, validatePublication } from './screens.js';
 export const ACTIVITY_STATUSES = Object.freeze(['testing', 'open']);
 export const ACTIVITY_ACTIONS = Object.freeze(['advance', 'back', 'retry']);
 /** Scenes the client can show for a stop (content/shuttle-activity/scenes). The title screen uses hangar-viewport. */
-export const ACTIVITY_STOP_SCENES = Object.freeze(['departure-lounge', 'baggage-hall', 'boarding-cabin', 'viewport', 'pressure-door']);
+// The first five are stop scenes by position (activityStopScene); the rest are scenes a section may use (moments).
+export const ACTIVITY_STOP_SCENES = Object.freeze(['departure-lounge', 'baggage-hall', 'boarding-cabin', 'viewport', 'pressure-door', 'landing-bay', 'cabin-turbulence']);
 
 export function validateActivityConfiguration(value) {
   requireKeys(value, ['origin', 'port', 'status'], 'ACTIVITY_CONFIGURATION_INVALID');

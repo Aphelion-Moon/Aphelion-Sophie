@@ -20,7 +20,7 @@ export const SCENE_COLOURS = Object.freeze({
 const ASCII = Array.from({ length: 95 }, (_, i) => String.fromCharCode(32 + i)).join('');
 /** Glyphs a scene may use: printable ASCII plus a small set of box, block and mark characters. */
 export const SCENE_GLYPHS = Object.freeze(new Set([...ASCII, ...'─│┌┐└┘├┤┬┴┼═║╔╗╚╝╟╢╪╱╲╭╮╯╰', ...'░▒▓█▀▄▌▐■□', ...'·•●◆»«≡']));
-export const SCENE_STATE_KEYS = Object.freeze(['stopTitle', 'stopNumber', 'stopCount', 'section', 'sections', 'whitelist', 'doorOpen', 'beat', 'link']);
+export const SCENE_STATE_KEYS = Object.freeze(['stopTitle', 'stopNumber', 'stopCount', 'section', 'sections', 'whitelist', 'doorOpen', 'beat', 'link', 'crew', 'online']);
 export const SCENE_WHITELIST_STATES = Object.freeze(['none', 'requested', 'confirmed']);
 /** Whether the member has a run to show: 'some' once both stop number and stop count are known. */
 export const SCENE_STOP_STATES = Object.freeze(['none', 'some']);
@@ -30,9 +30,11 @@ export const SCENE_LINK_STATES = Object.freeze(['none', 'ready', 'closed', 'chan
 const BEAT = /^[a-z][a-z0-9-]{0,31}$/;
 const TEMPLATE = /\{([a-zA-Z]+)(?::([1-3]))?\}/g;
 const NUMERIC_KEYS = Object.freeze(['stopNumber', 'stopCount', 'section', 'sections']);
-const EFFECT_KINDS = Object.freeze(['blink', 'flicker', 'drift', 'scan', 'pulse', 'flap', 'text', 'sprite']);
-const LIMITS = Object.freeze({ layers: 48, effects: 64, frames: 24, fps: 12, flashHz: 3, flickerArea: 0.03, path: 240, texts: 8, alt: 600, beats: 24,
-  spriteFrames: 4, spriteRows: 8, spriteCols: 24 });
+const EFFECT_KINDS = Object.freeze(['blink', 'flicker', 'drift', 'scan', 'pulse', 'flap', 'text', 'sprite', 'dialogue', 'conveyor']);
+const LIMITS = Object.freeze({ layers: 64, effects: 96, frames: 24, fps: 12, flashHz: 3, flickerArea: 0.03, path: 240, texts: 8, alt: 600, beats: 24,
+  spriteFrames: 4, spriteRows: 8, spriteCols: 24, exchanges: 6, lines: 6, line: 120, bubble: 40, items: 16, itemRows: 3, itemCols: 10, tag: 10 });
+/** Server counts shown on station boards: digits, or -- when unknown. Never member data. */
+const COUNT_KEYS = Object.freeze(['crew', 'online']);
 const ID = /^[a-z][a-z0-9-]{0,47}$/;
 const DATE = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -119,8 +121,10 @@ function effect(value, grid, ids, beats) {
     scan: [['region', 'speed', 'glyph', 'colour'], []],
     pulse: [['path', 'speed', 'glyph', 'colour'], ['trail', 'trailGlyph', 'trailColour']],
     flap: [['x', 'y', 'width', 'texts', 'period', 'flip', 'colour'], ['align']],
-    text: [['x', 'y', 'width', 'template', 'colour'], []],
-    sprite: [['frames', 'from', 'to', 'duration', 'every'], ['offset', 'fps', 'still']],
+    text: [['x', 'y', 'width', 'template', 'colour'], ['align']],
+    sprite: [['frames', 'from', 'to', 'duration', 'every'], ['offset', 'fps', 'still', 'hold', 'clock', 'rest', 'clip']],
+    dialogue: [['speakers', 'width', 'style', 'exchanges', 'line', 'pause', 'colours'], ['clock', 'delay']],
+    conveyor: [['y', 'from', 'to', 'gate', 'gateWidth', 'speed', 'spacing', 'items', 'tags', 'chute', 'readout'], []],
   }[value.kind];
   exactKeys(value, [...common, ...shapes[0]], [...shapes[1], 'when'], 'INVALID_SCENE_EFFECT');
   requireCondition(ID.test(value.id) && !ids.has(value.id), 'INVALID_SCENE_ID'); ids.add(value.id);
@@ -168,14 +172,74 @@ function effect(value, grid, ids, beats) {
       // A small figure that crosses the scene now and then: from -> to over duration seconds, once every 'every' seconds.
       frameSet(value.frames, LIMITS.spriteRows, LIMITS.spriteCols, 'INVALID_SCENE_SPRITE');
       point(value.from, grid, LIMITS.spriteCols, 'INVALID_SCENE_SPRITE'); point(value.to, grid, LIMITS.spriteCols, 'INVALID_SCENE_SPRITE');
-      number(value.duration, 1, 60, 'INVALID_SCENE_SPRITE'); number(value.every, value.duration, 600, 'INVALID_SCENE_SPRITE');
+      number(value.duration, 1, 60, 'INVALID_SCENE_SPRITE');
+      if (value.hold !== undefined) number(value.hold, 0.5, 600, 'INVALID_SCENE_SPRITE');
+      number(value.every, value.duration + (value.hold ?? 0), 600, 'INVALID_SCENE_SPRITE');
+      if (value.clock !== undefined) requireCondition(value.clock === 'beat', 'INVALID_SCENE_SPRITE');
       if (value.offset !== undefined) number(value.offset, 0, 600, 'INVALID_SCENE_SPRITE');
       if (value.still !== undefined) number(value.still, 0, 1, 'INVALID_SCENE_SPRITE');
-      if (value.fps !== undefined) { number(value.fps, 0.5, LIMITS.fps, 'INVALID_SCENE_SPRITE'); requireCondition(value.frames.length > 1, 'INVALID_SCENE_SPRITE'); }
-      else requireCondition(value.frames.length === 1, 'INVALID_SCENE_SPRITE');
+      // clip: only this region shows the sprite (something outside a window stays behind the glass, not over its frame).
+      if (value.clip !== undefined) region(value.clip, grid, 'INVALID_SCENE_SPRITE');
+      // rest: the last frame is how the figure looks once it has arrived (sitting down), never part of its walk.
+      if (value.rest !== undefined) requireCondition(value.rest === true && value.hold !== undefined && value.frames.length >= 2, 'INVALID_SCENE_SPRITE');
+      const walking = value.frames.length - (value.rest ? 1 : 0);
+      if (value.fps !== undefined) { number(value.fps, 0.5, LIMITS.fps, 'INVALID_SCENE_SPRITE'); requireCondition(walking > 1, 'INVALID_SCENE_SPRITE'); }
+      else requireCondition(walking === 1, 'INVALID_SCENE_SPRITE');
       break;
+    case 'dialogue': {
+      // Two people talking: one line at a time in a speech (or LOOC) bubble above whoever is speaking.
+      requireCondition(Array.isArray(value.speakers) && value.speakers.length === 2, 'INVALID_SCENE_DIALOGUE');
+      value.speakers.forEach(at => point(at, grid, 0, 'INVALID_SCENE_DIALOGUE'));
+      requireInteger(value.width, 8, LIMITS.bubble); requireCondition(['say', 'looc'].includes(value.style), 'INVALID_SCENE_DIALOGUE');
+      requireCondition(Array.isArray(value.exchanges) && value.exchanges.length >= 1 && value.exchanges.length <= LIMITS.exchanges, 'INVALID_SCENE_DIALOGUE');
+      for (const exchange of value.exchanges) {
+        requireCondition(Array.isArray(exchange) && exchange.length >= 1 && exchange.length <= LIMITS.lines, 'INVALID_SCENE_DIALOGUE');
+        for (const line of exchange) {
+          requireCondition(Array.isArray(line) && line.length === 2 && [0, 1].includes(line[0]), 'INVALID_SCENE_DIALOGUE');
+          boundedText(line[1], LIMITS.line, 'INVALID_SCENE_DIALOGUE'); glyphs(line[1]);
+          requireCondition(line[1].split(' ').every(word => [...word].length <= value.width - 6), 'INVALID_SCENE_DIALOGUE');
+        }
+      }
+      number(value.line, 1, 12, 'INVALID_SCENE_DIALOGUE'); number(value.pause, 0, 30, 'INVALID_SCENE_DIALOGUE');
+      requireCondition(typeof value.colours === 'string' && [...value.colours].length === 2, 'INVALID_SCENE_DIALOGUE');
+      for (const key of value.colours) colourKey(key);
+      if (value.clock !== undefined) requireCondition(value.clock === 'beat', 'INVALID_SCENE_DIALOGUE');
+      if (value.delay !== undefined) number(value.delay, 0, 60, 'INVALID_SCENE_DIALOGUE');
+      break;
+    }
+    case 'conveyor': {
+      // Items riding a belt through a gate: each keeps its own art and tag, and a diverted item leaves for the chute.
+      const code = 'INVALID_SCENE_CONVEYOR';
+      requireInteger(value.y, 0, grid.rows - 1 - LIMITS.itemRows);
+      for (const key of ['from', 'to', 'gate']) requireCondition(Number.isSafeInteger(value[key]) && value[key] >= -LIMITS.itemCols && value[key] <= grid.cols + LIMITS.itemCols, code);
+      requireInteger(value.gateWidth, 1, 16); requireCondition(value.from < value.gate && value.gate + value.gateWidth < value.to, code);
+      number(value.speed, 0.5, 12, code); requireInteger(value.spacing, 4, 40);
+      requireCondition(Array.isArray(value.items) && value.items.length >= 1 && value.items.length <= LIMITS.items &&
+        value.items.length * value.spacing >= value.to - value.from, code);
+      for (const item of value.items) {
+        exactKeys(item, ['art', 'weight', 'divert'], [], code);
+        frameSet([item.art], LIMITS.itemRows, LIMITS.itemCols, code);
+        requireCondition(typeof item.weight === 'string' && [...item.weight].length <= 8 && typeof item.divert === 'boolean', code); glyphs(item.weight);
+      }
+      requireRecord(value.tags, code);
+      requireCondition(Object.hasOwn(value.tags, '*') && Object.keys(value.tags).every(key => key === '*' || beats.includes(key)), code);
+      for (const entry of Object.values(value.tags)) {
+        exactKeys(entry, ['before', 'after', 'beforeColour', 'afterColour'], [], code);
+        for (const list of [entry.before, entry.after]) {
+          requireCondition(Array.isArray(list) && list.length === value.items.length && list.every(tag => typeof tag === 'string' && [...tag].length <= LIMITS.tag), code);
+          list.forEach(tag => glyphs(tag));
+        }
+        colourKey(entry.beforeColour); colourKey(entry.afterColour);
+      }
+      point(value.chute, grid, 0, code);
+      exactKeys(value.readout, ['x', 'y', 'width', 'colour', 'deniedColour'], [], code);
+      requireInteger(value.readout.x, 0, grid.cols - 1); requireInteger(value.readout.y, 0, grid.rows - 1);
+      requireInteger(value.readout.width, 6, grid.cols - value.readout.x); colourKey(value.readout.colour); colourKey(value.readout.deniedColour);
+      break;
+    }
     case 'text': {
       requireInteger(value.x, 0, grid.cols - 1); requireInteger(value.y, 0, grid.rows - 1); requireInteger(value.width, 1, grid.cols - value.x);
+      if (value.align !== undefined) requireCondition(['left', 'center', 'right'].includes(value.align), 'INVALID_SCENE_EFFECT');
       requireCondition(typeof value.template === 'string' && value.template.length <= 200, 'INVALID_SCENE_TEMPLATE');
       const fixed = value.template.replace(TEMPLATE, (_, key, pad) => {
         requireCondition(SCENE_STATE_KEYS.includes(key) && !['doorOpen', 'whitelist', 'beat', 'link'].includes(key) && (pad === undefined || NUMERIC_KEYS.includes(key)), 'INVALID_SCENE_TEMPLATE');
@@ -230,8 +294,10 @@ export function sceneState(input = {}) {
   const stopNumber = count(input.stopNumber), stopCount = count(input.stopCount);
   const beat = typeof input.beat === 'string' && BEAT.test(input.beat) ? input.beat : 'none';
   const link = SCENE_LINK_STATES.includes(input.link) ? input.link : 'none';
+  const tally = value => Number.isSafeInteger(value) && value >= 0 && value <= 9_999_999 ? String(value) : '--';
   return Object.freeze({ stopTitle: text(input.stopTitle, 48), stopNumber, stopCount,
-    section: count(input.section), sections: count(input.sections), whitelist, doorOpen, stop: stopNumber >= 1 && stopCount >= 1 ? 'some' : 'none', beat, link });
+    section: count(input.section), sections: count(input.sections), whitelist, doorOpen, stop: stopNumber >= 1 && stopCount >= 1 ? 'some' : 'none', beat, link,
+    ...Object.fromEntries(COUNT_KEYS.map(key => [key, tally(input[key])])) });
 }
 
 function hash(a, b) {
@@ -243,16 +309,29 @@ function hash(a, b) {
 // A beat the scene does not stage draws the plain scene.
 const forScene = (scene, s) => s.beat === 'none' || (scene.beats ?? []).includes(s.beat) ? s : { ...s, beat: 'none' };
 const matches = (when, state) => !when || ['whitelist', 'stop', 'beat', 'link'].every(key => !when[key] || when[key].includes(state[key]));
+/** Words wrapped into lines no wider than width. */
+function wrap(text, width) {
+  const lines = [];
+  for (const word of text.split(' ')) {
+    const last = lines.at(-1);
+    if (last !== undefined && [...last].length + 1 + [...word].length <= width) lines[lines.length - 1] = `${last} ${word}`;
+    else lines.push(word);
+  }
+  return lines;
+}
 
 /**
- * Composes one frame. With motion off, time is ignored and every effect shows its still state.
+ * Composes one frame. With motion off, time is ignored and every effect shows its still state. beatTime is the time
+ * since the current section began; effects on the beat clock (people who walk in and talk) use it instead of time.
  * Returns rows of glyphs and rows of colour keys, each exactly cols long.
  */
-export function composeScene(scene, layoutName, { time = 0, state = {}, motion = true } = {}) {
+export function composeScene(scene, layoutName, { time = 0, beatTime = time, state = {}, motion = true } = {}) {
   const grid = SCENE_LAYOUTS[layoutName];
   requireCondition(grid !== undefined, 'INVALID_SCENE_LAYOUT');
   requireCondition(typeof time === 'number' && Number.isFinite(time) && time >= 0, 'INVALID_SCENE_TIME');
-  const s = forScene(scene, sceneState(state)), t = motion ? time : 0;
+  requireCondition(typeof beatTime === 'number' && Number.isFinite(beatTime) && beatTime >= 0, 'INVALID_SCENE_TIME');
+  const s = forScene(scene, sceneState(state)), t = motion ? time : 0, bt = motion ? beatTime : 0;
+  const clockOf = fx => fx.clock === 'beat' ? bt : t;
   const layout = scene.layouts[layoutName];
   const glyph = Array.from({ length: grid.rows }, () => Array(grid.cols).fill(' '));
   const colour = Array.from({ length: grid.rows }, () => Array(grid.cols).fill('.'));
@@ -323,20 +402,73 @@ export function composeScene(scene, layoutName, { time = 0, state = {}, motion =
         break;
       }
       case 'text': {
-        const value = fx.template.replace(TEMPLATE, (_, key, pad) => pad ? String(s[key]).padStart(Number(pad), '0') : String(s[key])).slice(0, fx.width);
-        [...value].forEach((ch, i) => put(fx.x + i, fx.y, ch, fx.colour));
+        const value = [...fx.template.replace(TEMPLATE, (_, key, pad) => pad ? String(s[key]).padStart(Number(pad), '0') : String(s[key]))].slice(0, fx.width);
+        const shift = fx.align === 'center' ? Math.floor((fx.width - value.length) / 2) : fx.align === 'right' ? fx.width - value.length : 0;
+        value.forEach((ch, i) => put(fx.x + shift + i, fx.y, ch, fx.colour));
+        break;
+      }
+      case 'dialogue': {
+        // One line at a time, the bubble cleared behind its words; with motion off, the opening line stays.
+        // A delay lets someone walk in before they speak; with motion off the opening line shows at once.
+        const clock = motion ? clockOf(fx) - (fx.delay ?? 0) : 0, lengths = fx.exchanges.map(exchange => exchange.length * fx.line + fx.pause);
+        if (clock < 0) break;
+        let at = motion ? clock % lengths.reduce((a, b) => a + b, 0) : 0, exchange = 0;
+        while (at >= lengths[exchange]) { at -= lengths[exchange]; exchange++; }
+        const index = Math.floor(at / fx.line);
+        if (index >= fx.exchanges[exchange].length) break;
+        const [speaker, words] = fx.exchanges[exchange][index], [ax, ay] = fx.speakers[speaker];
+        const text = fx.style === 'looc' ? `(( ${words} ))` : `"${words}"`;
+        const lines = wrap(text, fx.width), width = Math.max(...lines.map(line => [...line].length));
+        const x0 = Math.max(0, Math.min(grid.cols - width - 2, ax - Math.floor(width / 2))), y0 = Math.max(0, ay - lines.length - 1);
+        for (let y = y0; y < y0 + lines.length; y++) for (let x = x0; x < x0 + width + 2; x++) put(x, y, ' ', '.');
+        lines.forEach((line, r) => [...line].forEach((ch, c) => put(x0 + 1 + c, y0 + r, ch, fx.colours[speaker])));
+        put(Math.max(x0 + 1, Math.min(x0 + width, ax)), y0 + lines.length, speaker === 0 ? '╲' : '╱', fx.colours[speaker]);
+        break;
+      }
+      case 'conveyor': {
+        const n = fx.items.length, loop = n * fx.spacing, tags = fx.tags[s.beat] ?? fx.tags['*'], exit = fx.gate + fx.gateWidth;
+        let reading = null;
+        fx.items.forEach((item, i) => {
+          const x = fx.from + (((t * fx.speed + i * fx.spacing) % loop) + loop) % loop;
+          if (x > fx.to) return;
+          const rows = item.art.text.map(row => [...row]), width = Math.max(...rows.map(row => row.length)), centre = Math.floor(x) + Math.floor(width / 2);
+          if (centre >= fx.gate && centre < exit) reading = item;
+          let ix = Math.floor(x), iy = fx.y + 1, tag = tags.before[i], key = tags.beforeColour;
+          if (ix >= exit) {
+            tag = tags.after[i]; key = tags.afterColour;
+            if (item.divert) {
+              // Denied: off the belt along a straight line into the chute, at the belt's speed.
+              const travel = x - exit, [cx, cy] = fx.chute, length = Math.hypot(cx - exit, cy - iy);
+              if (travel >= length) return;
+              ix = Math.round(exit + (cx - exit) * travel / length); iy = Math.round(iy + (cy - iy) * travel / length); tag = '';
+            }
+          }
+          // Out of sight inside the gate and behind its two pillars.
+          const visible = col => col < fx.gate - 1 || col > exit;
+          rows.forEach((row, r) => row.forEach((ch, c) => {
+            if (ch !== ' ' && visible(ix + c)) put(ix + c, iy + r, ch, [...item.art.colours[r]][c] === ' ' ? '.' : [...item.art.colours[r]][c]);
+          }));
+          [...tag].forEach((ch, c) => { if (visible(ix + c)) put(ix + c, iy - 1, ch, key); });
+        });
+        const { x: rx, y: ry, width: rw } = fx.readout;
+        const shown = reading === null ? '- - -' : reading.divert ? 'DENIED' : reading.weight;
+        [...shown.padEnd(rw)].slice(0, rw).forEach((ch, c) => put(rx + c, ry, ch, reading?.divert ? fx.readout.deniedColour : fx.readout.colour));
         break;
       }
       case 'sprite': {
         // With motion off a sprite is hidden (a figure caught mid-crossing would look like part of the room), unless it
-        // names a still position: things that belong in the room, like bags on a belt, stay where they would rest.
-        if (!motion && fx.still === undefined) break;
-        const phase = motion ? (t + (fx.offset ?? 0)) % fx.every : fx.still * fx.duration;
-        if (phase >= fx.duration) break;
-        const progress = phase / fx.duration, frame = fx.frames[motion && fx.fps ? Math.floor(t * fx.fps) % fx.frames.length : 0];
+        // names a still position (bags on a belt) or holds at its destination (people who walk in and stay to talk).
+        if (!motion && fx.still === undefined && fx.hold === undefined) break;
+        const hold = fx.hold ?? 0, phase = motion ? (clockOf(fx) + (fx.offset ?? 0)) % fx.every : fx.still !== undefined ? fx.still * fx.duration : fx.duration;
+        if (phase >= fx.duration + hold) break;
+        const walking = fx.frames.length - (fx.rest ? 1 : 0), arrived = phase >= fx.duration;
+        const progress = Math.min(1, phase / fx.duration);
+        const frame = arrived && fx.rest ? fx.frames.at(-1) : fx.frames[motion && fx.fps && !arrived ? Math.floor(t * fx.fps) % walking : 0];
         const x0 = Math.round(fx.from[0] + (fx.to[0] - fx.from[0]) * progress), y0 = Math.round(fx.from[1] + (fx.to[1] - fx.from[1]) * progress);
-        frame.text.forEach((row, r) => [...row].forEach((ch, c) => {
-          if (ch !== ' ') put(x0 + c, y0 + r, ch, [...frame.colours[r]][c] === ' ' ? '.' : [...frame.colours[r]][c]);
+        const [cx, cy, cw, ch] = fx.clip ?? [0, 0, grid.cols, grid.rows];
+        frame.text.forEach((row, r) => [...row].forEach((glyph, c) => {
+          const x = x0 + c, y = y0 + r;
+          if (glyph !== ' ' && x >= cx && x < cx + cw && y >= cy && y < cy + ch) put(x, y, glyph, [...frame.colours[r]][c] === ' ' ? '.' : [...frame.colours[r]][c]);
         }));
         break;
       }

@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile, readdir } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
-import { TRANSIT_MS, cueEvent, cueSheet, headingKey, linkState, momentFor, transmissionChunks } from '../apps/activity/client/presenter.js';
+import { TRANSIT_MS, cueEvent, cueSheet, headingKey, linkState, momentFor, speechMs, transmissionChunks } from '../apps/activity/client/presenter.js';
 import { EMOJI, parseMarkdown, plainText } from '../apps/activity/client/markdown.js';
 import { createSoundboard } from '../apps/activity/client/audio.js';
 import { viewscreenFrame } from '../apps/activity/client/viewscreen.js';
@@ -65,10 +65,10 @@ test('T-ACT-MOM-01 moments: headings match after markdown and punctuation; a tra
   const moments = { one: { beat: 'adult' }, two: { beat: 'pride', viewscreen: 'rules' } };
   const chunks = ['# One\ntext', 'more of one', '# Two\ntext\n# Unknown\ntext', 'after unknown', '# One\n### Sub\ntext'];
   assert.deepEqual(chunks.map((_, index) => momentFor(chunks, index, moments)), [
-    { beat: 'adult', viewscreen: null }, { beat: 'adult', viewscreen: null }, { beat: 'pride', viewscreen: 'rules' },
-    { beat: 'none', viewscreen: null }, { beat: 'adult', viewscreen: null }]);
-  assert.deepEqual(momentFor(['plain'], 0, moments), { beat: 'none', viewscreen: null });
-  assert.deepEqual(momentFor(['## Smaller\nunnamed'], 0, moments), { beat: 'none', viewscreen: null });
+    { beat: 'adult', viewscreen: null, scene: null }, { beat: 'adult', viewscreen: null, scene: null }, { beat: 'pride', viewscreen: 'rules', scene: null },
+    { beat: 'none', viewscreen: null, scene: null }, { beat: 'adult', viewscreen: null, scene: null }]);
+  assert.deepEqual(momentFor(['plain'], 0, moments), { beat: 'none', viewscreen: null, scene: null });
+  assert.deepEqual(momentFor(['## Smaller\nunnamed'], 0, moments), { beat: 'none', viewscreen: null, scene: null });
 });
 
 test('T-ACT-MOM-02 the shipped moments cover every section heading of the draft copy, with beats their default scenes draw', async () => {
@@ -76,8 +76,9 @@ test('T-ACT-MOM-02 the shipped moments cover every section heading of the draft 
   validateMoments(content.defaults, new Set(content.viewscreens.keys()));
   let mapped = 0;
   draft.stages.forEach((stage, index) => {
-    const moments = content.defaults.stages[stage.id] ?? {}, beats = content.sceneBeats.get(activityStopScene(index, draft.stages.length));
-    for (const moment of Object.values(moments)) assert.ok(beats.includes(moment.beat), `${stage.id}: ${moment.beat}`);
+    const moments = content.defaults.stages[stage.id] ?? {}, stopScene = activityStopScene(index, draft.stages.length);
+    // A moment may stage its section in a scene of its own (Board the Shuttle); its beat belongs to that scene.
+    for (const moment of Object.values(moments)) assert.ok(content.sceneBeats.get(moment.scene ?? stopScene).includes(moment.beat), `${stage.id}: ${moment.beat}`);
     const keys = [...stage.body.matchAll(/^# (.+)$/gm)].map(match => headingKey(match[1]));
     for (const key of keys) { assert.ok(Object.hasOwn(moments, key), `${stage.id}: ${key}`); mapped++; }
     // Every page of the stop resolves to a moment without error.
@@ -97,7 +98,7 @@ test('T-ACT-MOM-04 a phrase moment stages the page containing it and keeps the s
   const moments = { one: { beat: 'adult' }, '~see the comic': { beat: 'lucky', viewscreen: 'ten-thousand' } };
   const chunks = ['# One\ntext', 'more text', 'Then **see the comic** here.'];
   assert.deepEqual(chunks.map((_, index) => momentFor(chunks, index, moments)), [
-    { beat: 'adult', viewscreen: null }, { beat: 'adult', viewscreen: null }, { beat: 'lucky', viewscreen: 'ten-thousand' }]);
+    { beat: 'adult', viewscreen: null, scene: null }, { beat: 'adult', viewscreen: null, scene: null }, { beat: 'lucky', viewscreen: 'ten-thousand', scene: null }]);
 });
 
 test('T-ACT-MOM-03 viewscreens: original art within bounds, https links only, provenance recorded', async () => {
@@ -248,4 +249,27 @@ test('T-ACT-CLI-10 the client serves the viewscreens and moments with the scenes
   assert.equal(linkState({ state: 'elsewhere' }), 'channel');
   assert.equal(linkState({ state: 'failed' }), 'offline');
   assert.equal(linkState({ state: 'run', run: run({ status: 'boarded' }) }), 'arrived');
+});
+
+test('T-ACT-MOM-05 a section can name its own scene; the layout accepts only known scenes and beats that scene draws', () => {
+  const moments = { one: { beat: 'together', scene: 'landing-bay' }, two: { beat: 'seat' } };
+  const chunks = ['# One\ntext', '# Two\ntext'];
+  assert.deepEqual(momentFor(chunks, 0, moments), { beat: 'together', viewscreen: null, scene: 'landing-bay' });
+  assert.deepEqual(momentFor(chunks, 1, moments), { beat: 'seat', viewscreen: null, scene: null });
+  validateActivityLayout({ schema: 1, stops: { 'board-the-shuttle': { moments: { one: { beat: 'together', scene: 'landing-bay' } } } }, arrival: [] });
+  assert.throws(() => validateActivityLayout({ schema: 1, stops: { 'board-the-shuttle': { moments: { one: { beat: 'together', scene: 'nowhere' } } } }, arrival: [] }),
+    /INVALID_MOMENT/);
+  const canonical = canonicalActivityLayout({ arrival: [], schema: 1, stops: { s: { moments: { one: { scene: 'landing-bay', beat: 'together' } } } } });
+  assert.equal(JSON.stringify(canonical.stops.s.moments.one), '{"beat":"together","scene":"landing-bay"}');
+});
+
+test('T-ACT-CUE-03 Sophie speaks for about half of a page\'s typing time, between 2 and 6 seconds', () => {
+  assert.equal(speechMs('x'.repeat(90)), 2_000);
+  assert.equal(speechMs('x'.repeat(540)), 3_000);
+  assert.equal(speechMs('x'.repeat(540), 'slow'), 6_000);
+  assert.equal(speechMs('x'.repeat(540), 'fast'), 2_000);
+  assert.equal(speechMs('x'.repeat(5_000)), 6_000);
+  const sheet = cueSheet('page', run(), { speech: 3_000 });
+  assert.equal(sheet.find(step => step.action === 'speak').value, 3_000);
+  assert.equal(cueSheet('stop', run(), { speech: 4_500 }).find(step => step.action === 'speak').value, 4_500);
 });

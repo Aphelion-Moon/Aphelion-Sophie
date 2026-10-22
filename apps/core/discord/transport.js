@@ -276,6 +276,8 @@ export function createDiscordTransport({ guildId, token, fetch, clock, enabled, 
       return request('POST', `/applications/${applicationId}/guilds/${guildId}/commands`, 'guild-command', definition, true);
     },
     async getGuild() { return request('GET', `/guilds/${guildId}`, 'guild'); },
+    /** The guild with Discord's approximate member and presence counts (the Shuttle Activity's station board). */
+    async getGuildCounts() { return request('GET', `/guilds/${guildId}?with_counts=true`, 'guild-counts'); },
     /** Where a running Activity instance was launched and who is in it (Shuttle Activity sign-in). */
     async getActivityInstance(applicationId, instanceId) {
       requireId(applicationId); requireCondition(typeof instanceId === 'string' && /^[A-Za-z0-9_-]{1,128}$/.test(instanceId), 'ACTIVITY_INSTANCE_INVALID');

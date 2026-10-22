@@ -30,7 +30,7 @@ const OUTCOMES = [
  * in-memory bearer token, not cookies; each Shuttle request resolves the member through core principals, reads Discord
  * afresh and authorizes again in the store. Logs are fixed codes only. No AI, no ticket data, no case routes.
  */
-export function createActivityHttpServer({ configuration, applicationId, guildId, port, assets, auth, authorization, discord, store, channels = null, enabled, onFault, wake = () => {}, clock = Date.now,
+export function createActivityHttpServer({ configuration, applicationId, guildId, port, assets, auth, authorization, discord, store, channels = null, station = null, enabled, onFault, wake = () => {}, clock = Date.now,
   pause = ms => new Promise(resolve => setTimeout(resolve, ms)) }) {
   validateActivityConfiguration(configuration); requireId(applicationId); requireId(guildId);
   requireCondition(assets instanceof Map && assets.has('/') && typeof auth?.signIn === 'function' && typeof authorization?.resolveActor === 'function' &&
@@ -83,7 +83,7 @@ export function createActivityHttpServer({ configuration, applicationId, guildId
    */
   async function withChannels(result, userId) {
     const run = result?.run;
-    if (!run || channels === null) return result;
+    if (!run || channels === null) return withStation(result, userId);
     const confirmed = run.whitelist === 'confirmed';
     try {
       const found = await channels.resolve({ userId, pages: run.pages, arrival: confirmed ? run.arrivalChannels ?? [] : null });
@@ -93,6 +93,17 @@ export function createActivityHttpServer({ configuration, applicationId, guildId
         run.arrival = found.arrival.length ? found.arrival : named;
       }
     } catch { fault('ACTIVITY_CHANNELS_UNAVAILABLE'); run.channels = {}; if (confirmed) run.arrival = []; }
+    return withStation(result, userId);
+  }
+  /**
+   * At the last stop and after it: the station board's counts, and the member's own boarding pass (their name and the
+   * date they joined), for that member only. Never blocks the Shuttle; on failure the fields are left out.
+   */
+  async function withStation(result, userId) {
+    const run = result?.run;
+    if (!run || station === null || (run.status === 'reading' && run.stop < run.stops.length - 1)) return result;
+    try { run.station = await station.station(); } catch { fault('ACTIVITY_STATION_UNAVAILABLE'); }
+    try { const pass = await station.pass(userId); if (pass) run.pass = pass; } catch { fault('ACTIVITY_PASS_UNAVAILABLE'); }
     return result;
   }
   async function attempt(work) {

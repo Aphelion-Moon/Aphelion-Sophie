@@ -45,6 +45,9 @@ export const TEXT = Object.freeze({
   radio: 'Common · 145.9',
   standby: 'Standing by',
   transmitting: 'Transmitting',
+  pass: 'Boarding pass',
+  aboardSince: 'In the server since {date}',
+  passAccess: { confirmed: 'Access: Whitelist confirmed', requested: 'Access: Whitelist requested', none: 'Access: Whitelist not requested yet' },
   hop: 'The HoP is processing your ID card…',
   arrival: 'Now open to you',
   arrivalNone: 'Your new channels appear in Discord’s channel list.',
@@ -60,11 +63,13 @@ export const TEXT = Object.freeze({
   honk: 'HONK!',
 });
 
-/** Shown in the lounge, the hall, the cabin, at the viewport and at the door. Station flavour, not instructions. */
+/** Shown in the lounge, the hall, the bay, the cabin, at the viewport and at the door. Station flavour, not instructions. */
 export const ANNOUNCEMENTS = Object.freeze({
   'departure-lounge': 'Attention: the Arrivals Shuttle is now boarding.',
   'baggage-hall': 'Attention: please collect your baggage before boarding.',
   'boarding-cabin': 'Attention: all passengers, please take a seat.',
+  'landing-bay': 'Attention: all passengers, please board at Gate 03.',
+  'cabin-turbulence': 'Attention: please fasten your straps for landing.',
   viewport: 'Attention: passengers may now admire the view.',
   'pressure-door': 'Attention: the Arrivals Shuttle has docked. Watch your step.',
 });
@@ -184,10 +189,23 @@ export function titleMenu(described, { log = false } = {}) {
   return { items: [...extras, settings, credits], notice };
 }
 
-/** Scene state for a run at one transmission: the board shows the stop; the door shows clearance. */
+/** Scene state for a run at one transmission: the board shows the stop; the door shows clearance and the station's counts. */
 export function sceneStateFor(run, chunk = 0, chunks = 1, beat = 'none') {
   return { stopTitle: run.stops[run.stop]?.title ?? '', stopNumber: run.stop + 1, stopCount: run.stops.length,
-    section: Math.min(chunk + 1, chunks), sections: chunks, whitelist: run.whitelist, beat, link: run.status === 'boarded' ? 'arrived' : 'ready' };
+    section: Math.min(chunk + 1, chunks), sections: chunks, whitelist: run.whitelist, beat, link: run.status === 'boarded' ? 'arrived' : 'ready',
+    crew: run.station?.crew ?? null, online: run.station?.online ?? null };
+}
+
+/** Characters a second for each text speed setting. */
+export const TYPE_CPS = Object.freeze({ slow: 45, normal: 90, fast: 180 });
+/**
+ * How long Sophie's radio runs for a page: about half the time the page takes to type out at the member's text speed
+ * (normal speed when text shows all at once), between 2 and 6 seconds (owner decision, 22 October 2026). The trail-off
+ * follows it.
+ */
+export function speechMs(text, speed = 'normal') {
+  const cps = TYPE_CPS[speed] ?? TYPE_CPS.normal, chars = [...String(text ?? '')].length;
+  return Math.round(Math.min(6_000, Math.max(2_000, (chars / cps) * 500)));
 }
 
 /** What the title screen's link panel says: only what the server last reported. */
@@ -204,11 +222,12 @@ export function linkState(described) {
  */
 export function momentFor(chunks, chunk, moments = {}) {
   const at = Math.min(chunk, chunks.length - 1), headings = text => [...text.matchAll(/^(#{1,3}) (.+)$/gm)];
-  let found = { beat: 'none', viewscreen: null };
+  const none = { beat: 'none', viewscreen: null, scene: null }, of = moment => ({ beat: moment.beat ?? 'none', viewscreen: moment.viewscreen ?? null, scene: moment.scene ?? null });
+  let found = none;
   const apply = ([, level, text]) => {
     const moment = moments[headingKey(text)];
-    if (moment) found = { beat: moment.beat ?? 'none', viewscreen: moment.viewscreen ?? null };
-    else if (level === '#') found = { beat: 'none', viewscreen: null };
+    if (moment) found = of(moment);
+    else if (level === '#') found = none;
   };
   for (let i = 0; i < at; i++) headings(chunks[i]).forEach(apply);
   const own = headings(chunks[at] ?? '');
@@ -216,7 +235,7 @@ export function momentFor(chunks, chunk, moments = {}) {
   // A phrase moment (key "~phrase") belongs to the page that contains it, such as the page that links a comic.
   const page = (chunks[at] ?? '').toLowerCase();
   for (const [key, moment] of Object.entries(moments)) {
-    if (key.startsWith('~') && page.includes(key.slice(1))) found = { beat: moment.beat ?? 'none', viewscreen: moment.viewscreen ?? null };
+    if (key.startsWith('~') && page.includes(key.slice(1))) found = { ...of(moment), scene: moment.scene ?? found.scene };
   }
   return found;
 }
@@ -241,17 +260,17 @@ export function cueEvent(previous, next) {
  * (with fades in seconds), transition (scene swap), transit (the ride, ms), speak (Sophie's burst, ms) and reveal (the
  * text starts). The click sound of the control that caused the event is played by that control, not here.
  */
-export function cueSheet(event, run = null, { transit = false } = {}) {
+export function cueSheet(event, run = null, { transit = false, speech = null } = {}) {
   const sounds = run ? soundscape('run', run) : soundscape('title');
   const ambience = ['ambience', sounds.ambience, { fadeIn: 3, previousFadeOut: 2 }];
   const sheet = {
     title: [[0, 'ambience', sounds.ambience, { fadeIn: 3 }], [2_500, 'music', sounds.music, { fadeIn: 4 }]],
     stop: [[0, 'music', null, { previousFadeOut: 2 }], [0, 'play', 'SC-01'], [150, 'transition'], [300, ...ambience],
       ...(run?.stops[run.stop]?.scene === 'departure-lounge' ? [[900, 'play', 'SC-02']] : []),
-      [1_200, 'play', 'DLG-03'], [1_400, 'speak', 2_400], [1_400, 'reveal']],
-    page: [[0, 'play', 'DLG-02'], [150, 'speak', 1_200], [150, 'reveal']],
-    clearance: [[0, 'music', null, { previousFadeOut: 2 }], [150, 'transition'], [300, ...ambience], [600, 'play', 'DLG-03'], [800, 'speak', 2_400], [800, 'reveal']],
-    arrival: [[0, 'play', 'SC-05'], [150, 'transition'], [600, 'play', 'SC-04'], [1_000, ...ambience], [1_200, 'play', 'DLG-03'], [1_400, 'speak', 2_400],
+      [1_200, 'play', 'DLG-03'], [1_400, 'speak', speech ?? 2_400], [1_400, 'reveal']],
+    page: [[0, 'play', 'DLG-02'], [150, 'speak', speech ?? 1_200], [150, 'reveal']],
+    clearance: [[0, 'music', null, { previousFadeOut: 2 }], [150, 'transition'], [300, ...ambience], [600, 'play', 'DLG-03'], [800, 'speak', speech ?? 2_400], [800, 'reveal']],
+    arrival: [[0, 'play', 'SC-05'], [150, 'transition'], [600, 'play', 'SC-04'], [1_000, ...ambience], [1_200, 'play', 'DLG-03'], [1_400, 'speak', speech ?? 2_400],
       [1_400, 'reveal'], [3_000, 'music', sounds.music, { fadeIn: 4 }]],
   }[event];
   if (!sheet) throw new Error('UNKNOWN_CUE_SHEET');

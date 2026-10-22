@@ -4,24 +4,26 @@
  "title": "Recommended reading",
  "art": {
   "text": [
-   "     ________   ________",
-   "    /        \\ /        \\",
-   "   |  RULES   |  WIKI    |",
-   "   |  ~~~~~   |  ~~~~~   |",
-   "   |  ~~~~~   |  ~~~~~   |",
-   "   |________/ \\________|",
-   "            |▌|",
-   "         ___|_|___"
+   "  __________   __________  ",
+   " /          \\ /          \\ ",
+   "|   RULES    |    WIKI    |",
+   "|   ~~~~~~   |   ~~~~~~   |",
+   "|   ~~~~~~   |   ~~~~~~   |",
+   "|   ~~~~     |     ~~~~   |",
+   " \\__________\\|/__________/ ",
+   "            |▌|            ",
+   "        ____|_|____        "
   ],
   "colours": [
-   "     oooooooo   oooooooo",
-   "    o        o o        o",
-   "   o  aaaaa   o  hhhh    o",
-   "   o  IIIII   o  IIIII   o",
-   "   o  IIIII   o  IIIII   o",
-   "   oooooooooo oooooooooo",
-   "            oho",
-   "         ooooooooo"
+   "  oooooooooo   oooooooooo  ",
+   " o          o o          o ",
+   "o   aaaaa    o    hhhh    o",
+   "o   IIIIII   o   IIIIII   o",
+   "o   IIIIII   o   IIIIII   o",
+   "o   IIII     o     IIII   o",
+   " ooooooooooooooooooooooooo ",
+   "            oho            ",
+   "        ooooooooooo        "
   ]
  },
  "alt": "An old rulebook, open on a lectern, with a new cyan bookmark. The wiki is the authority for game rules.",

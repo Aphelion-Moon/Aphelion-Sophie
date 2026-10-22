@@ -102,3 +102,26 @@ test('P42 the door animates open only after confirmation, then the player goes i
   assert.equal(h.pending(), 0, 'idle once the door is open and motion is paused');
   h.player.destroy();
 });
+
+test('P44 people who walk in and talk keep the section clock: a new beat starts its talk from the first line', async () => {
+  const h = harness();
+  h.resize(960, 400); h.player.setScene(await sceneFile('baggage-hall'));
+  h.player.setState({ stopTitle: 'Synthetic stop', section: 1, sections: 3, beat: 'past' });
+  h.run(100, 1);
+  // The section changes a hundred seconds in; the next full frame shows the LOOC talk's opening line, not one from mid-cycle.
+  h.player.setState({ beat: 'looc' });
+  const mark = h.calls.text.length;
+  h.run(1 / 12);
+  const drawn = h.calls.text.slice(mark).sort((a, b) => a.y - b.y || a.x - b.x).map(call => call.ch).join('');
+  assert.match(drawn, /Doourcharacters/); assert.doesNotMatch(drawn, /Deal\.Seeyou/);
+  h.player.destroy();
+});
+
+test('P44 square windows are drawn as squares inside their cell, not as font glyphs that the cell would cut', async () => {
+  const h = harness();
+  h.resize(960, 400); h.player.setMotion(false); h.player.setScene(await sceneFile('hangar-viewport'));
+  h.run(1);
+  assert.equal(h.calls.text.some(call => call.ch === '□' || call.ch === '■'), false);
+  assert.ok(h.calls.rects.some(([x, y, w, hgt]) => w === 6 && hgt === 1 && x % 10 === 2 && y % 10 === 2), 'the top edge of a 6 px square centred in a 10 px cell');
+  h.player.destroy();
+});

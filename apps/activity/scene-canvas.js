@@ -104,6 +104,13 @@ export function createSceneCanvas(canvas, { palette, background, font = 'Cozette
       return;
     }
     if (SINGLE[ch] || DOUBLE.has(ch)) { lines(ch, px, py); return; }
+    if (ch === '■' || ch === '□') {
+      // A square centred in the cell (the font's own is wider than a cell and would be cut by the clip).
+      const side = Math.max(3, Math.round(Math.min(cellW, cellH) * 0.6)), x0 = px + Math.floor((cellW - side) / 2), y0 = py + Math.floor((cellH - side) / 2);
+      if (ch === '■') ctx.fillRect(x0, y0, side, side);
+      else { const t = geometry.stroke; ctx.fillRect(x0, y0, side, t); ctx.fillRect(x0, y0 + side - t, side, t); ctx.fillRect(x0, y0, t, side); ctx.fillRect(x0 + side - t, y0, t, side); }
+      return;
+    }
     if (ch === '╱' || ch === '╲') {
       ctx.strokeStyle = colour; ctx.lineWidth = geometry.stroke;
       ctx.beginPath();

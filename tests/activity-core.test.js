@@ -9,6 +9,7 @@ import { createCorePrincipals } from '../apps/core/security/principals.js';
 import { createDiscordOAuth } from '../apps/core/discord/oauth.js';
 import { createDiscordTransport } from '../apps/core/discord/transport.js';
 import { createActivityHttpServer } from '../apps/core/http/activity.js';
+import { createActivityStation } from '../apps/core/discord/activity-station.js';
 import { stagingConfiguration } from './fixtures/staging.js';
 import { GUILD, USER, OTHER, NOW, publication } from './fixtures/domain.js';
 
@@ -230,5 +231,37 @@ test('T-ACT-CORE-10 run views carry visible channel links, arrival channels only
     const body = await (await failing.request('/api/shuttle')).json();
     assert.deepEqual(body.run.channels, {}); assert.deepEqual(body.run.arrival, []);
     assert.deepEqual(failing.calls.filter(([name]) => name === 'fault'), [['fault', 'ACTIVITY_CHANNELS_UNAVAILABLE']]);
+  } finally { await failing.http.close(); }
+});
+
+test('T-ACT-CORE-11 the station board and the member\'s own boarding pass come only at the last stop, cached, and never block the Shuttle', async () => {
+  let counts = 0, members = 0, now = NOW;
+  const transport = {
+    async getGuildCounts() { counts++; return { id: GUILD, approximate_member_count: 1234, approximate_presence_count: 321 }; },
+    async getMember(userId) { members++; return userId === USER ? { nick: null, joined_at: '2026-10-01T12:00:00.000Z', user: { username: 'synthetic', global_name: 'Synthetic Spacer' } } : null; },
+  };
+  const station = createActivityStation({ transport, guildId: GUILD, clock: () => now });
+  assert.deepEqual(await station.station(), { crew: 1234, online: 321 });
+  await station.station(); assert.equal(counts, 1, 'counts are cached');
+  now += 300_001; await station.station(); assert.equal(counts, 2);
+  assert.deepEqual(await station.pass(USER), { name: 'Synthetic Spacer', joined: '2026-10-01' });
+  await station.pass(USER); assert.equal(members, 1);
+  assert.equal(await station.pass(OTHER), null);
+  const stops = [0, 1, 2, 3, 4].map(index => ({ id: `s${index}`, title: `Stop ${index + 1}`, scene: 'viewport' }));
+  let shown = { stop: 1, status: 'reading', stops, whitelist: 'none', pages: ['x'] };
+  const { http, request } = await server({ server: { station }, store: { async describe() { return { state: 'run', run: shown }; } } });
+  try {
+    let body = await (await request('/api/shuttle')).json();
+    assert.equal(body.run.station, undefined); assert.equal(body.run.pass, undefined);
+    shown = { ...shown, stop: 4 };
+    body = await (await request('/api/shuttle')).json();
+    assert.deepEqual(body.run.station, { crew: 1234, online: 321 }); assert.deepEqual(body.run.pass, { name: 'Synthetic Spacer', joined: '2026-10-01' });
+  } finally { await http.close(); }
+  const broken = { async station() { throw new Error('down'); }, async pass() { throw new Error('down'); } };
+  const failing = await server({ server: { station: broken }, store: { async describe() { return { state: 'run', run: { stop: 4, status: 'reading', stops, whitelist: 'none', pages: ['x'] } }; } } });
+  try {
+    const body = await (await failing.request('/api/shuttle')).json();
+    assert.equal(body.run.station, undefined); assert.equal(body.run.pass, undefined); assert.equal(body.run.stop, 4);
+    assert.deepEqual(failing.calls.filter(([name]) => name === 'fault').map(([, code]) => code), ['ACTIVITY_STATION_UNAVAILABLE', 'ACTIVITY_PASS_UNAVAILABLE']);
   } finally { await failing.http.close(); }
 });
