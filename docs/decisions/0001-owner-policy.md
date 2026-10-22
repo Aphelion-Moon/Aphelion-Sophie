@@ -1579,3 +1579,35 @@ modifications", and approved the design: "I approve the host-only publishing com
   - existing runs keep version 2 (0 active, 6 complete).
 
   Folder `.agent_docs/aphelion-sophie/deployment-cf0c125-2026-10-22`.
+
+### Shuttle Activity fifth pass: picked designs, full-page title and depth — 22 October 2026
+
+The owner reviewed the installed story build and asked for: a reworked BLASTWAVE fire (new sprites, a longer burn, a
+longer wait before it relights); walkers going behind standing objects; a full-page main page "with the menu built
+into the ASCII design"; an updated launch post; NO RUNNING integrated and centred on its sign; no story text naming
+buttons that no longer exist (the last stop's "Complete Shuttle"); "a couple of mothroaches"; an audit of the art
+against other ASCII art, with an artifact to pick between designs; and similar polish across the Activity.
+
+- **Design picker.** The coding agent drew three original alternatives for 40 asset groups (creatures, people,
+  machines, props, signage, the title screen, the logo and the post banner) beside each current design, with an audit
+  panel naming the techniques used (references for technique only; nothing copied). The owner picked in a private
+  artifact; notes on a pick were followed (the crowd mixes every option; every bag and traffic design is used; the
+  clown wears the big shoes; the scanner gets the gate design's lamps; the feedback terminal uses the other designs'
+  colours; the title keeps the rainbow stripes and the station is drawn in more detail). Kept as they were, by pick:
+  the sea lion, the logo, the launch post banner, the departures board, the section strip and the game monitor.
+- **Main page.** No reading column on the splash and menu: the hangar fills the window, and the page lays the splash
+  prompt and the real menu over the art's terminal window (a new scene `slots.menu` region). The menu stays real
+  buttons with keyboard, screen-reader names and 44 px targets (40 px on phones); 1 to 9 pick a choice.
+- **Depth.** A scene layer can be a standing object (`front: true`): sprites and belt items never draw on its cells,
+  speech bubbles still do. Every standing prop is marked; a test lists them per scene.
+- **The fire.** A 24-second cycle on the wall clock: flames for 15 seconds, the firebot rolls out of its dock, foams the
+  bag for 2 seconds (SC-12), rolls back; smoke, then cold until a spark at 23 seconds (SC-21).
+- **Mothroaches.** Three, as SS13 culture only: under the lounge benches, along the baggage lockers, and on a deck lamp.
+  The lounge's wet floor sign (no janitor ever works there) became a MOTHROACH CROSSING sign, by pick.
+- **Story.** The last stop and the boarding call describe finishing instead of naming a button ("Finish this last stop
+  and we'll request your Whitelist role"), and the unused entry part (a "Start Shuttle" button that does not exist) is
+  removed. The meaning checklist still requires agreeing at the end. This needs a new published Shuttle version.
+- **Launch post.** New default wording in Sophie's voice; the banner stays (the owner kept the current one in the
+  picker, after first asking for a new one); one Board the Shuttle button.
+
+The owner approved the plan; installing the build and publishing the story as version 4 each need their own approval.

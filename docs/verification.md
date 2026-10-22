@@ -1,5 +1,40 @@
 # Verification and release limits
 
+## Shuttle Activity fifth pass: picked designs, full-page title and depth — 22 October 2026 (schema 075, built offline)
+
+Owner review of the fourth pass and the approved plan (decision log, "Shuttle Activity fifth pass"). Covers the owner's
+design picks for 40 asset groups, standing objects that people walk behind, the scene menu slot and the full-page
+title, the BLASTWAVE fire cycle, three mothroaches, the story fixes and the launch post's wording.
+
+Source and content only: no migration, configuration, credential, dependency or command change. Not installed. The
+fixed story copy is not published; members keep reading Shuttle version 3 until it is.
+
+- **`npm test`: 787 passed.** New:
+  - T-SCENE-DEPTH-01..04: a standing object hides whoever walks behind it while speech bubbles still draw over it; the
+    validator takes `front` only as true and slots only as named regions on the grid; the player gives the slot in CSS
+    pixels from the live cell size and reports each change;
+  - T-SCENE-DEPTH-05: the fire burns at 5 s and 13 s with the firebot in its dock, the firebot foams at 15 s, the bag is
+    cold at 20 s and 22 s with the bot home, a spark at 23 s, SC-12 at 15 s and SC-21 at 23 s every 24 s, and it shows
+    burning with motion off;
+  - T-SCENE-DEPTH-06: NO RUNNING is built into the wet floor sign and centred on it, in both layouts, while it is out;
+  - T-SCENE-DEPTH-07: the three mothroaches, and the lounge one never changes a bench cell;
+  - T-SCENE-DEPTH-08: each scene marks its standing props;
+  - T-SCENE-DEPTH-09: the menu slot is the inside of the terminal window with nothing drawn under it, and the orbit
+    never crosses the subtitle.
+  - Updated: P43 (Ian's new shape), P44 (the fire as timed sprites), P45 (the new sign and checklist ticks),
+    T-ACT-POST-01 (the new wording, no "Complete Shuttle", no em dash) and the story checklist (no button name for the
+    last step, no entry part).
+- **Repository check:** passed.
+- **`npm run test:storage:fast`:** 1029 passed, none failed.
+- **Walk-behind audit** (a scratch tool that composes every scene and layout over a time sweep, with and without
+  actors): what actors still cross is floor lines, the belt rail as refused bags drop, the ramp, things in space behind
+  glass, the concourse light and the mothroach on the baggage hall's ceiling lights (on purpose).
+- **Preview harness** (fake API, story copy), 1100x620 and 375x812: the full-page splash and menu in the terminal
+  window, number keys picking a choice, the baggage hall's fire, dock and lamps, and the pressure door's sign, terminal,
+  locker, checklist, cart and greeters. No console errors.
+
+Not checked: inside Discord (needs the install).
+
 ## Staging install of cf0c125 and the story's publication — 22 October 2026 (schema 075)
 
 Owner approvals: the host-only publishing design ("I approve the host-only publishing command as you described it

@@ -116,8 +116,9 @@ sessions the Activity drives.
 
 ## The client
 
-Splash ("press any key", with a Tip of the Round), then a game-style menu over the animated hangar, whose Shuttle Link
-panel says only what the server last reported (ready, not boarding yet, finish in your channel, held, arrived, no
+Splash ("press any key"), then the menu, both inside a terminal window drawn in the animated hangar's console, which
+fills the window (no reading column on the main page). The menu numbers its choices (1 to 9 pick one) and ends with
+the Tip of the Round. The hangar's Shuttle Link panel says only what the server last reported (ready, not boarding yet, finish in your channel, held, arrived, no
 signal). Each stop has its scene and ambience; Sophie's transmissions on the `COMMON · 145.9` radio are the stop's
 published pages split into screen-sized pieces (every character, in order). A new piece starts at every heading, so
 each section opens a page of its own and the scene stages exactly the section being read.
@@ -141,9 +142,12 @@ each section opens a page of its own and the scene stages exactly the section be
   half the page's typing time at the chosen speed (`speechMs`: normal speed when text shows at once), from 2 s to 6 s,
   then trails off over 1.5 s while the meter shrinks; music ducks about 6 dB under her. Pressing Next during a cue
   sheet skips to the text.
-- **Layout.** A reading column on the left holds the status window and, below it, the splash prompt, the menu or
-  Sophie's transmission; the scene has the rest of the window to itself (on phones it sits above the column). The menu
-  button is fixed to the window's top right corner.
+- **Layout.** On the main page the hangar fills the window, and the page lays its splash prompt and menu over the
+  scene's `menu` slot (the inside of the terminal window) from the live cell size. While reading, a column on the left
+  holds the status window and Sophie's transmission; the scene has the rest of the window to itself (on phones it sits
+  above the column, below the menu button). The menu button is fixed to the window's top right corner.
+- **Depth.** Standing objects (signs, desks, carts, seats, the shuttle's hull, vending machines) are drawn in front of
+  people: anyone walking past goes behind them.
 - **Status window.** A fixed-size box: Sophie's radio standing by (name, callsign and a voice meter that moves while
   she speaks; she is not depicted), or, while the section being read has extra material, that material instead. V
   switches back to the radio for that section. At the last stop and on arrival, when no extra material is showing, it
@@ -163,8 +167,8 @@ each section opens a page of its own and the scene stages exactly the section be
   the keys; L opens the log.
 - **Settings:** volume, music, ambience, radio and effect levels, sound on/off, motion, typed or instant text, text
   speed, text size.
-- **Input:** arrows, Enter/Space, Backspace, Escape, swipe on touch screens; 44 px tap targets. Landscape overlays the
-  transmission on the scene; portrait stacks it.
+- **Input:** arrows, 1 to 9 on the main menu, Enter/Space, Backspace, Escape, swipe on touch screens; 44 px tap targets
+  (40 px on phones).
 - Presence shows "Riding the Arrivals Shuttle" and the stop number only. Links in the copy open through Discord's own
   confirmation, and only https links are links. `:wink:`-style shortcodes show as emoji; `@name` is styled text.
 
@@ -175,6 +179,9 @@ member's settings.
 
 `/whitelist post` (Guidance publishers) posts the launch post: the departures banner, editable title, body and button
 wording (dashboard wording editor, group "Shuttle Activity rules post"), and one **Board the Shuttle** button. The
+default wording is in Sophie's voice: what the Shuttle is (five short stops, a bit of reading, no quiz), that finishing
+it requests the Whitelist role, the real button name, what to do if the button does nothing, and where to ask. Wording
+already edited in the dashboard still wins over the defaults. The
 button answers with LAUNCH_ACTIVITY and records nothing; the Activity signs the member in and checks access itself.
 
 At the opening (`status: "open"`), the Shuttle entry button and `/whitelist start` also launch the Activity, so new runs
@@ -218,6 +225,11 @@ afterwards and approved by the owner, followed as `sophie-mistral-a620ce0` (sour
 is published as Shuttle version 3 (17:00 UTC). The owner had it published with the host-only publishing command,
 installed as `sophie-mistral-cf0c125`; see [Publishing from the server](shuttle-publishing.md). New runs, in the
 Activity and in channels, read the story; runs already in progress keep version 2.
+
+The fifth pass (the owner's picks from a design picker for nearly every asset, walk-behind depth, mothroaches, the
+BLASTWAVE fire cycle, the full-page title screen with the menu in a terminal window, the launch post's new wording,
+and story fixes: no button name for the last step, no unused entry part) is built and tested offline. It is not
+installed, and its story copy is not published yet; both need owner approval.
 
 Not yet checked: mobile clients, and whether Discord opens `discord.com/channels` links inside the app.
 
