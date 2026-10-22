@@ -5,6 +5,7 @@ import { readFile, readdir } from 'node:fs/promises';
 import { readFileSync, existsSync } from 'node:fs';
 import { resolve, relative, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { execFileSync } from 'node:child_process';
 import { moduleClosure } from '../apps/activity/module-closure.js';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
@@ -55,6 +56,12 @@ test('T-ACT-SDK-03 bundled components are the reviewed four, with notices and th
   assert.equal(pin.automaticUpdates, false);
   const notices = await readFile(resolve(root, 'legal/THIRD-PARTY-NOTICES'), 'utf8');
   for (const item of [manifest.package, ...manifest.bundledComponents]) assert.ok(notices.includes(item.notice), item.notice);
+});
+
+test('T-ACT-SDK-05 every vendored file is tracked by Git, so a release carries it', { skip: !existsSync(resolve(root, '.git')) }, () => {
+  // 22 October 2026: an ignore rule for dist/ kept four SDK modules out of the fe25c83 release.
+  const listed = execFileSync('git', ['ls-files', '--', manifest.directory], { cwd: root, encoding: 'utf8' }).trim().split('\n').sort();
+  assert.deepEqual(listed, [...manifest.files.map(file => file.path), `${manifest.directory}/LICENSE.md`].sort());
 });
 
 test('T-ACT-SDK-04 vendored bytes are protected from line-ending conversion', async () => {

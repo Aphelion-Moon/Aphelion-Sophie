@@ -2,6 +2,8 @@ node_modules/
 .local/
 coverage/
 dist/
+# The vendored Embedded App SDK keeps its upstream dist/ folders (pinned in legal/embedded-app-sdk.json).
+!apps/activity/vendor/**/dist/
 .env
 .env.*
 !.env.example
