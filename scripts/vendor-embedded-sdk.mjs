@@ -45,6 +45,8 @@ const BUNDLED = [
 
 const sha256 = bytes => createHash('sha256').update(bytes).digest('hex');
 const fail = message => { throw new Error(message); };
+// Notices are kept with LF line endings like every other file in legal/notices (see .gitattributes).
+const asNotice = bytes => Buffer.from(bytes.toString('utf8').replace(/\r\n?/g, '\n'));
 
 async function tarball(directory, pin) {
   const bytes = await readFile(resolve(directory, pin.file));
@@ -98,11 +100,12 @@ for (const path of shipped) {
 }
 const sdkLicence = sdk.files.get(SDK.licenseFile) ?? fail('SDK licence missing');
 await writeFile(resolve(root, OUT, 'LICENSE.md'), sdkLicence);
-await writeFile(resolve(root, SDK.notice), sdkLicence);
+const sdkNotice = asNotice(sdkLicence);
+await writeFile(resolve(root, SDK.notice), sdkNotice);
 const notices = [];
 for (const item of BUNDLED) {
   const { files } = await tarball(from, item);
-  const licence = files.get(item.licenseFile) ?? fail(`Licence missing: ${item.name}`);
+  const licence = asNotice(files.get(item.licenseFile) ?? fail(`Licence missing: ${item.name}`));
   const declared = JSON.parse(files.get('package/package.json').toString('utf8')).license;
   if (declared !== item.license) fail(`Licence changed: ${item.name} ${declared}`);
   await writeFile(resolve(root, item.notice), licence);
@@ -117,7 +120,7 @@ const manifest = {
   schemaVersion: 1,
   generatedBy: 'scripts/vendor-embedded-sdk.mjs',
   package: { name: SDK.name, version: SDK.version, license: SDK.license, tarball: SDK.url, integrity: SDK.integrity,
-    sha256: SDK.sha256, bytes: sdk.bytes.length, notice: SDK.notice, noticeSha256: sha256(sdkLicence) },
+    sha256: SDK.sha256, bytes: sdk.bytes.length, licenseSha256: sha256(sdkLicence), notice: SDK.notice, noticeSha256: sha256(sdkNotice) },
   decision: DECISION,
   entries: ENTRIES,
   directory: OUT,
@@ -126,6 +129,7 @@ const manifest = {
   modulesNotShipped: published.length - shipped.length,
   notShipped: 'Everything not reachable from the entries, including utils/patchUrlMappings.mjs (the only module that calls fetch or WebSocket) with its bundled tslib helper (0BSD), the mock, PermissionUtils and PriceUtils with lodash.transform and decimal.js-light.',
   bundledComponents: notices,
+  noticeLineEndings: 'Licence notices in legal/notices are stored with LF line endings; the copy beside the SDK is byte for byte.',
   automaticUpdates: false,
 };
 await writeFile(resolve(root, 'legal/embedded-app-sdk.json'), `${JSON.stringify(manifest, null, 2)}\n`);

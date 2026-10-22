@@ -27,7 +27,7 @@ test('T-ACT-SDK-01 every vendored SDK file matches its pin and nothing else is i
   for (const file of manifest.files) assert.equal(sha256(await readFile(resolve(root, file.path))), file.sha256, file.path);
   const present = (await walk(manifest.directory)).sort();
   assert.deepEqual(present, [...manifest.files.map(file => file.path), `${manifest.directory}/LICENSE.md`].sort());
-  assert.equal(sha256(await readFile(resolve(root, manifest.directory, 'LICENSE.md'))), manifest.package.noticeSha256);
+  assert.equal(sha256(await readFile(resolve(root, manifest.directory, 'LICENSE.md'))), manifest.package.licenseSha256);
 });
 
 test('T-ACT-SDK-02 the shipped modules are exactly the static closure of the entries, with no network or dynamic loading', () => {

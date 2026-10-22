@@ -9,6 +9,7 @@
     "integrity": "sha512-FNoe5PbSkoKEbqPubaBmq6tlEMOftMjR3gu55YrdrrKmBfKKM4i9P/Z+Zxl0RZdJcKviBwVcTyYMMPM/aGex/w==",
     "sha256": "9fea2ebe36dfd1126ad072ba343128db4143043c5b6a1f9bc212a0e3a7198470",
     "bytes": 250150,
+    "licenseSha256": "ac69ea236ff3ba795e1873f4641b73f99492cf47ed9e0804ee4cf8285dd45b9d",
     "notice": "legal/notices/discord-embedded-app-sdk-2.5.0.txt",
     "noticeSha256": "ac69ea236ff3ba795e1873f4641b73f99492cf47ed9e0804ee4cf8285dd45b9d"
   },
@@ -350,10 +351,11 @@
       "modules": 1,
       "bundledVersion": "Not stated in the SDK output",
       "notice": "legal/notices/big-integer-1.6.52.txt",
-      "noticeSha256": "e9b0e94f628e00b5ed98046cfa041696ff89eebbbdd54108ee350625bc6d0363",
+      "noticeSha256": "88d9b4eb60579c191ec391ca04c16130572d7eedc4a86daa58bf28c6e14c9bcd",
       "noticeFrom": "big-integer-1.6.52.tgz (npm integrity sha512-QxD8cf2eVqJOOz63z6JIN9BzvVs/dlySa5HGSBH5xtR8dPteIRQnBxxKqkNTiT6jbDTF6jAfrd4oMcND9RGbQg==)",
       "approval": "Scoped exception for this bundled copy only: docs/decisions/0001-owner-policy.md (Shuttle Activity: SDK, testers and the ticket switch, 22 October 2026)"
     }
   ],
+  "noticeLineEndings": "Licence notices in legal/notices are stored with LF line endings; the copy beside the SDK is byte for byte.",
   "automaticUpdates": false
 }
