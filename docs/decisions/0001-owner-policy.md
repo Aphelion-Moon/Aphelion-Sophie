@@ -1380,3 +1380,25 @@ The owner asked to "finish the rest of the work" and answered three questions:
   client or a stored list.
 - **Ticket switch.** New Shuttle runs stop opening a ticket channel as part of the opening (P44), not before. Until
   then the channel Shuttle keeps working for members.
+
+### Shuttle Activity deployed in testing — 22 October 2026
+
+Owner: "Approved: deploy core with migration 074 and the Activity in testing on port 38125, re-register commands, then
+switch onboarding.a13.info from the closed screen to core."
+
+- **Installed** `fe25c83` (schema 073 → 074) at 01:27–01:28 UTC with a cold recovery point
+  (`D:\Backups\sophie-staging\schema074-fe25c83-20261022`): 163 files, migration 074 with `SELECT, INSERT, UPDATE` on
+  `sophie_core.shuttle_activity_runs` for the core identity only, and the runtime block
+  `activity: { origin: https://onboarding.a13.info, port: 38125, status: testing }`; no other configuration, credential,
+  policy or dependency change. The release also carries `ff09c10`'s channel-create fix (on `main`, never installed).
+- **Incident.** Core did not start: four pinned SDK modules under `lib/uuid/dist/` had never reached Git because the
+  repository ignores `dist/`. Core was down 01:27:58–01:31:41 UTC (3 min 43 s). The four files were placed in the
+  installed package from their recorded pins and core started. `b6af5d8` commits them (with a test that every vendored
+  file is tracked), and a source-only update installed it at 01:35 UTC (core restarted, 35 s), so the release, Git and
+  the signed package manifest agree again. Installation, boundary and dashboard checks passed.
+- **Commands** re-registered at about 01:37 UTC: the six guild commands were updated in place; `/whitelist post` exists.
+- **Route.** `sophie-staging` tunnel configuration version 4 points `onboarding.a13.info` at `127.0.0.1:38125`
+  (version 3 backed up in `.local/cloudflare/`); other rules unchanged. Public checks passed. The closed-screen service
+  (`aphelion-bot-activity`, 38124) stays installed and running for rollback.
+- Deployment folders: `.agent_docs/aphelion-sophie/deployment-fe25c83-2026-10-22` and `deployment-b6af5d8-2026-10-22`.
+  The Activity is still in testing; the opening and the rules post are separate approvals.

@@ -111,8 +111,12 @@ ordinary sessions and their Whitelist outcomes stand.
 
 ## Status (22 October 2026)
 
-Built and tested offline on branch `docs/shuttle-activity-plan`; previewed in a local harness with a fake API. Not
-deployed, not run inside Discord's frame, not checked on mobile clients.
+Deployed in testing (owner approval): core release `sophie-mistral-b6af5d8` (schema 074) serves the Activity on
+`127.0.0.1:38125`, `onboarding.a13.info` routes to it (tunnel configuration version 4), and `/whitelist post` is
+registered. Public HTTPS checks passed. Steps 1–3 of "Deploying" are done; see the decision log entry "Shuttle Activity
+deployed in testing" for the record, including a 3 min 43 s outage caused by four SDK files missing from Git.
+
+Not yet checked: signing in and boarding inside Discord's frame, and any mobile client.
 
 Not built yet: moving an in-progress channel run into the Activity at the same step; a text version reachable from the
 rules post; the title screen's section registry (Station log, Codex); a transmission log; the per-stop scene picker in

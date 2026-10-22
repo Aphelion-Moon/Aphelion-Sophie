@@ -1398,9 +1398,8 @@
       "suggested_owner": "Repository maintainer and owner",
       "guardrail": "Production application behind the tester gate only. Each deploy and the opening need recorded owner approval. No production secrets in prompts; no Shuttle copy or member data in logs.",
       "status": "in_progress",
-      "implementation_note": "Owner decisions of 21 October 2026 (\"The Shuttle becomes an Activity\" D1, D4, D5, D6, D8; \"Shuttle Activity application and hostname\") and 22 October 2026 (SDK approved with a scoped big-integer exception; testers are the server owner and current lead ops role holders). The Activity uses Sophie's current application at onboarding.a13.info. Sign-in, instance lookup, tester gate and the launch response are built and tested offline; nothing new is deployed.",
+      "implementation_note": "Owner decisions of 21 October 2026 (\"The Shuttle becomes an Activity\" D1, D4, D5, D6, D8; \"Shuttle Activity application and hostname\") and 22 October 2026 (SDK approved with a scoped big-integer exception; testers are the server owner and current lead ops role holders). The Activity uses Sophie's current application at onboarding.a13.info. Built, tested offline and deployed in testing on 22 October 2026 (release sophie-mistral-b6af5d8).",
       "remaining_scope": [
-        "Deploy core with migration 074 and the activity block (testing, port 38125), re-register commands, and switch the onboarding.a13.info route from the closed screen to core: each a recorded owner approval.",
         "Live sign-in, instance lookup and tester gate inside Discord; platform report for Windows desktop, web, iOS and Android (launch time, layouts, presence, launch notice, Activities permission)."
       ],
       "completed_scope": [
@@ -1409,7 +1408,8 @@
         "Closed screen running as the Manual service aphelion-bot-activity (NT SERVICE account, pinned Node, reviewed WinSW wrapper) since 22 October 2026, installed by ops/windows/Setup-ActivityService.ps1 from a hash-recorded copy of b9f7c11; public HTTPS checks passed after the handover.",
         "Embedded App SDK 2.5.0 pinned on 22 October 2026 (1ca206b, 2515b34): scripts/vendor-embedded-sdk.mjs checks the tarball's npm integrity and SHA-256 and copies the 57 modules reachable from DiscordSDK, Events and Constants byte for byte; the URL patcher (fetch/WebSocket) with its 0BSD tslib helper is not shipped. Bundled zod, uuid, eventemitter3 (MIT) and big-integer (Unlicense, scoped exception) with notices. T-ACT-SDK-01..04.",
         "Sign-in round trip, instance lookup and tester gate built on 22 October 2026 (5c3cc6c): code exchange without a redirect URI (identify and rpc.activities.write only), instance checked with the bot token (this server, this member), one-hour in-memory bearer tokens through core principals; shuttle.activity.test admits the server owner and current lead ops role holders, read from Discord on every request. T-ACT-CORE-01..09; storage SA01..SA08 on isolated PostgreSQL.",
-        "Launch-activity response from the rules post button built on 22 October 2026 (4384b7c), T-ACT-POST-03. Rules post banner format chosen: a 32-column code block with box characters (no ANSI, no image)."
+        "Launch-activity response from the rules post button built on 22 October 2026 (4384b7c), T-ACT-POST-03. Rules post banner format chosen: a 32-column code block with box characters (no ANSI, no image).",
+        "Deployed in testing on 22 October 2026 (owner approval): core release sophie-mistral-b6af5d8 (schema 074, after fe25c83 failed to start because four SDK modules were missing from Git; 3 min 43 s outage, fixed in b6af5d8), the activity block on 127.0.0.1:38125, commands re-registered with /whitelist post, and onboarding.a13.info routed to core (tunnel configuration v4). Installation, boundary, dashboard and public HTTPS checks passed. Closed screen kept on 38124 for rollback."
       ]
     },
     {
@@ -1446,7 +1446,7 @@
       "suggested_owner": "Repository maintainer",
       "guardrail": "No AI path. Current eligibility on every action; never grant from a client response, launch location or presence. Other ticket types unchanged; no Shuttle record deleted.",
       "status": "in_progress",
-      "implementation_note": "Owner decisions of 21-22 October 2026. Activity runs, routes and the opening switch are built and tested offline on branch docs/shuttle-activity-plan; not deployed. New runs leave ticket channels only at the opening (decision of 22 October 2026).",
+      "implementation_note": "Owner decisions of 21-22 October 2026. Activity runs, routes and the opening switch are built and tested offline on branch docs/shuttle-activity-plan; deployed in testing on 22 October 2026 (sophie-mistral-b6af5d8, migration 074). New runs leave ticket channels only at the opening (decision of 22 October 2026).",
       "completed_scope": [
         "Activity runs on 22 October 2026 (5c3cc6c): ordinary sessions with the same domain rules, nonce rotation, receipts and Whitelist grant effect, no case or channel (not counted against case quotas), marked in sophie_core.shuttle_activity_runs (migration 074). Whitelist shows confirmed only after the grant is observed on Discord. Routes: GET /api/shuttle, POST /api/shuttle/board and /api/shuttle/act (Continue, Back, Check), one request key per click. Storage SA01..SA08; T-ACT-CORE-07..09. Full storage suite 1024+2 passed with the 74-migration count (d7191b9).",
         "Opening switch on 22 October 2026 (4384b7c): with status open, the entry button and /whitelist start launch the Activity instead of opening a channel; channel runs in progress continue in their channels."
@@ -1558,7 +1558,8 @@
       "implementation_note": "Owner decisions of 21 October 2026 (D5) and 22 October 2026 (ticket switch at the opening). Rules post, launch response and opening switch built and tested offline (4384b7c); docs/shuttle-activity.md written.",
       "completed_scope": [
         "Rules post on 22 October 2026 (4384b7c): /whitelist post posts the departures banner (provenance recorded), dashboard-editable title, body and button wording, and a Board the Shuttle button answering LAUNCH_ACTIVITY. T-ACT-POST-01..03.",
-        "docs/shuttle-activity.md written on 22 October 2026, with the deployment steps and rollback."
+        "docs/shuttle-activity.md written on 22 October 2026, with the deployment steps and rollback.",
+        "/whitelist post registered on 22 October 2026 with the deployment; not yet posted."
       ],
       "remaining_scope": [
         "Per-stop scene picker in the Shuttle editor, saved with the publication (today the scene follows the stop's position).",
@@ -1568,7 +1569,7 @@
   ],
   "checkpoint": {
     "summary": "Deterministic administration, Whitelist onboarding, protected editors, role/permission configuration and the configurable staging host are implemented.",
-    "recorded_baseline": "Pinned 25b8085/schema072 (release sophie-mistral-25b8085, the runtime paths of 5fc8442, branch staging/admission-trace) installed 20 October 17:05 UTC as a source-only update of 67c1f4a (15:47 UTC), 334fd97 (14:57 UTC), itself on 20bd3e7 (installed 13:55 UTC with migrations 071-072, replacing 38e4f3a/schema070), with the owner-accepted Mistral processing policy unchanged, Go live in force and a 32 KB prompt budget. Hosting after the d8fb0e5 conversion: core and the AI worker are ordinary Manual services with trust v2 (no expiry); the supervisor is Disabled. Cold recovery point D:\\Backups\\sophie-staging\\schema072-20bd3e7-20261020.",
+    "recorded_baseline": "Pinned b6af5d8/schema074 (release sophie-mistral-b6af5d8, branch docs/shuttle-activity-plan) installed 22 October 01:35 UTC as a source-only completion of fe25c83 (01:28 UTC, migration 074, Shuttle Activity in testing on 127.0.0.1:38125), replacing 6c7de3b/schema073. Cold recovery point D:Backupssophie-stagingschema074-fe25c83-20261022. Pinned 25b8085/schema072 (release sophie-mistral-25b8085, the runtime paths of 5fc8442, branch staging/admission-trace) installed 20 October 17:05 UTC as a source-only update of 67c1f4a (15:47 UTC), 334fd97 (14:57 UTC), itself on 20bd3e7 (installed 13:55 UTC with migrations 071-072, replacing 38e4f3a/schema070), with the owner-accepted Mistral processing policy unchanged, Go live in force and a 32 KB prompt budget. Hosting after the d8fb0e5 conversion: core and the AI worker are ordinary Manual services with trust v2 (no expiry); the supervisor is Disabled. Cold recovery point D:\\Backups\\sophie-staging\\schema072-20bd3e7-20261020.",
     "current_work": "Shuttle message groups, faster page turns and no Staff intervention (owner-approved 20 October): status card, plain step messages and a navigation card; instant \"Opening…\" feedback; Ask Staff removed; shared rate limits, delivery wake-up, boundary-scoped observation sharing and response-confirmed writes; migration 071. Prepared on codex/sophie-social-ai; not yet installed. Open: staging install and live walk-through with timing comparison; Mistral zero data retention; fresh-session join-time consent test; worker denial qualification; production.",
     "evidence_note": "At 88359f6: npm test 643 passed; storage fast 957 passed with the three known order-dependent failures (J01, U08, S17). Conversion prepared and checked read-only in GitHub/.agent_docs/aphelion-sophie/deployment-d8fb0e5-2026-10-12/ (prepare.mjs passed, setup -WhatIf on WUFF); not yet installed. Details: docs/verification.md."
   },

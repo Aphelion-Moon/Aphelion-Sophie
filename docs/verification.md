@@ -1,5 +1,32 @@
 # Verification and release limits
 
+## Staging install of b6af5d8 with the Shuttle Activity in testing — 22 October 2026 (schema 074)
+
+Owner: "Approved: deploy core with migration 074 and the Activity in testing on port 38125, re-register commands, then
+switch onboarding.a13.info from the closed screen to core." Folders `deployment-fe25c83-2026-10-22` (schema update,
+adapted from 6c7de3b) and `deployment-b6af5d8-2026-10-22` (source-only, adapted from ff09c10).
+
+- Prepare (fe25c83): 646 pinned and 501 installed files verified against Git; installed 6c7de3b verified against its
+  trusted manifest; 163 changes (145 new, 18 changed), no removals; dependencies and provider profile unchanged.
+- Cold recovery point `D:\Backups\sophie-staging\schema074-fe25c83-20261022`.
+- Migration 074 as the owner identity: 106 tables and 22,615 rows unchanged, the new table empty; the core identity got
+  exactly `SELECT, INSERT, UPDATE` on it. Core, control and knowledge identity checks passed.
+- Pre-start: trust v2 for `sophie-mistral-fe25c83`; configuration unchanged except the approved `activity` block;
+  credentials, journal and accepted policy unchanged.
+- **Failure:** core exited at start (`AI_INSTALLED_ROLE_UNAVAILABLE`): four pinned SDK modules under `lib/uuid/dist/`
+  were ignored by `.gitignore` and absent from the release. Restored by placing them from their pins (core up at
+  01:31:41 UTC; down 3 min 43 s in all). Fixed in `b6af5d8` (T-ACT-SDK-05 now checks every vendored file is tracked).
+- Source-only update to `b6af5d8`: 650 pinned files verified; trust v2 for `sophie-mistral-b6af5d8`; configuration
+  unchanged; boundary check passed (core owns 38121, 38122, 38125 and 47552); installation check passed, including
+  the Activity on loopback (`/` 200 with its CSP, `/api/config`, `/api/shuttle` 401, font, sounds, 404 for core files,
+  421 for other hosts); dashboard check passed.
+- Commands re-registered (six updated in place). Tunnel configuration version 4 routes `onboarding.a13.info` to 38125;
+  public HTTPS checks passed for the page, config, sign-in requirement, an SDK module and a sound; `sophie.a13.info`
+  unchanged.
+
+**Not covered:** no sign-in or boarding inside Discord's frame yet; no mobile client; the rules post is not posted and
+the Activity is not open.
+
 ## Shuttle Activity built offline — 22 October 2026 (branch docs/shuttle-activity-plan, schema 074)
 
 Owner: "Finish the rest of the work please." with the answers of 22 October 2026 (SDK approved with a scoped

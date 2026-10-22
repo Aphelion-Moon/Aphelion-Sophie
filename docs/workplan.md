@@ -10,7 +10,7 @@ Source requirements remain in the preserved v1.1 pack. Current owner decisions o
 
 Deterministic administration, Whitelist onboarding, protected editors, role/permission configuration and the configurable staging host are implemented.
 
-Recorded baseline: Pinned 25b8085/schema072 (release sophie-mistral-25b8085, the runtime paths of 5fc8442, branch staging/admission-trace) installed 20 October 17:05 UTC as a source-only update of 67c1f4a (15:47 UTC), 334fd97 (14:57 UTC), itself on 20bd3e7 (installed 13:55 UTC with migrations 071-072, replacing 38e4f3a/schema070), with the owner-accepted Mistral processing policy unchanged, Go live in force and a 32 KB prompt budget. Hosting after the d8fb0e5 conversion: core and the AI worker are ordinary Manual services with trust v2 (no expiry); the supervisor is Disabled. Cold recovery point D:\Backups\sophie-staging\schema072-20bd3e7-20261020.
+Recorded baseline: Pinned b6af5d8/schema074 (release sophie-mistral-b6af5d8, branch docs/shuttle-activity-plan) installed 22 October 01:35 UTC as a source-only completion of fe25c83 (01:28 UTC, migration 074, Shuttle Activity in testing on 127.0.0.1:38125), replacing 6c7de3b/schema073. Cold recovery point D:Backupssophie-stagingschema074-fe25c83-20261022. Pinned 25b8085/schema072 (release sophie-mistral-25b8085, the runtime paths of 5fc8442, branch staging/admission-trace) installed 20 October 17:05 UTC as a source-only update of 67c1f4a (15:47 UTC), 334fd97 (14:57 UTC), itself on 20bd3e7 (installed 13:55 UTC with migrations 071-072, replacing 38e4f3a/schema070), with the owner-accepted Mistral processing policy unchanged, Go live in force and a 32 KB prompt budget. Hosting after the d8fb0e5 conversion: core and the AI worker are ordinary Manual services with trust v2 (no expiry); the supervisor is Disabled. Cold recovery point D:\Backups\sophie-staging\schema072-20bd3e7-20261020.
 
 Current work: Shuttle message groups, faster page turns and no Staff intervention (owner-approved 20 October): status card, plain step messages and a navigation card; instant "Opening…" feedback; Ask Staff removed; shared rate limits, delivery wake-up, boundary-scoped observation sharing and response-confirmed writes; migration 071. Prepared on codex/sophie-social-ai; not yet installed. Open: staging install and live walk-through with timing comparison; Mistral zero data retention; fresh-session join-time consent test; worker denial qualification; production.
 
@@ -1343,7 +1343,7 @@ Status: **in_progress**. Phase: Shuttle Activity. Priority: P1.
 
 Depends on: P14, P16. Acceptance: T01, T02, T37.
 
-Owner decisions of 21 October 2026 ("The Shuttle becomes an Activity" D1, D4, D5, D6, D8; "Shuttle Activity application and hostname") and 22 October 2026 (SDK approved with a scoped big-integer exception; testers are the server owner and current lead ops role holders). The Activity uses Sophie's current application at onboarding.a13.info. Sign-in, instance lookup, tester gate and the launch response are built and tested offline; nothing new is deployed.
+Owner decisions of 21 October 2026 ("The Shuttle becomes an Activity" D1, D4, D5, D6, D8; "Shuttle Activity application and hostname") and 22 October 2026 (SDK approved with a scoped big-integer exception; testers are the server owner and current lead ops role holders). The Activity uses Sophie's current application at onboarding.a13.info. Built, tested offline and deployed in testing on 22 October 2026 (release sophie-mistral-b6af5d8).
 
 Implemented scope:
 
@@ -1353,10 +1353,10 @@ Implemented scope:
 - Embedded App SDK 2.5.0 pinned on 22 October 2026 (1ca206b, 2515b34): scripts/vendor-embedded-sdk.mjs checks the tarball's npm integrity and SHA-256 and copies the 57 modules reachable from DiscordSDK, Events and Constants byte for byte; the URL patcher (fetch/WebSocket) with its 0BSD tslib helper is not shipped. Bundled zod, uuid, eventemitter3 (MIT) and big-integer (Unlicense, scoped exception) with notices. T-ACT-SDK-01..04.
 - Sign-in round trip, instance lookup and tester gate built on 22 October 2026 (5c3cc6c): code exchange without a redirect URI (identify and rpc.activities.write only), instance checked with the bot token (this server, this member), one-hour in-memory bearer tokens through core principals; shuttle.activity.test admits the server owner and current lead ops role holders, read from Discord on every request. T-ACT-CORE-01..09; storage SA01..SA08 on isolated PostgreSQL.
 - Launch-activity response from the rules post button built on 22 October 2026 (4384b7c), T-ACT-POST-03. Rules post banner format chosen: a 32-column code block with box characters (no ANSI, no image).
+- Deployed in testing on 22 October 2026 (owner approval): core release sophie-mistral-b6af5d8 (schema 074, after fe25c83 failed to start because four SDK modules were missing from Git; 3 min 43 s outage, fixed in b6af5d8), the activity block on 127.0.0.1:38125, commands re-registered with /whitelist post, and onboarding.a13.info routed to core (tunnel configuration v4). Installation, boundary, dashboard and public HTTPS checks passed. Closed screen kept on 38124 for rollback.
 
 Remaining scope:
 
-- Deploy core with migration 074 and the activity block (testing, port 38125), re-register commands, and switch the onboarding.a13.info route from the closed screen to core: each a recorded owner approval.
 - Live sign-in, instance lookup and tester gate inside Discord; platform report for Windows desktop, web, iOS and Android (launch time, layouts, presence, launch notice, Activities permission).
 
 Full task deliverables:
@@ -1375,7 +1375,7 @@ Status: **in_progress**. Phase: Shuttle Activity. Priority: P1.
 
 Depends on: P40, P14, P15, P16. Acceptance: T13, T14, T15, T18, T19, T22, T26, T53, T54, T55, T57.
 
-Owner decisions of 21-22 October 2026. Activity runs, routes and the opening switch are built and tested offline on branch docs/shuttle-activity-plan; not deployed. New runs leave ticket channels only at the opening (decision of 22 October 2026).
+Owner decisions of 21-22 October 2026. Activity runs, routes and the opening switch are built and tested offline on branch docs/shuttle-activity-plan; deployed in testing on 22 October 2026 (sophie-mistral-b6af5d8, migration 074). New runs leave ticket channels only at the opening (decision of 22 October 2026).
 
 Implemented scope:
 
@@ -1467,6 +1467,7 @@ Implemented scope:
 
 - Rules post on 22 October 2026 (4384b7c): /whitelist post posts the departures banner (provenance recorded), dashboard-editable title, body and button wording, and a Board the Shuttle button answering LAUNCH_ACTIVITY. T-ACT-POST-01..03.
 - docs/shuttle-activity.md written on 22 October 2026, with the deployment steps and rollback.
+- /whitelist post registered on 22 October 2026 with the deployment; not yet posted.
 
 Remaining scope:
 

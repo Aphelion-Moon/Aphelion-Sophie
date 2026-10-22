@@ -59,9 +59,9 @@ not start by itself after the host restarts.
 
 ## What replaces it
 
-The Activity itself is served by core on its own loopback port (38125) once deployed; see
-[the Shuttle Activity](shuttle-activity.md). The route for `onboarding.a13.info` then moves from 38124 to 38125. This
-service stays installed (Manual) so the route can be pointed back at it to roll back.
+Since 22 October 2026 the Activity itself is served by core on its own loopback port (38125); see
+[the Shuttle Activity](shuttle-activity.md). The route for `onboarding.a13.info` moved from 38124 to 38125 (tunnel
+configuration version 4). This service stays installed and running so the route can be pointed back at it to roll back.
 
 ## Rollback
 
