@@ -1668,3 +1668,11 @@ simple visual novels, and a workplan. The owner approved the plan, and chose a c
   - The lounge's mothroach walked over a dropped hat; the hat is off its path.
   - Floor holes around the help desk, the bay's luggage, the door's cart wheels, the wet floor sign's legs and the
     monkey: each prop now clears only its own cells.
+- **Installed and published.** On the owner's approval ("Approved: install the sixth pass (source-only update) in the
+  test Discord, then publish story version 5 with the host-only command."):
+  - `a0eb904` was installed at 21:14 UTC: 17 files, no migration, route, service or configuration change; core was
+    down 33 seconds and all checks passed;
+  - the host-only command published the story as Shuttle version 5 (`66da6827…`) at 21:15 UTC, with the owner as
+    author; runs in progress keep their version.
+
+  Folder `.agent_docs/aphelion-sophie/deployment-a0eb904-2026-10-22`.

@@ -1,13 +1,44 @@
 # Verification and release limits
 
+## Staging install of a0eb904 and the story's version 5 — 22 October 2026 (schema 075)
+
+Owner approval: "Approved: install the sixth pass (source-only update) in the test Discord, then publish story version
+5 with the host-only command." Folder `deployment-a0eb904-2026-10-22`, adapted from `f6c787e`.
+
+- **Offline:** see the sixth pass below (`npm test` 799, repository check, storage 1029, none failed).
+- **Install.**
+  - 706 pinned files were verified against Git, and the installed `f6c787e` against its trusted manifest; the archive
+    command reproduces the previous release's zip byte for byte.
+  - 17 files were written, all changed and none new: the Activity page, stylesheet, `shuttle.js`, `presenter.js` and
+    `discord.js`, `moments.json`, the eight scenes, and the scene, `activity-media` and `activity-layout` modules. None
+    were removed. No migration, configuration, credential, route, listener, service or schedule change.
+  - Recovery point `D:\Backups\sophie-staging\source-only-a0eb904-20261022` preserved.
+  - Core and the worker stopped at 21:13:33 UTC and were running again by 21:14:06 UTC (about 33 s).
+  - Pre-start (trust v2 for `sophie-mistral-a0eb904`), boundary, installation (68 checks, including the 16 changed
+    Activity files the page loads served byte for byte, and the layout editor's module and core's messages answering
+    404) and dashboard checks passed, on the first run.
+- **Public.** `onboarding.a13.info` serves the page, the 16 changed Activity files and the scene player byte for byte
+  against the pinned source, `/api/config` answers, and `/api/shuttle` answers 401. The publishing command, its module
+  and core's messages answer 404 on `onboarding.a13.info` and `sophie.a13.info`.
+- **Story version 5,** with the host-only command and the owner as author:
+  - status first: draft revision 4 and version 4 published, as recorded;
+  - saved draft revision 5 (`20ad5a25…`), which the review found valid: version 5, five stages with 3, 2, 2, 2 and 2
+    messages; version 4 had no runs;
+  - published revision 5 as Shuttle version 5 (`66da6827…`) at 21:15:49 UTC, expecting version 4 published; a status
+    afterwards shows version 5 published;
+  - both hashes equal those recomputed from the committed `content/onboarding/story-draft.json`;
+  - existing runs keep their version (the owner's test run is on version 3), so seeing version 5 needs a new run.
+
+Not checked yet: the owner's review in the test Discord.
+
 ## Shuttle Activity sixth pass: staging that follows the reader — 22 October 2026 (schema 075, built offline)
 
 Owner review of the audit build (22 notes) and the approved plan (decision log, "Shuttle Activity sixth pass"). Covers
 paging across message boundaries, break and reveal moments, the click-to-continue mark, the username title, the
 radio meter's wave, Beepsky, the staging lint, the review's scene fixes and story copy version 5.
 
-Source and content only: no migration, configuration, credential, dependency or command change. Not installed. Story
-copy version 5 is not published; new runs read version 4 until it is, and runs in progress keep their version.
+Source and content only: no migration, configuration, credential, dependency or command change. Installed and
+published as recorded above.
 
 - **`npm test`: 799 passed.** New:
   - T-ACT-PAGE-01: pages run across message boundaries, a sign is never split and keeps a short lead-in (a long one

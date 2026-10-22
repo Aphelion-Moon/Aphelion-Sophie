@@ -251,13 +251,13 @@ launch post with `/whitelist post` to show the new wording. An audit of the whol
 cape in locker 12, the gate and its light on phones, the phone baggage hall and cabin, a Codex entry) are installed as
 `sophie-mistral-f6c787e` (source-only, 19:16 UTC). No copy changed.
 
-The sixth pass (the owner's review of the audit build: staging that follows the reader) is built and tested offline,
-not installed yet. It adds paging across message boundaries with signs kept whole and author page breaks, beats that
-start when the typing reaches a phrase, a click-to-continue mark, the member's own name on the title window, the
-radio meter's wave again, Beepsky for the age check, a staging lint and the scene fixes from the review. Its story
-copy is Shuttle version 5 (Beepsky's line, no "read that last bit again", "Real questions are welcome", the sea-lion
-order, no Complete Shuttle instruction), which needs the owner's approval to publish; runs in progress keep their
-version. See the decision log entry "Shuttle Activity sixth pass".
+The sixth pass (the owner's review of the audit build: staging that follows the reader) is installed as
+`sophie-mistral-a0eb904` (source-only, 21:14 UTC, owner approval). It adds paging across message boundaries with signs
+kept whole and author page breaks, beats that start when the typing reaches a phrase, a click-to-continue mark, the
+member's own name on the title window, the radio meter's wave again, Beepsky for the age check, a staging lint and the
+scene fixes from the review. Its story copy is published as Shuttle version 5 (21:15 UTC, host-only command): Beepsky's
+line, no "read that last bit again", "Real questions are welcome", the sea-lion order, no Complete Shuttle
+instruction. Runs in progress keep their version. See the decision log entry "Shuttle Activity sixth pass".
 
 Not yet checked: mobile clients, and whether Discord opens `discord.com/channels` links inside the app.
 
