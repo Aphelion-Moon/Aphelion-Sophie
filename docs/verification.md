@@ -1,5 +1,29 @@
 # Verification and release limits
 
+## Staging install of 052864c: Shuttle Activity second pass — 22 October 2026 (schema 075)
+
+Owner approval: the answer "All at once" in the approved plan (decision log, "Shuttle Activity second pass"). Folder
+`deployment-052864c-2026-10-22`, adapted from `fe25c83` (schema update) and `a723a49` (source-only).
+
+- Prepare: 667 pinned files verified against Git; installed `a723a49` (650 files) verified against its trusted
+  manifest; 43 changes (17 new, 26 changed), no removals; dependencies, licences, provider profile unchanged.
+- Cold recovery point `D:\Backups\sophie-staging\schema075-052864c-20261022` (database 6,579 files, package, trust,
+  services, qualification, renewal, journal), verified.
+- Migration 075 as the owner identity: 107 tables and 22,983 rows unchanged, the new table empty; the core identity got
+  exactly `SELECT, INSERT, UPDATE` on `sophie_core.activity_layouts`. Core, control and knowledge identity checks
+  passed; AI state unchanged.
+- Pre-start: trust v2 for `sophie-mistral-052864c`; configuration unchanged (the activity block as installed);
+  credentials, journal and accepted policy unchanged.
+- Services stopped 11:50:42 UTC and running again by 11:51:21 UTC. Boundary check passed (core owns 38121, 38122, 38125
+  and 47552). Installation check passed (36 checks, including on loopback the Activity page, `/api/config` with the
+  server ID, `moments.json`, a viewscreen and `viewscreen.js`). Dashboard check passed.
+- Public: `onboarding.a13.info` serves the page and eight new or changed client files byte for byte, `/api/config`
+  with `applicationId` and `guildId`, and `/api/shuttle` 401 without sign-in. `sophie.a13.info/activity` redirects
+  to sign-in; `/api/activity-layout` refuses without a session.
+
+**Not covered:** the owner's walk-through in Discord, whether Discord opens `discord.com/channels` links inside the
+app, mobile clients. No Activity layout is published yet (shipped defaults apply).
+
 ## Shuttle Activity second pass — 22 October 2026 (schema 075, built offline)
 
 Owner feedback on `a723a49` and the approved plan (decision log, "Shuttle Activity second pass"): Sophie on every page,

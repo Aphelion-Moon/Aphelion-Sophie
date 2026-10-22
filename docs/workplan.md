@@ -10,7 +10,7 @@ Source requirements remain in the preserved v1.1 pack. Current owner decisions o
 
 Deterministic administration, Whitelist onboarding, protected editors, role/permission configuration and the configurable staging host are implemented.
 
-Recorded baseline: Pinned a723a49/schema074 (release sophie-mistral-a723a49) installed 22 October 10:43 UTC as a source-only update of b6af5d8 (Sophie speaks briefly at each stage). Pinned b6af5d8/schema074 (release sophie-mistral-b6af5d8, branch docs/shuttle-activity-plan) installed 22 October 01:35 UTC as a source-only completion of fe25c83 (01:28 UTC, migration 074, Shuttle Activity in testing on 127.0.0.1:38125), replacing 6c7de3b/schema073. Cold recovery point D:Backupssophie-stagingschema074-fe25c83-20261022. Pinned 25b8085/schema072 (release sophie-mistral-25b8085, the runtime paths of 5fc8442, branch staging/admission-trace) installed 20 October 17:05 UTC as a source-only update of 67c1f4a (15:47 UTC), 334fd97 (14:57 UTC), itself on 20bd3e7 (installed 13:55 UTC with migrations 071-072, replacing 38e4f3a/schema070), with the owner-accepted Mistral processing policy unchanged, Go live in force and a 32 KB prompt budget. Hosting after the d8fb0e5 conversion: core and the AI worker are ordinary Manual services with trust v2 (no expiry); the supervisor is Disabled. Cold recovery point D:\Backups\sophie-staging\schema072-20bd3e7-20261020.
+Recorded baseline: Pinned 052864c/schema075 (release sophie-mistral-052864c) installed 22 October 11:51 UTC as a schema update of a723a49 (Shuttle Activity second pass, migration 075). Cold recovery point D:\Backups\sophie-staging\schema075-052864c-20261022. Pinned a723a49/schema074 (release sophie-mistral-a723a49) installed 22 October 10:43 UTC as a source-only update of b6af5d8 (Sophie speaks briefly at each stage). Pinned b6af5d8/schema074 (release sophie-mistral-b6af5d8, branch docs/shuttle-activity-plan) installed 22 October 01:35 UTC as a source-only completion of fe25c83 (01:28 UTC, migration 074, Shuttle Activity in testing on 127.0.0.1:38125), replacing 6c7de3b/schema073. Cold recovery point D:Backupssophie-stagingschema074-fe25c83-20261022. Pinned 25b8085/schema072 (release sophie-mistral-25b8085, the runtime paths of 5fc8442, branch staging/admission-trace) installed 20 October 17:05 UTC as a source-only update of 67c1f4a (15:47 UTC), 334fd97 (14:57 UTC), itself on 20bd3e7 (installed 13:55 UTC with migrations 071-072, replacing 38e4f3a/schema070), with the owner-accepted Mistral processing policy unchanged, Go live in force and a 32 KB prompt budget. Hosting after the d8fb0e5 conversion: core and the AI worker are ordinary Manual services with trust v2 (no expiry); the supervisor is Disabled. Cold recovery point D:\Backups\sophie-staging\schema072-20bd3e7-20261020.
 
 Current work: Shuttle message groups, faster page turns and no Staff intervention (owner-approved 20 October): status card, plain step messages and a navigation card; instant "Opening…" feedback; Ask Staff removed; shared rate limits, delivery wake-up, boundary-scoped observation sharing and response-confirmed writes; migration 071. Prepared on codex/sophie-social-ai; not yet installed. Open: staging install and live walk-through with timing comparison; Mistral zero data retention; fresh-session join-time consent test; worker denial qualification; production.
 
@@ -1432,7 +1432,7 @@ Status: **in_progress**. Phase: Shuttle Activity. Priority: P1.
 
 Depends on: P41, P42. Acceptance: T13, T14, T42, T43, T52, T53, T54.
 
-Owner decisions of 21 October 2026 (D2, D3, D6, D9, D10) and 22 October 2026 (second pass: SS13 culture only, ASCII viewscreens with links, arrival links, all at once). Client built and tested offline, previewed in a local harness with a fake API, and tested by the owner in the test Discord (a723a49). The second pass is built and verified offline; not yet installed.
+Owner decisions of 21 October 2026 (D2, D3, D6, D9, D10) and 22 October 2026 (second pass: SS13 culture only, ASCII viewscreens with links, arrival links, all at once). Client built and tested offline, previewed in a local harness with a fake API, and tested by the owner in the test Discord (a723a49). The second pass is installed (052864c, schema 075, 22 October 11:51 UTC) for the owner's review.
 
 Implemented scope:
 
@@ -1472,10 +1472,11 @@ Implemented scope:
 - docs/shuttle-activity.md written on 22 October 2026, with the deployment steps and rollback.
 - /whitelist post registered on 22 October 2026 with the deployment; not yet posted.
 - Activity layout editor on 22 October 2026: dashboard page /activity (guidance publishers) choosing each stop's scene, each section's moment and viewscreen, and a curated arrival list of up to 12 channels with notes; numbered versions with operator grant and digest in sophie_core.activity_layouts (migration 075); stale versions, reused request keys, beats the scene cannot draw and unknown stops are refused; core lists only channels the member can view now from current roles and overwrites. T-ACT-LAY-01..03, T-ACT-CHAN-01, T-ACT-CORE-10, storage SA09.
+- Installed 052864c (schema 074 -> 075) on 22 October 2026 at 11:51 UTC with the owner's "All at once" approval: 43 files, migration 075 with the core grant, configuration unchanged; services down about 40 s; boundary, installation, dashboard and public checks passed.
 
 Remaining scope:
 
-- Install with migration 075 in the test Discord (approved by the owner's "All at once" answer) and the owner's review.
+- Owner review of the second pass and the layout editor in the test Discord; the live check of discord.com/channels links.
 - Tester acceptance on the production application, then the owner-approved opening (status open and the rules post).
 
 Full task deliverables:

@@ -163,7 +163,8 @@ registered. Public HTTPS checks passed. Steps 1–3 of "Deploying" are done; see
 deployed in testing" for the record, including a 3 min 43 s outage caused by four SDK files missing from Git.
 
 The owner tested `a723a49` in the test Discord ("It does appear to work"). The second pass (moments, viewscreens,
-arrival links, the layout editor and migration 075) is built and verified offline; see verification.md.
+arrival links, the layout editor and migration 075) is installed as `sophie-mistral-052864c` (schema 075) for the
+owner's review; see verification.md. No Activity layout is published yet, so the shipped defaults apply.
 
 Not yet checked: mobile clients, and whether Discord opens `discord.com/channels` links inside the app.
 

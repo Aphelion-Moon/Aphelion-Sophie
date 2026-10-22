@@ -1425,3 +1425,9 @@ and moments" from the script. The owner approved the plan and answered four ques
 
 The Activity layout editor is the P44 per-stop scene picker. It is presentation data only: it changes which scene a
 stop shows, what each section stages and which channels are listed, never a run, a permission or the published copy.
+
+- **Installed** `052864c` (schema 074 → 075) at 11:50–11:51 UTC with a cold recovery point
+  (`D:\Backups\sophie-staging\schema075-052864c-20261022`): 43 files, migration 075 with `SELECT, INSERT, UPDATE` on
+  `sophie_core.activity_layouts` for the core identity only; no configuration, credential, policy, command, route or
+  dependency change. Services were down about 40 seconds. All checks passed. Folder
+  `.agent_docs/aphelion-sophie/deployment-052864c-2026-10-22`.
