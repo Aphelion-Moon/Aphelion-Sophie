@@ -66,10 +66,10 @@ export const TEXT = Object.freeze({
 /** Shown in the lounge, the hall, the bay, the cabin, at the viewport and at the door. Station flavour, not instructions. */
 export const ANNOUNCEMENTS = Object.freeze({
   'departure-lounge': 'Attention: the Arrivals Shuttle is now boarding.',
-  'baggage-hall': 'Attention: please collect your baggage before boarding.',
+  'baggage-hall': 'Attention: please check in your baggage before boarding.',
   'boarding-cabin': 'Attention: all passengers, please take a seat.',
   'landing-bay': 'Attention: all passengers, please board at Gate 03.',
-  'cabin-turbulence': 'Attention: please fasten your straps for landing.',
+  'cabin-turbulence': 'Attention: please fasten your straps for departure.',
   viewport: 'Attention: passengers may now admire the view.',
   'pressure-door': 'Attention: the Arrivals Shuttle has docked. Watch your step.',
 });
@@ -112,7 +112,8 @@ export const KEYS = Object.freeze([
   ['Tap the text', 'Show it all at once'], ['V', 'Switch the status window: radio or extras'], ['L', 'Station log'], ['Esc', 'Close a panel, or the menu'], ['?', 'This card'],
 ]);
 
-export const CHUNK_LIMIT = 640;
+// About one idea a page, as visual novels pace their text boxes (owner review, 22 October 2026).
+export const CHUNK_LIMIT = 480;
 
 /** Paragraph blocks of one page. A heading always starts a block; a fenced code block is never split. */
 function blocks(page) {
@@ -162,7 +163,8 @@ export function transmissionChunks(pages, limit = CHUNK_LIMIT) {
       if (/^#{1,3} /.test(block) && !block.includes('\n')) { pendingHeading = pendingHeading ? `${pendingHeading}\n\n${block}` : block; continue; }
       const piece = pendingHeading ? `${pendingHeading}\n\n${block}` : block;
       pendingHeading = '';
-      if (current && current.length + 2 + piece.length > limit) { chunks.push(current); current = piece; }
+      // A section (top-level heading) always opens a fresh transmission, so the scene stages exactly what is read.
+      if (current && (/^# /.test(piece) || current.length + 2 + piece.length > limit)) { chunks.push(current); current = piece; }
       else current = current ? `${current}\n\n${piece}` : piece;
     }
     if (pendingHeading) current = current ? `${current}\n\n${pendingHeading}` : pendingHeading;
@@ -189,10 +191,30 @@ export function titleMenu(described, { log = false } = {}) {
   return { items: [...extras, settings, credits], notice };
 }
 
-/** Scene state for a run at one transmission: the board shows the stop; the door shows clearance and the station's counts. */
-export function sceneStateFor(run, chunk = 0, chunks = 1, beat = 'none') {
+/**
+ * The beats staged on the transmissions up to and including this one: what the reader has reached in this stop, by
+ * position, so going Back un-reaches them. Scenes keep a section's results (a banner hung, boxes ticked) from then on.
+ */
+export function reachedBeats(chunks, chunk, moments = {}) {
+  const reached = new Set();
+  for (let i = 0; i <= Math.min(chunk, chunks.length - 1); i++) {
+    const { beat } = momentFor(chunks, i, moments);
+    if (beat !== 'none') reached.add(beat);
+  }
+  return [...reached];
+}
+
+/**
+ * Scene state for a run at one transmission: the board shows the stop and section; the door shows clearance and the
+ * station's counts. Sections are the copy's top-level headings, counted up to this transmission. Once the run is past
+ * reading (clearance, arrival), every beat of the final stop counts as reached.
+ */
+export function sceneStateFor(run, chunk = 0, chunks = [''], beat = 'none', moments = run.moments ?? {}) {
+  const opens = chunks.map(text => /^# /m.test(text));
+  const sections = Math.max(1, opens.filter(Boolean).length), section = Math.max(1, opens.slice(0, chunk + 1).filter(Boolean).length);
+  const reached = run.status === 'reading' ? reachedBeats(chunks, chunk, moments) : reachedBeats(chunks, chunks.length - 1, moments);
   return { stopTitle: run.stops[run.stop]?.title ?? '', stopNumber: run.stop + 1, stopCount: run.stops.length,
-    section: Math.min(chunk + 1, chunks), sections: chunks, whitelist: run.whitelist, beat, link: run.status === 'boarded' ? 'arrived' : 'ready',
+    section: Math.min(section, sections), sections, whitelist: run.whitelist, beat, reached, link: run.status === 'boarded' ? 'arrived' : 'ready',
     crew: run.station?.crew ?? null, online: run.station?.online ?? null };
 }
 
@@ -260,8 +282,8 @@ export function cueEvent(previous, next) {
  * (with fades in seconds), transition (scene swap), transit (the ride, ms), speak (Sophie's burst, ms) and reveal (the
  * text starts). The click sound of the control that caused the event is played by that control, not here.
  */
-export function cueSheet(event, run = null, { transit = false, speech = null } = {}) {
-  const sounds = run ? soundscape('run', run) : soundscape('title');
+export function cueSheet(event, run = null, { transit = false, speech = null, scene = null } = {}) {
+  const sounds = run ? soundscape('run', run, scene) : soundscape('title');
   const ambience = ['ambience', sounds.ambience, { fadeIn: 3, previousFadeOut: 2 }];
   const sheet = {
     title: [[0, 'ambience', sounds.ambience, { fadeIn: 3 }], [2_500, 'music', sounds.music, { fadeIn: 4 }]],
@@ -269,7 +291,7 @@ export function cueSheet(event, run = null, { transit = false, speech = null } =
       ...(run?.stops[run.stop]?.scene === 'departure-lounge' ? [[900, 'play', 'SC-02']] : []),
       [1_200, 'play', 'DLG-03'], [1_400, 'speak', speech ?? 2_400], [1_400, 'reveal']],
     page: [[0, 'play', 'DLG-02'], [150, 'speak', speech ?? 1_200], [150, 'reveal']],
-    clearance: [[0, 'music', null, { previousFadeOut: 2 }], [150, 'transition'], [300, ...ambience], [600, 'play', 'DLG-03'], [800, 'speak', speech ?? 2_400], [800, 'reveal']],
+    clearance: [[0, 'music', null, { previousFadeOut: 2 }], [150, 'transition'], [300, ...ambience], [450, 'play', 'SC-15'], [600, 'play', 'DLG-03'], [800, 'speak', speech ?? 2_400], [800, 'reveal']],
     arrival: [[0, 'play', 'SC-05'], [150, 'transition'], [600, 'play', 'SC-04'], [1_000, ...ambience], [1_200, 'play', 'DLG-03'], [1_400, 'speak', speech ?? 2_400],
       [1_400, 'reveal'], [3_000, 'music', sounds.music, { fadeIn: 4 }]],
   }[event];
@@ -294,13 +316,14 @@ export function dialogueControls(run, chunk, chunks) {
   };
 }
 
-/** Which ambience and music go with a view (cue IDs in content/shuttle-activity/sounds/index.json). */
-export function soundscape(view, run = null) {
+/** Which ambience and music go with a view (cue IDs in content/shuttle-activity/sounds/index.json): the scene on screen, else the stop's. */
+export function soundscape(view, run = null, scene = null) {
   if (view === 'title') return { ambience: 'AMB-01', music: 'MUS-01' };
   if (!run) return { ambience: null, music: null };
   if (run.whitelist === 'confirmed') return { ambience: 'AMB-06', music: 'MUS-02' };
-  const scene = run.stops[run.stop]?.scene;
-  return { ambience: { 'departure-lounge': 'AMB-02', 'baggage-hall': 'AMB-03', 'boarding-cabin': 'AMB-04', viewport: 'AMB-05', 'pressure-door': 'AMB-02' }[scene] ?? null, music: null };
+  const shown = scene ?? run.stops[run.stop]?.scene;
+  return { ambience: { 'departure-lounge': 'AMB-02', 'baggage-hall': 'AMB-03', 'landing-bay': 'AMB-07', 'boarding-cabin': 'AMB-04', 'cabin-turbulence': 'AMB-04', viewport: 'AMB-05',
+    'pressure-door': 'AMB-02' }[shown] ?? null, music: null };
 }
 
 /** Presence line for Discord (owner decision D6): the stop number only, never names or copy. */

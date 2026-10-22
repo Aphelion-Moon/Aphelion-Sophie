@@ -65,6 +65,10 @@
       "~xkcd.com/1053": {
         "beat": "lucky",
         "viewscreen": "ten-thousand"
+      },
+      "the lucky ten thousand": {
+        "beat": "lucky",
+        "viewscreen": "ten-thousand"
       }
     },
     "disembarking": {
@@ -81,6 +85,10 @@
         "beat": "ready"
       },
       "you will need to click the 'get whitelisted' button in game and complete discord sign in to link your account to our server completely": {
+        "beat": "get-whitelisted",
+        "viewscreen": "get-whitelisted"
+      },
+      "one last step, in the game": {
         "beat": "get-whitelisted",
         "viewscreen": "get-whitelisted"
       }

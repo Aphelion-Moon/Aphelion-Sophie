@@ -109,11 +109,14 @@ test('P44 people who walk in and talk keep the section clock: a new beat starts 
   h.player.setState({ stopTitle: 'Synthetic stop', section: 1, sections: 3, beat: 'past' });
   h.run(100, 1);
   // The section changes a hundred seconds in; the next full frame shows the LOOC talk's opening line, not one from mid-cycle.
+  // The pair walk in and talk once on the section's clock; on the wall clock (a hundred seconds in) it would be over.
   h.player.setState({ beat: 'looc' });
+  h.run(3.4);
+  h.resize(960, 400);
   const mark = h.calls.text.length;
   h.run(1 / 12);
   const drawn = h.calls.text.slice(mark).sort((a, b) => a.y - b.y || a.x - b.x).map(call => call.ch).join('');
-  assert.match(drawn, /Doourcharacters/); assert.doesNotMatch(drawn, /Deal\.Seeyou/);
+  assert.match(drawn, /hey,doourcharacters/);
   h.player.destroy();
 });
 

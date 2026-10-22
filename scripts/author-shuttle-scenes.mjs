@@ -327,10 +327,10 @@ function lounge(name) {
   base.put(bx + 6, by + 8, '╪', 'h'); base.put(bx + bw - 7, by + 8, '╪', 'h'); base.put(bx + 6, by + 9, '│', 'H'); base.put(bx + bw - 7, by + 9, '│', 'H');
   base.box(sx0, sy, sx0 + sw - 1, sy + 2, 'h');
   effects.push({ kind: 'text', id: 'strip', x: sx0 + 2, y: sy + 1, width: sw - 4, template: '» {stopTitle} · SECTION {section}/{sections}', colour: 'c', align: 'center' });
-  // Pride: the strip's brackets string up a stripe banner.
+  // Pride: the strip's brackets string up a stripe banner, and it stays up ("it isn't Pride Month, it's just us").
   const pride = new Art(w, h);
   for (let x = bx + 7; x < bx + bw - 7; x++) pride.put(x, by + 9, '▄', String(1 + Math.floor((x - bx - 7) / ((bw - 14) / 7)) % 7));
-  layers.push(layer('pride-banner', pride, { when: { beat: ['pride'] } }));
+  layers.push(layer('pride-banner', pride, { when: { after: ['pride'] } }));
 
   // Help desk terminal: its screen follows the section Sophie is reading.
   const desk = (x, y) => {
@@ -357,11 +357,11 @@ function lounge(name) {
     prop(base, fx, y, ['[!]', 'FIRE'], ['oro', 'dddd']);
     effects.push({ kind: 'blink', id: 'fire-alarm', region: [fx + 1, y, 1, 1], hz: 2, on: 'r', off: 'A', when: { beat: ['amenities'] } });
   };
-  // EXIT, unlit until Sophie reminds you nobody is forcing you aboard.
+  // EXIT is always lit; when Sophie points it out, its arrow chases.
   const exitSign = (x, y) => {
     reserve(x, y, x + 9, y);
-    base.text(x, y, '[ EXIT » ]', 'd');
-    const lit = new Art(w, h); lit.text(x, y, '[ EXIT » ]', '4'); layers.push(layer('exit-lit', lit, { when: { beat: ['voluntary'] } }));
+    base.text(x, y, '[ EXIT » ]', '4');
+    effects.push({ kind: 'blink', id: 'exit-chase', region: [x, y, 10, 1], hz: 1, on: 'c', off: '4', when: { beat: ['voluntary'] } });
   };
   // A station poster nobody reads: do not feed the carp.
   const poster = (x, y) => {
@@ -406,7 +406,14 @@ function lounge(name) {
   const seatY = port ? 19 : 20, sxs = port ? 4 : 14, ex = port ? w - 6 : w - 14;
   for (let x = sxs; x <= ex - 4; x += 6) { base.text(x, seatY, ' ___ ', 'o'); base.text(x, seatY + 1, '|___|', '.'); base.text(x, seatY + 2, ' | | ', 'd'); }
   const tail = new Art(w, h); prop(tail, sxs + 6 * 4 + 4, seatY - 1, ['~@'], ['rr']);
-  layers.push(layer('pride-tail', tail, { when: { beat: ['pride'] } }));
+  layers.push(layer('pride-tail', tail, { when: { after: ['pride'] } }));
+  // Rook and Pip wait for boarding on benches far apart. They have not met yet; they will at the baggage belt.
+  const waiting = new Art(w, h);
+  for (const [seat, [head, headKey, bodyKey]] of [[1, ROOK_LOOK], [7, PIP_LOOK]]) {
+    const x = sxs + 6 * seat + 1;
+    waiting.text(x + 1, seatY - 1, head, headKey); waiting.text(x, seatY, '/|\\', bodyKey);
+  }
+  layers.push(layer('companions-waiting', waiting));
 
   // Floor: perspective tiles, scuffs, cracked tiles and the usual station litter.
   const vx = w / 2, vy = 12;
@@ -430,7 +437,9 @@ function lounge(name) {
   if (port) desk(48, 41); else desk(w - 22, 26);
   effects.push({ kind: 'drift', id: 'dust', region: [port ? 4 : 14, seatY - 4, port ? w - 8 : w - 28, 3], seed: 9, density: 0.02, speed: 0.3, glyphs: '·', colours: 'I' });
   // Ian makes his rounds.
-  effects.push({ kind: 'sprite', id: 'ian', frames: CORGI, from: [-12, port ? 44 : 34], to: [w + 2, port ? 44 : 34], duration: port ? 10 : 14, every: 75, offset: 40, fps: 4 });
+  const ian = { kind: 'sprite', id: 'ian', frames: CORGI, from: [-12, port ? 44 : 34], to: [w + 2, port ? 44 : 34], duration: port ? 10 : 14, every: 75, offset: 40, fps: 4 };
+  // One bark, halfway across.
+  effects.push(ian, crossingCue(ian, 'SC-20', 0.5));
   return { layers: [layer('base', base), ...layers], effects };
 }
 
@@ -476,10 +485,17 @@ function door(name) {
     if (I < 0.04) continue;
     const idx = Math.min(9, Math.floor(I * 10)); light.put(x, y, ramp[idx], idx >= 4 ? 'c' : 'I');
   }
-  const wy = dy1 - 4;
-  light.text(dx0 + 4, wy, '┬' + '─'.repeat(dw - 9) + '┬', 'h'); light.put(dx0 + 4, wy + 1, '│', 'H'); light.put(dx1 - 4, wy + 1, '│', 'H');
-  light.text(cx - 3, wy - 4, '┌────┐', 'h'); light.text(cx - 3, wy - 3, '│ ▒▒ │', 'h'); light.text(cx - 3, wy - 2, '└─┬┬─┘', 'h'); light.text(cx - 1, wy - 1, '││', 'H');
-  layers.push(layer('laboratory', light, { when: { whitelist: ['confirmed'] } }));
+  // Through the open door: the station concourse, its directory sign and people going about their shift.
+  const signW = 20, signX = cx - signW / 2, signY = dy0 + 2;
+  light.fill(signX, signY, signX + signW - 1, signY + 5, ' ', ' ');
+  light.box(signX, signY, signX + signW - 1, signY + 5, 'h');
+  [['CONCOURSE', 'c'], ['» MERIDIAN RIFT', 'a'], ['» WOLFGATE', 'a'], ['» #general', 'h']].forEach(([text, key], r) => light.text(signX + 2, signY + 1 + r, text, key));
+  const floor = dy1 - 2;
+  light.hline(dx0 + 1, dx1 - 1, floor + 1, '─', 'H');
+  for (const [x, look] of [[dx0 + 4, LOOKS[0]], [dx0 + 9, LOOKS[3]], [dx1 - 9, LOOKS[5]], [dx1 - 4, LOOKS[1]]]) {
+    light.put(x, floor - 1, look[0], look[1]); light.put(x, floor, '|', look[2]);
+  }
+  layers.push(layer('concourse', light, { when: { whitelist: ['confirmed'] } }));
 
   const half = dw / 2, hy = dy1 - 6;
   for (const right of [false, true]) {
@@ -556,7 +572,8 @@ function door(name) {
   for (let x = 0; x < w; x++) base.put(x, floorY, x % 4 < 2 ? '/' : ' ', x % 4 < 2 ? 'r' : ' ');
   const clearArea = (x, y, cols, rows) => base.fill(x, y, x + cols - 1, y + rows - 1, ' ', ' ');
   const beatLayer = (id, art, beats) => deck.push(layer(id, art, { when: { beat: beats } }));
-  const rowA = port ? floorY + 3 : floorY + 2, rowB = port ? rowA + 8 : rowA + 8, rowC = rowB + 8;
+  // The first rows in front of the door stay clear: arrivals walk along them to the door queue.
+  const rowA = port ? floorY + 5 : floorY + 4, rowB = rowA + 8, rowC = rowB + 8;
   // Landscape: the checklist and the game monitor hang on the walls either side of the door; portrait: on the deck.
   const at = port
     ? { wet: [2, rowA], feedback: [26, rowA], safe: [w - 17, rowA], checklist: [2, rowB], game: [w - 25, rowB], carts: [2, rowC], vending: [w - 12, rowC] }
@@ -564,10 +581,14 @@ function door(name) {
   {
     // Watch your step and do not run: the janitor mops, and puts the wet floor sign out.
     const [x, y] = at.wet; clearArea(x, y, 22, 6);
-    deck.push(framesLayer('janitor', JANITOR.map(([lines, keys]) => { const art = new Art(w, h); prop(art, x, y + 1, lines, keys); return art; }), 1.5));
-    prop(base, x + 8, y + 3, ['[___]'], 'a');
-    const sign = new Art(w, h); prop(sign, x + 15, y + 1, ...WET_SIGN); sign.text(x + 12, y + 4, 'NO RUNNING', 'r');
-    beatLayer('deck-wet', sign, ['watch-step']);
+    deck.push({ ...framesLayer('janitor', JANITOR.map(([lines, keys]) => { const art = new Art(w, h); prop(art, x, y + 1, lines, keys); return art; }), 1.5), when: { beat: ['watch-step'] } });
+    effects.push({ kind: 'cue', id: 'mop', cue: 'SC-19', at: 0.5, clock: 'beat', when: { beat: ['watch-step'] } });
+    // Once the section is read, the janitor heads off along the deck, job done.
+    effects.push({ kind: 'sprite', id: 'janitor-leaves', frames: JANITOR.map(([lines, keys]) => spriteFrame(lines, keys)), from: [x, y + 1], to: [x, y + 1], duration: 1, hold: 0.5,
+      exit: { to: [-8, y + 1], duration: 4 }, every: 600, fps: 2, clock: 'beat', once: true, when: { beat: ['feedback'] } });
+    const sign = new Art(w, h); prop(sign, x + 15, y + 1, ...WET_SIGN); prop(sign, x + 8, y + 3, ['[___]'], 'a');
+    deck.push(layer('deck-wet', sign, { when: { after: ['watch-step'], until: ['ready'] } }));
+    const running = new Art(w, h); running.text(x + 12, y + 4, 'NO RUNNING', 'r'); beatLayer('deck-no-running', running, ['watch-step']);
     effects.push({ kind: 'blink', id: 'deck-wet-blink', region: [x + 12, y + 4, 10, 1], hz: 1, on: 'r', off: 'A', when: { beat: ['watch-step'] } });
   }
   {
@@ -575,7 +596,8 @@ function door(name) {
     const [x, y] = at.feedback; clearArea(x, y, 16, 6);
     prop(base, x, y + 1, ['┌──────────────┐', '│  FEEDBACK    │', '│   [______]   │', '└──────────────┘'], ['oooooooooooooooo', 'oAAAAAAAAAAAAAAo', 'oddddddddddddddo', 'oooooooooooooooo']);
     const notes = [0, 1, 2, 3].map(f => { const art = new Art(w, h); if (f < 3) art.text(x + 6, y + f, f === 2 ? '[▒]' : '[=]', 'i'); return art; });
-    deck.push({ ...framesLayer('deck-feedback-note', notes, 1.5), when: { beat: ['feedback'] } });
+    deck.push({ ...framesLayer('deck-feedback-note', notes, 1.5), clock: 'beat', once: true, when: { beat: ['feedback'] } });
+    effects.push({ kind: 'cue', id: 'note-in', cue: 'SC-16', at: 1.3, clock: 'beat', when: { beat: ['feedback'] } });
   }
   {
     // Be safe, Spacer: the emergency locker, internals and all.
@@ -591,9 +613,11 @@ function door(name) {
     base.box(x, y, x + 27, y + 5, 'o'); base.text(x + 2, y, ' BOARDING CHECKLIST ', 'A');
     items.forEach((item, i) => base.text(x + 2, y + 1 + i, `[ ] ${item}`, 'I'));
     const ticks = [0, 1, 2, 3, 4].map(f => { const art = new Art(w, h); for (let i = 0; i < Math.min(f, 4); i++) art.put(x + 3, y + 1 + i, 'x', 'c'); if (f === 0) art.put(x + 3, y + 1, ' ', ' '); return art; });
-    deck.push({ ...framesLayer('deck-checklist', ticks, 0.8), when: { beat: ['ready'] } });
+    deck.push({ ...framesLayer('deck-checklist', ticks, 0.8), clock: 'beat', once: true, when: { beat: ['ready'] } });
+    effects.push({ kind: 'cue', id: 'checklist-stamp', cue: 'SC-15', at: 5, clock: 'beat', when: { beat: ['ready'] } });
+    // Ticked stays ticked: on the next section, through clearance and on arrival.
     const done = new Art(w, h); items.forEach((_, i) => done.put(x + 3, y + 1 + i, 'x', 'c'));
-    deck.push(layer('deck-checklist-done', done, { when: { beat: ['get-whitelisted'] } }));
+    deck.push(layer('deck-checklist-done', done, { when: { after: ['ready'], beat: ['get-whitelisted', 'none'] } }));
   }
   {
     // The last step happens in the game: its [ Get Whitelisted ] button.
@@ -601,7 +625,8 @@ function door(name) {
     prop(base, x, y, ['┌─────────────────────┐', '│ MERIDIAN RIFT       │', '│                     │', '│                     │', '└────────┬───┬────────┘', '        /_____\\'], ['ooooooooooooooooooooooo', 'oaaaaaaaaaaaaaa      o', 'o                     o', 'o                     o', 'ooooooooooooooooooooooo', '        ddddddd']);
     base.text(x + 2, y + 2, '[ Get Whitelisted ]', 'H');
     const lit = new Art(w, h); lit.text(x + 2, y + 2, '[ Get Whitelisted ]', 'c'); lit.text(x + 2, y + 3, '> link via Discord', 'I');
-    beatLayer('deck-get-whitelisted', lit, ['get-whitelisted']);
+    // Lit from its section on, and still lit while clearance runs and on arrival: it is the step still to do.
+    deck.push(layer('deck-get-whitelisted', lit, { when: { after: ['get-whitelisted'] } }));
     effects.push({ kind: 'blink', id: 'deck-button-blink', region: [x + 2, y + 2, 19, 1], hz: 1, on: 'c', off: 'h', when: { beat: ['get-whitelisted'] } });
   }
   {
@@ -609,12 +634,29 @@ function door(name) {
     const [x, y] = at.carts;
     clearArea(x, y + 1, 19, 4);
     prop(base, x, y + 1, ['  .--. .__.  ,~~.', ' [====][▓▓▓](====)', '|_________________|', ' o               o'], ['  oooo oooo  IIII', ' AAAAAArrrrrhhhhhh', 'ddddddddddddddddddd', ' d               d']);
+    // The bags checked in at the belt, tagged for where they're going.
+    base.text(x + 1, y, 'MERIDIAN WOLFGATE', 'c');
     const [vx, vy] = at.vending;
     clearArea(vx, vy, 9, 6); prop(base, vx, vy, ...VENDING);
     effects.push({ kind: 'flicker', id: 'cola-neon', region: [vx + 2, vy + 1, 5, 2], hz: 1.5, chance: 0.15, colour: 'd' });
     const plant = (px, py) => { clearArea(px, py, 5, 3); prop(base, px, py, ...PLANT); };
     plant(port ? vx - 7 : x + 22, port ? vy + 3 : y + 2);
     if (!port) { clearArea(w - 25, rowB + 2, 11, 2); prop(base, w - 25, rowB + 2, ['[═════════]', ' |       |'], ['ooooooooooo', ' d       d']); plant(w - 13, rowB + 1); }
+  }
+  // Rook and Pip step off the shuttle at a walk, wait in the door queue through the deck's sections and clearance, say
+  // goodbye at the last step, and walk through the door ahead of you once it opens.
+  {
+    const qy = floorY + 1, queue = [['rook', ROOK, cx - 5], ['pip', PIP, cx + 3]], once = { every: 600, fps: 3, clock: 'beat', once: true };
+    for (const [who, frames, qx] of queue) {
+      effects.push({ kind: 'sprite', id: `${who}-steps-off`, frames, from: [w + 2, qy], to: [qx, qy], duration: who === 'rook' ? 8 : 9, hold: 590, ...once, still: 1, when: { beat: ['watch-step'] } });
+      effects.push({ kind: 'sprite', id: `${who}-queues`, frames, from: [qx, qy], to: [qx, qy], duration: 1, hold: 590, ...once, still: 1,
+        when: { beat: ['feedback', 'be-safe', 'ready', 'get-whitelisted', 'none'], whitelist: ['none', 'requested'] } });
+      effects.push({ kind: 'sprite', id: `${who}-goes-in`, frames, from: [qx, qy], to: [cx - 1, dy1 - 3], duration: 3, hold: 0.5, exit: { to: [cx - 1, dy0 + 4], duration: 2 },
+        ...once, delay: who === 'rook' ? 2 : 3, when: { whitelist: ['confirmed'] } });
+    }
+    const bye = { kind: 'dialogue', id: 'goodbye', speakers: [[cx + 4, qy], [cx - 4, qy]], width: 24, style: 'say', delay: 2, line: 3.5, pause: 1, colours: 'ca', clock: 'beat', once: true,
+      exchanges: [[[0, 'see you on the station?'], [1, "Meridian's that way. walk, don't run."]]], when: { beat: ['get-whitelisted'] } };
+    effects.push(bye, ...blips(bye));
   }
   // Access granted: an ID card, shown only once Discord has applied Whitelist.
   const card = new Art(w, h), cw = 22, ccx = Math.round(w / 2 - cw / 2), ccy = port ? rowC + 1 : rowB + 1;
@@ -627,9 +669,9 @@ function door(name) {
   const [ah, ahk, ab] = LOOKS[3];
   effects.push({ kind: 'sprite', id: 'arrival', frames: walker(ah, ahk, ab), from: [w + 1, h - 6], to: [-4, h - 6], duration: port ? 10 : 14, every: 45, offset: 20, fps: 4 });
 
-  // Order: frame and fittings, the laboratory behind the door, the sliding leaves, then lamp and control text.
+  // Order: frame and fittings, the concourse behind the door, the sliding leaves, then lamp and control text.
   const byId = Object.fromEntries(layers.map(l => [l.id, l]));
-  return { layers: [layer('base', base), byId.laboratory, byId['leaf-left'], byId['leaf-right'], byId['lamp-idle'], byId['lamp-waiting'], byId['lamp-confirmed'],
+  return { layers: [layer('base', base), byId.concourse, byId['leaf-left'], byId['leaf-right'], byId['lamp-idle'], byId['lamp-waiting'], byId['lamp-confirmed'],
     byId['control-idle'], byId['control-waiting'], byId['control-open'], byId.greeters, ...deck], effects };
 }
 
@@ -663,7 +705,11 @@ const BAGS = [
 // for the section being read.
 const ORIGINS = [['BUBBER', 13], ['MONOLITH', 14], ['SPLURT', 13], ['HARDLIGHT', 14], ['NOVA', 13], ['AFTERLIGHT', 14], ['OCULIS', 13],
   ['FRONTIER', 14], ['RATWOOD', 13], ['WAYFARER', 14], ['MARINES', 13]];
-const DENIED = { '*': ['CONTRABAND', 'TOXICITY'], migrating: ['BIGOTRY', 'BLASTWAVE'], past: ['GRUDGES', 'OLD DRAMA'], looc: ['METAGAME', 'ASSUMPTION'] };
+// BLASTWAVE is the bag burning on the floor, so the belt refuses other things while migrating is read.
+const DENIED = { '*': ['CONTRABAND', 'TOXICITY'], migrating: ['BIGOTRY', 'BAN DODGE'], past: ['GRUDGES', 'OLD DRAMA'], looc: ['METAGAME', 'ASSUMPTION'] };
+/** A sound at the middle of each crossing of a passer-by on the scene's clock (sprite with every and offset). */
+const crossingCue = (fx, cue, fraction = 0.5) => ({ kind: 'cue', id: `${fx.id}-sound`, cue, every: fx.every,
+  at: Number((((fx.every - (fx.offset ?? 0) % fx.every) % fx.every) + fx.duration * fraction).toFixed(2)) });
 const PASSENGER = [
   spriteFrame([' o ', '/|\\', '/ \\'], ['iii', 'hhh', 'III']),
   spriteFrame([' o ', '/|\\', ' | '], ['iii', 'hhh', ' I ']),
@@ -720,17 +766,19 @@ function baggage(name) {
     const [lx, ly] = lost, cape = new Art(w, h);
     cape.fill(lx + 1, ly + 1, lx + lockW - 1, ly + 3, ' ', ' ');
     prop(cape, lx + 1, ly + 1, ['UNCLAIM', ' \\~~~/', '  \\_/'], ['AAAAAAA', ' ppppp', '  ppp']);
-    layers.push({ ...layer('lost-cape', cape, { opaque: true }), when: { beat: ['past'] } });
+    // Left behind for good: once the past is left in the past, the cape stays in its locker.
+    layers.push({ ...layer('lost-cape', cape, { opaque: true }), when: { after: ['past'] } });
   }
   // The claim sign and the stop strip: beside the lockers in landscape, under them in portrait.
   const sx = port ? 4 : lockRight + 4, sy = port ? lockBottom + 2 : top + 1, sw = port ? w - 8 : w - lockRight - 6;
-  base.text(sx, sy, 'BAGGAGE CLAIM', 'r'); base.text(sx, sy + 1, '-------------', 'A'); reserve(sx, sy, sx + 12, sy + 1);
+  // Bags are checked in here before boarding: this is a check-in hall, not baggage claim.
+  base.text(sx, sy, 'BAGGAGE CHECK-IN', 'r'); base.text(sx, sy + 1, '----------------', 'A'); reserve(sx, sy, sx + 15, sy + 1);
   strip(base, effects, sx, sy + 2, sw); reserve(sx, sy + 2, sx + sw - 1, sy + 4);
-  if (!port) { base.text(sx, sy + 6, 'ARRIVALS  ─────»  CLAIM', 'A'); base.text(sx, sy + 7, 'ALL BAGS ARE SCANNED', 'I'); reserve(sx, sy + 6, sx + 23, sy + 7); }
+  if (!port) { base.text(sx, sy + 6, 'CHECK-IN  ───»  GATE 03', 'A'); base.text(sx, sy + 7, 'ALL BAGS ARE SCANNED', 'I'); reserve(sx, sy + 6, sx + 23, sy + 7); }
   // The claim terminal, up on the wall to the left of the belt: house rules, or the preferences import.
   const tx = 2, ty = port ? sy + 6 : lockBottom + 2, tw = port ? w - 6 : 46;
   base.fill(tx, ty, tx + tw, ty + 4, ' ', ' '); reserve(tx, ty, tx + tw, ty + 4);
-  base.box(tx, ty, tx + tw, ty + 4, 'o'); base.text(tx + 2, ty, ' CLAIM TERMINAL ', 'A');
+  base.box(tx, ty, tx + tw, ty + 4, 'o'); base.text(tx + 2, ty, ' CHECK-IN TERMINAL ', 'A');
   const notices = new Art(w, h);
   notices.text(tx + 2, ty + 1, 'NO MONKEY CUBES NEAR WATER', 'a'); notices.text(tx + 2, ty + 2, 'TOOLBOXES ARE NOT WEAPONS (USUALLY)', 'A');
   notices.text(tx + 2, ty + 3, 'REFUSED BAGS GO TO DISPOSALS', 'I');
@@ -777,8 +825,16 @@ function baggage(name) {
     after[beat] = items.map(item => item.divert ? '' : beat === 'migrating' ? (ORIGINS[origin++][1] === 13 ? 'MERIDIAN' : 'WOLFGATE') : 'OK');
   }
   const tags = Object.fromEntries(Object.keys(before).map(beat => [beat, { before: before[beat], after: after[beat], beforeColour: beat === 'migrating' ? 'I' : 'p', afterColour: beat === 'migrating' ? 'c' : '4' }]));
-  effects.push({ kind: 'conveyor', id: 'luggage', y: beltY - 2, from: start, to: end, gate: ax, gateWidth: 6, speed, spacing, items, tags,
-    chute: [dx + 6, dy + 1], readout: { x: ax - 1, y: beltY - 6, width: 8, colour: 'a', deniedColour: 'p' } });
+  const luggage = { kind: 'conveyor', id: 'luggage', y: beltY - 2, from: start, to: end, gate: ax, gateWidth: 6, speed, spacing, items, tags,
+    chute: [dx + 6, dy + 1], readout: { x: ax - 1, y: beltY - 6, width: 8, colour: 'a', deniedColour: 'p' } };
+  effects.push(luggage);
+  // The scanner buzzes as a refused bag enters the gate, and the chute takes it as it leaves the belt; in step with the belt.
+  const loop = items.length * spacing, period = loop / speed;
+  for (const i of deniedAt) {
+    const width = Math.max(...items[i].art.text.map(row => [...row].length)), when = x => Number(((((x - start - i * spacing) % loop) + loop) % loop / speed).toFixed(2));
+    effects.push({ kind: 'cue', id: `refused-${i}`, cue: 'SC-14', every: period, at: when(ax - Math.floor(width / 2)) });
+    effects.push({ kind: 'cue', id: `disposed-${i}`, cue: 'SC-13', every: period, at: when(ax + 6 + 1) });
+  }
   wallPanels(base, 0, lockBottom + 1, w - 1, beltY - 4, 7, 12, reserved);
 
   // Floor: claim-hall tiles, a luggage cart, the burning BLASTWAVE bag and its firebot, and a monkey.
@@ -798,17 +854,28 @@ function baggage(name) {
   const bx = port ? 4 : 18, by = port ? fy + 6 : fy;
   clear(bx, by - 1, Array(6).fill(' '.repeat(24)));
   layers.push(blastwave(w, h, bx, by));
+  // The firebot's foam (frame 4 of its 8-second loop), every time the bag lights itself again.
+  effects.push({ kind: 'cue', id: 'firebot-foam', cue: 'SC-12', at: 4, every: 8 });
+  // The spark (frame 7) catches and the flames are back by frame 0.
+  effects.push({ kind: 'cue', id: 'bag-relights', cue: 'SC-21', at: 7.4, every: 8 });
   placeOnFloor(port ? 52 : 44, fy + 2, ["   .__.", "  [▒▒▒▒]", "@('_')@"], ['   oooo', '  AAAAAA', 'rrrrrrr']);
   // LOOC: two returning players meet and check in out of character.
   const meet = port ? [[47, h - 2], [64, h - 2]] : [[73, h - 3], [86, h - 3]];
   // They stand on clear floor, so no tile seam shows between their feet.
   for (const [mx, my] of meet) clear(mx - 1, my - 2, ["   ", "   ", "   "]);
-  effects.push({ kind: 'sprite', id: 'looc-a', frames: PASSENGER, from: [-4, meet[0][1] - 2], to: [meet[0][0] - 1, meet[0][1] - 2], duration: 3, hold: 600 - 3, every: 600, fps: 3, clock: 'beat', when: { beat: ['looc'] } });
-  effects.push({ kind: 'sprite', id: 'looc-b', frames: PASSENGER_B, from: [w + 1, meet[1][1] - 2], to: [meet[1][0] - 1, meet[1][1] - 2], duration: 3, hold: 600 - 3, every: 600, fps: 3, clock: 'beat', when: { beat: ['looc'] } });
-  effects.push({ kind: 'dialogue', id: 'looc-talk', speakers: [[meet[0][0], meet[0][1] - 2], [meet[1][0], meet[1][1] - 2]], width: port ? 30 : 26, style: 'looc',
-    exchanges: [[[0, 'Do our characters know each other here?'], [1, 'Only if we both want it. Fresh start?'], [0, "Fresh start. I'll introduce myself IC."],
-      [1, 'And old server feuds stay on the old server.'], [0, 'Deal. See you in the bar.']]], line: 3.5, pause: 4, colours: 'ih', clock: 'beat', when: { beat: ['looc'] } });
-  effects.push({ kind: 'sprite', id: 'clown', frames: CLOWN, from: [w + 4, h - 5], to: [-10, h - 5], duration: port ? 7 : 11, every: 95, offset: 55, fps: 3 });
+  // Rook and Pip meet at the belt, check in out of character (the copy's own lines), then head off to the gate together.
+  const looc = { when: { beat: ['looc'] } };
+  const talk = { kind: 'dialogue', id: 'looc-talk', speakers: [[meet[0][0], meet[0][1] - 2], [meet[1][0], meet[1][1] - 2]], width: port ? 30 : 26, style: 'looc',
+    exchanges: [[[0, 'hey, do our characters know each other here or are we starting fresh?'], [1, 'never met you lol. first time here'], [0, "fresh start then. I'm Rook"]]],
+    line: 3.5, pause: 1, delay: 3, colours: 'ac', clock: 'beat', once: true, ...looc };
+  const stay = talk.delay + talkLength(talk) - 3;
+  effects.push({ kind: 'sprite', id: 'looc-rook', frames: ROOK, from: [-4, meet[0][1] - 2], to: [meet[0][0] - 1, meet[0][1] - 2], duration: 3, hold: stay,
+    exit: { to: [w + 2, meet[0][1] - 2], duration: 6 }, every: 600, fps: 3, clock: 'beat', once: true, still: 1, ...looc });
+  effects.push({ kind: 'sprite', id: 'looc-pip', frames: PIP, from: [w + 1, meet[1][1] - 2], to: [meet[1][0] - 1, meet[1][1] - 2], duration: 3, hold: stay,
+    exit: { to: [w + 4, meet[1][1] - 2], duration: 3 }, every: 600, fps: 3, clock: 'beat', once: true, still: 1, ...looc });
+  effects.push(talk, ...blips(talk));
+  const clown = { kind: 'sprite', id: 'clown', frames: CLOWN, from: [w + 4, h - 5], to: [-10, h - 5], duration: port ? 7 : 11, every: 95, offset: 55, fps: 3 };
+  effects.push(clown, crossingCue(clown, 'SC-11', 0.3));
   return { layers: [layer('base', base), ...layers], effects };
 }
 
@@ -824,10 +891,25 @@ const walker = (head, headKey, body) => [
 ];
 const seated = (head, headKey, body) => [...walker(head, headKey, body), spriteFrame([` ${head}`, ' |'], [` ${headKey}`, ` ${body}`])];
 const LOOKS = [['o', 'i', 'I'], ['@', 'r', 'a'], ['o', 'i', 'h'], ['Q', '4', '4'], ['o', 'r', 'p'], ['0', 'c', 'H'], ['@', 'a', 'o']];
+// The two companions who travel with the member (decision "The Shuttle as a story"): Rook, a returning player in amber,
+// and Pip, a first-timer in cyan. The same figures in every scene they appear in.
+const ROOK_LOOK = ['@', 'a', 'o'], PIP_LOOK = ['o', 'c', 'h'];
+const ROOK = walker(...ROOK_LOOK), PIP = walker(...PIP_LOOK);
+/** Blips (DLG-06) as each line of a dialogue appears, on the section's clock. */
+const blips = fx => {
+  const out = []; let at = fx.delay ?? 0;
+  fx.exchanges.forEach((exchange, e) => {
+    exchange.forEach((_, i) => out.push({ kind: 'cue', id: `${fx.id}-blip-${e}-${i}`, at: Number((at + i * fx.line).toFixed(2)), cue: 'DLG-06', clock: 'beat', ...(fx.when ? { when: fx.when } : {}) }));
+    at += exchange.length * fx.line + fx.pause;
+  });
+  return out;
+};
+/** How long a dialogue runs from its start (delay excluded): every line and every pause. */
+const talkLength = fx => fx.exchanges.reduce((sum, exchange) => sum + exchange.length * fx.line + fx.pause, 0);
 const SHUTTLE_SIDE = [
   '              ______________________________          ',
   '     ________/  □   □   □   □   □   □   □   \\_____    ',
-  '  __/  ARRIVALS SHUTTLE · APHELION   ┌───┐        \\__ ',
+  '  __/  ARRIVALS SHUTTLE » APHELION   ┌───┐        \\__ ',
   ' <_____________________________________│   │__________>',
   '     \\__/                \\__/        └───┘           ',
 ];
@@ -866,7 +948,7 @@ function landingBay(name) {
   // The gate board: all passengers, boarding. Portrait has no room beside the shuttle, so it stands on the floor.
   const gx = 2, gy = port ? floorY + 3 : oy1 + 5;
   base.fill(gx, gy, gx + 26, gy + 4, ' ', ' ');
-  base.box(gx, gy, gx + 26, gy + 4, 'h'); base.text(gx + 2, gy, ' GATE 03 · ARRIVALS ', 'h');
+  base.box(gx, gy, gx + 26, gy + 4, 'h'); base.text(gx + 2, gy, ' GATE 03 · DEPARTURES ', 'h');
   effects.push({ kind: 'flap', id: 'gate-board', x: gx + 2, y: gy + 2, width: 23, texts: ['ALL PASSENGERS', 'BOARDING NOW', 'MIND THE RAMP'], period: 4, flip: 0.4, colour: 'a', align: 'left' });
   // Ground crew with light wands at the foot of the ramp.
   const footX = doorX - (floorY - sill - 1), crewX = footX - 7;
@@ -882,6 +964,14 @@ function landingBay(name) {
     effects.push({ kind: 'sprite', id: `boarder-${i}-ramp`, frames, from: [walkTo, walkY], to: [doorX - 1, doorY - 2], duration: ramp, every,
       offset: ((every - start - walk) % every + every) % every, fps: 4 });
   });
+  // Rook and Pip lead the first group up the ramp: once, as the section opens.
+  {
+    const walkTo = footX - 2, walk = (walkTo + 4) / speed, ramp = Math.max(1.5, (doorX - walkTo) / 3), when = { beat: ['together'] };
+    for (const [id, frames, delay] of [['board-rook', ROOK, 0.5], ['board-pip', PIP, 1.7]]) {
+      effects.push({ kind: 'sprite', id, frames, from: [-4, walkY], to: [walkTo, walkY], duration: walk, hold: 0.5, exit: { to: [doorX - 1, doorY - 2], duration: ramp },
+        every: 600, fps: 4, clock: 'beat', once: true, delay, when });
+    }
+  }
   // Luggage left by the ramp, and a fuel line along the floor.
   const [lx, ly, fy] = port ? [34, floorY + 4, floorY + 10] : [4, floorY + 3, floorY + 5];
   base.fill(lx, ly, lx + 12, ly + 1, ' ', ' '); prop(base, lx, ly, ['  .--.  .__.', ' [====][▓▓▓▓]'], ['  oooo  oooo', ' AAAAAArrrrrr']);
@@ -940,9 +1030,11 @@ function cabin(name) {
   const BIG_KEYS = [' oo    ', 'oAAo   ', 'oAAo   ', 'oAAoooo', 'oAAAAAAo', 'oooooooo', ' d    d'];
   const fronts = [];
   for (let x = 3; x + 8 < w; x += big) { prop(base, x, fy, BIG, BIG_KEYS); fronts.push(x); }
+  // The front row: a stranger already seated, and Rook a few seats along.
   const front = new Art(w, h);
   const sitAt = (x, head, key, body) => { front.text(x + 5, fy + 1, head, key); front.text(x + 4, fy + 2, '/|', body); front.text(x + 5, fy + 3, '|', body); };
-  sitAt(fronts[1], 'O', 'r', 'a'); if (fronts[3] !== undefined) sitAt(fronts[3], 'O', 'i', 'h');
+  const stranger = fronts[1], rook = fronts[3] ?? fronts.at(-2), pipSeat = fronts[4] ?? fronts.at(-1);
+  sitAt(stranger, 'O', 'r', 'a'); sitAt(rook, ROOK_LOOK[0], ROOK_LOOK[1], ROOK_LOOK[2]);
   layers.push(layer('front-row', front));
   base.hline(0, w - 1, fy + 8, '▀', 'd');
   // The aisle: a drinks trolley parked by the galley, and a carpet runner under the front row.
@@ -950,31 +1042,48 @@ function cabin(name) {
   base.text(w - 30, floor + 4, 'GALLEY', 'A');
   for (let y = fy + 10; y < h; y += 3) for (let x = 0; x < w; x += 4) base.put(x + (y % 2), y, '·', 'd');
   prop(base, 20, fy + 10, [' .--. ', '[====]'], ['oooooo', 'AAAAAA']);
-  // The asker stops in the gap beside the seated passenger, not over a seat.
-  const askerTo = fronts[1] + 10, askY = fy;
-  const ASKER = [spriteFrame([' O ', '/|\\', '/ \\', '/ \\'], [' c ', 'HHH', 'III', 'III']), spriteFrame([' O ', '/|\\', '/ \\', ' | '], [' c ', 'HHH', 'III', ' I '])];
-  effects.push({ kind: 'sprite', id: 'asker', frames: ASKER, from: [w + 2, askY], to: [askerTo, askY], duration: 3, hold: 600 - 3, every: 600, fps: 4, clock: 'beat', when: { beat: ['seat'] } });
-  effects.push({ kind: 'dialogue', id: 'seat-talk', speakers: [[askerTo + 1, askY], [fronts[1] + 5, fy + 1]], width: port ? 28 : 30, style: 'say', delay: 3,
-    exchanges: [[[0, 'Is this seat free?'], [1, 'It is, go ahead.']],
-      [[0, 'Mind if I sit right next to you?'], [1, "I'd rather have the space, sorry."], [0, "No problem. I'll take the window."]]],
-    line: 3, pause: 3, colours: 'ci', clock: 'beat', when: { beat: ['seat'] } });
-  return { layers: [layer('base', base), ...layers], effects };
+  // Pip asks the stranger, takes the no, then asks Rook and sits down beside them. Once, as the section opens.
+  // Pip stands in the gap beside whoever they are asking, never over a seat.
+  const seat = { when: { beat: ['seat'] } }, gapStranger = stranger + 10, gapRook = rook + 10, askY = fy;
+  const ask = { kind: 'dialogue', id: 'seat-ask', speakers: [[gapStranger + 1, askY], [stranger + 5, fy + 1]], width: port ? 28 : 30, style: 'say', delay: 3,
+    exchanges: [[[0, 'ooh, mind if I squeeze in next to you?'], [1, "I'd rather keep the space, sorry."], [0, 'all good!']]], line: 3, pause: 0.5, colours: 'ci', clock: 'beat', once: true, ...seat };
+  const askEnd = ask.delay + talkLength(ask), move = 2.5;
+  const rookAsk = { kind: 'dialogue', id: 'seat-rook', speakers: [[gapRook + 1, askY], [rook + 5, fy + 1]], width: port ? 28 : 30, style: 'say', delay: askEnd + move + 0.5,
+    exchanges: [[[0, 'ROOK. is this one free?'], [1, 'all yours.']]], line: 3, pause: 0.5, colours: 'ca', clock: 'beat', once: true, still: false, ...seat };
+  const rookEnd = rookAsk.delay + talkLength(rookAsk);
+  const PIP_SITTING = spriteFrame([' o', '/|', ' |'], [' c', 'hh', ' h']);
+  effects.push({ kind: 'sprite', id: 'pip-asks', frames: PIP, from: [w + 2, askY], to: [gapStranger, askY], duration: 3, hold: askEnd - 3,
+    exit: { to: [gapRook, askY], duration: move }, every: 600, fps: 4, clock: 'beat', once: true, still: 1, ...seat });
+  effects.push({ kind: 'sprite', id: 'pip-waits', frames: PIP, from: [gapRook, askY], to: [gapRook, askY], duration: 1, hold: rookEnd - askEnd - move - 1,
+    exit: { to: [pipSeat + 4, askY], duration: 1.5 }, every: 600, fps: 4, clock: 'beat', once: true, delay: askEnd + move, ...seat });
+  effects.push({ kind: 'sprite', id: 'pip-sits', frames: [...PIP, PIP_SITTING], from: [pipSeat + 4, fy + 1], to: [pipSeat + 4, fy + 1], duration: 1, hold: 590 - rookEnd,
+    rest: true, every: 600, fps: 4, clock: 'beat', once: true, delay: rookEnd + 1.5, ...seat });
+  effects.push(ask, ...blips(ask), rookAsk, ...blips(rookAsk));
+    return { layers: [layer('base', base), ...layers], effects };
 }
 
-/** The cabin through landing: the forward window shows the pad coming up, a sea lion on it, the bump, and the cabin shakes. */
+/**
+ * The cabin at departure: the forward window shows the launch rail coming up, a sea lion on it demanding explanations,
+ * the bump, the cabin shaking, then the rail dropping away into stars. It plays once as the section opens and holds.
+ */
 function cabinStrike(name) {
   const { cols: w, rows: h } = SCENE_LAYOUTS[name], port = name === 'portrait';
   const base = new Art(w, h), effects = [], layers = [];
   const wx0 = port ? 3 : 10, wx1 = w - 1 - wx0, wy0 = 1, wy1 = port ? 24 : 18;
   for (let y = wy0; y <= wy1; y++) { base.put(wx0, y, '▓', 'o'); base.put(wx0 + 1, y, '▒', 'd'); base.put(wx1 - 1, y, '▒', 'd'); base.put(wx1, y, '▓', 'o'); }
   base.hline(wx0, wx1, wy0, '▓', 'o'); base.hline(wx0, wx1, wy1, '▓', 'o');
-  base.text(wx0 + 3, wy0, ' FORWARD VIEW · FINAL APPROACH ', 'A');
+  base.text(wx0 + 3, wy0, ' FORWARD VIEW · LAUNCH RAIL ', 'A');
   const iw = wx1 - wx0 - 3, ix0 = wx0 + 2, cx = Math.floor((wx0 + wx1) / 2);
   effects.push({ kind: 'drift', id: 'approach-stars', region: [ix0, wy0 + 1, iw, 4], seed: 71, density: 0.05, speed: 2.5, glyphs: ".·'", colours: '..I' });
-  // Sixteen frames, two a second: the pad grows, the sea lion looks up, the bump, then a dazed (unhurt) sea lion.
-  const approach = [];
-  for (let f = 0; f < 16; f++) {
-    const art = new Art(w, h), near = Math.min(1, f / 9), padW = Math.round(14 + near * (iw - 22)), padY = Math.round(wy0 + 8 + near * (wy1 - wy0 - 11));
+  // Eighteen frames, two a second: the rail comes up, the sea lion on it asks (and asks), the bump, a dazed (unhurt)
+  // sea lion, then the rail drops away below as the shuttle lifts. The last frame holds.
+  const approach = [], LINES = { 4: 'EXPLAIN.', 5: 'EXPLAIN.', 6: 'EXPLAIN AGAIN.', 7: 'EXPLAIN AGAIN.', 8: 'JUST ASKING', 9: 'JUST ASKING' };
+  for (let f = 0; f < 18; f++) {
+    const art = new Art(w, h), near = Math.min(1, f / 9), lift = Math.max(0, f - 13);
+    const padW = Math.round(14 + near * (iw - 22)), padY = Math.round(wy0 + 8 + near * (wy1 - wy0 - 11)) + lift;
+    // Lifting off: space fills the window as the rail drops away (the held last frame).
+    if (lift) for (let y = wy0 + 1; y < wy1; y++) for (let x = ix0; x < ix0 + iw; x++) if (hash(x * 7, y * 13 + lift) < 0.012 * lift) art.put(x, y, hash(x, y) < 0.3 ? '+' : '·', hash(y, x) < 0.4 ? 'I' : '.');
+    if (padY >= wy1) { approach.push(art); continue; }
     const px = cx - Math.floor(padW / 2);
     // Approach lights run in from the horizon to the pad's corners and chase towards the window.
     const hy = wy0 + 6;
@@ -986,10 +1095,13 @@ function cabinStrike(name) {
     const stripe = padW > 26 ? '/////  KEEP  CLEAR  /////' : 'KEEP CLEAR';
     art.text(cx - Math.floor(stripe.length / 2), padY - 1, stripe, 'r');
     if (f < 10) {
+      // The shuttle's shadow comes first, so the sea lion and its words sit on top of it.
+      for (let dx = -Math.round(near * 12); dx <= Math.round(near * 12); dx++) if (art.get(cx + dx, padY - 5) === ' ') art.put(cx + dx, padY - 5, '░', 'd');
       const lion = near > 0.5 ? ['   ,-.', ' _/ o \\', '(     _>'] : [' ,o.', '(  _>'];
       prop(art, cx - 4, padY - 1 - lion.length, lion, 'I');
-      if (f >= 6) art.text(cx + 6, padY - 4, '?!', 'a');
-      for (let dx = -Math.round(near * 12); dx <= Math.round(near * 12); dx++) if (art.get(cx + dx, padY - 5) === ' ') art.put(cx + dx, padY - 5, '░', 'd');
+      // Sealioning, literally: it wants it explained, then explained again.
+      if (LINES[f]) art.text(cx + 5, padY - 1 - lion.length - 1, LINES[f], 'a');
+      if (f === 8 || f === 9) art.text(cx + 5, padY - 1 - lion.length, 'QUESTIONS', 'a');
     } else if (f < 12) {
       art.text(cx - 3, padY - 3, 'THUMP', 'a'); art.text(cx - 6, padY - 2, '~~~~~~~~~~~~~', 'I');
     } else {
@@ -998,7 +1110,11 @@ function cabinStrike(name) {
     }
     approach.push(art);
   }
-  layers.push({ ...framesLayer('approach', approach, 2), when: { beat: ['sealion'] } });
+  layers.push({ ...framesLayer('approach', approach, 2), clock: 'beat', once: true, when: { beat: ['sealion'] } });
+  // Sounds on the section's clock: straps, the roll-out, the sea lion each time it asks, and the bump.
+  const strike = { clock: 'beat', when: { beat: ['sealion'] } };
+  effects.push({ kind: 'cue', id: 'straps', cue: 'SC-17', at: 0.3, ...strike }, { kind: 'cue', id: 'launch', cue: 'SC-07', at: 0.8, ...strike },
+    ...[2, 3, 4].map(at => ({ kind: 'cue', id: `sea-lion-${at}`, cue: 'SC-09', at, ...strike })), { kind: 'cue', id: 'bump', cue: 'SC-08', at: 5, ...strike });
   // The cabin below the window: seat backs and heads, and overhead bins that jump on the bump.
   const cy0 = wy1 + 2, signX = cx - 8;
   base.text(signX, cy0, '[ FASTEN STRAPS ]', 'a');
@@ -1010,10 +1126,12 @@ function cabinStrike(name) {
     prop(base, x, y, ['.-------.', '|▓▓▓▓▓▓▓|', '|▓▓▓▓▓▓▓|', "'-------'"], ['ooooooooo', 'oAAAAAAAo', 'oAAAAAAAo', 'ooooooooo']);
   }
   const shake = [];
-  for (let f = 0; f < 16; f++) {
+  for (let f = 0; f < 18; f++) {
     const art = new Art(w, h), jolt = f >= 10 && f < 13 ? [1, -1, 1][f - 10] : 0;
     for (const [r, y] of rowsY.entries()) for (let x = 4 + r * 5, i = 0; x + 9 < w; x += 12, i++) {
-      art.text(x + 4 + jolt, y - 1, hash(i, r) < 0.25 ? '@' : 'o', hash(i, r + 5) < 0.3 ? 'r' : 'i');
+      // Rook and Pip sit together in the front row.
+      const [head, key] = r === 0 && i === 2 ? [ROOK_LOOK[0], ROOK_LOOK[1]] : r === 0 && i === 3 ? [PIP_LOOK[0], PIP_LOOK[1]] : [hash(i, r) < 0.25 ? '@' : 'o', hash(i, r + 5) < 0.3 ? 'r' : 'i'];
+      art.text(x + 4 + jolt, y - 1, head, key);
       if (jolt && hash(i, r + 9) < 0.5) art.text(x + 6 + jolt, y - 2, '!', 'a');
     }
     for (const x of bins) art.text(x + (jolt ? 1 : 0), cy0 + 1 - (jolt ? 1 : 0), jolt ? '[_##_]' : '[____]', 'o');
@@ -1022,7 +1140,7 @@ function cabinStrike(name) {
     art.text(w - 14 + jolt, h - 3 - (jolt ? 1 : 0), jolt ? 'c[_]~' : 'c[_]', jolt ? 'IIIIc' : 'IIII');
     shake.push(art);
   }
-  layers.push({ ...framesLayer('turbulence', shake, 2), when: { beat: ['sealion'] } });
+  layers.push({ ...framesLayer('turbulence', shake, 2), clock: 'beat', once: true, when: { beat: ['sealion'] } });
   // Aisle carpet under the last row.
   for (let y = rowsY.at(-1) + 5; y < h - 2; y += 2) for (let x = 2 + (y % 4); x < w - 2; x += 6) base.put(x, y, '·', 'd');
   base.hline(0, w - 1, h - 2, '▀', 'd');
@@ -1119,7 +1237,11 @@ function viewport(name) {
   effects.push({ kind: 'sprite', id: 'cargo', frames: CARGO, from: [ix0 - 10, iy0 + (port ? 13 : 4)], to: [ix0 + iw, iy0 + (port ? 12 : 3)], duration: 28, every: 75, offset: 40, fps: 2, clip: glass });
   [0, 1, 2].forEach(i => effects.push({ kind: 'sprite', id: `carp-${i + 1}`, frames: CARP_LEFT, from: [ix0 + iw + i * 3, iy0 + (port ? 14 : 10) + i * 2 - (i === 2 ? 3 : 0)],
     to: [ix0 - 8 + i * 3, iy0 + (port ? 16 : 12) + i * 2 - (i === 2 ? 3 : 0)], duration: 16, every: 80, offset: 12 + i * 1.3, fps: 2, clip: glass }));
-  effects.push({ kind: 'sprite', id: 'greytide', frames: GREYTIDE, from: [ix0 + iw - 30, iy0], to: [ix0 + 34, iy0 + 5], duration: 60, every: 140, offset: 75, fps: 0.5, clip: glass });
+  effects.push({ kind: 'sprite', id: 'greytide', frames: GREYTIDE, from: [ix0 + iw - 30, iy0], to: [ix0 + 34, iy0 + 5], duration: 60, every: 140, offset: 75, fps: 0.5, clip: glass,
+    when: { beat: ['none', 'enjoy', 'photos', 'lucky'] } });
+  // When Pip asks what a greytide is, one is drifting past right then, for Rook to point at.
+  effects.push({ kind: 'sprite', id: 'greytide-pointed', frames: GREYTIDE, from: [ix0 + iw - 12, iy0 + 2], to: [ix0 + 14, iy0 + 7], duration: 40, hold: 1, every: 600, fps: 0.5, clip: glass,
+    clock: 'beat', once: true, still: 0.3, when: { beat: ['valuable'] } });
 
   const sw = port ? w - 10 : 50;
   strip(base, effects, Math.floor(w / 2 - sw / 2), fy1 + 1, sw);
@@ -1153,7 +1275,10 @@ function viewport(name) {
     for (let i = 0; i <= Math.min(f, 3); i++) art.text(boothX + 2 + i * 4, boothY + 2, '[▒]', i === Math.min(f, 3) && f < 4 ? 'a' : 'I');
     prints.push(art);
   }
-  layers.push({ ...framesLayer('photo-prints', prints, 1), when: { beat: ['photos', 'lucky'] } });
+  // The prints come out once when the photo is taken, and stay pinned to the booth for the rest of the deck.
+  layers.push({ ...framesLayer('photo-prints', prints, 1), clock: 'beat', once: true, when: { beat: ['photos'] } });
+  const pinned = new Art(w, h); for (let i = 0; i < 4; i++) pinned.text(boothX + 2 + i * 4, boothY + 2, '[▒]', 'I');
+  layers.push(layer('photo-prints-pinned', pinned, { when: { beat: ['lucky'] } }));
 
   // The deck: people on a bench looking out, a telescope, the old camera, a vending machine and plants.
   // The middle stays open: two crew meet there for the lucky ten thousand.
@@ -1181,38 +1306,53 @@ function viewport(name) {
   base.hline(0, w - 1, floorY, '▀', 'd');
   // Enjoy yourselves: a little confetti over the deck.
   effects.push({ kind: 'drift', id: 'confetti', region: [1, backY - 6, w - 2, 6], seed: 34, density: 0.03, speed: 1.2, glyphs: '*·*·', colours: '1357', when: { beat: ['enjoy'] } });
+  effects.push({ kind: 'cue', id: 'popper', cue: 'SC-18', at: 0.5, clock: 'beat', when: { beat: ['enjoy'] } });
+  effects.push({ kind: 'cue', id: 'shutter', cue: 'SC-10', at: 0.6, clock: 'beat', when: { beat: ['photos'] } });
   // Someone strolls past now and then, except while the lucky ten thousand is playing out.
   const [sh, shk, sb] = LOOKS[4];
   effects.push({ kind: 'sprite', id: 'stroller', frames: walker(sh, shk, sb), from: [-4, walkY], to: [w + 1, walkY], duration: port ? 12 : 16, every: 40, offset: 10, fps: 4,
     when: { beat: ['none', 'enjoy', 'valuable', 'photos'] } });
-  // The lucky ten thousand, played out: one crew member can't believe the other has never seen it, and takes them along.
+  // Rook and Pip on the deck: they walk in as the straps come off, stay at the star map through the deck's sections
+  // (learning, a photo), play out the lucky ten thousand, and leave together on its last line.
   const [ax, bx] = port ? [30, 38] : [44, 50];
-  const [ah, ahk, ab] = LOOKS[2], [bh, bhk, bb] = LOOKS[1];
-  effects.push({ kind: 'sprite', id: 'lucky-a', frames: walker(ah, ahk, ab), from: [-4, walkY], to: [ax, walkY], duration: 4, hold: 600 - 4, every: 600, fps: 4, clock: 'beat', when: { beat: ['lucky'] } });
-  effects.push({ kind: 'sprite', id: 'lucky-b', frames: walker(bh, bhk, bb), from: [w + 1, walkY], to: [bx, walkY], duration: 4, hold: 600 - 4, every: 600, fps: 4, clock: 'beat', when: { beat: ['lucky'] } });
-  effects.push({ kind: 'dialogue', id: 'lucky-talk', speakers: [[ax + 1, walkY], [bx + 1, walkY]], width: 26, style: 'say', delay: 4, line: 3.5, pause: 3, colours: 'ca', clock: 'beat',
-    exchanges: [
-      [[0, 'Did you know what happens if you inject water into a banana?'], [1, 'Haha, no? Why?'], [0, "Oh boy, we've got something to do this shift..."]],
-      [[0, "You've never added water to a monkey cube?"], [1, 'A monkey what?'], [0, 'Grab a glass. Not in the kitchen, though.']],
-      [[0, 'Ever seen a welder meet a fuel tank?'], [1, 'No, why?'], [0, "Good. Let's go watch Engineering find out. From over here."]],
-      [[0, "You haven't met Ian yet?"], [1, "Who's Ian?"], [0, "The HoP's corgi. Come on, his rounds start in five."]],
-    ], when: { beat: ['lucky'] } });
-  return { layers: [layer('base', base), ...layers], effects };
+  const once = { every: 600, fps: 4, clock: 'beat', once: true };
+  effects.push({ kind: 'sprite', id: 'rook-arrives', frames: ROOK, from: [-4, walkY], to: [ax, walkY], duration: 4, hold: 590, ...once, still: 1, when: { beat: ['enjoy'] } });
+  effects.push({ kind: 'sprite', id: 'pip-arrives', frames: PIP, from: [-6, walkY], to: [bx, walkY], duration: 5, hold: 590, ...once, delay: 1, when: { beat: ['enjoy'] } });
+  for (const [who, frames, x] of [['rook', ROOK, ax], ['pip', PIP, bx]]) {
+    effects.push({ kind: 'sprite', id: `${who}-stays`, frames, from: [x, walkY], to: [x, walkY], duration: 1, hold: 590, ...once, still: 1, when: { beat: ['valuable', 'photos'] } });
+  }
+  const talk = (id, beat, exchanges, extra = {}) => ({ kind: 'dialogue', id, speakers: [[ax + 1, walkY], [bx + 1, walkY]], width: 26, style: 'say', delay: 1, line: 3.5, pause: 1,
+    colours: 'ac', clock: 'beat', once: true, exchanges, when: { beat: [beat] }, ...extra });
+  const learning = talk('greytide-talk', 'valuable', [[[1, "ok this is probably a dumb question but what's a greytide"], [0, 'not dumb. see the guy floating past the window with the toolbox? greytide.']]], { line: 4.5 });
+  const photo = talk('photo-talk', 'photos', [[[0, 'can I post this one?'], [1, 'sure, just crop my name out']]]);
+  const lucky = talk('lucky-talk', 'lucky', [
+    [[0, 'Did you know what happens if you inject water into a banana?'], [1, 'Haha, no? Why?'], [0, "Oh boy, we've got something to do this shift..."]],
+    [[0, "You've never added water to a monkey cube?"], [1, 'A monkey what?'], [0, 'Grab a glass. Not in the kitchen, though.']],
+    [[0, 'Ever seen a welder meet a fuel tank?'], [1, 'No, why?'], [0, "Good. Let's go watch Engineering find out. From over here."]],
+    [[0, "You haven't met Ian yet?"], [1, "Who's Ian?"], [0, "The HoP's corgi. Come on, his rounds start in five."]],
+  ], { pause: 2 });
+  const together = lucky.delay + talkLength(lucky) - 1;
+  for (const [who, frames, x, leave] of [['rook', ROOK, ax, 6], ['pip', PIP, bx, 5]]) {
+    effects.push({ kind: 'sprite', id: `${who}-leaves`, frames, from: [x, walkY], to: [x, walkY], duration: 1, hold: together, exit: { to: [w + 2, walkY], duration: leave }, ...once, still: 1,
+      when: { beat: ['lucky'] } });
+  }
+  for (const fx of [learning, photo, lucky]) effects.push(fx, ...blips(fx));
+    return { layers: [layer('base', base), ...layers], effects };
 }
 
 const SCENES = [
   { id: 'hangar-viewport', title: 'Hangar viewport', draw: hangar, alt: [{ text: 'A small, distant sun and a long dotted orbit. At its far end the station sits with a blinking light, labelled Aphelion · waking, and a shuttle moves along the orbit towards it. In front, an old painted console with amber screens and switches; a cyan panel is bolted on top with a new cable, and a cyan seam fills a crack in the metal.' }] },
-  { id: 'departure-lounge', title: 'Departure lounge', draw: lounge, beats: LOUNGE_BEATS, alt: [{ text: 'A departure lounge. An old split-flap board in amber shows the current stop boarding. A new cyan strip hangs under it on fresh brackets and shows the current section. On the right a new cyan sign hangs over a faded gate sign. A window on the left shows drifting stars, above rows of worn seats.' }] },
-  { id: 'baggage-hall', title: 'Baggage hall', draw: baggage, beats: BAGGAGE_BEATS, alt: [{ text: 'A baggage hall. A wall of old numbered lockers, a few hanging open, some with new cyan tags bolted on. Suitcases ride a conveyor belt through a new cyan scanner arch, and a cyan strip shows the current stop and section.' }] },
-  { id: 'boarding-cabin', title: 'Boarding cabin', draw: cabin, beats: CABIN_BEATS, alt: [{ text: 'Inside the shuttle cabin. Overhead lockers and round portholes with stars drifting past, above a row of worn amber seats. Passengers file in and take the free seats; in the front row a passenger asks before sitting down. A fasten-straps sign glows.' }] },
-  { id: 'landing-bay', title: 'Landing bay', draw: landingBay, beats: BAY_BEATS, alt: [{ text: 'A landing bay open to space behind a shimmering field. The Arrivals Shuttle waits on its pad with its door open and the ramp down. Passengers walk across the bay in small groups and up the ramp, past a crew member waving light wands, under a gate board that reads All passengers.' }] },
-  { id: 'cabin-turbulence', title: 'Cabin, final approach', draw: cabinStrike, beats: STRIKE_BEATS, alt: [{ text: 'The cabin on final approach. Through the forward window the landing pad marked Keep clear comes up fast with a sea lion sitting on it. There is a thump and a jolt of turbulence; the overhead bins jump and the passengers start. Afterwards the sea lion sits dazed, unhurt, as the fasten-straps sign blinks.' }] },
+  { id: 'departure-lounge', title: 'Departure lounge', draw: lounge, beats: LOUNGE_BEATS, alt: [{ text: 'A departure lounge. An old split-flap board in amber shows the current stop boarding. A new cyan strip hangs under it on fresh brackets and shows the current section. On the right a new cyan sign hangs over a faded gate sign. A window on the left shows drifting stars, above rows of worn seats where two passengers wait.' }] },
+  { id: 'baggage-hall', title: 'Baggage hall', draw: baggage, beats: BAGGAGE_BEATS, alt: [{ text: 'A baggage check-in hall. A wall of old numbered lockers, a few hanging open, some with new cyan tags bolted on. Suitcases ride a conveyor belt through a new cyan scanner arch, and a cyan strip shows the current stop and section.' }] },
+  { id: 'boarding-cabin', title: 'Boarding cabin', draw: cabin, beats: CABIN_BEATS, alt: [{ text: 'Inside the shuttle cabin. Overhead lockers and round portholes with stars drifting past, above a row of worn amber seats. Passengers file in and take the free seats. In the front row Pip asks a passenger to share, takes no for an answer, then asks Rook and sits down beside them. A fasten-straps sign glows.' }] },
+  { id: 'landing-bay', title: 'Departure bay', draw: landingBay, beats: BAY_BEATS, alt: [{ text: 'A departure bay open to space behind a shimmering field. The Arrivals Shuttle to Aphelion waits on its pad at gate 03 with its door open and the ramp down. Passengers walk across the bay in small groups and up the ramp, Rook and Pip in the first group, past a crew member waving light wands.' }] },
+  { id: 'cabin-turbulence', title: 'Cabin, launch rail', draw: cabinStrike, beats: STRIKE_BEATS, alt: [{ text: 'The cabin on the launch rail. Through the forward window the rail comes up with a sea lion sitting on the Keep clear line, asking for one more explanation. There is a thump and a jolt; the overhead bins jump and the passengers start, Rook and Pip among them. The sea lion slides off, dazed and unhurt, and the rail drops away into stars.' }] },
   { id: 'viewport', title: 'Viewport', draw: viewport, beats: VIEWPORT_BEATS, alt: [
-    { when: { beat: ['lucky'] }, text: 'The observation deck. Two crew members meet in front of the window. One cannot believe the other has never heard of it, and takes them along to see: water in a banana, a monkey cube, a welder and a fuel tank, Ian the corgi. A sign counts ten thousand people learning something today.' },
+    { when: { beat: ['lucky'] }, text: 'The observation deck. Rook and Pip stand at the window. Rook cannot believe Pip has never heard of these, and takes them along to see: water in a banana, a monkey cube, a welder and a fuel tank, Ian the corgi. Then they leave together. A sign counts ten thousand people learning something today.' },
     { text: 'A wide observation window in a heavy riveted frame. Outside, a ringed gas giant, a nebula, a comet, the curve of the station dotted with lights, a passing cargo hauler, carp and a drifting assistant with a toolbox. On the deck, panels for the deck, the space weather and a photo booth, people on a bench looking out, a telescope, an old camera and a vending machine.' },
   ] },
-  { id: 'pressure-door', title: 'Pressure door and new laboratory', draw: door, beats: DOOR_BEATS, alt: [
-    { when: { whitelist: ['confirmed'] }, text: 'The pressure door has slid open. Cold white light floods out of a clean new laboratory with a crisp cyan workbench and terminal. The lamp above the door is cyan and the control panel reads: Whitelist confirmed, Discord applied, door open.' },
+  { id: 'pressure-door', title: 'Pressure door and concourse', draw: door, beats: DOOR_BEATS, alt: [
+    { when: { whitelist: ['confirmed'] }, text: 'The pressure door has slid open. Light floods in from the station concourse, where a directory sign points to Meridian Rift, Wolfgate and #general and people go about their shift. Rook and Pip walk through ahead. The lamp above the door is cyan and the control panel reads: Whitelist confirmed, Discord applied, door open.' },
     { when: { whitelist: ['requested'] }, text: 'A battered pressure door with hazard stripes and a stencilled number. New cyan conduits are bolted to its frame. An amber lamp above it blinks, and a cyan control panel reads: Whitelist requested, Discord waiting, door held.' },
     { text: 'A battered pressure door with hazard stripes and a stencilled number. New cyan conduits are bolted to its frame. The lamp above it is dim, and a cyan control panel reads: Whitelist not requested, door held.' },
   ] },

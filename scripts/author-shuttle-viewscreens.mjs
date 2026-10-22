@@ -175,6 +175,8 @@ const MOMENTS = {
       'take photos and make memories': { beat: 'photos' },
       // A key starting with ~ is a phrase: the page that contains it stages this moment. The comic is linked on the last page.
       '~xkcd.com/1053': { beat: 'lucky', viewscreen: 'ten-thousand' },
+      // The story draft gives Ten Thousand a section of its own (content/onboarding/story.md).
+      'the lucky ten thousand': { beat: 'lucky', viewscreen: 'ten-thousand' },
     },
     disembarking: {
       'watch your step and do not run': { beat: 'watch-step' },
@@ -182,6 +184,8 @@ const MOMENTS = {
       'be safe, spacer': { beat: 'be-safe' },
       'ready to disembark': { beat: 'ready' },
       "you will need to click the 'get whitelisted' button in game and complete discord sign in to link your account to our server completely": { beat: 'get-whitelisted', viewscreen: 'get-whitelisted' },
+      // The story draft's shorter heading for the same step; both stay until the story version is published.
+      'one last step, in the game': { beat: 'get-whitelisted', viewscreen: 'get-whitelisted' },
     },
   },
 };

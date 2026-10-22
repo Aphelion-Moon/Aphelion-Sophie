@@ -142,6 +142,16 @@ h2.md-heading { font-size: 1.3em; }
 .radio-text code { background: var(--panel); padding: 0 4px; }
 .radio-text pre { background: var(--panel); padding: 8px; overflow-x: auto; }
 .radio-text blockquote { margin: 0 0 .8em; padding-left: 10px; border-left: 2px solid var(--amber-dim); }
+/* Signs posted in the scene carry the must-know facts: a stencilled plate, not a quote. */
+.md-notice { margin: 0 0 .8em; padding: 8px 10px 4px; border: 1px solid var(--amber-dim); background: var(--panel); }
+.md-notice-label { margin: 0 0 6px; color: var(--amber); font-size: .78em; letter-spacing: .16em; text-transform: uppercase; }
+.md-notice > p:last-child, .md-notice ul:last-child { margin-bottom: 4px; }
+/* People talking: one line each, behind a name tag in the speaker's colour. */
+.md-dialogue { margin: 0 0 .8em; display: grid; gap: 4px; }
+.md-line { margin: 0; }
+.md-speaker { display: inline-block; min-width: 5.5em; margin-right: 4px; color: var(--ivory-dim); font-size: .8em; letter-spacing: .12em; text-transform: uppercase; }
+.md-line[data-speaker="rook"] .md-speaker { color: var(--amber); }
+.md-line[data-speaker="pip"] .md-speaker { color: var(--holo); }
 .radio-text ul, .radio-text ol { margin: 0 0 .8em; padding-left: 1.4em; }
 .radio-text ul { list-style: none; }
 .radio-text ul > li::before { content: '·'; color: var(--holo); margin-left: -1em; margin-right: .6em; }

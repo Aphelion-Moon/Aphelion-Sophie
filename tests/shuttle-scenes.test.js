@@ -47,10 +47,10 @@ test('P42 the pressure door stays shut and says so until Whitelist is confirmed'
   const scene = scenes.find(([, s]) => s.id === 'pressure-door')[1];
   const text = state => composeScene(scene, 'landscape', { time: 1, state: { ...STATE, ...state } }).glyphs.join('\n');
   const waiting = text({ whitelist: 'requested', doorOpen: 1 });
-  assert.match(waiting, /DOOR\s+» HELD/); assert.doesNotMatch(waiting, /@/, 'no laboratory light before confirmation, even if doorOpen is set');
+  assert.match(waiting, /DOOR\s+» HELD/); assert.doesNotMatch(waiting, /CONCOURSE/, 'no view of the concourse before confirmation, even if doorOpen is set');
   assert.equal(waiting, text({ whitelist: 'requested', doorOpen: 0 }), 'the leaves stay shut before confirmation');
   const open = text({ whitelist: 'confirmed', doorOpen: 1 });
-  assert.match(open, /DOOR\s+» OPEN/); assert.match(open, /@/);
+  assert.match(open, /DOOR\s+» OPEN/); assert.match(open, /CONCOURSE/);
   assert.match(sceneAlt(scene, { whitelist: 'requested' }), /door held/); assert.match(sceneAlt(scene, { whitelist: 'confirmed' }), /slid open/);
 });
 
@@ -214,7 +214,7 @@ test('P44 the baggage belt: Meridian for SS 13 bags and Wolfgate for SS 14 while
     belt.items.forEach((item, i) => assert.equal(after[i], item.divert ? '' : SS13.includes(before[i]) ? 'MERIDIAN' : SS14.includes(before[i]) ? 'WOLFGATE' : '?', `${layout} ${before[i]}`));
     for (const origin of [...SS13, ...SS14]) assert.ok(before.includes(origin), `${layout} ${origin}`);
     const refused = beat => belt.items.flatMap((item, i) => item.divert ? [belt.tags[beat].before[i]] : []);
-    assert.deepEqual(refused('*'), ['CONTRABAND', 'TOXICITY']); assert.deepEqual(refused('migrating'), ['BIGOTRY', 'BLASTWAVE']);
+    assert.deepEqual(refused('*'), ['CONTRABAND', 'TOXICITY']); assert.deepEqual(refused('migrating'), ['BIGOTRY', 'BAN DODGE']);
     assert.deepEqual(refused('past'), ['GRUDGES', 'OLD DRAMA']); assert.deepEqual(refused('looc'), ['METAGAME', 'ASSUMPTION']);
     assert.ok(belt.tags['*'].after.every((tag, i) => tag === (belt.items[i].divert ? '' : 'OK')), layout);
     // The chute point is inside the disposal's mouth, and bags rest on the belt with motion off.
@@ -307,7 +307,7 @@ test('P44 Board the Shuttle has a scene for each section: boarders walk to the r
     }
     // The shared seat: passengers sit down and stay, and someone asks before sitting; with motion off the question shows.
     const cabin = scene('boarding-cabin'), seated = composeScene(cabin, layout, { time: 0, state: { ...STATE, beat: 'seat' }, motion: false }).glyphs.join('\n');
-    assert.match(seated, /ONE PASSENGER PER SEAT/); assert.match(seated, /"Is this seat free\?"/);
+    assert.match(seated, /ONE PASSENGER PER SEAT/); assert.match(seated, /"ooh, mind if I squeeze in/); assert.doesNotMatch(seated, /ROOK\. is this one free/, 'one bubble in the still frame');
     assert.ok(cabin.layouts[layout].effects.filter(fx => fx.kind === 'sprite' && fx.rest && fx.clock === 'beat').length >= 4, layout);
     // The bump: the window and the cabin run in step, and the cabin jolts only on the bump frames.
     const strike = scene('cabin-turbulence').layouts[layout].layers;
@@ -315,7 +315,8 @@ test('P44 Board the Shuttle has a scene for each section: boarders walk to the r
     assert.equal(approach.frames.length, shake.frames.length); assert.equal(approach.fps, shake.fps);
     const bump = approach.frames.findIndex(frame => frame.text.join('').includes('THUMP'));
     assert.ok(bump > 0 && shake.frames[bump].text.join('').includes('!') && !shake.frames[0].text.join('').includes('!'), layout);
-    assert.ok(approach.frames.at(-1).text.join('').includes('(__o__>'), 'the sea lion is dazed, not hurt');
+    assert.ok(approach.frames.some(frame => frame.text.join('').includes('(__o__>')), 'the sea lion is dazed, not hurt');
+    assert.ok(approach.once && shake.once && approach.clock === 'beat', 'the strike happens once and holds');
   }
 });
 

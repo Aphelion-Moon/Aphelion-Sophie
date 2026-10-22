@@ -182,14 +182,50 @@ export function renderMarkdown(document, nodes, { onLink, channels = {}, onChann
       case 'heading': fragment.append(element(`h${block.level + 1}`, 'md-heading', inline(block.children))); break;
       case 'subtext': fragment.append(element('p', 'md-subtext', inline(block.children))); break;
       case 'codeblock': fragment.append(element('pre', null, [element('code', null, [document.createTextNode(block.text)])])); break;
-      case 'quote': fragment.append(element('blockquote', null, [renderMarkdown(document, block.children, { onLink, channels, onChannel })])); break;
+      case 'quote': {
+        // A quote whose first line is a bold "NOTICE · ..." label is a sign posted in the scene: the must-know facts.
+        const label = noticeLabel(block.children);
+        if (label === null) { fragment.append(element('blockquote', null, [renderMarkdown(document, block.children, { onLink, channels, onChannel })])); break; }
+        const [first, ...others] = block.children, after = first.children.slice(1);
+        while (after[0]?.type === 'break') after.shift();
+        const body = after.length ? [{ ...first, children: after }, ...others] : others;
+        const sign = element('aside', 'md-notice', [element('p', 'md-notice-label', [document.createTextNode(label)]), renderMarkdown(document, body, { onLink, channels, onChannel })]);
+        sign.setAttribute('aria-label', `Notice: ${label}`);
+        fragment.append(sign); break;
+      }
       case 'list': {
         const list = element(block.ordered ? 'ol' : 'ul', null, block.items.map(item => element('li', item.depth ? `md-depth-${item.depth}` : null, inline(item.children))));
         if (block.ordered && block.start !== 1) list.start = block.start;
         fragment.append(list); break;
       }
-      default: fragment.append(element('p', null, inline(block.children)));
+      default: {
+        // Lines that each open with a bold "Name:" are people talking: one line each, with the speaker's name tag.
+        const lines = linesOf(block.children);
+        if (!lines.every(line => speakerOf(line) !== null)) { fragment.append(element('p', null, inline(block.children))); break; }
+        fragment.append(element('div', 'md-dialogue', lines.map(line => {
+          const name = speakerOf(line), rest = line.slice(1);
+          if (rest[0]?.type === 'text') rest[0] = { ...rest[0], text: rest[0].text.replace(/^\s+/, '') };
+          const row = element('p', 'md-line', [element('span', 'md-speaker', [document.createTextNode(name)]), document.createTextNode(' '), ...inline(rest)]);
+          row.dataset.speaker = name.toLowerCase();
+          return row;
+        })));
+      }
     }
   }
   return fragment;
+}
+
+/** The label of a posted sign: a quote opening with a bold "NOTICE · ..." line; null for an ordinary quote. */
+function noticeLabel(children) {
+  const lead = children[0]?.type === 'paragraph' ? children[0].children[0] : null;
+  const text = lead?.type === 'strong' && lead.children.length === 1 && lead.children[0].type === 'text' ? lead.children[0].text : '';
+  return text.startsWith('NOTICE · ') && text.length > 9 ? text.slice(9) : null;
+}
+/** A paragraph's inline nodes split at its line breaks. */
+const linesOf = children => children.reduce((lines, node) => { if (node.type === 'break') lines.push([]); else lines.at(-1).push(node); return lines; }, [[]]);
+/** The speaker of a dialogue line ("**Rook:** ..."), or null. */
+function speakerOf(line) {
+  const lead = line[0];
+  const text = lead?.type === 'strong' && lead.children.length === 1 && lead.children[0].type === 'text' ? lead.children[0].text : '';
+  return /^[A-Z][A-Za-z]{1,15}:$/.test(text) && line.length > 1 ? text.slice(0, -1) : null;
 }

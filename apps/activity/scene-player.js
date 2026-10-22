@@ -1,4 +1,4 @@
-import { SCENE_COLOURS, SCENE_LAYOUTS, composeScene, sceneAlt, validateScene } from '../../modules/onboarding/scenes.js';
+import { SCENE_COLOURS, SCENE_LAYOUTS, composeScene, sceneAlt, sceneCues, validateScene } from '../../modules/onboarding/scenes.js';
 import { createSceneCanvas } from './scene-canvas.js';
 
 /**
@@ -9,11 +9,11 @@ import { createSceneCanvas } from './scene-canvas.js';
  *
  * Every platform hook is injected so the player can run under test or in Discord's frame.
  */
-export function createScenePlayer({ host, canvas, altElement, palette, background, font, clock, scheduler, observeSize, pixelRatio = () => 1, fps = 12 }) {
+export function createScenePlayer({ host, canvas, altElement, palette, background, font, clock, scheduler, observeSize, pixelRatio = () => 1, fps = 12, onCue: cueHandler = null }) {
   const painter = createSceneCanvas(canvas, { palette, background, font });
   const paused = new Set();
   let scene = null, layout = 'landscape', state = {}, motion = true, frameHandle = null, lastDraw = -Infinity;
-  let confirmedAt = null, beatAt = 0, size = { width: 0, height: 0 };
+  let confirmedAt = null, beatAt = 0, cueClock = -1, cueTime = null, onCue = cueHandler, size = { width: 0, height: 0 };
   const DOOR_SECONDS = 1.8;
 
   function chooseLayout() {
@@ -31,7 +31,11 @@ export function createScenePlayer({ host, canvas, altElement, palette, backgroun
   function render(now) {
     if (!scene || !size.width) return;
     // People who walk in and talk keep their own clock, from the moment the section (beat) or scene began.
-    const frame = composeScene(scene, layout, { time: now, beatTime: Math.max(0, now - beatAt), motion: motion && paused.size === 0, state: { ...state, doorOpen: doorOpen(now) } });
+    const beatTime = Math.max(0, now - beatAt), animating = motion && paused.size === 0;
+    const frame = composeScene(scene, layout, { time: now, beatTime, motion: animating, state: { ...state, doorOpen: doorOpen(now) } });
+    // A scene's sounds play as the section's clock passes them, only while animating; time spent paused skips them.
+    if (onCue && animating && cueTime !== null) for (const cue of sceneCues(scene, layout, { from: cueTime, to: now, beatFrom: cueClock, beatTo: beatTime, state })) onCue(cue);
+    cueClock = beatTime; cueTime = now;
     painter.draw(frame, SCENE_COLOURS);
     lastDraw = now;
   }
@@ -49,17 +53,19 @@ export function createScenePlayer({ host, canvas, altElement, palette, backgroun
 
   return {
     /** Shows a validated scene. */
-    setScene(next) { scene = validateScene(next); beatAt = clock(); wake(); this.refreshAlt(); },
+    setScene(next) { scene = validateScene(next); beatAt = clock(); cueClock = -1; cueTime = null; wake(); this.refreshAlt(); },
     /** Updates run state from the server: stop, section and Whitelist status. */
     setState(next) {
       const was = state.whitelist, wasBeat = state.beat;
       state = { ...state, ...next };
-      if (state.beat !== wasBeat) beatAt = clock();
+      if (state.beat !== wasBeat) { beatAt = clock(); cueClock = -1; }
       if (state.whitelist === 'confirmed' && was !== 'confirmed') confirmedAt = clock();
       if (state.whitelist !== 'confirmed') confirmedAt = null;
       wake(); this.refreshAlt();
     },
     setMotion(on) { motion = Boolean(on); wake(); },
+    /** Where the scene's own sound cues go (the soundboard); null plays none. */
+    setCueHandler(handler) { onCue = typeof handler === 'function' ? handler : null; },
     /** Pauses animation for a reason (hidden, pip, thermal); a still frame stays on screen. */
     setPaused(reason, on) { if (on) paused.add(reason); else paused.delete(reason); wake(); },
     refreshAlt() { if (scene && altElement) altElement.textContent = sceneAlt(scene, state); },

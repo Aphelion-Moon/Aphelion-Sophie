@@ -60,8 +60,17 @@ test('T-ACT-CLI-03 controls: pages before stops, Complete on the last page of th
 });
 
 test('T-ACT-CLI-04 scenes, sound and presence: arrival music only after confirmation; presence names no copy', () => {
-  assert.deepEqual(sceneStateFor(run({ stop: 1 }), 1, 4), { stopTitle: 'Stop 2', stopNumber: 2, stopCount: 5, section: 2, sections: 4, whitelist: 'none', beat: 'none', link: 'ready', crew: null, online: null });
-  assert.equal(sceneStateFor(run({ stop: 1 }), 1, 4, 'pride').beat, 'pride');
+  // Sections are the copy's top-level headings; a section's results stay "reached" from its page on, and all of them
+  // once the run is past reading.
+  const pages = ['# One\nfirst', 'more of one', '# Two\nsecond', 'more of two'], moments = { one: { beat: 'adult' }, two: { beat: 'pride' } };
+  assert.deepEqual(sceneStateFor(run({ stop: 1 }), 1, pages), { stopTitle: 'Stop 2', stopNumber: 2, stopCount: 5, section: 1, sections: 2, whitelist: 'none', beat: 'none',
+    reached: [], link: 'ready', crew: null, online: null });
+  assert.equal(sceneStateFor(run({ stop: 1 }), 2, pages).section, 2);
+  assert.equal(sceneStateFor(run({ stop: 1 }), 1, pages, 'pride').beat, 'pride');
+  assert.deepEqual(sceneStateFor(run({ stop: 1, moments }), 1, pages).reached, ['adult']);
+  assert.deepEqual(sceneStateFor(run({ stop: 1, moments }), 3, pages).reached, ['adult', 'pride']);
+  assert.deepEqual(sceneStateFor(run({ status: 'pending', stop: 4, moments }), 0, pages).reached, ['adult', 'pride']);
+  assert.equal(soundscape('run', run({ stop: 2 }), 'landing-bay').ambience, 'AMB-07', 'the sound follows the scene on screen');
   assert.equal(sceneStateFor(run({ status: 'boarded', stop: 4, whitelist: 'confirmed' })).link, 'arrived');
   assert.deepEqual(soundscape('title'), { ambience: 'AMB-01', music: 'MUS-01' });
   assert.deepEqual(soundscape('run', run({ stop: 2 })), { ambience: 'AMB-04', music: null });

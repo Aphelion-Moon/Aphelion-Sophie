@@ -161,9 +161,12 @@ export function createShuttle({ document, api, connect, player, loadScene, sound
     const id = sceneNow();
     if (id === currentScene) return;
     let loaded = null; try { loaded = await loadScene(id); } catch { return; }
-    if (sceneNow() === id) swapScene(id, loaded, stateNow);
+    if (sceneNow() !== id) return;
+    // The new place sounds like itself and announces itself, as a new stop does.
+    swapScene(id, loaded, stateNow); banner(ANNOUNCEMENTS[id]);
+    sound.ambience(soundscape('run', run, id).ambience, { fadeIn: 2, previousFadeOut: 1.5 });
   }
-  const stateNow = () => sceneStateFor(run, chunk, chunks.length, momentNow().beat);
+  const stateNow = () => sceneStateFor(run, chunk, chunks, momentNow().beat);
   /**
    * Shows a run from the server. A new stop, clearance or arrival plays its cue sheet: the scene changes behind a wipe
    * (after the ride between stops, when motion is on), the sound beds cross-fade, then Sophie comes in with the text.
@@ -179,7 +182,7 @@ export function createShuttle({ document, api, connect, player, loadScene, sound
     sectionScreen = null; showRadio = false; holdTransmission();
     const loaded = loadScene(sceneId).catch(() => null);
     const transit = event === 'stop' && previous?.status === 'reading' && run.stop > previous.stop && motionOn();
-    runCues(cueSheet(event, run, { transit, speech: speechFor() }), {
+    runCues(cueSheet(event, run, { transit, speech: speechFor(), scene: sceneId }), {
       transition: async () => { swapScene(sceneId, await loaded, stateNow); if (event === 'stop') banner(ANNOUNCEMENTS[sceneId]); },
       reveal: renderTransmission,
     });
@@ -190,6 +193,12 @@ export function createShuttle({ document, api, connect, player, loadScene, sound
     for (const moment of Object.values(run.moments ?? {})) if (moment.scene) loadScene(moment.scene).catch(() => {});
     if (following) { const { ambience } = soundscape('run', { ...run, stop: run.stop + 1 }); if (ambience) sound.preload([ambience]); }
     if (run.stop >= run.stops.length - 1) sound.preload(['SC-04', 'SC-05', 'AMB-06', 'MUS-02']);
+    for (const id of new Set([sceneNow(), following?.scene, ...Object.values(run.moments ?? {}).map(moment => moment.scene)])) if (id) preloadSceneSounds(id);
+  }
+  /** A scene's own sounds (the THUMP, the shutter) come with it, so the first one plays on its moment. */
+  function preloadSceneSounds(id) {
+    loadScene(id).then(loaded => sound.preload([...new Set(Object.values(loaded.layouts)
+      .flatMap(layout => layout.effects.filter(fx => fx.kind === 'cue').map(fx => fx.cue)))])).catch(() => {});
   }
   function transmissionText() {
     if (run.status === 'reading') return chunks[chunk];
@@ -218,7 +227,7 @@ export function createShuttle({ document, api, connect, player, loadScene, sound
     $('radio-live').textContent = plainText(tree, channels);
     header();
     $('radio-progress').textContent = run.status === 'reading' && chunks.length > 1 ? chunks.map((_, index) => index === chunk ? '■' : index < chunk ? '▪' : '□').join(' ') : '';
-    player.setState(sceneStateFor(run, chunk, chunks.length, moment.beat));
+    player.setState(sceneStateFor(run, chunk, chunks, moment.beat));
     followScene();
     renderArrival();
     // A new section's extra material replaces the radio in the status window; V switches back for that section.
@@ -546,6 +555,8 @@ export function createShuttle({ document, api, connect, player, loadScene, sound
   return Object.freeze({
     async start() {
       bindSettings(); bindInput(); applySettings(); signal('linking'); showTip();
+      // Scenes play their own moments (the THUMP, the shutter) through the soundboard; a missing sound plays nothing.
+      player.setCueHandler?.(cue => sound.play(cue));
       definitions('codex-list', CODEX); definitions('keys-list', KEYS);
       $('press-text').textContent = TEXT.pressStart; $('status-title').textContent = TEXT.radio; $('status-state').textContent = TEXT.standby;
       $('transit-skip').textContent = TEXT.skip; $('pass-kicker').textContent = TEXT.pass;
