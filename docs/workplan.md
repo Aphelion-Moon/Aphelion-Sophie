@@ -1432,18 +1432,20 @@ Status: **in_progress**. Phase: Shuttle Activity. Priority: P1.
 
 Depends on: P41, P42. Acceptance: T13, T14, T42, T43, T52, T53, T54.
 
-Owner decisions of 21 October 2026 (D2, D3, D6, D9, D10). The client is built and tested offline (086ef05) and previewed in a local harness with a fake API; not run inside Discord.
+Owner decisions of 21 October 2026 (D2, D3, D6, D9, D10) and 22 October 2026 (second pass: SS13 culture only, ASCII viewscreens with links, arrival links, all at once). Client built and tested offline, previewed in a local harness with a fake API, and tested by the owner in the test Discord (a723a49). The second pass is built and verified offline; not yet installed.
 
 Implemented scope:
 
 - Visual-novel client on 22 October 2026 (086ef05): splash and game-style title menu over the animated hangar; Sophie's radio transmissions of the published copy (every character, in order) over each stop's scene and ambience; Whitelist requested and arrival screens (door opens only after confirmation, arrival theme only then); fixed notices for closed, unavailable, in a channel, unpublished, outside Discord and sign-in failure; settings for levels, sound, motion, typed or instant text and text size; keyboard control; landscape overlay and portrait stack; presence with the stop number only; safe markdown with https links opened through Discord. T-ACT-CLI-01..08. Preview: splash, menu, stops, pending, arrival and closed screen at 474x870 and 1280x720 with no console errors.
 - Owner tested in the test Discord on 22 October 2026 ("It does appear to work"). Fix from that test (a723a49, installed 10:43 UTC): Sophie's radio static, RX lamp and text ticks run for 2.4 s as each stage begins and then trail off, instead of for as long as a transmission is on screen; button refreshes no longer re-type the transmission. T-ACT-CLI-09.
+- Second pass on 22 October 2026 (owner feedback on a723a49): cue sheets so sounds filter in (title, stop, page, clearance, arrival) with ambience cross-fades and music ducking about 6 dB under Sophie; Sophie speaks 2.4 s at each stage and 1.2 s on every page, then trails off; a 400 ms wipe between scenes and a skippable 1.5 s ride between stops (motion on only); moments from the script (21 section headings mapped to scene beats, content/shuttle-activity/moments.json); six viewscreens of original ASCII art with https link cards (sea lion with the Wikipedia article, xkcd Ten Thousand as a link only, Aphelion links, rules, preferences import, Get Whitelisted), opened by their section, the View chip or V; station announcements, Tip of the Round, COMMON 145.9 radio header, HoP clearance line, Konami clown car; channel chips, emoji shortcodes and styled @names in the copy; arrival cards for channels the member can now see. T-ACT-CUE-01..02, T-ACT-MOM-01..03, T-ACT-MD-01, T-ACT-AUD-01, T-ACT-CLI-10.
+- Title sections on 22 October 2026: Station log (this run's transmissions), Codex (fixed glossary) and a keys card ("?"); settings add master volume and text speed; swipe, 44 px tap targets; the title link panel reads truthfully per state (link state key) and floats above the console in portrait so the menu never covers it; the splash Enter no longer also presses Board; phone-width overflow in the radio header fixed.
+- Scenes on 22 October 2026: beat and link state keys, sprite effect (carp, Ian, clown, monkey, sea lion), limits 48 layers and 64 effects; the lounge has a panelled wall with framed gridded windows, wall fittings, a detailed floor and cycling departures; the baggage belt runs with the bags. tests/shuttle-scenes.test.js 12 tests.
 
 Remaining scope:
 
-- Section registry for the title screen with Station log and Codex reserved and hidden; a transmission log.
-- Owner review of the client and its wording (presenter.js TEXT). The hangar art's link panel still reads "READY TO BOARD" on refusal screens: owner to choose the wording.
-- Checks inside Discord: audio unlock, picture-in-picture, mobile portrait, presence, screen readers.
+- Owner review of the second pass in the test Discord, including the wording in presenter.js (TEXT, ANNOUNCEMENTS, TIPS, CODEX) and moments.json.
+- Checks inside Discord: whether discord.com/channels links open inside the app (desktop and mobile), audio unlock, picture-in-picture, mobile portrait, presence, screen readers.
 
 Full task deliverables:
 
@@ -1462,17 +1464,18 @@ Status: **in_progress**. Phase: Shuttle Activity. Priority: P1.
 
 Depends on: P43. Acceptance: T05, T19, T42, T55.
 
-Owner decisions of 21 October 2026 (D5) and 22 October 2026 (ticket switch at the opening). Rules post, launch response and opening switch built and tested offline (4384b7c); docs/shuttle-activity.md written.
+Owner decisions of 21 October 2026 (D5) and 22 October 2026 (ticket switch at the opening; arrival links and the layout editor). Rules post, launch response and opening switch built and tested offline (4384b7c); the layout editor (per-stop scene picker) built and verified offline; docs/shuttle-activity.md updated.
 
 Implemented scope:
 
 - Rules post on 22 October 2026 (4384b7c): /whitelist post posts the departures banner (provenance recorded), dashboard-editable title, body and button wording, and a Board the Shuttle button answering LAUNCH_ACTIVITY. T-ACT-POST-01..03.
 - docs/shuttle-activity.md written on 22 October 2026, with the deployment steps and rollback.
 - /whitelist post registered on 22 October 2026 with the deployment; not yet posted.
+- Activity layout editor on 22 October 2026: dashboard page /activity (guidance publishers) choosing each stop's scene, each section's moment and viewscreen, and a curated arrival list of up to 12 channels with notes; numbered versions with operator grant and digest in sophie_core.activity_layouts (migration 075); stale versions, reused request keys, beats the scene cannot draw and unknown stops are refused; core lists only channels the member can view now from current roles and overwrites. T-ACT-LAY-01..03, T-ACT-CHAN-01, T-ACT-CORE-10, storage SA09.
 
 Remaining scope:
 
-- Per-stop scene picker in the Shuttle editor, saved with the publication (today the scene follows the stop's position).
+- Install with migration 075 in the test Discord (approved by the owner's "All at once" answer) and the owner's review.
 - Tester acceptance on the production application, then the owner-approved opening (status open and the rules post).
 
 Full task deliverables:

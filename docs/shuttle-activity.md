@@ -1,7 +1,8 @@
 # The Shuttle Activity
 
 Scope: P40–P44. Owner decisions: "The Shuttle becomes an Activity" (21 October 2026, D1–D10), "Shuttle Activity
-application and hostname", and "Shuttle Activity: SDK, testers and the ticket switch" (22 October 2026), all in
+application and hostname", "Shuttle Activity: SDK, testers and the ticket switch" and "Shuttle Activity second pass:
+moments, viewscreens and arrival links" (22 October 2026), all in
 [0001](decisions/0001-owner-policy.md). Scenes: [shuttle-activity-scenes.md](shuttle-activity-scenes.md). Sounds:
 [shuttle-activity-sounds.md](shuttle-activity-sounds.md). Closed screen: [shuttle-activity-closed-screen.md](shuttle-activity-closed-screen.md).
 
@@ -33,9 +34,13 @@ It needs the dashboard's OAuth configuration (the same application and client se
 | Tester gate | `shuttle.activity.test` in `apps/core/security/authorization.js` |
 | Activity runs | `apps/core/storage/shuttle-activity.js`, migration `074-shuttle-activity-runs.sql` |
 | Run view, stop scenes, configuration | `modules/onboarding/activity.js` |
+| Moments and viewscreens (format) | `modules/onboarding/activity-media.js`; content in `content/shuttle-activity/moments.json` and `viewscreens/`, written by `scripts/author-shuttle-viewscreens.mjs` |
+| Layout editor (scene per stop, moments, arrival list) | `modules/onboarding/activity-layout.js`, `apps/core/storage/activity-layout.js`, migration `075-activity-layouts.sql`, `apps/core/http/activity-layout.js`, dashboard page `/activity` |
+| Channel links | `apps/core/discord/activity-channels.js` |
+| Shipped content core reads at start | `apps/activity/content.js` |
 | Rules post | `modules/onboarding/activity-post.js`, `/whitelist post`, banner provenance in `content/shuttle-activity/rules-post-banner.json` |
 | Client | `apps/activity/client/` (page, controller, presenter, markdown, sound, SDK adapter), `apps/activity/scene-*.js` |
-| Files the client may load | `apps/activity/client-assets.js` (page, module graph, SDK, font, scenes, sounds; pinned hashes checked) |
+| Files the client may load | `apps/activity/client-assets.js` (page, module graph, SDK, font, scenes, viewscreens, moments, sounds; pinned hashes checked) |
 | SDK | `apps/activity/vendor/embedded-app-sdk/`, pinned in `legal/embedded-app-sdk.json` by `scripts/vendor-embedded-sdk.mjs` |
 
 ## Routes
@@ -45,15 +50,40 @@ words, never codes, IDs or messages.
 
 | Route | What it does |
 |---|---|
-| `GET /api/config` | The public application ID the SDK needs. |
+| `GET /api/config` | The public application ID the SDK needs, and the server ID for channel links. |
 | `POST /api/session` `{code, instanceId}` | Exchanges the Discord code (no redirect URI; only `identify` and `rpc.activities.write`), checks the instance with the bot token (this server, this member in it) and that the member is present, then issues a one-hour in-memory bearer token. The Discord access token is returned once for the SDK and never stored. 60 sign-ins a minute at most. |
 | `POST /api/session/end` | Forgets the token. |
-| `GET /api/shuttle` | What to show: `closed`, `unavailable`, `elsewhere`, `unpublished`, `ready` (with the stops) or `run`. |
+| `GET /api/shuttle` | What to show: `closed`, `unavailable`, `elsewhere`, `unpublished`, `ready` (with the stops) or `run`. A run carries the current stop's moments, `channels` (channels its copy names that the member can see) and, once Whitelist is confirmed, `arrival`. |
 | `POST /api/shuttle/board` `{requestId}` | Starts a run, or resumes the current Activity run. |
 | `POST /api/shuttle/act` `{requestId, action, expectedVersion}` | `advance`, `back` or `retry` (Check) on the current Activity run. |
 
 Every Shuttle request resolves the member through core principals, reads Discord afresh and authorizes again in the
 store. A click keeps one `requestId` through its retries; receipts make a repeat change nothing.
+
+The dashboard serves the layout editor at `GET /api/activity-layout` and `POST /api/activity-layout/publish`
+`{requestId, expectedVersion, document}` (guidance publishers, `shuttle.publish`, with the dashboard's session and
+CSRF checks).
+
+## Channel links
+
+Channel references in a stop's copy (`<#id>` mentions and `#channel-name` text) become chips, and after Whitelist is
+confirmed the arrival screen lists "Now open to you": the curated list from the layout editor, or, without one, the
+channels the final stop names. Core keeps only text, announcement and forum channels the member can view at that
+moment, computed from their current roles and the channel's overwrites (`channelPermissions`), with the channel list
+cached for at most 15 seconds. A hidden channel's name never reaches the client. If Discord cannot be read, the run
+shows no chips and an empty arrival list, and the Shuttle carries on. A chip opens
+`https://discord.com/channels/<server>/<channel>` through the SDK; if Discord does not open it, the Activity says which
+channel to look for instead.
+
+## Layout editor
+
+Dashboard → Shuttle → Activity layout (`/activity`), for guidance publishers. For each published stop: the scene
+(default by position), and per section heading a moment (a beat the chosen scene draws, or the plain scene) with an
+optional viewscreen. Plus the curated arrival list: up to 12 channel IDs with notes of up to 120 characters. Each
+publish is a numbered version with who published it and a digest; a stale version or a reused request key is refused,
+beats must belong to the chosen scene and stops must be published stages. Until a layout is published, the shipped
+defaults in `content/shuttle-activity/moments.json` apply. A layout is presentation only: it never changes a run, a
+permission or the copy.
 
 ## Who gets in
 
@@ -76,11 +106,26 @@ sessions the Activity drives.
 
 ## The client
 
-Splash ("press any key"), then a game-style menu over the animated hangar. Each stop has its scene and ambience;
-Sophie's transmissions are the stop's published pages split into screen-sized pieces (every character, in order).
-Settings: music, ambience, radio and effect levels, sound on/off, motion, typed or instant text, text size. Keyboard:
-arrows, Enter/Space, Escape. Landscape overlays the transmission on the scene; portrait stacks it. Presence shows the
-stop number only. Links in the copy open through Discord's own confirmation, and only https links are links.
+Splash ("press any key", with a Tip of the Round), then a game-style menu over the animated hangar, whose Shuttle Link
+panel says only what the server last reported (ready, not boarding yet, finish in your channel, held, arrived, no
+signal). Each stop has its scene and ambience; Sophie's transmissions on the `COMMON · 145.9` radio are the stop's
+published pages split into screen-sized pieces (every character, in order).
+
+- **Pacing.** Each event plays a cue sheet (`cueSheet` in `presenter.js`) so pieces filter in: a new stop sounds the
+  departure, wipes to the new scene (after a skippable 1.5 s ride between stops when motion is on), cross-fades the
+  ambience, then the roger beep, then Sophie and the text. Sophie speaks for 2.4 s as a stage begins and 1.2 s on each
+  page, then trails off; music ducks about 6 dB under her. Pressing Next during a cue sheet skips to the text.
+- **Moments.** A section heading can stage a beat in the scene (`moments.json`, or the published layout) and open a
+  viewscreen: original ASCII art with https link cards, reopened with the View chip or V, closed with Esc or the next
+  page. A station announcement opens each stop; clearance adds "The HoP is processing your ID card…".
+- **Title sections.** Station log (this run's transmissions), Codex (a fixed glossary), Settings and Credits. "?" shows
+  the keys; L opens the log.
+- **Settings:** volume, music, ambience, radio and effect levels, sound on/off, motion, typed or instant text, text
+  speed, text size.
+- **Input:** arrows, Enter/Space, Backspace, Escape, swipe on touch screens; 44 px tap targets. Landscape overlays the
+  transmission on the scene; portrait stacks it.
+- Presence shows "Riding the Arrivals Shuttle" and the stop number only. Links in the copy open through Discord's own
+  confirmation, and only https links are links. `:wink:`-style shortcodes show as emoji; `@name` is styled text.
 
 Console logs are not forwarded to Discord (`disableConsoleLogOverride`). Nothing is stored in the browser except the
 member's settings.
@@ -106,8 +151,9 @@ stop opening Onboarding channels. Channel runs already in progress carry on in t
 ## Rollback
 
 Point the tunnel route back at the closed screen (38124), or remove the `activity` block (the listener stops). Setting
-`status` back to `testing` restores the channel Shuttle for new runs. Migration 074 only adds a table; Activity runs are
-ordinary sessions and their Whitelist outcomes stand.
+`status` back to `testing` restores the channel Shuttle for new runs. Migrations 074 and 075 only add tables; Activity
+runs are ordinary sessions and their Whitelist outcomes stand, and a published layout is presentation only (an older
+build ignores it).
 
 ## Status (22 October 2026)
 
@@ -116,8 +162,10 @@ Deployed in testing (owner approval): core release `sophie-mistral-b6af5d8` (sch
 registered. Public HTTPS checks passed. Steps 1–3 of "Deploying" are done; see the decision log entry "Shuttle Activity
 deployed in testing" for the record, including a 3 min 43 s outage caused by four SDK files missing from Git.
 
-Not yet checked: signing in and boarding inside Discord's frame, and any mobile client.
+The owner tested `a723a49` in the test Discord ("It does appear to work"). The second pass (moments, viewscreens,
+arrival links, the layout editor and migration 075) is built and verified offline; see verification.md.
+
+Not yet checked: mobile clients, and whether Discord opens `discord.com/channels` links inside the app.
 
 Not built yet: moving an in-progress channel run into the Activity at the same step; a text version reachable from the
-rules post; the title screen's section registry (Station log, Codex); a transmission log; the per-stop scene picker in
-the Shuttle editor.
+rules post.

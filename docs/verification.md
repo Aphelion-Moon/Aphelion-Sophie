@@ -1,5 +1,24 @@
 # Verification and release limits
 
+## Shuttle Activity second pass — 22 October 2026 (schema 075, built offline)
+
+Owner feedback on `a723a49` and the approved plan (decision log, "Shuttle Activity second pass"): Sophie on every page,
+staggered sound, scene fixes, moments and SS13 culture, viewscreens, arrival links and the layout editor (migration 075).
+
+- `npm test` 743 passed (new: `tests/activity-moments.test.js` T-ACT-CUE-01..02, T-ACT-MOM-01..03, T-ACT-MD-01,
+  T-ACT-CHAN-01, T-ACT-LAY-01..03, T-ACT-AUD-01, T-ACT-CLI-10; T-ACT-CORE-10; scene tests for beats, sprites, the belt
+  and the title panel). Repository check passed.
+- `npm run test:storage:fast` 1027 passed, none failed (new SA09: layout versions, refusals, runs using the layout,
+  digest check).
+- Preview harness (fake API, no Discord), 1280x720 and 375x812: staggered cues logged in order (title ambience, then
+  the theme at +2.5 s; departure, ambience +0.3 s, split-flap +0.9 s, beep +1.2 s, Sophie and text +1.4 s; page sound,
+  then Sophie for 1.2 s); beats in the lounge and cabin; sea-lion, preferences and Ten Thousand viewscreens; the ride
+  between stops; arrival cards and the fallback notice; no console errors. Fixed during preview: the splash Enter also
+  pressed Board, the portrait title menu covered the link panel, and the radio header overflowed at phone width.
+
+**Not covered:** the installed build, Discord's handling of `discord.com/channels` links, mobile clients, real audio
+timing on the owner's devices.
+
 ## Staging install of a723a49: Sophie speaks briefly — 22 October 2026 (schema 074)
 
 Owner, after testing in the test Discord: "sophie's radio-speech VFX NEVER stops. She is constantly yapping. She should

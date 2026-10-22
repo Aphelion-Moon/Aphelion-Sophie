@@ -1402,3 +1402,26 @@ switch onboarding.a13.info from the closed screen to core."
   (`aphelion-bot-activity`, 38124) stays installed and running for rollback.
 - Deployment folders: `.agent_docs/aphelion-sophie/deployment-fe25c83-2026-10-22` and `deployment-b6af5d8-2026-10-22`.
   The Activity is still in testing; the opening and the rules post are separate approvals.
+
+### Shuttle Activity second pass: moments, viewscreens and arrival links — 22 October 2026
+
+After testing `a723a49` in the test Discord, the owner asked for: Sophie to speak a little on every page, not only at
+the start of a stop; sounds that filter in instead of starting together; more floor detail and a real window wall in
+The Brochure; the baggage belt to run with the bags; somewhere to pop up imagery at Board the Shuttle and Admire the
+Lights; links to newly opened Discord sections at Disembarking; SS13 easter eggs throughout; and "plenty more details
+and moments" from the script. The owner approved the plan and answered four questions:
+
+- **SS13 references: shared culture only.** Space carp, Ian, the clown, greytide, robust toolboxes, wet floor signs,
+  the HoP, LOOC, Tip of the Round, radio channels. No NanoTrasen, CentCom, Syndicate or Lavaland, and no SS13 sprites or
+  sounds: all art is original ASCII by the coding agent with provenance, and the one approved sound set is unchanged.
+- **Pop-ups: ASCII art plus links.** Viewscreens show original ASCII art and up to six https link cards opened through
+  Discord's confirmation; no third-party images are copied (the xkcd comic and the Wikipedia article are links only).
+- **Arrival links: both.** Channels named in the copy become chips, and a curated arrival list is edited in the
+  dashboard (Activity layout, guidance publishers). Core lists only channels the member can view at that moment, from
+  their current roles and each channel's overwrites; a hidden channel's name never reaches the client.
+- **Delivery: all at once.** Build everything, then one deployment (migration 075) to the test Discord for the owner's
+  review. This answer is the recorded approval for that one deployment; the opening and the rules post stay separate
+  approvals.
+
+The Activity layout editor is the P44 per-stop scene picker. It is presentation data only: it changes which scene a
+stop shows, what each section stages and which channels are listed, never a run, a permission or the published copy.
