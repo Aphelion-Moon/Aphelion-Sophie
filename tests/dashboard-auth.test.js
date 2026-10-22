@@ -33,8 +33,21 @@ test('OAuth requests bind one exact callback and identify scope without client-s
   assert.deepEqual(provider.state.calls.map(call => call.method), ['POST', 'GET']);
 });
 
+test('a member who also signed in to the Shuttle Activity can still sign in to the dashboard', async () => {
+  for (const scope of ['identify rpc.activities.write', 'rpc.activities.write identify']) {
+    const provider = simulatedOAuth(); provider.state.tokenOverride = { scope };
+    const oauth = create(provider), proof = await oauth.exchange(provider.issueCode());
+    assert.deepEqual(oauth.resolveIdentity(proof), { guildId: GUILD, userId: OTHER });
+    assert.deepEqual(provider.state.calls.map(call => call.method), ['POST', 'GET']);
+  }
+});
+
 test('OAuth failures are bounded and redacted, never retried or accepted with broader scopes', async () => {
-  for (const tokenOverride of [{ scope: 'identify email' }, { token_type: 'Unknown' }, { access_token: '\r\nsecret' }]) {
+  for (const scope of ['identify email', 'rpc.activities.write', 'identify identify', '']) {
+    const provider = simulatedOAuth(); provider.state.tokenOverride = { scope };
+    await assert.rejects(create(provider).exchange(provider.issueCode()), /OAUTH_SCOPE_UNEXPECTED/); assert.equal(provider.state.calls.length, 1);
+  }
+  for (const tokenOverride of [{ token_type: 'Unknown' }, { access_token: '\r\nsecret' }]) {
     const provider = simulatedOAuth(); provider.state.tokenOverride = tokenOverride;
     await assert.rejects(create(provider).exchange(provider.issueCode()), /OAUTH_RESPONSE_INVALID/); assert.equal(provider.state.calls.length, 1);
   }

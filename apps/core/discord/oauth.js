@@ -36,8 +36,13 @@ export function createDiscordOAuth({ configuration, clientSecret, fetch, clock, 
         headers: { 'Content-Type': 'application/x-www-form-urlencoded',
           Authorization: `Basic ${Buffer.from(`${fixed.applicationId}:${clientSecret}`).toString('base64')}` },
         body: new URLSearchParams({ grant_type: 'authorization_code', code, redirect_uri: redirectUri }).toString() });
-      requireCondition(token.token_type === 'Bearer' && token.scope === 'identify' && typeof token.access_token === 'string' &&
+      requireCondition(token.token_type === 'Bearer' && typeof token.access_token === 'string' &&
         /^[A-Za-z0-9._~-]{16,2048}$/.test(token.access_token), 'OAUTH_RESPONSE_INVALID'); requireInteger(token.expires_in, 1, 31_536_000);
+      // Discord reports every scope the member has granted this application, so after a Shuttle Activity sign-in a
+      // dashboard code also carries the Activity's presence scope. Only users/@me is ever called with it.
+      const scopes = typeof token.scope === 'string' ? token.scope.split(' ') : [];
+      requireCondition(scopes.includes('identify') && new Set(scopes).size === scopes.length &&
+        scopes.every(scope => ['identify', 'rpc.activities.write'].includes(scope)), 'OAUTH_SCOPE_UNEXPECTED');
       const user = await request('https://discord.com/api/v10/users/@me', { method: 'GET', headers: { Authorization: `Bearer ${token.access_token}` } });
       requireId(user.id); requireCondition(user.bot !== true, 'OAUTH_IDENTITY_INVALID');
       requireCondition(await enabled() === true, 'OAUTH_DISABLED');
