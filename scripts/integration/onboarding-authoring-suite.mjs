@@ -8,6 +8,7 @@ import { shuttleGroup } from '../../tests/fixtures/onboarding-group.js';
 import { DASHBOARD_COOKIES } from '../../contracts/dashboard-auth.js';
 import { createDashboardAuthHttpServer } from '../../apps/core/http/dashboard-auth.js';
 import { authDigest, sessionCsrf } from '../../apps/core/security/dashboard-auth.js';
+import { createLocalShuttlePublisher } from '../../apps/core/operator/local-shuttle-publisher.js';
 
 export async function runOnboardingAuthoringSuite(cluster, run) {
   const scenario = (name, work) => run(name, async () => { await work(await authoringWorkflow(cluster)); });
@@ -309,5 +310,27 @@ export async function runOnboardingAuthoringSuite(cluster, run) {
       assert.equal((await http(address, '/auth/logout', { method: 'POST', headers })).status, 200);
       assert.equal((await get('/auth/session')).status, 403); assert.equal((await get('/api/shuttle/draft')).status, 403);
     });
+  });
+
+  await scenario('E25 the host-only command publishes as the recorded guild owner through the same store, marked in the audit; others are refused', async f => {
+    const ownerId = f.discord.state.ownerId; f.discord.state.members.set(ownerId, []);
+    // The owner signs in once (Sophie records her observation); the command then works from that record without Discord.
+    await f.editorActor(ownerId);
+    await f.save(); assert.equal((await f.rows('shuttle_editor_actions'))[0].result.origin, undefined, 'dashboard actions are unmarked');
+    const calls = f.discord.state.calls.length;
+    const local = authorId => createLocalShuttlePublisher({ pool: f.pool, guildId: GUILD, definitionId: publication.id, authorId });
+    await assert.rejects(local(OTHER).status(), /LOCAL_OPERATOR_AUTHOR_NOT_OWNER/, 'a lead editor is not the owner');
+    await assert.rejects(local('100000000000000031').status(), /LOCAL_OPERATOR_AUTHOR_UNKNOWN/);
+    const document = draftDocument(); document.stages[0].body = 'New synthetic guidance from the host.';
+    const saved = await local(ownerId).save(document);
+    assert.equal(saved.revision, 2); assert.equal(saved.review.valid, true); assert.equal(saved.review.version, 2);
+    await assert.rejects(local(ownerId).publish({ revision: 2, sha256: saved.sha256, expectedLatestVersion: 0, expectedLatestStatus: 'none' }), /SHUTTLE_PUBLICATION_STALE/);
+    const published = await local(ownerId).publish({ revision: 2, sha256: saved.sha256, expectedLatestVersion: 1, expectedLatestStatus: 'published' });
+    assert.equal(published.version, 2); assert.equal(published.preservesExistingRuns, true);
+    const actions = (await f.rows('shuttle_editor_actions')).slice(1);
+    assert.deepEqual(actions.map(row => [row.action, row.result.origin, row.operator_grant.userId]), [['save', 'local-operator', ownerId], ['publish', 'local-operator', ownerId]]);
+    const row = (await f.rows('shuttle_publications')).find(item => item.definition_version === 2);
+    assert.equal(row.publication.stages[0].body, document.stages[0].body); assert.equal(row.operator_grant.userId, ownerId);
+    assert.equal(f.discord.state.calls.length, calls, 'no Discord call from the host-only command');
   });
 }

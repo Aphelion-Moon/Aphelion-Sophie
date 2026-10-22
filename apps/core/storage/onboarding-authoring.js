@@ -13,9 +13,14 @@ const draftMetadata = row => row ? { revision: row.revision, sha256: row.sha256,
 const publicationMetadata = row => row ? { version: row.version, status: row.status, sha256: row.sha256,
   authorId: row.operator_grant?.userId ?? null, createdAt: row.created_at?.toISOString() ?? null, contentAvailable: row.sha256 !== null } : null;
 
-/** A configured definition only; no actor overrides, member/session detail or arbitrary configuration keys. */
-export function createOnboardingAuthoringStore({ pool, authorize, guildId, definitionId }) {
+/**
+ * A configured definition only; no actor overrides, member/session detail or arbitrary configuration keys. `origin`
+ * names the route for the audit: the dashboard, or the host-only operator command (owner decision, 22 October 2026),
+ * whose actions are marked in their audit row.
+ */
+export function createOnboardingAuthoringStore({ pool, authorize, guildId, definitionId, origin = 'dashboard' }) {
   requireId(guildId); requireName(definitionId); requireCondition(typeof authorize === 'function', 'TRUSTED_ADAPTERS_REQUIRED');
+  requireCondition(['dashboard', 'local-operator'].includes(origin), 'TRUSTED_ADAPTERS_REQUIRED');
   const args = [guildId, definitionId];
   const access = async actor => {
     requireCondition(await authorize('shuttle.publish', actor, { guildId, definitionId }) === true, 'OPERATION_DENIED');
@@ -58,7 +63,8 @@ export function createOnboardingAuthoringStore({ pool, authorize, guildId, defin
   async function audit(client, grant, requestId, request, before, after, version, result) {
     await client.query(`INSERT INTO sophie_core.shuttle_editor_actions
       (guild_id, request_id, definition_id, request_sha256, action, before_revision, after_revision, publication_version, operator_grant, result)
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`, [guildId, requestId, definitionId, digest(request), request.action, before, after, version, grant, result]);
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`, [guildId, requestId, definitionId, digest(request), request.action, before, after, version, grant,
+      origin === 'dashboard' ? result : { ...result, origin }]);
     return result;
   }
   return Object.freeze({

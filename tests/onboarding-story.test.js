@@ -4,6 +4,7 @@ import { readFile } from 'node:fs/promises';
 import { createHash } from 'node:crypto';
 import { paginateStaticText } from '../modules/onboarding/presentation.js';
 import { validatePublication } from '../modules/onboarding/screens.js';
+import { canonicalOnboardingDraft, reviewOnboardingDraft } from '../modules/onboarding/authoring.js';
 
 const root = new URL('../', import.meta.url);
 const story = JSON.parse(await readFile(new URL('content/onboarding/story-definition.json', root), 'utf8'));
@@ -18,6 +19,12 @@ test('T-STORY-01 the story draft is built from its source, five stages, Discord-
     assert.ok(page.messages.every(message => message.length > 0 && message.length <= 1_800));
   }
   validatePublication({ id: story.id, version: story.version, helpPauses: false, stages: story.stages.map(({ id, title, body }) => ({ id, title, body })) });
+  // The editor document that gets published is exactly these stages, and the editor's own review accepts it.
+  const draft = JSON.parse(await readFile(new URL('content/onboarding/story-draft.json', root), 'utf8'));
+  assert.deepEqual(draft, { helpPauses: false, stages: story.stages.map(({ id, title, body }) => ({ id, title, body })) });
+  assert.deepEqual(canonicalOnboardingDraft(draft), draft);
+  const review = reviewOnboardingDraft('shuttle', 2, draft);
+  assert.equal(review.valid, true); assert.deepEqual(review.pages.map(page => page.segments), story.stages.map(item => item.messages));
 });
 
 // The owner's guidance in the original copy, point by point (decision "The Shuttle as a story"): the wording is casual,

@@ -27,6 +27,9 @@ const result = {
   stages: stages.map(({ id, title, body }) => ({ id, title, body, messages: paginateStaticText(body) })),
 };
 await writeFile(new URL('content/onboarding/story-definition.json', root), `${JSON.stringify(result, null, 2)}\n`);
+// The Shuttle editor's draft document for the same stages: what the editor, or the host-only command, saves and publishes.
+const draft = { helpPauses: false, stages: result.stages.map(({ id, title, body }) => ({ id, title, body })) };
+await writeFile(new URL('content/onboarding/story-draft.json', root), `${JSON.stringify(draft, null, 2)}\n`);
 const preview = ['# Shuttle story draft', '', 'For owner review. Not published. Edit content/onboarding/story.md and rebuild.', '',
   `Source SHA-256: \`${result.source.sha256}\`.`, ''];
 for (const page of [{ title: 'Boarding call', ...result.entry }, ...result.stages]) {
