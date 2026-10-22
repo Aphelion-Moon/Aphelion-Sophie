@@ -3,7 +3,7 @@ import { requireCondition } from '../../contracts/validation.js';
 import { canonicalKnowledgeDocument, SYNCED_KNOWLEDGE_KINDS } from '../../modules/assistant/knowledge.js';
 
 const digest = value => createHash('sha256').update(JSON.stringify(value)).digest('hex');
-export const SYNC_PREFIXES = Object.freeze(['wiki', 'site', 'gh']);
+export const SYNC_PREFIXES = Object.freeze(['wiki', 'site', 'gh', 'guide']);
 export const SYNC_DOCUMENT_LIMIT = 2000;
 const REFRESH_BEFORE_MS = 2 * 86400000;
 const comparable = document => { const { fetchedAt: _fetched, validUntil: _valid, ...rest } = canonicalKnowledgeDocument(document); return digest(rest); };

@@ -15,7 +15,7 @@ export function createSourceReader({ fetchImpl = fetch, origins, prefix }) {
     for (let hop = 0; ; hop++) {
       requireCondition(url.protocol === 'https:' && allowed.has(url.origin) && !url.username && !url.password, `${prefix}_SOURCE_SCOPE_CHANGED`);
       const response = await fetchImpl(url, { method: 'GET', redirect: 'manual', credentials: 'omit', signal,
-        headers: { accept, 'user-agent': SYNC_USER_AGENT, ...headers } });
+        headers: { accept, 'user-agent': SYNC_USER_AGENT, ...(hop === 0 ? headers : {}) } });
       if ([301, 302, 303, 307, 308].includes(response.status)) {
         await response.body?.cancel().catch(() => {});
         const location = response.headers.get('location');
@@ -52,6 +52,6 @@ export function createSourceReader({ fetchImpl = fetch, origins, prefix }) {
 /** Maps any thrown value to a fixed code with the collector's prefix. */
 export function sourceErrorCode(error, prefix, signal) {
   const message = typeof error?.message === 'string' ? error.message : '';
-  if (new RegExp(`^${prefix}_[A-Z_]+$`, 'u').test(message) || /^(?:WIKI|SITE|GITHUB)_[A-Z_]+$/u.test(message)) return message;
+  if (new RegExp(`^${prefix}_[A-Z_]+$`, 'u').test(message) || /^(?:WIKI|SITE|GITHUB|GUIDE)_[A-Z_]+$/u.test(message)) return message;
   return signal?.aborted ? `${prefix}_SYNC_CANCELLED` : `${prefix}_SYNC_FAILED`;
 }

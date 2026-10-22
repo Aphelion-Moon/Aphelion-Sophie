@@ -185,7 +185,7 @@ test('KS-08 the synchronizer runs the public sources even when the Policies refr
   const sync = createKnowledgeSynchronizer({ qualified: async () => true, onFault: code => faults.push(code), setTimer: callback => { next = callback; return 1; }, clearTimer: () => {},
     library: { synchronizePolicies: async () => { throw new Error('WIKI_SOURCE_UNAVAILABLE'); } }, sources: { runDue: async () => { ran++; } } });
   sync.start(); await tick(); await tick();
-  assert.equal(ran, 1); assert.deepEqual(faults, ['KNOWLEDGE_SYNC_UNAVAILABLE']); assert.equal(sync.status().publishesAutomatically, true);
+  assert.equal(ran, 1); assert.deepEqual(faults, ['KNOWLEDGE_SYNC_UNAVAILABLE_WIKI_SOURCE_UNAVAILABLE']); assert.equal(sync.status().publishesAutomatically, true);
   await sync.stop(); assert.equal(typeof next, 'function');
 });
 

@@ -21,7 +21,8 @@ export function createKnowledgeSynchronizer({library,qualified,sources=null,inte
         // The Policies snapshot and the public sources fail independently.
         if(sources!==null && !signal.aborted && await qualified()===true) await sources.runDue({signal});
       }
-    }).catch(()=>{try{onFault('KNOWLEDGE_SYNC_UNAVAILABLE');}catch{}}).finally(()=>{
+    }).catch(error=>{try{const code=error?.code ?? error?.message;
+      onFault(typeof code==='string' && /^[A-Z][A-Z0-9_]{2,40}$/u.test(code) ? `KNOWLEDGE_SYNC_UNAVAILABLE_${code}` : 'KNOWLEDGE_SYNC_UNAVAILABLE');}catch{}}).finally(()=>{
       controller=null;if(!stopped){timer=setTimer(tick,intervalMs);timer.unref?.();}
     });
   }

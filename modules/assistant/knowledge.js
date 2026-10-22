@@ -2,7 +2,7 @@ import { requireCondition, requireId, requireInteger, requireKeys, requireName }
 
 export const MEDIAWIKI_EXTRACTOR_REVISION = 'mediawiki-structured-v1';
 /** Kinds the source synchronizer owns and publishes on its own (owner decision, 12 October 2026). */
-export const SYNCED_KNOWLEDGE_KINDS = Object.freeze(['wiki-page', 'website', 'repository']);
+export const SYNCED_KNOWLEDGE_KINDS = Object.freeze(['wiki-page', 'website', 'repository', 'guidebook']);
 
 export function canonicalKnowledgeDocument(value) {
   requireKeys(value, ['id', 'title', 'kind', 'authority', 'url', 'rights', 'attribution', 'sourceRevision', 'dependencyHash', 'fetchedAt', 'validUntil', 'aliases', 'sections'], 'KNOWLEDGE_DOCUMENT_INVALID');
@@ -11,7 +11,9 @@ export function canonicalKnowledgeDocument(value) {
   text(value.title, 200); text(value.rights, 300); text(value.attribution, 500); text(value.sourceRevision, 160);
   requireCondition(['owner-publication','mediawiki',...SYNCED_KNOWLEDGE_KINDS].includes(value.kind) && ['policy','lore','reference','community-event'].includes(value.authority), 'KNOWLEDGE_DOCUMENT_INVALID');
   text(value.url, 1000); const url = new URL(value.url);
-  requireCondition(url.protocol === 'https:' && !url.username && !url.password && url.port === '' && !url.hash, 'KNOWLEDGE_URL_INVALID');
+  // The Wolfgate Guidebook routes to an entry by fragment (#EntryId); no other kind may carry one.
+  requireCondition(url.protocol === 'https:' && !url.username && !url.password && url.port === '' &&
+    (!url.hash || value.kind === 'guidebook' && /^#[A-Za-z0-9_.-]{1,100}$/u.test(url.hash)), 'KNOWLEDGE_URL_INVALID');
   requireCondition(/^[a-f0-9]{64}$/.test(value.dependencyHash), 'KNOWLEDGE_DOCUMENT_INVALID');
   requireInteger(value.fetchedAt); if (value.validUntil !== null) requireInteger(value.validUntil, value.fetchedAt + 1000, value.fetchedAt + 7 * 86400000);
   requireCondition(value.kind === 'owner-publication' || value.validUntil !== null, 'KNOWLEDGE_FRESHNESS_REQUIRED');

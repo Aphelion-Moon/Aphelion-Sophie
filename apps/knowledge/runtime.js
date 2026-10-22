@@ -7,9 +7,10 @@ import { createSourceSync } from './source-sync.js';
 import { createWikiCollector } from './sources/wiki.js';
 import { createWebsiteCollector } from './sources/website.js';
 import { createGithubCollector } from './sources/github.js';
+import { createGuideCollector } from './sources/guide.js';
 
 /** Native-process composition. Inject a separately restricted DB identity and current host qualification. */
-export function createKnowledgeRuntime({pool,guildId,authorize,restoreCurrent,qualified,fetchImpl=fetch,clock=Date.now,onFault=()=>{},invalidate=()=>{},syncSources=true}) {
+export function createKnowledgeRuntime({pool,guildId,authorize,restoreCurrent,qualified,fetchImpl=fetch,clock=Date.now,onFault=()=>{},invalidate=()=>{},syncSources=true,githubToken=null}) {
   requireCondition(typeof qualified==='function','TRUSTED_ADAPTERS_REQUIRED');
   const ready=async()=>await qualified()===true && await restoreCurrent()===true;
   const library=createKnowledgeLibrary({pool,guildId,authorize,restoreCurrent:ready,clock,
@@ -17,7 +18,8 @@ export function createKnowledgeRuntime({pool,guildId,authorize,restoreCurrent,qu
   // The public-source collections get their own parser so they never contend with a Policies refresh.
   const sourceExtractor=createWikiExtractor();
   const sources=syncSources?createSourceSync({mirror:library.mirror,clock,onFault,collectors:[
-    createWikiCollector({fetchImpl,extractor:sourceExtractor,clock}),createWebsiteCollector({fetchImpl,extractor:sourceExtractor,clock}),createGithubCollector({fetchImpl,clock})]}):null;
+    createWikiCollector({fetchImpl,extractor:sourceExtractor,clock}),createWebsiteCollector({fetchImpl,extractor:sourceExtractor,clock}),createGithubCollector({fetchImpl,clock,token:githubToken}),
+    createGuideCollector({fetchImpl,clock})]}):null;
   const synchronizer=createKnowledgeSynchronizer({library,qualified:ready,sources,onFault});
   const sourcesStatus=async({actor})=>{
     const published=await library.mirror.summary({actor});

@@ -170,7 +170,7 @@ test('SAI AT-12 JSON mode is independently validated; empty, truncated, tool, re
 test('SAI AT-12 byte budget removes whole optional evidence and its citation choices, preserving mandatory policy/question', async () => {
   const source = { id: 'guide.r1.s0', text: 'Synthetic evidence '.repeat(210) };
   const payload = prompt({ sources: [source] });
-  const f = fixture({ maxPromptBytes: 5120, response: () => Response.json(completion({ choices: [{ finish_reason: 'stop', message: { role: 'assistant', content: '{"kind":"silent"}' } }] })) });
+  const f = fixture({ maxPromptBytes: 5632, response: () => Response.json(completion({ choices: [{ finish_reason: 'stop', message: { role: 'assistant', content: '{"kind":"silent"}' } }] })) });
   assert.deepEqual(await f.generate(payload), { kind: 'silent' });
   const sent = f.calls[0].body.messages;
   assert.deepEqual(sent[0], payload.messages[0]); assert.deepEqual(sent.at(-1), payload.messages.at(-1));
@@ -224,9 +224,9 @@ test('SAI AT-13 external abort cancels the HTTP call; deadline/size failures can
 });
 
 test('DS-02 preparation freezes the full outbound request and exposes only safe block diagnostics', async () => {
-  const f = fixture({ maxPromptBytes: 5120 }), payload = prompt(), first = f.client.prepare(payload), second = f.client.prepare(payload);
+  const f = fixture({ maxPromptBytes: 5632 }), payload = prompt(), first = f.client.prepare(payload), second = f.client.prepare(payload);
   assert.equal(first.serialized, second.serialized);
-  assert.equal(first.bytes, Buffer.byteLength(first.serialized)); assert.ok(first.bytes <= 5120);
+  assert.equal(first.bytes, Buffer.byteLength(first.serialized)); assert.ok(first.bytes <= 5632);
   assert.throws(() => { first.body.messages[0].content = 'tampered'; }, TypeError);
   assert.throws(() => first.contract.sourceIds.push('invented'), TypeError);
   assert.equal(firstChangedAiBlock(first, second), null);

@@ -11,6 +11,7 @@ import { createInstalledAiWorker } from './installed-worker.js';
 import { createProcessingApproval } from '../../../modules/assistant/processing-policy.js';
 import { createPreferenceJournal } from '../storage/preference-journal.js';
 import { createKnowledgeRuntime } from '../../knowledge/runtime.js';
+import { requireGithubToken } from '../../knowledge/sources/github.js';
 
 export const INSTALLED_PREFERENCE_JOURNAL = 'C:\\Aphelion\\Sophie\\preferences\\watermarks.jsonl';
 
@@ -58,7 +59,10 @@ export async function createInstalledCoreService({pipes,signal,onFault,onTrace=(
   const options=configuration.core;
   requireKeys(options,['runtime','database','ownerDatabase','controlDatabase','knowledgeDatabase','credentials',
     ...['processingPolicy','preferenceJournal','knowledgeOwnerDatabase'].filter(key=>Object.hasOwn(options,key))],'AI_INSTALLATION_INVALID');
-  requireKeys(options.credentials,['token','clientSecret'],'AI_INSTALLATION_INVALID');
+  // githubToken (optional; owner-supplied 23 October 2026): a read-only token that lifts GitHub's anonymous rate limit for the
+  // repository sync and code search. Only core reads it; it is sent only to api.github.com.
+  requireKeys(options.credentials,['token','clientSecret',...(Object.hasOwn(options.credentials,'githubToken')?['githubToken']:[])],'AI_INSTALLATION_INVALID');
+  const githubToken=requireGithubToken(options.credentials.githubToken??null);
   const databases=[options.database,options.controlDatabase,options.knowledgeDatabase,...(options.knowledgeOwnerDatabase?[options.knowledgeOwnerDatabase]:[])];
   for(const database of databases){requireStagingDatabase(database);requireCondition(database.host===options.database.host &&
     database.port===options.database.port && database.database===options.database.database,'AI_DATABASE_IDENTITY_INVALID');}
@@ -102,7 +106,7 @@ export async function createInstalledCoreService({pipes,signal,onFault,onTrace=(
         aiActivationPool:ownerPool,aiRestoreCurrent:restoreCurrent,
         aiKnowledgeAdminFactory:knowledgeOwnerPool===null?null:({authorize,invalidate})=>createKnowledgeRuntime({pool:knowledgeOwnerPool,
           guildId:input.configuration.mapping.guildId,authorize,qualified,restoreCurrent:async()=>{await requireUnquarantinedDatabase(knowledgeOwnerPool);return true;},
-          fetchImpl,invalidate,onFault})});}
+          fetchImpl,invalidate,onFault,githubToken})});}
       catch(error){await Promise.resolve().then(()=>worker.stop()).catch(()=>{});throw error;}
       return Object.freeze({...instance,stop:()=>closed??=(async()=>{try{await instance.stop();}finally{await worker.stop();}})()});
     };

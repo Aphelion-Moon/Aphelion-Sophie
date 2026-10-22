@@ -12,6 +12,10 @@ export const GITHUB_SOURCE = Object.freeze({
   // Sophie's own docs/ are internal engineering records (verification logs, case-system design, test sentinels),
   // not community information; only that repository's overview and README are used.
   docsExcluded: ['Aphelion-Sophie'],
+  // Owner decision, 23 October 2026: the community's Wolfgate server repository, outside the organisation. GitHub reports
+  // no licence for it; its LEGAL.md states the terms below.
+  extraRepositories: ['VanguardControl/Wolfgate'],
+  licences: { 'VanguardControl/Wolfgate': 'AGPL-3.0-or-later for later contributions, MIT for earlier ones (see LEGAL.md)' },
 });
 const day = value => typeof value === 'string' && /^\d{4}-\d\d-\d\d/u.test(value) ? value.slice(0, 10) : 'unknown date';
 const name = value => { requireCondition(typeof value === 'string' && /^[A-Za-z0-9._-]{1,100}$/u.test(value), 'GITHUB_RESPONSE_INVALID'); return value; };
@@ -19,10 +23,17 @@ const name = value => { requireCondition(typeof value === 'string' && /^[A-Za-z0
 const rethrow = (error, signal) => { if (signal.aborted || error?.message === 'GITHUB_RATE_LIMITED') throw error; };
 const short = (value, limit) => { const text = cleanText(String(value ?? '').replace(/<!--[\s\S]*?-->/gu, '')); return text.length <= limit ? text : `${text.slice(0, limit - 1).trimEnd()}…`; };
 
-export function createGithubCollector({ fetchImpl = fetch, clock = Date.now }) {
+/** A read-only token only lifts GitHub's anonymous rate limit; it is sent only to the API origin and never logged. */
+export function requireGithubToken(token) {
+  requireCondition(token === null || typeof token === 'string' && /^(?:github_pat_[A-Za-z0-9_]{20,255}|gh[pousr]_[A-Za-z0-9]{30,255})$/u.test(token), 'GITHUB_TOKEN_INVALID');
+  return token;
+}
+
+export function createGithubCollector({ fetchImpl = fetch, clock = Date.now, token = null }) {
+  requireGithubToken(token);
   const reader = createSourceReader({ fetchImpl, origins: [GITHUB_SOURCE.api, GITHUB_SOURCE.raw], prefix: 'GITHUB' });
   const api = (path, signal, allowMissing = false) => reader.json(`${GITHUB_SOURCE.api}${path}`, { signal, allowMissing, maxBytes: 4194304,
-    headers: { 'x-github-api-version': '2022-11-28' } });
+    headers: { 'x-github-api-version': '2022-11-28', ...(token === null ? {} : { authorization: `Bearer ${token}` }) } });
   const raw = async (owner, repo, branch, path, signal) => (await reader.text(`${GITHUB_SOURCE.raw}/${owner}/${repo}/${encodeURIComponent(branch)}/${path.split('/').map(encodeURIComponent).join('/')}`,
     { signal, allowMissing: true, maxBytes: 524288 }))?.text ?? null;
   return Object.freeze({ collection: GITHUB_SOURCE.collection, prefix: GITHUB_SOURCE.prefix,
@@ -31,6 +42,12 @@ export function createGithubCollector({ fetchImpl = fetch, clock = Date.now }) {
       requireCondition(Array.isArray(listed) && listed.length <= 100, 'GITHUB_RESPONSE_INVALID');
       const repositories = listed.filter(repo => repo && repo.fork === false && repo.private === false && repo.owner?.login === GITHUB_SOURCE.organisation)
         .slice(0, GITHUB_SOURCE.maxRepositories);
+      for (const fullName of GITHUB_SOURCE.extraRepositories) {
+        try {
+          const repo = await api(`/repos/${fullName}`, signal, true);
+          if (repo && repo.fork === false && repo.private === false && `${repo.owner?.login}/${repo.name}` === fullName) repositories.push(repo);
+        } catch (error) { rethrow(error, signal); }
+      }
       requireCondition(repositories.length > 0, 'GITHUB_SOURCE_UNAVAILABLE');
       const entries = [], fetchedAt = clock(); let skipped = 0, truncated = 0;
       const add = (key, title, fields) => {
@@ -42,10 +59,11 @@ export function createGithubCollector({ fetchImpl = fetch, clock = Date.now }) {
         requireCondition(!signal.aborted, 'GITHUB_SYNC_CANCELLED');
         const owner = name(repo.owner.login), repoName = name(repo.name), branch = String(repo.default_branch ?? '');
         requireCondition(/^[A-Za-z0-9._/-]{1,100}$/u.test(branch), 'GITHUB_RESPONSE_INVALID');
-        const home = `${GITHUB_SOURCE.site}/${owner}/${repoName}`, licence = repo.license?.spdx_id && repo.license.spdx_id !== 'NOASSERTION' ? repo.license.spdx_id : 'no stated licence';
+        const home = `${GITHUB_SOURCE.site}/${owner}/${repoName}`, licence = GITHUB_SOURCE.licences[`${owner}/${repoName}`] ??
+          (repo.license?.spdx_id && repo.license.spdx_id !== 'NOASSERTION' ? repo.license.spdx_id : 'no stated licence');
         const rights = licence, attribution = `${owner}/${repoName} on GitHub`;
         // Overview and README.
-        const overview = [`${owner}/${repoName} is a public GitHub repository of the Aphelion project.`,
+        const overview = [`${owner}/${repoName} is a public GitHub repository ${owner === GITHUB_SOURCE.organisation ? 'of the Aphelion project' : 'used by the Aphelion community'}.`,
           repo.description ? `Description: ${short(repo.description, 500)}` : null, repo.language ? `Main language: ${repo.language}.` : null,
           `Licence: ${licence}.`, `Default branch: ${branch}.`, repo.homepage ? `Homepage: ${short(repo.homepage, 200)}` : null,
           Array.isArray(repo.topics) && repo.topics.length ? `Topics: ${repo.topics.slice(0, 20).join(', ')}.` : null,

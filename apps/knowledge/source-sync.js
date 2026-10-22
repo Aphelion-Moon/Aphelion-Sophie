@@ -2,8 +2,8 @@ import { requireCondition, requireInteger } from '../../contracts/validation.js'
 import { sourceErrorCode } from './sources/http.js';
 
 const MINUTE = 60000;
-/** Wiki revision checks are cheap (two API calls); the site is small; GitHub allows 60 anonymous API calls per hour. */
-export const SOURCE_INTERVALS = Object.freeze({ wiki: 30 * MINUTE, site: 180 * MINUTE, gh: 180 * MINUTE });
+/** Wiki revision checks are cheap (two API calls); the site is small; GitHub is rate-limited; the Guidebook is one index file. */
+export const SOURCE_INTERVALS = Object.freeze({ wiki: 30 * MINUTE, site: 180 * MINUTE, gh: 180 * MINUTE, guide: 180 * MINUTE });
 const RETRY_MS = 15 * MINUTE, RATE_LIMIT_RETRY_MS = 60 * MINUTE;
 
 /**

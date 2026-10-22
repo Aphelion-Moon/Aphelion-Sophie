@@ -10,7 +10,7 @@ test('DS07-S01 unattended sync is serialized, requalified every run and cancelle
     library:{synchronizePolicies:async input=>{signal=input.signal;calls++;await new Promise(resolve=>{release=resolve;});return {publishedAutomatically:false};}}});
   sync.start();await tick();assert.equal(calls,1);assert.equal(next,undefined);assert.throws(()=>sync.start(),/KNOWLEDGE_SYNC_STARTED/);
   release();await tick();assert.equal(sync.status().refreshing,false);
-  qualified=false;next();await tick();assert.equal(calls,1);assert.deepEqual(faults,['KNOWLEDGE_SYNC_UNAVAILABLE']);
+  qualified=false;next();await tick();assert.equal(calls,1);assert.deepEqual(faults,['KNOWLEDGE_SYNC_UNAVAILABLE_KNOWLEDGE_SYNC_UNQUALIFIED']);
   qualified=true;next();await tick();const stop=sync.stop();assert.equal(signal.aborted,true);release();await stop;assert.equal(sync.status().stopped,true);
 });
 test('DS07-S02 knowledge composition requires qualification and exposes no automatic publication on its read interface',async()=>{
