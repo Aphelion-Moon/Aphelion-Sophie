@@ -104,6 +104,7 @@ export const CODEX = Object.freeze([
   ['Robust', 'Very good at a fight. Station folklore; do not try it at the help desk.'],
   ['Space carp', 'Fish that live in space and bite. Do not feed them.'],
   ['Mothroach', 'Half moth, half cockroach, mostly fluff. Station folklore; they like lamps and dark corners.'],
+  ['Beepsky', 'Officer Beepsky, a securitron who says HALT a lot. Station folklore; on the Shuttle, he does the age check.'],
   ['Ian', 'The Head of Personnel’s corgi. Station folklore and a very good boy.'],
 ]);
 
@@ -151,26 +152,34 @@ function splitBlock(block, limit) {
   return pieces;
 }
 
+/** A sign card: a quote block, every line of it quoted. */
+const isSign = block => block.split('\n').every(line => /^\s*>/.test(line));
+/** Phrases a page must start at: phrase moments marked as a page break, in lower case. */
+const breakPhrases = moments => Object.entries(moments ?? {}).filter(([key, moment]) => key.startsWith('~') && moment?.break === true).map(([key]) => key.slice(1));
+
 /**
- * The stop's pages as radio transmissions of at most about `limit` characters. A heading stays with what follows it;
- * all of the copy appears, in order, with only whitespace between pieces changed.
+ * The stop's copy as radio transmissions of about `limit` characters, cut from the stop as one text: where Discord
+ * splits its messages does not decide where a page ends. A heading stays with what follows it and a section always
+ * opens a fresh page. A sign card is never split (up to twice the limit), and it keeps a short introduction (a heading
+ * and a line or two) on its page. A phrase moment marked `break` starts a page where the author wants one. All of the
+ * copy appears, in order, with only whitespace between pieces changed.
  */
-export function transmissionChunks(pages, limit = CHUNK_LIMIT) {
-  const chunks = [];
-  for (const page of pages) {
-    let current = '';
-    let pendingHeading = '';
-    for (const block of blocks(page).flatMap(block => splitBlock(block, limit))) {
-      if (/^#{1,3} /.test(block) && !block.includes('\n')) { pendingHeading = pendingHeading ? `${pendingHeading}\n\n${block}` : block; continue; }
-      const piece = pendingHeading ? `${pendingHeading}\n\n${block}` : block;
-      pendingHeading = '';
-      // A section (top-level heading) always opens a fresh transmission, so the scene stages exactly what is read.
-      if (current && (/^# /.test(piece) || current.length + 2 + piece.length > limit)) { chunks.push(current); current = piece; }
-      else current = current ? `${current}\n\n${piece}` : piece;
-    }
-    if (pendingHeading) current = current ? `${current}\n\n${pendingHeading}` : pendingHeading;
-    if (current) chunks.push(current);
+export function transmissionChunks(pages, limit = CHUNK_LIMIT, moments = {}) {
+  const chunks = [], breaks = breakPhrases(moments);
+  const text = pages.filter(page => String(page).trim()).join('\n\n');
+  let current = '', pendingHeading = '';
+  for (const block of blocks(text).flatMap(block => isSign(block) && block.length <= limit * 2 ? [block] : splitBlock(block, limit))) {
+    if (/^#{1,3} /.test(block) && !block.includes('\n')) { pendingHeading = pendingHeading ? `${pendingHeading}\n\n${block}` : block; continue; }
+    const piece = pendingHeading ? `${pendingHeading}\n\n${block}` : block;
+    pendingHeading = '';
+    // A section (top-level heading) always opens a fresh transmission, so the scene stages exactly what is read.
+    const starts = /^# /.test(piece) || breaks.some(phrase => piece.toLowerCase().includes(phrase));
+    const room = isSign(block) && current.length <= limit / 3 ? limit * 2 : limit;
+    if (current && (starts || current.length + 2 + piece.length > room)) { chunks.push(current); current = piece; }
+    else current = current ? `${current}\n\n${piece}` : piece;
   }
+  if (pendingHeading) current = current ? `${current}\n\n${pendingHeading}` : pendingHeading;
+  if (current) chunks.push(current);
   return chunks.length ? chunks : [''];
 }
 
@@ -196,11 +205,15 @@ export function titleMenu(described, { log = false } = {}) {
  * The beats staged on the transmissions up to and including this one: what the reader has reached in this stop, by
  * position, so going Back un-reaches them. Scenes keep a section's results (a banner hung, boxes ticked) from then on.
  */
-export function reachedBeats(chunks, chunk, moments = {}) {
+export function reachedBeats(chunks, chunk, moments = {}, revealed = false) {
   const reached = new Set();
-  for (let i = 0; i <= Math.min(chunk, chunks.length - 1); i++) {
-    const { beat } = momentFor(chunks, i, moments);
-    if (beat !== 'none') reached.add(beat);
+  const last = Math.min(chunk, chunks.length - 1);
+  for (let i = 0; i <= last; i++) {
+    // A page already read has staged everything on it, text-synced moments included; this page only what has been reached.
+    for (const shown of i < last ? [false, true] : [false, revealed]) {
+      const { beat } = momentFor(chunks, i, moments, shown);
+      if (beat !== 'none') reached.add(beat);
+    }
   }
   return [...reached];
 }
@@ -210,10 +223,10 @@ export function reachedBeats(chunks, chunk, moments = {}) {
  * station's counts. Sections are the copy's top-level headings, counted up to this transmission. Once the run is past
  * reading (clearance, arrival), every beat of the final stop counts as reached.
  */
-export function sceneStateFor(run, chunk = 0, chunks = [''], beat = 'none', moments = run.moments ?? {}) {
+export function sceneStateFor(run, chunk = 0, chunks = [''], beat = 'none', moments = run.moments ?? {}, revealed = false) {
   const opens = chunks.map(text => /^# /m.test(text));
   const sections = Math.max(1, opens.filter(Boolean).length), section = Math.max(1, opens.slice(0, chunk + 1).filter(Boolean).length);
-  const reached = run.status === 'reading' ? reachedBeats(chunks, chunk, moments) : reachedBeats(chunks, chunks.length - 1, moments);
+  const reached = run.status === 'reading' ? reachedBeats(chunks, chunk, moments, revealed) : reachedBeats(chunks, chunks.length - 1, moments, true);
   return { stopTitle: run.stops[run.stop]?.title ?? '', stopNumber: run.stop + 1, stopCount: run.stops.length,
     section: Math.min(section, sections), sections, whitelist: run.whitelist, beat, reached, link: run.status === 'boarded' ? 'arrived' : 'ready',
     crew: run.station?.crew ?? null, online: run.station?.online ?? null };
@@ -231,6 +244,12 @@ export function speechMs(text, speed = 'normal') {
   return Math.round(Math.min(6_000, Math.max(2_000, (chars / cps) * 500)));
 }
 
+/** The name the title screen's terminal shows before @aphelion: the member's Discord username, or crew. */
+export function windowUser(name) {
+  const clean = typeof name === 'string' ? name.replace(/[\u0000-\u001f\u007f]/g, '').trim() : '';
+  return clean ? clean.slice(0, 64) : 'crew';
+}
+
 /** What the title screen's link panel says: only what the server last reported. */
 export function linkState(described) {
   if (!described) return 'none';
@@ -242,8 +261,10 @@ export function linkState(described) {
  * The moment a transmission belongs to: its first heading, or else the last heading before it, so a transmission that
  * opens one section and starts the next stages the one it opens with. A top-level heading that no moment names returns
  * to the plain scene; a smaller unnamed heading keeps the section's moment. moments: { [headingKey or "~phrase"]: { beat, viewscreen? } }.
+ * A phrase moment marked `on: "reveal"` applies only once the reader has reached its phrase (revealed: true, or the
+ * set of such phrases reached on this page), as a visual novel stages an event on the line that describes it.
  */
-export function momentFor(chunks, chunk, moments = {}) {
+export function momentFor(chunks, chunk, moments = {}, revealed = false) {
   const at = Math.min(chunk, chunks.length - 1), headings = text => [...text.matchAll(/^(#{1,3}) (.+)$/gm)];
   const none = { beat: 'none', viewscreen: null, scene: null }, of = moment => ({ beat: moment.beat ?? 'none', viewscreen: moment.viewscreen ?? null, scene: moment.scene ?? null });
   let found = none;
@@ -257,10 +278,26 @@ export function momentFor(chunks, chunk, moments = {}) {
   if (own.length) apply(own[0]);
   // A phrase moment (key "~phrase") belongs to the page that contains it, such as the page that links a comic.
   const page = (chunks[at] ?? '').toLowerCase();
-  for (const [key, moment] of Object.entries(moments)) {
-    if (key.startsWith('~') && page.includes(key.slice(1))) found = { ...of(moment), scene: moment.scene ?? found.scene };
+  const reached = key => revealed === true || (revealed instanceof Set && revealed.has(key));
+  const phrases = Object.entries(moments).filter(([key]) => key.startsWith('~') && page.includes(key.slice(1)));
+  for (const [key, moment] of [...phrases.filter(([, m]) => m.on !== 'reveal'), ...phrases.filter(([k, m]) => m.on === 'reveal' && reached(k))]) {
+    found = { ...of(moment), scene: moment.scene ?? found.scene };
   }
   return found;
+}
+
+/** Characters a second a reader takes in, for text-synced moments when the page shows all at once. */
+export const READ_CPS = 25;
+/** The longest a text-synced moment waits on a page shown all at once. */
+export const REVEAL_MAX_MS = 12_000;
+/**
+ * The text-synced moments on a page: each phrase's key and where it starts in the page's plain text (what the
+ * typewriter types), in reading order. A phrase the plain text does not contain is staged at the page's end.
+ */
+export function revealPoints(page, plain, moments = {}) {
+  const raw = String(page ?? '').toLowerCase(), text = String(plain ?? '').toLowerCase();
+  return Object.entries(moments).filter(([key, moment]) => key.startsWith('~') && moment?.on === 'reveal' && raw.includes(key.slice(1)))
+    .map(([key]) => { const at = text.indexOf(key.slice(1)); return { key, at: at < 0 ? text.length : at }; }).sort((a, b) => a.at - b.at);
 }
 
 /** The ride between two stops, when motion is on. Skippable. */

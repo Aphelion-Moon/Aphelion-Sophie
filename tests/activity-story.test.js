@@ -39,10 +39,15 @@ test('T-ACT-MD-02 signs render as posted notices and named lines as people talki
 test('T-ACT-STORY-01 story pages: each section opens its own page, pages stay short, and every page stages its own section', async () => {
   const content = await loadActivityContent(root);
   story.stages.forEach((stage, index) => {
-    const chunks = transmissionChunks(paginateStaticText(stage.body)), moments = content.defaults.stages[stage.id] ?? {};
+    const moments = content.defaults.stages[stage.id] ?? {}, chunks = transmissionChunks(paginateStaticText(stage.body), CHUNK_LIMIT, moments);
     const sections = [...stage.body.matchAll(/^# (.+)$/gm)].length;
     assert.equal(chunks.filter(chunk => /^# /.test(chunk)).length, sections, `${stage.id}: every section opens a page`);
-    for (const chunk of chunks) assert.ok(chunk.length <= CHUNK_LIMIT || !chunk.includes('\n\n'), `${stage.id}: page within ${CHUNK_LIMIT}`);
+    // A page stays short; one that holds a whole sign card may run to twice the limit rather than split the sign.
+    for (const chunk of chunks) assert.ok(chunk.length <= CHUNK_LIMIT || !chunk.includes('\n\n') || (chunk.length <= CHUNK_LIMIT * 2 && /^>/m.test(chunk)), `${stage.id}: page within ${CHUNK_LIMIT}`);
+    // No sign card is ever cut across two pages.
+    for (const sign of stage.body.split(/\n\s*\n/).filter(block => block.split('\n').every(line => line.startsWith('>')))) {
+      assert.ok(chunks.some(chunk => chunk.includes(sign)), `${stage.id}: a sign stays whole: ${sign.slice(0, 40)}`);
+    }
     const stopScene = activityStopScene(index, story.stages.length);
     chunks.forEach((chunk, i) => {
       const heading = /^# (.+)$/m.exec(chunk);

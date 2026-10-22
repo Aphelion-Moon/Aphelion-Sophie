@@ -19,13 +19,17 @@ export async function connectDiscord({ applicationId, guildId, api, onLayout = (
   const { code } = await sdk.commands.authorize({ client_id: applicationId, response_type: 'code', state: '', prompt: 'none',
     scope: ['identify', 'rpc.activities.write'] });
   const signed = await api.signIn({ code, instanceId: sdk.instanceId });
-  let presence = false;
-  try { await sdk.commands.authenticate({ access_token: signed.accessToken }); presence = signed.scopes.includes('rpc.activities.write'); }
-  catch { presence = false; }
+  let presence = false, name = null;
+  try {
+    const auth = await sdk.commands.authenticate({ access_token: signed.accessToken });
+    presence = signed.scopes.includes('rpc.activities.write');
+    // The member's own username, for the title screen only: never sent anywhere, stored or logged.
+    name = typeof auth?.user?.username === 'string' ? auth.user.username : null;
+  } catch { presence = false; }
   await sdk.subscribe(Events.ACTIVITY_LAYOUT_MODE_UPDATE, ({ layout_mode: mode }) => onLayout(mode)).catch(() => {});
   await sdk.subscribe(Events.THERMAL_STATE_UPDATE, ({ thermal_state: state }) => onThermal(state)).catch(() => {});
   return Object.freeze({
-    platform: sdk.platform, guildId,
+    platform: sdk.platform, guildId, name,
     async openLink(url) {
       try { return (await sdk.commands.openExternalLink({ url }))?.opened !== false; } catch { return false; }
     },

@@ -2,7 +2,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
-import { ANNOUNCEMENTS, TEXT, CHUNK_LIMIT, dialogueControls, presence, sceneStateFor, soundscape, titleMenu, transmissionChunks } from '../apps/activity/client/presenter.js';
+import { ANNOUNCEMENTS, TEXT, CHUNK_LIMIT, dialogueControls, momentFor, presence, reachedBeats, revealPoints, sceneStateFor, soundscape, titleMenu, transmissionChunks, windowUser } from '../apps/activity/client/presenter.js';
+import { validateStageMoments } from '../modules/onboarding/activity-media.js';
 import { ACTIVITY_STOP_SCENES } from '../modules/onboarding/activity.js';
 import { parseInline, parseMarkdown, plainText, safeLink } from '../apps/activity/client/markdown.js';
 import { createSoundboard } from '../apps/activity/client/audio.js';
@@ -29,6 +30,41 @@ test('T-ACT-CLI-01 transmissions keep every character of the copy, in order, wit
   const long = `${'word '.repeat(400)}end.`;
   assert.equal(squash(transmissionChunks([long]).join('')), squash(long));
   assert.deepEqual(transmissionChunks([]), ['']);
+});
+
+test('T-ACT-PAGE-01 pages: signs stay whole with their introduction, Discord message breaks are ignored, authors place breaks', () => {
+  const sign = `> **NOTICE · LONG SIGN**\n${Array.from({ length: 6 }, (_, i) => `> Line ${i} ${'of the sign '.repeat(6)}`).join('\n')}`;
+  assert.ok(sign.length > CHUNK_LIMIT && sign.length < CHUNK_LIMIT * 2);
+  // A sign longer than a page is never cut, and keeps the heading and line that introduce it.
+  const intro = transmissionChunks([`# A section\nHere it is.\n\n${sign}\n\nAfter the sign.`]);
+  assert.ok(intro.some(chunk => chunk.startsWith('# A section') && chunk.includes(sign)), 'the sign stays with its introduction');
+  assert.ok(intro.every(chunk => !chunk.includes('Line 0') || chunk.includes('Line 5')), 'and is never split');
+  // A long run of text before a sign does not drag the sign onto its page.
+  const crowded = transmissionChunks([`# A section\n${'Plenty to read here. '.repeat(10)}\n\n${sign}`]);
+  assert.equal(crowded.length, 2); assert.ok(crowded[1].startsWith('> **NOTICE'));
+  // Two Discord messages read as one stop: a short tail joins the page before it.
+  assert.deepEqual(transmissionChunks(['# Heading\nFirst paragraph.', 'Second paragraph.']), ['# Heading\nFirst paragraph.\n\nSecond paragraph.']);
+  // A phrase moment marked break starts a page at its phrase.
+  const moments = { '~nobody owes you': { beat: 'x', break: true } };
+  assert.deepEqual(transmissionChunks(['# Heading\nOne.\n\nNobody owes you anything.\n\nThree.'], CHUNK_LIMIT, moments),
+    ['# Heading\nOne.', 'Nobody owes you anything.\n\nThree.']);
+});
+
+test('T-ACT-PAGE-02 text-synced moments wait for their phrase; pages already read count them as reached', () => {
+  const chunks = ['# Rail\nThe sea lion yaps.', 'Nobody owes you.\n\n**We crush sea-lions with shuttles.**\n\n*THUMP.*', 'Off the rail.'];
+  const moments = { rail: { beat: 'sealion' }, '~we crush sea-lions with shuttles': { beat: 'strike', on: 'reveal' }, '~off the rail': { beat: 'strike' } };
+  assert.equal(momentFor(chunks, 1, moments).beat, 'sealion', 'before the reader reaches it');
+  assert.equal(momentFor(chunks, 1, moments, new Set(['~we crush sea-lions with shuttles'])).beat, 'strike', 'once reached');
+  assert.equal(momentFor(chunks, 1, moments, true).beat, 'strike');
+  assert.deepEqual(reachedBeats(chunks, 1, moments).sort(), ['sealion']); assert.deepEqual(reachedBeats(chunks, 2, moments).sort(), ['sealion', 'strike']);
+  // Where the phrase starts in what is typed out: markdown is not typed.
+  const [point] = revealPoints(chunks[1], 'Nobody owes you.\nWe crush sea-lions with shuttles.\nTHUMP.', moments);
+  assert.deepEqual(point, { key: '~we crush sea-lions with shuttles', at: 17 });
+  assert.deepEqual(revealPoints(chunks[0], 'The sea lion yaps.', moments), []);
+  // Only phrases may wait or break a page; a heading already starts its own.
+  assert.throws(() => validateStageMoments({ rail: { beat: 'sealion', on: 'reveal' } }), /INVALID_MOMENTS/);
+  assert.throws(() => validateStageMoments({ '~rail': { beat: 'sealion', break: 'yes' } }), /INVALID_MOMENT/);
+  validateStageMoments({ '~rail': { beat: 'sealion', break: true, on: 'reveal' } });
 });
 
 test('T-ACT-CLI-02 the title menu follows the server state; refusals show fixed notices and no boarding', () => {
@@ -169,4 +205,34 @@ test('T-ACT-CLI-08 the listener serves the page, its module graph, the pinned SD
 
 test('T-ACT-CLI-11 every scene a stop or section can show has its station announcement', () => {
   for (const scene of ACTIVITY_STOP_SCENES) assert.match(ANNOUNCEMENTS[scene] ?? '', /^Attention: /, scene);
+});
+
+test('T-ACT-CLI-12 the terminal greets the member by their Discord username; long names give way, @aphelion stays', async () => {
+  assert.equal(windowUser('moonie'), 'moonie'); assert.equal(windowUser(null), 'crew'); assert.equal(windowUser('   '), 'crew');
+  assert.equal(windowUser('a\u0000b\u001fc'), 'abc', 'no control characters');
+  const longest = 'a'.repeat(32);
+  assert.equal(windowUser(longest), longest, 'the longest Discord username is kept whole; the page cuts it with an ellipsis');
+  const page = await readFile(new URL('../apps/activity/client/index.html', import.meta.url), 'utf8'), css = await readFile(new URL('../apps/activity/client/app.css', import.meta.url), 'utf8');
+  assert.match(page, /id="window-title"[^>]*aria-hidden="true"[\s\S]*id="window-user"[^>]*>crew<[\s\S]*class="window-host">@aphelion</);
+  assert.doesNotMatch(page, /shuttle<\/span><\/p>|@aphelion: shuttle/);
+  // The name shrinks with an ellipsis; @aphelion never shrinks.
+  assert.match(css, /\.window-user \{[^}]*overflow: hidden;[^}]*text-overflow: ellipsis/); assert.match(css, /\.window-host \{ flex: none; \}/);
+  assert.match(css, /\.window-title-text \{[^}]*min-width: 0; max-width: 100%/);
+});
+
+test('T-ACT-CLI-13 the radio meter is a travelling wave: no per-bar rule loses to the shared speaking rule', async () => {
+  const css = await readFile(new URL('../apps/activity/client/app.css', import.meta.url), 'utf8');
+  const rules = [...css.matchAll(/^([^{}\n]*\.wave i[^{}\n]*)\{([^}]*)\}/gm)].map(([, selector, body]) => ({ selector: selector.trim(), body }));
+  const bars = rules.filter(rule => /nth-(last-)?child/.test(rule.selector) && /animation/.test(rule.body));
+  assert.ok(bars.length >= 8, 'per-bar timing exists');
+  // The shared rule is scoped to the speaking states; every per-bar rule carries the same scope, so it wins.
+  for (const rule of bars) assert.match(rule.selector, /^main(:is\(\[data-speaking="on"\], \[data-speaking="trailing"\]\)|\[data-speaking="(on|trailing)"\]) \.wave i/, rule.selector);
+  const delays = new Set(bars.map(rule => /animation-delay: (-?[\d.]+s)/.exec(rule.body)?.[1]).filter(Boolean));
+  assert.ok(delays.size >= 7, 'each bar a step behind the last');
+});
+
+test('T-ACT-CLI-14 the click-to-continue mark is decorative and still with motion off', async () => {
+  const css = await readFile(new URL('../apps/activity/client/app.css', import.meta.url), 'utf8'), client = await readFile(new URL('../apps/activity/client/shuttle.js', import.meta.url), 'utf8');
+  assert.match(client, /mark\.className = 'ctc'; mark\.setAttribute\('aria-hidden', 'true'\); mark\.textContent = '▼'/);
+  assert.match(css, /main\[data-motion="off"\] :is\(\.ctc,/); assert.match(css, /prefers-reduced-motion: reduce\) \{\s*\.ctc,/);
 });

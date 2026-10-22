@@ -1,5 +1,5 @@
-import { ANNOUNCEMENTS, CODEX, KEYS, TEXT, TIPS, TYPE_CPS, cueEvent, cueSheet, dialogueControls, linkState, momentFor, presence, sceneStateFor, soundscape,
-  speechMs, titleMenu, transmissionChunks } from './presenter.js';
+import { ANNOUNCEMENTS, CHUNK_LIMIT, CODEX, KEYS, READ_CPS, REVEAL_MAX_MS, TEXT, TIPS, TYPE_CPS, cueEvent, cueSheet, dialogueControls, linkState, momentFor,
+  presence, revealPoints, sceneStateFor, soundscape, speechMs, titleMenu, transmissionChunks, windowUser } from './presenter.js';
 import { parseMarkdown, plainText, renderMarkdown } from './markdown.js';
 
 const SETTINGS_KEY = 'shuttle.settings.v1';
@@ -11,6 +11,8 @@ const POLL_MS = 5_000, POLL_LIMIT_MS = 10 * 60_000, RETRY_AFTER_MS = 120_000;
 const TICK_MS = 110, TRAIL_MS = 1_500, WIPE_MS = 400, BANNER_MS = 4_500, TIP_MS = 12_000, CLOWN_MS = 6_000, LOG_LIMIT = 80, SWIPE_PX = 60;
 const KONAMI = Object.freeze(['ArrowUp', 'ArrowUp', 'ArrowDown', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'ArrowLeft', 'ArrowRight', 'b', 'a']);
 const SHEETS = Object.freeze(['settings', 'credits', 'codex', 'log', 'keys']);
+/** Block elements the click-to-continue mark may sit inside, so it ends the last line of text. */
+const BLOCKS = new Set(['P', 'BLOCKQUOTE', 'UL', 'OL', 'LI', 'DIV', 'SECTION', 'H1', 'H2', 'H3']);
 
 /**
  * The Shuttle Activity's front end (P43): a title screen, Sophie's radio transmissions over the stop scenes, and the
@@ -26,6 +28,8 @@ export function createShuttle({ document, api, connect, player, loadScene, sound
   let discord = null, typing = null, poll = null, pendingSince = null, toastTimer = null, speechTimer = null, trailTimer = null, talking = false;
   let currentScene = null, cues = [], cueHandlers = {}, sectionScreen = null, statusScreen = null, showRadio = false, bannerTimer = null, transitTimer = null, tipTimer = null;
   let tip = Math.floor(random() * TIPS.length), konamiAt = 0, log = [], swipe = null, lastSwipe = -Infinity;
+  // Text-synced moments reached on the page being read, and which page that is.
+  let revealed = new Set(), revealPage = null;
   let settings = loadSettings();
 
   function loadSettings() {
@@ -62,12 +66,27 @@ export function createShuttle({ document, api, connect, player, loadScene, sound
     if (!rect || !canvas) {
       slot.dataset.fallback = '';
       for (const key of ['left', 'top', 'width', 'height']) slot.style[key] = '';
+      // No window in the art, so no window title either.
+      if ($('window-title')) $('window-title').hidden = true;
       return;
     }
     delete slot.dataset.fallback;
     slot.style.left = `${(canvas.offsetLeft ?? 0) + rect.left}px`; slot.style.top = `${(canvas.offsetTop ?? 0) + rect.top}px`;
     slot.style.width = `${rect.width}px`; slot.style.height = `${rect.height}px`;
     slot.style.setProperty?.('--cell', `${rect.cellHeight}px`);
+    // The window's title, on the window's top edge.
+    const title = $('window-title'), edge = player.slotRect?.('title') ?? null;
+    if (!title?.style) return;
+    title.hidden = edge === null;
+    if (!edge) return;
+    title.style.left = `${(canvas.offsetLeft ?? 0) + edge.left}px`; title.style.top = `${(canvas.offsetTop ?? 0) + edge.top}px`;
+    title.style.width = `${edge.width}px`; title.style.height = `${edge.height}px`;
+    title.style.setProperty?.('--cell', `${edge.cellHeight}px`);
+  }
+  /** The terminal greets the member by their Discord username (crew, when Discord did not say). Text only. */
+  function setUser(name) {
+    const element = $('window-user');
+    if (element) element.textContent = windowUser(name);
   }
   function signal(state) {
     const element = $('signal'); element.dataset.state = state;
@@ -170,7 +189,7 @@ export function createShuttle({ document, api, connect, player, loadScene, sound
   function sceneFor(next) {
     return next.status === 'pending' || next.status === 'boarded' ? 'pressure-door' : next.stops[next.stop]?.scene ?? 'departure-lounge';
   }
-  const momentNow = () => run?.status === 'reading' ? momentFor(chunks, chunk, run.moments ?? {}) : { beat: 'none', viewscreen: null, scene: null };
+  const momentNow = () => run?.status === 'reading' ? momentFor(chunks, chunk, run.moments ?? {}, revealed) : { beat: 'none', viewscreen: null, scene: null };
   /** The scene for what is on screen now: the section's own scene, if it has one, or the stop's. */
   const sceneNow = () => momentNow().scene ?? sceneFor(run);
   /** A page that opens a section with a scene of its own changes scene behind the usual wipe. */
@@ -183,14 +202,23 @@ export function createShuttle({ document, api, connect, player, loadScene, sound
     swapScene(id, loaded, stateNow); banner(ANNOUNCEMENTS[id]);
     sound.ambience(soundscape('run', run, id).ambience, { fadeIn: 2, previousFadeOut: 1.5 });
   }
-  const stateNow = () => sceneStateFor(run, chunk, chunks, momentNow().beat);
+  const stateNow = () => sceneStateFor(run, chunk, chunks, momentNow().beat, run.moments ?? {}, revealed);
+  const pageNow = () => run ? `${run.stop}:${run.status}:${chunk}` : null;
+  /**
+   * A text-synced moment: the scene stages it when the reader reaches its phrase, as a visual novel stages an event on
+   * the line that describes it. Only for the page that asked; a page already left stages nothing.
+   */
+  function reveal(key, page) {
+    if (page !== pageNow() || revealed.has(key)) return;
+    revealed.add(key); player.setState(stateNow()); followScene();
+  }
   /**
    * Shows a run from the server. A new stop, clearance or arrival plays its cue sheet: the scene changes behind a wipe
    * (after the ride between stops, when motion is on), the sound beds cross-fade, then Sophie comes in with the text.
    */
   async function enterRun(next, { atEnd = false } = {}) {
     const previous = run; run = next;
-    chunks = transmissionChunks(run.pages); chunk = atEnd ? chunks.length - 1 : 0;
+    chunks = transmissionChunks(run.pages, CHUNK_LIMIT, run.moments ?? {}); chunk = atEnd ? chunks.length - 1 : 0;
     const event = cueEvent(previous, run), sceneId = sceneNow();
     show('radio'); discord?.setPresence(presence(run));
     if (run.status === 'pending') startPolling(); else stopPolling();
@@ -238,13 +266,17 @@ export function createShuttle({ document, api, connect, player, loadScene, sound
   }
   function renderTransmission() {
     stopTyping();
+    // A new page starts with none of its text-synced moments reached.
+    if (pageNow() !== revealPage) { revealPage = pageNow(); revealed = new Set(); }
     const moment = momentNow(), text = transmissionText(), tree = parseMarkdown(text), box = $('radio-text'), channels = run.channels ?? {};
     box.replaceChildren(renderMarkdown(document, tree, { onLink: href => discord?.openLink(href), channels, onChannel: openChannel }));
     box.scrollTop = 0;
-    $('radio-live').textContent = plainText(tree, channels);
+    const plain = plainText(tree, channels), page = pageNow();
+    $('radio-live').textContent = plain;
+    const points = run.status === 'reading' ? revealPoints(chunks[chunk], plain, run.moments ?? {}).filter(point => !revealed.has(point.key)) : [];
     header();
     $('radio-progress').textContent = run.status === 'reading' && chunks.length > 1 ? chunks.map((_, index) => index === chunk ? '■' : index < chunk ? '▪' : '□').join(' ') : '';
-    player.setState(sceneStateFor(run, chunk, chunks, moment.beat));
+    player.setState(stateNow());
     followScene();
     renderArrival();
     // A new section's extra material replaces the radio in the status window; V switches back for that section.
@@ -252,7 +284,19 @@ export function createShuttle({ document, api, connect, player, loadScene, sound
     setStatus(showRadio ? null : moment.viewscreen);
     if (run.status === 'reading') remember();
     renderControls();
-    if (run.status === 'reading' && settings.text === 'typed') typewrite(box);
+    if (run.status === 'reading' && settings.text === 'typed') typewrite(box, points, page);
+    else {
+      // Shown all at once: each phrase is staged after the time it takes to read up to it.
+      for (const point of points) timers.after(Math.min(REVEAL_MAX_MS, (point.at / READ_CPS) * 1000), () => reveal(point.key, page));
+      markDone(box);
+    }
+  }
+  /** The click-to-continue mark: the page has finished typing. Decorative; the live region already has the text. */
+  function markDone(box) {
+    const mark = document.createElement('span'); mark.className = 'ctc'; mark.setAttribute('aria-hidden', 'true'); mark.textContent = '▼';
+    let host = box;
+    while (host.lastElementChild && BLOCKS.has(host.lastElementChild.tagName)) host = host.lastElementChild;
+    host.append(mark);
   }
   /** After confirmation: the channels core reported the member can now see, as links into Discord. */
   function renderArrival() {
@@ -294,23 +338,26 @@ export function createShuttle({ document, api, connect, player, loadScene, sound
     sound.radio(on); sound.duck(on);
   }
   function speakBriefly(ms) { speaking(true); speechTimer = timers.after(ms, () => speaking(false)); }
-  function typewrite(box) {
+  function typewrite(box, points = [], page = pageNow()) {
     const walker = document.createTreeWalker(box, 4), nodes = [];
     while (walker.nextNode()) nodes.push(walker.currentNode);
     const texts = nodes.map(node => node.data), cps = TYPE_CPS[settings.speed] ?? TYPE_CPS.normal;
     nodes.forEach(node => { node.data = ''; });
-    let index = 0, offset = 0, lastTick = 0, last = timers.now();
-    const finish = () => { nodes.forEach((node, i) => { node.data = texts[i]; }); timers.cancelFrame(typing?.frame); typing = null; };
+    let index = 0, offset = 0, lastTick = 0, last = timers.now(), typed = 0, next = 0;
+    // Text-synced moments fire as the typing reaches their phrase; skipping the typing reaches them all.
+    const reach = upTo => { while (next < points.length && points[next].at <= upTo) reveal(points[next++].key, page); };
+    const finish = () => { nodes.forEach((node, i) => { node.data = texts[i]; }); timers.cancelFrame(typing?.frame); typing = null; reach(Infinity); markDone(box); };
     const step = () => {
       const now = timers.now();
       let budget = Math.max(1, Math.round((now - last) * cps / 1000)); last = now;
       while (budget > 0 && index < nodes.length) {
         const take = Math.min(budget, texts[index].length - offset);
-        offset += take; budget -= take; nodes[index].data = texts[index].slice(0, offset);
+        offset += take; budget -= take; typed += take; nodes[index].data = texts[index].slice(0, offset);
         if (offset >= texts[index].length) { index++; offset = 0; }
       }
       if (talking && now - lastTick > TICK_MS) { sound.play('DLG-01'); lastTick = now; }
-      if (index >= nodes.length) { typing = null; return; }
+      reach(typed);
+      if (index >= nodes.length) { typing = null; reach(Infinity); markDone(box); return; }
       typing.frame = timers.frame(step);
     };
     typing = { finish, frame: timers.frame(step) };
@@ -587,6 +634,7 @@ export function createShuttle({ document, api, connect, player, loadScene, sound
       await scene('hangar-viewport', { whitelist: 'none', link: 'none' });
       try {
         discord = await connect({ onLayout: mode => player.setPaused('pip', mode === 1), onThermal: state => player.setPaused('heat', state >= 2) });
+        setUser(discord?.name);
         if (discord === null) { described = { state: 'outside' }; signal('lost'); }
         else { described = await api.describe(); linked = true; signal('linked'); }
       } catch (error) {

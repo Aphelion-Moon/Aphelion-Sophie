@@ -53,7 +53,11 @@ export function validateViewscreen(value) {
  * section has a scene of its own). scenes, when given, is the set of scene ids a stop may use.
  */
 export function validateMoment(value, viewscreens = null, scenes = null) {
-  exactKeys(value, ['beat'], ['viewscreen', 'scene'], 'INVALID_MOMENT');
+  exactKeys(value, ['beat'], ['viewscreen', 'scene', 'break', 'on'], 'INVALID_MOMENT');
+  // A phrase moment may start a page where the author wants one (break), or wait until the reader reaches its phrase
+  // (on: "reveal") as visual novels stage an event on its line.
+  if (value.break !== undefined) requireCondition(value.break === true, 'INVALID_MOMENT');
+  if (value.on !== undefined) requireCondition(value.on === 'reveal', 'INVALID_MOMENT');
   if (value.scene !== undefined) requireCondition(typeof value.scene === 'string' && ID.test(value.scene) && (scenes === null || scenes.has(value.scene)), 'INVALID_MOMENT');
   requireCondition(typeof value.beat === 'string' && BEAT.test(value.beat), 'INVALID_MOMENT');
   if (value.viewscreen !== undefined) {
@@ -78,6 +82,8 @@ export function validateStageMoments(value, viewscreens = null, scenes = null) {
   for (const key of keys) {
     requireCondition(key.length > 0 && key.length <= LIMITS.heading && key === key.toLowerCase().trim() && !/[\u0000-\u001f]/.test(key), 'INVALID_MOMENTS');
     validateMoment(value[key], viewscreens, scenes);
+    // Page breaks and text-synced staging belong to phrases, not headings (a heading already starts its page).
+    if (value[key].break !== undefined || value[key].on !== undefined) requireCondition(key.startsWith('~') && key.length > 1, 'INVALID_MOMENTS');
   }
 }
 

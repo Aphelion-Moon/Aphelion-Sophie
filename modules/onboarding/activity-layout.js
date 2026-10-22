@@ -45,7 +45,8 @@ export function validateActivityLayout(value, { viewscreens = null } = {}) {
 /** A fixed key order, so the document hashes the same after a database round trip. Validates first. */
 export function canonicalActivityLayout(value, options = {}) {
   validateActivityLayout(value, options);
-  const moment = item => ({ beat: item.beat, ...(item.viewscreen === undefined ? {} : { viewscreen: item.viewscreen }), ...(item.scene === undefined ? {} : { scene: item.scene }) });
+  const moment = item => ({ beat: item.beat, ...(item.viewscreen === undefined ? {} : { viewscreen: item.viewscreen }), ...(item.scene === undefined ? {} : { scene: item.scene }),
+    ...(item.break === undefined ? {} : { break: item.break }), ...(item.on === undefined ? {} : { on: item.on }) });
   return { schema: value.schema,
     stops: Object.fromEntries(Object.keys(value.stops).sort().map(id => [id, { ...(value.stops[id].scene === undefined ? {} : { scene: value.stops[id].scene }),
       ...(value.stops[id].moments === undefined ? {} : { moments: Object.fromEntries(Object.keys(value.stops[id].moments).sort().map(key => [key, moment(value.stops[id].moments[key])])) }) }])),
