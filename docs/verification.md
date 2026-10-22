@@ -1,8 +1,20 @@
 # Verification and release limits
 
-## Shuttle Activity layout pass — 22 October 2026 (built offline, not installed)
+## Staging install of 2063a50: Shuttle Activity layout pass — 22 October 2026 (schema 075)
 
-Owner review of `052864c` (decision log, "Shuttle Activity layout: reading column and status window").
+Owner review of `052864c` (decision log, "Shuttle Activity layout: reading column and status window"); owner approval:
+"Approved: install the layout pass (source-only update) in the test Discord." Folder `deployment-2063a50-2026-10-22`,
+adapted from `a723a49` (source-only) and `052864c`.
+
+- Install: 667 pinned files verified against Git; installed `052864c` verified against its trusted manifest; 14 files
+  changed (client, scene engine, scene data and moments), none removed; no migration, configuration, credential or
+  dependency change. Core and the worker stopped 12:34:04 UTC and were running again by 12:34:37 UTC; PostgreSQL and the
+  tunnel kept running. Pre-start (trust v2 for `sophie-mistral-2063a50`), boundary, installation (36 checks, including
+  the Activity on loopback) and dashboard checks passed.
+- Public: `onboarding.a13.info` serves the page and all 13 other changed files byte for byte; `/api/config` and
+  `/api/shuttle` (401 without sign-in) as before.
+
+Offline evidence for this build:
 
 - `npm test` 745 passed (carp now face the way they swim; T-ACT-MOM-02 now checks Ten Thousand lands on the page that links the comic; T-ACT-MOM-04
   new). Scene tests: bags are single fixed figures moving at the belt's speed and handing over at the scanner, bags rest on the belt with motion

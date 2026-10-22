@@ -1448,3 +1448,7 @@ information if it exists for the current step". Mid-way the owner added that the
 - The status window has a fixed size. By default it shows Sophie's radio: her name, callsign and a voice meter that
   moves while she speaks. She is still not depicted (identity rules, 20 October 2026); a portrait or likeness there would
   need its own owner decision. When the section being read has extra material, the window shows that instead.
+
+- **Installed** `2063a50` on 22 October 2026 at 12:34 UTC on the owner's approval ("Approved: install the layout pass
+  (source-only update) in the test Discord."): 14 files, no migration or configuration change; core and the worker were
+  down 33 seconds. All checks passed. Folder `.agent_docs/aphelion-sophie/deployment-2063a50-2026-10-22`.
