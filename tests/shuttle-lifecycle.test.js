@@ -107,9 +107,9 @@ test('P45 the shipped scenes introduce, use and clean up their people and props'
   assert.match(at('pressure-door', { beat: 'watch-step', reached: ['watch-step'] }), /NO RUNNING/);
   assert.match(at('pressure-door', { beat: 'watch-step', reached: ['watch-step'] }), /\/\|\\_/, 'the janitor mops');
   assert.doesNotMatch(at('pressure-door', { beat: 'feedback', reached: ['watch-step', 'feedback'] }, { beatTime: 10 }), /\/\|\\_/, 'and has left');
-  assert.match(at('pressure-door', { beat: 'be-safe', reached: ['watch-step', 'feedback', 'be-safe'] }), /\/WET\\/);
-  assert.doesNotMatch(at('pressure-door', { beat: 'ready', reached: ['watch-step', 'feedback', 'be-safe', 'ready'] }), /\/WET\\/);
+  assert.match(at('pressure-door', { beat: 'be-safe', reached: ['watch-step', 'feedback', 'be-safe'] }), /│WET {2}FLOOR│[\s\S]*│NO RUNNING│/);
+  assert.doesNotMatch(at('pressure-door', { beat: 'ready', reached: ['watch-step', 'feedback', 'be-safe', 'ready'] }), /WET {2}FLOOR/);
   const clearance = at('pressure-door', { beat: 'none', whitelist: 'requested', reached: ['watch-step', 'feedback', 'be-safe', 'ready', 'get-whitelisted'] });
-  assert.equal(clearance.match(/\[x\]/g)?.length, 4, 'ticked stays ticked through clearance'); assert.match(clearance, /> link via Discord/);
+  assert.equal(clearance.match(/■ /g)?.length, 4, 'ticked stays ticked through clearance'); assert.match(clearance, /> link via Discord/);
   assert.match(at('pressure-door', { beat: 'none', whitelist: 'confirmed', doorOpen: 1, reached: ['ready', 'get-whitelisted'] }), /CONCOURSE/);
 });

@@ -138,9 +138,9 @@ test('P43 sprites cross only in their window, never with motion off, and stay sm
   const ian = lounge.layouts.landscape.effects.find(fx => fx.id === 'ian');
   const start = ian.every - (ian.offset % ian.every);
   const frame = (time, motion) => composeScene(lounge, 'landscape', { time, state: STATE, motion }).glyphs.join('\n');
-  assert.match(frame(start + ian.duration / 2, true), /\(______.o>/);
-  assert.doesNotMatch(frame(start + ian.duration + 5, true), /\(______.o>/);
-  assert.doesNotMatch(frame(start + ian.duration / 2, false), /\(______.o>/);
+  assert.match(frame(start + ian.duration / 2, true), /~\(____\/ o>/);
+  assert.doesNotMatch(frame(start + ian.duration + 5, true), /\(____\/.o>/);
+  assert.doesNotMatch(frame(start + ian.duration / 2, false), /\(____\/.o>/);
   const { fps: _fps, ...still } = ian;
   const huge = { ...still, id: 'huge', frames: [{ text: Array(9).fill('x'), colours: Array(9).fill('a') }] };
   assert.throws(() => validateScene({ ...lounge, layouts: { ...lounge.layouts, landscape: { ...lounge.layouts.landscape,
@@ -225,10 +225,13 @@ test('P44 the baggage belt: Meridian for SS 13 bags and Wolfgate for SS 14 while
     const seen = Array.from({ length: 160 }, (_, i) => composeScene(hall, layout, { time: i / 4, state: { ...STATE, beat: 'migrating' } }).glyphs.join('\n')).join('\n');
     for (const word of ['DENIED', ' KG', 'MERIDIAN', 'WOLFGATE']) assert.ok(seen.includes(word), `${layout} ${word}`);
   }
-  // The BLASTWAVE bag burns, is foamed out by the firebot and lights itself again, slowly (no flashing).
+  // The BLASTWAVE bag stands on the floor; its fire, the firebot, foam, smoke and spark are timed sprites (see
+  // T-SCENE-DEPTH-05), and nothing in the cycle flashes faster than a flicker.
   const fire = hall.layouts.landscape.layers.find(item => item.id === 'blastwave');
-  assert.ok(fire.frames.every(frame => frame.text.join('').includes('[BLASTWAVE]')) && fire.fps <= 2);
-  assert.ok(fire.frames.some(frame => frame.text.join('').includes('░▒░')) && fire.frames.some(frame => /\^/.test(frame.text.join(''))));
+  assert.ok(fire.front && fire.frames.length === 1 && fire.frames[0].text.join('').includes('[BLASTWAVE]'));
+  const cycle = hall.layouts.landscape.effects.filter(fx => fx.kind === 'sprite' && /^(blastwave-|firebot)/.test(fx.id));
+  assert.deepEqual(cycle.map(fx => fx.id).sort(), ['blastwave-flames', 'blastwave-foam', 'blastwave-smoke', 'blastwave-spark', 'firebot']);
+  assert.ok(cycle.every(fx => fx.every === 24 && (fx.fps ?? 0) <= 4));
 });
 
 const TALK = { kind: 'dialogue', id: 'talk', speakers: [[20, 20], [40, 20]], width: 16, style: 'say', line: 2, pause: 1, colours: 'ca',
