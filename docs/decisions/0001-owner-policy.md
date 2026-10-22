@@ -1621,3 +1621,6 @@ approval.
     author; runs in progress keep version 3.
 
   Folder `.agent_docs/aphelion-sophie/deployment-ceb46cb-2026-10-22`.
+- **Audit.** The owner then asked for "an audit of the entire activity", with the updates installed and published
+  afterwards. The audit fixed the scenes to match the story (the cape in locker 12; the gate and its light on phones)
+  and polished the phone layouts. It changed no copy, so nothing was published. Installed as `f6c787e` at 19:16 UTC.

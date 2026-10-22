@@ -1,5 +1,38 @@
 # Verification and release limits
 
+## Activity audit and staging install of f6c787e — 22 October 2026 (schema 075)
+
+Owner request: "Begin an audit of the entire activity first while I'm having dinner, then publish and install any
+updates after you're done." Folder `deployment-f6c787e-2026-10-22`, adapted from `ceb46cb`.
+
+- **Audit.**
+  - The client code and its fixed wording were read through.
+  - Every scene, layout, beat and Whitelist state was composed and checked with two scratch tools. The walk-behind tool
+    finds where actors paint over props. A new collision tool finds where a layer or text overwrites another layer's art.
+  - Every place the story points at the scene was checked against both layouts.
+  - Found and fixed:
+    - the cape was in locker 10 (desktop) and 11 (phones), not locker 12 as the story says;
+    - phones had no gate or 18+ light for "See the light over the gate?";
+    - on phones the burning bag touched the luggage cart, and the cabin's lower third was empty;
+    - the Codex had no entry for the mothroaches.
+  - Nothing else needed a change: every remaining overlap is deliberate (people sitting, ticks, the cape and the ID card
+    filling their places). The story copy needed none, so nothing was published.
+  - The preview pane was not used after it crashed the desktop app while opening a new tab; the checks used composed
+    scenes instead.
+- **Offline:** `npm test` 789 passed (new T-STORY-SCENE-01..02); the repository check passed;
+  `npm run test:storage:fast` 1029 passed, none failed.
+- **Install.**
+  - The first run stopped core and the worker, then refused before preserving or writing anything:
+    `SERVICE_CHILD_STILL_RUNNING`. A child process outlived the script's 2-second check after the stop. A check right
+    after found no core or worker process left, so the same folder was run again.
+  - The second run verified the pin, preserved `D:Backupssophie-stagingsource-only-f6c787e-20261022` and wrote
+    4 files: the presenter and the lounge, baggage hall and cabin scenes. None were removed. No migration,
+    configuration or credential change.
+  - Core and the worker were down from about 19:15:28 to 19:16:30 UTC (about 62 s, because of the retry).
+  - Pre-start (trust v2 for `sophie-mistral-f6c787e`), boundary, installation (65 checks) and dashboard checks passed.
+- **Public.** `onboarding.a13.info` serves the page and the 14 Activity files checked since `ceb46cb` byte for byte
+  against the pinned source; the publishing command and core's messages answer 404 on both hosts.
+
 ## Staging install of ceb46cb and the story's version 4 — 22 October 2026 (schema 075)
 
 Owner approval: "Approved: install the fifth pass (source-only update) in the test Discord, then publish the fixed
