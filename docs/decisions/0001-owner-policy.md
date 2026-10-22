@@ -1552,3 +1552,20 @@ The record is `legal/shuttle-activity-sounds.json` (`review.story`).
   "SC-07 is approved. Install it (source-only update) in the test Discord." `a620ce0` was installed at 16:20 UTC:
   6 files, no removal, no migration or configuration change. Core and the worker were down 33 seconds, and all
   checks passed. Folder `.agent_docs/aphelion-sophie/deployment-a620ce0-2026-10-22`.
+
+### Host-only Shuttle publishing — 22 October 2026
+
+The dashboard's Shuttle editor needs a Discord sign-in. The owner asked for "a method for localhost to make these
+modifications", and approved the design: "I approve the host-only publishing command as you described it
+(administrator-only, same checks and audit, never over the tunnel)."
+
+- **Server administrator access is an authority for publishing Shuttle guidance**, separate from Discord. It needs an
+  elevated session and core's database login, which only administrators can read.
+- **The guild owner is the recorded author.** The command accepts only a user whom Sophie last recorded as the guild
+  owner, and re-reads that record for every operation. It makes no Discord call and never loads the token.
+- **The same store as the dashboard.** The command uses the same validation, revision, hash and publication checks.
+  Its audit rows are marked `local-operator`.
+- **No route.** There is no listener, no HTTP route and nothing reachable through the tunnel. A "trust localhost" route
+  was rejected: the tunnel makes every public request look local.
+- **Approval still applies.** Each publication with it is still a recorded owner approval. See
+  `docs/shuttle-publishing.md`.
