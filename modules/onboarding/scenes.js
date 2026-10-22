@@ -7,7 +7,8 @@ import { requireCondition, requireInteger, requireRecord } from '../../contracts
  */
 export const SCENE_SCHEMA_VERSION = 1;
 export const SCENE_LAYOUTS = Object.freeze({
-  landscape: Object.freeze({ cols: 120, rows: 40 }),
+  // Landscape scenes fill the area beside the reading column (about 1.2:1), so nothing is drawn under the text.
+  landscape: Object.freeze({ cols: 96, rows: 40 }),
   portrait: Object.freeze({ cols: 72, rows: 57 }),
 });
 /** One character per colour, used in colour masks. A space means the default dim colour. */
@@ -119,7 +120,7 @@ function effect(value, grid, ids, beats) {
     pulse: [['path', 'speed', 'glyph', 'colour'], ['trail', 'trailGlyph', 'trailColour']],
     flap: [['x', 'y', 'width', 'texts', 'period', 'flip', 'colour'], ['align']],
     text: [['x', 'y', 'width', 'template', 'colour'], []],
-    sprite: [['frames', 'from', 'to', 'duration', 'every'], ['offset', 'fps']],
+    sprite: [['frames', 'from', 'to', 'duration', 'every'], ['offset', 'fps', 'still']],
   }[value.kind];
   exactKeys(value, [...common, ...shapes[0]], [...shapes[1], 'when'], 'INVALID_SCENE_EFFECT');
   requireCondition(ID.test(value.id) && !ids.has(value.id), 'INVALID_SCENE_ID'); ids.add(value.id);
@@ -169,6 +170,7 @@ function effect(value, grid, ids, beats) {
       point(value.from, grid, LIMITS.spriteCols, 'INVALID_SCENE_SPRITE'); point(value.to, grid, LIMITS.spriteCols, 'INVALID_SCENE_SPRITE');
       number(value.duration, 1, 60, 'INVALID_SCENE_SPRITE'); number(value.every, value.duration, 600, 'INVALID_SCENE_SPRITE');
       if (value.offset !== undefined) number(value.offset, 0, 600, 'INVALID_SCENE_SPRITE');
+      if (value.still !== undefined) number(value.still, 0, 1, 'INVALID_SCENE_SPRITE');
       if (value.fps !== undefined) { number(value.fps, 0.5, LIMITS.fps, 'INVALID_SCENE_SPRITE'); requireCondition(value.frames.length > 1, 'INVALID_SCENE_SPRITE'); }
       else requireCondition(value.frames.length === 1, 'INVALID_SCENE_SPRITE');
       break;
@@ -326,11 +328,12 @@ export function composeScene(scene, layoutName, { time = 0, state = {}, motion =
         break;
       }
       case 'sprite': {
-        // Hidden with motion off: a figure caught mid-crossing would look like part of the room.
-        if (!motion) break;
-        const phase = (t + (fx.offset ?? 0)) % fx.every;
+        // With motion off a sprite is hidden (a figure caught mid-crossing would look like part of the room), unless it
+        // names a still position: things that belong in the room, like bags on a belt, stay where they would rest.
+        if (!motion && fx.still === undefined) break;
+        const phase = motion ? (t + (fx.offset ?? 0)) % fx.every : fx.still * fx.duration;
         if (phase >= fx.duration) break;
-        const progress = phase / fx.duration, frame = fx.frames[fx.fps ? Math.floor(t * fx.fps) % fx.frames.length : 0];
+        const progress = phase / fx.duration, frame = fx.frames[motion && fx.fps ? Math.floor(t * fx.fps) % fx.frames.length : 0];
         const x0 = Math.round(fx.from[0] + (fx.to[0] - fx.from[0]) * progress), y0 = Math.round(fx.from[1] + (fx.to[1] - fx.from[1]) * progress);
         frame.text.forEach((row, r) => [...row].forEach((ch, c) => {
           if (ch !== ' ') put(x0 + c, y0 + r, ch, [...frame.colours[r]][c] === ' ' ? '.' : [...frame.colours[r]][c]);

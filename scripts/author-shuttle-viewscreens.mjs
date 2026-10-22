@@ -145,7 +145,7 @@ const VIEWSCREENS = [
   },
 ];
 
-// Which section stages which beat (headings as headingKey() in the client presenter produces them).
+// Which section stages which beat (headings as headingKey() produces them; a key starting with ~ matches a phrase in the page).
 const MOMENTS = {
   schema: 1,
   stages: {
@@ -170,8 +170,10 @@ const MOMENTS = {
     },
     'admire-the-lights': {
       'we are here to enjoy ourselves': { beat: 'enjoy' },
-      'every life is valuable, every experience is unique': { beat: 'valuable', viewscreen: 'ten-thousand' },
+      'every life is valuable, every experience is unique': { beat: 'valuable' },
       'take photos and make memories': { beat: 'photos' },
+      // A key starting with ~ is a phrase: the page that contains it stages this moment. The comic is linked on the last page.
+      '~xkcd.com/1053': { beat: 'lucky', viewscreen: 'ten-thousand' },
     },
     disembarking: {
       'watch your step and do not run': { beat: 'watch-step' },

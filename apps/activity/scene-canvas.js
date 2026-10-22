@@ -87,6 +87,13 @@ export function createSceneCanvas(canvas, { palette, background, font = 'Cozette
     const { cellW, cellH } = geometry, px = x * cellW, py = y * cellH;
     ctx.fillStyle = background; ctx.fillRect(px, py, cellW, cellH);
     if (ch === ' ') return;
+    // Every glyph stays inside its own cell: an edge drawn past it would never be cleared, since unchanged neighbours
+    // are not redrawn (it showed as thin coloured lines beside changing text).
+    ctx.save(); ctx.beginPath(); ctx.rect(px, py, cellW, cellH); ctx.clip();
+    try { glyph(ch, colourName, px, py); } finally { ctx.restore(); }
+  }
+  function glyph(ch, colourName, px, py) {
+    const { cellW, cellH } = geometry;
     const colour = palette[colourName] ?? palette.dim;
     ctx.fillStyle = colour;
     const block = BLOCKS[ch];

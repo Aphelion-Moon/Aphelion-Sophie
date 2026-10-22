@@ -240,7 +240,7 @@ function lounge(name) {
   tubes(base, w);
   effects.push({ kind: 'flicker', id: 'tube-flicker', region: [54, 1, 10, 1], hz: 2.5, chance: 0.3, colour: 'd' });
   // Departures board, with the flavour rows that make it a working terminal.
-  const bw = 46, bx = Math.floor(w / 2 - bw / 2), by = 3;
+  const bw = port ? 46 : 40, bx = Math.floor(w / 2 - bw / 2), by = 3;
   base.box(bx, by, bx + bw - 1, by + 8, 'o', '╔╗╚╝═║'); reserve(bx - 1, by - 1, bx + bw, by + 12);
   base.put(bx + 4, by - 1, '│', 'd'); base.put(bx + bw - 5, by - 1, '│', 'd'); base.put(bx - 1, by, 'o', 'o'); base.put(bx + bw, by, 'o', 'o');
   base.text(bx + 2, by + 1, 'DEPARTURES', 'a'); base.text(bx + bw - 15, by + 1, 'SHUTTLE LINE', 'A');
@@ -272,7 +272,7 @@ function lounge(name) {
   const sy = by + 10, sw = bw - 2, sx0 = bx + 1;
   base.put(bx + 6, by + 8, '╪', 'h'); base.put(bx + bw - 7, by + 8, '╪', 'h'); base.put(bx + 6, by + 9, '│', 'H'); base.put(bx + bw - 7, by + 9, '│', 'H');
   base.box(sx0, sy, sx0 + sw - 1, sy + 2, 'h');
-  effects.push({ kind: 'text', id: 'strip', x: sx0 + 2, y: sy + 1, width: sw - 4, template: '» NOW BOARDING · {stopTitle} · {section}/{sections}', colour: 'c' });
+  effects.push({ kind: 'text', id: 'strip', x: sx0 + 2, y: sy + 1, width: sw - 4, template: '» {stopTitle} · SECTION {section}/{sections}', colour: 'c' });
   // Pride: the strip's brackets string up a stripe banner.
   const pride = new Art(w, h);
   for (let x = bx + 7; x < bx + bw - 7; x++) pride.put(x, by + 9, '▄', String(1 + Math.floor((x - bx - 7) / ((bw - 14) / 7)) % 7));
@@ -315,12 +315,11 @@ function lounge(name) {
   };
 
   if (!port) {
-    // A wide reinforced window onto real space, a gas giant in the corner.
-    reserve(2, 3, 33, 14);
-    const win = reinforcedWindow(base, effects, 'window', 2, 3, 33, 14, 3, 5);
-    prop(base, 25, 9 + 1, ['  .--.', ' (::::)', '(::::::'], ['  IIII', ' AAAAAA', 'AAAAAAA']);
-    base.put(win.gx1, 11, ')', 'A');
-    const gx = w - 27, nx = w - 23, ny = 6;
+    // A reinforced window onto real space, a gas giant in the corner.
+    reserve(2, 3, 24, 14);
+    const win = reinforcedWindow(base, effects, 'window', 2, 3, 24, 14, 2, 5);
+    prop(base, win.gx1 - 6, 10, ['  .--.', ' (::::)', '(::::::'], ['  IIII', ' AAAAAA', 'AAAAAAA']);
+    const gx = w - 25, nx = w - 23, ny = 6;
     reserve(gx, 2, w - 1, ny + 2);
     for (let y = 2; y < ny; y++) { base.put(nx + 3, y, '│', 'H'); base.put(nx + 13, y, '│', 'H'); }
     ['+-----------------+', '|    GATE   03    |', '+-----------------+'].forEach((line, r) => [...line].forEach((ch, j) => {
@@ -333,7 +332,8 @@ function lounge(name) {
     effects.push({ kind: 'blink', id: 'gate-adult-blink', region: [gx + 20, 5, 3, 1], hz: 1, on: 'p', off: 'A', when: { beat: ['adult'] } });
     base.fill(nx, ny, nx + 16, ny + 2, ' ', ' '); base.box(nx, ny, nx + 16, ny + 2, 'h'); base.text(nx + 2, ny + 1, 'SHUTTLE', 'c'); base.text(nx + 11, ny + 1, '»»»', 'H');
     effects.push({ kind: 'pulse', id: 'sign-chase', path: [[nx + 11, ny + 1], [nx + 12, ny + 1], [nx + 13, ny + 1]], speed: 4, glyph: '»', colour: 'c' });
-    desk(86, 10); exitSign(108, 10); poster(107, 12); fittings(3, 15);
+    // The help desk stands on the floor now that the whole room is in view.
+    exitSign(w - 26, 11); poster(w - 14, 10); fittings(3, 15);
   } else {
     reserve(1, 3, 11, 13); reserve(w - 12, 3, w - 2, 13);
     reinforcedWindow(base, effects, 'window-left', 1, 3, 11, 13, 1, 5);
@@ -346,7 +346,7 @@ function lounge(name) {
   wallPanels(base, 0, 2, w - 1, railY - 1, 3, 12, reserved);
 
   // Seats: worn benches, one of them hiding a fluffy tail.
-  const seatY = port ? 19 : 20, sxs = port ? 4 : 24, ex = port ? w - 6 : w - 30;
+  const seatY = port ? 19 : 20, sxs = port ? 4 : 14, ex = port ? w - 6 : w - 14;
   for (let x = sxs; x <= ex - 4; x += 6) { base.text(x, seatY, ' ___ ', 'o'); base.text(x, seatY + 1, '|___|', '.'); base.text(x, seatY + 2, ' | | ', 'd'); }
   const tail = new Art(w, h); prop(tail, sxs + 6 * 4 + 4, seatY - 1, ['~@'], ['rr']);
   layers.push(layer('pride-tail', tail, { when: { beat: ['pride'] } }));
@@ -364,16 +364,16 @@ function lounge(name) {
   }
   const floorProps = port
     ? [[6, 24, ['  /\\', ' /! \\', '/WET_\\'], ['  aa', ' aaaa', 'aaaaaa']], [44, 40, ['_\\/_'], 'a'], [14, 48, [' ,-.', '[▄▄▄]'], [' ddd', 'rrrrr']], [56, 32, ['[u]'], 'r'], [30, 52, ["-'  -'"], 'I']]
-    : [[8, 25, ['  /\\', ' /! \\', '/WET_\\'], ['  aa', ' aaaa', 'aaaaaa']], [70, 34, ['_\\/_'], 'a'], [95, 29, [' ,-.', '[▄▄▄]'], [' ddd', 'rrrrr']],
-      [40, 31, ['[u]'], 'r'], [52, 36, ["-'  -'"], 'I'], [27, 37, ['[≡]'], 'H'], [14, 32, ['≡≡≡≡'], 'd']];
+    : [[6, 25, ['  /\\', ' /! \\', '/WET_\\'], ['  aa', ' aaaa', 'aaaaaa']], [54, 36, ['_\\/_'], 'a'], [60, 27, [' ,-.', '[▄▄▄]'], [' ddd', 'rrrrr']],
+      [34, 31, ['[u]'], 'r'], [42, 37, ["-'  -'"], 'I'], [22, 37, ['[≡]'], 'H'], [12, 32, ['≡≡≡≡'], 'd']];
   for (const [x, y, lines, keys] of floorProps) {
     for (let r = 0; r < lines.length; r++) for (let c = 0; c < [...lines[r]].length; c++) base.put(x + c, y + r, ' ', ' ');
     prop(base, x, y, lines, keys);
   }
-  if (port) desk(48, 41);
-  effects.push({ kind: 'drift', id: 'dust', region: [port ? 4 : 24, seatY - 4, port ? w - 8 : w - 54, 3], seed: 9, density: 0.02, speed: 0.3, glyphs: '·', colours: 'I' });
+  if (port) desk(48, 41); else desk(w - 22, 26);
+  effects.push({ kind: 'drift', id: 'dust', region: [port ? 4 : 14, seatY - 4, port ? w - 8 : w - 28, 3], seed: 9, density: 0.02, speed: 0.3, glyphs: '·', colours: 'I' });
   // Ian makes his rounds.
-  effects.push({ kind: 'sprite', id: 'ian', frames: CORGI, from: [-12, port ? 44 : 30], to: [w + 2, port ? 44 : 30], duration: port ? 10 : 16, every: 75, offset: 40, fps: 4 });
+  effects.push({ kind: 'sprite', id: 'ian', frames: CORGI, from: [-12, port ? 44 : 34], to: [w + 2, port ? 44 : 34], duration: port ? 10 : 14, every: 75, offset: 40, fps: 4 });
   return { layers: [layer('base', base), ...layers], effects };
 }
 
@@ -382,8 +382,9 @@ const DOOR_BEATS = ['watch-step', 'feedback', 'be-safe', 'ready', 'get-whitelist
 function door(name) {
   const { cols: w, rows: h } = SCENE_LAYOUTS[name], port = name === 'portrait';
   const base = new Art(w, h), light = new Art(w, h), effects = [], layers = [];
-  const dw = port ? 30 : 34, cx = Math.round(w / 2), dx0 = cx - dw / 2, dx1 = cx + dw / 2;
-  const dy0 = 4, dy1 = port ? Math.round(h * 0.47) : Math.round(h * 0.63), cyl = Math.round((dy0 + dy1) / 2);
+  const dw = port ? 30 : 28, cx = Math.round(w / 2), dx0 = cx - dw / 2, dx1 = cx + dw / 2;
+  // Landscape leaves the lower half of the room for the arrivals deck, all of it in view.
+  const dy0 = 4, dy1 = port ? Math.round(h * 0.47) : 22, cyl = Math.round((dy0 + dy1) / 2);
   for (let y = dy0 - 1; y <= dy1; y++) for (const x of [dx0 - 2, dx0 - 1, dx1 + 1, dx1 + 2]) base.put(x, y, x === dx0 - 1 || x === dx1 + 1 ? '▒' : '▓', x === dx0 - 1 || x === dx1 + 1 ? '.' : 'o');
   base.hline(dx0 - 2, dx1 + 2, dy0 - 1, '▓', 'o'); base.hline(dx0 - 2, dx1 + 2, dy0, '▒', '.');
   const sten = port ? ' DOOR 07 · KEEP CLEAR ' : ' PRESSURE DOOR 07 · KEEP CLEAR ';
@@ -427,7 +428,7 @@ function door(name) {
     layers.push(layer(right ? 'leaf-right' : 'leaf-left', leaf, { opaque: true, slide: { by: 'doorOpen', dx: right ? half + 1 : -half, clip: [dx0, dy0 + 1, dw + 1, dy1 - dy0 - 1] } }));
   }
   base.hline(dx0 - 2, dx1 + 2, dy1, '▀', 'd');
-  const cxR = dx1 + 5;
+  const cxR = dx1 + (port ? 5 : 4);
   base.vline(cxR, dy0, dy1 - 1, '║', 'H'); base.put(cxR, dy0 - 1, '╔', 'H');
   const conduit = []; for (let y = dy0; y < dy1; y++) conduit.push([cxR, y]);
   effects.push({ kind: 'pulse', id: 'conduit-slow', path: conduit, speed: 4, glyph: '•', colour: 'c', when: { whitelist: ['none', 'requested'] } });
@@ -440,14 +441,14 @@ function door(name) {
   const PANEL_STATES = [['idle', ['none'], 'A'], ['waiting', ['requested'], 'a'], ['open', ['confirmed'], 'c']];
   if (!port) {
     base.hline(0, dx0 - 7, dy0 + 2, '═', 'H'); base.text(dx0 - 6, dy0 + 2, '[≡]', 'o'); base.put(dx0 - 5, dy0 + 2, '≡', 'h'); base.put(dx0 - 3, dy0 + 2, '═', 'H');
-    const ix = 5, iy = dy0 + 5;
+    const ix = 2, iy = dy0 + 5;
     ['+-------------------------+', '| ARRIVALS                |', '| ||||||||||||||||||||||| |', '| ||||||||||||||||||||||| |', '|                     (o) |', '| PUSH TO TALK         .  |', '+-------------------------+']
       .forEach((ln, r) => [...ln].forEach((ch, j) => { if (ch !== ' ') base.put(ix + j, iy + r, ch, /[A-Z]/.test(ch) ? 'r' : (ch === '|' && j > 1 && j < ln.length - 2) ? 'd' : 'o'); }));
-    const px = dx1 + 8, pw = Math.min(31, w - px - 2), py = dy0 + 1;
+    const px = dx1 + 6, pw = w - px - 1, py = dy0 + 1;
     base.box(px, py, px + pw, py + 6, 'h'); base.text(px + 2, py, ' ARRIVAL CONTROL ', 'h'); base.put(px, py + 3, '╪', 'h'); base.hline(dx1 + 3, px - 1, py + 3, '─', 'H');
     for (const [state, when, key] of PANEL_STATES) {
       const art = new Art(w, h);
-      rows[state].forEach(([k, v], r) => { art.text(px + 2, py + 2 + r, k, 'h'); art.text(px + 13, py + 2 + r, '» ' + v, key); });
+      rows[state].forEach(([k, v], r) => { art.text(px + 2, py + 2 + r, k, 'h'); art.text(px + 12, py + 2 + r, '» ' + v, key); });
       layers.push(layer(`control-${state}`, art, { when: { whitelist: when } }));
     }
   } else {
@@ -468,8 +469,10 @@ function door(name) {
     else if (hash(x * 7 + 3, y * 5) < 0.015) base.put(x, y, '·', 'd');
   }
   for (let x = 0; x < w; x++) base.put(x, floorY, x % 4 < 2 ? '/' : ' ', x % 4 < 2 ? 'r' : ' ');
-  const fy = port ? floorY + 4 : floorY + 3, rowGap = port ? 12 : 0;
-  const slots = port ? [[2, fy], [24, fy], [47, fy], [2, fy + rowGap], [37, fy + rowGap]] : [[3, fy], [26, fy], [44, fy], [61, fy], [91, fy]];
+  const fy = port ? floorY + 4 : floorY + 2, rowGap = port ? 12 : 7;
+  // Landscape: two rows of fixtures with the middle of the front row left clear for the ID card.
+  const slots = port ? [[2, fy], [24, fy], [47, fy], [2, fy + rowGap], [37, fy + rowGap]]
+    : [[2, fy], [4, fy + rowGap], [26, fy + rowGap], [w - 30, fy], [w - 27, fy + rowGap]];
   const clearArea = (x, y, cols, rows) => base.fill(x, y, x + cols - 1, y + rows - 1, ' ', ' ');
   const beatLayer = (id, art, beats) => deck.push(layer(id, art, { when: { beat: beats } }));
   {
@@ -515,7 +518,7 @@ function door(name) {
     effects.push({ kind: 'blink', id: 'deck-button-blink', region: [x + 2, y + 2, 19, 1], hz: 1, on: 'c', off: 'h', when: { beat: ['get-whitelisted'] } });
   }
   // Access granted: an ID card, shown only once Discord has applied Whitelist.
-  const card = new Art(w, h), cw = 22, ccx = Math.round(w / 2 - cw / 2), ccy = port ? h - 7 : floorY + 1;
+  const card = new Art(w, h), cw = 22, ccx = Math.round(w / 2 - cw / 2), ccy = port ? h - 7 : floorY + 2;
   card.fill(ccx, ccy, ccx + cw - 1, ccy + 3, ' ', ' ');
   prop(card, ccx, ccy, ['┌────────────────────┐', '│ ID ▓▓  CREW        │', '│ ACCESS: WHITELIST  │', '└────────────────────┘'], ['hhhhhhhhhhhhhhhhhhhhhh', 'h iiAA  cccc        h', 'h IIIIIII ccccccccc  h', 'hhhhhhhhhhhhhhhhhhhhhh']);
   deck.push(layer('id-card', card, { opaque: true, when: { whitelist: ['confirmed'] } }));
@@ -540,6 +543,19 @@ const CLOWN = [
   spriteFrame(['HONK!', ' \\o/', '  |', ' / \\'], ['aaaaa', ' rpr', '  r', ' r r']),
   spriteFrame(['', ' \\o/', '  |', '  |\\'], ['', ' rpr', '  r', '  rr']),
 ];
+// Luggage on the belt: each bag is its own figure, so it keeps its shape and tag from one end to the other.
+const BAGS = [
+  [[' .--. ', '[====]'], ['oooooo', 'AAAAAA']],
+  [['  __  ', '[▒▒▒▒]'], ['  oo  ', 'rrrrrr']],
+  [[' .__. ', '[▓▓▓▓]'], ['oooooo', 'AAAAAA']],
+  [['  ,~~. ', '(=====)'], ['  IIII ', 'hhhhhhh']],
+  [[' __     ', '(__)===>'], ['ooo     ', 'rrrrAAAA']],
+  [['.----.', '|FRGL|'], ['AAAAAA', 'ArrrrA']],
+  [[' ,-. ', '[▄▄▄]'], [' ddd ', 'rrrrr']],
+  [['.----.', '|=^.^|'], ['oooooo', 'oiiiio']],
+  [['.____.', '[_▀▀_]'], ['IIIIII', 'IhhhhI']],
+  [[' (") ', '(_=_)'], [' 444 ', '44444']],
+];
 function baggage(name) {
   const { cols: w, rows: h } = SCENE_LAYOUTS[name], port = name === 'portrait';
   const base = new Art(w, h), effects = [], layers = [], reserved = [];
@@ -547,7 +563,7 @@ function baggage(name) {
   tubes(base, w);
   effects.push({ kind: 'flicker', id: 'tube-flicker', region: [30, 1, 10, 1], hz: 2, chance: 0.25, colour: 'd' });
   // A wall of old lockers; one stands open with something nobody came back for.
-  const lockW = 8, lockH = 4, top = 3, rows = 3, x0 = 2, count = Math.floor((w - 4) / lockW);
+  const lockW = 8, lockH = 4, top = 3, rows = 3, x0 = 2, count = Math.floor(((port ? w : w - 34) - 4) / lockW);
   let n = 1, lost = null;
   for (let r = 0; r < rows; r++) for (let i = 0; i < count; i++, n++) {
     const x = x0 + i * lockW, y = top + r * lockH;
@@ -559,8 +575,10 @@ function baggage(name) {
     base.text(x + 3, y + 2, '==', 'I');
     if (tagged) { base.put(x + 6, y + 1, '◆', 'h'); effects.push({ kind: 'blink', id: `tag-${i}-${r}`, region: [x + 6, y + 1, 1, 1], hz: 0.4 + hash(i, r) * 0.6, on: 'h', off: 'H' }); }
   }
-  base.text(x0 + count * lockW, top, '+', 'o'); for (let y = top + 1; y < top + rows * lockH; y++) base.put(x0 + count * lockW, y, '|', 'o');
-  base.hline(x0, x0 + count * lockW, top + rows * lockH, '-', 'o');
+  const lockRight = x0 + count * lockW;
+  base.text(lockRight, top, '+', 'o'); for (let y = top + 1; y < top + rows * lockH; y++) base.put(lockRight, y, '|', 'o');
+  base.hline(x0, lockRight, top + rows * lockH, '-', 'o');
+  reserve(x0, top, lockRight, top + rows * lockH);
   if (lost) {
     // Leave the past in the past: an old hero's cape, unclaimed.
     const [lx, ly] = lost, cape = new Art(w, h);
@@ -568,48 +586,64 @@ function baggage(name) {
     prop(cape, lx + 1, ly + 1, ['UNCLAIM', ' \\~~~/', '  \\_/'], ['AAAAAAA', ' ppppp', '  ppp']);
     layers.push({ ...layer('lost-cape', cape, { opaque: true }), when: { beat: ['past'] } });
   }
-  const sy = top + rows * lockH + 2, sw = port ? w - 8 : 54, sx = Math.floor(w / 2 - sw / 2);
-  strip(base, effects, sx, sy, sw); reserve(sx, sy, sx + sw - 1, sy + 2);
-  // The belt: luggage and track move the same way, right through the scanner arch.
-  const beltY = sy + 8, period = 16, cases = [[' .--. ', '[====]'], ['  __  ', '[▒▒▒▒]'], [' .__. ', '[▓▓▓▓]']];
-  const ax = port ? Math.round(w * 0.55) : Math.round(w * 0.62);
-  const origins = ['BUBBER', 'SPLURT', 'NOVA'];
-  base.hline(0, w - 1, beltY + 3, '▀', 'd');
-  for (const tagged of [false, true]) {
-    const belt = [];
-    for (let f = 0; f < period; f++) {
-      const art = new Art(w, h);
-      for (let x = 0; x < w; x++) {
-        const rail = ((x - f) % 4 + 4) % 4 === 0, roller = ((x - f) % 3 + 3) % 3 === 0;
-        art.put(x, beltY + 1, rail ? '╪' : '═', rail ? 'o' : 'I'); art.put(x, beltY + 2, roller ? 'o' : ' ', 'd');
-      }
-      for (let k = -1; k * period < w + period; k++) {
-        const cx = k * period + f + 2, kind = ((k % 3) + 3) % 3, c = cases[kind];
-        art.text(cx, beltY - 1, c[0], 'o'); art.text(cx, beltY, c[1], kind === 1 ? 'r' : 'A');
-        if (tagged) { const tag = cx + 3 < ax ? origins[kind] : 'MERIDIAN'; art.text(cx, beltY - 2, tag, cx + 3 < ax ? 'I' : 'c'); }
-      }
-      belt.push(art);
-    }
-    layers.push({ ...framesLayer(tagged ? 'belt-tagged' : 'belt', belt, 6), when: { beat: tagged ? ['migrating'] : ['none', 'past', 'looc'] } });
-  }
-  const arch = new Art(w, h);
-  arch.text(ax, beltY - 4, '╔════╗', 'h'); for (let y = beltY - 3; y <= beltY + 1; y++) { arch.put(ax, y, '║', 'h'); arch.put(ax + 5, y, '║', 'h'); }
-  arch.put(ax, beltY + 2, '╪', 'h'); arch.put(ax + 5, beltY + 2, '╪', 'h');
-  layers.push(layer('scanner-arch', arch));
-  effects.push({ kind: 'scan', id: 'scanner', region: [ax + 1, beltY - 3, 4, 2], speed: 4, glyph: '─', colour: 'H' });
-  reserve(ax, beltY - 4, ax + 5, beltY + 2);
+  // The claim sign and the stop strip: beside the lockers in landscape, under them in portrait.
+  const sx = port ? 4 : lockRight + 4, sy = port ? top + rows * lockH + 2 : top + 1, sw = port ? w - 8 : w - lockRight - 6;
+  base.text(sx, sy, 'BAGGAGE CLAIM', 'r'); base.text(sx, sy + 1, '-------------', 'A'); reserve(sx, sy, sx + 12, sy + 1);
+  strip(base, effects, sx, sy + 2, sw); reserve(sx, sy + 2, sx + sw - 1, sy + 4);
   if (!port) {
-    const dx = w - 18, dy = sy;
-    base.text(dx, dy, '.------------.', 'o'); base.text(dx, dy + 1, '|   .----.   |', 'o'); base.text(dx, dy + 2, "|  /  |   \\  |", 'o');
-    base.text(dx, dy + 3, '|  | 00kg |  |', 'o'); base.text(dx, dy + 4, "'------------'", 'o');
-    base.text(dx + 5, dy + 3, '00kg', 'a'); reserve(dx, dy, dx + 13, dy + 4);
-    base.text(4, sy, 'BAGGAGE', 'r'); base.text(4, sy + 1, '-------', 'A'); reserve(4, sy, 10, sy + 1);
+    // Belt directions on the wall, old stencil and new arrows.
+    base.text(sx, sy + 6, 'ARRIVALS  ─────»  CLAIM', 'A'); base.text(sx, sy + 8, 'ALL BAGS ARE SCANNED', 'I'); base.text(sx, sy + 9, 'LOST TAGS: SEE STAFF', 'I');
+    reserve(sx, sy + 6, sx + 23, sy + 9);
   }
-  wallPanels(base, 0, top + rows * lockH + 1, w - 1, beltY - 5, 7, 12, reserved);
+
+  // The belt: rollers and rails turn the same way, and at the same speed, as the bags.
+  const beltY = port ? sy + 13 : top + rows * lockH + 9, speed = 4, gap = 12;
+  const ax = port ? Math.round(w * 0.55) : Math.round(w * 0.56), start = -10, end = w + 2;
+  base.hline(0, w - 1, beltY + 3, '▀', 'd');
+  const belt = [];
+  for (let f = 0; f < 12; f++) {
+    const art = new Art(w, h);
+    for (let x = 0; x < w; x++) {
+      const rail = ((x - f) % 4 + 4) % 4 === 0, roller = ((x - f) % 3 + 3) % 3 === 0;
+      art.put(x, beltY + 1, rail ? '╪' : '═', rail ? 'o' : 'I'); art.put(x, beltY + 2, roller ? 'o' : ' ', 'd');
+    }
+    belt.push(art);
+  }
+  layers.push(framesLayer('belt', belt, speed));
+  // Each bag rides to the scanner with its own tag, disappears into the arch, and comes out tagged as processed:
+  // MERIDIAN while Sophie talks about migrating (the copy names Bubber, Splurt and Nova), OK otherwise.
+  const origins = ['BUBBER', 'SPLURT', 'NOVA'], length = end - start, cycle = length / speed, toScan = (ax - start) / speed, fromScan = (end - ax) / speed;
+  const bags = Math.min(BAGS.length, Math.floor(length / gap)), spacing = cycle / bags;
+  for (let j = 0; j < bags; j++) {
+    const [lines, keys] = BAGS[j % BAGS.length];
+    // Arrivals at the scanner fall on whole multiples of the spacing, in step with the weight readout.
+    const offIn = (j * spacing + toScan % spacing) % cycle, offOut = ((offIn - toScan) % cycle + cycle) % cycle;
+    const phase = offIn % cycle, before = phase < toScan;
+    const stillIn = before ? { still: phase / toScan } : {}, stillOut = before ? {} : { still: (phase - toScan) / fromScan };
+    const tagged = (tag, colour) => spriteFrame([tag, ...lines], [colour.repeat(tag.length), ...keys]);
+    const route = (id, frame, from, to, duration, offset, extra, beats) =>
+      effects.push({ kind: 'sprite', id, frames: [frame], from, to, duration, every: cycle, offset, ...extra, when: { beat: beats } });
+    const others = ['none', ...BAGGAGE_BEATS.filter(beat => beat !== 'migrating')];
+    route(`bag-${j}-in`, spriteFrame(['', ...lines], [' '.repeat(0), ...keys]), [start, beltY - 2], [ax, beltY - 2], toScan, offIn, stillIn, others);
+    route(`bag-${j}-in-tag`, tagged(origins[j % 3], 'I'), [start, beltY - 2], [ax, beltY - 2], toScan, offIn, stillIn, ['migrating']);
+    route(`bag-${j}-out`, tagged('OK', '4'), [ax, beltY - 2], [end, beltY - 2], fromScan, offOut, stillOut, others);
+    route(`bag-${j}-out-tag`, tagged('MERIDIAN', 'c'), [ax, beltY - 2], [end, beltY - 2], fromScan, offOut, stillOut, ['migrating']);
+  }
+  // The scanner arch is drawn over the bags, so they pass through it; the scale reads each bag as it goes in.
+  ['╔══════╗', '║      ║', '║      ║', '║      ║'].forEach((row, r) =>
+    effects.push({ kind: 'text', id: `arch-${r}`, x: ax - 1, y: beltY - 3 + r, width: 8, template: row, colour: 'h' }));
+  effects.push({ kind: 'scan', id: 'scanner', region: [ax, beltY - 2, 6, 3], speed: 4, glyph: '─', colour: 'H' });
+  const weights = ['23.4', '18.9', '31.2', ' 9.6', '27.7', '14.1', ' 6.8', '20.3'];
+  base.box(ax - 3, beltY - 7, ax + 8, beltY - 4, 'o'); base.text(ax - 1, beltY - 7, ' SCALE ', 'A');
+  effects.push({ kind: 'flap', id: 'scale', x: ax - 1, y: beltY - 6, width: 8, texts: weights.map(value => `${value} KG`), period: spacing, flip: 0.3, colour: 'a', align: 'left' });
+  effects.push({ kind: 'blink', id: 'scale-lamp', region: [ax + 7, beltY - 5, 1, 1], hz: 1 / spacing, on: '4', off: 'I' });
+  base.text(ax - 1, beltY - 5, 'WEIGH ', 'I');
+  reserve(ax - 3, beltY - 7, ax + 8, beltY + 2);
+  wallPanels(base, 0, top + rows * lockH + 1, w - 1, beltY - 4, 7, 12, reserved);
   // LOOC: out-of-character, in double brackets.
   const looc = new Art(w, h);
-  const bubble = '(( do our characters know each other here? ))';
-  looc.text(Math.floor(w / 2 - bubble.length / 2), beltY - 4 - (port ? 0 : 0), bubble, 'I');
+  const bubble = port ? '(( do our characters know each other? ))' : '(( do our characters know each other here? ))';
+  looc.text(port ? Math.floor(w / 2 - bubble.length / 2) : 4, port ? beltY - 8 : beltY - 6, bubble, 'I');
   layers.push(layer('looc-bubble', looc, { when: { beat: ['looc'] } }));
 
   // Floor: claim-hall tiles, a luggage cart, and a monkey who should not be here.
@@ -621,11 +655,11 @@ function baggage(name) {
   }
   const clear = (x, y, lines) => lines.forEach((line, r) => { for (let c = 0; c < [...line].length; c++) base.put(x + c, y + r, ' ', ' '); });
   const placeOnFloor = (x, y, lines, keys) => { clear(x, y, lines); prop(base, x, y, lines, keys); };
-  const cartX = port ? 4 : 6, cartY = floorTop + 1;
+  const cartX = port ? 4 : 3, cartY = floorTop + 1;
   placeOnFloor(cartX, cartY, ['  .--.  .__.', ' [====][▓▓▓▓]', '|============|', ' o          o'], ['  oooo  oooo', ' AAAAAArrrrrr', 'oooooooooooooo', ' d          d']);
-  placeOnFloor(port ? 50 : 92, floorTop + 2, ["   .__.", "  [▒▒▒▒]", "@('_')@"], ['   oooo', '  AAAAAA', 'rrrrrrr']);
+  placeOnFloor(port ? 50 : w - 12, floorTop + 2, ["   .__.", "  [▒▒▒▒]", "@('_')@"], ['   oooo', '  AAAAAA', 'rrrrrrr']);
   // The terminal by the belt: house rules, or the preferences import when Sophie gets to it.
-  const tx = port ? 4 : 30, ty = port ? floorTop + 7 : floorTop + 1, tw = port ? w - 9 : 56;
+  const tw = port ? w - 9 : 52, tx = port ? 4 : Math.floor((w - tw) / 2) - 2, ty = port ? floorTop + 7 : floorTop + 2;
   clear(tx, ty, Array(5).fill(' '.repeat(tw + 1)));
   base.box(tx, ty, tx + tw, ty + 4, 'o'); base.text(tx + 2, ty, ' CLAIM TERMINAL ', 'A');
   const notices = new Art(w, h);
@@ -637,7 +671,7 @@ function baggage(name) {
   prefs.text(tx + 2, ty + 3, port ? 'settings move, setting stays' : 'Preferences move settings, not the setting.', 'I');
   layers.push(layer('terminal-prefs', prefs, { when: { beat: ['migrating'] } }));
   effects.push({ kind: 'blink', id: 'prefs-wait', region: [tx + tw - 4, ty + 2, 2, 1], hz: 1.5, on: 'a', off: 'A', when: { beat: ['migrating'] } });
-  effects.push({ kind: 'sprite', id: 'clown', frames: CLOWN, from: [w + 4, h - 6], to: [-10, h - 6], duration: port ? 7 : 11, every: 95, offset: 55, fps: 3 });
+  effects.push({ kind: 'sprite', id: 'clown', frames: CLOWN, from: [w + 4, h - 5], to: [-10, h - 5], duration: port ? 7 : 11, every: 95, offset: 55, fps: 3 });
   return { layers: [layer('base', base), ...layers], effects };
 }
 
@@ -710,7 +744,7 @@ function cabin(name) {
 }
 
 // ---------- scene: viewport ----------
-const VIEWPORT_BEATS = ['enjoy', 'valuable', 'photos'];
+const VIEWPORT_BEATS = ['enjoy', 'valuable', 'photos', 'lucky'];
 function viewport(name) {
   const { cols: w, rows: h } = SCENE_LAYOUTS[name], port = name === 'portrait';
   const base = new Art(w, h), effects = [];
@@ -742,7 +776,7 @@ function viewport(name) {
   const layers = [];
   // Enjoy yourselves: the light band outside turns festive.
   const band = effects.find(fx => fx.id === 'lights-band');
-  band.when = { beat: ['none', 'valuable', 'photos'] };
+  band.when = { beat: ['none', 'valuable', 'photos', 'lucky'] };
   effects.push({ ...band, id: 'lights-festive', glyphs: '~~-*~~-', colours: '1234567', density: 0.08, when: { beat: ['enjoy'] } });
   effects.push({ kind: 'sprite', id: 'carp-outside', frames: CARP, from: [ix0 + iw, iy0 + 5], to: [ix0 - 8, iy0 + 8], duration: 14, every: 80, offset: 12, fps: 2 });
   effects.push({ kind: 'sprite', id: 'shooting-star', frames: [spriteFrame(['*'], 'c')], from: [ix0 + 8, iy0 + 1], to: [ix0 + 36, iy0 + 7], duration: 1.5, every: 33, offset: 9 });
@@ -752,15 +786,18 @@ function viewport(name) {
   for (let x = 0; x < w; x++) if (hash(x * 9, floorY + 1) < 0.08) base.put(x, floorY + 1, '·', 'd');
   prop(base, 3, floorY - 4, ['\\\\|//', ' \\|/', ' [_]'], ['44444', ' 444', ' ooo']);
   if (!port) prop(base, 10, floorY - 3, [' ________________', '|________________|', ' ||            ||'], [' oooooooooooooooo', 'oAAAAAAAAAAAAAAAAo', ' dd            dd']);
-  const signX = port ? 12 : 44, signW = port ? 46 : 34, signY = deckY;
+  const signX = port ? 12 : 31, signW = port ? 46 : 34, signY = deckY;
   base.box(signX, signY, signX + signW, signY + 4, 'H');
   const plain = new Art(w, h); plain.text(signX + 2, signY + 1, 'OBSERVATION DECK', 'h'); plain.text(signX + 2, signY + 2, 'PLEASE ENJOY THE VIEW', 'H');
   layers.push(layer('deck-sign', plain, { when: { beat: ['none', 'enjoy', 'photos'] } }));
-  // Every life is valuable: somebody, somewhere, is learning this for the first time today.
+  // Every life is valuable: nobody arrives knowing everything.
+  const patient = new Art(w, h); patient.text(signX + 2, signY + 1, 'EVERYONE WAS NEW ONCE', 'h'); patient.text(signX + 2, signY + 2, 'ASK · LEARN · TRY AGAIN', 'c');
+  layers.push(layer('deck-patient', patient, { when: { beat: ['valuable'] } }));
+  // The lucky ten thousand, on the page that links xkcd's "Ten Thousand": someone learns this for the first time today.
   const count = new Art(w, h); count.text(signX + 2, signY + 1, 'TODAY:  10,000', 'c'); count.text(signX + 2, signY + 2, 'PEOPLE LEARN SOMETHING', 'h'); count.text(signX + 2, signY + 3, 'FOR THE FIRST TIME', 'h');
-  layers.push(layer('deck-counter', count, { when: { beat: ['valuable'] } }));
-  effects.push({ kind: 'blink', id: 'deck-counter-blink', region: [signX + 10, signY + 1, 6, 1], hz: 0.8, on: 'c', off: 'h', when: { beat: ['valuable'] } });
-  const boothX = port ? w - 20 : 86, boothY = deckY;
+  layers.push(layer('deck-counter', count, { when: { beat: ['lucky'] } }));
+  effects.push({ kind: 'blink', id: 'deck-counter-blink', region: [signX + 10, signY + 1, 6, 1], hz: 0.8, on: 'c', off: 'h', when: { beat: ['lucky'] } });
+  const boothX = port ? w - 20 : w - 20, boothY = deckY;
   base.box(boothX, boothY, boothX + 16, boothY + 3, 'o'); base.text(boothX + 2, boothY + 1, 'PHOTO BOOTH', 'A'); base.text(boothX + 2, boothY + 2, '[==slot==]', 'd');
   const prints = [];
   for (let f = 0; f < 6; f++) {
@@ -768,9 +805,9 @@ function viewport(name) {
     for (let i = 0; i <= Math.min(f, 3); i++) art.text(boothX + 1 + i * 4, boothY + 5, '[▒]', i === Math.min(f, 3) && f < 4 ? 'a' : 'I');
     prints.push(art);
   }
-  layers.push({ ...framesLayer('photo-prints', prints, 1), when: { beat: ['photos'] } });
+  layers.push({ ...framesLayer('photo-prints', prints, 1), when: { beat: ['photos', 'lucky'] } });
   // Take photos: the old camera flashes now and then.
-  effects.push({ kind: 'blink', id: 'camera-flash', region: [camX + 2, camY + 1, 1, 1], hz: 0.5, on: 'c', off: 'a', when: { beat: ['photos'] } });
+  effects.push({ kind: 'blink', id: 'camera-flash', region: [camX + 2, camY + 1, 1, 1], hz: 0.5, on: 'c', off: 'a', when: { beat: ['photos', 'lucky'] } });
   return { layers: [layer('base', base), ...layers], effects };
 }
 

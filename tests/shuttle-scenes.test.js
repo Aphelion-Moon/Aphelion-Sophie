@@ -104,11 +104,11 @@ test('P42 the validator refuses code-like fields, unknown glyphs, fast flashes a
   mutate(s => { s.schema = 2; }, 'UNSUPPORTED_SCENE_SCHEMA');
   mutate(s => { s.layouts.landscape.layers[0].frames[0].text[0] = '🚀'; s.layouts.landscape.layers[0].frames[0].colours[0] = '.'; }, 'INVALID_SCENE_GLYPH|INVALID_SCENE_SIZE');
   mutate(s => { s.layouts.landscape.effects.push({ kind: 'blink', id: 'fast', region: [0, 0, 1, 1], hz: 5, on: 'a', off: 'A' }); }, 'SCENE_FLASH_TOO_FAST');
-  mutate(s => { s.layouts.landscape.effects.push({ kind: 'flicker', id: 'wide', region: [0, 0, 120, 10], hz: 1, chance: 0.5, colour: 'd' }); }, 'SCENE_FLICKER_TOO_LARGE');
+  mutate(s => { s.layouts.landscape.effects.push({ kind: 'flicker', id: 'wide', region: [0, 0, 96, 10], hz: 1, chance: 0.5, colour: 'd' }); }, 'SCENE_FLICKER_TOO_LARGE');
   mutate(s => { s.layouts.landscape.effects.push({ kind: 'text', id: 'leak', x: 0, y: 0, width: 10, template: '{memberId}', colour: 'a' }); }, 'INVALID_SCENE_TEMPLATE');
   mutate(s => { s.layouts.landscape.effects.push({ kind: 'shell', id: 'nope' }); }, 'INVALID_SCENE_EFFECT');
   mutate(s => { s.layouts.landscape.layers.push({ ...s.layouts.landscape.layers[0] }); }, 'INVALID_SCENE_ID');
-  mutate(s => { s.layouts.landscape.layers[0].x = 119; }, 'INVALID_SCENE_SIZE');
+  mutate(s => { s.layouts.landscape.layers[0].x = 95; }, 'INVALID_SCENE_SIZE');
   mutate(s => { s.alt = [{ text: 'Only a conditional entry.', when: { whitelist: ['confirmed'] } }]; }, 'INVALID_SCENE_ALT');
   mutate(s => { delete s.layouts.portrait; }, 'INVALID_SCENE_LAYOUTS');
 });
@@ -138,20 +138,40 @@ test('P43 sprites cross only in their window, never with motion off, and stay sm
   const ian = lounge.layouts.landscape.effects.find(fx => fx.id === 'ian');
   const start = ian.every - (ian.offset % ian.every);
   const frame = (time, motion) => composeScene(lounge, 'landscape', { time, state: STATE, motion }).glyphs.join('\n');
-  assert.match(frame(start + ian.duration / 2, true), /\(______ o>/);
-  assert.doesNotMatch(frame(start + ian.duration + 5, true), /\(______ o>/);
-  assert.doesNotMatch(frame(start + ian.duration / 2, false), /\(______ o>/);
+  assert.match(frame(start + ian.duration / 2, true), /\(______.o>/);
+  assert.doesNotMatch(frame(start + ian.duration + 5, true), /\(______.o>/);
+  assert.doesNotMatch(frame(start + ian.duration / 2, false), /\(______.o>/);
   const { fps: _fps, ...still } = ian;
   const huge = { ...still, id: 'huge', frames: [{ text: Array(9).fill('x'), colours: Array(9).fill('a') }] };
   assert.throws(() => validateScene({ ...lounge, layouts: { ...lounge.layouts, landscape: { ...lounge.layouts.landscape,
     effects: [...lounge.layouts.landscape.effects, huge] } } }), error => error.code === 'INVALID_SCENE_SPRITE');
 });
 
-test('P42 the baggage belt runs the same way as the bags', () => {
+test('P42 the baggage belt runs with the bags, and each bag keeps its shape and tag all the way through', () => {
   const hall = scenes.find(([, s]) => s.id === 'baggage-hall')[1];
   for (const layout of ['landscape', 'portrait']) {
-    const belt = hall.layouts[layout].layers.find(item => item.id === 'belt');
+    const { layers, effects } = hall.layouts[layout];
+    const belt = layers.find(item => item.id === 'belt');
     const first = (frame, ch) => Math.min(...frame.text.map(row => [...row].indexOf(ch)).filter(x => x >= 0));
-    for (const ch of ['╪', '[']) assert.equal(first(belt.frames[1], ch) - first(belt.frames[0], ch), 1, `${layout} ${ch}`);
+    assert.equal(first(belt.frames[1], '╪') - first(belt.frames[0], '╪'), 1, `${layout}: the rails move right`);
+    const bags = effects.filter(fx => fx.kind === 'sprite' && fx.id.startsWith('bag-'));
+    assert.ok(bags.length >= 24, layout);
+    for (const bag of bags) {
+      // One fixed figure, moving right at the belt's speed (one cell per belt frame).
+      assert.equal(bag.frames.length, 1, bag.id);
+      assert.ok(bag.to[0] > bag.from[0] && bag.to[1] === bag.from[1], bag.id);
+      assert.ok(Math.abs((bag.to[0] - bag.from[0]) / bag.duration - belt.fps) < 1e-9, bag.id);
+      assert.ok(bag.still !== undefined || bags.some(other => other.id !== bag.id && other.still !== undefined && other.id.split('-')[1] === bag.id.split('-')[1]), bag.id);
+    }
+    // A bag goes into the scanner and comes out of it at the same moment and place.
+    for (const into of bags.filter(bag => /-in(-tag)?$/.test(bag.id))) {
+      const out = bags.find(bag => bag.id === into.id.replace('-in', '-out'));
+      assert.deepEqual(out.from, into.to, into.id);
+      assert.ok(Math.abs(((into.offset - out.offset - into.duration) % into.every + into.every) % into.every) < 1e-9 ||
+        Math.abs(((into.offset - out.offset - into.duration) % into.every + into.every) % into.every - into.every) < 1e-9, into.id);
+    }
+    // With motion off, bags rest on the belt rather than vanishing.
+    const still = composeScene(hall, layout, { time: 0, state: STATE, motion: false }).glyphs.join('\n');
+    assert.match(still, /\[====\]|\[▒▒▒▒\]|\[▓▓▓▓\]/, layout);
   }
 });

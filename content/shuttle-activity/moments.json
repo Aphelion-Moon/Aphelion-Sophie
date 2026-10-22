@@ -55,11 +55,14 @@
         "beat": "enjoy"
       },
       "every life is valuable, every experience is unique": {
-        "beat": "valuable",
-        "viewscreen": "ten-thousand"
+        "beat": "valuable"
       },
       "take photos and make memories": {
         "beat": "photos"
+      },
+      "~xkcd.com/1053": {
+        "beat": "lucky",
+        "viewscreen": "ten-thousand"
       }
     },
     "disembarking": {
