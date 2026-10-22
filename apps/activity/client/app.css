@@ -52,7 +52,9 @@ button, input { font: inherit; color: inherit; }
 .radio-panel { max-width: 960px; margin: 0 auto; background: rgba(20, 19, 15, .96); border: 1px solid var(--rule); border-top: 2px solid var(--holo-dim);
   display: grid; grid-template-rows: auto minmax(0, 1fr) auto; max-height: 38vh; }
 .radio-head { display: flex; align-items: center; gap: 10px; padding: 6px 12px; border-bottom: 1px solid var(--rule); background: var(--panel); }
-.rx { color: var(--bay); background: var(--holo); padding: 0 5px; font-size: .8em; letter-spacing: .1em; animation: pulse 2.4s ease-in-out infinite; }
+.rx { color: var(--bay); background: var(--holo-dim); padding: 0 5px; font-size: .8em; letter-spacing: .1em; opacity: .6; }
+/* The RX lamp is lit only while Sophie is speaking (a transmission is coming in). */
+#radio[data-speaking="on"] .rx { background: var(--holo); opacity: 1; animation: pulse .8s ease-in-out infinite; }
 .radio-speaker { margin: 0; min-width: 0; font-size: .9em; font-weight: normal; letter-spacing: .12em; text-transform: uppercase; color: var(--holo);
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .radio-stop { margin-left: auto; min-width: 0; max-width: 50%; color: var(--amber); font-size: .85em; letter-spacing: .08em; text-transform: uppercase;
@@ -127,6 +129,6 @@ h2.md-heading { font-size: 1.3em; }
   .menu-panel { width: 100%; }
 }
 @media (prefers-reduced-motion: reduce) {
-  .press, .rx { animation: none; }
+  .press, #radio[data-speaking="on"] .rx { animation: none; }
 }
-main[data-motion="off"] .press, main[data-motion="off"] .rx { animation: none; }
+main[data-motion="off"] .press, main[data-motion="off"] #radio[data-speaking="on"] .rx { animation: none; }

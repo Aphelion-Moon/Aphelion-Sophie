@@ -100,6 +100,25 @@ test('T-ACT-CLI-06 sound: nothing before the first tap, Opus or MP3 by support, 
   assert.equal(fetched.filter(path => path.includes('amb-02')).length, 1);
 });
 
+test('T-ACT-CLI-09 Sophie\'s radio comes in quickly from a random point in the static and drops out quickly', async () => {
+  const events = [];
+  const gain = () => { const g = { value: 1, setValueAtTime() {}, cancelScheduledValues() {}, setTargetAtTime() {},
+    linearRampToValueAtTime(value, at) { events.push(['ramp', value, at]); } }; return { gain: g, connect() {} }; };
+  const context = { currentTime: 10, state: 'running', destination: {}, createGain: gain, async decodeAudioData(bytes) { return { bytes }; }, async resume() {},
+    createBufferSource: () => ({ connect() {}, start(when, offset) { events.push(['start', when, offset]); }, stop(at) { events.push(['stop', at]); } }) };
+  const index = JSON.parse(await readFile(new URL('../content/shuttle-activity/sounds/index.json', import.meta.url), 'utf8'));
+  const loop = index.sounds.find(sound => sound.cue === 'DLG-05').loop;
+  const board = createSoundboard({ index, base: '/s/', createContext: () => context, canPlayOpus: true, fetchBytes: async path => path, random: () => 0.5 });
+  await board.unlock();
+  await board.radio(true); await board.radio(true);
+  assert.deepEqual(events.filter(event => event[0] === 'start'), [['start', 10, loop.start + 0.5 * (loop.end - loop.start)]]);
+  assert.deepEqual(events.find(event => event[0] === 'ramp'), ['ramp', 1, 10.12]);
+  await board.radio(false);
+  assert.deepEqual(events.slice(-2), [['ramp', 0, 11.5], ['stop', 11.55]]);
+  await board.radio(false);
+  assert.equal(events.filter(event => event[0] === 'stop').length, 1);
+});
+
 test('T-ACT-CLI-07 API client: one request key per click across retries; refusals carry the fixed word', async () => {
   const bodies = [];
   let failures = 2;

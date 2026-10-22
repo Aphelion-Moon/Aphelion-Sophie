@@ -5,8 +5,10 @@
  */
 export const SOUND_GROUPS = Object.freeze(['interface', 'radio', 'scenes', 'ambience', 'music']);
 const FADE_SECONDS = 1.5;
+// Sophie's radio comes in quickly and trails off, from a different point in the static each time.
+const RADIO = Object.freeze({ fadeIn: 0.12, fadeOut: 1.5, randomStart: true });
 
-export function createSoundboard({ index, base, fetchBytes, createContext, canPlayOpus, levels = {} }) {
+export function createSoundboard({ index, base, fetchBytes, createContext, canPlayOpus, levels = {}, random = Math.random }) {
   const cues = new Map(index.sounds.map(sound => [sound.cue, sound]));
   const format = canPlayOpus ? 'opus' : 'mp3';
   const buffers = new Map(), channels = new Map();
@@ -34,13 +36,13 @@ export function createSoundboard({ index, base, fetchBytes, createContext, canPl
     return { node, gain };
   }
   /** Starts a loop (or a music track with its restart gap) on a named channel, fading out whatever played there. */
-  async function playOn(channel, cue) {
+  async function playOn(channel, cue, fades = {}) {
     const current = channels.get(channel);
     if (current?.cue === cue) return;
     if (current) stopChannel(channel);
     if (!cue || !context) return;
     const token = {};
-    channels.set(channel, { cue, token, voice: null });
+    channels.set(channel, { cue, token, voice: null, fadeOut: fades.fadeOut });
     const sound = cues.get(cue);
     let decoded;
     try { decoded = await buffer(cue); } catch { return; }
@@ -48,11 +50,11 @@ export function createSoundboard({ index, base, fetchBytes, createContext, canPl
       const held = channels.get(channel);
       if (held?.token !== token || !context) return;
       const voice = source(decoded, sound.group), now = context.currentTime;
-      const fadeIn = sound.loop?.fadeInSeconds ?? FADE_SECONDS;
+      const fadeIn = fades.fadeIn ?? sound.loop?.fadeInSeconds ?? FADE_SECONDS;
       voice.gain.gain.setValueAtTime(0, now); voice.gain.gain.linearRampToValueAtTime(1, now + fadeIn);
       if (sound.kind === 'loop' && sound.loop) {
         voice.node.loop = true; voice.node.loopStart = sound.loop.start; voice.node.loopEnd = sound.loop.end;
-        voice.node.start(now, sound.loop.start);
+        voice.node.start(now, fades.randomStart ? sound.loop.start + random() * (sound.loop.end - sound.loop.start) : sound.loop.start);
       } else {
         voice.node.start(now);
         voice.node.onended = () => { if (channels.get(channel)?.token === token) setTimeout(startVoice, (sound.loop?.restartGapSeconds ?? 2) * 1000); };
@@ -65,7 +67,7 @@ export function createSoundboard({ index, base, fetchBytes, createContext, canPl
     const held = channels.get(channel);
     channels.delete(channel);
     if (!held?.voice || !context) return;
-    const { node, gain } = held.voice, now = context.currentTime, fadeOut = cues.get(held.cue)?.loop?.fadeOutSeconds ?? FADE_SECONDS;
+    const { node, gain } = held.voice, now = context.currentTime, fadeOut = held.fadeOut ?? cues.get(held.cue)?.loop?.fadeOutSeconds ?? FADE_SECONDS;
     node.onended = null;
     gain.gain.cancelScheduledValues(now); gain.gain.setValueAtTime(gain.gain.value, now); gain.gain.linearRampToValueAtTime(0, now + fadeOut);
     node.stop(now + fadeOut + 0.05);
@@ -80,7 +82,7 @@ export function createSoundboard({ index, base, fetchBytes, createContext, canPl
     },
     ambience(cue) { return playOn('ambience', cue); },
     music(cue) { return playOn('music', cue); },
-    radio(on) { return playOn('radio', on ? 'DLG-05' : null); },
+    radio(on) { return playOn('radio', on ? 'DLG-05' : null, RADIO); },
     preload(list) { for (const cue of list) buffer(cue).catch(() => {}); },
     setLevel(group, value) {
       levels[group] = value;

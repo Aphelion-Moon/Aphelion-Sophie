@@ -4,6 +4,9 @@ import { parseMarkdown, plainText, renderMarkdown } from './markdown.js';
 const SETTINGS_KEY = 'shuttle.settings.v1';
 const DEFAULT_SETTINGS = Object.freeze({ levels: { music: 60, ambience: 70, radio: 80, effects: 80 }, sound: 'on', motion: 'system', text: 'typed', size: 'normal' });
 const TYPE_CPS = 90, POLL_MS = 5_000, POLL_LIMIT_MS = 10 * 60_000, RETRY_AFTER_MS = 120_000;
+// Sophie's radio comes in at the start of each stage she speaks in and trails off after this long (owner feedback,
+// 22 October 2026); text ticks, at most this often, stop with her while the text keeps typing.
+const SPEECH_MS = 2_400, TICK_MS = 110;
 
 /**
  * The Shuttle Activity's front end (P43): a title screen, Sophie's radio transmissions over the stop scenes, and the
@@ -14,7 +17,7 @@ export function createShuttle({ document, api, connect, player, loadScene, sound
   const $ = id => document.getElementById(id);
   const root = $('shuttle');
   let view = 'splash', described = null, run = null, chunks = [''], chunk = 0, busy = false, started = false, linked = false;
-  let discord = null, typing = null, poll = null, pendingSince = null, toastTimer = null;
+  let discord = null, typing = null, poll = null, pendingSince = null, toastTimer = null, speechTimer = null, talking = false;
   let settings = loadSettings();
 
   function loadSettings() {
@@ -51,10 +54,10 @@ export function createShuttle({ document, api, connect, player, loadScene, sound
 
   // Title screen ---------------------------------------------------------------------------------------------------
   async function showTitle() {
-    stopPolling(); stopTyping(); show('title');
+    stopPolling(); stopTyping(); show('title'); run = null;
     const state = described?.state === 'run' ? sceneStateFor(described.run) : { whitelist: described?.whitelist ?? 'none', stopNumber: 0, stopCount: 0 };
     await scene('hangar-viewport', state);
-    const sounds = soundscape('title'); sound.ambience(sounds.ambience); sound.music(sounds.music); sound.radio(false);
+    const sounds = soundscape('title'); sound.ambience(sounds.ambience); sound.music(sounds.music); speaking(false);
     renderMenu(); discord?.setPresence(presence(null));
   }
   function renderMenu() {
@@ -91,8 +94,8 @@ export function createShuttle({ document, api, connect, player, loadScene, sound
     chunks = transmissionChunks(run.pages); chunk = atEnd ? chunks.length - 1 : 0;
     show('radio');
     await scene(sceneFor(run), sceneStateFor(run, chunk, chunks.length));
-    const sounds = soundscape('run', run); sound.music(sounds.music); sound.ambience(sounds.ambience); sound.radio(run.status === 'reading');
-    if (!previous || previous.stop !== run.stop || previous.status !== run.status) sound.play('DLG-03');
+    const sounds = soundscape('run', run); sound.music(sounds.music); sound.ambience(sounds.ambience);
+    if (!previous || previous.stop !== run.stop || previous.status !== run.status) { sound.play('DLG-03'); speakBriefly(); }
     renderTransmission(); discord?.setPresence(presence(run));
     if (run.status === 'pending') startPolling(); else stopPolling();
     if (run.status === 'boarded' && run.whitelist === 'confirmed' && previous?.status !== 'boarded') {
@@ -114,13 +117,26 @@ export function createShuttle({ document, api, connect, player, loadScene, sound
     $('radio-stop').textContent = run.status === 'reading' ? `Stop ${run.stop + 1}/${run.stops.length} · ${run.stops[run.stop].title}` : run.status === 'boarded' ? 'Arrived' : 'Clearance';
     $('radio-progress').textContent = run.status === 'reading' && chunks.length > 1 ? chunks.map((_, index) => index === chunk ? '■' : index < chunk ? '▪' : '□').join(' ') : '';
     player.setState(sceneStateFor(run, chunk, chunks.length));
+    renderControls();
+    if (run.status === 'reading' && settings.text === 'typed') typewrite(box);
+  }
+  function renderControls() {
     const controls = dialogueControls(run, chunk, chunks.length);
     const back = $('radio-back'), forward = $('radio-forward');
     back.disabled = busy || !controls.back.enabled; back.hidden = run.status !== 'reading';
     forward.disabled = busy || !controls.forward.enabled;
     forward.querySelector('span').textContent = controls.forward.label;
-    if (run.status === 'reading' && settings.text === 'typed') typewrite(box);
   }
+  /**
+   * Sophie's radio: the static, the RX lamp and the text ticks. She speaks briefly as each stage begins and then trails
+   * off; the rest of the copy arrives quietly (owner feedback, 22 October 2026: she should not talk non-stop).
+   */
+  function speaking(on) {
+    timers.clear(speechTimer); speechTimer = null; talking = on;
+    $('radio').dataset.speaking = on ? 'on' : 'off';
+    sound.radio(on);
+  }
+  function speakBriefly() { speaking(true); speechTimer = timers.after(SPEECH_MS, () => speaking(false)); }
   function typewrite(box) {
     const walker = document.createTreeWalker(box, 4), nodes = [];
     while (walker.nextNode()) nodes.push(walker.currentNode);
@@ -136,7 +152,7 @@ export function createShuttle({ document, api, connect, player, loadScene, sound
         offset += take; budget -= take; nodes[index].data = texts[index].slice(0, offset);
         if (offset >= texts[index].length) { index++; offset = 0; }
       }
-      if (now - lastTick > 70) { sound.play('DLG-01'); lastTick = now; }
+      if (talking && now - lastTick > TICK_MS) { sound.play('DLG-01'); lastTick = now; }
       if (index >= nodes.length) { typing = null; return; }
       typing.frame = timers.frame(step);
     };
@@ -204,7 +220,8 @@ export function createShuttle({ document, api, connect, player, loadScene, sound
   }
   function setBusy(on) {
     for (const id of ['radio-back', 'radio-forward']) { const button = $(id); if (on) button.disabled = true; }
-    if (!on && run && view === 'radio') renderTransmission();
+    // Only the buttons change; re-rendering would type the same transmission out again.
+    if (!on && run && view === 'radio') renderControls();
   }
   async function failed(error) {
     const word = error?.word ?? 'failed';
