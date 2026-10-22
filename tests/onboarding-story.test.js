@@ -14,7 +14,8 @@ test('T-STORY-01 the story draft is built from its source, five stages, Discord-
   assert.equal(createHash('sha256').update(await readFile(new URL(story.source.path, root))).digest('hex'), story.source.sha256, 'rebuild after editing story.md');
   assert.equal(story.status, 'draft');
   assert.deepEqual(story.stages.map(item => item.id), ['the-brochure', 'pack-your-bags', 'board-the-shuttle', 'admire-the-lights', 'disembarking']);
-  for (const page of [story.entry, ...story.stages]) {
+  assert.equal('entry' in story, false, 'publications have no entry text; the launch post is the welcome');
+  for (const page of story.stages) {
     assert.deepEqual(page.messages, paginateStaticText(page.body));
     assert.ok(page.messages.every(message => message.length > 0 && message.length <= 1_800));
   }
@@ -30,8 +31,10 @@ test('T-STORY-01 the story draft is built from its source, five stages, Discord-
 // The owner's guidance in the original copy, point by point (decision "The Shuttle as a story"): the wording is casual,
 // the meaning is not optional.
 const REQUIRED = [
-  // The Activity shows no entry panel, so The Brochure opens with the boarding call: five stops, Complete, and help.
-  ['the-brochure', /^# Boarding call[\s\S]*Five stops[\s\S]*Complete Shuttle[\s\S]*Whitelist[\s\S]*#crew-support/, 'boarding call'],
+  // The Brochure opens with the boarding call: five stops, finishing requests Whitelist, help, and the refresher.
+  ['the-brochure', /^# Boarding call[\s\S]*Five stops[\s\S]*finish up and we request your \*\*Whitelist\*\* role[\s\S]*#crew-support/, 'boarding call'],
+  ['the-brochure', /Whitelist[\s\S]*@matriarch in #crew-support/, 'help in #crew-support'],
+  ['the-brochure', /Already Whitelisted\? Ride along any time[\s\S]*keep your access/, 'refresher keeps access'],
   ['the-brochure', /18 or older/, 'age 18+'],
   ['the-brochure', /play on our servers, hang out in our Discord, or have any account tied to Aphelion/, 'servers, Discord and any account'],
   ['the-brochure', /under 18 at any point/, 'ever underage'],
@@ -103,22 +106,22 @@ const REQUIRED = [
   ['disembarking', /published rules apply to you, and that keeping Whitelist means following them/, 'confirm: rules'],
   ['disembarking', /respect other players' boundaries and their place in the stories/, 'confirm: boundaries'],
   ['disembarking', /where to find the rules, where to ask questions, and where to raise concerns/, 'confirm: where to ask'],
-  ['disembarking', /Complete Shuttle to request your Whitelist role\. It counts once the role actually shows up/, 'Complete requests the role'],
+  ['disembarking', /FINISHING THE SHUTTLE MEANS YOU'RE TELLING US/, 'what finishing confirms'],
+  ['disembarking', /Finish this last stop and we'll request your Whitelist role\. It counts once the role actually shows up/, 'finishing requests the role'],
   ['disembarking', /Get Whitelisted[\s\S]*Discord sign-in/, 'in-game step'],
-  ['entry', /Whitelist role[\s\S]*#crew-support/, 'help in #crew-support'],
-  ['entry', /keep your access/, 'refresher keeps access'],
 ];
 
 test('T-STORY-02 every point of the original guidance is still in the story (meaning checklist)', () => {
   for (const [where, pattern, point] of REQUIRED) {
-    const text = where === 'entry' ? story.entry.body : stage(where);
-    assert.match(text, pattern, `${where}: ${point}`);
+    assert.match(stage(where), pattern, `${where}: ${point}`);
   }
 });
 
 test('T-STORY-03 the story reads like people talking: no em dashes or stock AI phrasing', () => {
-  const all = [story.entry.body, ...story.stages.map(item => item.body)].join('\n');
+  const all = story.stages.map(item => item.body).join('\n');
   assert.doesNotMatch(all, /—/, 'no em dashes');
+  // One text serves the Activity and the text version: it says what you do, not the name of a button only one has.
+  assert.doesNotMatch(all, /Complete Shuttle|Start Shuttle/i, 'no button that only one surface has');
   for (const word of ['journey', 'ensure', 'foster', 'embrace', 'navigate', 'vibrant', 'tapestry', "that's all it takes", 'worth noting', 'delve']) {
     assert.doesNotMatch(all.toLowerCase(), new RegExp(`\\b${word}\\b`), word);
   }

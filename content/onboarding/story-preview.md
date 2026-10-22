@@ -2,33 +2,7 @@
 
 For owner review. Not published. Edit content/onboarding/story.md and rebuild.
 
-Source SHA-256: `113f846b6f76d2239958ec05d63f3633472c2e06f1060912ca9a072dc78a343c`.
-
-## Boarding call
-
-1 Discord message segment(s).
-
-### Message 1
-
-# Boarding call
-*kssht* is this thing on? Okay. Hi! Sophie, Community Services, coming to you live from a desk with three cold coffees on it.
-
-You're already in the Discord. Age check, interview, all done, nice. That got you through the front door. It doesn't get you onto the game servers, though. For that you need the **Whitelist** role, and this shuttle is how you get it. Follow the rules and you keep it.
-
-# Five stops
-Five stops, a bit of reading at each, then hit **Continue**. There's no quiz. We just want you to know what you're walking into, where the rules live, and how we treat each other round here.
-
-At the last stop you hit **Complete Shuttle** and we request your Whitelist role. After that there's one more bit inside the game itself, a Get Whitelisted button. I'll remind you.
-
-> **NOTICE · STUCK?**
-> Once you've got the Whitelist role, click the Whitelist button in the game server to finish up. Something broken? Ping @matriarch in #crew-support.
-
--# Already Whitelisted? Ride along any time to catch up on the latest guidance. You keep your access.
--# “The Shuttle”: An Interactive Theory and Onboarding Process. Last updated: 22 October 2026.
-
-**Start Shuttle** and head into the departure lounge. If a corgi walks past, act natural.
-
----
+Source SHA-256: `a3e7b9b542b40f9807a9adb0f1df2274c7997d0ed567531c722caf790e31f9ed`.
 
 ## The Brochure
 
@@ -39,7 +13,10 @@ At the last stop you hit **Complete Shuttle** and we request your Whitelist role
 # Boarding call
 *kssht* is this thing on? Hi! Sophie, Community Services, coming to you live from a desk with three cold coffees on it.
 
-Five stops, a bit of reading at each, then hit **Continue**. No quiz. At the last one you hit **Complete Shuttle** and we request your **Whitelist** role, the thing that gets you onto our game servers. Stuck anywhere? Ping @matriarch in #crew-support.
+Five stops, a bit of reading at each, then hit **Continue**. No quiz. At the last one you finish up and we request your **Whitelist** role, the thing that gets you onto our game servers. Stuck anywhere? Ping @matriarch in #crew-support.
+
+-# Already Whitelisted? Ride along any time to catch up. You keep your access.
+-# “The Shuttle”: An Interactive Theory and Onboarding Process. Last updated: 22 October 2026.
 
 # This is an *adult* community
 First things first, because we don't budge on this one. See the light over the gate? Age check. Everybody walks under it.
@@ -55,14 +32,14 @@ First things first, because we don't budge on this one. See the light over the g
 
 Read that last bit again though. It means you might *see* things. It doesn't mean anybody here is up for anything with you. Nobody's "available" just because the server's for adults.
 
+---
+
+### Message 2
+
 # Aphelion is owned and operated by queers, furries, and freaks
 Oh, you noticed the banner. Yeah, it's staying up. It isn't Pride Month. It's just us.
 
 If that's going to be a problem for you, honestly, this is a great stop to get off at. No hard feelings.
-
----
-
-### Message 2
 
 Nobody needs you to be into everything that goes on in here. You just have to be decent to the people who are.
 
@@ -91,13 +68,13 @@ Okay. Rules. You don't need to memorise them, but you do need a rough idea of wh
 
 Nobody shows up knowing everything. Ask stuff, take advice, mess up, learn. What wears us out is someone being told the same thing five times and doing it a sixth.
 
-> **NOTICE · WHERE THE RULES ACTUALLY LIVE**
-> **[Start with our recommended reading](https://meridian-wiki.a13.info/wiki/Policies#RP-01).**
-> This shuttle gives you the gist. It doesn't replace the real rules. For anything about the games, the Wiki has the final word. Always.
-
 ---
 
 ### Message 3
+
+> **NOTICE · WHERE THE RULES ACTUALLY LIVE**
+> **[Start with our recommended reading](https://meridian-wiki.a13.info/wiki/Policies#RP-01).**
+> This shuttle gives you the gist. It doesn't replace the real rules. For anything about the games, the Wiki has the final word. Always.
 
 # About SS 13 - Meridian Rift
 Ooh, the board changed. **Meridian Rift**, our SS 13 server. Bookmark these, you'll want them.
@@ -303,13 +280,13 @@ Last check before the door, and this one counts.
 
 ### Message 2
 
-> **NOTICE · HITTING COMPLETE SHUTTLE MEANS YOU'RE TELLING US:**
+> **NOTICE · FINISHING THE SHUTTLE MEANS YOU'RE TELLING US:**
 > * You're 18 or older, and you've got the adult-content stuff from the first stop.
 > * You know our published rules apply to you, and that keeping Whitelist means following them.
 > * You'll respect other players' boundaries and their place in the stories we share.
 > * You know where to find the rules, where to ask questions, and where to raise concerns.
 
-**Hit Complete Shuttle to request your Whitelist role. It counts once the role actually shows up.**
+**Finish this last stop and we'll request your Whitelist role. It counts once the role actually shows up.**
 
 # One last step, in the game
 **Pip:** "see you on the station?"
