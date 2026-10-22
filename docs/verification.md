@@ -1,5 +1,37 @@
 # Verification and release limits
 
+## Staging install of cf0c125 and the story's publication — 22 October 2026 (schema 075)
+
+Owner approvals: the host-only publishing design ("I approve the host-only publishing command as you described it
+(administrator-only, same checks and audit, never over the tunnel)"), then "Continue: prepare the install, install,
+then publish the story." Folder `deployment-cf0c125-2026-10-22`, adapted from `a620ce0`.
+
+- **Offline:** `npm test` 778 passed (new T-LOCAL-PUB-01..04) and the repository check passed.
+  `npm run test:storage:fast` 1029 passed, none failed (new E25: a real save and publish as the owner, marked audit
+  rows, no Discord call; a lead editor and an unknown user refused; a stale publish refused).
+- **Install.**
+  - 706 pinned files were verified against Git, and the installed `a620ce0` against its trusted manifest.
+  - 3 files were written: `apps/core/shuttle-publishing.mjs` and `apps/core/operator/local-shuttle-publisher.js`
+    (new), and `apps/core/storage/onboarding-authoring.js`. None were removed. No migration, configuration,
+    credential, route, listener, service or schedule change.
+  - Recovery point `D:\Backups\sophie-staging\source-only-cf0c125-20261022` verified.
+  - Core and the worker stopped at 16:57:25 UTC and were running again by 16:57:58 UTC.
+  - Pre-start (trust v2 for `sophie-mistral-cf0c125`), boundary, installation (50 checks, including both command
+    files answering 404 on the Activity listener) and dashboard checks passed.
+- **Public.** `onboarding.a13.info` serves the page byte for byte, `/api/config` answers, and `/api/shuttle` answers
+  401. Both command files answer 404 on `onboarding.a13.info` and `sophie.a13.info`.
+- **Publication**, by the command in an elevated session with the installed runtime, as the owner.
+  - `status` recognised the owner record.
+  - `save` of the committed `story-draft.json` (pinned in the folder) made draft revision 3, sha256 `c9bd3e11…`. The
+    review was valid: version 3, five stages of 3, 2, 2, 2 and 2 messages, 0 active runs on version 2.
+  - `publish` of exactly that revision and hash, expecting version 2 published, made Shuttle version 3, sha256
+    `7f45693f…`.
+  - The re-read status shows version 3 for new runs. Both hashes equal those computed locally from the committed
+    draft.
+
+**Not covered:** a run of version 3 in the test Discord (channel Shuttle and Activity), which needs a signed-in member;
+the dashboard editor's view of revision 3.
+
 ## Staging install of a620ce0: SC-07 launch roll — 22 October 2026 (schema 075)
 
 Owner approval: "SC-07 is approved. Install it (source-only update) in the test Discord." The audition page saved no

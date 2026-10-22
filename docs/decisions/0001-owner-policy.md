@@ -1569,3 +1569,13 @@ modifications", and approved the design: "I approve the host-only publishing com
   was rejected: the tunnel makes every public request look local.
 - **Approval still applies.** Each publication with it is still a recorded owner approval. See
   `docs/shuttle-publishing.md`.
+- **Installed and first used.** `cf0c125` was installed at 16:57 UTC on the owner's approval ("Continue: prepare the
+  install, install, then publish the story."): 3 files, no route, service or configuration change. Core was down
+  33 seconds and all checks passed, including that neither public host serves the command. The command then
+  published the story copy:
+  - saved draft revision 3 (`c9bd3e11…`), which the review found valid;
+  - published it as Shuttle version 3 (`7f45693f…`) at 17:00 UTC, with the owner as author;
+  - the publication's hash equals the committed `content/onboarding/story-draft.json`;
+  - existing runs keep version 2 (0 active, 6 complete).
+
+  Folder `.agent_docs/aphelion-sophie/deployment-cf0c125-2026-10-22`.

@@ -215,8 +215,9 @@ The fourth pass (the story: section-aligned pages, progress conditions, actors w
 and dialogue lines, the story copy as a draft definition, and 17 new sounds the owner auditioned and approved) is
 installed as `sophie-mistral-135f2a6` (source-only, 16:11 UTC, owner approval). SC-07 (the launch roll), picked
 afterwards and approved by the owner, followed as `sophie-mistral-a620ce0` (source-only, 16:20 UTC). The story copy
-goes live only when it is published in the dashboard editor; until then the Activity reads the current Shuttle
-version.
+is published as Shuttle version 3 (17:00 UTC). The owner had it published with the host-only publishing command,
+installed as `sophie-mistral-cf0c125`; see [Publishing from the server](shuttle-publishing.md). New runs, in the
+Activity and in channels, read the story; runs already in progress keep version 2.
 
 Not yet checked: mobile clients, and whether Discord opens `discord.com/channels` links inside the app.
 
