@@ -1,5 +1,19 @@
 # Verification and release limits
 
+## Staging install of a723a49: Sophie speaks briefly — 22 October 2026 (schema 074)
+
+Owner, after testing in the test Discord: "sophie's radio-speech VFX NEVER stops. She is constantly yapping. She should
+just yap a little bit. Fix that so I can focus and take a closer look at everything." and "I'd rather her yap her way
+just a little bit for each stage she speaks in, and then trail off." Source-only update from `b6af5d8` (folder
+`deployment-a723a49-2026-10-22`): 3 client files; core restarted 10:43:20–10:43:59 UTC.
+
+- `npm test` 726 passed (T-ACT-CLI-09 new); repository check passed; preview: one 2.4 s burst per stage, none when paging.
+- Prepare: 650 pinned and 650 installed files verified; pre-start, boundary, installation (including the Activity on
+  loopback) and dashboard checks passed; release `sophie-mistral-a723a49`.
+- Public: `onboarding.a13.info` serves the three new files byte for byte.
+
+**Not covered:** how it sounds inside Discord on the owner's devices.
+
 ## Staging install of b6af5d8 with the Shuttle Activity in testing — 22 October 2026 (schema 074)
 
 Owner: "Approved: deploy core with migration 074 and the Activity in testing on port 38125, re-register commands, then
