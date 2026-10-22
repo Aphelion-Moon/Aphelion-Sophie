@@ -13,7 +13,7 @@ import { gunzipSync } from 'node:zlib';
 import { mkdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { moduleClosure } from './lib/module-closure.mjs';
+import { moduleClosure } from '../apps/activity/module-closure.js';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
 const OUT = 'apps/activity/vendor/embedded-app-sdk';

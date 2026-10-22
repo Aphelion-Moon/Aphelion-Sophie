@@ -5,7 +5,7 @@ import { readFile, readdir } from 'node:fs/promises';
 import { readFileSync, existsSync } from 'node:fs';
 import { resolve, relative, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { moduleClosure } from '../scripts/lib/module-closure.mjs';
+import { moduleClosure } from '../apps/activity/module-closure.js';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
 const sha256 = bytes => createHash('sha256').update(bytes).digest('hex');

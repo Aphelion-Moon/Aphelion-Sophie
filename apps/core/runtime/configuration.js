@@ -4,6 +4,7 @@ import { validateCasePolicy } from '../../../modules/tickets/channel-policy.js';
 import { validateTicketLimits } from '../../../modules/tickets/index.js';
 import { validateCapabilityPolicy } from '../../../platform/authorization/actor-policy.js';
 import { validateDashboardAuth } from '../../../contracts/dashboard-auth.js';
+import { validateActivityConfiguration } from '../../../modules/onboarding/activity.js';
 import { validateTranscriptExportPolicy } from '../../../modules/tickets/transcript-export.js';
 import { RESPONDER_TYPES, responderRoles } from '../../../platform/authorization/case-responders.js';
 
@@ -11,7 +12,7 @@ import { RESPONDER_TYPES, responderRoles } from '../../../platform/authorization
 export function validateStagingRuntime(value) {
   requireKeys(value, ['schemaVersion', 'environment', 'isolatedGuild', 'applicationId', 'publicKeyHex', 'mapping',
     'capabilityPolicy', 'casePolicy', 'limits', 'definitionId', 'captureEnabled', 'interactionPort', 'dashboardPort',
-    'dashboard', 'workerIntervalMs', 'exportPolicy', ...(Object.hasOwn(value,'automationEnabled') ? ['automationEnabled'] : [])]);
+    'dashboard', 'workerIntervalMs', 'exportPolicy', ...['automationEnabled', 'activity'].filter(key => Object.hasOwn(value, key))]);
   requireCondition(value.schemaVersion === 1 && value.environment === 'staging' && value.isolatedGuild === true, 'ISOLATED_STAGING_REQUIRED');
   requireId(value.applicationId); requireName(value.definitionId);
   requireCondition(typeof value.publicKeyHex === 'string' && /^[a-fA-F0-9]{64}$/.test(value.publicKeyHex), 'INTERACTION_VERIFIER_CONFIGURATION_INVALID');
@@ -32,5 +33,11 @@ export function validateStagingRuntime(value) {
   if (value.dashboard !== null) {
     validateDashboardAuth(value.dashboard);
     requireCondition(value.dashboard.guildId === mapping.guildId && value.dashboard.applicationId === value.applicationId, 'RUNTIME_MAPPING_MISMATCH');
+  }
+  // The Shuttle Activity signs members in with the dashboard's OAuth application, on its own loopback port.
+  if (value.activity !== undefined) {
+    validateActivityConfiguration(value.activity);
+    requireCondition(value.dashboard !== null && value.activity.origin !== value.dashboard.origin, 'ACTIVITY_CONFIGURATION_INVALID');
+    requireCondition(![value.interactionPort, value.dashboardPort].includes(value.activity.port), 'RUNTIME_PORT_CONFLICT');
   }
 }

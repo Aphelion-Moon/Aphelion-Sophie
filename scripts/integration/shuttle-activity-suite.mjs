@@ -1,0 +1,172 @@
+import assert from 'node:assert/strict';
+import { ContractError } from '../../contracts/validation.js';
+import { createCoreStore } from '../../apps/core/storage/core-store.js';
+import { createOutbox } from '../../apps/core/storage/outbox.js';
+import { createActorAuthorityStore } from '../../apps/core/storage/actor-authority.js';
+import { createShuttleActivityStore } from '../../apps/core/storage/shuttle-activity.js';
+import { createCoreAuthorization } from '../../apps/core/security/authorization.js';
+import { createCorePrincipals } from '../../apps/core/security/principals.js';
+import { createActivityAuth } from '../../apps/core/security/activity-auth.js';
+import { createOnboardingCommands } from '../../apps/core/discord/onboarding-commands.js';
+import { createRoleDispatcher } from '../../apps/core/discord/dispatcher.js';
+import { simulatedCases, casePolicy } from '../../tests/fixtures/cases.js';
+import { CREW, BYOND_ROLE, WHITELIST, MUZZLED } from '../../tests/fixtures/discord.js';
+import { syntheticInteractions, APPLICATION } from '../../tests/fixtures/interactions.js';
+import { GUILD, USER, OTHER, STAFF, LEAD, NOW, definition, publication } from '../../tests/fixtures/domain.js';
+import { resetCoreState } from '../../tests/fixtures/reset.js';
+
+const OWNER = '100000000000000099', INSTANCE = 'i-1700000000000000000-gc-100000000000000001-100000000000000012';
+
+/** Shuttle Activity runs (P41) on the real store, authorization and grant dispatcher. Synthetic metadata only. */
+export async function runShuttleActivitySuite(cluster, run) {
+  const pool = cluster.corePool, admin = cluster.adminPool, outbox = createOutbox({ pool });
+  const limits = { memberOpen: 2, guildPending: 3, cooldownMs: 1_000 };
+  const policy = { guildId: GUILD, version: 1, staff: STAFF, leadOps: LEAD, muzzled: MUZZLED,
+    grants: { 'member.mute': [LEAD], 'member.unmute': [LEAD], 'shuttle.publish': [LEAD], 'case.registry': [LEAD] } };
+  let now, discord, identities, authorization, activityAuth, core, activity, grants, healthy, request = 0;
+  let sequence = 840000000000000000n;
+  const nextId = () => String(++sequence);
+  const requestId = () => (++request).toString(16).padStart(32, '0');
+  const rows = async table => (await admin.query(`SELECT * FROM sophie_core.${table}`)).rows;
+  const interactionActor = async userId => authorization.resolveActor(identities.verifier.verify(identities.signed(identities.payload({ id: nextId(),
+    member: { user: { id: userId } }, data: { type: 1, name: 'whitelist', options: [{ type: 1, name: 'start' }] } }))));
+  /** Signs in through the Activity adapter, as the HTTP route does, and returns a request's member context. */
+  async function member(userId = USER) {
+    const { token } = await activityAuth.signIn({ code: `code-${userId}`, instanceId: INSTANCE });
+    const proof = await activityAuth.authenticate(token);
+    return { actor: await authorization.resolveActor(proof), observation: await discord.roles.observe(userId) };
+  }
+  async function drainGrants() {
+    for (let i = 0; i < 20; i++) {
+      const result = await grants.runOnce('activity-grants');
+      if (result.status === 'idle') return;
+      assert.ok(['settled', 'progressed'].includes(result.status), `grant worker: ${result.status}/${result.code}`);
+    }
+    assert.fail('Synthetic grant queue did not drain');
+  }
+  const scenario = (name, work, status = 'testing') => run(name, async () => {
+    await admin.query("UPDATE sophie_core.discord_backoff SET until_at = '-infinity', paused = false");
+    await resetCoreState(admin);
+    now = NOW; healthy = true;
+    discord = simulatedCases({ clock: () => now }); discord.state.members.set(OTHER, [LEAD]);
+    discord.state.members.set(OWNER, [CREW, BYOND_ROLE]);
+    identities = syntheticInteractions({ clock: () => now });
+    const identitiesByCode = new Map();
+    activityAuth = createActivityAuth({ applicationId: APPLICATION, guildId: GUILD, clock: () => now, enabled: () => healthy, discord: discord.roles,
+      oauth: { async exchangeActivity(code) { const proof = Object.freeze({}); identitiesByCode.set(proof, code.slice(5)); return { proof, accessToken: 'synthetic-access-token', expiresIn: 604800, scopes: ['identify'] }; },
+        resolveIdentity: proof => ({ guildId: GUILD, userId: identitiesByCode.get(proof) }) },
+      instances: async instanceId => ({ application_id: APPLICATION, instance_id: instanceId, location: { guild_id: GUILD, channel_id: '100000000000000013' },
+        users: [USER, OTHER, OWNER] }) });
+    const dashboard = { async resolvePrincipal() { throw new ContractError('UNTRUSTED_PRINCIPAL'); } };
+    authorization = createCoreAuthorization({ principals: createCorePrincipals({ interactions: identities.verifier, dashboard, activity: activityAuth }),
+      discord: discord.roles, authorityStore: createActorAuthorityStore({ pool, clock: () => now }), policy, clock: () => now,
+      isAuthorityCurrent: () => healthy, readContinuity: discord.roles.readContinuity });
+    core = createCoreStore({ pool, clock: () => now, authorize: authorization.authorize, authorizeRecorded: authorization.authorizeRecorded,
+      casePolicy, caseVerification: discord.channels.verification });
+    await core.publishOnboarding({ actor: await interactionActor(OTHER), publication });
+    activity = createShuttleActivityStore({ pool, clock: () => now, authorize: authorization.authorize, definitionId: definition.id, status });
+    grants = createRoleDispatcher({ outbox, store: core, discord: discord.roles, enabled: () => healthy });
+    await work();
+  });
+
+  await scenario('SA01 while testing, only the server owner and lead ops role holders pass the closed screen', async () => {
+    assert.deepEqual(await activity.describe(await member(USER)), { state: 'closed' });
+    await assert.rejects(activity.board({ ...await member(USER), requestId: requestId() }), error => error.code === 'ACTIVITY_CLOSED');
+    for (const userId of [OTHER, OWNER]) {
+      const seen = await activity.describe(await member(userId));
+      assert.equal(seen.state, 'ready'); assert.equal(seen.mode, 'qualification'); assert.equal(seen.whitelist, 'none');
+      assert.deepEqual(seen.stops.map(stop => stop.scene), ['departure-lounge', 'baggage-hall', 'boarding-cabin', 'viewport', 'pressure-door']);
+    }
+    // The gate follows the current role: a removed lead ops role closes it again on the next request.
+    discord.state.members.set(OTHER, [CREW]);
+    assert.deepEqual(await activity.describe(await member(OTHER)), { state: 'closed' });
+    assert.equal((await rows('sessions')).length, 0);
+  });
+
+  await scenario('SA02 boarding records one run with no channel, case or screen; repeats resume it', async () => {
+    const id = requestId();
+    const first = await activity.board({ ...await member(OTHER), requestId: id });
+    assert.equal(first.run.stop, 0); assert.equal(first.run.status, 'reading'); assert.equal(first.run.whitelist, 'none');
+    assert.deepEqual(first.run.pages, [publication.stages[0].body]);
+    const again = await activity.board({ ...await member(OTHER), requestId: id });
+    assert.equal(again.duplicate, true);
+    const resumed = await activity.board({ ...await member(OTHER), requestId: requestId() });
+    assert.equal(resumed.resumed, true);
+    assert.equal((await rows('sessions')).length, 1); assert.equal((await rows('shuttle_activity_runs')).length, 1);
+    for (const table of ['shuttle_cases', 'case_reservations', 'shuttle_screens']) assert.equal((await rows(table)).length, 0, table);
+    assert.equal((await rows('outbox')).length, 0);
+    assert.equal((await activity.describe(await member(OTHER))).state, 'run');
+  });
+
+  await scenario('SA03 Continue and Back move one stop at a time; an old version or a replay changes nothing', async () => {
+    let { run: shown } = await activity.board({ ...await member(OTHER), requestId: requestId() });
+    const id = requestId();
+    ({ run: shown } = await activity.act({ ...await member(OTHER), requestId: id, action: 'advance', expectedVersion: shown.version }));
+    assert.equal(shown.stop, 1);
+    const replay = await activity.act({ ...await member(OTHER), requestId: id, action: 'advance', expectedVersion: 0 });
+    assert.equal(replay.duplicate, true); assert.equal(replay.run.stop, 1);
+    await assert.rejects(activity.act({ ...await member(OTHER), requestId: requestId(), action: 'advance', expectedVersion: 0 }), error => error.code === 'STALE_SHUTTLE_CONTROL');
+    ({ run: shown } = await activity.act({ ...await member(OTHER), requestId: requestId(), action: 'back', expectedVersion: shown.version }));
+    assert.equal(shown.stop, 0);
+    await assert.rejects(activity.act({ ...await member(OTHER), requestId: requestId(), action: 'back', expectedVersion: shown.version }), error => error.code === 'BACK_UNAVAILABLE');
+    await assert.rejects(activity.act({ ...await member(OTHER), requestId: requestId(), action: 'retry', expectedVersion: shown.version }), error => error.code === 'NO_PENDING_GRANT');
+  });
+
+  await scenario('SA04 the last Continue requests Whitelist; the Activity shows it confirmed only after Discord does', async () => {
+    let { run: shown } = await activity.board({ ...await member(OWNER), requestId: requestId() });
+    for (let stop = 0; stop < publication.stages.length; stop++) {
+      const result = await activity.act({ ...await member(OWNER), requestId: requestId(), action: 'advance', expectedVersion: shown.version });
+      shown = result.run;
+      assert.equal(result.queued, stop === publication.stages.length - 1);
+    }
+    assert.equal(shown.status, 'pending'); assert.equal(shown.whitelist, 'requested');
+    assert.equal((await rows('outbox')).filter(row => row.kind === 'whitelist.grant').length, 1);
+    assert.equal(discord.state.members.get(OWNER).includes(WHITELIST), false);
+    assert.equal((await activity.describe(await member(OWNER))).run.whitelist, 'requested');
+    await drainGrants();
+    assert.equal(discord.state.members.get(OWNER).includes(WHITELIST), true);
+    const seen = await activity.describe(await member(OWNER));
+    assert.equal(seen.state, 'run'); assert.equal(seen.run.status, 'boarded'); assert.equal(seen.run.whitelist, 'confirmed');
+    // Without the role on Discord the finished run is not shown as boarded; a new run can start.
+    discord.state.members.set(OWNER, [CREW, BYOND_ROLE]);
+    assert.equal((await activity.describe(await member(OWNER))).state, 'ready');
+  });
+
+  await scenario('SA05 a run that belongs to a channel stays there', async () => {
+    const commands = createOnboardingCommands({ authorization, discord: discord.roles, channels: discord.channels, store: core,
+      enabled: () => healthy, definitionId: definition.id, limits });
+    const proof = identities.verifier.verify(identities.signed(identities.payload({ id: nextId(), member: { user: { id: OTHER } },
+      data: { type: 1, name: 'whitelist', options: [{ type: 1, name: 'start' }] } })));
+    assert.equal(await commands.execute(proof), 'shuttle_recorded');
+    assert.deepEqual(await activity.describe(await member(OTHER)), { state: 'elsewhere' });
+    await assert.rejects(activity.board({ ...await member(OTHER), requestId: requestId() }), error => error.code === 'SHUTTLE_ELSEWHERE');
+    assert.equal((await rows('shuttle_activity_runs')).length, 0);
+  });
+
+  await scenario('SA06 Muzzled testers cannot board or move', async () => {
+    const { run: shown } = await activity.board({ ...await member(OTHER), requestId: requestId() });
+    discord.state.members.set(OTHER, [LEAD, MUZZLED]);
+    assert.deepEqual(await activity.describe(await member(OTHER)), { state: 'unavailable' });
+    await assert.rejects(activity.act({ ...await member(OTHER), requestId: requestId(), action: 'advance', expectedVersion: shown.version }), error => error.code === 'OPERATION_DENIED');
+    assert.equal((await rows('sessions'))[0].state.stepIndex, 0);
+  });
+
+  await scenario('SA07 once open, every eligible member can board', async () => {
+    const seen = await activity.describe(await member(USER));
+    assert.equal(seen.state, 'ready');
+    const { run: shown } = await activity.board({ ...await member(USER), requestId: requestId() });
+    assert.equal(shown.mode, 'qualification');
+    assert.equal((await rows('shuttle_activity_runs'))[0].user_id, USER);
+  }, 'open');
+
+  await scenario('SA08 a run from an earlier membership never continues; boarding starts a fresh one', async () => {
+    const { run: first } = await activity.board({ ...await member(OTHER), requestId: requestId() });
+    await activity.act({ ...await member(OTHER), requestId: requestId(), action: 'advance', expectedVersion: first.version });
+    await admin.query(`UPDATE sophie_core.sessions SET state = jsonb_set(state, '{eligibilityEpoch}', to_jsonb((state->>'eligibilityEpoch')::bigint - 1))`);
+    assert.equal((await activity.describe(await member(OTHER))).state, 'ready');
+    const { run: fresh } = await activity.board({ ...await member(OTHER), requestId: requestId() });
+    assert.equal(fresh.stop, 0);
+    const sessions = await rows('sessions');
+    assert.equal(sessions.length, 2); assert.equal(sessions.filter(row => row.current).length, 1);
+  });
+}

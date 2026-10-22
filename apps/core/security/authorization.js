@@ -69,6 +69,10 @@ export function createCoreAuthorization({ principals, discord, authorityStore, p
     if (['shuttle.self', 'case.create', 'ai.self'].includes(capability)) {
       requireCondition(scope.userId === grant.userId, 'OPERATION_DENIED');
       if (capability === 'shuttle.self') requireCondition(!observation.timedOut && !observation.roleIds.includes(fixed.muzzled), 'OPERATION_DENIED');
+    } else if (capability === 'shuttle.activity.test') {
+      // Owner decision, 22 October 2026: while the Shuttle Activity is in testing, the server owner and current lead ops
+      // role holders pass its closed screen. Self-scoped; it grants nothing else.
+      requireCondition(scope.userId === grant.userId && (observation.guildOwner || observation.roleIds.includes(fixed.leadOps)), 'OPERATION_DENIED');
     } else if (capability === 'answers.read') {
       // Public authored library lookup only. This grants no case or configuration access.
       requireCondition(scope.guildId === fixed.guildId, 'OPERATION_DENIED');

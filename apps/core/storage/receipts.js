@@ -1,8 +1,8 @@
 import { requireCondition, requireId } from '../../../contracts/validation.js';
 
-/** Discord keeps numeric IDs; authenticated dashboard adapters use a disjoint bounded namespace. */
+/** Discord keeps numeric IDs; authenticated dashboard and Activity adapters use disjoint bounded namespaces. */
 export function requireReceiptId(value) {
-  if (typeof value === 'string' && /^dashboard\.[a-f0-9]{64}$/.test(value)) return;
+  if (typeof value === 'string' && /^(?:dashboard|activity)\.[a-f0-9]{64}$/.test(value)) return;
   requireId(value);
 }
 

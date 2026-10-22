@@ -1,0 +1,204 @@
+import test from 'node:test';
+import { request as httpRequest } from 'node:http';
+import assert from 'node:assert/strict';
+import { ContractError } from '../contracts/validation.js';
+import { activityRunView, activityStopScene, activityStops, validateActivityConfiguration } from '../modules/onboarding/activity.js';
+import { validateStagingRuntime } from '../apps/core/runtime/configuration.js';
+import { createActivityAuth, ACTIVITY_SESSION_MS } from '../apps/core/security/activity-auth.js';
+import { createCorePrincipals } from '../apps/core/security/principals.js';
+import { createDiscordOAuth } from '../apps/core/discord/oauth.js';
+import { createDiscordTransport } from '../apps/core/discord/transport.js';
+import { createActivityHttpServer } from '../apps/core/http/activity.js';
+import { stagingConfiguration } from './fixtures/staging.js';
+import { GUILD, USER, OTHER, NOW, publication } from './fixtures/domain.js';
+
+const APP = '100000000000000012', INSTANCE = 'i-1700000000000000000-gc-1-2';
+const ORIGIN = 'https://onboarding.example.test';
+const activityConfiguration = (changes = {}) => ({ origin: ORIGIN, port: 38125, status: 'testing', ...changes });
+const session = (changes = {}) => ({ id: 'activity.1', guildId: GUILD, userId: USER, definitionId: publication.id, definitionVersion: publication.version,
+  eligibilityEpoch: 1, mode: 'qualification', stepIndex: 0, status: 'active', version: 0, nonce: 'n1', grantAccessEpoch: null, helpPaused: false, ...changes });
+const actorObservation = (userId, changes = {}) => ({ guildId: GUILD, userId, known: true, observedAt: NOW, present: true, roleIds: [], bot: false,
+  timedOut: false, administrator: false, guildOwner: false, highestRolePosition: 0, ...changes });
+
+test('T-ACT-CORE-01 configuration: origin, port and status are bounded; the runtime needs the dashboard OAuth and a free port', () => {
+  validateActivityConfiguration(activityConfiguration());
+  for (const changes of [{ origin: 'http://onboarding.example.test' }, { origin: `${ORIGIN}/app` }, { port: 80 }, { status: 'closed' }, { extra: true }]) {
+    assert.throws(() => validateActivityConfiguration(activityConfiguration(changes)), error => error.code === 'ACTIVITY_CONFIGURATION_INVALID' || error.code === 'INVALID_INTEGER');
+  }
+  const runtime = { ...stagingConfiguration('a'.repeat(64)), activity: activityConfiguration() };
+  validateStagingRuntime(runtime);
+  assert.throws(() => validateStagingRuntime({ ...runtime, activity: activityConfiguration({ port: runtime.dashboardPort }) }), error => error.code === 'RUNTIME_PORT_CONFLICT');
+  assert.throws(() => validateStagingRuntime({ ...runtime, dashboard: null }), error => error.code === 'ACTIVITY_CONFIGURATION_INVALID');
+});
+
+test('T-ACT-CORE-02 run view: published pages, stop scenes, and Whitelist confirmed only for a finished run Discord still shows', () => {
+  assert.deepEqual([0, 1, 2, 3, 4].map(stop => activityStopScene(stop, 5)), ['departure-lounge', 'baggage-hall', 'boarding-cabin', 'viewport', 'pressure-door']);
+  assert.deepEqual([0, 1, 2, 3, 4, 5, 6].map(stop => activityStopScene(stop, 7)),
+    ['departure-lounge', 'baggage-hall', 'boarding-cabin', 'viewport', 'baggage-hall', 'boarding-cabin', 'pressure-door']);
+  assert.equal(activityStopScene(0, 1), 'departure-lounge');
+  assert.equal(activityStops(publication).length, 5);
+  const reading = activityRunView({ session: session({ stepIndex: 2, version: 4 }), publication, whitelist: false });
+  assert.deepEqual(reading.pages, [publication.stages[2].body]);
+  assert.equal(reading.status, 'reading'); assert.equal(reading.version, 4); assert.equal(reading.whitelist, 'none');
+  const pending = activityRunView({ session: session({ stepIndex: 4, status: 'role_pending', grantAccessEpoch: 1 }), publication, whitelist: false });
+  assert.equal(pending.status, 'pending'); assert.equal(pending.whitelist, 'requested');
+  assert.equal(activityRunView({ session: session({ stepIndex: 4, status: 'complete' }), publication, whitelist: true }).whitelist, 'confirmed');
+  assert.equal(activityRunView({ session: session({ stepIndex: 4, status: 'complete' }), publication, whitelist: false }).whitelist, 'none');
+  assert.throws(() => activityRunView({ session: session({ definitionVersion: 2 }), publication, whitelist: false }), error => error.code === 'DEFINITION_MISMATCH');
+});
+
+function fakeAuth({ now = () => NOW, instance = id => ({ application_id: APP, instance_id: id, location: { guild_id: GUILD }, users: [USER] }), observe = actorObservation } = {}) {
+  const identities = new WeakMap();
+  return createActivityAuth({ applicationId: APP, guildId: GUILD, clock: now, enabled: () => true,
+    oauth: { async exchangeActivity(code) { const proof = Object.freeze({}); identities.set(proof, code); return { proof, accessToken: 'access-token-synthetic', expiresIn: 600, scopes: ['identify'] }; },
+      resolveIdentity: proof => ({ guildId: GUILD, userId: identities.get(proof) }) },
+    instances: async id => instance(id), discord: { observeActor: async userId => observe(userId) } });
+}
+
+test('T-ACT-CORE-03 sign-in needs a running instance in this server with the member in it, and tokens expire', async () => {
+  let time = NOW;
+  const auth = fakeAuth({ now: () => time, observe: userId => actorObservation(userId, { observedAt: time }) });
+  const signed = await auth.signIn({ code: USER, instanceId: INSTANCE });
+  assert.match(signed.token, /^[a-f0-9]{64}$/); assert.equal(signed.accessToken, 'access-token-synthetic'); assert.equal(signed.expiresIn, 3600);
+  const proof = await auth.authenticate(signed.token);
+  assert.deepEqual(await auth.resolvePrincipal(proof), { guildId: GUILD, userId: USER });
+  await assert.rejects(auth.signIn({ code: OTHER, instanceId: INSTANCE }), error => error.code === 'ACTIVITY_INSTANCE_INVALID');
+  await assert.rejects(auth.signIn({ code: USER, instanceId: 'bad/instance' }), error => error.code === 'ACTIVITY_INSTANCE_INVALID');
+  for (const instance of [() => null, id => ({ application_id: APP, instance_id: id, location: { guild_id: '100000000000000077' }, users: [USER] }),
+    id => ({ application_id: '100000000000000078', instance_id: id, location: { guild_id: GUILD }, users: [USER] })]) {
+    await assert.rejects(fakeAuth({ instance }).signIn({ code: USER, instanceId: INSTANCE }), error => error.code === 'ACTIVITY_INSTANCE_INVALID');
+  }
+  await assert.rejects(fakeAuth({ observe: userId => actorObservation(userId, { present: false, roleIds: [] }) }).signIn({ code: USER, instanceId: INSTANCE }),
+    error => error.code === 'OPERATION_DENIED');
+  time += ACTIVITY_SESSION_MS;
+  await assert.rejects(auth.authenticate(signed.token), error => error.code === 'ACTIVITY_SESSION_INVALID');
+  await assert.rejects(auth.resolvePrincipal(proof), error => error.code === 'UNTRUSTED_PRINCIPAL');
+  time = NOW;
+  const other = await auth.signIn({ code: USER, instanceId: INSTANCE });
+  auth.signOut(other.token);
+  await assert.rejects(auth.authenticate(other.token), error => error.code === 'ACTIVITY_SESSION_INVALID');
+  await assert.rejects(auth.resolvePrincipal(Object.freeze({ guildId: GUILD, userId: USER })), error => error.code === 'UNTRUSTED_PRINCIPAL');
+});
+
+test('T-ACT-CORE-04 core principals try interactions, then the dashboard, then the Activity', async () => {
+  const untrusted = { async resolvePrincipal() { throw new ContractError('UNTRUSTED_PRINCIPAL'); } };
+  const activity = { async resolvePrincipal() { return { guildId: GUILD, userId: USER }; } };
+  assert.deepEqual(await createCorePrincipals({ interactions: untrusted, dashboard: untrusted, activity }).resolvePrincipal({}), { guildId: GUILD, userId: USER });
+  await assert.rejects(createCorePrincipals({ interactions: untrusted, dashboard: untrusted }).resolvePrincipal({}), error => error.code === 'UNTRUSTED_PRINCIPAL');
+  const broken = { async resolvePrincipal() { throw new ContractError('AUTHORITY_UNCERTAIN'); } };
+  await assert.rejects(createCorePrincipals({ interactions: untrusted, dashboard: broken, activity }).resolvePrincipal({}), error => error.code === 'AUTHORITY_UNCERTAIN');
+});
+
+test('T-ACT-CORE-05 the Activity code exchange sends no redirect URI and accepts only identify and presence scopes', async () => {
+  const calls = [];
+  const reply = value => new Response(JSON.stringify(value), { status: 200, headers: { 'content-type': 'application/json' } });
+  const oauthFor = scope => createDiscordOAuth({ configuration: { guildId: GUILD, applicationId: APP, version: 1, origin: 'https://dashboard.example.test' },
+    clientSecret: 'synthetic-client-secret', clock: () => NOW, enabled: () => true,
+    fetch: async (url, options) => { calls.push({ url, body: options.body }); return url.endsWith('/token') ?
+      reply({ token_type: 'Bearer', scope, access_token: 'synthetic-access-token-0001', expires_in: 604800 }) : reply({ id: USER }); } });
+  const result = await oauthFor('rpc.activities.write identify').exchangeActivity('code123');
+  assert.deepEqual(result.scopes, ['identify', 'rpc.activities.write']); assert.equal(result.accessToken, 'synthetic-access-token-0001');
+  const body = new URLSearchParams(calls[0].body);
+  assert.equal(body.get('grant_type'), 'authorization_code'); assert.equal(body.get('code'), 'code123'); assert.equal(body.has('redirect_uri'), false);
+  for (const scope of ['identify guilds', 'rpc.activities.write', 'identify identify']) await assert.rejects(oauthFor(scope).exchangeActivity('code123'), error => error.code === 'OAUTH_RESPONSE_INVALID');
+});
+
+test('T-ACT-CORE-06 the instance lookup is a fixed bot route; an ended instance is absent', async () => {
+  const seen = [];
+  const transport = createDiscordTransport({ guildId: GUILD, token: 'synthetic.bot.token.value.0001', clock: () => NOW, enabled: () => true,
+    fetch: async (url, options) => { seen.push([url, options.method]); return url.endsWith('missing') ?
+      new Response(JSON.stringify({ code: 10_000 }), { status: 404 }) : new Response(JSON.stringify({ instance_id: 'i-1' }), { status: 200 }); } });
+  assert.deepEqual(await transport.getActivityInstance(APP, 'i-1'), { instance_id: 'i-1' });
+  assert.equal(await transport.getActivityInstance(APP, 'missing'), null);
+  assert.deepEqual(seen[0], [`https://discord.com/api/v10/applications/${APP}/activity-instances/i-1`, 'GET']);
+  await assert.rejects(transport.getActivityInstance(APP, '../users/@me'), error => error.code === 'ACTIVITY_INSTANCE_INVALID');
+});
+
+async function server(overrides = {}) {
+  const calls = [], assets = new Map([['/', { body: Buffer.from('<!doctype html><title>Shuttle</title>'), type: 'text/html; charset=utf-8', etag: '"page"' }],
+    ['/apps/activity/client/app.js', { body: Buffer.from('export {};'), type: 'text/javascript; charset=utf-8', etag: '"app"' }]]);
+  const store = {
+    async describe(input) { calls.push(['describe', input]); return { state: 'ready', mode: 'qualification', stops: [], whitelist: 'none' }; },
+    async board(input) { calls.push(['board', input]); return { run: { stop: 0 } }; },
+    async act(input) { calls.push(['act', input]); return { run: { stop: 1 }, queued: input.action === 'advance' }; },
+    ...overrides.store };
+  let woken = 0;
+  const http = createActivityHttpServer({ configuration: activityConfiguration(), port: 38125, assets, enabled: async () => true, onFault: code => calls.push(['fault', code]),
+    wake: () => { woken++; }, clock: () => NOW, pause: async () => {},
+    auth: { signIn: async input => { calls.push(['signIn', input]); return { token: 'a'.repeat(64), accessToken: 'x', scopes: ['identify'], expiresIn: 3600 }; },
+      authenticate: async token => { if (token !== 'a'.repeat(64)) throw new ContractError('ACTIVITY_SESSION_INVALID'); return { guildId: GUILD, userId: USER }; },
+      signOut: () => calls.push(['signOut']), ...overrides.auth },
+    authorization: { resolveActor: async proof => ({ actorFor: proof.userId }) },
+    discord: { observe: async userId => ({ observed: userId }) }, store, ...overrides.server });
+  const address = await http.listen(0);
+  // node:http rather than fetch, which cannot set the Host header the listener checks.
+  const request = (path, { method = 'GET', body, token = 'a'.repeat(64), host = 'onboarding.example.test', headers = {} } = {}) => new Promise((resolve, reject) => {
+    const payload = body === undefined ? null : Buffer.from(JSON.stringify(body));
+    const sent = httpRequest({ host: '127.0.0.1', port: address.port, path, method, headers: { host, ...(token ? { authorization: `Bearer ${token}` } : {}),
+      ...(payload ? { 'content-type': 'application/json', 'content-length': payload.length } : {}), ...headers } }, response => {
+      const chunks = []; response.on('data', chunk => chunks.push(chunk));
+      response.on('end', () => { const text = Buffer.concat(chunks).toString('utf8');
+        resolve({ status: response.statusCode, headers: { get: name => response.headers[name.toLowerCase()] ?? null }, json: async () => JSON.parse(text), text }); });
+    });
+    sent.on('error', reject); sent.end(payload ?? undefined);
+  });
+  return { http, calls, request, woken: () => woken };
+}
+
+test('T-ACT-CORE-07 the listener serves only listed files, with a strict page policy, and refuses other hosts', async () => {
+  const { http, request } = await server();
+  try {
+    const page = await request('/');
+    assert.equal(page.status, 200);
+    assert.match(page.headers.get('content-security-policy'), /default-src 'none'; script-src 'self'/);
+    assert.doesNotMatch(page.headers.get('content-security-policy'), /unsafe/);
+    assert.equal(page.headers.get('x-content-type-options'), 'nosniff');
+    assert.equal((await request('/', { headers: { 'if-none-match': '"page"' } })).status, 304);
+    assert.equal((await request('/apps/activity/client/app.js')).headers.get('content-type'), 'text/javascript; charset=utf-8');
+    assert.equal((await request('/apps/core/runtime/staging.js')).status, 404);
+    assert.equal((await request('/', { host: 'evil.example.test' })).status, 421);
+    assert.equal((await request('/', { method: 'POST', body: {} })).status, 405);
+  } finally { await http.close(); }
+});
+
+test('T-ACT-CORE-08 API routes: bearer sign-in, fresh member context, closed shapes and fixed outcome words', async () => {
+  const { http, calls, request, woken } = await server();
+  try {
+    const signed = await request('/api/session', { method: 'POST', token: null, body: { code: 'c0de', instanceId: INSTANCE } });
+    assert.equal(signed.status, 200); assert.equal((await signed.json()).token, 'a'.repeat(64));
+    assert.equal((await request('/api/session', { method: 'POST', token: null, body: { code: 'c0de', instanceId: INSTANCE, extra: 1 } })).status, 400);
+    assert.equal((await request('/api/shuttle', { token: null })).status, 401);
+    assert.deepEqual(await (await request('/api/shuttle', { token: 'b'.repeat(64) })).json(), { error: 'signin' });
+    const shown = await request('/api/shuttle');
+    assert.equal(shown.status, 200); assert.equal(shown.headers.get('cache-control'), 'no-store');
+    assert.deepEqual(calls.find(([name]) => name === 'describe')[1], { actor: { actorFor: USER }, observation: { observed: USER } });
+    assert.equal((await request('/api/shuttle/board', { method: 'POST', body: { requestId: 'f'.repeat(32) } })).status, 200);
+    const moved = await request('/api/shuttle/act', { method: 'POST', body: { requestId: 'e'.repeat(32), action: 'advance', expectedVersion: 3 } });
+    assert.deepEqual(await moved.json(), { run: { stop: 1 } }); assert.equal(woken(), 1);
+    await request('/api/shuttle/act', { method: 'POST', body: { requestId: 'd'.repeat(32), action: 'back', expectedVersion: 4 } });
+    assert.equal(woken(), 1);
+    assert.equal((await request('/api/shuttle/act', { method: 'POST', body: 'not an object' })).status, 400);
+    assert.equal((await request('/api/shuttle/act', { method: 'POST', body: { requestId: 'd'.repeat(32) }, headers: { 'content-type': 'text/plain' } })).status, 400);
+    assert.equal((await request('/api/session/end', { method: 'POST' })).status, 204);
+    assert.equal((await request('/api/unknown')).status, 404);
+  } finally { await http.close(); }
+});
+
+test('T-ACT-CORE-09 refusals map to fixed words; transient Discord reads are retried; anything unexpected logs one code', async () => {
+  let attempts = 0;
+  const outcomes = { ACTIVITY_CLOSED: [403, 'closed'], SHUTTLE_ELSEWHERE: [409, 'elsewhere'], STALE_SHUTTLE_CONTROL: [409, 'stale'], OPERATION_DENIED: [403, 'denied'] };
+  for (const [code, [status, word]] of Object.entries(outcomes)) {
+    const { http, request } = await server({ store: { async describe() { throw new ContractError(code); } } });
+    try { const response = await request('/api/shuttle'); assert.equal(response.status, status); assert.deepEqual(await response.json(), { error: word }); }
+    finally { await http.close(); }
+  }
+  const flaky = await server({ store: { async describe() { if (++attempts < 3) throw new ContractError('OBSERVATION_INVALIDATED'); return { state: 'closed' }; } } });
+  try { assert.deepEqual(await (await flaky.request('/api/shuttle')).json(), { state: 'closed' }); assert.equal(attempts, 3); }
+  finally { await flaky.http.close(); }
+  const broken = await server({ store: { async describe() { throw new Error('secret detail'); } } });
+  try {
+    const response = await broken.request('/api/shuttle');
+    assert.equal(response.status, 503); assert.deepEqual(await response.json(), { error: 'unavailable' });
+    assert.deepEqual(broken.calls.filter(([name]) => name === 'fault'), [['fault', 'ACTIVITY_REQUEST_UNAVAILABLE']]);
+  } finally { await broken.http.close(); }
+});

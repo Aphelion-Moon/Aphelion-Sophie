@@ -175,6 +175,8 @@ export function createDiscordTransport({ guildId, token, fetch, clock, enabled, 
         if (!write && route === 'automation-emoji' && data.code === 10014) return null;
         if (!write && route === 'member' && data.code === 10007) return null;
         if (!write && route === 'channel' && data.code === 10003) return null;
+        // An Activity instance that has ended (or never existed) is simply absent.
+        if (!write && route === 'activity-instance') return null;
         if (!write && ['shuttle-message', 'case-intake-message', 'case-reply-message'].includes(route) && data.code === 10008) return null;
         // A Shuttle message someone deleted is reported as missing, so its group can be posted again in order.
         if (route === 'shuttle-message-edit' && data.code === 10008) return null;
@@ -274,6 +276,11 @@ export function createDiscordTransport({ guildId, token, fetch, clock, enabled, 
       return request('POST', `/applications/${applicationId}/guilds/${guildId}/commands`, 'guild-command', definition, true);
     },
     async getGuild() { return request('GET', `/guilds/${guildId}`, 'guild'); },
+    /** Where a running Activity instance was launched and who is in it (Shuttle Activity sign-in). */
+    async getActivityInstance(applicationId, instanceId) {
+      requireId(applicationId); requireCondition(typeof instanceId === 'string' && /^[A-Za-z0-9_-]{1,128}$/.test(instanceId), 'ACTIVITY_INSTANCE_INVALID');
+      return request('GET', `/applications/${applicationId}/activity-instances/${instanceId}`, 'activity-instance');
+    },
     async getGuildChannels() { return request('GET', `/guilds/${guildId}/channels`, 'guild-channels'); },
     async getChannel(channelId) { requireId(channelId); return request('GET', `/channels/${channelId}`, 'channel'); },
     async deleteOnboardingChannel(channelId) { requireId(channelId); return request('DELETE', `/channels/${channelId}`, 'onboarding-channel-delete', undefined, true); },

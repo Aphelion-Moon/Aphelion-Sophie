@@ -18,6 +18,7 @@ import { createSystemWordingHttp } from '../http/system-wording.js';
 import { createOnboardingEntryPanel } from '../discord/onboarding-entry-panel.js';
 import { createSystemWordingReader, createSystemWordingStore } from '../storage/system-wording.js';
 import { randomUUID } from 'node:crypto';
+import { fileURLToPath } from 'node:url';
 import { requireCondition } from '../../../contracts/validation.js';
 import { validateStagingRuntime } from './configuration.js';
 import { requireUnquarantinedDatabase } from './recovery.js';
@@ -39,6 +40,10 @@ import { createDashboardAuthStore } from '../storage/dashboard-auth.js';
 import { createDashboardAuth } from '../security/dashboard-auth.js';
 import { createDiscordOAuth } from '../discord/oauth.js';
 import { createDashboardAuthHttpServer } from '../http/dashboard-auth.js';
+import { createActivityAuth } from '../security/activity-auth.js';
+import { createActivityHttpServer } from '../http/activity.js';
+import { createShuttleActivityStore } from '../storage/shuttle-activity.js';
+import { loadActivityClient } from '../../activity/client-assets.js';
 import { createDashboardPresentation } from '../http/dashboard-assets.js';
 import { createOnboardingAuthoringStore } from '../storage/onboarding-authoring.js';
 import { createOnboardingAuthoringHttp } from '../http/onboarding-authoring.js';
@@ -123,7 +128,11 @@ export async function createStagingRuntime({ configuration, pool, aiControlPool 
   const auth = fixed.dashboard === null ? null : createDashboardAuth({ configuration: fixed.dashboard,
     store: createDashboardAuthStore({ pool, configuration: fixed.dashboard, clock }),
     oauth: createDiscordOAuth({ configuration: fixed.dashboard, clientSecret, fetch, clock, enabled }), discord: authRoles, clock, enabled });
-  const principals = auth === null ? verifier : createCorePrincipals({ interactions: verifier, dashboard: auth });
+  // The Shuttle Activity signs members in through the same OAuth application and resolves them through core principals.
+  const activityAuth = auth === null || fixed.activity === undefined ? null : createActivityAuth({ applicationId: fixed.applicationId,
+    guildId: fixed.mapping.guildId, oauth: createDiscordOAuth({ configuration: fixed.dashboard, clientSecret, fetch, clock, enabled }),
+    instances: instanceId => transport.getActivityInstance(fixed.applicationId, instanceId), discord: authRoles, clock, enabled });
+  const principals = auth === null ? verifier : createCorePrincipals({ interactions: verifier, dashboard: auth, activity: activityAuth });
   const createAiLane=worker=>createAiRuntime({ configuration: fixed, corePool: pool, controlPool: aiControlPool, worker, knowledge: aiKnowledge,
     observer, guildState, token, fetch, clock, enabled, rateLimits, onFault: fault,privacyCurrent:privacy.current,
     memory: aiPreferenceJournal === null ? null : createAiMemory({ pool: aiControlPool, guildId: fixed.mapping.guildId, journal: aiPreferenceJournal, clock }),
@@ -212,6 +221,14 @@ export async function createStagingRuntime({ configuration, pool, aiControlPool 
       formAuthoring: createCaseFormAuthoringHttp({ auth, authorization, store: createCaseFormAuthoringStore({ pool, authorize: authorization.authorize, guildId: fixed.mapping.guildId }) }),
       presentation: await createDashboardPresentation() });
   }
+  let activity = null, activityListening = false;
+  if (activityAuth !== null) {
+    const visitor = lane();
+    activity = createActivityHttpServer({ configuration: fixed.activity, port: fixed.activity.port,
+      assets: await loadActivityClient(fileURLToPath(new URL('../../../', import.meta.url))), auth: activityAuth,
+      authorization: visitor.authorization, discord: visitor.roles, enabled, onFault: fault, wake: () => wake(), clock,
+      store: createShuttleActivityStore({ pool, clock, authorize: visitor.authorization.authorize, definitionId: fixed.definitionId, status: fixed.activity.status }) });
+  }
   const owner = `staging.${randomUUID()}`;
   let ticking = false, scheduled = false, wakeQueued = false;
   function tick() {
@@ -248,9 +265,9 @@ export async function createStagingRuntime({ configuration, pool, aiControlPool 
   }
   async function stop() {
     stopping = true; clearTimeout(timer);
-    const results = await Promise.allSettled([interactions.close(), dashboardListening ? dashboard.close() : undefined, aiRuntime?.stop(), preferenceExpiry?.stop(), gateway.stop(), workerTask]);
+    const results = await Promise.allSettled([interactions.close(), dashboardListening ? dashboard.close() : undefined, activityListening ? activity.close() : undefined, aiRuntime?.stop(), preferenceExpiry?.stop(), gateway.stop(), workerTask]);
     results.push(...await Promise.allSettled([knowledgeAdministration?.stop()]));
-    dashboardListening = false;
+    dashboardListening = false; activityListening = false;
     await gatewayTask;
     requireCondition(results.every(result => result.status === 'fulfilled'), 'RUNTIME_SHUTDOWN_INCOMPLETE');
   }
@@ -263,6 +280,8 @@ export async function createStagingRuntime({ configuration, pool, aiControlPool 
         const interactionAddress = await interactions.listen(ephemeralPorts ? 0 : fixed.interactionPort);
         const dashboardAddress = dashboard === null ? null : await dashboard.listen(ephemeralPorts ? 0 : fixed.dashboardPort);
         dashboardListening = dashboardAddress !== null;
+        const activityAddress = activity === null ? null : await activity.listen(ephemeralPorts ? 0 : fixed.activity.port);
+        activityListening = activityAddress !== null;
         requireCondition(!stopping, 'RUNTIME_STOPPED');
         gatewayTask = gateway.start(owner).then(result => { if (!stopping) { stopping = true; clearTimeout(timer); fault('RUNTIME_GATEWAY_HALTED'); } return result; });
         // Go live persists across restarts and deployments: active channels follow the installed release.
@@ -270,7 +289,7 @@ export async function createStagingRuntime({ configuration, pool, aiControlPool 
         if(aiRuntime)try {await aiRuntime.start();}catch{fault('AI_WORKER_CONNECTION_UNAVAILABLE');}
         preferenceExpiry?.start();
         if (automaticWorkers) { scheduled = true; schedule(); }
-        return { interactions: interactionAddress, dashboard: dashboardAddress };
+        return { interactions: interactionAddress, dashboard: dashboardAddress, ...(activity === null ? {} : { activity: activityAddress }) };
       } catch (error) { await stop(); throw error; }
     },
     runOnce: tick,
