@@ -26,9 +26,25 @@
       <p id="transit-text" class="transit-text"></p>
       <p id="transit-skip" class="transit-skip"></p>
     </div>
+    <!-- The main page has no column: the hangar fills the window and the splash prompt and menu sit in the art, over
+         the scene's menu slot (placed from the live cell size). -->
+    <div id="slot" class="slot">
+      <section id="splash" class="pane" aria-label="The Shuttle">
+        <p class="press"><span class="press-mark" aria-hidden="true">▌</span><span id="press-text">Press any key or tap to begin</span></p>
+      </section>
+
+      <section id="title" class="pane" hidden aria-label="Main menu">
+        <nav class="menu-panel">
+          <p class="menu-kicker" aria-hidden="true"><span class="prompt">$</span> board <span class="cursor">▌</span></p>
+          <ul id="menu" class="menu"></ul>
+          <p id="notice" class="notice" role="status" hidden></p>
+          <p class="tip menu-tip" data-tip></p>
+        </nav>
+      </section>
+    </div>
   </div>
 
-  <!-- The reading column: the status window above, then the splash prompt, the menu or Sophie's transmission. -->
+  <!-- The reading column, while reading only: the status window above Sophie's transmission. -->
   <div id="column" class="column">
     <section id="status" class="status" aria-labelledby="status-title">
       <header class="status-head">
@@ -57,18 +73,6 @@
       </div>
       </div>
       <p id="banner" class="status-announce" hidden></p>
-    </section>
-
-    <section id="splash" class="pane" aria-label="The Shuttle">
-      <p class="press"><span class="press-mark" aria-hidden="true">▌</span><span id="press-text">Press any key or tap to begin</span></p>
-    </section>
-
-    <section id="title" class="pane" hidden aria-label="Main menu">
-      <nav class="menu-panel">
-        <p class="menu-kicker"><span class="kicker-mark" aria-hidden="true">◆</span> Shuttle Service · Aphelion</p>
-        <ul id="menu" class="menu"></ul>
-        <p id="notice" class="notice" role="status" hidden></p>
-      </nav>
     </section>
 
     <section id="radio" class="pane" hidden aria-labelledby="radio-speaker">

@@ -53,6 +53,21 @@ export function createShuttle({ document, api, connect, player, loadScene, sound
     $('radio-menu').hidden = next !== 'radio';
     if (next !== 'radio') setStatus(null);
     if (next === 'radio') { timers.clear(tipTimer); tipTimer = null; }
+    placeSlot();
+  }
+  /** Puts the splash prompt and the menu over the hangar's menu slot; without one they keep a corner of the stage. */
+  function placeSlot() {
+    const slot = $('slot'), canvas = $('scene'), rect = player.slotRect?.('menu') ?? null;
+    if (!slot?.style) return;
+    if (!rect || !canvas) {
+      slot.dataset.fallback = '';
+      for (const key of ['left', 'top', 'width', 'height']) slot.style[key] = '';
+      return;
+    }
+    delete slot.dataset.fallback;
+    slot.style.left = `${(canvas.offsetLeft ?? 0) + rect.left}px`; slot.style.top = `${(canvas.offsetTop ?? 0) + rect.top}px`;
+    slot.style.width = `${rect.width}px`; slot.style.height = `${rect.height}px`;
+    slot.style.setProperty?.('--cell', `${rect.cellHeight}px`);
   }
   function signal(state) {
     const element = $('signal'); element.dataset.state = state;
@@ -129,7 +144,9 @@ export function createShuttle({ document, api, connect, player, loadScene, sound
     list.replaceChildren(...menu.items.map((item, index) => {
       const button = document.createElement('button');
       button.type = 'button'; button.className = `menu-item${index === 0 && !SHEETS.includes(item.id) ? ' primary' : ''}`;
-      button.textContent = item.label; button.dataset.action = item.id;
+      // The terminal numbers its choices; the number is a key (1 to 9), not part of the name a screen reader says.
+      const key = document.createElement('span'); key.className = 'menu-key'; key.setAttribute('aria-hidden', 'true'); key.textContent = `[${index + 1}]`;
+      button.append(key, item.label); button.dataset.action = item.id;
       button.addEventListener('click', () => choose(item.id));
       button.addEventListener('focus', () => sound.play('UI-01'));
       const entry = document.createElement('li'); entry.append(button); return entry;
@@ -542,6 +559,11 @@ export function createShuttle({ document, api, connect, player, loadScene, sound
         const items = [...$('menu').querySelectorAll('button')], at = items.indexOf(document.activeElement);
         items[(at + (event.key === 'ArrowDown' ? 1 : -1) + items.length) % items.length]?.focus(); event.preventDefault();
       }
+      // The terminal's numbers: 1 to 9 pick that choice.
+      if (view === 'title' && /^[1-9]$/.test(event.key)) {
+        const item = $('menu').querySelectorAll('button')[Number(event.key) - 1];
+        if (item) { event.preventDefault(); item.focus(); item.click(); }
+      }
     });
     document.addEventListener('visibilitychange', () => sound.setHidden(document.hidden));
     // A resized or rotated window repaints the status window's art to its new room.
@@ -557,6 +579,8 @@ export function createShuttle({ document, api, connect, player, loadScene, sound
       bindSettings(); bindInput(); applySettings(); signal('linking'); showTip();
       // Scenes play their own moments (the THUMP, the shutter) through the soundboard; a missing sound plays nothing.
       player.setCueHandler?.(cue => sound.play(cue));
+      // The menu lives in the hangar's art: it follows the scene's slot whenever the grid or the scene changes.
+      player.setLayoutHandler?.(placeSlot);
       definitions('codex-list', CODEX); definitions('keys-list', KEYS);
       $('press-text').textContent = TEXT.pressStart; $('status-title').textContent = TEXT.radio; $('status-state').textContent = TEXT.standby;
       $('transit-skip').textContent = TEXT.skip; $('pass-kicker').textContent = TEXT.pass;

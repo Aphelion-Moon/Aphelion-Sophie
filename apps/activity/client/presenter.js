@@ -108,7 +108,7 @@ export const CODEX = Object.freeze([
 
 /** Keys and gestures, for the help card. */
 export const KEYS = Object.freeze([
-  ['→  Enter  Space', 'Next / Continue'], ['←  Backspace', 'Back'], ['Swipe', 'Next or back, on touch screens'],
+  ['↑  ↓  1–9', 'Main menu: move, or pick a choice by its number'], ['→  Enter  Space', 'Next / Continue'], ['←  Backspace', 'Back'], ['Swipe', 'Next or back, on touch screens'],
   ['Tap the text', 'Show it all at once'], ['V', 'Switch the status window: radio or extras'], ['L', 'Station log'], ['Esc', 'Close a panel, or the menu'], ['?', 'This card'],
 ]);
 

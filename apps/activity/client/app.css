@@ -27,6 +27,10 @@ button, input { font: inherit; color: inherit; }
   background: repeating-linear-gradient(to bottom, transparent 0 2px, rgba(0, 0, 0, .55) 2px 3px); }
 .column { grid-column: 1; grid-row: 1; min-height: 0; min-width: 0; display: flex; flex-direction: column; gap: 10px; padding: 10px;
   background: var(--ink); border-right: 1px solid var(--rule); }
+/* The main page (splash and menu) is the hangar alone, full window, as in the first builds; the column is for reading. */
+#shuttle:is([data-view="splash"], [data-view="title"]) { grid-template-columns: minmax(0, 1fr); }
+#shuttle:is([data-view="splash"], [data-view="title"]) .column { display: none; }
+#shuttle:is([data-view="splash"], [data-view="title"]) #stage { grid-column: 1; background: var(--bay); }
 .pane { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; }
 
 /* Status window: Sophie's radio standing by, or the extra material for the section being read. Its size is fixed, so
@@ -82,24 +86,38 @@ main[data-speaking="trailing"] .wave i:is(:nth-child(-n + 4), :nth-last-child(-n
 .viewscreen-link:hover, .viewscreen-link:focus-visible { border-color: var(--holo); color: var(--cold); }
 .viewscreen-host { color: var(--holo-dim); font-size: .8em; }
 
-/* Splash */
-#splash { justify-content: center; align-items: flex-start; pointer-events: none; }
-.press { margin: 0; padding: 6px 14px; border: 1px solid var(--amber-dim); color: var(--amber);
-  letter-spacing: .14em; text-transform: uppercase; animation: blink 1.6s steps(2, jump-none) infinite; }
-.press-mark { color: var(--holo); margin-right: 8px; }
+/* The menu slot: the inside of the terminal window drawn in the hangar's console (owner's pick). The page places it over
+   the scene's menu slot in pixels (--cell is one cell's height there); the window's frame and title bar are the art's,
+   so the slot has none of its own. Text never drops below a readable size, so on phones it may scroll inside. */
+.slot { position: absolute; z-index: 2; display: flex; flex-direction: column; justify-content: flex-start; align-items: stretch;
+  --cell: 16px; font-size: clamp(14px, var(--cell), 22px); line-height: 1.25; }
+.slot[data-fallback] { left: 4%; right: auto; bottom: 8%; width: min(92%, 30em); background: var(--bay); border: 1px solid var(--holo-dim); padding: .4em .6em; }
+#shuttle:not(:is([data-view="splash"], [data-view="title"])) .slot { display: none; }
+.slot .pane { flex: 0 1 auto; min-height: 0; }
 
-/* Title menu */
-#title { justify-content: flex-start; }
-.menu-panel { border-left: 3px solid var(--amber); padding: 12px 14px 10px; box-shadow: 6px 0 0 -3px var(--holo-dim); background: var(--bay); }
-.menu-kicker { margin: 0 0 10px; color: var(--ivory-dim); font-size: .8em; letter-spacing: .16em; text-transform: uppercase; }
-.kicker-mark { color: var(--holo); }
-.menu { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; }
-.menu-item { width: 100%; min-height: 44px; text-align: left; background: none; border: 0; padding: 8px 10px 8px 24px; position: relative; cursor: pointer;
-  color: var(--ivory); letter-spacing: .12em; text-transform: uppercase; font-size: 1.1em; }
-.menu-item::before { content: ''; position: absolute; left: 6px; top: 50%; width: 8px; height: 2px; background: var(--amber-dim); }
+/* Splash: a prompt waiting at the terminal, its block cursor blinking. */
+#splash { pointer-events: none; }
+.press { margin: 0; color: var(--amber); letter-spacing: .06em; text-transform: lowercase; }
+.press-mark { color: var(--holo); margin-right: .5em; animation: blink 1.1s steps(2, jump-none) infinite; }
+
+/* Title menu: terminal output. A prompt, the choices numbered (1 to 9 pick one), and the tip of the round below. */
+.menu-panel { max-height: 100%; overflow-y: auto; overscroll-behavior: contain; }
+.menu-tip { margin: .4em 0 0; }
+.menu-tip::before { content: '# '; color: var(--holo-dim); }
+.menu-kicker { margin: 0 0 .3em; color: var(--ivory); letter-spacing: .04em; }
+.prompt { color: var(--holo); }
+.cursor { color: var(--holo); animation: blink 1.1s steps(2, jump-none) infinite; }
+.menu { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 .6em; }
+.menu li:first-child { grid-column: 1 / -1; }
+/* Each choice reads like a terminal line; the selected one is bracketed, > [1] board the shuttle <. */
+.menu-item { width: 100%; min-height: 44px; text-align: left; background: none; border: 0; padding: .1em .4em .1em 1.3em; position: relative; cursor: pointer;
+  color: var(--ivory); letter-spacing: .04em; text-transform: lowercase; font-size: 1em; }
+.menu-key { color: var(--holo-dim); margin-right: .5em; }
 .menu-item:hover, .menu-item:focus-visible { color: var(--amber); background: rgba(255, 184, 77, .08); outline: none; }
-.menu-item:hover::before, .menu-item:focus-visible::before { content: '»'; width: auto; height: auto; top: 8px; left: 6px; background: none; color: var(--holo); }
-.menu-item.primary { color: var(--amber); font-size: 1.25em; }
+.menu-item:hover .menu-key, .menu-item:focus-visible .menu-key { color: var(--holo); }
+.menu-item:hover::before, .menu-item:focus-visible::before { content: '>'; position: absolute; left: .3em; top: 50%; transform: translateY(-50%); color: var(--holo); }
+.menu-item:hover::after, .menu-item:focus-visible::after { content: ' <'; color: var(--holo); }
+.menu-item.primary { color: var(--amber); }
 .tip { color: var(--ivory-dim); font-size: .8em; letter-spacing: .04em; }
 .notice { margin: 10px 0 0; padding: 8px 10px; border: 1px dashed var(--amber-dim); color: var(--ivory); background: var(--panel); }
 
@@ -239,8 +257,11 @@ h2.md-heading { font-size: 1.3em; }
 @media (orientation: portrait), (max-width: 720px) {
   :root { --gutter: 12px; }
   #shuttle { grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(0, 46vh) minmax(0, 1fr) auto; }
-  #shuttle:is([data-view="splash"], [data-view="title"]) { grid-template-rows: minmax(0, 55vh) minmax(0, 1fr) auto; }
+  #shuttle:is([data-view="splash"], [data-view="title"]) { grid-template-rows: minmax(0, 1fr) auto; }
+  #shuttle:is([data-view="splash"], [data-view="title"]) .status-bar { grid-row: 2; }
   #stage { grid-column: 1; grid-row: 1; }
+  /* The menu button keeps its corner (owner direction); while reading, the scene starts below it so it covers no art. */
+  #shuttle[data-view="radio"] #stage { padding-top: calc(44px + env(safe-area-inset-top)); }
   .column { grid-row: 2; border-right: 0; border-top: 1px solid var(--rule); padding: 8px; gap: 8px; }
   .status-bar { grid-row: 3; }
   .status { height: clamp(120px, 17vh, 220px); }
@@ -255,11 +276,9 @@ h2.md-heading { font-size: 1.3em; }
   .pass-name { font-size: 1.05em; }
   .pass-since { margin: 0 0 4px; font-size: .8em; }
   .pass-access { padding: 1px 6px; font-size: .7em; }
-  .menu-item { font-size: 1em; min-height: 40px; padding-top: 6px; padding-bottom: 6px; }
-  .menu-item.primary { font-size: 1.1em; }
-  .menu-panel { padding: 8px 10px; }
+  .menu-item { min-height: 40px; }
 }
 @media (prefers-reduced-motion: reduce) {
-  .press, .rx, .receiving, .viewscreen, .status-announce, .wave i, .streaks::before, .streaks::after { animation: none !important; }
+  .press-mark, .cursor, .rx, .receiving, .viewscreen, .status-announce, .wave i, .streaks::before, .streaks::after { animation: none !important; }
 }
-main[data-motion="off"] :is(.press, .rx, .receiving, .viewscreen, .status-announce, .wave i) { animation: none !important; }
+main[data-motion="off"] :is(.press-mark, .cursor, .rx, .receiving, .viewscreen, .status-announce, .wave i) { animation: none !important; }
