@@ -146,7 +146,7 @@ export async function createStagingRuntime({ configuration, pool, aiControlPool 
     memory: aiPreferenceJournal === null ? null : createAiMemory({ pool: aiControlPool, guildId: fixed.mapping.guildId, journal: aiPreferenceJournal, clock }),
     memories: aiMemories === null ? null : { ...aiMemories, enabled: async () => aiApproval !== null && typeof aiApproval.automaticMemory === 'function' && await aiApproval.automaticMemory() },
     readSystemText: createSystemWordingReader({ pool, guildId: fixed.mapping.guildId }),
-    ...(aiApproval === null ? {} : { readNotice: aiApproval.notice }) });
+    ...(aiApproval === null ? {} : { readNotice: aiApproval.notice, staffChannels: async () => typeof aiApproval.staffChannels === 'function' && await aiApproval.staffChannels() }) });
   if(aiWorker!==null)aiRuntime=createAiLane(aiWorker);
   const readSystemText = createSystemWordingReader({ pool, guildId: fixed.mapping.guildId });
   // One set of member AI controls per authorization lane: the Discord panel and the dashboard share the same use cases.

@@ -118,4 +118,13 @@ export async function runAiMemoriesSuite(cluster, run) {
     await memories.expire();
     assert.equal((await rows()).some(row => row.id === memory.id), false);
   });
+  await run('MEM-S08 a memory written in a staff channel is recalled only in staff turns', async () => {
+    assert.equal(await memories.record({ channelId: '719', restricted: true, memories: [member(alice.userId, '{1} is training new moderators')] }), 1);
+    const publicTurn = (await memories.forPrompt({ channelId: '719', userIds: [alice.userId] })).map(item => item.text);
+    const staffTurn = (await memories.forPrompt({ channelId: '719', userIds: [alice.userId], restricted: true })).map(item => item.text);
+    assert.equal(publicTurn.some(text => text.includes('moderators')), false);
+    assert.ok(staffTurn.some(text => text.includes('moderators')));
+    assert.ok((await controls.ownMemories({ actor: alice })).memories.some(item => item.staff === true), 'the member still sees what names them');
+    assert.equal(await memories.record({ channelId: '719', restricted: true, memories: [member(alice.userId, '{1} is training new moderators')] }), 0, 'a repeat only refreshes');
+  });
 }

@@ -11,16 +11,21 @@ export function canonicalAiWorkerIdentity(value) {
 
 /** Only this projection crosses the worker boundary; accounting/delivery metadata stays in core. */
 export function aiWorkerPayload(payload, identity) {
-  const keys = ['workerDomain','releaseHash','requesterId','restricted','boundary','messages','outputContract','trimGroups','sourceMessages','contractMessageIndex','blocks'];
+  const keys = ['workerDomain','releaseHash','requesterId','restricted','staff','boundary','messages','outputContract','trimGroups','sourceMessages','contractMessageIndex','blocks'];
   const value = Object.fromEntries(keys.filter(key => payload[key] !== undefined).map(key => [key,structuredClone(payload[key])]));
   validateAiWorkerPayload(value,identity); return freezeAiMaterial(value);
 }
 
+/** Public channels, or a restricted channel declared as a staff context (owner decision, 23 October 2026). Nothing else. */
+export function aiRemoteLaneAllowed({ workerDomain, restricted, staff }) {
+  return workerDomain === 'public' && (restricted === false && staff === undefined || restricted === true && staff === true);
+}
+
 export function validateAiWorkerPayload(value, identity) {
   const required = ['workerDomain','releaseHash','requesterId','restricted','boundary','messages','outputContract'];
-  const allowed = [...required,'trimGroups','sourceMessages','contractMessageIndex','blocks'];
+  const allowed = [...required,'staff','trimGroups','sourceMessages','contractMessageIndex','blocks'];
   requireCondition(value && required.every(key => Object.hasOwn(value,key)) && Object.keys(value).every(key => allowed.includes(key)), 'AI_IPC_PAYLOAD_INVALID');
-  requireCondition(value.restricted === false && value.workerDomain === 'public' && value.releaseHash === identity.releaseHash, 'AI_IPC_SCOPE_INVALID');
+  requireCondition(aiRemoteLaneAllowed(value) && value.releaseHash === identity.releaseHash, 'AI_IPC_SCOPE_INVALID');
   requireId(value.requesterId); requireKeys(value.boundary,['guildId','channelId','continuity','boundaryEpoch'],'AI_IPC_SCOPE_INVALID');
   requireId(value.boundary.guildId); requireId(value.boundary.channelId); requireInteger(value.boundary.boundaryEpoch,1);
   requireCondition(typeof value.boundary.continuity === 'string' && /^[a-zA-Z0-9._:-]{1,128}$/u.test(value.boundary.continuity),'AI_IPC_SCOPE_INVALID');

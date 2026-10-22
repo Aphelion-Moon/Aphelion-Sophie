@@ -82,7 +82,7 @@ export function createAiTurns({ admission, scheduler, context, knowledge, messag
       await memories.touch(remembered);
       if (!output.memories?.length) return;
       const userOf = new Map([...speakers].map(([userId, label]) => [label, userId]));
-      const saved = await memories.record({ channelId: request.channelId, memories: output.memories.map(item => encodeMemory(item, label => userOf.get(label)))
+      const saved = await memories.record({ channelId: request.channelId, restricted: request.binding.restricted === true, memories: output.memories.map(item => encodeMemory(item, label => userOf.get(label)))
         // Contact details, links and IDs are masked before anything is kept, as they are before anything is sent.
         .map(item => ({ ...item, text: redactAiIdentifiers(item.text) })) });
       trace(`AI_MEMORY_SAVED_${saved}`);
@@ -122,7 +122,7 @@ export function createAiTurns({ admission, scheduler, context, knowledge, messag
       // Sophie's own memories, only while an accepted notice discloses them; null means this turn cannot remember.
       const speakers = aiSpeakerLabels(request, history);
       const remembered = memories !== null && await memories.enabled() === true
-        ? await memories.forPrompt({ channelId: request.channelId, userIds: [...speakers.keys()] }) : null;
+        ? await memories.forPrompt({ channelId: request.channelId, userIds: [...speakers.keys()], restricted: request.binding.restricted === true }) : null;
       if (expired(request)) { await admission.settle(request, 'expired'); return { state: 'expired', stage }; }
       stage = 'GENERATE';
       const generated = await scheduler.submit({ id: request.messageId, member: `${request.guildId}.${request.userId}`, channel: `${request.guildId}.${request.channelId}`, receivedAt: request.receivedAt,
@@ -130,7 +130,7 @@ export function createAiTurns({ admission, scheduler, context, knowledge, messag
         // The prepared-shape comparison holds block sizes and digests only; diagnostics() re-authorizes it before showing it.
         onPrepared: comparison => context.comparePrepared(request, history, sources, comparison, async () => true, async () => true),
         payload: freezeAiMaterial({ workerDomain: request.binding.workerDomain, releaseHash: request.binding.releaseHash,
-          requesterId: request.userId, restricted: request.binding.restricted,
+          requesterId: request.userId, restricted: request.binding.restricted, ...(request.binding.restricted ? { staff: request.context?.name === 'staff' } : {}),
           boundary: { guildId: request.guildId, channelId: request.channelId, continuity: request.binding.continuity, boundaryEpoch: request.binding.boundaryEpoch },
           local: { messageId: request.messageId, inputRevision: request.inputRevision, controlEpoch: request.binding.epoch,
             deadline: request.deadline, proactive: request.decision.proactive },

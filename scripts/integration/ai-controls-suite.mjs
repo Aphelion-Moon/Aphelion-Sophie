@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { createAiControls } from '../../apps/core/storage/ai-controls.js';
-import { defaultParticipation } from '../../modules/assistant/participation.js';
+import { defaultAiContexts, defaultParticipation } from '../../modules/assistant/participation.js';
 import { DRAFT_PERSONALITY } from '../../modules/assistant/personality.js';
 import { aiDigest, recordAiInvitation } from '../../apps/core/storage/ai-controls.js';
 import { createAiAdmission } from '../../apps/core/storage/ai-admission.js';
@@ -555,5 +555,41 @@ export async function runAiControlsSuite(cluster, run) {
     await admin.query("UPDATE sophie_ai.consent_invitations SET invited_at=clock_timestamp()-interval '25 hours' WHERE guild_id='91501' AND user_id='404'");
     assert.equal(await recordAiInvitation(pool, '91501', '404'), true);
     assert.equal(await recordAiInvitation(pool, '99999', '404'), false, 'no AI state, no invitation');
+  });
+  await run('TS-AI02 a private channel qualifies only as a staff context under a staff-covering policy, and its turns stay staff-only', async () => {
+    const operator = { ...actor, guildId: '992' }, binding = 'b'.repeat(64);
+    let staffApproved = false;
+    const control = createAiControls({ pool, guildId: operator.guildId, authorize: async (_action, who) => who === operator,
+      inspectChannel: async () => ({ id: '303' }), memberPresence: async () => 1, readNotice: async () => ({ revision: 4, text: 'Synthetic notice', binding, approved: true }) });
+    const staffDocument = { schemaVersion: 2, enabled: true, deadlineMs: 15000, emojis: [], contexts: defaultAiContexts(),
+      channels: [{ channelId: '303', profile: defaultParticipation('addressed'), context: 'staff' }, { channelId: '304', profile: defaultParticipation('addressed'), context: 'chat' }] };
+    for (const [kind, doc] of [['configuration', staffDocument], ['personality', DRAFT_PERSONALITY], ['budget', { ...DEFAULT_AI_BUDGET, priceValidUntil: Date.now() + 60000 }]]) {
+      const reviewed = await control.review({ actor: operator, kind, expectedRevision: 0, document: doc });
+      await control.publish({ actor: operator, kind, expectedRevision: 0, document: doc, requestId: aiDigest({ kind, staff: true }), reviewSha256: reviewed.reviewSha256, confirmed: true });
+    }
+    const release = { name: 'Synthetic', workerId: 'a'.repeat(64), releaseHash: 'b'.repeat(64), profileHash: 'c'.repeat(64), evidenceHash: 'd'.repeat(64), provider: 'mistral', domain: 'public' };
+    const activation = createAiActivation({ pool: admin, guildId: operator.guildId, authorize: async (action, who) => action === 'ai.runtime.apply' && who === operator,
+      inspectChannel: async () => ({ eligible: true, restricted: true, checkedAt: Date.now(), audienceHash: 'e'.repeat(64), continuity: 'synthetic' }),
+      approval: { evidence: async () => ({ evidenceHash: 'f'.repeat(64), noticeRevision: 4, validUntil: 1799000000000 }), staffChannels: async () => staffApproved },
+      workerRelease: async () => release, restoreCurrent: async () => true });
+    await assert.rejects(activation.reviewActivation({ actor: operator, channelId: '303' }), /AI_PUBLIC_CHANNEL_REQUIRED/, 'no staff policy, no private channel');
+    staffApproved = true;
+    await assert.rejects(activation.reviewActivation({ actor: operator, channelId: '304' }), /AI_PUBLIC_CHANNEL_REQUIRED/, 'a private chat channel is refused');
+    const reviewed = await activation.reviewActivation({ actor: operator, channelId: '303' });
+    await activation.activate({ actor: operator, channelId: '303', reviewSha256: reviewed.reviewSha256, requestId: '8'.repeat(64), confirmed: true });
+    assert.equal((await admin.query("SELECT restricted FROM sophie_ai.qualifications WHERE guild_id=$1 AND channel_id='303'", [operator.guildId])).rows[0].restricted, true);
+    await admin.query(`INSERT INTO sophie_ai.member_consents(guild_id,user_id,epoch,enabled,presence_epoch,notice_revision,receipt) VALUES($1,$2,1,true,1,4,$3)`,
+      [operator.guildId, operator.userId, { binding }]);
+    const reasons = [], lane = createAiIngress({ guildId: operator.guildId, botUserId: '505', clock: Date.now });
+    const staffAdmission = createAiAdmission({ pool, guildId: operator.guildId, ingress: lane, clock: Date.now, noticeRevision: 4, trace: reason => reasons.push(reason),
+      readNotice: async () => ({ revision: 4, binding, approved: true }), staffChannels: async () => staffApproved,
+      inspectContext: async () => ({ eligible: true, audienceHash: 'e'.repeat(64), restricted: true, canReply: true, canReact: true, messageRevision: 'original', continuity: 'synthetic-current', checkedAt: Date.now() }),
+      inspectMember: async () => ({ eligible: true, presenceEpoch: 1, accessEpoch: 1, checkedAt: Date.now() }) });
+    const staffMessage = id => lane.prepare({ t: 'MESSAGE_CREATE', d: { guild_id: operator.guildId, channel_id: '303', id, author: { id: operator.userId, bot: false }, type: 0,
+      mentions: [{ id: '505' }], content: 'Synthetic staff question' } });
+    staffApproved = false; assert.equal(await staffAdmission.admit(staffMessage('9951')), null); assert.ok(reasons.includes('RESTRICTED_NOT_STAFF'));
+    staffApproved = true; const admitted = await staffAdmission.admit(staffMessage('9952'));
+    assert.ok(admitted, reasons.join(',')); assert.equal(admitted.context.name, 'staff'); assert.equal(admitted.binding.restricted, true);
+    await staffAdmission.settle(admitted, 'cancelled');
   });
 }

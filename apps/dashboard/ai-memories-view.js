@@ -19,7 +19,7 @@ export function createMemoryList({ api, document, perform, identity, saved = () 
     for (const memory of value.memories) {
       const item = node('li'), text = node('span', memory.text);
       const where = memory.scope === 'member' ? 'About you' : `A moment in channel ${memory.channelId}${memory.others ? `, with ${memory.others} other member${memory.others === 1 ? '' : 's'}` : ''}`;
-      item.append(text, node('small', ` · ${where}${memory.edited ? ' · edited by you' : ''} · until ${new Date(memory.expiresAt).toLocaleDateString()}`));
+      item.append(text, node('small', ` · ${where}${memory.staff ? ' · from a staff channel' : ''}${memory.edited ? ' · edited by you' : ''} · until ${new Date(memory.expiresAt).toLocaleDateString()}`));
       if (memory.editable) item.append(button('Edit', async () => {
         const field = node('input'); field.maxLength = 200; field.value = memory.text; field.setAttribute('aria-label', 'Edit this memory');
         item.replaceChildren(field, button('Save', async () => { render(await api.aiEditMemory({ id: memory.id, text: field.value, confirmed: true })); saved(); }, 'primary'),

@@ -1,6 +1,6 @@
 import { requireCondition, requireId } from '../../../contracts/validation.js';
 import { operatorGrant } from '../../../contracts/operator-grant.js';
-import { canonicalAiConfiguration } from '../../../modules/assistant/participation.js';
+import { aiContextFor, canonicalAiConfiguration } from '../../../modules/assistant/participation.js';
 import { canonicalPersonality } from '../../../modules/assistant/personality.js';
 import { canonicalAiBudget } from '../../../modules/assistant/budget.js';
 import { canonicalAiWorkerRelease } from '../../../modules/assistant/worker-release.js';
@@ -39,8 +39,9 @@ export function createAiActivation({ pool, guildId, authorize, inspectChannel, a
     const budget = canonicalAiBudget(policy.document);
     requireCondition(budget.priceValidUntil > clock() && BigInt(budget.monthlyLimitNanos) <= 20000000000n, 'AI_PRICE_STALE');
     const observed = await inspectChannel({ guildId, channelId, userId: actor.userId });
-    requireCondition(observed?.eligible && observed.restricted === false && clock() >= observed.checkedAt && clock() - observed.checkedAt < 5000, 'AI_PUBLIC_CHANNEL_REQUIRED');
-    return { channelId, epoch: Number(state.epoch), configurationHash: configuration.sha256, personalityHash: personality.sha256,
+    const staff = observed?.restricted === true && aiContextFor(config, channelId).name === 'staff' && typeof approval.staffChannels === 'function' && await approval.staffChannels() === true;
+    requireCondition(observed?.eligible && (observed.restricted === false || staff) && clock() >= observed.checkedAt && clock() - observed.checkedAt < 5000, 'AI_PUBLIC_CHANNEL_REQUIRED');
+    return { channelId, epoch: Number(state.epoch), restricted: observed.restricted === true, configurationHash: configuration.sha256, personalityHash: personality.sha256,
       budgetHash: aiDigest(budget), budgetRevision: policy.revision, approval: evidence, release,
       audienceHash: observed.audienceHash, continuity: observed.continuity };
   }
@@ -101,11 +102,11 @@ export function createAiActivation({ pool, guildId, authorize, inspectChannel, a
         requireCondition(Number.isSafeInteger(epoch), 'AI_ACTIVATION_STALE');
         await client.query(`INSERT INTO sophie_ai.qualifications(guild_id,channel_id,boundary_epoch,audience_sha256,worker_domain,release_sha256,
           evidence_sha256,configuration_sha256,personality_sha256,restricted,active,restore_ready)
-          VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,false,true,true) ON CONFLICT(guild_id,channel_id) DO UPDATE SET
+          VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,true,true) ON CONFLICT(guild_id,channel_id) DO UPDATE SET
           boundary_epoch=EXCLUDED.boundary_epoch,audience_sha256=EXCLUDED.audience_sha256,worker_domain=EXCLUDED.worker_domain,
           release_sha256=EXCLUDED.release_sha256,evidence_sha256=EXCLUDED.evidence_sha256,configuration_sha256=EXCLUDED.configuration_sha256,
-          personality_sha256=EXCLUDED.personality_sha256,restricted=false,active=true,restore_ready=true`,
-        [guildId, channelId, epoch, request.audienceHash, request.release.domain, request.release.releaseHash, request.release.evidenceHash, request.configurationHash, request.personalityHash]);
+          personality_sha256=EXCLUDED.personality_sha256,restricted=EXCLUDED.restricted,active=true,restore_ready=true`,
+        [guildId, channelId, epoch, request.audienceHash, request.release.domain, request.release.releaseHash, request.release.evidenceHash, request.configurationHash, request.personalityHash, request.restricted]);
         requireCondition(aiDigest(await candidate(client, actor, channelId)) === reviewSha256, 'AI_ACTIVATION_STALE');
         await client.query('UPDATE sophie_ai.state SET disabled=false,epoch=epoch+1 WHERE guild_id=$1', [guildId]);
         await client.query('INSERT INTO sophie_ai.activation_receipts(guild_id,request_id,actor_id,channel_id,review_sha256,boundary_epoch) VALUES($1,$2,$3,$4,$5,$6)',

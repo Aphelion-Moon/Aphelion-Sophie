@@ -113,7 +113,7 @@ export function createAiContext({ clock = Date.now, maxLanes = 100, setTimer = s
     current:sourceCurrent,
     async comparePrepared(request,history,sources,comparison,authorize,authorizeKnowledge) {
       const snapshot=validateAiComparison(comparison);prune();const id=key(request),lane=lanes.get(id);
-      if(!lane || !request.decision.context || countLimit(request)===0 || request.binding.restricted===true)return;
+      if(!lane || !request.decision.context || countLimit(request)===0 || request.binding.restricted===true && request.context?.name!=='staff')return;
       const previous=lane.diagnostic;
       const comparable=await diagnosticCurrent(id,lane,previous,authorize,authorizeKnowledge);
       if(!comparable && lane.diagnostic===previous)delete lane.diagnostic;

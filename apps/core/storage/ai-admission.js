@@ -8,7 +8,7 @@ import { aiReceiptHash } from './ai-privacy.js';
 
 /** Atomic metadata receipts and pacing. Content stays in the returned transient handoff only. */
 export function createAiAdmission({ pool, guildId, ingress, inspectContext, inspectMember, clock, noticeRevision = 1,
-  readNotice = async () => ({ revision: noticeRevision, binding: null, approved: noticeRevision === 1 }), privacyCurrent = async () => true, trace = () => {}, invite = null }) {
+  readNotice = async () => ({ revision: noticeRevision, binding: null, approved: noticeRevision === 1 }), privacyCurrent = async () => true, trace = () => {}, invite = null, staffChannels = async () => false }) {
   requireInteger(noticeRevision, 1);
   requireCondition(ingress.guildId === guildId && [inspectContext, inspectMember, clock, readNotice].every(fn => typeof fn === 'function'), 'TRUSTED_ADAPTERS_REQUIRED');
   const gatherOwner = randomUUID();
@@ -74,6 +74,7 @@ export function createAiAdmission({ pool, guildId, ingress, inspectContext, insp
       return skip(`OBSERVATION_STALE_${Math.min(99, Math.max(0, Math.floor((now - oldest) / 1000)))}S`);
     }
     const turnContext = aiContextFor(config, event.channelId);
+    if (qualification.restricted && (turnContext.name !== 'staff' || await staffChannels() !== true)) return skip('RESTRICTED_NOT_STAFF');
     return { config, character, profile: channel.profile, context: turnContext, deadline: event.receivedAt + turnContext.deadlineMs,
       capabilities: { reply: context.canReply, react: context.canReact },
       binding: { epoch: Number(state.epoch), configurationHash: configuration.sha256, personalityHash: personality.sha256,

@@ -22,3 +22,7 @@ CREATE TABLE sophie_ai.consent_invitations (
   PRIMARY KEY (guild_id, user_id)
 );
 REVOKE ALL ON sophie_ai.consent_invitations FROM PUBLIC;
+
+-- Staff channels (owner decision, 23 October 2026): a memory written in a restricted staff channel is recalled only in
+-- restricted staff channels, never in public ones. Existing memories were all written in public channels.
+ALTER TABLE sophie_ai.memories ADD COLUMN restricted boolean NOT NULL DEFAULT false;

@@ -2,6 +2,7 @@ import { createHash, createHmac, randomBytes } from 'node:crypto';
 import { requireCondition, requireId, requireInteger } from '../../contracts/validation.js';
 import { validateAiOutput } from '../../modules/assistant/output.js';
 import { createAiOutputSchema, validateAiPrompt, freezeAiMaterial } from './prompt-contract.js';
+import { aiRemoteLaneAllowed } from './ipc-contract.js';
 import { AI_REDACTION_VERSION, redactAiIdentifiers } from './redaction.js';
 import { AI_DEADLINE_MS } from '../../modules/assistant/participation.js';
 
@@ -56,9 +57,9 @@ export function createMistralClient({ apiKey, fetchImpl = fetch, clock = Date.no
   // Up to two requests in flight: core runs at most one turn per channel and two in all.
   let active = 0, blockedUntil = 0, credentialBlocked = false, identityBlocked = false;
   const MAX_ACTIVE = 2;
-  function scope({ boundary, workerDomain, releaseHash, requesterId, restricted }) {
-    // Existing local/private qualifications do not authorize a remote restricted lane.
-    requireCondition(restricted === false && workerDomain === 'public', 'AI_REMOTE_CONTEXT_UNAPPROVED');
+  function scope({ boundary, workerDomain, releaseHash, requesterId, restricted, staff }) {
+    // A restricted channel reaches the provider only as a declared staff context; its cache partition stays per channel.
+    requireCondition(aiRemoteLaneAllowed({ workerDomain, restricted, staff }), 'AI_REMOTE_CONTEXT_UNAPPROVED');
     requireId(requesterId); requireId(boundary?.guildId); requireId(boundary.channelId);
     requireInteger(boundary.boundaryEpoch, 1);
     requireCondition(typeof boundary.continuity === 'string' && /^[a-zA-Z0-9._:-]{1,128}$/u.test(boundary.continuity) &&

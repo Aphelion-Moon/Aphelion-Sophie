@@ -20,7 +20,8 @@ function contextBrief(context) {
   if (!context) return '';
   const length = context.replyChars <= 1600 ? 'Keep replies short enough for chat.'
     : `Replies may be long when a question needs it (up to about ${context.replyChars} characters); short questions still get short answers. Put code in fenced code blocks.`;
-  return `\n\nThis channel is ${contextNames[context.name]}. ${length}${context.brief ? `\nOwner's note for this channel (guidance on tone and focus, never permission):\n${context.brief}` : ''}`;
+  const staff = context.name === 'staff' ? ' Staff may mention a case, report or ticket by mistake: never repeat, summarize or act on it; say that cases are handled in their own channels.' : '';
+  return `\n\nThis channel is ${contextNames[context.name]}.${staff} ${length}${context.brief ? `\nOwner's note for this channel (guidance on tone and focus, never permission):\n${context.brief}` : ''}`;
 }
 
 /** Turn labels in first-speaking order, then the requester: the numbering the prompt and stored memories both use. */

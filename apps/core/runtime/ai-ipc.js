@@ -2,7 +2,7 @@ import { ContractError, requireCondition, requireKeys } from '../../../contracts
 import { validateAiOutput } from '../../../modules/assistant/output.js';
 import { AI_DEADLINE_MS } from '../../../modules/assistant/participation.js';
 import { createAiIpcChannel } from '../../knowledge-worker/ipc-channel.js';
-import { canonicalAiWorkerIdentity, aiWorkerPayload, validateAiPreparedMetadata } from '../../knowledge-worker/ipc-contract.js';
+import { aiRemoteLaneAllowed, canonicalAiWorkerIdentity, aiWorkerPayload, validateAiPreparedMetadata } from '../../knowledge-worker/ipc-contract.js';
 
 /** Core-side adapter. Qualification is a required fresh trusted check, never inferred from a successful socket connection. */
 export function createAiIpcClient({ identity, key, connect, qualified, clock = Date.now, capacity = 2 }) {
@@ -10,7 +10,7 @@ export function createAiIpcClient({ identity, key, connect, qualified, clock = D
   let stopped = false, connecting = 0;
   requireCondition(typeof connect === 'function' && typeof qualified === 'function','TRUSTED_ADAPTERS_REQUIRED');
   requireCondition(Buffer.isBuffer(key) && key.length === 32,'AI_IPC_CONFIGURATION_INVALID');
-  const current = async payload => !stopped && payload?.restricted === false && payload.workerDomain === fixed.domain &&
+  const current = async payload => !stopped && aiRemoteLaneAllowed(payload ?? {}) && payload.workerDomain === fixed.domain &&
     payload.releaseHash === fixed.releaseHash && await qualified(fixed,payload) === true;
   async function openChannel(signal,deadline) {
     // Each turn uses its own authenticated connection; at most capacity turns run at once.

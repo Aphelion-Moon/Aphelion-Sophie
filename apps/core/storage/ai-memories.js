@@ -7,7 +7,7 @@ export const MEMORY_CHANNEL_CAP = 60;
 const PROMPT_MEMBER = 8, PROMPT_CHANNEL = 4;
 const MEMORY_ID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/u;
 const requireMemoryId = id => requireCondition(typeof id === 'string' && MEMORY_ID.test(id), 'AI_MEMORY_INVALID');
-const row = value => ({ id: value.id, channelId: value.channel_id, scope: value.scope, subjects: [...value.subject_ids],
+const row = value => ({ id: value.id, channelId: value.channel_id, scope: value.scope, restricted: value.restricted === true, subjects: [...value.subject_ids],
   epochs: value.subject_epochs.map(Number), text: value.text, edited: value.edited,
   createdAt: value.created_at.getTime(), usedAt: value.used_at.getTime(), expiresAt: value.expires_at.getTime() });
 
@@ -73,12 +73,13 @@ export function createAiMemories({ pool, guildId, journal, privacyCurrent, clock
   }
   return Object.freeze({
     /** What a turn may see: memories about the members in it, then this channel's most recently used memories. */
-    async forPrompt({ channelId, userIds }) {
-      requireId(channelId); userIds.forEach(requireId);
+    async forPrompt({ channelId, userIds, restricted = false }) {
+      requireId(channelId); userIds.forEach(requireId); requireCondition(typeof restricted === 'boolean', 'AI_MEMORY_INVALID');
+      // A public turn never sees a memory written in a staff channel; a staff turn may see both.
       const rows = (await pool.query(`(SELECT * FROM sophie_ai.memories WHERE guild_id=$1 AND scope='member' AND subject_ids && $3::text[]
-        AND expires_at>clock_timestamp() ORDER BY used_at DESC LIMIT 24)
+        AND expires_at>clock_timestamp() AND (NOT restricted OR $4) ORDER BY used_at DESC LIMIT 24)
         UNION ALL (SELECT * FROM sophie_ai.memories WHERE guild_id=$1 AND scope='channel' AND channel_id=$2 AND expires_at>clock_timestamp()
-        ORDER BY used_at DESC LIMIT 12)`, [guildId, channelId, userIds])).rows;
+        AND (NOT restricted OR $4) ORDER BY used_at DESC LIMIT 12)`, [guildId, channelId, userIds, restricted])).rows;
       const memories = await valid(pool, rows);
       return Object.freeze([...memories.filter(item => item.scope === 'member').slice(0, PROMPT_MEMBER),
         ...memories.filter(item => item.scope === 'channel').slice(0, PROMPT_CHANNEL)].map(view));
@@ -97,8 +98,8 @@ export function createAiMemories({ pool, guildId, journal, privacyCurrent, clock
         [guildId, memories.map(item => item.id), new Date(clock() + MEMORY_LIFETIME_MS)]);
     },
     /** Stores what Sophie chose to remember. A subject with memory off, a pending departure or a quarantined record drops it. */
-    async record({ channelId, memories }) {
-      requireId(channelId);
+    async record({ channelId, memories, restricted = false }) {
+      requireId(channelId); requireCondition(typeof restricted === 'boolean', 'AI_MEMORY_INVALID');
       if (!memories.length) return 0;
       return inTransaction(pool, async client => {
         // The same lock as erasure and self-service, so a memory is never written under an epoch being replaced.
@@ -111,11 +112,11 @@ export function createAiMemories({ pool, guildId, journal, privacyCurrent, clock
           const epochs = memory.subjects.map(id => states.get(id).epoch);
           // The same note again only refreshes the one already kept.
           const same = await client.query(`UPDATE sophie_ai.memories SET used_at=clock_timestamp(),expires_at=$6 WHERE guild_id=$1 AND scope=$2
-            AND subject_ids=$3::text[] AND lower(text)=lower($4) AND (scope='member' OR channel_id=$5)`,
-          [guildId, memory.scope, memory.subjects, memory.text, channelId, new Date(clock() + MEMORY_LIFETIME_MS)]);
+            AND subject_ids=$3::text[] AND lower(text)=lower($4) AND (scope='member' OR channel_id=$5) AND restricted=$7`,
+          [guildId, memory.scope, memory.subjects, memory.text, channelId, new Date(clock() + MEMORY_LIFETIME_MS), restricted]);
           if (same.rowCount) continue;
-          await client.query(`INSERT INTO sophie_ai.memories(guild_id,channel_id,scope,subject_ids,subject_epochs,text,expires_at)
-            VALUES($1,$2,$3,$4,$5,$6,$7)`, [guildId, channelId, memory.scope, memory.subjects, epochs, memory.text, new Date(clock() + MEMORY_LIFETIME_MS)]);
+          await client.query(`INSERT INTO sophie_ai.memories(guild_id,channel_id,scope,subject_ids,subject_epochs,text,expires_at,restricted)
+            VALUES($1,$2,$3,$4,$5,$6,$7,$8)`, [guildId, channelId, memory.scope, memory.subjects, epochs, memory.text, new Date(clock() + MEMORY_LIFETIME_MS), restricted]);
           saved++;
           // Bounded: the least recently used memories go first.
           if (memory.scope === 'member') await client.query(`DELETE FROM sophie_ai.memories WHERE guild_id=$1 AND id IN (SELECT id FROM sophie_ai.memories
@@ -138,7 +139,7 @@ export function createAiMemories({ pool, guildId, journal, privacyCurrent, clock
         const rows = (await client.query(`SELECT * FROM sophie_ai.memories WHERE guild_id=$1 AND $2=ANY(subject_ids) AND expires_at>clock_timestamp()
           ORDER BY used_at DESC LIMIT 200`, [guildId, userId])).rows.map(row);
         // A member sees everything that names them, including memories not usable right now; other members read as "a member".
-        return { remembering, memories: rows.map(memory => ({ id: memory.id, scope: memory.scope, channelId: memory.channelId, edited: memory.edited,
+        return { remembering, memories: rows.map(memory => ({ id: memory.id, scope: memory.scope, channelId: memory.channelId, edited: memory.edited, staff: memory.restricted,
           text: renderMemory(memory, id => id === userId ? 'you' : null), editable: memory.scope === 'member',
           others: memory.subjects.filter(id => id !== userId).length, createdAt: memory.createdAt, expiresAt: memory.expiresAt })) };
       },
