@@ -65,8 +65,9 @@ test('P42 before any request the door reports exactly that, and the title panel 
   const hangar = scenes.find(([, s]) => s.id === 'hangar-viewport')[1];
   for (const layout of ['landscape', 'portrait']) {
     const empty = composeScene(hangar, layout, { state: {} }).glyphs.join('\n');
-    assert.match(empty, /READY TO BOARD/); assert.doesNotMatch(empty, /STOP 0/);
-    const running = composeScene(hangar, layout, { state: { stopNumber: 3, stopCount: 5 } }).glyphs.join('\n');
+    assert.match(empty, /LINKING/); assert.doesNotMatch(empty, /STOP 0|READY TO BOARD/);
+    assert.match(composeScene(hangar, layout, { state: { link: 'ready' } }).glyphs.join('\n'), /READY TO BOARD/);
+    const running = composeScene(hangar, layout, { state: { stopNumber: 3, stopCount: 5, link: 'ready' } }).glyphs.join('\n');
     assert.match(running, /» STOP 03 \/ 05/); assert.doesNotMatch(running, /READY TO BOARD/);
   }
   const lounge = scenes.find(([, s]) => s.id === 'departure-lounge')[1];
@@ -110,4 +111,47 @@ test('P42 the validator refuses code-like fields, unknown glyphs, fast flashes a
   mutate(s => { s.layouts.landscape.layers[0].x = 119; }, 'INVALID_SCENE_SIZE');
   mutate(s => { s.alt = [{ text: 'Only a conditional entry.', when: { whitelist: ['confirmed'] } }]; }, 'INVALID_SCENE_ALT');
   mutate(s => { delete s.layouts.portrait; }, 'INVALID_SCENE_LAYOUTS');
+});
+
+test('P42 the title panel says what the server reported: never ready to board when closed, in a channel or held', () => {
+  const hangar = scenes.find(([, s]) => s.id === 'hangar-viewport')[1];
+  const panel = link => composeScene(hangar, 'landscape', { state: { link } }).glyphs.join('\n');
+  for (const [link, words] of [['closed', /NOT BOARDING YET/], ['channel', /FINISH IN CHANNEL/], ['held', /BOARDING HELD/], ['arrived', /ARRIVED/], ['offline', /NO SIGNAL/]]) {
+    assert.match(panel(link), words, link); assert.doesNotMatch(panel(link), /READY TO BOARD/, link);
+  }
+});
+
+test('P43 beats stage the section being read and fall back to the plain scene', () => {
+  const lounge = scenes.find(([, s]) => s.id === 'departure-lounge')[1];
+  const at = beat => composeScene(lounge, 'landscape', { state: { ...STATE, beat }, motion: false }).glyphs.join('\n');
+  assert.match(at('amenities'), /#open-a-ticket/); assert.doesNotMatch(at('none'), /#open-a-ticket/);
+  assert.match(at('meridian'), /MERIDIAN RIFT/); assert.doesNotMatch(at('meridian'), /MINING SHUTTLE/);
+  assert.equal(at('not-a-beat'), at('none'));
+  for (const [, scene] of scenes) for (const beat of scene.beats ?? []) assert.match(beat, /^[a-z][a-z0-9-]*$/);
+  const stray = { id: 'stray', x: 0, y: 0, frames: [{ text: ['x'], colours: ['a'] }], when: { beat: ['undeclared'] } };
+  assert.throws(() => validateScene({ ...lounge, layouts: { ...lounge.layouts, landscape: { ...lounge.layouts.landscape,
+    layers: [...lounge.layouts.landscape.layers, stray] } } }), error => error.code === 'INVALID_SCENE_CONDITION');
+});
+
+test('P43 sprites cross only in their window, never with motion off, and stay small', () => {
+  const lounge = scenes.find(([, s]) => s.id === 'departure-lounge')[1];
+  const ian = lounge.layouts.landscape.effects.find(fx => fx.id === 'ian');
+  const start = ian.every - (ian.offset % ian.every);
+  const frame = (time, motion) => composeScene(lounge, 'landscape', { time, state: STATE, motion }).glyphs.join('\n');
+  assert.match(frame(start + ian.duration / 2, true), /\(______ o>/);
+  assert.doesNotMatch(frame(start + ian.duration + 5, true), /\(______ o>/);
+  assert.doesNotMatch(frame(start + ian.duration / 2, false), /\(______ o>/);
+  const { fps: _fps, ...still } = ian;
+  const huge = { ...still, id: 'huge', frames: [{ text: Array(9).fill('x'), colours: Array(9).fill('a') }] };
+  assert.throws(() => validateScene({ ...lounge, layouts: { ...lounge.layouts, landscape: { ...lounge.layouts.landscape,
+    effects: [...lounge.layouts.landscape.effects, huge] } } }), error => error.code === 'INVALID_SCENE_SPRITE');
+});
+
+test('P42 the baggage belt runs the same way as the bags', () => {
+  const hall = scenes.find(([, s]) => s.id === 'baggage-hall')[1];
+  for (const layout of ['landscape', 'portrait']) {
+    const belt = hall.layouts[layout].layers.find(item => item.id === 'belt');
+    const first = (frame, ch) => Math.min(...frame.text.map(row => [...row].indexOf(ch)).filter(x => x >= 0));
+    for (const ch of ['╪', '[']) assert.equal(first(belt.frames[1], ch) - first(belt.frames[0], ch), 1, `${layout} ${ch}`);
+  }
 });

@@ -19,14 +19,19 @@ export const SCENE_COLOURS = Object.freeze({
 const ASCII = Array.from({ length: 95 }, (_, i) => String.fromCharCode(32 + i)).join('');
 /** Glyphs a scene may use: printable ASCII plus a small set of box, block and mark characters. */
 export const SCENE_GLYPHS = Object.freeze(new Set([...ASCII, ...'─│┌┐└┘├┤┬┴┼═║╔╗╚╝╟╢╪╱╲╭╮╯╰', ...'░▒▓█▀▄▌▐■□', ...'·•●◆»«≡']));
-export const SCENE_STATE_KEYS = Object.freeze(['stopTitle', 'stopNumber', 'stopCount', 'section', 'sections', 'whitelist', 'doorOpen']);
+export const SCENE_STATE_KEYS = Object.freeze(['stopTitle', 'stopNumber', 'stopCount', 'section', 'sections', 'whitelist', 'doorOpen', 'beat', 'link']);
 export const SCENE_WHITELIST_STATES = Object.freeze(['none', 'requested', 'confirmed']);
 /** Whether the member has a run to show: 'some' once both stop number and stop count are known. */
 export const SCENE_STOP_STATES = Object.freeze(['none', 'some']);
+/** What the title screen's link panel may say about the member's Shuttle; 'none' until the server has answered. */
+export const SCENE_LINK_STATES = Object.freeze(['none', 'ready', 'closed', 'channel', 'arrived', 'held', 'offline']);
+/** A beat is a moment in the copy (a section) that a scene can stage; 'none' outside any known moment. */
+const BEAT = /^[a-z][a-z0-9-]{0,31}$/;
 const TEMPLATE = /\{([a-zA-Z]+)(?::([1-3]))?\}/g;
 const NUMERIC_KEYS = Object.freeze(['stopNumber', 'stopCount', 'section', 'sections']);
-const EFFECT_KINDS = Object.freeze(['blink', 'flicker', 'drift', 'scan', 'pulse', 'flap', 'text']);
-const LIMITS = Object.freeze({ layers: 32, effects: 48, frames: 24, fps: 12, flashHz: 3, flickerArea: 0.03, path: 240, texts: 8, alt: 600 });
+const EFFECT_KINDS = Object.freeze(['blink', 'flicker', 'drift', 'scan', 'pulse', 'flap', 'text', 'sprite']);
+const LIMITS = Object.freeze({ layers: 48, effects: 64, frames: 24, fps: 12, flashHz: 3, flickerArea: 0.03, path: 240, texts: 8, alt: 600, beats: 24,
+  spriteFrames: 4, spriteRows: 8, spriteCols: 24 });
 const ID = /^[a-z][a-z0-9-]{0,47}$/;
 const DATE = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -47,17 +52,17 @@ function region(value, grid, code = 'INVALID_SCENE_REGION') {
   requireCondition(x >= 0 && y >= 0 && w >= 1 && h >= 1 && x + w <= grid.cols && y + h <= grid.rows, code);
   return w * h;
 }
-function condition(when) {
+function condition(when, beats = []) {
   if (when === undefined) return;
-  exactKeys(when, [], ['whitelist', 'stop'], 'INVALID_SCENE_CONDITION');
+  exactKeys(when, [], ['whitelist', 'stop', 'beat', 'link'], 'INVALID_SCENE_CONDITION');
   requireCondition(Object.keys(when).length >= 1, 'INVALID_SCENE_CONDITION');
-  for (const [key, allowed] of [['whitelist', SCENE_WHITELIST_STATES], ['stop', SCENE_STOP_STATES]]) {
+  for (const [key, allowed] of [['whitelist', SCENE_WHITELIST_STATES], ['stop', SCENE_STOP_STATES], ['beat', ['none', ...beats]], ['link', SCENE_LINK_STATES]]) {
     if (when[key] === undefined) continue;
     requireCondition(Array.isArray(when[key]) && when[key].length >= 1 && when[key].every(value => allowed.includes(value)), 'INVALID_SCENE_CONDITION');
   }
 }
 
-function layer(value, grid, ids) {
+function layer(value, grid, ids, beats) {
   exactKeys(value, ['id', 'x', 'y', 'frames'], ['fps', 'when', 'opaque', 'slide']);
   requireCondition(ID.test(value.id) && !ids.has(value.id), 'INVALID_SCENE_ID'); ids.add(value.id);
   requireInteger(value.x, 0, grid.cols - 1); requireInteger(value.y, 0, grid.rows - 1);
@@ -76,7 +81,7 @@ function layer(value, grid, ids) {
       for (const key of mask) requireCondition(key === ' ' || Object.hasOwn(SCENE_COLOURS, key), 'INVALID_SCENE_COLOUR');
     });
   }
-  condition(value.when);
+  condition(value.when, beats);
   if (value.opaque !== undefined) requireCondition(value.opaque === true, 'INVALID_SCENE_FIELDS');
   if (value.slide !== undefined) {
     exactKeys(value.slide, ['by', 'dx', 'clip'], [], 'INVALID_SCENE_SLIDE');
@@ -85,7 +90,24 @@ function layer(value, grid, ids) {
   }
 }
 
-function effect(value, grid, ids) {
+function frameSet(frames, maxRows, maxCols, code) {
+  requireCondition(Array.isArray(frames) && frames.length >= 1 && frames.length <= LIMITS.spriteFrames, code);
+  for (const frame of frames) {
+    exactKeys(frame, ['text', 'colours'], [], code);
+    requireCondition(Array.isArray(frame.text) && frame.text.length >= 1 && frame.text.length <= maxRows && Array.isArray(frame.colours) &&
+      frame.colours.length === frame.text.length, code);
+    frame.text.forEach((row, index) => {
+      requireCondition(typeof row === 'string' && typeof frame.colours[index] === 'string' && [...row].length <= maxCols &&
+        [...frame.colours[index]].length === [...row].length, code);
+      glyphs(row);
+      for (const key of frame.colours[index]) requireCondition(key === ' ' || Object.hasOwn(SCENE_COLOURS, key), 'INVALID_SCENE_COLOUR');
+    });
+  }
+}
+const point = (value, grid, margin, code) => requireCondition(Array.isArray(value) && value.length === 2 && value.every(Number.isSafeInteger) &&
+  value[0] >= -margin && value[0] <= grid.cols + margin && value[1] >= -margin && value[1] <= grid.rows + margin, code);
+
+function effect(value, grid, ids, beats) {
   requireRecord(value, 'INVALID_SCENE_EFFECT');
   requireCondition(EFFECT_KINDS.includes(value.kind), 'INVALID_SCENE_EFFECT');
   const common = ['kind', 'id'];
@@ -95,12 +117,13 @@ function effect(value, grid, ids) {
     drift: [['region', 'seed', 'density', 'speed', 'glyphs', 'colours'], []],
     scan: [['region', 'speed', 'glyph', 'colour'], []],
     pulse: [['path', 'speed', 'glyph', 'colour'], ['trail', 'trailGlyph', 'trailColour']],
-    flap: [['x', 'y', 'width', 'texts', 'period', 'flip', 'colour'], []],
+    flap: [['x', 'y', 'width', 'texts', 'period', 'flip', 'colour'], ['align']],
     text: [['x', 'y', 'width', 'template', 'colour'], []],
+    sprite: [['frames', 'from', 'to', 'duration', 'every'], ['offset', 'fps']],
   }[value.kind];
   exactKeys(value, [...common, ...shapes[0]], [...shapes[1], 'when'], 'INVALID_SCENE_EFFECT');
   requireCondition(ID.test(value.id) && !ids.has(value.id), 'INVALID_SCENE_ID'); ids.add(value.id);
-  condition(value.when);
+  condition(value.when, beats);
   const cells = grid.cols * grid.rows;
   switch (value.kind) {
     case 'blink':
@@ -137,12 +160,23 @@ function effect(value, grid, ids) {
       requireCondition(Array.isArray(value.texts) && value.texts.length >= 1 && value.texts.length <= LIMITS.texts &&
         value.texts.every(text => typeof text === 'string' && [...text].length <= value.width), 'INVALID_SCENE_EFFECT');
       value.texts.forEach(text => glyphs(text));
-      number(value.period, 2, 60, 'INVALID_SCENE_EFFECT'); number(value.flip, 0.1, 1, 'INVALID_SCENE_EFFECT'); colourKey(value.colour); break;
+      number(value.period, 2, 60, 'INVALID_SCENE_EFFECT'); number(value.flip, 0.1, 1, 'INVALID_SCENE_EFFECT'); colourKey(value.colour);
+      if (value.align !== undefined) requireCondition(['left', 'right'].includes(value.align), 'INVALID_SCENE_EFFECT');
+      break;
+    case 'sprite':
+      // A small figure that crosses the scene now and then: from -> to over duration seconds, once every 'every' seconds.
+      frameSet(value.frames, LIMITS.spriteRows, LIMITS.spriteCols, 'INVALID_SCENE_SPRITE');
+      point(value.from, grid, LIMITS.spriteCols, 'INVALID_SCENE_SPRITE'); point(value.to, grid, LIMITS.spriteCols, 'INVALID_SCENE_SPRITE');
+      number(value.duration, 1, 60, 'INVALID_SCENE_SPRITE'); number(value.every, value.duration, 600, 'INVALID_SCENE_SPRITE');
+      if (value.offset !== undefined) number(value.offset, 0, 600, 'INVALID_SCENE_SPRITE');
+      if (value.fps !== undefined) { number(value.fps, 0.5, LIMITS.fps, 'INVALID_SCENE_SPRITE'); requireCondition(value.frames.length > 1, 'INVALID_SCENE_SPRITE'); }
+      else requireCondition(value.frames.length === 1, 'INVALID_SCENE_SPRITE');
+      break;
     case 'text': {
       requireInteger(value.x, 0, grid.cols - 1); requireInteger(value.y, 0, grid.rows - 1); requireInteger(value.width, 1, grid.cols - value.x);
       requireCondition(typeof value.template === 'string' && value.template.length <= 200, 'INVALID_SCENE_TEMPLATE');
       const fixed = value.template.replace(TEMPLATE, (_, key, pad) => {
-        requireCondition(SCENE_STATE_KEYS.includes(key) && key !== 'doorOpen' && key !== 'whitelist' && (pad === undefined || NUMERIC_KEYS.includes(key)), 'INVALID_SCENE_TEMPLATE');
+        requireCondition(SCENE_STATE_KEYS.includes(key) && !['doorOpen', 'whitelist', 'beat', 'link'].includes(key) && (pad === undefined || NUMERIC_KEYS.includes(key)), 'INVALID_SCENE_TEMPLATE');
         return '';
       });
       requireCondition(!/[{}]/.test(fixed), 'INVALID_SCENE_TEMPLATE'); glyphs(fixed); colourKey(value.colour); break;
@@ -152,15 +186,18 @@ function effect(value, grid, ids) {
 
 /** Validates a scene document. Throws a stable ContractError code; returns the scene unchanged. */
 export function validateScene(scene) {
-  exactKeys(scene, ['schema', 'id', 'title', 'alt', 'provenance', 'layouts']);
+  exactKeys(scene, ['schema', 'id', 'title', 'alt', 'provenance', 'layouts'], ['beats']);
   requireCondition(scene.schema === SCENE_SCHEMA_VERSION, 'UNSUPPORTED_SCENE_SCHEMA');
   requireCondition(ID.test(scene.id), 'INVALID_SCENE_ID');
   boundedText(scene.title, 80, 'INVALID_SCENE_TITLE');
+  const beats = scene.beats ?? [];
+  requireCondition(Array.isArray(beats) && beats.length <= LIMITS.beats && beats.every(beat => typeof beat === 'string' && BEAT.test(beat) && beat !== 'none') &&
+    new Set(beats).size === beats.length, 'INVALID_SCENE_BEATS');
   requireCondition(Array.isArray(scene.alt) && scene.alt.length >= 1 && scene.alt.length <= 4, 'INVALID_SCENE_ALT');
   scene.alt.forEach((entry, index) => {
     exactKeys(entry, ['text'], ['when'], 'INVALID_SCENE_ALT');
     boundedText(entry.text, LIMITS.alt, 'INVALID_SCENE_ALT');
-    condition(entry.when);
+    condition(entry.when, beats);
     requireCondition((entry.when === undefined) === (index === scene.alt.length - 1), 'INVALID_SCENE_ALT');
   });
   exactKeys(scene.provenance, ['author', 'created', 'decision', 'generator', 'rights'], [], 'INVALID_SCENE_PROVENANCE');
@@ -173,8 +210,8 @@ export function validateScene(scene) {
     requireCondition(Array.isArray(layout.layers) && layout.layers.length >= 1 && layout.layers.length <= LIMITS.layers, 'INVALID_SCENE_LAYERS');
     requireCondition(Array.isArray(layout.effects) && layout.effects.length <= LIMITS.effects, 'INVALID_SCENE_EFFECT');
     const ids = new Set();
-    for (const item of layout.layers) layer(item, grid, ids);
-    for (const item of layout.effects) effect(item, grid, ids);
+    for (const item of layout.layers) layer(item, grid, ids, beats);
+    for (const item of layout.effects) effect(item, grid, ids, beats);
   }
   return scene;
 }
@@ -189,8 +226,10 @@ export function sceneState(input = {}) {
   // Nothing may look open before Whitelist is confirmed, whatever the caller's animation says.
   const doorOpen = whitelist === 'confirmed' && typeof input.doorOpen === 'number' && Number.isFinite(input.doorOpen) ? Math.min(1, Math.max(0, input.doorOpen)) : 0;
   const stopNumber = count(input.stopNumber), stopCount = count(input.stopCount);
+  const beat = typeof input.beat === 'string' && BEAT.test(input.beat) ? input.beat : 'none';
+  const link = SCENE_LINK_STATES.includes(input.link) ? input.link : 'none';
   return Object.freeze({ stopTitle: text(input.stopTitle, 48), stopNumber, stopCount,
-    section: count(input.section), sections: count(input.sections), whitelist, doorOpen, stop: stopNumber >= 1 && stopCount >= 1 ? 'some' : 'none' });
+    section: count(input.section), sections: count(input.sections), whitelist, doorOpen, stop: stopNumber >= 1 && stopCount >= 1 ? 'some' : 'none', beat, link });
 }
 
 function hash(a, b) {
@@ -199,7 +238,9 @@ function hash(a, b) {
   h ^= h >>> 16;
   return (h >>> 0) / 4294967296;
 }
-const matches = (when, state) => !when || ((!when.whitelist || when.whitelist.includes(state.whitelist)) && (!when.stop || when.stop.includes(state.stop)));
+// A beat the scene does not stage draws the plain scene.
+const forScene = (scene, s) => s.beat === 'none' || (scene.beats ?? []).includes(s.beat) ? s : { ...s, beat: 'none' };
+const matches = (when, state) => !when || ['whitelist', 'stop', 'beat', 'link'].every(key => !when[key] || when[key].includes(state[key]));
 
 /**
  * Composes one frame. With motion off, time is ignored and every effect shows its still state.
@@ -209,7 +250,7 @@ export function composeScene(scene, layoutName, { time = 0, state = {}, motion =
   const grid = SCENE_LAYOUTS[layoutName];
   requireCondition(grid !== undefined, 'INVALID_SCENE_LAYOUT');
   requireCondition(typeof time === 'number' && Number.isFinite(time) && time >= 0, 'INVALID_SCENE_TIME');
-  const s = sceneState(state), t = motion ? time : 0;
+  const s = forScene(scene, sceneState(state)), t = motion ? time : 0;
   const layout = scene.layouts[layoutName];
   const glyph = Array.from({ length: grid.rows }, () => Array(grid.cols).fill(' '));
   const colour = Array.from({ length: grid.rows }, () => Array(grid.cols).fill('.'));
@@ -272,7 +313,7 @@ export function composeScene(scene, layoutName, { time = 0, state = {}, motion =
       case 'flap': {
         const index = motion ? Math.floor(t / fx.period) % fx.texts.length : 0;
         const flipping = motion && (t % fx.period) < fx.flip;
-        const text = [...fx.texts[index].padStart(fx.width)];
+        const text = [...(fx.align === 'left' ? fx.texts[index].padEnd(fx.width) : fx.texts[index].padStart(fx.width))];
         text.forEach((ch, i) => {
           const shown = flipping && ch !== ' ' ? String.fromCharCode(65 + Math.floor(hash(fx.x * 97 + i, Math.floor(t * 24)) * 26)) : ch;
           put(fx.x + i, fx.y, shown, fx.colour);
@@ -284,6 +325,18 @@ export function composeScene(scene, layoutName, { time = 0, state = {}, motion =
         [...value].forEach((ch, i) => put(fx.x + i, fx.y, ch, fx.colour));
         break;
       }
+      case 'sprite': {
+        // Hidden with motion off: a figure caught mid-crossing would look like part of the room.
+        if (!motion) break;
+        const phase = (t + (fx.offset ?? 0)) % fx.every;
+        if (phase >= fx.duration) break;
+        const progress = phase / fx.duration, frame = fx.frames[fx.fps ? Math.floor(t * fx.fps) % fx.frames.length : 0];
+        const x0 = Math.round(fx.from[0] + (fx.to[0] - fx.from[0]) * progress), y0 = Math.round(fx.from[1] + (fx.to[1] - fx.from[1]) * progress);
+        frame.text.forEach((row, r) => [...row].forEach((ch, c) => {
+          if (ch !== ' ') put(x0 + c, y0 + r, ch, [...frame.colours[r]][c] === ' ' ? '.' : [...frame.colours[r]][c]);
+        }));
+        break;
+      }
     }
   }
   return { cols: grid.cols, rows: grid.rows, glyphs: glyph.map(row => row.join('')), colours: colour.map(row => row.join('')) };
@@ -291,6 +344,6 @@ export function composeScene(scene, layoutName, { time = 0, state = {}, motion =
 
 /** The alt text for the current state: the first entry whose condition matches. */
 export function sceneAlt(scene, state = {}) {
-  const s = sceneState(state);
+  const s = forScene(scene, sceneState(state));
   return scene.alt.find(entry => matches(entry.when, s)).text;
 }
