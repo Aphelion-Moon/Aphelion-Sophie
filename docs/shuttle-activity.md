@@ -213,9 +213,10 @@ layout is published yet, so the shipped defaults apply.
 
 The fourth pass (the story: section-aligned pages, progress conditions, actors who enter, act and leave, sign cards
 and dialogue lines, the story copy as a draft definition, and 17 new sounds the owner auditioned and approved) is
-installed as `sophie-mistral-135f2a6` (source-only, 16:11 UTC, owner approval). SC-07 (the launch roll) was picked
-afterwards and is encoded but awaiting the owner's audition, so it is not installed. The story copy goes live only
-when it is published in the dashboard editor; until then the Activity reads the current Shuttle version.
+installed as `sophie-mistral-135f2a6` (source-only, 16:11 UTC, owner approval). SC-07 (the launch roll), picked
+afterwards and approved by the owner, followed as `sophie-mistral-a620ce0` (source-only, 16:20 UTC). The story copy
+goes live only when it is published in the dashboard editor; until then the Activity reads the current Shuttle
+version.
 
 Not yet checked: mobile clients, and whether Discord opens `discord.com/channels` links inside the app.
 

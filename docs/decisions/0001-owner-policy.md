@@ -1548,3 +1548,7 @@ The record is `legal/shuttle-activity-sounds.json` (`review.story`).
   AMB-06 outputs removed; there was no migration or configuration change. Core and the worker were down 33 seconds,
   and all checks passed. The story copy is not published yet. Folder
   `.agent_docs/aphelion-sophie/deployment-135f2a6-2026-10-22`.
+- **SC-07 approved and installed.** The audition page saved no verdict for SC-07, so the owner approved it in chat:
+  "SC-07 is approved. Install it (source-only update) in the test Discord." `a620ce0` was installed at 16:20 UTC:
+  6 files, no removal, no migration or configuration change. Core and the worker were down 33 seconds, and all
+  checks passed. Folder `.agent_docs/aphelion-sophie/deployment-a620ce0-2026-10-22`.

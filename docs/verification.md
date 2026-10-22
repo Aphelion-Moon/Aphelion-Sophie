@@ -1,5 +1,28 @@
 # Verification and release limits
 
+## Staging install of a620ce0: SC-07 launch roll — 22 October 2026 (schema 075)
+
+Owner approval: "SC-07 is approved. Install it (source-only update) in the test Discord." The audition page saved no
+verdict for SC-07, so this message is also the audition approval (`review.launchRoll`). Folder
+`deployment-a620ce0-2026-10-22`, adapted from `135f2a6`.
+
+- **Offline:** `npm test` 774 passed and the repository check passed on `a620ce0`. The sound rebuild for SC-07
+  reproduced the other 40 outputs byte for byte.
+- **Install.**
+  - 704 pinned files were verified against Git, and the installed `135f2a6` against its trusted manifest.
+  - 6 files were written (4 changed, 2 new: the SC-07 Opus and MP3) and none removed. No migration, configuration,
+    credential, dependency or command change.
+  - Recovery point `D:\Backups\sophie-staging\source-only-a620ce0-20261022` verified.
+  - Core and the worker stopped at 16:20:06 UTC and were running again by 16:20:39 UTC. PostgreSQL and the tunnel
+    kept running.
+  - Pre-start (trust v2 for `sophie-mistral-a620ce0`), boundary, installation (48 checks, including SC-07 served on
+    the Activity listener) and dashboard checks passed.
+- **Public.** `onboarding.a13.info` serves the page, the sound index and both SC-07 files byte for byte. The AMB-06
+  files removed by `135f2a6` still answer 404, and `/api/config` and `/api/shuttle` (401) behave as before.
+
+**Not covered:** the story copy is still unpublished; how the launch sounds inside Discord's frame on the owner's
+devices.
+
 ## Staging install of 135f2a6: Shuttle Activity fourth pass — 22 October 2026 (schema 075)
 
 Owner approval: "Approved: install the fourth pass (source-only update, including the 17 story sounds) in the test
