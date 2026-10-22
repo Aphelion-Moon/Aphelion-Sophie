@@ -125,7 +125,7 @@ test('T-SCENE-DEPTH-07 mothroaches: under the lounge benches, along the baggage 
 
 test('T-SCENE-DEPTH-08 standing props are front layers, so everyone who walks past goes behind them', async () => {
   const expected = {
-    'departure-lounge': ['benches', 'desk', 'desk-legs'], 'baggage-hall': ['standing', 'blastwave', 'firebot-dock'], 'boarding-cabin': ['back-row', 'sleeper', 'settled', 'front-seats', 'front-row'],
+    'departure-lounge': ['benches', 'desk', 'desk-legs'], 'baggage-hall': ['standing', 'blastwave', 'firebot-dock'], 'boarding-cabin': ['back-row', 'sleeper', 'settled'],
     'landing-bay': ['hull'], viewport: ['deck-standing'], 'pressure-door': ['deck-wet', 'deck-standing', 'id-card'],
   };
   for (const [id, fronts] of Object.entries(expected)) {
@@ -141,7 +141,10 @@ test('T-SCENE-DEPTH-09 the title screen: the menu slot is the inside of the term
   const hangar = await shipped('hangar-viewport');
   for (const layout of ['landscape', 'portrait']) {
     const [x, y, w, h] = hangar.layouts[layout].slots.menu, grid = at(hangar, 4, {}, layout).map(row => [...row]);
-    assert.match(grid[y - 1].join(''), /┌─ sophie@aphelion: shuttle ─+┐/, layout);
+    // The window's top edge is a plain rule: its title (the member's own name@aphelion) is page text over the title slot,
+    // never scene data.
+    assert.match(grid[y - 1].join(''), /┌─+┐/, layout); assert.doesNotMatch(JSON.stringify(hangar), /sophie@|@aphelion/, layout);
+    assert.deepEqual(hangar.layouts[layout].slots.title, [x, y - 1, w, 1], `${layout}: the title slot is the window's top edge`);
     for (let r = y; r < y + h; r++) {
       // One clear column either side of the slot, then the window's edges.
       assert.equal(grid[r][x - 2], '│', `${layout} left edge row ${r}`); assert.equal(grid[r][x + w + 1], '│', `${layout} right edge row ${r}`);

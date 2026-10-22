@@ -5,6 +5,10 @@
       "this is an adult community": {
         "beat": "adult"
       },
+      "~halt! age check": {
+        "beat": "beepsky",
+        "break": true
+      },
       "aphelion is owned and operated by queers, furries, and freaks": {
         "beat": "pride"
       },
@@ -50,11 +54,44 @@
         "beat": "sealion",
         "viewscreen": "sealion",
         "scene": "cabin-turbulence"
+      },
+      "real questions are welcome": {
+        "beat": "sealion",
+        "viewscreen": "sealion",
+        "scene": "cabin-turbulence"
+      },
+      "~that's [sealioning]": {
+        "beat": "sealion",
+        "viewscreen": "sealion",
+        "scene": "cabin-turbulence",
+        "break": true
+      },
+      "~nobody owes you an endless defence": {
+        "beat": "sealion",
+        "viewscreen": "sealion",
+        "scene": "cabin-turbulence",
+        "break": true
+      },
+      "~we crush sea-lions with shuttles.": {
+        "beat": "strike",
+        "viewscreen": "sealion",
+        "scene": "cabin-turbulence",
+        "on": "reveal"
+      },
+      "~and we're off the rail": {
+        "beat": "strike",
+        "viewscreen": "sealion",
+        "scene": "cabin-turbulence",
+        "break": true
       }
     },
     "admire-the-lights": {
       "we are here to enjoy ourselves": {
         "beat": "enjoy"
+      },
+      "~need a break? take one": {
+        "beat": "popper",
+        "break": true
       },
       "every life is valuable, every experience is unique": {
         "beat": "valuable"

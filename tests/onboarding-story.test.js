@@ -35,6 +35,11 @@ const REQUIRED = [
   ['the-brochure', /^# Boarding call[\s\S]*Five stops[\s\S]*finish up and we request your \*\*Whitelist\*\* role[\s\S]*#crew-support/, 'boarding call'],
   ['the-brochure', /Whitelist[\s\S]*@matriarch in #crew-support/, 'help in #crew-support'],
   ['the-brochure', /Already Whitelisted\? Ride along any time[\s\S]*keep your access/, 'refresher keeps access'],
+  // Sixth pass: Beepsky delivers the age check as a line, and the sign explains what NSFW means for you on its own.
+  ['the-brochure', /\*\*Beepsky:\*\* "HALT! Age check\. 18\+ only\. No, really\."\n\n> \*\*NOTICE · 18\+ ONLY/, "Beepsky's age check, then the sign"],
+  ['the-brochure', /> That means you might \*see\* things\. It doesn't mean anybody here is up for anything with you/, 'seeing is not consent'],
+  // The sea lion: lined up and named, then the boundaries line, the punchline and the THUMP, in that order.
+  ['board-the-shuttle', /^# Real questions are welcome[\s\S]*sea lion on the rail[\s\S]*Saying it politely[\s\S]*Nobody owes you an endless defence[\s\S]*\*\*We crush sea-lions with shuttles\.\*\*\n\n\*THUMP\.\*/m, 'sea lion, boundaries, punchline, THUMP'],
   ['the-brochure', /18 or older/, 'age 18+'],
   ['the-brochure', /play on our servers, hang out in our Discord, or have any account tied to Aphelion/, 'servers, Discord and any account'],
   ['the-brochure', /under 18 at any point/, 'ever underage'],
@@ -107,7 +112,6 @@ const REQUIRED = [
   ['disembarking', /respect other players' boundaries and their place in the stories/, 'confirm: boundaries'],
   ['disembarking', /where to find the rules, where to ask questions, and where to raise concerns/, 'confirm: where to ask'],
   ['disembarking', /FINISHING THE SHUTTLE MEANS YOU'RE TELLING US/, 'what finishing confirms'],
-  ['disembarking', /Finish this last stop and we'll request your Whitelist role\. It counts once the role actually shows up/, 'finishing requests the role'],
   ['disembarking', /Get Whitelisted[\s\S]*Discord sign-in/, 'in-game step'],
 ];
 
@@ -126,6 +130,8 @@ test('T-STORY-03 the story reads like people talking: no em dashes or stock AI p
     assert.doesNotMatch(all.toLowerCase(), new RegExp(`\\b${word}\\b`), word);
   }
   // Dialogue lines name their speaker; every sign is a quote block with a NOTICE label.
-  for (const line of all.split('\n').filter(text => /^\*\*[A-Z][a-z]+:\*\*/.test(text))) assert.match(line, /^\*\*(Rook|Pip|Passenger):\*\* /);
+  for (const line of all.split('\n').filter(text => /^\*\*[A-Z][a-z]+:\*\*/.test(text))) assert.match(line, /^\*\*(Rook|Pip|Passenger|Beepsky):\*\* /);
+  // The text flows forward: it never sends the reader back a page (owner review, sixth pass).
+  assert.doesNotMatch(all, /read that (last )?bit again|go back a page|scroll (back )?up/i, 'no going back to re-read');
   for (const block of all.split('\n\n').filter(text => text.startsWith('> '))) assert.match(block, /^> \*\*NOTICE · /);
 });

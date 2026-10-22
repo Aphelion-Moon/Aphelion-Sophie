@@ -184,6 +184,15 @@ test('P44 a conveyor carries each item at one speed through its gate, and a refu
   assert.doesNotMatch(at(3).join('\n'), /\[A\]/);
 });
 
+test('P44 a tag changes column by column as its item comes out of the gate, not all at once when it is clear', () => {
+  const wide = { ...BELT, items: [{ ...BELT.items[0], art: one('[AAAAAAAA]') }, BELT.items[1]],
+    tags: { '*': { ...BELT.tags['*'], before: ['abcdefghij', 'b1'], after: ['ABCDEFGHIJ', ''] }, rush: BELT.tags.rush } };
+  const g = grid(synthetic([wide], ['rush']), { time: 2.7, state: { beat: 'none' } });
+  // The bag spans columns 27 to 36: the two still left of the gate read the before tag, the two already out the after tag.
+  assert.equal(cells(g[11], 27, 29), '[A'); assert.equal(cells(g[11], 35, 37), 'A]');
+  assert.equal(cells(g[10], 27, 29), 'ab'); assert.equal(cells(g[10], 35, 37), 'IJ');
+});
+
 test('P44 the conveyor readout shows the item inside the gate, exactly while it is inside', () => {
   const scene = synthetic([BELT], ['rush']), readout = time => cells(grid(scene, { time })[5], 30, 38);
   assert.equal(readout(0), 'DENIED  ', 'B is in the gate at the start');
@@ -312,14 +321,18 @@ test('P44 Board the Shuttle has a scene for each section: boarders walk to the r
     const cabin = scene('boarding-cabin'), seated = composeScene(cabin, layout, { time: 0, state: { ...STATE, beat: 'seat' }, motion: false }).glyphs.join('\n');
     assert.match(seated, /ONE PASSENGER PER SEAT/); assert.match(seated, /"ooh, mind if I squeeze in/); assert.doesNotMatch(seated, /ROOK\. is this one free/, 'one bubble in the still frame');
     assert.ok(cabin.layouts[layout].effects.filter(fx => fx.kind === 'sprite' && fx.rest && fx.clock === 'beat').length >= 4, layout);
-    // The bump: the window and the cabin run in step, and the cabin jolts only on the bump frames.
-    const strike = scene('cabin-turbulence').layouts[layout].layers;
-    const approach = strike.find(item => item.id === 'approach'), shake = strike.find(item => item.id === 'turbulence');
-    assert.equal(approach.frames.length, shake.frames.length); assert.equal(approach.fps, shake.fps);
-    const bump = approach.frames.findIndex(frame => frame.text.join('').includes('THUMP'));
-    assert.ok(bump > 0 && shake.frames[bump].text.join('').includes('!') && !shake.frames[0].text.join('').includes('!'), layout);
-    assert.ok(approach.frames.some(frame => frame.text.join('').includes('(__o__>')), 'the sea lion is dazed, not hurt');
-    assert.ok(approach.once && shake.once && approach.clock === 'beat', 'the strike happens once and holds');
+    // Two beats (sixth pass): the sea lion is lined up and keeps asking while the reader reads; only the strike beat bumps it.
+    const rail = scene('cabin-turbulence'), { layers, effects } = rail.layouts[layout];
+    const approach = layers.find(item => item.id === 'approach'), strike = layers.find(item => item.id === 'strike'), shake = layers.find(item => item.id === 'turbulence');
+    assert.deepEqual([approach.when.beat, strike.when.beat, shake.when.beat], [['sealion'], ['strike'], ['strike']]);
+    assert.ok(approach.frames.every(frame => !frame.text.join('').includes('THUMP')), 'no bump while it asks');
+    assert.ok(approach.frames.at(-1).text.join('').includes('_/ o \\'), 'lined up on the rail');
+    const asks = effects.find(fx => fx.id === 'sea-lion-asks');
+    assert.ok(asks.once === undefined && asks.exchanges[0].length === 3, 'it keeps asking, in a loop');
+    for (const time of [8, 20, 40]) assert.match(composeScene(rail, layout, { time, beatTime: time, state: { ...STATE, beat: 'sealion' } }).glyphs.join('\n'), /"(EXPLAIN|JUST ASKING)/, `${layout} at ${time}s`);
+    assert.ok(strike.frames[0].text.join('').includes('THUMP') && strike.frames.some(frame => frame.text.join('').includes('(__o__>')), 'the bump, then dazed, not hurt');
+    assert.ok(shake.frames.slice(1, 4).every(frame => frame.text.join('').includes('!')) && !shake.frames[0].text.join('').includes('!'), layout);
+    assert.ok(strike.once && shake.once && strike.clock === 'beat' && strike.fps === 1, 'the strike happens once, slowly enough to see, and holds');
   }
 });
 

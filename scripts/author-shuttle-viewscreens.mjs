@@ -151,6 +151,8 @@ const MOMENTS = {
   stages: {
     'the-brochure': {
       'this is an adult community': { beat: 'adult' },
+      // Beepsky flies in for the 18+ sign and says the line (sixth pass): his page starts at his line.
+      '~halt! age check': { beat: 'beepsky', break: true },
       'aphelion is owned and operated by queers, furries, and freaks': { beat: 'pride' },
       'no one is forcing you to get on the shuttle': { beat: 'voluntary' },
       'know your equipment, amenities, and rights': { beat: 'amenities' },
@@ -168,9 +170,18 @@ const MOMENTS = {
       'you are not travelling alone': { beat: 'together', scene: 'landing-bay' },
       "a shared seat is not an invitation into someone's lap": { beat: 'seat' },
       'we crush sea-lions with shuttles': { beat: 'sealion', viewscreen: 'sealion', scene: 'cabin-turbulence' },
+      // The story (sixth pass): the sea lion is lined up and yaps through the first two pages; the third page opens on the
+      // boundaries line, and the shuttle hits it when the reader reaches the punchline. Then it's off the rail.
+      'real questions are welcome': { beat: 'sealion', viewscreen: 'sealion', scene: 'cabin-turbulence' },
+      "~that's [sealioning]": { beat: 'sealion', viewscreen: 'sealion', scene: 'cabin-turbulence', break: true },
+      '~nobody owes you an endless defence': { beat: 'sealion', viewscreen: 'sealion', scene: 'cabin-turbulence', break: true },
+      '~we crush sea-lions with shuttles.': { beat: 'strike', viewscreen: 'sealion', scene: 'cabin-turbulence', on: 'reveal' },
+      "~and we're off the rail": { beat: 'strike', viewscreen: 'sealion', scene: 'cabin-turbulence', break: true },
     },
     'admire-the-lights': {
       'we are here to enjoy ourselves': { beat: 'enjoy' },
+      // After the first page, someone walks in with a confetti popper (sixth pass).
+      '~need a break? take one': { beat: 'popper', break: true },
       'every life is valuable, every experience is unique': { beat: 'valuable' },
       'take photos and make memories': { beat: 'photos' },
       // A key starting with ~ is a phrase: the page that contains it stages this moment. The comic is linked on the last page.

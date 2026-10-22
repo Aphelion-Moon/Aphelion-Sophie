@@ -79,10 +79,16 @@ test('P45 the player plays a scene sound once as the section clock passes it', (
     scheduler: { request(fn) { queue.push(fn); return queue.length; }, cancel() { queue = []; } }, observeSize(_, cb) { resize = cb; return () => {}; } });
   player.setCueHandler(cue => played.push([Math.round(now * 10) / 10, cue]));
   resize(960, 400); player.setScene(scenes['cabin-turbulence']); player.setState({ beat: 'sealion' });
-  for (let t = 0; t < 8 && queue.length; t += 0.1) { now += 0.1; const fns = queue; queue = []; fns.forEach(fn => fn()); }
-  const cues = played.map(([, cue]) => cue);
-  assert.deepEqual(cues.filter(cue => cue === 'SC-08'), ['SC-08'], 'one THUMP'); assert.ok(cues.indexOf('SC-17') < cues.indexOf('SC-07'));
-  assert.ok(Math.abs(played.find(([, cue]) => cue === 'SC-08')[0] - 5) <= 0.2);
+  const run = seconds => { for (let t = 0; t < seconds && queue.length; t += 0.1) { now += 0.1; const fns = queue; queue = []; fns.forEach(fn => fn()); } };
+  run(12);
+  let cues = played.map(([, cue]) => cue);
+  // While it is lined up: straps, the roll-out, and a yap for each line it asks; no bump yet.
+  assert.ok(cues.indexOf('SC-17') < cues.indexOf('SC-07')); assert.ok(cues.filter(cue => cue === 'SC-09').length >= 3); assert.ok(!cues.includes('SC-08'));
+  // The strike (when the reader reaches the punchline): one THUMP, at once.
+  const struck = now; player.setState({ beat: 'strike' }); run(8);
+  cues = played.map(([, cue]) => cue);
+  assert.deepEqual(cues.filter(cue => cue === 'SC-08'), ['SC-08'], 'one THUMP');
+  assert.ok(played.find(([, cue]) => cue === 'SC-08')[0] - struck <= 0.3);
   player.destroy();
 });
 

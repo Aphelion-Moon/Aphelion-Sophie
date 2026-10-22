@@ -22,8 +22,8 @@ const ASCII = Array.from({ length: 95 }, (_, i) => String.fromCharCode(32 + i)).
 export const SCENE_GLYPHS = Object.freeze(new Set([...ASCII, ...'─│┌┐└┘├┤┬┴┼═║╔╗╚╝╟╢╪╱╲╭╮╯╰', ...'░▒▓█▀▄▌▐■□', ...'·•●◆»«≡']));
 export const SCENE_STATE_KEYS = Object.freeze(['stopTitle', 'stopNumber', 'stopCount', 'section', 'sections', 'whitelist', 'doorOpen', 'beat', 'link', 'crew', 'online', 'reached']);
 export const SCENE_WHITELIST_STATES = Object.freeze(['none', 'requested', 'confirmed']);
-/** Regions a layout may name for the page's own controls: the title menu, drawn into the art. */
-export const SCENE_SLOTS = Object.freeze(['menu']);
+/** Regions a layout may name for the page's own controls, drawn into the art: the title menu and its window's title. */
+export const SCENE_SLOTS = Object.freeze(['menu', 'title']);
 /** Whether the member has a run to show: 'some' once both stop number and stop count are known. */
 export const SCENE_STOP_STATES = Object.freeze(['none', 'some']);
 /** What the title screen's link panel may say about the member's Shuttle; 'none' until the server has answered. */
@@ -77,7 +77,8 @@ function layer(value, grid, ids, beats) {
   requireCondition(ID.test(value.id) && !ids.has(value.id), 'INVALID_SCENE_ID'); ids.add(value.id);
   requireInteger(value.x, 0, grid.cols - 1); requireInteger(value.y, 0, grid.rows - 1);
   requireCondition(Array.isArray(value.frames) && value.frames.length >= 1 && value.frames.length <= LIMITS.frames, 'INVALID_SCENE_FRAMES');
-  if (value.frames.length > 1) number(value.fps, 0.5, LIMITS.fps, 'INVALID_SCENE_FPS');
+  // Slow loops are allowed (a monkey idling in step with a 95-second clown); only fast ones are bounded.
+  if (value.frames.length > 1) number(value.fps, 0.2, LIMITS.fps, 'INVALID_SCENE_FPS');
   else requireCondition(value.fps === undefined, 'INVALID_SCENE_FPS');
   // An animation on the section's clock may play once and hold its last frame (the strike, the ticked checklist).
   if (value.clock !== undefined) requireCondition(value.clock === 'beat' && value.frames.length > 1, 'INVALID_SCENE_FPS');
@@ -488,22 +489,24 @@ export function composeScene(scene, layoutName, { time = 0, beatTime = time, sta
           if (x > fx.to) return;
           const rows = item.art.text.map(row => [...row]), width = Math.max(...rows.map(row => row.length)), centre = Math.floor(x) + Math.floor(width / 2);
           if (centre >= fx.gate && centre < exit) reading = item;
-          let ix = Math.floor(x), iy = fx.y + 1, tag = tags.before[i], key = tags.beforeColour;
-          if (ix >= exit) {
-            tag = tags.after[i]; key = tags.afterColour;
-            if (item.divert) {
-              // Denied: off the belt along a straight line into the chute, at the belt's speed.
-              const travel = x - exit, [cx, cy] = fx.chute, length = Math.hypot(cx - exit, cy - iy);
-              if (travel >= length) return;
-              ix = Math.round(exit + (cx - exit) * travel / length); iy = Math.round(iy + (cy - iy) * travel / length); tag = '';
-            }
+          let ix = Math.floor(x), iy = fx.y + 1, tagged = true;
+          if (ix >= exit && item.divert) {
+            // Denied: off the belt along a straight line into the chute, at the belt's speed, without a tag.
+            const travel = x - exit, [cx, cy] = fx.chute, length = Math.hypot(cx - exit, cy - iy);
+            if (travel >= length) return;
+            ix = Math.round(exit + (cx - exit) * travel / length); iy = Math.round(iy + (cy - iy) * travel / length); tagged = false;
           }
           // Out of sight inside the gate and behind its two pillars.
           const visible = col => col < fx.gate - 1 || col > exit;
           rows.forEach((row, r) => row.forEach((ch, c) => {
             if (ch !== ' ' && visible(ix + c)) putActor(ix + c, iy + r, ch, [...item.art.colours[r]][c] === ' ' ? '.' : [...item.art.colours[r]][c]);
           }));
-          [...tag].forEach((ch, c) => { if (visible(ix + c)) putActor(ix + c, iy - 1, ch, key); });
+          // The tag changes column by column as the item comes out of the gate: what has come out wears the after tag.
+          const before = [...tags.before[i]], after = [...tags.after[i]];
+          if (tagged) for (let c = 0; c < Math.max(before.length, after.length); c++) {
+            const col = ix + c, out = col > exit, side = out ? after : before;
+            if (c < side.length && visible(col)) putActor(col, iy - 1, side[c], out ? tags.afterColour : tags.beforeColour);
+          }
         });
         const { x: rx, y: ry, width: rw } = fx.readout;
         const shown = reading === null ? '- - -' : reading.divert ? 'DENIED' : reading.weight;

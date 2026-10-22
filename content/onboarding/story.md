@@ -17,7 +17,9 @@ Five stops, a bit of reading at each, then hit **Continue**. No quiz. At the las
 -# “The Shuttle”: An Interactive Theory and Onboarding Process. Last updated: 22 October 2026.
 
 # This is an *adult* community
-First things first, because we don't budge on this one. See the light over the gate? Age check. Everybody walks under it.
+First things first, because we don't budge on this one. Age check. Everybody gets one.
+
+**Beepsky:** "HALT! Age check. 18+ only. No, really."
 
 > **NOTICE · 18+ ONLY. NO, REALLY.**
 > You have to be 18 or older to play on our servers, hang out in our Discord, or have any account tied to Aphelion. Full stop.
@@ -27,8 +29,7 @@ First things first, because we don't budge on this one. See the light over the g
 > **NOTICE · THE LEGAL BIT**
 > Aphelion is based in the European Union and runs under EU law. Making sure you're allowed to be here where you live is on you.
 > By playing, using any Aphelion service, or sticking around our Discord, you're agreeing you might bump into sexual or NSFW stuff in passing.
-
-Read that last bit again though. It means you might *see* things. It doesn't mean anybody here is up for anything with you. Nobody's "available" just because the server's for adults.
+> That means you might *see* things. It doesn't mean anybody here is up for anything with you. Nobody's "available" just because the server's for adults.
 
 # Aphelion is owned and operated by queers, furries, and freaks
 Oh, you noticed the banner. Yeah, it's staying up. It isn't Pride Month. It's just us.
@@ -140,7 +141,7 @@ Ask, don't assume. When someone says no, take it, and don't make them justify it
 
 You can tell dark, messy stories without being cruel to the actual people helping you tell them.
 
-# We crush sea-lions with shuttles
+# Real questions are welcome
 Straps on, we're rolling out to the launch rail. Real questions? Love those. Disagree with us? Fine. Want something clarified? Please ask.
 
 …there's a sea lion on the rail. It wants us to explain why it should move. We did. It wants us to explain again.
@@ -150,6 +151,8 @@ That's [sealioning](https://en.wikipedia.org/wiki/Sealioning): demanding explana
 Saying it politely doesn't stop it being harassment. Grinding someone down isn't "just asking questions".
 
 Nobody owes you an endless defence of who they are, what their boundaries are, or why they get to be here. Staff are always up for feedback. That doesn't make anybody your personal debate service.
+
+**We crush sea-lions with shuttles.**
 
 *THUMP.* He's fine. Bit dazed. Anyway: if you honestly don't get something, tell us which bit. We'd much rather answer a real question than leave you guessing.
 
@@ -231,8 +234,6 @@ Last check before the door, and this one counts.
 > * You know our published rules apply to you, and that keeping Whitelist means following them.
 > * You'll respect other players' boundaries and their place in the stories we share.
 > * You know where to find the rules, where to ask questions, and where to raise concerns.
-
-**Finish this last stop and we'll request your Whitelist role. It counts once the role actually shows up.**
 
 # One last step, in the game
 **Pip:** "see you on the station?"

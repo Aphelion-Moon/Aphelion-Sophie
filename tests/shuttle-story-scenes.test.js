@@ -14,9 +14,13 @@ const picture = (scene, layout, beat, reached = [beat], time = 4) =>
 test('T-STORY-SCENE-01 every scene the story points at shows what it names, in both layouts', async () => {
   const lounge = await shipped('departure-lounge'), hall = await shipped('baggage-hall'), door = await shipped('pressure-door');
   for (const layout of ['landscape', 'portrait']) {
-    assert.match(story, /See the light over the gate\? Age check/);
-    assert.match(picture(lounge, layout, 'adult'), /18\+/, `${layout}: the light over the gate`);
-    assert.match(picture(lounge, layout, 'adult'), /GATE {2,3}03|GATE 03/, `${layout}: the gate`);
+    // The age check is Beepsky's line: he flies in for that page and says it, and leaves on the next.
+    assert.match(story, /\*\*Beepsky:\*\* "HALT! Age check\. 18\+ only\. No, really\."/);
+    const halt = picture(lounge, layout, 'beepsky', ['adult', 'beepsky'], 6);
+    assert.match(halt, /\[SEC\]/, `${layout}: Beepsky is there`); assert.match(halt, /"HALT! Age check\./, `${layout}: and says the line`);
+    assert.doesNotMatch(picture(lounge, layout, 'adult', ['adult'], 6), /\[SEC\]|HALT/, `${layout}: not before his page`);
+    assert.doesNotMatch(picture(lounge, layout, 'adult', ['adult', 'beepsky'], 8), /\[SEC\]/, `${layout}: gone after it`);
+    assert.ok(!lounge.layouts[layout].layers.some(item => item.id === 'gate-adult'), `${layout}: no blinking 18+ light any more`);
     assert.match(story, /Oh, you noticed the banner/); assert.match(picture(lounge, layout, 'pride'), /▄▄▄▄▄▄/, `${layout}: the banner`);
     assert.match(story, /See the EXIT sign\?/); assert.match(picture(lounge, layout, 'voluntary'), /EXIT/, `${layout}: EXIT`);
     assert.match(story, /Help desk's over there/); assert.match(picture(lounge, layout, 'amenities'), /HELP DESK/, `${layout}: the help desk`);
