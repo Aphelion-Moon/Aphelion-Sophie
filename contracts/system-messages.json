@@ -1723,13 +1723,13 @@
   {
     "id": "activity.post.title",
     "group": "Shuttle Activity rules post",
-    "source": "The Shuttle is boarding",
+    "source": "The Shuttle's boarding",
     "max": 256
   },
   {
     "id": "activity.post.body",
     "group": "Shuttle Activity rules post",
-    "source": "Everyone joining Aphelion takes the Shuttle first. Press **Board the Shuttle** to open it here in Discord: Sophie will walk you through each stop, and your Whitelist is requested when you finish.\n-# If the button does nothing, open the App Launcher next to the message box and choose Sophie.",
+    "source": "*kssht* Sophie here, Community Services. Before you play on our servers you ride the Shuttle: five short stops through how Aphelion works. A bit of reading, no quiz. Finish it and we request your **Whitelist** role.\n\nHit **Board the Shuttle** and it opens right here in Discord.\n-# Button does nothing? Open the App Launcher next to the message box and pick Sophie. Stuck? Ping @matriarch in #crew-support. Already Whitelisted? Ride along any time, you keep your access.",
     "max": 1800
   },
   {

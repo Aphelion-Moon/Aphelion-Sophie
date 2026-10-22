@@ -13,7 +13,10 @@ test('T-ACT-POST-01 the rules post: banner, fixed wording, one launch button, no
   const post = activityLaunchPost();
   assert.equal(post.embeds.length, 1);
   const [embed] = post.embeds;
-  assert.equal(embed.title, 'The Shuttle is boarding'); assert.equal(embed.color, 0xffb84d);
+  assert.equal(embed.title, "The Shuttle's boarding"); assert.equal(embed.color, 0xffb84d);
+  // Sophie's voice, the real button name, what finishing does, and help; no em dashes.
+  assert.match(embed.description, /Sophie here[\s\S]*five short stops[\s\S]*request your \*\*Whitelist\*\* role[\s\S]*\*\*Board the Shuttle\*\*[\s\S]*#crew-support/);
+  assert.doesNotMatch(embed.description, /—|Complete Shuttle/);
   assert.ok(embed.description.startsWith(`\`\`\`\n${ACTIVITY_POST_BANNER.join('\n')}\n\`\`\`\n`));
   assert.ok(embed.description.length <= 4_096);
   assert.deepEqual(post.components, [{ type: 1, components: [{ type: 2, style: 1, label: 'Board the Shuttle', custom_id: ACTIVITY_LAUNCH_ID }] }]);
