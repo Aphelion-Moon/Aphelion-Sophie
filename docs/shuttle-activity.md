@@ -190,7 +190,7 @@ arrival links, the layout editor and migration 075) is installed (schema 075); t
 (reading column, fixed status window, re-laid scenes) is installed as `sophie-mistral-2063a50`. The third pass (a
 detailed station, centring fixes, the conveyor belt with Wolfgate and disposals, a scene per Board the Shuttle
 section, the rebuilt viewport and door, the station board and boarding pass, radio length tied to the page) is built
-and tested offline, with the held seam fix `21a0575`; it is not installed yet. See verification.md. No Activity
+and tested offline, with the held seam fix `21a0575`, and installed as `sophie-mistral-0d446fe` (source-only, 14:26 UTC). See verification.md. No Activity
 layout is published yet, so the shipped defaults apply.
 
 Not yet checked: mobile clients, and whether Discord opens `discord.com/channels` links inside the app.

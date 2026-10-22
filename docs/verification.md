@@ -1,5 +1,23 @@
 # Verification and release limits
 
+## Staging install of 0d446fe: Shuttle Activity third pass — 22 October 2026 (schema 075)
+
+Owner approval: "Approved: install the third pass (source-only update, including the seam fix) in the test Discord."
+Folder `deployment-0d446fe-2026-10-22`, adapted from `2063a50`.
+
+- Install: 670 pinned files verified against Git; installed `2063a50` (667 files) verified against its trusted manifest;
+  28 files written (25 changed, 3 new: `activity-station.js` and the `landing-bay` and `cabin-turbulence` scenes), none
+  removed; no migration, configuration, credential, dependency or command change. Recovery point
+  `D:\Backups\sophie-staging\source-only-0d446fe-20261022` verified. Core and the worker stopped 14:25:55 UTC and were
+  running again by 14:26:28 UTC; PostgreSQL and the tunnel kept running. Pre-start (trust v2 for
+  `sophie-mistral-0d446fe`), boundary, installation (40 checks, including the new scenes on the Activity listener and the
+  layout editor's script on the dashboard) and dashboard checks passed.
+- Public: `onboarding.a13.info` serves the page and all 18 other changed client files byte for byte; `/api/config` and
+  `/api/shuttle` (401 without sign-in) as before.
+
+**Not covered:** the station counts and boarding pass from real Discord reads (they appear from the last stop on, for a
+signed-in tester); how it looks inside Discord's frame on the owner's devices.
+
 ## Shuttle Activity third pass — 22 October 2026 (schema 075, built offline)
 
 Owner review of `2063a50` and the approved plan (decision log, "Shuttle Activity third pass"): a detailed station, centring

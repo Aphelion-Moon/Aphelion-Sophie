@@ -1485,3 +1485,7 @@ A moment can now name a scene of its own, so a section changes scene; the layout
 format gains `dialogue` and `conveyor` effects, sprite `hold`, `rest`, `clip` and the beat clock, text alignment and
 the `{crew}`/`{online}` counts. All art is still original ASCII by the coding agent with provenance; SS13 references
 remain shared culture only. The held seam fix `21a0575` ships with this build.
+
+- **Installed** `0d446fe` on 22 October 2026 at 14:26 UTC on the owner's approval ("Approved: install the third pass
+  (source-only update, including the seam fix) in the test Discord."): 28 files, no migration or configuration change;
+  core and the worker were down 33 seconds. All checks passed. Folder `.agent_docs/aphelion-sophie/deployment-0d446fe-2026-10-22`.
