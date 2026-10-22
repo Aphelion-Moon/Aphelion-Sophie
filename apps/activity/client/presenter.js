@@ -43,6 +43,8 @@ export const TEXT = Object.freeze({
   stale: 'That step was already taken. Showing where you are now.',
   failed: 'Something went wrong on our side. Try again in a moment.',
   radio: 'Common · 145.9',
+  standby: 'Standing by',
+  transmitting: 'Transmitting',
   hop: 'The HoP is processing your ID card…',
   arrival: 'Now open to you',
   arrivalNone: 'Your new channels appear in Discord’s channel list.',
@@ -50,7 +52,6 @@ export const TEXT = Object.freeze({
   logEmpty: 'Nothing received yet. Sophie’s transmissions appear here as you travel.',
   codex: 'Codex',
   keys: 'Keys',
-  view: 'View',
   transit: 'In transit',
   skip: 'Tap to skip',
   receiving: 'Receiving transmission…',
@@ -103,7 +104,7 @@ export const CODEX = Object.freeze([
 /** Keys and gestures, for the help card. */
 export const KEYS = Object.freeze([
   ['→  Enter  Space', 'Next / Continue'], ['←  Backspace', 'Back'], ['Swipe', 'Next or back, on touch screens'],
-  ['Tap the text', 'Show it all at once'], ['V', 'Open the viewscreen'], ['L', 'Station log'], ['Esc', 'Close a panel, or the menu'], ['?', 'This card'],
+  ['Tap the text', 'Show it all at once'], ['V', 'Switch the status window: radio or extras'], ['L', 'Station log'], ['Esc', 'Close a panel, or the menu'], ['?', 'This card'],
 ]);
 
 export const CHUNK_LIMIT = 640;
@@ -199,7 +200,7 @@ export function linkState(described) {
 /**
  * The moment a transmission belongs to: its first heading, or else the last heading before it, so a transmission that
  * opens one section and starts the next stages the one it opens with. A top-level heading that no moment names returns
- * to the plain scene; a smaller unnamed heading keeps the section's moment. moments: { [headingKey]: { beat, viewscreen? } }.
+ * to the plain scene; a smaller unnamed heading keeps the section's moment. moments: { [headingKey or "~phrase"]: { beat, viewscreen? } }.
  */
 export function momentFor(chunks, chunk, moments = {}) {
   const at = Math.min(chunk, chunks.length - 1), headings = text => [...text.matchAll(/^(#{1,3}) (.+)$/gm)];
@@ -212,6 +213,11 @@ export function momentFor(chunks, chunk, moments = {}) {
   for (let i = 0; i < at; i++) headings(chunks[i]).forEach(apply);
   const own = headings(chunks[at] ?? '');
   if (own.length) apply(own[0]);
+  // A phrase moment (key "~phrase") belongs to the page that contains it, such as the page that links a comic.
+  const page = (chunks[at] ?? '').toLowerCase();
+  for (const [key, moment] of Object.entries(moments)) {
+    if (key.startsWith('~') && page.includes(key.slice(1))) found = { beat: moment.beat ?? 'none', viewscreen: moment.viewscreen ?? null };
+  }
   return found;
 }
 

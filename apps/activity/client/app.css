@@ -5,7 +5,7 @@
   --bay: #0a0a08; --ink: #14130f; --panel: #1b1a15; --rule: #38352a;
   --ivory: #e8dfc6; --ivory-dim: #a59e88; --amber: #ffb84d; --amber-dim: #7a5726; --orange: #d8813f;
   --holo: #72e6ff; --holo-dim: #2c6f7f; --cold: #eef5f8; --rose: #ff5c9d; --ok: #9bb978;
-  --text: 16px; --gutter: 16px;
+  --text: 16px; --gutter: 16px; --column: clamp(320px, 34vw, 500px);
   color-scheme: dark;
 }
 * { box-sizing: border-box; }
@@ -17,62 +17,97 @@ main[data-text-size="large"] { --text: 20px; }
 button, input { font: inherit; color: inherit; }
 :focus-visible { outline: 2px solid var(--holo); outline-offset: 2px; }
 
-#shuttle { position: fixed; inset: 0; display: grid; grid-template-rows: minmax(0, 1fr) auto auto; grid-template-columns: minmax(0, 1fr);
+/* Layout: the reading column on the left (status window, then the splash, the menu or the transmission) and the scene
+   alone on the right, so nothing in the scene sits under the text. Portrait stacks the scene above the column. */
+#shuttle { position: fixed; inset: 0; display: grid; grid-template-columns: var(--column) minmax(0, 1fr); grid-template-rows: minmax(0, 1fr) auto;
   padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left); }
-#stage { grid-row: 1 / 3; grid-column: 1; position: relative; min-height: 0; display: flex; align-items: center; justify-content: center; overflow: hidden; }
+#stage { grid-column: 2; grid-row: 1; position: relative; min-height: 0; min-width: 0; display: flex; align-items: center; justify-content: center; overflow: hidden; }
 #scene { display: block; image-rendering: pixelated; }
 .scanlines { position: absolute; inset: 0; pointer-events: none; opacity: .18;
   background: repeating-linear-gradient(to bottom, transparent 0 2px, rgba(0, 0, 0, .55) 2px 3px); }
-.layer { grid-column: 1; z-index: 1; }
+.column { grid-column: 1; grid-row: 1; min-height: 0; min-width: 0; display: flex; flex-direction: column; gap: 10px; padding: 10px;
+  background: var(--ink); border-right: 1px solid var(--rule); }
+.pane { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; }
+
+/* Status window: Sophie's radio standing by, or the extra material for the section being read. Its size is fixed, so
+   nothing in the column moves while text types out; its contents scale or scroll inside it. */
+.status { position: relative; flex: 0 0 auto; height: clamp(170px, 40%, 360px); display: flex; flex-direction: column; overflow: hidden;
+  background: var(--bay); border: 1px solid var(--rule); border-top: 2px solid var(--holo-dim); }
+.status-body { flex: 1 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior: contain; }
+.status-head { flex: none; display: flex; align-items: center; gap: 10px; padding: 6px 10px; border-bottom: 1px solid var(--rule); background: var(--panel); }
+.rx { color: var(--bay); background: var(--holo-dim); padding: 0 5px; font-size: .8em; letter-spacing: .1em; opacity: .6; }
+/* The RX lamp is lit only while Sophie is speaking (a transmission is coming in). */
+main[data-speaking="on"] .rx { background: var(--holo); opacity: 1; animation: pulse .8s ease-in-out infinite; }
+.status-title { margin: 0; min-width: 0; font-size: .85em; font-weight: normal; letter-spacing: .14em; text-transform: uppercase; color: var(--holo);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.status-state { margin-left: auto; color: var(--ivory-dim); font-size: .75em; letter-spacing: .12em; text-transform: uppercase; white-space: nowrap; }
+main[data-speaking="on"] .status-state { color: var(--holo); }
+/* The station announcement lies over the bottom of the window for a few seconds rather than pushing anything. */
+.status-announce { position: absolute; left: 0; right: 0; bottom: 0; z-index: 1; margin: 0; padding: 5px 10px; background: var(--panel);
+  border-top: 1px dashed var(--amber-dim); color: var(--amber); font-size: .8em; letter-spacing: .06em; text-transform: uppercase;
+  animation: flicker .35s steps(3, jump-none) 1; }
+.status-radio { padding: 10px 12px 12px; }
+.callsign { margin: 0; color: var(--cold); font-size: 1.25em; letter-spacing: .2em; text-transform: uppercase; }
+.callsign-sub { margin: 2px 0 8px; color: var(--ivory-dim); font-size: .8em; letter-spacing: .08em; }
+/* The voice meter: flat while she stands by, moving while she speaks. It is a radio, not a likeness. */
+.wave { display: flex; align-items: center; gap: 3px; height: 26px; }
+.wave i { flex: 1; height: 2px; background: var(--holo-dim); }
+main[data-speaking="on"] .wave i { background: var(--holo); animation: meter .5s ease-in-out infinite alternate; }
+main[data-speaking="on"] .wave i:nth-child(3n) { animation-duration: .37s; }
+main[data-speaking="on"] .wave i:nth-child(3n + 1) { animation-duration: .61s; animation-delay: -.2s; }
+main[data-speaking="on"] .wave i:nth-child(4n) { animation-duration: .44s; animation-delay: -.1s; }
+.status .tip { margin: 10px 0 0; }
+.viewscreen { padding: 8px 10px 10px; animation: flicker .35s steps(3, jump-none) 1; }
+.viewscreen-title { margin: 0 0 6px; color: var(--holo); font-weight: normal; font-size: .85em; letter-spacing: .1em; text-transform: uppercase; }
+.viewscreen-art { display: flex; justify-content: center; }
+.viewscreen-art canvas { display: block; image-rendering: pixelated; }
+.viewscreen-links { list-style: none; margin: 8px 0 0; padding: 0; display: flex; flex-wrap: wrap; gap: 6px; }
+.viewscreen-link { min-height: 36px; display: inline-flex; gap: 8px; align-items: baseline; padding: 6px 10px; cursor: pointer;
+  background: var(--panel); border: 1px solid var(--rule); color: var(--ivory); text-align: left; }
+.viewscreen-link:hover, .viewscreen-link:focus-visible { border-color: var(--holo); color: var(--cold); }
+.viewscreen-host { color: var(--holo-dim); font-size: .8em; }
 
 /* Splash */
-#splash { grid-row: 1 / 3; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; gap: 14px; padding: 0 var(--gutter) 10vh; pointer-events: none; }
-.press { margin: 0; padding: 6px 14px; background: rgba(10, 10, 8, .78); border: 1px solid var(--amber-dim); color: var(--amber);
+#splash { justify-content: center; align-items: flex-start; pointer-events: none; }
+.press { margin: 0; padding: 6px 14px; border: 1px solid var(--amber-dim); color: var(--amber);
   letter-spacing: .14em; text-transform: uppercase; animation: blink 1.6s steps(2, jump-none) infinite; }
 .press-mark { color: var(--holo); margin-right: 8px; }
 
-/* Title menu, lower left like a game's front end */
-#title { grid-row: 1 / 3; display: flex; align-items: flex-end; padding: var(--gutter); pointer-events: none; }
-.menu-panel { pointer-events: auto; width: min(380px, 100%); background: linear-gradient(90deg, rgba(10, 10, 8, .92), rgba(10, 10, 8, .72));
-  border-left: 3px solid var(--amber); padding: 14px 16px 12px; box-shadow: 6px 0 0 -3px var(--holo-dim); }
+/* Title menu */
+#title { justify-content: flex-start; }
+.menu-panel { border-left: 3px solid var(--amber); padding: 12px 14px 10px; box-shadow: 6px 0 0 -3px var(--holo-dim); background: var(--bay); }
 .menu-kicker { margin: 0 0 10px; color: var(--ivory-dim); font-size: .8em; letter-spacing: .16em; text-transform: uppercase; }
 .kicker-mark { color: var(--holo); }
 .menu { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; }
 .menu-item { width: 100%; min-height: 44px; text-align: left; background: none; border: 0; padding: 8px 10px 8px 24px; position: relative; cursor: pointer;
-  color: var(--ivory); letter-spacing: .12em; text-transform: uppercase; font-size: 1.15em; }
+  color: var(--ivory); letter-spacing: .12em; text-transform: uppercase; font-size: 1.1em; }
 .menu-item::before { content: ''; position: absolute; left: 6px; top: 50%; width: 8px; height: 2px; background: var(--amber-dim); }
 .menu-item:hover, .menu-item:focus-visible { color: var(--amber); background: rgba(255, 184, 77, .08); outline: none; }
 .menu-item:hover::before, .menu-item:focus-visible::before { content: '»'; width: auto; height: auto; top: 8px; left: 6px; background: none; color: var(--holo); }
-.menu-item.primary { color: var(--amber); font-size: 1.35em; }
-.tip { margin: 10px 0 0; color: var(--ivory-dim); font-size: .8em; letter-spacing: .04em; max-width: 46ch; }
-#splash .tip { text-align: center; background: rgba(10, 10, 8, .7); padding: 4px 10px; }
-.notice { margin: 10px 0 0; padding: 8px 10px; border: 1px dashed var(--amber-dim); color: var(--ivory); background: rgba(27, 26, 21, .9); }
+.menu-item.primary { color: var(--amber); font-size: 1.25em; }
+.tip { color: var(--ivory-dim); font-size: .8em; letter-spacing: .04em; }
+.notice { margin: 10px 0 0; padding: 8px 10px; border: 1px dashed var(--amber-dim); color: var(--ivory); background: var(--panel); }
 
-/* Sophie's radio */
-/* Landscape: the transmission sits over the lower part of the scene, which keeps its full height. */
-#radio { grid-row: 2; position: relative; padding: 0 var(--gutter) 8px; }
-.radio-panel { max-width: 960px; margin: 0 auto; background: rgba(20, 19, 15, .96); border: 1px solid var(--rule); border-top: 2px solid var(--holo-dim);
-  display: grid; grid-template-rows: auto minmax(0, 1fr) auto auto; grid-template-columns: minmax(0, 1fr); max-height: 42vh; }
+/* Sophie's radio: the transmission fills the rest of the column. */
+.radio-panel { flex: 1 1 auto; min-height: 0; background: var(--bay); border: 1px solid var(--rule); border-top: 2px solid var(--amber-dim);
+  display: grid; grid-template-rows: auto minmax(0, 1fr) auto auto; grid-template-columns: minmax(0, 1fr); }
 .radio-head { display: flex; align-items: center; gap: 10px; padding: 6px 12px; border-bottom: 1px solid var(--rule); background: var(--panel); }
-.rx { color: var(--bay); background: var(--holo-dim); padding: 0 5px; font-size: .8em; letter-spacing: .1em; opacity: .6; }
-/* The RX lamp is lit only while Sophie is speaking (a transmission is coming in). */
-#radio[data-speaking="on"] .rx { background: var(--holo); opacity: 1; animation: pulse .8s ease-in-out infinite; }
-.radio-channel { color: var(--ivory-dim); font-size: .75em; letter-spacing: .14em; text-transform: uppercase; white-space: nowrap; }
 .chip { background: var(--panel); border: 1px solid var(--holo-dim); color: var(--holo); padding: 2px 10px; min-height: 32px; min-width: 32px; cursor: pointer;
   letter-spacing: .1em; text-transform: uppercase; font-size: .8em; }
 .chip:hover { border-color: var(--holo); color: var(--cold); }
-.radio-speaker { margin: 0; min-width: 0; font-size: .9em; font-weight: normal; letter-spacing: .12em; text-transform: uppercase; color: var(--holo);
+.radio-stop { min-width: 0; color: var(--amber); font-size: .85em; letter-spacing: .08em; text-transform: uppercase;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.radio-stop { margin-left: auto; min-width: 0; max-width: 50%; color: var(--amber); font-size: .85em; letter-spacing: .08em; text-transform: uppercase;
-  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.radio-text { padding: 12px 16px; overflow-y: auto; overscroll-behavior: contain; min-height: 7em; cursor: pointer; touch-action: pan-y; }
+.radio-text { padding: 12px 14px; overflow-y: auto; overscroll-behavior: contain; min-height: 6em; cursor: pointer; touch-action: pan-y; }
 .receiving { color: var(--holo-dim); letter-spacing: .12em; text-transform: uppercase; animation: blink 1s steps(2, jump-none) infinite; }
 .radio-text > :first-child { margin-top: 0; }
 .radio-text > :last-child { margin-bottom: 0; }
 .radio-controls { display: flex; align-items: center; gap: 10px; padding: 8px 12px; border-top: 1px solid var(--rule); }
-.radio-progress { flex: 1; text-align: center; color: var(--ivory-dim); font-size: .85em; letter-spacing: .3em; overflow: hidden; white-space: nowrap; }
-.corner { position: absolute; top: calc(-46px); right: var(--gutter); background: rgba(10, 10, 8, .85); border: 1px solid var(--rule); color: var(--ivory-dim);
+.radio-progress { flex: 1; min-width: 0; text-align: center; color: var(--ivory-dim); font-size: .85em; letter-spacing: .3em; overflow: hidden; white-space: nowrap; }
+/* The menu button sits in the window's top right corner, wherever the text is. */
+.corner { position: fixed; z-index: 2; top: calc(8px + env(safe-area-inset-top)); right: calc(8px + env(safe-area-inset-right));
+  background: rgba(10, 10, 8, .88); border: 1px solid var(--rule); color: var(--ivory-dim); min-height: 36px;
   padding: 6px 10px; cursor: pointer; letter-spacing: .1em; text-transform: uppercase; font-size: .85em; }
+.corner:hover { color: var(--amber); border-color: var(--amber-dim); }
 
 /* Markdown from the published copy */
 .radio-text p, .sheet-panel p { margin: 0 0 .8em; }
@@ -109,30 +144,11 @@ h2.md-heading { font-size: 1.3em; }
 .arrival-note { color: var(--ivory-dim); font-size: .85em; }
 .arrival-none { color: var(--ivory-dim); }
 
-/* Viewscreen: art and links a section opens over the scene */
-.viewscreen { position: fixed; z-index: 2; top: calc(10px + env(safe-area-inset-top)); right: var(--gutter); width: min(440px, calc(100% - 2 * var(--gutter)));
-  max-height: 56vh; overflow-y: auto; background: rgba(10, 10, 8, .95); border: 1px solid var(--holo-dim); border-top: 2px solid var(--holo);
-  box-shadow: 0 0 0 1px rgba(114, 230, 255, .15), 0 0 24px rgba(114, 230, 255, .12); animation: flicker .35s steps(3, jump-none) 1; }
-.viewscreen-head { display: flex; align-items: center; gap: 10px; padding: 6px 10px; border-bottom: 1px solid var(--rule); }
-.viewscreen-kicker { color: var(--holo-dim); font-size: .7em; letter-spacing: .16em; text-transform: uppercase; }
-.viewscreen-title { margin: 0; min-width: 0; flex: 1; color: var(--holo); font-weight: normal; font-size: .9em; letter-spacing: .1em; text-transform: uppercase;
-  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.viewscreen-art { padding: 10px; display: flex; justify-content: center; }
-.viewscreen-art canvas { display: block; image-rendering: pixelated; }
-.viewscreen-links { list-style: none; margin: 0; padding: 0 10px 10px; display: grid; gap: 6px; }
-.viewscreen-link { width: 100%; min-height: 44px; display: flex; justify-content: space-between; gap: 10px; align-items: center; padding: 6px 10px; cursor: pointer;
-  background: var(--panel); border: 1px solid var(--rule); color: var(--ivory); text-align: left; }
-.viewscreen-link:hover, .viewscreen-link:focus-visible { border-color: var(--holo); color: var(--cold); }
-.viewscreen-host { color: var(--holo-dim); font-size: .8em; }
-
-/* Scene effects: the wipe between scenes, the station announcement, the ride between stops and the clown car */
+/* Scene effects: the wipe between scenes, the ride between stops and the clown car */
 .wipe { position: absolute; inset: 0; pointer-events: none; opacity: 0;
   background: repeating-linear-gradient(to bottom, rgba(232, 223, 198, .16) 0 1px, transparent 1px 3px), var(--bay); }
 #stage[data-wipe="on"] .wipe { animation: wipe .4s linear 1; }
-.banner { position: absolute; top: 10px; left: 50%; transform: translateX(-50%); margin: 0; max-width: calc(100% - 2 * var(--gutter)); padding: 4px 12px;
-  background: rgba(10, 10, 8, .88); border: 1px solid var(--amber-dim); color: var(--amber); font-size: .85em; letter-spacing: .08em; text-transform: uppercase;
-  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; animation: flicker .35s steps(3, jump-none) 1; }
-.transit { position: fixed; inset: 0; z-index: 2; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; cursor: pointer;
+.transit { position: absolute; inset: 0; z-index: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; cursor: pointer;
   background: var(--bay); overflow: hidden; }
 /* Stars streaking past: thin dashes on tiles of different sizes, so they never line up, moving at different speeds. */
 .streaks { position: absolute; inset: 0; opacity: .8; }
@@ -157,7 +173,7 @@ h2.md-heading { font-size: 1.3em; }
 .control:disabled { opacity: .35; cursor: default; }
 
 /* Settings and credits */
-.sheet { grid-row: 1 / 4; z-index: 2; display: flex; align-items: center; justify-content: center; padding: var(--gutter); background: rgba(10, 10, 8, .7); }
+.sheet { position: fixed; inset: 0; z-index: 3; display: flex; align-items: center; justify-content: center; padding: var(--gutter); background: rgba(10, 10, 8, .7); }
 .sheet-panel { width: min(520px, 100%); max-height: 100%; overflow-y: auto; background: var(--ink); border: 1px solid var(--rule); border-top: 2px solid var(--amber); padding: 16px; }
 .sheet-heading { margin: 0 0 12px; color: var(--amber); font-weight: normal; letter-spacing: .14em; text-transform: uppercase; }
 .setting-group { display: grid; gap: 10px; margin-bottom: 12px; }
@@ -175,7 +191,7 @@ h2.md-heading { font-size: 1.3em; }
 .log-list p { margin: 0 0 .6em; }
 
 /* Status line and messages */
-.status-bar { grid-row: 3; display: flex; justify-content: space-between; gap: 12px; padding: 4px var(--gutter); font-size: .75em; color: var(--ivory-dim);
+.status-bar { grid-column: 1 / -1; grid-row: 2; display: flex; justify-content: space-between; gap: 12px; padding: 4px var(--gutter); font-size: .75em; color: var(--ivory-dim);
   letter-spacing: .12em; text-transform: uppercase; background: var(--bay); border-top: 1px solid var(--rule); z-index: 1; }
 .signal::before { content: '●'; margin-right: 6px; color: var(--amber); }
 .signal[data-state="linked"]::before { color: var(--holo); }
@@ -190,23 +206,27 @@ h2.md-heading { font-size: 1.3em; }
 @keyframes streak-b { to { background-position: -117px 7px, -140px 30px; } }
 @keyframes drive { from { transform: translateX(-30ch); } to { transform: translateX(100vw); } }
 @keyframes pulse { 50% { opacity: .55; } }
+@keyframes meter { from { height: 2px; } to { height: 24px; } }
 
-/* Portrait and narrow: the scene above, the transmission below it. */
-@media (orientation: portrait), (max-width: 640px) {
+/* Portrait and narrow: the scene above, the column below it. */
+@media (orientation: portrait), (max-width: 720px) {
   :root { --gutter: 12px; }
-  #shuttle[data-view="radio"] #stage { grid-row: 1; }
-  .radio-panel { max-height: 52vh; }
-  .corner { top: auto; bottom: calc(100% + 6px); }
-  .menu-panel { width: 100%; padding: 10px 12px 8px; }
-  /* The title menu stays below the hangar's Shuttle Link panel. */
-  #title { align-items: flex-end; }
-  .menu-item { font-size: 1em; padding-top: 6px; padding-bottom: 6px; }
-  .menu-item.primary { font-size: 1.15em; }
-  #title .tip { display: none; }
-  .radio-channel { display: none; }
-  .viewscreen { top: calc(8px + env(safe-area-inset-top)); left: var(--gutter); right: var(--gutter); width: auto; max-height: 48vh; }
+  #shuttle { grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(0, 46vh) minmax(0, 1fr) auto; }
+  #shuttle:is([data-view="splash"], [data-view="title"]) { grid-template-rows: minmax(0, 55vh) minmax(0, 1fr) auto; }
+  #stage { grid-column: 1; grid-row: 1; }
+  .column { grid-row: 2; border-right: 0; border-top: 1px solid var(--rule); padding: 8px; gap: 8px; }
+  .status-bar { grid-row: 3; }
+  .status { height: clamp(120px, 17vh, 220px); }
+  .status-radio { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: 2px 12px; padding: 6px 10px; }
+  .callsign { font-size: 1em; }
+  .callsign-sub { display: none; }
+  .wave { height: 18px; }
+  .status .tip { display: none; }
+  .menu-item { font-size: 1em; min-height: 40px; padding-top: 6px; padding-bottom: 6px; }
+  .menu-item.primary { font-size: 1.1em; }
+  .menu-panel { padding: 8px 10px; }
 }
 @media (prefers-reduced-motion: reduce) {
-  .press, #radio[data-speaking="on"] .rx, .receiving, .viewscreen, .banner, .streaks::before, .streaks::after { animation: none; }
+  .press, .rx, .receiving, .viewscreen, .status-announce, .wave i, .streaks::before, .streaks::after { animation: none !important; }
 }
-main[data-motion="off"] :is(.press, #radio[data-speaking="on"] .rx, .receiving, .viewscreen, .banner) { animation: none; }
+main[data-motion="off"] :is(.press, .rx, .receiving, .viewscreen, .status-announce, .wave i) { animation: none !important; }

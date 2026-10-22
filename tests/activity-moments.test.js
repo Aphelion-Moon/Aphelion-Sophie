@@ -85,6 +85,19 @@ test('T-ACT-MOM-02 the shipped moments cover every section heading of the draft 
     chunks.forEach((_, chunk) => momentFor(chunks, chunk, moments));
   });
   assert.equal(mapped, 21);
+  // Ten Thousand belongs to the page that links the comic, wherever that page falls in its section.
+  const lights = draft.stages.find(stage => stage.id === 'admire-the-lights');
+  const pages = transmissionChunks(paginateStaticText(lights.body));
+  const shown = pages.map((page, index) => momentFor(pages, index, content.defaults.stages['admire-the-lights']));
+  assert.deepEqual(pages.map((page, index) => [page.includes('xkcd.com/1053'), shown[index].viewscreen === 'ten-thousand']).filter(([a, b]) => a !== b), []);
+  assert.ok(shown.some(moment => moment.beat === 'lucky'));
+});
+
+test('T-ACT-MOM-04 a phrase moment stages the page containing it and keeps the section moment elsewhere', () => {
+  const moments = { one: { beat: 'adult' }, '~see the comic': { beat: 'lucky', viewscreen: 'ten-thousand' } };
+  const chunks = ['# One\ntext', 'more text', 'Then **see the comic** here.'];
+  assert.deepEqual(chunks.map((_, index) => momentFor(chunks, index, moments)), [
+    { beat: 'adult', viewscreen: null }, { beat: 'adult', viewscreen: null }, { beat: 'lucky', viewscreen: 'ten-thousand' }]);
 });
 
 test('T-ACT-MOM-03 viewscreens: original art within bounds, https links only, provenance recorded', async () => {

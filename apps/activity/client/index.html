@@ -10,75 +10,85 @@
 <script type="module" src="/apps/activity/client/app.js"></script>
 </head>
 <body>
-<main id="shuttle" data-view="splash" data-text-size="normal">
+<main id="shuttle" data-view="splash" data-text-size="normal" data-speaking="off">
+  <!-- The scene has its own area; nothing is drawn over it but its own effects. -->
   <div id="stage">
     <canvas id="scene" role="img" aria-labelledby="scene-alt"></canvas>
     <p id="scene-alt" class="sr-only"></p>
     <div class="scanlines" aria-hidden="true"></div>
     <div class="wipe" aria-hidden="true"></div>
-    <p id="banner" class="banner" hidden></p>
     <pre id="clown" class="clown-car" aria-hidden="true" hidden>   _____________
   /  HONK  |  o  \__
  |__________|______|
    (@)         (@)</pre>
-  </div>
-
-  <section id="splash" class="layer" aria-label="The Shuttle">
-    <p class="press"><span class="press-mark" aria-hidden="true">▌</span><span id="press-text">Press any key or tap to begin</span></p>
-    <p class="tip" data-tip></p>
-  </section>
-
-  <section id="title" class="layer" hidden aria-label="Main menu">
-    <nav class="menu-panel">
-      <p class="menu-kicker"><span class="kicker-mark" aria-hidden="true">◆</span> Shuttle Service · Aphelion</p>
-      <ul id="menu" class="menu"></ul>
-      <p id="notice" class="notice" role="status" hidden></p>
-      <p class="tip" data-tip></p>
-    </nav>
-  </section>
-
-  <section id="radio" class="layer" hidden aria-labelledby="radio-speaker">
-    <div class="radio-panel">
-      <header class="radio-head">
-        <span class="rx" aria-hidden="true">RX</span>
-        <h2 id="radio-speaker" class="radio-speaker">Sophie · Community Services</h2>
-        <span id="radio-channel" class="radio-channel" aria-hidden="true"></span>
-        <button id="radio-view" type="button" class="chip" hidden aria-keyshortcuts="V">View</button>
-        <span id="radio-stop" class="radio-stop"></span>
-      </header>
-      <div id="radio-text" class="radio-text" aria-hidden="true"></div>
-      <div id="radio-live" class="sr-only" aria-live="polite"></div>
-      <section id="arrival" class="arrival" hidden aria-labelledby="arrival-heading">
-        <h3 id="arrival-heading" class="arrival-heading"></h3>
-        <ul id="arrival-list" class="arrival-list"></ul>
-      </section>
-      <footer class="radio-controls">
-        <button id="radio-back" type="button" class="control">◂ <span>Back</span></button>
-        <span id="radio-progress" class="radio-progress" aria-hidden="true"></span>
-        <button id="radio-forward" type="button" class="control primary"><span>Continue</span> ▸</button>
-      </footer>
+    <div id="transit" class="transit" hidden>
+      <div class="streaks" aria-hidden="true"></div>
+      <p id="transit-text" class="transit-text"></p>
+      <p id="transit-skip" class="transit-skip"></p>
     </div>
-    <button id="radio-menu" type="button" class="corner" aria-label="Menu">≡ Menu</button>
-  </section>
-
-  <aside id="viewscreen" class="viewscreen" hidden aria-labelledby="viewscreen-title">
-    <header class="viewscreen-head">
-      <span class="viewscreen-kicker" aria-hidden="true">Viewscreen</span>
-      <h2 id="viewscreen-title" class="viewscreen-title"></h2>
-      <button id="viewscreen-close" type="button" class="chip" aria-label="Close viewscreen">✕</button>
-    </header>
-    <div class="viewscreen-art"><canvas id="viewscreen-art" aria-hidden="true"></canvas></div>
-    <p id="viewscreen-alt" class="sr-only"></p>
-    <ul id="viewscreen-links" class="viewscreen-links"></ul>
-  </aside>
-
-  <div id="transit" class="transit" hidden>
-    <div class="streaks" aria-hidden="true"></div>
-    <p id="transit-text" class="transit-text"></p>
-    <p id="transit-skip" class="transit-skip"></p>
   </div>
 
-  <section id="settings" class="layer sheet" hidden aria-labelledby="settings-heading">
+  <!-- The reading column: the status window above, then the splash prompt, the menu or Sophie's transmission. -->
+  <div id="column" class="column">
+    <section id="status" class="status" aria-labelledby="status-title">
+      <header class="status-head">
+        <span class="rx" aria-hidden="true">RX</span>
+        <h2 id="status-title" class="status-title">Common · 145.9</h2>
+        <span id="status-state" class="status-state">Standing by</span>
+      </header>
+      <div id="status-body" class="status-body">
+      <div id="status-radio" class="status-radio">
+        <p class="callsign">Sophie</p>
+        <p class="callsign-sub">Community Services · Shuttle radio</p>
+        <div class="wave" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+        <p class="tip" data-tip></p>
+      </div>
+      <div id="viewscreen" class="viewscreen" hidden>
+        <h3 id="viewscreen-title" class="viewscreen-title"></h3>
+        <div id="viewscreen-box" class="viewscreen-art"><canvas id="viewscreen-art" aria-hidden="true"></canvas></div>
+        <p id="viewscreen-alt" class="sr-only"></p>
+        <ul id="viewscreen-links" class="viewscreen-links"></ul>
+      </div>
+      </div>
+      <p id="banner" class="status-announce" hidden></p>
+    </section>
+
+    <section id="splash" class="pane" aria-label="The Shuttle">
+      <p class="press"><span class="press-mark" aria-hidden="true">▌</span><span id="press-text">Press any key or tap to begin</span></p>
+    </section>
+
+    <section id="title" class="pane" hidden aria-label="Main menu">
+      <nav class="menu-panel">
+        <p class="menu-kicker"><span class="kicker-mark" aria-hidden="true">◆</span> Shuttle Service · Aphelion</p>
+        <ul id="menu" class="menu"></ul>
+        <p id="notice" class="notice" role="status" hidden></p>
+      </nav>
+    </section>
+
+    <section id="radio" class="pane" hidden aria-labelledby="radio-speaker">
+      <div class="radio-panel">
+        <header class="radio-head">
+          <h2 id="radio-speaker" class="sr-only">Sophie · Community Services</h2>
+          <span id="radio-stop" class="radio-stop"></span>
+        </header>
+        <div id="radio-text" class="radio-text" aria-hidden="true"></div>
+        <div id="radio-live" class="sr-only" aria-live="polite"></div>
+        <section id="arrival" class="arrival" hidden aria-labelledby="arrival-heading">
+          <h3 id="arrival-heading" class="arrival-heading"></h3>
+          <ul id="arrival-list" class="arrival-list"></ul>
+        </section>
+        <footer class="radio-controls">
+          <button id="radio-back" type="button" class="control">◂ <span>Back</span></button>
+          <span id="radio-progress" class="radio-progress" aria-hidden="true"></span>
+          <button id="radio-forward" type="button" class="control primary"><span>Continue</span> ▸</button>
+        </footer>
+      </div>
+    </section>
+  </div>
+
+  <button id="radio-menu" type="button" class="corner" hidden aria-label="Menu">≡ Menu</button>
+
+  <section id="settings" class="sheet" hidden aria-labelledby="settings-heading">
     <div class="sheet-panel">
       <h2 id="settings-heading" class="sheet-heading">Settings</h2>
       <div class="setting-group">
@@ -107,7 +117,7 @@
     </div>
   </section>
 
-  <section id="codex" class="layer sheet" hidden aria-labelledby="codex-heading">
+  <section id="codex" class="sheet" hidden aria-labelledby="codex-heading">
     <div class="sheet-panel">
       <h2 id="codex-heading" class="sheet-heading">Codex</h2>
       <dl id="codex-list" class="codex-list"></dl>
@@ -115,7 +125,7 @@
     </div>
   </section>
 
-  <section id="log" class="layer sheet" hidden aria-labelledby="log-heading">
+  <section id="log" class="sheet" hidden aria-labelledby="log-heading">
     <div class="sheet-panel">
       <h2 id="log-heading" class="sheet-heading">Station log</h2>
       <ol id="log-list" class="log-list"></ol>
@@ -123,7 +133,7 @@
     </div>
   </section>
 
-  <section id="keys" class="layer sheet" hidden aria-labelledby="keys-heading">
+  <section id="keys" class="sheet" hidden aria-labelledby="keys-heading">
     <div class="sheet-panel">
       <h2 id="keys-heading" class="sheet-heading">Keys</h2>
       <dl id="keys-list" class="codex-list keys-list"></dl>
@@ -131,7 +141,7 @@
     </div>
   </section>
 
-  <section id="credits" class="layer sheet" hidden aria-labelledby="credits-heading">
+  <section id="credits" class="sheet" hidden aria-labelledby="credits-heading">
     <div class="sheet-panel credits">
       <h2 id="credits-heading" class="sheet-heading">Credits</h2>
       <p>Sophie, Community Services, speaks for the Aphelion Staff team. Her lines are the published Shuttle guidance, unchanged.</p>

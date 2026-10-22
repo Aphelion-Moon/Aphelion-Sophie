@@ -22,9 +22,10 @@ export function createViewscreens({ canvas, palette, background, load, pixelRati
       if (!cache.has(id)) cache.set(id, load(id).then(validateViewscreen).catch(error => { cache.delete(id); throw error; }));
       return cache.get(id);
     },
-    paint(screen) {
+    /** Paints as large as the box's width allows, cells twice as tall as wide, within maxHeight pixels. */
+    paint(screen, { maxHeight = Infinity } = {}) {
       const frame = viewscreenFrame(screen), width = canvas.parentElement?.clientWidth || 320;
-      const cell = Math.max(4, Math.floor(Math.min(width, 520) / frame.cols));
+      const cell = Math.max(3, Math.min(Math.floor(Math.min(width, 520) / frame.cols), Math.floor(maxHeight / (2 * frame.rows))));
       painter.resize(cell * frame.cols, cell * 2 * frame.rows, frame.cols, frame.rows, pixelRatio());
       painter.draw(frame, SCENE_COLOURS);
     },
