@@ -1,0 +1,44 @@
+{
+ "schema": 1,
+ "id": "rules",
+ "title": "Recommended reading",
+ "art": {
+  "text": [
+   "     ________   ________",
+   "    /        \\ /        \\",
+   "   |  RULES   |  WIKI    |",
+   "   |  ~~~~~   |  ~~~~~   |",
+   "   |  ~~~~~   |  ~~~~~   |",
+   "   |________/ \\________|",
+   "            |▌|",
+   "         ___|_|___"
+  ],
+  "colours": [
+   "     oooooooo   oooooooo",
+   "    o        o o        o",
+   "   o  aaaaa   o  hhhh    o",
+   "   o  IIIII   o  IIIII   o",
+   "   o  IIIII   o  IIIII   o",
+   "   oooooooooo oooooooooo",
+   "            oho",
+   "         ooooooooo"
+  ]
+ },
+ "alt": "An old rulebook, open on a lectern, with a new cyan bookmark. The wiki is the authority for game rules.",
+ "links": [
+  {
+   "label": "Start with our recommended reading",
+   "url": "https://meridian-wiki.a13.info/wiki/Policies#RP-01"
+  },
+  {
+   "label": "The rules",
+   "url": "https://meridian-wiki.a13.info/wiki/Policies"
+  }
+ ],
+ "provenance": {
+  "author": "Made by the coding agent (Claude) at owner direction",
+  "created": "2026-10-22",
+  "decision": "docs/decisions/0001-owner-policy.md (The Shuttle becomes an Activity, D2; Shuttle Activity second pass)",
+  "rights": "Machine-made art; it may not attract copyright in every jurisdiction. Linked works stay with their authors and are not reproduced."
+ }
+}

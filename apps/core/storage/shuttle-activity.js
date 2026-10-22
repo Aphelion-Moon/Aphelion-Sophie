@@ -3,6 +3,8 @@ import { ContractError, requireCondition, requireFreshObservation, requireIntege
 import { requireOnboardingEligibility } from '../../../modules/membership/index.js';
 import { advanceOnboarding, backOnboarding, retryWhitelist, startOnboarding } from '../../../modules/onboarding/index.js';
 import { ACTIVITY_ACTIONS, ACTIVITY_STATUSES, activityRunView, activityStops, requireActivityRequestId } from '../../../modules/onboarding/activity.js';
+import { effectiveLayout } from '../../../modules/onboarding/activity-layout.js';
+import { readPublishedActivityLayout } from './activity-layout.js';
 import { createMemberOperation } from './members.js';
 import { getDefinition, getPublication, getSession, saveSession } from './onboarding-records.js';
 import { receipt, saveReceipt } from './receipts.js';
@@ -18,7 +20,7 @@ const ACTIONS = Object.freeze({ advance: advanceOnboarding, back: backOnboarding
  * belongs to a channel finishes it there. While the Activity is `testing`, only the server owner and current lead
  * ops role holders are admitted; every request reads Discord afresh through `authorize`. No AI.
  */
-export function createShuttleActivityStore({ pool, clock, authorize, definitionId, status }) {
+export function createShuttleActivityStore({ pool, clock, authorize, definitionId, status, defaults = null }) {
   requireName(definitionId);
   requireCondition(typeof authorize === 'function' && ACTIVITY_STATUSES.includes(status), 'ACTIVITY_CONFIGURATION_INVALID');
   const memberOperation = createMemberOperation({ pool, clock });
@@ -50,8 +52,17 @@ export function createShuttleActivityStore({ pool, clock, authorize, definitionI
     return (await client.query(`SELECT definition FROM sophie_core.definitions WHERE id = $1
       AND definition->>'status' = 'published' ORDER BY version DESC LIMIT 1 FOR SHARE`, [definitionId])).rows[0]?.definition ?? null;
   }
+  /** The scenes, moments and curated arrival list for a publication: defaults, then the published layout. */
+  async function layoutFor(client, member, publication) {
+    const published = await readPublishedActivityLayout(client, member.guildId);
+    return effectiveLayout({ stages: publication.stages, defaults, layout: published?.document ?? null });
+  }
   async function view(client, session, member) {
-    return activityRunView({ session, publication: await getPublication(client, session), whitelist: member.observation.whitelist === true });
+    const publication = await getPublication(client, session), layout = await layoutFor(client, member, publication);
+    // The curated arrival list travels beside the view; the HTTP layer shows only channels the member can see, and only
+    // once Whitelist is confirmed.
+    return Object.defineProperty(activityRunView({ session, publication, whitelist: member.observation.whitelist === true, layout }),
+      'arrivalChannels', { value: layout.arrival, enumerable: false });
   }
   async function replay(client, member, previous) {
     const session = await getSession(client, previous.sessionId, member.guildId, member.userId);
@@ -76,7 +87,7 @@ export function createShuttleActivityStore({ pool, clock, authorize, definitionI
         const published = await latestDefinition(client);
         if (!published) return { state: 'unpublished' };
         const publication = await getPublication(client, { definitionId: published.id, definitionVersion: published.version });
-        return { state: 'ready', mode: member.observation.whitelist ? 'refresh' : 'qualification', stops: activityStops(publication),
+        return { state: 'ready', mode: member.observation.whitelist ? 'refresh' : 'qualification', stops: activityStops(publication, await layoutFor(client, member, publication)),
           whitelist: member.observation.whitelist ? 'confirmed' : 'none' };
       });
     },

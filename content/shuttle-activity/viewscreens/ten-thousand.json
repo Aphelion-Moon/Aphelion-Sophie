@@ -1,0 +1,46 @@
+{
+ "schema": 1,
+ "id": "ten-thousand",
+ "title": "Today's lucky ten thousand",
+ "art": {
+  "text": [
+   "┌────────────────────────────────────┐",
+   "│   PEOPLE LEARNING THIS TODAY       │",
+   "│                                    │",
+   "│          1 0 , 0 0 0               │",
+   "│                                    │",
+   "│   o  o  o  o  o  o  o  o  o  o     │",
+   "│  /|\\/|\\/|\\/|\\/|\\/|\\/|\\/|\\/|\\/|\\    │",
+   "│  / \\/ \\/ \\/ \\/ \\/ \\/ \\/ \\/ \\/ \\    │",
+   "│                                    │",
+   "│   Lucky them. Lucky you.           │",
+   "└────────────────────────────────────┘"
+  ],
+  "colours": [
+   "HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH",
+   "H   hhhhhh hhhhhhhh hhhh hhhhh       H",
+   "H                                    H",
+   "H          c c c c c c               H",
+   "H                                    H",
+   "H   a  a  a  a  a  a  a  a  a  a     H",
+   "H  AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA    H",
+   "H  A AA AA AA AA AA AA AA AA AA A    H",
+   "H                                    H",
+   "H   iiiii iiiii iiiii iiii           H",
+   "HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH"
+  ]
+ },
+ "alt": "A station display counts the people learning something for the first time today: ten thousand. A row of small figures stands under it.",
+ "links": [
+  {
+   "label": "xkcd: Ten Thousand",
+   "url": "https://xkcd.com/1053/"
+  }
+ ],
+ "provenance": {
+  "author": "Made by the coding agent (Claude) at owner direction",
+  "created": "2026-10-22",
+  "decision": "docs/decisions/0001-owner-policy.md (The Shuttle becomes an Activity, D2; Shuttle Activity second pass)",
+  "rights": "Machine-made art; it may not attract copyright in every jurisdiction. Linked works stay with their authors and are not reproduced."
+ }
+}

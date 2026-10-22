@@ -71,6 +71,7 @@ export const CORE_STATE_TABLES = Object.freeze([
   'sophie_core.shuttle_help_requests',
   'sophie_core.shuttle_publications',
   'sophie_core.shuttle_activity_runs',
+  'sophie_core.activity_layouts',
   'sophie_core.shuttle_cases',
   'sophie_core.gateway_members',
   'sophie_core.gateway_lifecycle',

@@ -37,27 +37,37 @@ export function activityStopScene(stop, stops) {
 /**
  * What the Activity shows for one run: the stored progress and the current stop's published copy, split into the
  * same pages the channel posts. Whitelist reads "confirmed" only for a finished run while Discord currently shows the
- * role, and "requested" while delivery is pending; nothing here grants or implies access.
+ * role, and "requested" while delivery is pending; nothing here grants or implies access. layout is an effectiveLayout()
+ * result (stage ids, scenes and moments); without one each stop gets its default scene and no moments.
  */
-export function activityRunView({ session, publication, whitelist }) {
+export function activityRunView({ session, publication, whitelist, layout = null }) {
   validatePublication(publication);
   requireCondition(session.definitionId === publication.id && session.definitionVersion === publication.version, 'DEFINITION_MISMATCH');
   requireInteger(session.stepIndex, 0, publication.stages.length - 1); requireInteger(session.version);
   requireCondition(['active', 'role_pending', 'complete'].includes(session.status) && typeof whitelist === 'boolean', 'INVALID_SESSION_STATUS');
-  const count = publication.stages.length;
+  const stops = stopsFor(publication, layout);
   return {
     version: session.version,
     status: session.status === 'complete' ? 'boarded' : session.status === 'role_pending' ? 'pending' : session.helpPaused ? 'paused' : 'reading',
     mode: session.mode,
     stop: session.stepIndex,
-    stops: publication.stages.map((stage, index) => ({ title: stage.title, scene: activityStopScene(index, count) })),
+    stops: stops.map(({ id, title, scene }) => ({ id, title, scene })),
+    moments: stops[session.stepIndex].moments,
     pages: onboardingStepMessages(publication, session.stepIndex).map(message => message.content),
     whitelist: session.status === 'role_pending' ? 'requested' : session.status === 'complete' && whitelist ? 'confirmed' : 'none',
   };
 }
 
 /** The stops of a publication before a run starts, for the title screen. */
-export function activityStops(publication) {
+export function activityStops(publication, layout = null) {
   validatePublication(publication);
-  return publication.stages.map((stage, index) => ({ title: stage.title, scene: activityStopScene(index, publication.stages.length) }));
+  return stopsFor(publication, layout).map(({ id, title, scene }) => ({ id, title, scene }));
+}
+
+function stopsFor(publication, layout) {
+  if (layout) {
+    requireCondition(layout.stops.length === publication.stages.length && layout.stops.every((stop, i) => stop.id === publication.stages[i].id), 'ACTIVITY_LAYOUT_MISMATCH');
+    return layout.stops;
+  }
+  return publication.stages.map((stage, index) => ({ id: stage.id, title: stage.title, scene: activityStopScene(index, publication.stages.length), moments: {} }));
 }

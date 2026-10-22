@@ -1,9 +1,12 @@
 import assert from 'node:assert/strict';
+import { fileURLToPath } from 'node:url';
 import { ContractError } from '../../contracts/validation.js';
 import { createCoreStore } from '../../apps/core/storage/core-store.js';
 import { createOutbox } from '../../apps/core/storage/outbox.js';
 import { createActorAuthorityStore } from '../../apps/core/storage/actor-authority.js';
 import { createShuttleActivityStore } from '../../apps/core/storage/shuttle-activity.js';
+import { createActivityLayoutStore } from '../../apps/core/storage/activity-layout.js';
+import { loadActivityContent } from '../../apps/activity/content.js';
 import { createCoreAuthorization } from '../../apps/core/security/authorization.js';
 import { createCorePrincipals } from '../../apps/core/security/principals.js';
 import { createActivityAuth } from '../../apps/core/security/activity-auth.js';
@@ -168,5 +171,49 @@ export async function runShuttleActivitySuite(cluster, run) {
     assert.equal(fresh.stop, 0);
     const sessions = await rows('sessions');
     assert.equal(sessions.length, 2); assert.equal(sessions.filter(row => row.current).length, 1);
+  });
+
+  await scenario('SA09 the layout editor publishes numbered versions for guidance publishers; runs use the scenes, moments and curated list it names', async () => {
+    const content = await loadActivityContent(fileURLToPath(new URL('../../', import.meta.url)));
+    const [first, second] = publication.stages;
+    const defaults = { schema: 1, stages: { [first.id]: { 'synthetic heading': { beat: 'adult' }, 'another heading': { beat: 'pride' } } } };
+    const layouts = createActivityLayoutStore({ pool, authorize: authorization.authorize, guildId: GUILD, definitionId: definition.id, defaults,
+      sceneBeats: content.sceneBeats, viewscreens: content.viewscreens });
+    const editor = await interactionActor(OTHER), key = n => n.toString(16).padStart(64, '0');
+    await assert.rejects(layouts.readActivityLayout({ actor: await interactionActor(USER) }), error => error.code === 'OPERATION_DENIED');
+    const empty = await layouts.readActivityLayout({ actor: editor });
+    assert.equal(empty.version, 0); assert.deepEqual(empty.document, { schema: 1, stops: {}, arrival: [] });
+    assert.deepEqual(empty.stages.map(stage => stage.id), publication.stages.map(stage => stage.id));
+    assert.equal(empty.stages[0].defaultScene, 'departure-lounge');
+    assert.ok(empty.scenes.find(scene => scene.id === 'viewport').beats.includes('enjoy'));
+    const document = { schema: 1, stops: { [first.id]: { scene: 'viewport', moments: { 'another heading': { beat: 'enjoy', viewscreen: 'ten-thousand' } } } },
+      arrival: [{ channelId: '100000000000000301', note: 'Say hello' }] };
+    await assert.rejects(layouts.publishActivityLayout({ actor: await interactionActor(USER), requestId: key(1), expectedVersion: 0, document }), error => error.code === 'OPERATION_DENIED');
+    assert.deepEqual(await layouts.publishActivityLayout({ actor: editor, requestId: key(1), expectedVersion: 0, document }), { version: 1, sha256: (await rows('activity_layouts'))[0].sha256, duplicate: false });
+    assert.equal((await layouts.publishActivityLayout({ actor: editor, requestId: key(1), expectedVersion: 0, document })).duplicate, true);
+    await assert.rejects(layouts.publishActivityLayout({ actor: editor, requestId: key(1), expectedVersion: 0, document: { ...document, arrival: [] } }), error => error.code === 'ACTIVITY_LAYOUT_REQUEST_REUSED');
+    await assert.rejects(layouts.publishActivityLayout({ actor: editor, requestId: key(2), expectedVersion: 0, document }), error => error.code === 'ACTIVITY_LAYOUT_CHANGED');
+    await assert.rejects(layouts.publishActivityLayout({ actor: editor, requestId: key(3), expectedVersion: 1,
+      document: { ...document, stops: { [first.id]: { scene: 'baggage-hall', moments: { x: { beat: 'enjoy' } } } } } }), error => error.code === 'ACTIVITY_LAYOUT_UNKNOWN_BEAT');
+    await assert.rejects(layouts.publishActivityLayout({ actor: editor, requestId: key(4), expectedVersion: 1,
+      document: { ...document, stops: { 'not-a-stage': { scene: 'viewport' } } } }), error => error.code === 'ACTIVITY_LAYOUT_UNKNOWN_STOP');
+    await assert.rejects(layouts.publishActivityLayout({ actor: editor, requestId: key(5), expectedVersion: 1,
+      document: { ...document, stops: { [second.id]: { moments: { x: { beat: 'adult', viewscreen: 'missing' } } } } } }), error => error.code === 'INVALID_MOMENT');
+    const stored = await rows('activity_layouts');
+    assert.equal(stored.length, 1); assert.equal(stored[0].operator_grant.userId, OTHER);
+    assert.equal((await layouts.readActivityLayout({ actor: editor })).version, 1);
+
+    // Runs show the published layout: the stop's scene and merged moments; the curated list stays beside the view.
+    const shown = createShuttleActivityStore({ pool, clock: () => now, authorize: authorization.authorize, definitionId: definition.id, status: 'testing', defaults });
+    assert.equal((await shown.describe(await member(OTHER))).stops[0].scene, 'viewport');
+    const { run } = await shown.board({ ...await member(OTHER), requestId: requestId() });
+    assert.equal(run.stops[0].scene, 'viewport'); assert.equal(run.stops[1].scene, 'baggage-hall');
+    assert.deepEqual(run.moments, { 'synthetic heading': { beat: 'adult' }, 'another heading': { beat: 'enjoy', viewscreen: 'ten-thousand' } });
+    assert.deepEqual(run.arrivalChannels, [{ channelId: '100000000000000301', note: 'Say hello' }]);
+    assert.equal(JSON.stringify(run).includes('100000000000000301'), false);
+
+    // A stored layout that no longer matches its digest is refused rather than shown.
+    await admin.query(`UPDATE sophie_core.activity_layouts SET document = jsonb_set(document, '{arrival}', '[]'::jsonb)`);
+    await assert.rejects(shown.describe(await member(OTHER)), error => error.code === 'ACTIVITY_LAYOUT_CORRUPT');
   });
 }

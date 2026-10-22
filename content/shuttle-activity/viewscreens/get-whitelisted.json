@@ -1,0 +1,42 @@
+{
+ "schema": 1,
+ "id": "get-whitelisted",
+ "title": "One last step, in the game",
+ "art": {
+  "text": [
+   "┌─ MERIDIAN RIFT ────────────────────┐",
+   "│                                    │",
+   "│   WELCOME, SPACER                  │",
+   "│                                    │",
+   "│   [ Get Whitelisted ]   « click    │",
+   "│                                    │",
+   "│   then sign in with Discord        │",
+   "│   to link your account             │",
+   "└────────────────────────────────────┘"
+  ],
+  "colours": [
+   "oo aaaaaaaa aaaa ooooooooooooooooooooo",
+   "o                                    o",
+   "o   iiiiiiii iiiiii                  o",
+   "o                                    o",
+   "o   c ccc ccccccccccc c   a aaaaa    o",
+   "o                                    o",
+   "o   IIII IIII II IIII IIIIIII        o",
+   "o   II IIII IIII IIIIIII             o",
+   "oooooooooooooooooooooooooooooooooooooo"
+  ]
+ },
+ "alt": "The Meridian Rift game screen with a Get Whitelisted button. Click it in game, then sign in with Discord to link your account.",
+ "links": [
+  {
+   "label": "Meridian Rift website",
+   "url": "https://meridian.a13.info/about/"
+  }
+ ],
+ "provenance": {
+  "author": "Made by the coding agent (Claude) at owner direction",
+  "created": "2026-10-22",
+  "decision": "docs/decisions/0001-owner-policy.md (The Shuttle becomes an Activity, D2; Shuttle Activity second pass)",
+  "rights": "Machine-made art; it may not attract copyright in every jurisdiction. Linked works stay with their authors and are not reproduced."
+ }
+}

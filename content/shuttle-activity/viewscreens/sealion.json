@@ -1,0 +1,44 @@
+{
+ "schema": 1,
+ "id": "sealion",
+ "title": "Keep the pad clear",
+ "art": {
+  "text": [
+   "            .-----------.",
+   "       ____/  ARRIVALS   \\____",
+   "      [_______________________]",
+   "              ||     ||",
+   "              vv     vv",
+   "        ░░░░░░░░░░░░░░░░░░░░",
+   "               ,-.",
+   "            _/ o  \\    \"Could you",
+   "           (     _>     explain that",
+   "     ////// KEEP CLEAR //////  again?\""
+  ],
+  "colours": [
+   "            ooooooooooooo",
+   "       oooor  hhhhhhho   ooooo",
+   "      ooooooooooooooooooooooooo",
+   "              rr     rr",
+   "              rr     rr",
+   "        dddddddddddddddddddd",
+   "               III",
+   "            II I  I    oiiiii iii",
+   "           I     II     oiiiiii iiii",
+   "     rrrrrr rrrr rrrro rrrrrr  iiiiiio"
+  ]
+ },
+ "alt": "The Arrivals Shuttle comes down onto its landing pad. A sea lion sits on the pad marked KEEP CLEAR and asks, \"Could you explain that again?\" as the shuttle's shadow covers it.",
+ "links": [
+  {
+   "label": "Sealioning (Wikipedia)",
+   "url": "https://en.wikipedia.org/wiki/Sealioning"
+  }
+ ],
+ "provenance": {
+  "author": "Made by the coding agent (Claude) at owner direction",
+  "created": "2026-10-22",
+  "decision": "docs/decisions/0001-owner-policy.md (The Shuttle becomes an Activity, D2; Shuttle Activity second pass)",
+  "rights": "Machine-made art; it may not attract copyright in every jurisdiction. Linked works stay with their authors and are not reproduced."
+ }
+}

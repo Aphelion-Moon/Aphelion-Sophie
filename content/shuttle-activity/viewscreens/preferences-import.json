@@ -1,0 +1,41 @@
+{
+ "schema": 1,
+ "id": "preferences-import",
+ "title": "Bring your settings, not your setting",
+ "art": {
+  "text": [
+   "┌─ TERMINAL ─────────────────────────┐",
+   "│ $ Export-Preferences               │",
+   "│   on your previous server   done   │",
+   "│                                    │",
+   "│ $ Import-Character-Preferences     │",
+   "│   on Meridian Rift, once you are   │",
+   "│   Whitelisted                      │",
+   "│   ... disconnected. Reconnect.     │",
+   "│                                    │",
+   "│ Settings move. The setting stays.  │",
+   "└────────────────────────────────────┘"
+  ],
+  "colours": [
+   "oo AAAAAAAA oooooooooooooooooooooooooo",
+   "o c cccccccccccccccccc               o",
+   "o   II IIII IIIIIIII IIIIII   hhhh   o",
+   "o                                    o",
+   "o c cccccccccccccccccccccccccccc     o",
+   "o   II IIIIIIII IIIII IIII III III   o",
+   "o   IIIIIIIIIII                      o",
+   "o   aaa aaaaaaaaaaaaa aaaaaaaaaa     o",
+   "o                                    o",
+   "o iiiiiiii iiiii iii iiiiiii iiiiii  o",
+   "oooooooooooooooooooooooooooooooooooooo"
+  ]
+ },
+ "alt": "A terminal shows the preferences import: Export-Preferences on your previous server, then Import-Character-Preferences on Meridian Rift once you are Whitelisted. You are disconnected afterwards; reconnect to continue.",
+ "links": [],
+ "provenance": {
+  "author": "Made by the coding agent (Claude) at owner direction",
+  "created": "2026-10-22",
+  "decision": "docs/decisions/0001-owner-policy.md (The Shuttle becomes an Activity, D2; Shuttle Activity second pass)",
+  "rights": "Machine-made art; it may not attract copyright in every jurisdiction. Linked works stay with their authors and are not reproduced."
+ }
+}
