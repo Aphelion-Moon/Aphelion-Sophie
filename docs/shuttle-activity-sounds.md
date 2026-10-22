@@ -1,7 +1,7 @@
 # Shuttle Activity sounds
 
 Scope: P42 (owner decisions of 21 October 2026, D10 and the encoding tool) and the story pass (The Shuttle as a story,
-22 October 2026). The Activity has 40 sound cues. The owner chose one CC0 or CC BY sound for each; the record of
+22 October 2026). The Activity has 41 sound cues. The owner chose one CC0 or CC BY sound for each; the record of
 sources, licences and hashes is [`legal/shuttle-activity-sounds.json`](../legal/shuttle-activity-sounds.json). No AI is
 involved anywhere in this pipeline, and no member or case data touches it.
 
@@ -9,7 +9,7 @@ involved anywhere in this pipeline, and no member or case data touches it.
 |---|---|---|
 | 21 October | UI-01–05, DLG-01–05, SC-01–06, AMB-01–05, MUS-01–02 | Auditioned and approved by the owner on 21 October. |
 | Story, 22 October | DLG-06, SC-08–SC-21, AMB-07, and a new AMB-06 (the arrival concourse, replacing New laboratory) | Picked, verified and encoded on 22 October; auditioned and approved by the owner the same day, all 17 without changes (`review.story` in the record). |
-| Still being chosen | SC-07 (launch roll) | Second round on the picker. Scenes may name it; it plays nothing until it is encoded (`PENDING_SOUND_CUES` in `apps/activity/content.js`). |
+| Second round, 22 October | SC-07 (launch roll) | Picked in a second round and encoded on 22 October; awaiting the owner's audition (`review.awaiting`), and not in the installed build. A scene may name a cue that is still being chosen (`PENDING_SOUND_CUES` in `apps/activity/content.js`, now empty); it plays nothing until it is encoded. |
 
 ## Files
 

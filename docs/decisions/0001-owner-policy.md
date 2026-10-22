@@ -1538,3 +1538,13 @@ The 17 sounds were cut and levelled by the same analysis as the 21 October set a
 `scripts/build-shuttle-sounds.mjs`. The rebuild reproduced the 23 unchanged approved outputs byte for byte. The owner
 auditioned the 17 on a private page in both formats, with loops and seams, and approved all of them without changes.
 The record is `legal/shuttle-activity-sounds.json` (`review.story`).
+
+- **SC-07 chosen.** In the second round the owner picked "Deep 04 low rumbling, drone" by cabled_mess (Freesound
+  338367, CC0 1.0, checked on its page). The owner sent it without a hash list, so its SHA-256 was computed on receipt
+  and pinned. It plays for 7 s from 0.8 s into the forward view, swelling in and dying away as the rail drops into
+  stars. It awaits the owner's audition and is not in the installed build.
+- **Installed** `135f2a6` on 22 October 2026 at 16:11 UTC on the owner's approval ("Approved: install the fourth pass
+  (source-only update, including the 17 story sounds) in the test Discord."). 52 files were written and the 2 replaced
+  AMB-06 outputs removed; there was no migration or configuration change. Core and the worker were down 33 seconds,
+  and all checks passed. The story copy is not published yet. Folder
+  `.agent_docs/aphelion-sophie/deployment-135f2a6-2026-10-22`.

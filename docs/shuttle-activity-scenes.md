@@ -144,5 +144,6 @@ node scripts/author-shuttle-viewscreens.mjs
 
 ## Still open
 
-- Owner review of the fourth pass (the story) in the test Discord, after install.
-- SC-07 (the launch roll) is still being chosen; the launch plays without it until then.
+- Owner review of the fourth pass (the story, installed as `135f2a6`) in the test Discord, once the story copy is
+  published: the scenes are staged against the story's section headings.
+- SC-07 (the launch roll) awaits the owner's audition; the installed launch plays without it.
