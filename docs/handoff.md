@@ -1,34 +1,153 @@
-# Sophie development handoff
+# Sophie development handoff — 22 October 2026
 
-Sophie provides deterministic community administration, Whitelist onboarding,
-private cases, and website configuration. No AI may receive ticket or onboarding
-session content. Current policy is in [the owner decisions](decisions/0001-owner-policy.md).
+Sophie provides deterministic community administration, Whitelist onboarding, private cases and website
+configuration. No AI may receive ticket or onboarding session content. Read [AGENTS.md](../AGENTS.md) first; current
+policy is in [the owner decisions](decisions/0001-owner-policy.md), remaining work and release gates in
+[the workplan](workplan.md), and the checks actually run in [verification](verification.md). This page is a snapshot
+for the next session: where the Shuttle Activity work stands, what is left before it opens, and how to work on it.
+Where it disagrees with those records, they win.
 
-## Current staging status
+## Where things stand
 
-The isolated Sophie host is online at https://sophie.a13.info, running pinned
-`d4ca16ab6286a4ef186733d6829828e74d3fc176` with schema 055. Discord verified the
-signed interactions endpoint, the Gateway is current, and all 28 public website
-checks passed. The bot uses the configured test guild and retained configuration.
+- **Installed release:** `sophie-mistral-a0eb904` (schema 075), installed 22 October 2026 at 21:14 UTC as a
+  source-only update, on the Windows Server 2022 host under `C:\Aphelion\Sophie`. Services: `aphelion-bot` (core),
+  `aphelion-bot-ai-worker`, `aphelion-bot-activity` (the closed "not boarding yet" screen on `127.0.0.1:38124`, kept
+  for rollback) and `aphelion-bot-tunnel` (cloudflared, tunnel `sophie-staging`). PostgreSQL holds the staging
+  database.
+- **Discord:** Sophie's existing application, which is also the Activity's application, in the **test Discord**.
+  Sophie is not in the main Aphelion server yet.
+- **Hosts:** `sophie.a13.info` (dashboard and interactions) and `onboarding.a13.info` (the Activity, served by core on
+  `127.0.0.1:38125`).
+- **Activity status `testing`:** only the owner and current holders of the configured lead ops role get past the
+  closed screen, checked on every request from Sophie's current role reads.
+- **Story:** the Shuttle copy is published as **version 5** (21:15 UTC). Runs keep the version they started on: the
+  owner's test run is on version 3, so seeing version 5 needs a new run.
+- **Git:** branch `docs/shuttle-activity-plan`, about 60 commits ahead of `main` and **not pushed** to `origin`. On
+  20 October the owner directed that branches be merged into `main` and work continue there. Merging and pushing this
+  branch needs the owner's go-ahead.
+- **AI:** the AI worker runs in staging under the owner-accepted Mistral processing policy. The Shuttle has no AI path.
 
-The login redirect selects Sophie's application and callback. Anonymous pages
-redirect to sign-in, protected APIs reject anonymous requests, and unsigned
-interactions are rejected. Public assets match the pinned build. The private
-Discord and authenticated website workflows still need the owner's acceptance.
+## What was done (the Shuttle Activity, 21–22 October 2026)
 
-Use [the workplan](workplan.md) for remaining implementation and release gates.
-The website supports role mapping, feature permissions, channel routing, and a
-review/apply workflow. Lead ops is the initial configuration publisher. Whitelist
-channels close one hour after completion or three days after inactivity; retained
-records have no automatic expiry.
+The Shuttle became a Discord Activity: an ASCII-art visual novel in which Sophie, a radio voice (never depicted),
+talks the member through five stops with two companions, Rook and Pip. Each step is in the decision log and
+verification.
 
-Staging uses a dedicated PostgreSQL database, separate owner/core credentials,
-and a configurable host. Runtime files and credentials are stored privately outside
-the repository. Verify current host status before operating it; do not bootstrap
-or replace an existing database. Keep authored configuration and case history.
+| When | What | Release |
+|---|---|---|
+| 21 Oct | Decisions D1–D10 (Activity surface, agent-made art, Sophie as a radio voice, Cozette, rules post, presence, the Shuttle leaves tickets, production application with a tester gate, main page, CC0/CC BY sounds); 24 sounds chosen, converted (FFmpeg LGPL, build-time only) and approved; `onboarding.a13.info` chosen | — |
+| 22 Oct | Embedded App SDK 2.5.0 pinned; closed-screen service; deployed in testing with migration 074, `/whitelist post` registered, route switched to core | `fe25c83`, `b6af5d8` |
+| 22 Oct | Second pass: moments, viewscreens, arrival links, layout editor (migration 075); layout pass | `052864c`, `2063a50` |
+| 22 Oct | Third pass: richer scenes, conveyor, station board, boarding pass | `0d446fe` |
+| 22 Oct | Fourth pass: the Shuttle as a story, 17 story sounds, SC-07; host-only publishing command; story version 3 | `135f2a6`, `a620ce0`, `cf0c125` |
+| 22 Oct | Fifth pass: the owner's design picks, walk-behind depth, full-page title, launch post wording; story version 4 | `ceb46cb` |
+| 22 Oct | Audit of the whole Activity | `f6c787e` |
+| 22 Oct | Sixth pass: pages and beats that follow the reader, click-to-continue mark, the member's own name on the title window, Beepsky, the staging lint, the review's scene fixes; story version 5 | `a0eb904` |
 
-The standard launcher supports a protected credential file and a separate owner
-pool. Native Windows service installation and SCM qualification remain unfinished.
-Production recovery is deferred by the owner. This is not production approval.
+Offline evidence on `a0eb904`: `npm test` 799 passed, `npm run check` passed, `npm run test:storage:fast` 1029 passed
+with none failed. Every install passed its pre-start, boundary, installation, dashboard and public checks.
 
-See [verification](verification.md) for checks actually run against this source.
+## What is left before the opening
+
+In order. Each install, publication and the opening needs a recorded owner approval.
+
+1. **Owner review of the sixth pass** in the test Discord, on a new run (version 5). The owner re-posts the launch post
+   with `/whitelist post` to show its new wording.
+2. **Checks inside Discord**, none done yet:
+   - whether `discord.com/channels` links open inside the app (desktop and mobile);
+   - audio unlock, picture-in-picture, presence and screen readers;
+   - mobile portrait, and the username title with a long name at phone width;
+   - text shown at once: whether the sea lion's strike lands after the reading time;
+   - the platform report for Windows desktop, web, iOS and Android (P40: launch time, layouts, the launch notice and
+     the Activities permission).
+3. **Not built yet** (P41), both part of the approved design:
+   - moving a run in progress in a channel into the Activity at the same step (today the Activity tells the member to
+     finish in their channel);
+   - the text version reachable from the rules post, sharing the same run (D5's route for clients that cannot open
+     Activities).
+4. **Tester acceptance** on every platform: sign-in, every stop, Whitelist and the door ("Deploying" step 4 in
+   [the Activity doc](shuttle-activity.md)).
+5. **The opening** ("Deploying" step 5, its own recorded approval):
+   - set the runtime configuration's `activity.status` to `open`. This is a configuration change: the source-only
+     deployment scripts refuse it (they check that the configuration is unchanged), so it needs its own prepared and
+     reviewed procedure;
+   - the ticket switch happens here, not before: new Shuttle runs stop opening a ticket channel (decision of
+     22 October). Runs already in a channel keep their channel rules;
+   - post the launch post in the rules channel.
+6. **Candidates for a later pass,** recorded but not approved: auto mode, skipping pages already read, small choices
+   that gate nothing.
+
+## Beyond the test Discord: owner decisions needed
+
+"Deploying to the server" may mean more than the opening. The records say:
+
+- Sophie is not in the main Aphelion server. The workplan's release status is that **all production release gates
+  remain open**, and the cutover tasks (P30 pilot and cutover ledger, P31 cutting over administrative
+  responsibilities) have not started.
+- A separate testing application is planned "down the road" (21 October). Until then the tester gate is the only
+  protection.
+
+Ask the owner what the deployment covers: which guild, what moves when, role and channel IDs, and the cutover order.
+Then record the answers before acting. Do not infer any of these.
+
+## How to work on the Activity
+
+- **Copy:** edit `content/onboarding/story.md`, then `node scripts/build-onboarding-story.mjs` (definition, draft and
+  preview). `tests/onboarding-story.test.js` holds the meaning checklist.
+- **Moments** (beats, page breaks, reveal phrases): `scripts/author-shuttle-viewscreens.mjs` writes
+  `content/shuttle-activity/moments.json`.
+- **Scenes:** `scripts/author-shuttle-scenes.mjs` writes `content/shuttle-activity/scenes/*.json`. The format and
+  each scene's staging are in [the scenes doc](shuttle-activity-scenes.md). The staging lint
+  (`tests/shuttle-staging-lint.test.js`) must stay clean.
+- **Scratch tools** (not in the repository) are in `GitHub/.agent_docs/aphelion-sophie/shuttle-activity-tools/`. Run
+  them from the repository root:
+  - `dump.mjs <scene> <layout> <time> '<stateJson>' [rows]` prints a composed scene as text;
+  - `audit-overlap.mjs [scene]` is the walk-behind audit;
+  - `audit-collisions.mjs [scene]` finds layers overwriting each other;
+  - `hidden.mjs <scene> <layout> <sprite> '<stateJson>'` shows where a sprite is hidden;
+  - `who.mjs <scene> <layout> <x> <y>` names the actor that paints a cell;
+  - `adapt-deployment-a0eb904.cjs` is the last deployment adapter, the template for the next.
+- **Tests:** `npm test`, `npm run check` and `npm run test:storage:fast` (isolated PostgreSQL). Record the actual
+  counts.
+- **Install (source-only).**
+  1. Create `GitHub/.agent_docs/aphelion-sophie/deployment-<sha>-<date>` and copy the previous folder's `*.ps1`,
+     `*.mjs`, `activity-configuration.json` and `processing-policy.json`.
+  2. Run `git archive --format=zip -o source-<sha>.zip <sha> -- apps contracts modules platform legal
+     content/shuttle-activity package.json package-lock.json LICENSE`, then unzip it into `pinned/source`.
+  3. Adapt the scripts with a copy of the last adapter (commits, the reviewed file list and count, the backup name,
+     the release name, the served-file checks), and write `approval.json` quoting the owner's approval.
+  4. Run `run-deployment.ps1` in an elevated, unsandboxed PowerShell (the sandbox cannot read `C:\Aphelion`), then
+     `node verify-public.mjs`. `rollback.ps1` in the folder restores the preserved installation.
+- **Publish the story** with the host-only command (details in [publishing](shuttle-publishing.md)). Run
+  `C:\Aphelion\Sophie\package\runtime\node.exe C:\Aphelion\Sophie\package\source\apps\core\shuttle-publishing.mjs`
+  with `--config C:\Aphelion\Sophie\staging\runtime.json --database C:\Aphelion\Sophie\staging\core.json
+  --confirm-guild <guildId> --author <ownerUserId>`, both read from `C:\Aphelion\Sophie\staging\bootstrap-seed.json`:
+  1. `status`;
+  2. `save --document <folder>\story-draft.json` (the committed draft, copied into the deployment folder);
+  3. `publish --revision N --sha256 H --expect-version <current> --expect-status published`;
+  4. recompute both hashes from the committed draft with `canonicalOnboardingDraft`, `reviewOnboardingDraft` and
+     SHA-256 of their JSON, and record them.
+- **After each milestone:** update `docs/workplan.json` and run `node scripts/build-workplan.mjs`; update
+  `docs/verification.md`, the decision log and the status section of [the Activity doc](shuttle-activity.md).
+
+## Gotchas
+
+- **The browser pane crashed the desktop app** when a new tab was created and resized. Prefer text dumps of composed
+  scenes, and do not open or resize new preview tabs.
+- **Shell escapes:** Bash heredocs and inline `node -e` on this host can collapse backslashes and turn `\u0000` into
+  raw bytes. Use the Write and Edit tools (or `String.fromCharCode(92)`) for backslash-heavy edits.
+- **`SERVICE_CHILD_STILL_RUNNING`:** an install can refuse before writing anything if a child process outlives the
+  2-second check after the stop. Confirm no core or worker process is left, then run the same folder again.
+- **Vendored files:** the repository ignores `dist/`. A test now checks that every vendored SDK file is tracked; keep it.
+- **Run versions:** a published copy reaches new runs only.
+
+## Standing rules for this work
+
+- No AI anywhere in the Shuttle or tickets. Synthetic data only in tests, fixtures and screenshots.
+- The member's Discord username (title window) and boarding pass are shown only to them, never stored or logged.
+- Never print Discord or Cloudflare tokens or other secrets. When the owner supplies a Cloudflare token, use it only in
+  request headers, and touch no tunnel, rule, DNS record or R2 secret beyond the approved change.
+- Production and test-Discord installs, publications, service changes and the opening each need a recorded owner
+  approval. Approval for one step does not carry over to the next.
+- New dependencies must be MIT unless a scope decision is recorded. SS13 is shared culture only; no SS13 sprite or
+  sound is copied. Sophie is never depicted.
