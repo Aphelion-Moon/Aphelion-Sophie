@@ -9,19 +9,21 @@ import { createSceneCanvas } from './scene-canvas.js';
  *
  * Every platform hook is injected so the player can run under test or in Discord's frame.
  */
-export function createScenePlayer({ host, canvas, altElement, palette, background, font, clock, scheduler, observeSize, pixelRatio = () => 1, fps = 12, onCue: cueHandler = null }) {
+export function createScenePlayer({ host, canvas, altElement, palette, background, font, clock, scheduler, observeSize, pixelRatio = () => 1, fps = 12, onCue: cueHandler = null, onLayout: layoutHandler = null }) {
   const painter = createSceneCanvas(canvas, { palette, background, font });
   const paused = new Set();
-  let scene = null, layout = 'landscape', state = {}, motion = true, frameHandle = null, lastDraw = -Infinity;
-  let confirmedAt = null, beatAt = 0, cueClock = -1, cueTime = null, onCue = cueHandler, size = { width: 0, height: 0 };
+  let scene = null, layout = 'landscape', state = {}, motion = true, frameHandle = null, lastDraw = -Infinity, geometry = null;
+  let confirmedAt = null, beatAt = 0, cueClock = -1, cueTime = null, onCue = cueHandler, onLayout = layoutHandler, size = { width: 0, height: 0 };
   const DOOR_SECONDS = 1.8;
 
   function chooseLayout() {
     const next = size.height > 0 && size.width / size.height < 1.05 ? 'portrait' : 'landscape';
     const grid = SCENE_LAYOUTS[next];
     layout = next;
-    painter.resize(size.width, size.height, grid.cols, grid.rows, pixelRatio());
+    geometry = painter.resize(size.width, size.height, grid.cols, grid.rows, pixelRatio());
   }
+  // The page lays its own controls over a scene's slots, so it hears whenever the grid or the scene changes.
+  const layoutChanged = () => { try { onLayout?.(); } catch { /* A page handler never stops playback. */ } };
   function doorOpen(now) {
     if (state.whitelist !== 'confirmed' || confirmedAt === null) return 0;
     if (!motion) return 1;
@@ -49,11 +51,20 @@ export function createScenePlayer({ host, canvas, altElement, palette, backgroun
   }
   function wake() { painter.invalidate(); lastDraw = -Infinity; if (frameHandle === null) frameHandle = scheduler.request(tick); }
 
-  const stopObserving = observeSize(host, (width, height) => { size = { width, height }; chooseLayout(); wake(); });
+  const stopObserving = observeSize(host, (width, height) => { size = { width, height }; chooseLayout(); wake(); layoutChanged(); });
 
   return {
     /** Shows a validated scene. */
-    setScene(next) { scene = validateScene(next); beatAt = clock(); cueClock = -1; cueTime = null; wake(); this.refreshAlt(); },
+    setScene(next) { scene = validateScene(next); beatAt = clock(); cueClock = -1; cueTime = null; wake(); this.refreshAlt(); layoutChanged(); },
+    /** A named slot of the scene on screen, in CSS pixels from the canvas's top-left corner; null when it has none. */
+    slotRect(name) {
+      const slot = scene?.layouts[layout]?.slots?.[name];
+      if (!slot || !geometry) return null;
+      const ratio = pixelRatio(), cellWidth = geometry.cellW / ratio, cellHeight = geometry.cellH / ratio, [x, y, w, h] = slot;
+      return { left: x * cellWidth, top: y * cellHeight, width: w * cellWidth, height: h * cellHeight, cellWidth, cellHeight };
+    },
+    /** Where the page's slot positioning goes; null for none. */
+    setLayoutHandler(handler) { onLayout = typeof handler === 'function' ? handler : null; },
     /** Updates run state from the server: stop, section and Whitelist status. */
     setState(next) {
       const was = state.whitelist, wasBeat = state.beat;

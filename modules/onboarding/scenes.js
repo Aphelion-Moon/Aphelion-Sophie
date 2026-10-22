@@ -22,6 +22,8 @@ const ASCII = Array.from({ length: 95 }, (_, i) => String.fromCharCode(32 + i)).
 export const SCENE_GLYPHS = Object.freeze(new Set([...ASCII, ...'─│┌┐└┘├┤┬┴┼═║╔╗╚╝╟╢╪╱╲╭╮╯╰', ...'░▒▓█▀▄▌▐■□', ...'·•●◆»«≡']));
 export const SCENE_STATE_KEYS = Object.freeze(['stopTitle', 'stopNumber', 'stopCount', 'section', 'sections', 'whitelist', 'doorOpen', 'beat', 'link', 'crew', 'online', 'reached']);
 export const SCENE_WHITELIST_STATES = Object.freeze(['none', 'requested', 'confirmed']);
+/** Regions a layout may name for the page's own controls: the title menu, drawn into the art. */
+export const SCENE_SLOTS = Object.freeze(['menu']);
 /** Whether the member has a run to show: 'some' once both stop number and stop count are known. */
 export const SCENE_STOP_STATES = Object.freeze(['none', 'some']);
 /** What the title screen's link panel may say about the member's Shuttle; 'none' until the server has answered. */
@@ -71,7 +73,7 @@ function condition(when, beats = []) {
 }
 
 function layer(value, grid, ids, beats) {
-  exactKeys(value, ['id', 'x', 'y', 'frames'], ['fps', 'when', 'opaque', 'slide', 'clock', 'once']);
+  exactKeys(value, ['id', 'x', 'y', 'frames'], ['fps', 'when', 'opaque', 'slide', 'clock', 'once', 'front']);
   requireCondition(ID.test(value.id) && !ids.has(value.id), 'INVALID_SCENE_ID'); ids.add(value.id);
   requireInteger(value.x, 0, grid.cols - 1); requireInteger(value.y, 0, grid.rows - 1);
   requireCondition(Array.isArray(value.frames) && value.frames.length >= 1 && value.frames.length <= LIMITS.frames, 'INVALID_SCENE_FRAMES');
@@ -94,6 +96,8 @@ function layer(value, grid, ids, beats) {
   }
   condition(value.when, beats);
   if (value.opaque !== undefined) requireCondition(value.opaque === true, 'INVALID_SCENE_FIELDS');
+  // A standing object people walk behind: actors are never drawn over the cells it draws.
+  if (value.front !== undefined) requireCondition(value.front === true, 'INVALID_SCENE_FIELDS');
   if (value.slide !== undefined) {
     exactKeys(value.slide, ['by', 'dx', 'clip'], [], 'INVALID_SCENE_SLIDE');
     requireCondition(value.slide.by === 'doorOpen' && Number.isSafeInteger(value.slide.dx) && Math.abs(value.slide.dx) <= grid.cols, 'INVALID_SCENE_SLIDE');
@@ -303,7 +307,13 @@ export function validateScene(scene) {
   exactKeys(scene.layouts, Object.keys(SCENE_LAYOUTS), [], 'INVALID_SCENE_LAYOUTS');
   for (const [name, grid] of Object.entries(SCENE_LAYOUTS)) {
     const layout = scene.layouts[name];
-    exactKeys(layout, ['layers', 'effects'], [], 'INVALID_SCENE_LAYOUTS');
+    exactKeys(layout, ['layers', 'effects'], ['slots'], 'INVALID_SCENE_LAYOUTS');
+    // Named regions the page lays its own controls over (the title menu), in cells of this grid.
+    if (layout.slots !== undefined) {
+      requireCondition(layout.slots !== null && typeof layout.slots === 'object' && !Array.isArray(layout.slots), 'INVALID_SCENE_SLOTS');
+      exactKeys(layout.slots, [], SCENE_SLOTS, 'INVALID_SCENE_SLOTS');
+      for (const slot of Object.values(layout.slots)) region(slot, grid, 'INVALID_SCENE_SLOTS');
+    }
     requireCondition(Array.isArray(layout.layers) && layout.layers.length >= 1 && layout.layers.length <= LIMITS.layers, 'INVALID_SCENE_LAYERS');
     requireCondition(Array.isArray(layout.effects) && layout.effects.length <= LIMITS.effects, 'INVALID_SCENE_EFFECT');
     const ids = new Set();
@@ -370,6 +380,10 @@ export function composeScene(scene, layoutName, { time = 0, beatTime = time, sta
   const glyph = Array.from({ length: grid.rows }, () => Array(grid.cols).fill(' '));
   const colour = Array.from({ length: grid.rows }, () => Array(grid.cols).fill('.'));
   const put = (x, y, ch, key) => { if (x >= 0 && y >= 0 && x < grid.cols && y < grid.rows) { glyph[y][x] = ch; colour[y][x] = key; } };
+  // Standing objects (front layers) hide whoever walks past behind them: actors and belt items skip their cells.
+  // Speech bubbles still draw over everything.
+  const front = Array.from({ length: grid.rows }, () => new Uint8Array(grid.cols));
+  const putActor = (x, y, ch, key) => { if (x >= 0 && y >= 0 && x < grid.cols && y < grid.rows && !front[y][x]) put(x, y, ch, key); };
 
   for (const item of layout.layers) {
     if (!matches(item.when, s)) continue;
@@ -386,6 +400,7 @@ export function composeScene(scene, layoutName, { time = 0, beatTime = time, sta
         const x = item.x + c + dx, y = item.y + r;
         if (clip && (x < clip[0] || x >= clip[0] + clip[2] || y < clip[1] || y >= clip[1] + clip[3])) return;
         put(x, y, ch, mask[c] === ' ' ? '.' : mask[c]);
+        if (item.front && x >= 0 && y >= 0 && x < grid.cols && y < grid.rows) front[y][x] = 1;
       });
     });
   }
@@ -486,9 +501,9 @@ export function composeScene(scene, layoutName, { time = 0, beatTime = time, sta
           // Out of sight inside the gate and behind its two pillars.
           const visible = col => col < fx.gate - 1 || col > exit;
           rows.forEach((row, r) => row.forEach((ch, c) => {
-            if (ch !== ' ' && visible(ix + c)) put(ix + c, iy + r, ch, [...item.art.colours[r]][c] === ' ' ? '.' : [...item.art.colours[r]][c]);
+            if (ch !== ' ' && visible(ix + c)) putActor(ix + c, iy + r, ch, [...item.art.colours[r]][c] === ' ' ? '.' : [...item.art.colours[r]][c]);
           }));
-          [...tag].forEach((ch, c) => { if (visible(ix + c)) put(ix + c, iy - 1, ch, key); });
+          [...tag].forEach((ch, c) => { if (visible(ix + c)) putActor(ix + c, iy - 1, ch, key); });
         });
         const { x: rx, y: ry, width: rw } = fx.readout;
         const shown = reading === null ? '- - -' : reading.divert ? 'DENIED' : reading.weight;
@@ -513,7 +528,7 @@ export function composeScene(scene, layoutName, { time = 0, beatTime = time, sta
         const [cx, cy, cw, ch] = fx.clip ?? [0, 0, grid.cols, grid.rows];
         frame.text.forEach((row, r) => [...row].forEach((glyph, c) => {
           const x = x0 + c, y = y0 + r;
-          if (glyph !== ' ' && x >= cx && x < cx + cw && y >= cy && y < cy + ch) put(x, y, glyph, [...frame.colours[r]][c] === ' ' ? '.' : [...frame.colours[r]][c]);
+          if (glyph !== ' ' && x >= cx && x < cx + cw && y >= cy && y < cy + ch) putActor(x, y, glyph, [...frame.colours[r]][c] === ' ' ? '.' : [...frame.colours[r]][c]);
         }));
         break;
       }
