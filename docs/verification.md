@@ -1,5 +1,18 @@
 # Verification and release limits
 
+## Shuttle Activity layout pass — 22 October 2026 (built offline, not installed)
+
+Owner review of `052864c` (decision log, "Shuttle Activity layout: reading column and status window").
+
+- `npm test` 744 passed (T-ACT-MOM-02 now checks Ten Thousand lands on the page that links the comic; T-ACT-MOM-04
+  new). Scene tests: bags are single fixed figures moving at the belt's speed and handing over at the scanner, bags rest on the belt with motion
+  off, and every glyph is clipped to its cell. Repository check passed.
+- Preview harness: title, a reading stop and a pop-up stop at 1100x620 and 375x812. Sampled every 100 ms through a stop
+  change, the station announcement, typing and a pop-up: the status window stayed 229 px (138 px on the phone) and the
+  reading box 240 px (159 px); no horizontal overflow; no console errors.
+
+**Not covered:** the installed build; how it looks inside Discord's frame on the owner's devices.
+
 ## Staging install of 052864c: Shuttle Activity second pass — 22 October 2026 (schema 075)
 
 Owner approval: the answer "All at once" in the approved plan (decision log, "Shuttle Activity second pass"). Folder

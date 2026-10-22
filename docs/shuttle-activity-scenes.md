@@ -23,13 +23,14 @@ a run.
 |---|---|---|
 | `hangar-viewport` | Title screen | Drifting stars, a shuttle crossing the orbit, station beacon, console flaps (SM engine, carp count, honk level), screen waveform, panel scan, cable pulse, a passing space carp. The Shuttle Link panel says what the server last reported (`link`); in portrait it floats above the console so the menu never covers it. |
 | `departure-lounge` | Rules entry, The Brochure | Panelled back wall with framed, gridded windows (stars only behind the glass); APC, air alarm and fire alarm; tiled floor with scuffs, cracks and dropped things; split-flap departures (mining shuttle delayed by carp, clown car); help desk; Ian trotting past. Beats: 18+ check, pride banner and tail, lit EXIT, help desk `#open-a-ticket` and blinking fire alarm, rules terminal, Meridian Rift and Wolfgate on the board. |
-| `baggage-hall` | Pack Your Bags | Conveyor belt and rollers moving with the suitcases, scanner sweep, locker tags, cart, a monkey, a clown passing. Beats: bags tagged BUBBER/SPLURT/NOVA retagged MERIDIAN with the preferences console, an unclaimed locker with a hero's cape, a LOOC bubble. |
+| `baggage-hall` | Pack Your Bags | Ten kinds of luggage (suitcase, hard case, trunk, duffel, guitar case, fragile crate, toolbox, pet carrier, cooler, backpack), each its own figure riding the belt at the rollers' speed into the scanner arch and out again tagged OK; a scale reading each bag as it goes in; locker tags, cart, a monkey, a clown passing. Beats: bags tagged BUBBER/SPLURT/NOVA come out MERIDIAN beside the preferences console, an unclaimed locker with a hero's cape, a LOOC bubble. |
 | `boarding-cabin` | Board the Shuttle | Portholes, aisle lights, fasten-straps sign, carp. Beats: passengers fill the seats, "ONE PASSENGER PER SEAT", a sea lion on the KEEP CLEAR pad under the shuttle's shadow. |
-| `viewport` | Admire the Lights | Station lights, a drifting band of light, stars, carp, a shooting star, deck and bench. Beats: a festive band, a "10,000 TODAY" counter, a camera flash and photo strip. |
+| `viewport` | Admire the Lights | Station lights, a drifting band of light, stars, carp, a shooting star, deck and bench. Beats: a festive band, "Everyone was new once", a camera flash and photo strip, and the "10,000 today" counter on the page that links xkcd's Ten Thousand. |
 | `pressure-door` | Disembarking | Lamp and control panel follow Whitelist status; the door slides open onto the laboratory once it is confirmed, and an ID card reading ACCESS: WHITELIST appears only then. Beats: wet floor and NO RUNNING signs, suggestion box, emergency locker, a ticking checklist, a game monitor with `[ Get Whitelisted ]`. |
 
-Each scene has a landscape grid (120 by 40 cells, desktop and web) and a portrait grid (72 by 57 cells, phones),
-with alt text for each Whitelist state that changes the picture.
+Each scene has a landscape grid (96 by 40 cells, the area beside the reading column on desktop and web) and a
+portrait grid (72 by 57 cells, phones), with alt text for each Whitelist state that changes the picture. The whole grid
+is in view: nothing is drawn under the text.
 
 ## Scene format
 
@@ -43,7 +44,7 @@ A scene is JSON with exactly `schema`, `id`, `title`, `alt`, `provenance` and `l
   panel's link state (`link`: `none`, `ready`, `closed`, `channel`, `arrived`, `held`, `offline`).
 - **Effects** from a fixed list: `blink`, `flicker`, `drift`, `scan`, `pulse`, `flap` (optionally left or right
   aligned), `text` and `sprite` (a small multi-line figure, up to 8 by 24 cells and 4 frames, crossing along a line
-  in a window every so many seconds; hidden with motion off). Each has bounded parameters. There is no code, URL, HTML
+  in a window every so many seconds; hidden with motion off unless it names a `still` position, as bags on a belt do). Each has bounded parameters. There is no code, URL, HTML
   or free-form script anywhere in the format. A layout has at most 48 layers and 64 effects.
 
 The validator enforces:
@@ -61,7 +62,8 @@ The validator enforces:
 
 ## Rendering
 
-The composer returns rows of glyphs and colour keys. The canvas renderer draws block shading as exact rectangles and
+The composer returns rows of glyphs and colour keys. The canvas renderer clips every glyph to its own cell (an edge drawn past it would stay behind, since unchanged cells
+are not redrawn), draws block shading as exact rectangles and
 single and double line characters as strokes that reach the cell edges, so borders join cleanly whatever the font.
 Other glyphs use Cozette, the font chosen in D4. The renderer measures the font's height and width, sizes each glyph
 to the cell's height, stretches it to the cell's width and centres it on the font's own metrics, so text keeps the

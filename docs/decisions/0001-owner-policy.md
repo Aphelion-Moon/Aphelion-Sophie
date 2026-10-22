@@ -1431,3 +1431,20 @@ stop shows, what each section stages and which channels are listed, never a run,
   `sophie_core.activity_layouts` for the core identity only; no configuration, credential, policy, command, route or
   dependency change. Services were down about 40 seconds. All checks passed. Folder
   `.agent_docs/aphelion-sophie/deployment-052864c-2026-10-22`.
+
+### Shuttle Activity layout: reading column and status window — 22 October 2026
+
+After reviewing `052864c` in the test Discord the owner asked for: no overlapping interface on the title screen; no
+glyph or placement artefacts (thin coloured lines beside the departures board); the extra-material pop-ups beside or
+above the reading box rather than over the scene; bags that move through the baggage hall cleanly, with more variety and
+a working weight scanner; scene details no longer hidden behind the reading box; the menu button fixed to a corner of
+the window; Ten Thousand tied to the right page; and "the main chat box ... on the left", keeping the scene area clear,
+with "a status window / viewport, which usually just has the sophie placeholder, which will re-populate with the bonus
+information if it exists for the current step". Mid-way the owner added that the status window "should be fixed size".
+
+- The Activity now has a reading column on the left (the status window, then the splash prompt, the menu or the
+  transmission) and the scene alone on the right; on phones the scene sits above the column. Landscape scenes are 96 by
+  40 cells to fit that area and were re-laid so nothing is drawn under text.
+- The status window has a fixed size. By default it shows Sophie's radio: her name, callsign and a voice meter that
+  moves while she speaks. She is still not depicted (identity rules, 20 October 2026); a portrait or likeness there would
+  need its own owner decision. When the section being read has extra material, the window shows that instead.

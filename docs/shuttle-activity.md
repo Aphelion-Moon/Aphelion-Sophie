@@ -115,9 +115,16 @@ published pages split into screen-sized pieces (every character, in order).
   departure, wipes to the new scene (after a skippable 1.5 s ride between stops when motion is on), cross-fades the
   ambience, then the roger beep, then Sophie and the text. Sophie speaks for 2.4 s as a stage begins and 1.2 s on each
   page, then trails off; music ducks about 6 dB under her. Pressing Next during a cue sheet skips to the text.
-- **Moments.** A section heading can stage a beat in the scene (`moments.json`, or the published layout) and open a
-  viewscreen: original ASCII art with https link cards, reopened with the View chip or V, closed with Esc or the next
-  page. A station announcement opens each stop; clearance adds "The HoP is processing your ID card…".
+- **Layout.** A reading column on the left holds the status window and, below it, the splash prompt, the menu or
+  Sophie's transmission; the scene has the rest of the window to itself (on phones it sits above the column). The menu
+  button is fixed to the window's top right corner.
+- **Status window.** A fixed-size box: Sophie's radio standing by (name, callsign and a voice meter that moves while
+  she speaks; she is not depicted), or, while the section being read has extra material, that material instead. V
+  switches back to the radio for that section. Station announcements lie over its bottom edge for a few seconds.
+- **Moments.** A section heading can stage a beat in the scene and name a viewscreen for the status window: original
+  ASCII art with https link cards (`moments.json`, or the published layout). A key starting with `~` is a phrase, so the
+  page containing it stages the moment (Ten Thousand follows the page that links the comic). Clearance adds "The HoP is
+  processing your ID card…".
 - **Title sections.** Station log (this run's transmissions), Codex (a fixed glossary), Settings and Credits. "?" shows
   the keys; L opens the log.
 - **Settings:** volume, music, ambience, radio and effect levels, sound on/off, motion, typed or instant text, text
