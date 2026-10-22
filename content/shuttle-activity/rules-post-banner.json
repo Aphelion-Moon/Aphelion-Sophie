@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "id": "rules-post-banner",
+  "title": "Shuttle Activity rules post banner",
+  "source": "modules/onboarding/activity-post.js (ACTIVITY_POST_BANNER)",
+  "sha256": "cc99466b28b4eef9d2ae996bde3107b24841e2ee1a8a7855cfde13700ab3875b",
+  "hashOf": "The banner lines joined with a line feed",
+  "columns": 32,
+  "alt": "A departures sign drawn in box characters: Aphelion, Shuttle Service; departs this server, arrives Aphelion, gate: the button below.",
+  "provenance": {
+    "author": "Made by the coding agent (Claude) at owner direction",
+    "created": "2026-10-22",
+    "decision": "docs/decisions/0001-owner-policy.md (The Shuttle becomes an Activity, D2 and D5)",
+    "generator": "Written by hand in the module; no generator, model or image tool",
+    "rights": "Machine-made art; it may not attract copyright in every jurisdiction. Published with the repository."
+  }
+}

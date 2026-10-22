@@ -13,6 +13,7 @@ import { parseCaseIssueControl, parseCaseIssueReference } from '../../../modules
 import { requireParticipantChange } from '../../../modules/tickets/participants.js';
 import { parseContactSelection, parseContactControl } from '../../../modules/tickets/contacts.js';
 import { ONBOARDING_ENTRY_ID } from '../../../modules/onboarding/entry-controls.js';
+import { ACTIVITY_LAUNCH_ID } from '../../../modules/onboarding/activity-post.js';
 import { parseOnboardingControl } from '../../../modules/onboarding/screens.js';
 import { parseOnboardingHelpControl } from '../../../modules/onboarding/assistance.js';
 import { parseOnboardingIssueControl, parseOnboardingRecoveryReference } from '../../../modules/onboarding/delivery-issues.js';
@@ -56,6 +57,7 @@ export function createInteractionVerifier({ publicKeyHex, applicationId, guildId
           requireCondition(payload.data?.component_type === 2 &&
             payload.data.values === undefined && payload.data.resolved === undefined, 'INTERACTION_COMPONENT_UNSUPPORTED');
           if (payload.data.custom_id === ONBOARDING_ENTRY_ID) command = 'shuttle.start';
+          else if (payload.data.custom_id === ACTIVITY_LAUNCH_ID) command = 'shuttle.activity';
           else if (typeof payload.data.custom_id === 'string' && payload.data.custom_id.startsWith('sophie:answer-reply:')) {
             ({ command, ...control } = parseAnswerReplyControl(payload.data.custom_id));
           }
@@ -161,7 +163,7 @@ export function createInteractionVerifier({ publicKeyHex, applicationId, guildId
         }
       } else if (payload.data.name === 'whitelist') {
         const options = payload.data.options;
-        requireCondition(Array.isArray(options) && options.length === 1 && ['start', 'panel', 'close', 'queue', 'issues', 'recover', 'choose'].includes(options[0]?.name) && options[0]?.type === 1 &&
+        requireCondition(Array.isArray(options) && options.length === 1 && ['start', 'panel', 'post', 'close', 'queue', 'issues', 'recover', 'choose'].includes(options[0]?.name) && options[0]?.type === 1 &&
           options[0].value === undefined, 'INTERACTION_OPTIONS_INVALID');
         command = `shuttle.${options[0].name}`; targetId = payload.member.user.id;
         if (command === 'shuttle.close') {

@@ -17,6 +17,7 @@ export function onboardingCommandDefinition() {
     integration_types: [0], contexts: [0], options: [
       { type: 1, name: 'start', description: 'Start or resume your private Shuttle session.' },
       { type: 1, name: 'panel', description: 'Guidance publishers: post the configured Shuttle entry panel here.' },
+      { type: 1, name: 'post', description: 'Guidance publishers: post the Shuttle Activity launch post here.' },
       { type: 1, name: 'close', description: 'Staff: remove an Onboarding channel while retaining its records.', options: [
         { type: 5, name: 'confirm', description: 'Confirm deletion of the Discord channel. Records remain saved.', required: true },
         { type: 7, name: 'channel', description: 'Onboarding channel to close (defaults to this channel).', channel_types: [0] },

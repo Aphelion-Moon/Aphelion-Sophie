@@ -12,9 +12,10 @@ const messages = {"disabled":"initial.disabled","busy":"initial.busy","denied":"
 const message = content => ({ type: 4, data: { content, flags: 64, allowed_mentions: { parse: [] } } });
 
 /** Loopback-only receiver. External TLS/proxy configuration is a separate release gate. */
-export function createInteractionHttpServer({ verifier, commands, respond, enabled, onFault, caseIntake = null, onboardingPanel = null, initialBudgetMs = 2_500, readSystemText = async () => defaultSystemText }) {
+export function createInteractionHttpServer({ verifier, commands, respond, enabled, onFault, caseIntake = null, onboardingPanel = null, initialBudgetMs = 2_500, readSystemText = async () => defaultSystemText, activityOpen = false }) {
   requireCondition(typeof respond === 'function' && typeof enabled === 'function' && typeof onFault === 'function', 'TRUSTED_ADAPTERS_REQUIRED');
   requireCondition(caseIntake === null || typeof caseIntake.prepare === 'function', 'TRUSTED_ADAPTERS_REQUIRED'); requireInteger(initialBudgetMs, 50, 2_500);
+  requireCondition(typeof activityOpen === 'boolean', 'TRUSTED_ADAPTERS_REQUIRED');
   const running = new Set();
   let reserved = false, stopping = false, waitingReplies = 0;
   const fault = code => { try { onFault(code); } catch { /* Logging cannot change command state. */ } };
@@ -58,11 +59,15 @@ export function createInteractionHttpServer({ verifier, commands, respond, enabl
     const ticketPanel = envelope.command === 'ticket.panel';
     // Ticket initial responses include availability checks in their response deadline.
     if (stopping || (!opensModal && !ticketPanel && await enabled() !== true)) { send(response, 200, message(text(messages.disabled))); return; }
+    // The Activity launch post's button opens the Shuttle Activity (LAUNCH_ACTIVITY). Once the Activity is open, so do the
+    // Shuttle entry button and /whitelist start: new runs stop opening Onboarding channels (owner decision, 22 October
+    // 2026). Nothing is recorded here; the Activity signs the member in and checks access itself.
+    if (envelope.command === 'shuttle.activity' || (activityOpen && envelope.command === 'shuttle.start')) { send(response, 200, { type: 12 }); return; }
     // One active command: no unbounded in-memory backlog and no concurrent member reads
     // through the same serial transport. Durable role work is separate in PostgreSQL.
     if (reserved) { send(response, 200, message(text(messages.busy))); return; }
     reserved = true;
-    if (ticketPanel || envelope.command === 'shuttle.panel') {
+    if (ticketPanel || ['shuttle.panel', 'shuttle.post'].includes(envelope.command)) {
       let live = true, timer;
       const isCurrent = () => live && !stopping && !response.destroyed && performance.now() < initialDeadline;
       response.once('close', () => { live = false; });

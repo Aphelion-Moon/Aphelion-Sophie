@@ -1721,6 +1721,25 @@
     "max": 1800
   },
   {
+    "id": "activity.post.title",
+    "group": "Shuttle Activity rules post",
+    "source": "The Shuttle is boarding",
+    "max": 256
+  },
+  {
+    "id": "activity.post.body",
+    "group": "Shuttle Activity rules post",
+    "source": "Everyone joining Aphelion takes the Shuttle first. Press **Board the Shuttle** to open it here in Discord: Sophie will walk you through each stop, and your Whitelist is requested when you finish.\n-# If the button does nothing, open the App Launcher next to the message box and choose Sophie.",
+    "max": 1800
+  },
+  {
+    "id": "activity.post.button",
+    "group": "Shuttle Activity rules post",
+    "source": "Board the Shuttle",
+    "max": 80,
+    "format": "plain"
+  },
+  {
     "id": "reply.shuttle_closed",
     "group": "Onboarding",
     "source": "Channel closure requested. Retained records stay saved. Use /whitelist start after closure to begin again.",

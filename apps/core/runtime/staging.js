@@ -158,7 +158,7 @@ export async function createStagingRuntime({ configuration, pool, aiControlPool 
   const interactions = createInteractionHttpServer({ verifier, commands: interactionCommands, respond: responder.respond,
     onboardingPanel: createOnboardingEntryPanel({ authorization: requests.authorization, transport: requests.transport, store: requests.store, policy: fixed.casePolicy,
       definitionId: fixed.definitionId, enabled, readSystemText }),
-    caseIntake: requests.caseIntake, readSystemText, enabled, onFault: fault });
+    caseIntake: requests.caseIntake, readSystemText, enabled, onFault: fault, activityOpen: fixed.activity?.status === 'open' });
   const reconciler = createCaseReconciler({ store: createCaseInspectionStore({ pool, policy: fixed.casePolicy }), enabled });
   // No Shuttle work waits for Staff: parked Shuttle jobs are rechecked on their own (see recheckParkedShuttleWork).
   const shuttleOutbox = createOutbox({ pool });
