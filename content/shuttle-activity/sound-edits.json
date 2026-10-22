@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "createdAt": "2026-10-21",
-  "method": "Chosen by analysing each original's loudness envelope on 21 October 2026; not chosen by ear. Times are seconds in the original. Loops are made seamless by crossfading the end of the window into its start; their output length is loop.length. The owner auditioned the results on 21 October 2026 and approved all 24 without changes. The story's cues and the new AMB-06 (22 October 2026) were chosen by the same analysis and are marked chosenAt; SC-12 and SC-19 keep up to their first 2 s and 4 s, faded out. The owner auditioned them on 22 October 2026 and approved all 17 without changes. SC-07, the launch roll, was chosen in a second round the same day: up to its first 7 s, swelling in over 0.6 s and dying away over 2 s; it awaits the owner's audition.",
+  "method": "Chosen by analysing each original's loudness envelope on 21 October 2026; not chosen by ear. Times are seconds in the original. Loops are made seamless by crossfading the end of the window into its start; their output length is loop.length. The owner auditioned the results on 21 October 2026 and approved all 24 without changes. The story's cues and the new AMB-06 (22 October 2026) were chosen by the same analysis and are marked chosenAt; SC-12 and SC-19 keep up to their first 2 s and 4 s, faded out. The owner auditioned them on 22 October 2026 and approved all 17 without changes. SC-07, the launch roll, was chosen in a second round the same day: up to its first 7 s, swelling in over 0.6 s and dying away over 2 s; the owner auditioned it and approved it without changes.",
   "processing": {
     "sampleRate": 48000,
     "resampler": "soxr, precision 28",

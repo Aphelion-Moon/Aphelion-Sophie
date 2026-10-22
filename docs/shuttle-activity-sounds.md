@@ -9,7 +9,7 @@ involved anywhere in this pipeline, and no member or case data touches it.
 |---|---|---|
 | 21 October | UI-01–05, DLG-01–05, SC-01–06, AMB-01–05, MUS-01–02 | Auditioned and approved by the owner on 21 October. |
 | Story, 22 October | DLG-06, SC-08–SC-21, AMB-07, and a new AMB-06 (the arrival concourse, replacing New laboratory) | Picked, verified and encoded on 22 October; auditioned and approved by the owner the same day, all 17 without changes (`review.story` in the record). |
-| Second round, 22 October | SC-07 (launch roll) | Picked in a second round and encoded on 22 October; awaiting the owner's audition (`review.awaiting`), and not in the installed build. A scene may name a cue that is still being chosen (`PENDING_SOUND_CUES` in `apps/activity/content.js`, now empty); it plays nothing until it is encoded. |
+| Second round, 22 October | SC-07 (launch roll) | Picked in a second round and encoded on 22 October; auditioned and approved by the owner the same day (`review.launchRoll`). A scene may name a cue that is still being chosen (`PENDING_SOUND_CUES` in `apps/activity/content.js`, now empty); it plays nothing until it is encoded. |
 
 ## Files
 

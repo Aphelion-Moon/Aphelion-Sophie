@@ -37,12 +37,15 @@
       "method": "Private audition page playing the outputs of the 22 October build in both formats, with loops played between their markers and a seam check.",
       "approvedOutputs": "The output hashes listed for these cues on 22 October 2026; the rebuild that produced them reproduced the 23 unchanged outputs approved on 21 October."
     },
-    "awaiting": {
+    "launchRoll": {
+      "result": "Approved: SC-07, with no requested changes.",
       "cues": [
         "SC-07"
       ],
-      "since": "2026-10-22",
-      "note": "Picked by the owner in the second round on 22 October 2026 and encoded by the same script and edit method. Not auditioned yet, so not approved for install."
+      "by": "Owner",
+      "at": "2026-10-22",
+      "method": "Auditioned on the same private audition page (version 2, which added SC-07). The page did not save a verdict for it, so the owner approved it in chat: \"SC-07 is approved. Install it (source-only update) in the test Discord.\"",
+      "approvedOutputs": "The output hashes listed for SC-07 on 22 October 2026 (commit dff3dc5)."
     }
   },
   "encoding": {

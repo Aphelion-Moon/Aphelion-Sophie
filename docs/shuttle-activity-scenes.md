@@ -146,4 +146,4 @@ node scripts/author-shuttle-viewscreens.mjs
 
 - Owner review of the fourth pass (the story, installed as `135f2a6`) in the test Discord, once the story copy is
   published: the scenes are staged against the story's section headings.
-- SC-07 (the launch roll) awaits the owner's audition; the installed launch plays without it.
+- None for sound: SC-07 (the launch roll) is approved, so every scene cue has its sound.
