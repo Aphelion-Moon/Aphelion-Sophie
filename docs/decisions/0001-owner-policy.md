@@ -1489,3 +1489,52 @@ remain shared culture only. The held seam fix `21a0575` ships with this build.
 - **Installed** `0d446fe` on 22 October 2026 at 14:26 UTC on the owner's approval ("Approved: install the third pass
   (source-only update, including the seam fix) in the test Discord."): 28 files, no migration or configuration change;
   core and the worker were down 33 seconds. All checks passed. Folder `.agent_docs/aphelion-sophie/deployment-0d446fe-2026-10-22`.
+
+### The Shuttle as a story — 22 October 2026
+
+After reviewing `0d446fe`, the owner pointed out props and people that are introduced and never cleared away: the
+chatting pairs, the janitor, and the checklist. The owner asked for:
+
+- an adversarial review of each step's plot and details;
+- a plan for a coherent flow;
+- story-oriented replacements for every step, informed by how visual novels split what the environment shows from
+  what characters say.
+
+The first draft read to the owner as "AI generated. All of it." The owner asked for a second pass that is "easily
+empathizable, casual, and shitposty", and noted that "this presentation isn't formal anyways", so the rules and policy
+sections may be rewritten too. The owner approved the plan and answered:
+
+- **The guidance itself is rewritten.** One text serves the Activity, the channel Shuttle and the text version, and a
+  guidance publisher publishes it as a new Shuttle version through the editor.
+  - This replaces D3's "no new copy" for the Shuttle.
+  - The copy stays static and authored. No AI is involved; Sophie is still a radio voice with no likeness.
+- **Two named companions travel with the member.** Rook, a returning player, and Pip, a first-timer, meet at the
+  baggage belt, board and sit together, play out Ten Thousand, and part at the door.
+- **The must-know facts sit on in-world signs**, written in the same casual voice. A meaning checklist test keeps every
+  point of the original guidance, and the owner reviews the wording.
+- **New sound cues** for the story's moments are picked by the owner from a second Sound Picker (CC0 only). They go
+  through the same hashing and encoding pipeline.
+
+The draft lives in `content/onboarding/story.md` and is built by `scripts/build-onboarding-story.mjs`. The original
+draft (`definition.json`, from the preserved source) is unchanged, and the moments keep both sets of headings until the
+new version is published.
+
+### Story sounds chosen and approved — 22 October 2026
+
+The owner picked the story's sounds in the second Sound Picker and sent the originals with a SHA-256 list. All 17
+hashes matched, and every sound is CC0, checked on its own page.
+
+- **Reading of the SC-12 note.** The owner's note was "Option 2 as the extinguisher, option 5 as the bag itself
+  catching on fire." It became two cues:
+  - SC-12 is the extinguisher (Freesound 561328);
+  - a new SC-21 is the flamethrower (Freesound 831929), played as the BLASTWAVE bag lights itself again.
+- **AMB-06 replaced.** The arrival concourse (Freesound 757318) replaces the New laboratory ambience chosen on
+  21 October.
+- **SC-07 still open.** The owner turned down every first-round option for the launch roll as "too loud, sharp, high
+  pitchy, and high-techy" and asked for "a low rocket take off". A second round is on the picker. Until a pick is
+  encoded, the launch plays without it.
+
+The 17 sounds were cut and levelled by the same analysis as the 21 October set and encoded by
+`scripts/build-shuttle-sounds.mjs`. The rebuild reproduced the 23 unchanged approved outputs byte for byte. The owner
+auditioned the 17 on a private page in both formats, with loops and seams, and approved all of them without changes.
+The record is `legal/shuttle-activity-sounds.json` (`review.story`).

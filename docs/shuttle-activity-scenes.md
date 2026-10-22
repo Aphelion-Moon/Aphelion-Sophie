@@ -22,13 +22,13 @@ a run.
 | Scene | Used for | Moving parts |
 |---|---|---|
 | `hangar-viewport` | Title screen | Drifting stars, a shuttle crossing the orbit to Aphelion station (a ring on cross spokes round a lit hub, solar arrays, antenna beacon, docking collar, blinking windows; drawn from its left half and mirrored), console flaps (SM engine, carp count, honk level), screen waveform, panel scan, cable pulse, a passing space carp. The Shuttle Link panel says what the server last reported (`link`); in portrait it floats above the console so the menu never covers it. |
-| `departure-lounge` | Rules entry, The Brochure | Panelled back wall with framed, gridded windows (stars only behind the glass); APC, air alarm and fire alarm; tiled floor with scuffs, cracks and dropped things; split-flap departures (mining shuttle delayed by carp, clown car) with the section strip centred under it; help desk; wet floor sign; Ian trotting past. Beats: 18+ check, pride banner and tail, lit EXIT, help desk `#open-a-ticket` and blinking fire alarm, rules terminal, Meridian Rift and Wolfgate on the board. |
-| `baggage-hall` | Pack Your Bags | Lockers; the claim terminal up on the wall left of the belt; one `conveyor` of thirteen bags through the scanner arch, the scale reading each bag's weight or DENIED; refused bags pushed off into DISPOSALS; the BLASTWAVE bag burning on the floor while a firebot foams it out and it lights itself again; cart, monkey, clown. Beats: while migrating, SS 13 bags (BUBBER, SPLURT, NOVA, OCULIS, RATWOOD, MARINES) come out MERIDIAN and SS 14 bags (MONOLITH, HARDLIGHT, AFTERLIGHT, FRONTIER, WAYFARER) come out WOLFGATE beside the preferences console; refused bags are labelled for the section (CONTRABAND/TOXICITY, BIGOTRY/BLASTWAVE, GRUDGES/OLD DRAMA, METAGAME/ASSUMPTION); an unclaimed locker with a hero's cape; two passengers walk in and talk the LOOC section through in `(( ))` bubbles. |
-| `landing-bay` | Board the Shuttle: *You are not travelling alone* | The bay open to space behind a shimmering field, the Arrivals Shuttle on its pad with the ramp down, passengers crossing the bay in small groups and climbing the ramp, ground crew with light wands, the gate board, a baggage tug. |
-| `boarding-cabin` | Board the Shuttle (the stop's scene; *A shared seat*) | Portholes, aisle lights, fasten-straps sign, a sleeping assistant and a lizard already aboard. Beat: passengers walk in and sit down, "ONE PASSENGER PER SEAT", and in the front row someone asks "Is this seat free?" before sitting (and takes no for an answer). |
-| `cabin-turbulence` | Board the Shuttle: *sea-lions* | The cabin's forward window on final approach: the KEEP CLEAR pad comes up past chasing approach lights, a sea lion on it looks up, THUMP, a jolt in the cabin (bins, a bag and a cup hop, passengers start), then a dazed, unhurt sea lion beside the marking. |
-| `viewport` | Admire the Lights | A ringed gas giant, a nebula wisp, the station arc with lights, a satellite, a comet, meteors, a cargo hauler, a school of carp and a greytide adrift with a toolbox, all kept behind the glass. A tidy row of panels: OBSERVATION DECK, SPACE WEATHER (a flap) and PHOTO BOOTH; on the deck a bench of people looking out, a telescope, a star map, the old camera, a SPACE COLA machine and plants; someone strolls past. Beats: festive lights and confetti, "Everyone was new once", SMILE! and a photo strip, and on the page that links xkcd's Ten Thousand two crew meet and play it out in four rotating exchanges (water in a banana, a monkey cube, a welder and a fuel tank, Ian) under the "10,000 today" counter. |
-| `pressure-door` | Disembarking | WELCOME TO APHELION banner and bunting; the STATION BOARD with the server's crew and online counts; lamp and control panel follow Whitelist status; the door slides open onto the laboratory once it is confirmed, and an ID card reading ACCESS: WHITELIST appears only then; two crew wave arrivals in; a janitor mops; luggage carts, a vending machine, new arrivals walking across, the cleanbot. Beats: the janitor's wet floor sign and NO RUNNING, a note going into the feedback box, the emergency locker's internals, a ticking checklist, a game monitor with `[ Get Whitelisted ]`. |
+| `departure-lounge` | Rules entry, The Brochure | Panelled back wall with framed, gridded windows (stars only behind the glass); APC, air alarm and fire alarm; tiled floor with scuffs, cracks and dropped things; split-flap departures (mining shuttle delayed by carp, clown car) with the section strip centred under it; help desk; wet floor sign; Ian trotting past (one bark). Rook and Pip wait on the benches, not yet met. Beats: 18+ check, the pride banner and tail (up from *pride* on, and they stay), EXIT always lit and chasing at *voluntary*, help desk `#open-a-ticket` and blinking fire alarm, rules terminal, Meridian Rift and Wolfgate on the board. |
+| `baggage-hall` | Pack Your Bags | Lockers; the BAGGAGE CHECK-IN terminal up on the wall left of the belt; one `conveyor` of thirteen bags through the scanner arch, the scale reading each bag's weight or DENIED (with the scanner's buzz); refused bags pushed off into DISPOSALS (a whoosh); the BLASTWAVE bag burning on the floor while a firebot foams it out and it lights itself again (extinguisher and flame sounds); cart, monkey, clown (HONK). Beats: while migrating, SS 13 bags (BUBBER, SPLURT, NOVA, OCULIS, RATWOOD, MARINES) come out MERIDIAN and SS 14 bags (MONOLITH, HARDLIGHT, AFTERLIGHT, FRONTIER, WAYFARER) come out WOLFGATE beside the preferences console; refused bags are labelled for the section (CONTRABAND/TOXICITY, BIGOTRY/BAN DODGE, GRUDGES/OLD DRAMA, METAGAME/ASSUMPTION); the cape left in locker 12 (from *past* on); at *looc* Rook and Pip walk up to the belt, talk the copy's LOOC exchange through once in `(( ))` bubbles, and walk off towards the gate. |
+| `landing-bay` | Board the Shuttle: *You are not travelling alone* | The departure bay open to space behind a shimmering field, the Arrivals Shuttle on its pad with the ramp down, "GATE 03 · DEPARTURES" and "ARRIVALS SHUTTLE » APHELION", passengers crossing the bay in small groups and climbing the ramp, ground crew with light wands, a baggage tug. Rook and Pip lead the first group up the ramp, once. Ambience AMB-07. |
+| `boarding-cabin` | Board the Shuttle (the stop's scene; *A shared seat*) | Portholes, aisle lights, fasten-straps sign, a sleeping assistant and a lizard already aboard. Beat: passengers walk in and sit down, "ONE PASSENGER PER SEAT"; Pip asks a stranger "ooh, mind if I squeeze in next to you?", is told no, says "all good!", asks Rook, and sits beside them. The talk plays once. |
+| `cabin-turbulence` | Board the Shuttle: *sea-lions* | The cabin's forward window on the launch rail, played once on the section's clock and then held: straps click, the rail comes up, a sea lion on the KEEP CLEAR line says "Explain.", "Explain again." and "Just asking questions.", THUMP, a jolt in the cabin (bins, a bag and a cup hop, passengers start, Rook and Pip bounce in the front row), the sea lion slides off dazed and unhurt, and the rail drops away into stars. |
+| `viewport` | Admire the Lights | A ringed gas giant, a nebula wisp, the station arc with lights, a satellite, a comet, meteors, a cargo hauler, a school of carp and a greytide adrift with a toolbox, all kept behind the glass. A tidy row of panels: OBSERVATION DECK, SPACE WEATHER (a flap) and PHOTO BOOTH; on the deck a bench of people looking out, a telescope, a star map, the old camera, a SPACE COLA machine and plants; someone strolls past. Rook and Pip walk in at *enjoy* (festive lights, a confetti pop) and stay at the star map; at *valuable* Pip asks what a greytide is and one drifts past for Rook to point at ("Everyone was new once"); at *photos* the shutter clicks, they talk about posting it, and the prints stay pinned to the booth; at *The lucky ten thousand* they play out the four exchanges once (water in a banana, a monkey cube, a welder and a fuel tank, Ian) under the "10,000 today" counter and leave together. |
+| `pressure-door` | Disembarking | WELCOME TO APHELION banner and bunting; the STATION BOARD with the server's crew and online counts; lamp and control panel follow Whitelist status; the door slides open onto the station concourse (a CONCOURSE directory to Meridian Rift, Wolfgate and #general, people, lights) once it is confirmed, and an ID card reading ACCESS: WHITELIST appears only then; two crew wave arrivals in; luggage carts with the bags tagged MERIDIAN and WOLFGATE, a vending machine, new arrivals walking across, the cleanbot. Rook and Pip step off the shuttle, queue at the door through the sections and clearance, say goodbye at *get-whitelisted*, and walk through ahead of the member once the door opens. Beats: the janitor arrives and mops at *watch-step* and leaves at *feedback*, the wet floor sign stays until *ready*; a note going into the feedback box; the emergency locker's internals; the checklist ticks once with a stamp and stays ticked; the game monitor with `[ Get Whitelisted ]` stays lit from its section through clearance and arrival. Ambience after the door opens: AMB-06. |
 
 Each scene has a landscape grid (96 by 40 cells, the area beside the reading column on desktop and web) and a
 portrait grid (72 by 57 cells, phones), with alt text for each Whitelist state that changes the picture. The whole grid
@@ -42,21 +42,37 @@ A scene is JSON with exactly `schema`, `id`, `title`, `alt`, `provenance` and `l
   to 12 frames a second, may be opaque, and may slide with the door. A layer or effect can apply only in some states
   (`when`): Whitelist status (`none`, `requested`, `confirmed`), whether there is a run to show (`stop`: `none`
   or `some`, which is `some` once the stop number and count are known), the beat being staged (`beat`: one the
-  scene declares in its optional `beats` list, or `none`; an unknown beat draws the plain scene) and the title
-  panel's link state (`link`: `none`, `ready`, `closed`, `channel`, `arrived`, `held`, `offline`).
+  scene declares in its optional `beats` list, or `none`; an unknown beat draws the plain scene), the title
+  panel's link state (`link`: `none`, `ready`, `closed`, `channel`, `arrived`, `held`, `offline`), and progress
+  through the stop: `after` (any of these beats has been reached) and `until` (none of them has been reached yet).
+  Reached beats come from position, not history: the beats staged on the pages up to the one being read, so Back
+  takes them away again; while clearance runs and on arrival, every beat of the last stop counts as reached. That is
+  how results stay once introduced (the pride banner, the cape, the ticked checklist) and props leave once their
+  section is over (the wet floor sign).
+- A layer may keep the section's `clock: 'beat'` and play `once`, holding its last frame (and showing the last frame
+  with motion off).
 - **Effects** from a fixed list: `blink`, `flicker`, `drift`, `scan`, `pulse`, `flap` (optionally left or right
-  aligned), `text` (optionally centred or right-aligned), `sprite`, `dialogue` and `conveyor`. Each has bounded
+  aligned), `text` (optionally centred or right-aligned), `sprite`, `dialogue`, `conveyor` and `cue`. Each has bounded
   parameters. There is no code, URL, HTML or free-form script anywhere in the format. A layout has at most 64 layers
   and 96 effects.
+- **Cue:** a sound event, `{ at, cue }` on the wall clock (optionally repeating `every` so many seconds, kept in step
+  with a looping effect) or on the beat clock (once per section). The cue must be a sound in
+  `content/shuttle-activity/sounds/index.json` or one still being chosen (`PENDING_SOUND_CUES`); the Activity refuses
+  to start otherwise. Cues fire only while the scene animates, so a still frame or Back plays nothing.
 - **Sprites** are small multi-line figures (up to 8 by 24 cells and 4 frames) crossing along a line every so many
   seconds. A sprite may `hold` at its destination (people who walk in and stay), show a `rest` frame once there
   (sitting down), keep the section's `beat` clock (so it walks in when the section opens, not mid-cycle), and be
-  `clip`ped to a window region (anything outside a window stays behind the glass). With motion off a sprite is hidden
-  unless it names a `still` position or holds, in which case it is drawn where it ends up.
+  `clip`ped to a window region (anything outside a window stays behind the glass). On the beat clock a sprite can
+  play `once` after an optional `delay`, and `exit` after its hold (a third leg to a point off stage, then gone): an
+  actor who stays across sections is an entrance on the first beat, a standing pose on the middle ones and an exit on
+  the last. With motion off a sprite is hidden unless it names a `still` position or holds without an exit, in which
+  case it is drawn where it ends up.
 - **Dialogue:** two speakers' anchor points and up to six exchanges of up to six lines, each `[speaker, text]` of at
   most 120 characters, wrapped into a bubble up to 40 cells wide above whoever is speaking (`say` in quotes, `looc`
   in double brackets). Lines show one at a time with a pause between exchanges, after an optional delay, on the wall
-  or beat clock. With motion off the opening line stays. The scene's alt text carries the content.
+  or beat clock, and play `once` (then the bubbles are gone). With motion off the opening line stays, unless the
+  dialogue says `still: false`. The scene's alt text carries the content, and every line a companion says is also in
+  the transcript.
 - **Conveyor:** up to 16 items riding one belt row through a gate at one speed, enough of them to fill the belt. Each
   item has its own art and weight, and a tag before and after the gate chosen per beat; a diverted item leaves the
   belt for a chute point instead of riding on. A readout at the gate shows the weight (or DENIED) of the item inside
@@ -115,8 +131,9 @@ node scripts/author-shuttle-scenes.mjs
 `moments.json` maps each stage's section headings (normalised by `headingKey`: no markdown, plain quotes, lower case,
 no closing punctuation) to a beat and optionally a viewscreen and a scene of its own. A section with its own scene
 swaps to it behind the usual wipe (Board the Shuttle uses `landing-bay` and `cabin-turbulence`); its beat must be
-one that scene draws. A transmission stages its first heading, or else the
-last heading before it; a top-level heading with no moment returns to the plain scene. The layout editor can replace
+one that scene draws. Pages break at every heading, so each section opens a page of its own and a page stages
+exactly the section being read (its first heading, or else the last heading before it); a top-level heading with no
+moment returns to the plain scene. A section scene swap plays that scene's announcement and ambience. The layout editor can replace
 any of these per stop. Viewscreens are at most 40 by 16 cells of the same glyphs and colours as scenes, with alt text,
 up to six https link cards and a provenance record. All of them were made by the coding agent; SS13 references are
 shared community culture only (owner decision of 22 October 2026), and no SS13 sprite or sound is copied.
@@ -127,4 +144,5 @@ node scripts/author-shuttle-viewscreens.mjs
 
 ## Still open
 
-- Owner review of the third-pass art in the test Discord.
+- Owner review of the fourth pass (the story) in the test Discord, after install.
+- SC-07 (the launch roll) is still being chosen; the launch plays without it until then.

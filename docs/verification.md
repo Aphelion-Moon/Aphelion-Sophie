@@ -1,5 +1,54 @@
 # Verification and release limits
 
+## Shuttle Activity fourth pass: the story — 22 October 2026 (schema 075, built offline)
+
+Owner review of `0d446fe` and the approved plan (decision log, "The Shuttle as a story" and "Story sounds chosen and
+approved"). Covers:
+
+- pages that break at every heading;
+- progress conditions, and actors and props that enter, act and leave;
+- scene sound cues;
+- sign cards and dialogue lines;
+- the story copy as a draft definition;
+- 17 new sounds.
+
+Source and content only: no migration, configuration, credential, dependency or command change. The story copy is not
+published; members keep seeing the current Shuttle version until a guidance publisher publishes it.
+
+- **`npm test`: 774 passed.** New:
+  - T-STORY-01..03: the draft builds from its source, fits Discord's limits, keeps the meaning checklist, and has no
+    banned phrasings;
+  - the story walk-through and lifecycle tests: each actor enters, does its job and leaves; results persist; nothing
+    loops; one THUMP; straps before the launch;
+  - player tests for the beat clock and scene cues.
+  - Updated: T-ACT-CLI-04 (reached beats by position) and the scene tests (CHECK-IN, BAN DODGE, the concourse, the
+    seat sequence, the strike once on the beat clock).
+- **Repository check:** passed.
+- **`npm run test:storage:fast`:** 1028 passed, none failed.
+- **Sounds:**
+  - the owner's 17 originals matched their SHA-256 list;
+  - the rebuild reproduced the 23 unchanged approved outputs byte for byte and removed the old AMB-06 files;
+  - the owner auditioned the 17 new outputs and approved all of them;
+  - SC-07 is still being chosen and plays nothing.
+- **Preview harness** (fake API, story copy), 1100x620 and 375x812. Checked:
+  - the Boarding call;
+  - the sign cards and dialogue lines;
+  - the LOOC pair talking once and leaving;
+  - the departure bay;
+  - Pip's seat sequence;
+  - the launch playing once and holding on stars;
+  - Rook and Pip on the deck and leaving after the lucky ten thousand, with the prints still pinned;
+  - the janitor leaving at *feedback*, the wet floor sign gone by *Ready*, the checklist staying ticked and the
+    monitor staying lit through clearance;
+  - the goodbye;
+  - arrival onto the concourse with the pair gone through.
+
+  Every sound request answered and there were no console errors. Fixed during preview: the deck's and launch's alt
+  text and two announcements still described the old plot (landing, baggage claim, two strangers).
+
+**Not covered:** the installed build; the published story copy in the channel Shuttle and the text version; how it
+looks and sounds inside Discord's frame on the owner's devices.
+
 ## Staging install of 0d446fe: Shuttle Activity third pass — 22 October 2026 (schema 075)
 
 Owner approval: "Approved: install the third pass (source-only update, including the seam fix) in the test Discord."

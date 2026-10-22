@@ -119,7 +119,21 @@ sessions the Activity drives.
 Splash ("press any key", with a Tip of the Round), then a game-style menu over the animated hangar, whose Shuttle Link
 panel says only what the server last reported (ready, not boarding yet, finish in your channel, held, arrived, no
 signal). Each stop has its scene and ambience; Sophie's transmissions on the `COMMON · 145.9` radio are the stop's
-published pages split into screen-sized pieces (every character, in order).
+published pages split into screen-sized pieces (every character, in order). A new piece starts at every heading, so
+each section opens a page of its own and the scene stages exactly the section being read.
+
+- **The story (fourth pass, 22 October 2026).** The guidance itself is written as a story in a casual voice: Sophie,
+  a tired dispatcher on the radio, talks the member through five stops while two companions, Rook (a returning
+  veteran) and Pip (a first-timer), travel with them: they meet at the bags, board and sit together, learn on the
+  deck, and part at the door. The scene shows, Sophie and the companions tell, and in-world signs pin down the
+  must-know facts. The source is `content/onboarding/story.md`; `node scripts/build-onboarding-story.mjs` turns it
+  into `content/onboarding/story-definition.json` (a draft Shuttle definition with Discord-sized messages) and a
+  preview. It is static, authored copy with no AI, and members see it only once a guidance publisher publishes it as
+  a new Shuttle version in the dashboard editor. `tests/onboarding-story.test.js` checks the meaning checklist (every
+  rule and fact the old text carried), message sizes, and a list of banned phrasings.
+- **Signs and lines.** A quote block whose first line is a bold `NOTICE · …` label shows as a sign card, and a line
+  opening with a bold `Name:` shows as a dialogue line with a name tag. Discord shows the same Markdown as a quote and
+  bold names.
 
 - **Pacing.** Each event plays a cue sheet (`cueSheet` in `presenter.js`) so pieces filter in: a new stop sounds the
   departure, wipes to the new scene (after a skippable 1.5 s ride between stops when motion is on), cross-fades the
@@ -138,9 +152,13 @@ published pages split into screen-sized pieces (every character, in order).
 - **Station board.** Disembarking's scene shows the server's approximate member and online counts.
 - **Moments.** A section heading can stage a beat in the scene and name a viewscreen for the status window: original
   ASCII art with https link cards (`moments.json`, or the published layout). A key starting with `~` is a phrase, so the
-  page containing it stages the moment (Ten Thousand follows the page that links the comic). A moment can also name a
-  scene of its own, so a section changes scene behind the usual wipe (each section of Board the Shuttle has its own).
-  Clearance adds "The HoP is processing your ID card…".
+  page containing it stages the moment (kept for the published copy, where Ten Thousand follows the page that links
+  the comic; the story gives it a section of its own). A moment can also name a scene of its own, so a section
+  changes scene behind the usual wipe, with that scene's announcement and ambience (each section of Board the Shuttle
+  has its own). Scenes play their own event sounds (the THUMP, the shutter, a stamp). Clearance adds "The HoP is
+  processing your ID card…" with a stamp.
+- **Section counter.** The scene's section strip counts the stop's top-level sections; the page dots in the reading
+  column count pages.
 - **Title sections.** Station log (this run's transmissions), Codex (a fixed glossary), Settings and Credits. "?" shows
   the keys; L opens the log.
 - **Settings:** volume, music, ambience, radio and effect levels, sound on/off, motion, typed or instant text, text
@@ -192,6 +210,11 @@ detailed station, centring fixes, the conveyor belt with Wolfgate and disposals,
 section, the rebuilt viewport and door, the station board and boarding pass, radio length tied to the page) is built
 and tested offline, with the held seam fix `21a0575`, and installed as `sophie-mistral-0d446fe` (source-only, 14:26 UTC). See verification.md. No Activity
 layout is published yet, so the shipped defaults apply.
+
+The fourth pass (the story: section-aligned pages, progress conditions, actors who enter, act and leave, sign cards
+and dialogue lines, the story copy as a draft definition, and 17 new sounds) is built and tested offline and not
+installed. The owner auditioned and approved the 17 new sounds; SC-07 (the launch roll) is still being chosen. The
+story copy goes live only when it is published in the dashboard editor.
 
 Not yet checked: mobile clients, and whether Discord opens `discord.com/channels` links inside the app.
 
