@@ -34,6 +34,19 @@ The Shuttle Activity bundles the Cozette font (CozetteVector 1.30.0,
 apps/activity/fonts/CozetteVector.woff2), Copyright (c) 2020, Ines, under the
 MIT License; its notice is in legal/notices/cozette-1.30.0.txt.
 
+The Shuttle Activity bundles part of Discord's Embedded App SDK 2.5.0
+(apps/activity/vendor/embedded-app-sdk/, unmodified; files and hashes in
+legal/embedded-app-sdk.json), Copyright (c) 2024 Discord Inc., under the MIT
+License; its notice is in legal/notices/discord-embedded-app-sdk-2.5.0.txt.
+Discord's published build of the SDK bundles these packages, which ship with it:
+- zod, MIT License: legal/notices/zod-3.25.76.txt
+- uuid, MIT License: legal/notices/uuid-11.1.1.txt
+- eventemitter3, MIT License: legal/notices/eventemitter3-5.0.4.txt
+- big-integer, released into the public domain under the Unlicense:
+  legal/notices/big-integer-1.6.52.txt (owner-approved scoped exception)
+The build does not say which release of each package it used; each notice is the
+licence file of the release named in its file name.
+
 FFmpeg (LGPL-3.0-or-later build, pinned in legal/DEPENDENCIES.json and reviewed
 in legal/ffmpeg-build-time-encoder.json) is approved only as a build-time tool on
 the development machine, to convert those sounds. It is not redistributed with

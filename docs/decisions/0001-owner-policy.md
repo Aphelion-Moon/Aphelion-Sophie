@@ -1367,3 +1367,16 @@ enable the Activity at the moment because we don't have our URL Mapping configur
   runs as `NT SERVICE\aphelion-bot-activity` with the pinned Node runtime and the reviewed WinSW wrapper, from a
   hash-recorded copy of commit `b9f7c11` (`ops/windows/Setup-ActivityService.ps1`). Its first start failed on
   `node.exe` permissions and the closed screen was down for about a minute; it was restored, fixed and handed over.
+
+### Shuttle Activity: SDK, testers and the ticket switch — 22 October 2026
+
+The owner asked to "finish the rest of the work" and answered three questions:
+
+- **Embedded App SDK.** Approved: pin `@discord/embedded-app-sdk` 2.5.0 (MIT) and its dependencies with hashes and
+  bundle them with the Activity client. One dependency, `big-integer`, is under the Unlicense (a public-domain
+  dedication); this is its recorded scope exception. No other non-MIT component is approved by this.
+- **Testers.** The owner and current holders of the configured lead ops role pass the closed screen while the
+  Activity is in testing. Membership is checked on every request from Sophie's current role reads, never from the
+  client or a stored list.
+- **Ticket switch.** New Shuttle runs stop opening a ticket channel as part of the opening (P44), not before. Until
+  then the channel Shuttle keeps working for members.

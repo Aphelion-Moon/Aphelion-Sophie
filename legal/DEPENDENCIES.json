@@ -104,6 +104,31 @@
     "coverage": "Maps every character in SCENE_GLYPHS (138) to a glyph; checked by tests/shuttle-font.test.js",
     "decision": "docs/decisions/0001-owner-policy.md (The Shuttle becomes an Activity, D4)"
   },
+  "activitySdk": {
+    "name": "@discord/embedded-app-sdk",
+    "version": "2.5.0",
+    "license": "MIT",
+    "tarball": "https://registry.npmjs.org/@discord/embedded-app-sdk/-/embedded-app-sdk-2.5.0.tgz",
+    "integrity": "sha512-FNoe5PbSkoKEbqPubaBmq6tlEMOftMjR3gu55YrdrrKmBfKKM4i9P/Z+Zxl0RZdJcKviBwVcTyYMMPM/aGex/w==",
+    "sha256": "9fea2ebe36dfd1126ad072ba343128db4143043c5b6a1f9bc212a0e3a7198470",
+    "bytes": 250150,
+    "path": "apps/activity/vendor/embedded-app-sdk",
+    "manifest": "legal/embedded-app-sdk.json",
+    "notice": "legal/notices/discord-embedded-app-sdk-2.5.0.txt",
+    "noticeSha256": "ac69ea236ff3ba795e1873f4641b73f99492cf47ed9e0804ee4cf8285dd45b9d",
+    "use": "Bundled with the Shuttle Activity client to talk to the Discord client that frames it (ready, sign-in, presence, layout and heat events). It makes no network requests of its own.",
+    "shipped": "57 modules reachable from Discord.mjs, schema/events.mjs, Constants.mjs, copied byte for byte by scripts/vendor-embedded-sdk.mjs; 13 other published modules are not shipped",
+    "bundledComponents": [
+      "zod (MIT)",
+      "uuid (MIT)",
+      "eventemitter3 (MIT)",
+      "big-integer (Unlicense)"
+    ],
+    "scopeException": "big-integer (Unlicense), bundled inside the SDK output only",
+    "bundled": true,
+    "automaticUpdates": false,
+    "decision": "docs/decisions/0001-owner-policy.md (Shuttle Activity: SDK, testers and the ticket switch, 22 October 2026)"
+  },
   "models": [],
   "candidateRegister": "Sophie-Implementation-Plans-v1.1/dependency-register.json",
   "scope": "Development source and pinned PostgreSQL driver; production runtime distribution remains gated"

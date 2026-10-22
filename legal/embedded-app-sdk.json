@@ -1,0 +1,359 @@
+{
+  "schemaVersion": 1,
+  "generatedBy": "scripts/vendor-embedded-sdk.mjs",
+  "package": {
+    "name": "@discord/embedded-app-sdk",
+    "version": "2.5.0",
+    "license": "MIT",
+    "tarball": "https://registry.npmjs.org/@discord/embedded-app-sdk/-/embedded-app-sdk-2.5.0.tgz",
+    "integrity": "sha512-FNoe5PbSkoKEbqPubaBmq6tlEMOftMjR3gu55YrdrrKmBfKKM4i9P/Z+Zxl0RZdJcKviBwVcTyYMMPM/aGex/w==",
+    "sha256": "9fea2ebe36dfd1126ad072ba343128db4143043c5b6a1f9bc212a0e3a7198470",
+    "bytes": 250150,
+    "notice": "legal/notices/discord-embedded-app-sdk-2.5.0.txt",
+    "noticeSha256": "ac69ea236ff3ba795e1873f4641b73f99492cf47ed9e0804ee4cf8285dd45b9d"
+  },
+  "decision": "docs/decisions/0001-owner-policy.md (Shuttle Activity: SDK, testers and the ticket switch, 22 October 2026)",
+  "entries": [
+    "Discord.mjs",
+    "schema/events.mjs",
+    "Constants.mjs"
+  ],
+  "directory": "apps/activity/vendor/embedded-app-sdk",
+  "files": [
+    {
+      "path": "apps/activity/vendor/embedded-app-sdk/Constants.mjs",
+      "bytes": 4839,
+      "sha256": "f9d3072e159ac457724fb36c3603b526c0931384e9288332e6139fd99311c881"
+    },
+    {
+      "path": "apps/activity/vendor/embedded-app-sdk/Discord.mjs",
+      "bytes": 11410,
+      "sha256": "c5a820a9e2b9b828b3fa1681b4a3a0811c2917c2fa8a2a0095e8c58f47c4ba5f"
+    },
+    {
+      "path": "apps/activity/vendor/embedded-app-sdk/_virtual/BigInteger.mjs",
+      "bytes": 297,
+      "sha256": "24affd929a625697d0bb0a4384bae9106c24b410d25f67edd5b8df8a7e7a4491"
+    },
+    {
+      "path": "apps/activity/vendor/embedded-app-sdk/_virtual/BigInteger2.mjs",
+      "bytes": 68,
+      "sha256": "2edfde161a9922899ca62192ad38592f9835dbb13830433ac8ea43f43d9b4257"
+    },
+    {
+      "path": "apps/activity/vendor/embedded-app-sdk/_virtual/_commonjsHelpers.mjs",
+      "bytes": 388,
+      "sha256": "e740c9ac87583add28ed501cffc6d5cae69fc468625a653cc1b8932b16b807c4"
+    },
+    {
+      "path": "apps/activity/vendor/embedded-app-sdk/_virtual/index.mjs",
+      "bytes": 319,
+      "sha256": "3aeb163ccff5f2acf61b26ad7bf66bdd1826c22eeb66590551268810742e25ed"
+    },
+    {
+      "path": "apps/activity/vendor/embedded-app-sdk/_virtual/index4.mjs",
+      "bytes": 74,
+      "sha256": "d9127b9a71c4bd8578c152593215489790470f7f48cf097ee72cc85217c7f3a9"
+    },
+    {
+      "path": "apps/activity/vendor/embedded-app-sdk/commands/authenticate.mjs",
+      "bytes": 245,
+      "sha256": "392168dcc158638c98d7862b6d14a1f34d414867c1e4753903f106906cc4f5e3"
+    },
+    {
+      "path": "apps/activity/vendor/embedded-app-sdk/commands/authorize.mjs",
+      "bytes": 690,
+      "sha256": "fa6a517135c0225ee4874cdc412f08d97a8de853354631afe994010878c0eae1"
+    },
+    {
+      "path": "apps/activity/vendor/embedded-app-sdk/commands/captureLog.mjs",
+      "bytes": 306,
+      "sha256": "9c677ba158cd328be3b78f95c859964ea035f085670ab5c19db533b1c91306f6"
+    },
+    {
+      "path": "apps/activity/vendor/embedded-app-sdk/commands/encourageHardwareAcceleration.mjs",
+      "bytes": 406,
+      "sha256": "4ceee82e1a33d4bc3d8a6e63e4540d98e0c55b7163788968f72593a350726ccd"
+    },
+    {
+      "path": "apps/activity/vendor/embedded-app-sdk/commands/getActivityInstanceConnectedParticipants.mjs",
+      "bytes": 300,
+      "sha256": "d68f98912b71884c7d167bf69215ab84c5ff35ca38527e627f00158f12f03ea6"
+    },
+    {
+      "path": "apps/activity/vendor/embedded-app-sdk/commands/getChannel.mjs",
+      "bytes": 872,
+      "sha256": "11da47aef283918afc71ace8492ecd314f7ed96b0abba3025e720e2c58a45d42"
+    },
+    {
+      "path": "apps/activity/vendor/embedded-app-sdk/commands/getChannelPermissions.mjs",
+      "bytes": 669,
+      "sha256": "85aa305a017ca8160706fb942747488a0e3f32d70282779a2a1e56e65f85f022"
+    },
+    {
+      "path": "apps/activity/vendor/embedded-app-sdk/commands/getEntitlements.mjs",
+      "bytes": 350,
+      "sha256": "ab73d41e26f41d5963b00fdc7d149c69e4f0f1758fb57bab770939d800bf36e6"
+    },
+    {
+      "path": "apps/activity/vendor/embedded-app-sdk/commands/getPlatformBehaviors.mjs",
+      "bytes": 722,
+      "sha256": "7706323c99ad880149115a1c3918b992fc88e61c144da833ce071e568f99d33b"
+    },
+    {
+      "path": "apps/activity/vendor/embedded-app-sdk/commands/getQuest.mjs",
+      "bytes": 201,
+      "sha256": "c31bdfe722cf74dfaa5651198b80cbfe09880329ac7569e40479f1d9e55a2dc2"
+    },
+    {
+      "path": "apps/activity/vendor/embedded-app-sdk/commands/getQuestEnrollmentStatus.mjs",
+      "bytes": 251,
+      "sha256": "df654ea256e3e9b73d5dce53296c779b353d594d00699596cc7a9ad08908b81c"
+    },
+    {
+      "path": "apps/activity/vendor/embedded-app-sdk/commands/getRelationships.mjs",
+      "bytes": 225,
+      "sha256": "bc326bb5e627301c0c1f62ff31b71975f1b77a41c60d72734a621afc9f154e1b"
+    },
+    {
+      "path": "apps/activity/vendor/embedded-app-sdk/commands/getSkus.mjs",
+      "bytes": 309,
+      "sha256": "faa5acbf17e8fc191f08b2549414c2c650f0b7b6504750ff68368787a96cb5a7"
+    },
+    {
+      "path": "apps/activity/vendor/embedded-app-sdk/commands/getUser.mjs",
+      "bytes": 198,
+      "sha256": "95500b2085fb865f04c728a1a7f3cf589f1411cd06ab97882f72c28b15cd7893"
+    },
+    {
+      "path": "apps/activity/vendor/embedded-app-sdk/commands/index.mjs",
+      "bytes": 3725,
+      "sha256": "3a1af67c13f78f64fd2525d5ef7a9a4f8e847138260e44e6a8b12c6942dcb964"
+    },
+    {
+      "path": "apps/activity/vendor/embedded-app-sdk/commands/initiateImageUpload.mjs",
+      "bytes": 610,
+      "sha256": "984641be191fd89e18420a805faf431ea7fc356274277478cc49486ddd92f84a"
+    },
+    {
+      "path": "apps/activity/vendor/embedded-app-sdk/commands/inviteUserEmbedded.mjs",
+      "bytes": 232,
+      "sha256": "aff66fcc710f074c0fe18b25ec1adefeac92317d5e3a5c7d89ff53d7295e1a3f"
+    },
+    {
+      "path": "apps/activity/vendor/embedded-app-sdk/commands/openExternalLink.mjs",
+      "bytes": 347,
+      "sha256": "15677e4bd66a5f2fd456318b6795a78651cea75d0f14b26330f29f91b590f9f7"
+    },
+    {
+      "path": "apps/activity/vendor/embedded-app-sdk/commands/openInviteDialog.mjs",
+      "bytes": 758,
+      "sha256": "ff24ae496bb6c10b473a60339737d90c0ce6f781472684a9850fd221d848bc68"
+    },
+    {
+      "path": "apps/activity/vendor/embedded-app-sdk/commands/openShareMomentDialog.mjs",
+      "bytes": 480,
+      "sha256": "cd27cd810070a3c168377b8cc1a35390388ae8dbbf7b63ec6a0f28a5f04b77cc"
+    },
+    {
+      "path": "apps/activity/vendor/embedded-app-sdk/commands/questStartTimer.mjs",
+      "bytes": 223,
+      "sha256": "97399d735ad2a7a75f7f2a364ceebfa040f58f0f439049c864a38683ae948a5d"
+    },
+    {
+      "path": "apps/activity/vendor/embedded-app-sdk/commands/requestProxyTicketRefresh.mjs",
+      "bytes": 254,
+      "sha256": "9315761cfb47c032f60095e4668211e232ebe64da1798f9fc89dd0d1e7ffe4bf"
+    },
+    {
+      "path": "apps/activity/vendor/embedded-app-sdk/commands/setActivity.mjs",
+      "bytes": 1190,
+      "sha256": "f94672c9a7ec144cdb8c2aa8bb29201608d6e4a892f9ae25d032df5dbf29a6f8"
+    },
+    {
+      "path": "apps/activity/vendor/embedded-app-sdk/commands/setConfig.mjs",
+      "bytes": 311,
+      "sha256": "914c4627b7536edadfadcfbd87b734d49ac6b97a5c9890113257b7b2b46aec9c"
+    },
+    {
+      "path": "apps/activity/vendor/embedded-app-sdk/commands/setOrientationLockState.mjs",
+      "bytes": 578,
+      "sha256": "ecbd7c26f800f2417d40dd7c2463efb327ed6d2f0c7c572f1561214cb85a5026"
+    },
+    {
+      "path": "apps/activity/vendor/embedded-app-sdk/commands/shareInteraction.mjs",
+      "bytes": 225,
+      "sha256": "77029b4b3c8942326cae4f7450c0f2da58515da31eea9fa9c38adc4989cee46e"
+    },
+    {
+      "path": "apps/activity/vendor/embedded-app-sdk/commands/shareLink.mjs",
+      "bytes": 503,
+      "sha256": "03dad1c7b5d147555c76ce1b9ab848d34b1dc10e356ac1ca9ce54890e5034425"
+    },
+    {
+      "path": "apps/activity/vendor/embedded-app-sdk/commands/startPurchase.mjs",
+      "bytes": 331,
+      "sha256": "dedf364ce6fd7a1d5ba2d10677603b0c47da5b3dcb5b95dca3ec9b486015d6f0"
+    },
+    {
+      "path": "apps/activity/vendor/embedded-app-sdk/commands/userSettingsGetLocale.mjs",
+      "bytes": 373,
+      "sha256": "26fbc4d19fe232bb5c0ca59a7eff176e61f057d2bbdf8e9923fd9312dd19a6ef"
+    },
+    {
+      "path": "apps/activity/vendor/embedded-app-sdk/error.mjs",
+      "bytes": 222,
+      "sha256": "fac9819a797cbc0ed3fd2c93dd77fd2da51176b65b2f1bddd0e6b871c89f4f01"
+    },
+    {
+      "path": "apps/activity/vendor/embedded-app-sdk/generated/schemas.mjs",
+      "bytes": 14972,
+      "sha256": "f52b8acc60788565a541b2cfb8d915fb6a00043b175e43b9fae4e012a528cb5d"
+    },
+    {
+      "path": "apps/activity/vendor/embedded-app-sdk/lib/big-integer/BigInteger.mjs",
+      "bytes": 54779,
+      "sha256": "f41d8e2ab5aa9063c063bc5ea1e4a44c5caa3b821d0008d6bce0be236c6a99fe"
+    },
+    {
+      "path": "apps/activity/vendor/embedded-app-sdk/lib/eventemitter3/index2.mjs",
+      "bytes": 10020,
+      "sha256": "c87ca22b2a0438df4f044f3460c68e396545e9ff7a0c5cd9882ea9b46d566967"
+    },
+    {
+      "path": "apps/activity/vendor/embedded-app-sdk/lib/uuid/dist/esm-browser/native.mjs",
+      "bytes": 165,
+      "sha256": "9af14ccfc1e61a71341ce449a74bc940c64f762c18ea8fedd39efefe341780cf"
+    },
+    {
+      "path": "apps/activity/vendor/embedded-app-sdk/lib/uuid/dist/esm-browser/rng.mjs",
+      "bytes": 453,
+      "sha256": "cc882db5cad844488459471f179f97bbc49c975abc51067c7e26edc7822664c7"
+    },
+    {
+      "path": "apps/activity/vendor/embedded-app-sdk/lib/uuid/dist/esm-browser/stringify.mjs",
+      "bytes": 858,
+      "sha256": "3c55ff9dd9249dcefd6ea07069327c71a9cfa89f7ca8917fe73c6ce759dc77d7"
+    },
+    {
+      "path": "apps/activity/vendor/embedded-app-sdk/lib/uuid/dist/esm-browser/v4.mjs",
+      "bytes": 570,
+      "sha256": "e5bde84a0c212d9c3bef4012d58909cb27270f9ef7751ef8e90a707282502fd7"
+    },
+    {
+      "path": "apps/activity/vendor/embedded-app-sdk/lib/zod/lib/index.mjs",
+      "bytes": 149030,
+      "sha256": "3030e5b032805870bb4a8674e36fd916885552832e52c6a0f2465a929ecec231"
+    },
+    {
+      "path": "apps/activity/vendor/embedded-app-sdk/package.json.mjs",
+      "bytes": 44,
+      "sha256": "ab0b9e8eec8236521af4254c0ae8c2462840564172c2c6b00a4e839bbe8cdd83"
+    },
+    {
+      "path": "apps/activity/vendor/embedded-app-sdk/schema/common.mjs",
+      "bytes": 19520,
+      "sha256": "3e7034222a4058456f88ea49947b88a702acde364eef9399e9cb9e73739d55f9"
+    },
+    {
+      "path": "apps/activity/vendor/embedded-app-sdk/schema/events.mjs",
+      "bytes": 8048,
+      "sha256": "5265c1d5b67430c1899aa1e4542fc3dea8b0008cb9a67a8a09a764615e6131a8"
+    },
+    {
+      "path": "apps/activity/vendor/embedded-app-sdk/schema/index.mjs",
+      "bytes": 1529,
+      "sha256": "47adb59be426503b267eb572ce3880b807bc399fc8bf2dd584e60a1e58e32b8d"
+    },
+    {
+      "path": "apps/activity/vendor/embedded-app-sdk/schema/responses.mjs",
+      "bytes": 7477,
+      "sha256": "9e4fdba68722d6cb763a58408745b133a0676023684dc474b2900654f16ee4e3"
+    },
+    {
+      "path": "apps/activity/vendor/embedded-app-sdk/utils/BigFlagUtils.mjs",
+      "bytes": 7319,
+      "sha256": "9a309dac29670fa0a32b1dfe4d25c57a03f27b91a3af084b8c11d90133af5c43"
+    },
+    {
+      "path": "apps/activity/vendor/embedded-app-sdk/utils/assertUnreachable.mjs",
+      "bytes": 221,
+      "sha256": "d2b492c1cc962817fdc68103bb79d2f041de6ad2d2d5bdabf4bab888cbce1121"
+    },
+    {
+      "path": "apps/activity/vendor/embedded-app-sdk/utils/commandFactory.mjs",
+      "bytes": 1183,
+      "sha256": "eb2b5f44cb247e3ced8509a7ce9fe3fde91aaa6dd5c49377efa3f94087a49fe6"
+    },
+    {
+      "path": "apps/activity/vendor/embedded-app-sdk/utils/compatCommandFactory.mjs",
+      "bytes": 1335,
+      "sha256": "0079f9110e24cdf47260991ca8032f7ffae039497c712fe6595aed1d36de9d83"
+    },
+    {
+      "path": "apps/activity/vendor/embedded-app-sdk/utils/console.mjs",
+      "bytes": 504,
+      "sha256": "44f846c58c354296bf3e2e7d2f1e3f0b5fbea69e986bd4809abfee43dfccad12"
+    },
+    {
+      "path": "apps/activity/vendor/embedded-app-sdk/utils/getDefaultSdkConfiguration.mjs",
+      "bytes": 155,
+      "sha256": "268687c8a7ff678d577e4698ba1c6c8fea1bf5c15e3aec7580873277ac64663d"
+    },
+    {
+      "path": "apps/activity/vendor/embedded-app-sdk/utils/zodUtils.mjs",
+      "bytes": 1714,
+      "sha256": "ee5a039abb94c7d6da4289e2a363fd8496110c3f9e3dbd710306bfa091d66214"
+    }
+  ],
+  "modulesShipped": 57,
+  "modulesNotShipped": 13,
+  "notShipped": "Everything not reachable from the entries, including utils/patchUrlMappings.mjs (the only module that calls fetch or WebSocket) with its bundled tslib helper (0BSD), the mock, PermissionUtils and PriceUtils with lodash.transform and decimal.js-light.",
+  "bundledComponents": [
+    {
+      "name": "zod",
+      "license": "MIT",
+      "path": "apps/activity/vendor/embedded-app-sdk/lib/zod/",
+      "modules": 1,
+      "bundledVersion": "Not stated in the SDK output",
+      "notice": "legal/notices/zod-3.25.76.txt",
+      "noticeSha256": "3f1189b28e3866e0d979968d466b78f813f76827cfdca1fbb124cc0a5c8841f8",
+      "noticeFrom": "zod-3.25.76.tgz (npm integrity sha512-gzUt/qt81nXsFGKIFcC3YnfEAx5NkunCfnDlvuBSSFS02bcXu4Lmea0AFIUwbLWxWPx3d9p8S5QoaujKcNQxcQ==)",
+      "approval": "MIT, covered by the SDK approval"
+    },
+    {
+      "name": "uuid",
+      "license": "MIT",
+      "path": "apps/activity/vendor/embedded-app-sdk/lib/uuid/",
+      "modules": 4,
+      "bundledVersion": "Not stated in the SDK output",
+      "notice": "legal/notices/uuid-11.1.1.txt",
+      "noticeSha256": "beaa6b04fb82e41dd2ad679e19e27953afb5999b1abbb455b6564e78ebfeb332",
+      "noticeFrom": "uuid-11.1.1.tgz (npm integrity sha512-vIYxrBCC/N/K+Js3qSN88go7kIfNPssr/hHCesKCQNAjmgvYS2oqr69kIufEG+O4+PfezOH4EbIeHCfFov8ZgQ==)",
+      "approval": "MIT, covered by the SDK approval"
+    },
+    {
+      "name": "eventemitter3",
+      "license": "MIT",
+      "path": "apps/activity/vendor/embedded-app-sdk/lib/eventemitter3/",
+      "modules": 1,
+      "bundledVersion": "Not stated in the SDK output",
+      "notice": "legal/notices/eventemitter3-5.0.4.txt",
+      "noticeSha256": "3aecc12b1cb28832b5f65ab64291de96568c3f236a74d646281b4491f7bcadbf",
+      "noticeFrom": "eventemitter3-5.0.4.tgz (npm integrity sha512-mlsTRyGaPBjPedk6Bvw+aqbsXDtoAyAzm5MO7JgU+yVRyMQ5O8bD4Kcci7BS85f93veegeCPkL8R4GLClnjLFw==)",
+      "approval": "MIT, covered by the SDK approval"
+    },
+    {
+      "name": "big-integer",
+      "license": "Unlicense",
+      "path": "apps/activity/vendor/embedded-app-sdk/lib/big-integer/",
+      "modules": 1,
+      "bundledVersion": "Not stated in the SDK output",
+      "notice": "legal/notices/big-integer-1.6.52.txt",
+      "noticeSha256": "e9b0e94f628e00b5ed98046cfa041696ff89eebbbdd54108ee350625bc6d0363",
+      "noticeFrom": "big-integer-1.6.52.tgz (npm integrity sha512-QxD8cf2eVqJOOz63z6JIN9BzvVs/dlySa5HGSBH5xtR8dPteIRQnBxxKqkNTiT6jbDTF6jAfrd4oMcND9RGbQg==)",
+      "approval": "Scoped exception for this bundled copy only: docs/decisions/0001-owner-policy.md (Shuttle Activity: SDK, testers and the ticket switch, 22 October 2026)"
+    }
+  ],
+  "automaticUpdates": false
+}
