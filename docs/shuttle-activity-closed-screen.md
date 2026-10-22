@@ -57,6 +57,12 @@ not start by itself after the host restarts.
   paths return 404; `sophie.a13.info` still answers as before (303 to sign-in, interactions POST-only).
 - Not checked: the page as Discord shows it inside the Activity frame.
 
+## What replaces it
+
+The Activity itself is served by core on its own loopback port (38125) once deployed; see
+[the Shuttle Activity](shuttle-activity.md). The route for `onboarding.a13.info` then moves from 38124 to 38125. This
+service stays installed (Manual) so the route can be pointed back at it to roll back.
+
 ## Rollback
 
 Stop the service (`Stop-Service aphelion-bot-activity`); to remove it, run

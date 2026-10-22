@@ -1,5 +1,25 @@
 # Verification and release limits
 
+## Shuttle Activity built offline — 22 October 2026 (branch docs/shuttle-activity-plan, schema 074)
+
+Owner: "Finish the rest of the work please." with the answers of 22 October 2026 (SDK approved with a scoped
+big-integer exception; testers are the server owner and current lead ops role holders; new runs leave ticket channels
+at the opening). See [the Shuttle Activity](shuttle-activity.md).
+
+- Commits: 1ca206b and 2515b34 (SDK pin), 5c3cc6c (core sign-in, tester gate, Activity runs, migration 074),
+  d7191b9 (74-migration count), 086ef05 (client), 4384b7c (rules post and opening switch).
+- `npm test`: 724 passed (new: T-ACT-SDK-01..04, T-ACT-CORE-01..09, T-ACT-CLI-01..08, T-ACT-POST-01..03).
+- Storage, 4 shards: 1026 passed, 0 failed, 80 s (new: SA01..SA08 for the tester gate, channel-free runs, stale and
+  replayed clicks, Whitelist confirmed only after Discord shows it, channel runs left in place, Muzzled, the open
+  status and runs from an earlier membership).
+- Repository check passed.
+- Client previewed in a local harness with a fake API (splash, menu, stops, Whitelist requested, arrival, closed
+  screen) at 474x870 and 1280x720; no console errors.
+
+**Not covered:** nothing is deployed; no live sign-in, instance lookup or tester gate against Discord; the client has
+not run inside Discord's frame or on mobile clients; audio was not listened to in the client; command registration for
+`/whitelist post` not run. The closed screen still serves `onboarding.a13.info`.
+
 ## Staging install of 6c7de3b — 20 October 2026 (21:38 UTC, schema 073)
 
 Owner: "Merge it into main and redeploy Sophie so I can test it again." The Shuttle-category test branch was merged into

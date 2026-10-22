@@ -226,7 +226,7 @@ These are bounded next steps within the task dependencies below. An unresolved l
 
 ## Task status
 
-Status counts: 2 complete; 33 in progress; 10 planned, not started. These are full-task statuses, not a percentage of code or release readiness.
+Status counts: 3 complete; 35 in progress; 7 planned, not started. These are full-task statuses, not a percentage of code or release readiness.
 
 An in-progress task can contain several verified milestones and still have unfinished implementation or acceptance. Acceptance IDs below link requirements to tasks; they do not assert that those specifications have passed.
 
@@ -273,10 +273,10 @@ An in-progress task can contain several verified milestones and still have unfin
 | P38 — Review identity consistency and non-AI presentation | in_progress | P37, P19 |
 | P39 — Validate and activate direct knowledge independently of AI | in_progress | P19, P21, P22, P26 |
 | P40 — Shuttle Activity: production spike and tester gate | in_progress | P14, P16 |
-| P41 — Shuttle Activity: backend, and the Shuttle leaves tickets | planned_not_started | P40, P14, P15, P16 |
-| P42 — Shuttle Activity: scene renderer, art and sounds | in_progress | P40 |
-| P43 — Shuttle Activity: visual novel client and main page | planned_not_started | P41, P42 |
-| P44 — Shuttle Activity: Rules post, editor and opening | planned_not_started | P43 |
+| P41 — Shuttle Activity: backend, and the Shuttle leaves tickets | in_progress | P40, P14, P15, P16 |
+| P42 — Shuttle Activity: scene renderer, art and sounds | complete | P40 |
+| P43 — Shuttle Activity: visual novel client and main page | in_progress | P41, P42 |
+| P44 — Shuttle Activity: Rules post, editor and opening | in_progress | P43 |
 
 ## P00 — Freeze scope and deployment inputs
 
@@ -1343,18 +1343,21 @@ Status: **in_progress**. Phase: Shuttle Activity. Priority: P1.
 
 Depends on: P14, P16. Acceptance: T01, T02, T37.
 
-Owner decisions of 21 October 2026 ("The Shuttle becomes an Activity" D1, D4, D5, D6, D8; "Shuttle Activity application and hostname"). The Activity uses Sophie's current application at onboarding.a13.info through the running sophie-staging connector. Not started: the supplied Cloudflare token lacks tunnel and DNS permission.
+Owner decisions of 21 October 2026 ("The Shuttle becomes an Activity" D1, D4, D5, D6, D8; "Shuttle Activity application and hostname") and 22 October 2026 (SDK approved with a scoped big-integer exception; testers are the server owner and current lead ops role holders). The Activity uses Sophie's current application at onboarding.a13.info. Sign-in, instance lookup, tester gate and the launch response are built and tested offline; nothing new is deployed.
 
 Implemented scope:
 
 - Closed "not boarding yet" screen host built and tested on 21 October 2026 (apps/activity/closed-host.*, tests/activity-closed-host.test.js; see docs/shuttle-activity-closed-screen.md). Loopback only, two paths, strict CSP, no token or data.
 - Routed on 22 October 2026: sophie-staging tunnel configuration v3 adds onboarding.a13.info -> 127.0.0.1:38124 before the catch-all, with a proxied CNAME; v2 backed up. Closed screen started; public HTTPS checks passed for onboarding.a13.info (page, font, 404) and sophie.a13.info is unchanged.
 - Closed screen running as the Manual service aphelion-bot-activity (NT SERVICE account, pinned Node, reviewed WinSW wrapper) since 22 October 2026, installed by ops/windows/Setup-ActivityService.ps1 from a hash-recorded copy of b9f7c11; public HTTPS checks passed after the handover.
+- Embedded App SDK 2.5.0 pinned on 22 October 2026 (1ca206b, 2515b34): scripts/vendor-embedded-sdk.mjs checks the tarball's npm integrity and SHA-256 and copies the 57 modules reachable from DiscordSDK, Events and Constants byte for byte; the URL patcher (fetch/WebSocket) with its 0BSD tslib helper is not shipped. Bundled zod, uuid, eventemitter3 (MIT) and big-integer (Unlicense, scoped exception) with notices. T-ACT-SDK-01..04.
+- Sign-in round trip, instance lookup and tester gate built on 22 October 2026 (5c3cc6c): code exchange without a redirect URI (identify and rpc.activities.write only), instance checked with the bot token (this server, this member), one-hour in-memory bearer tokens through core principals; shuttle.activity.test admits the server owner and current lead ops role holders, read from Discord on every request. T-ACT-CORE-01..09; storage SA01..SA08 on isolated PostgreSQL.
+- Launch-activity response from the rules post button built on 22 October 2026 (4384b7c), T-ACT-POST-03. Rules post banner format chosen: a 32-column code block with box characters (no ANSI, no image).
 
 Remaining scope:
 
-- Check the closed screen inside the Discord Activity frame on desktop, web, iOS and Android.
-- Sign-in round trip, instance lookup and the tester gate for named testers; Rules post launch button; platform report.
+- Deploy core with migration 074 and the activity block (testing, port 38125), re-register commands, and switch the onboarding.a13.info route from the closed screen to core: each a recorded owner approval.
+- Live sign-in, instance lookup and tester gate inside Discord; platform report for Windows desktop, web, iOS and Android (launch time, layouts, presence, launch notice, Activities permission).
 
 Full task deliverables:
 
@@ -1368,11 +1371,22 @@ Boundary: Production application behind the tester gate only. Each deploy and th
 
 ## P41 — Shuttle Activity: backend, and the Shuttle leaves tickets
 
-Status: **planned_not_started**. Phase: Shuttle Activity. Priority: P1.
+Status: **in_progress**. Phase: Shuttle Activity. Priority: P1.
 
 Depends on: P40, P14, P15, P16. Acceptance: T13, T14, T15, T18, T19, T22, T26, T53, T54, T55, T57.
 
-Owner decisions of 21 October 2026 ("The Shuttle becomes an Activity", D1–D10). Not started.
+Owner decisions of 21-22 October 2026. Activity runs, routes and the opening switch are built and tested offline on branch docs/shuttle-activity-plan; not deployed. New runs leave ticket channels only at the opening (decision of 22 October 2026).
+
+Implemented scope:
+
+- Activity runs on 22 October 2026 (5c3cc6c): ordinary sessions with the same domain rules, nonce rotation, receipts and Whitelist grant effect, no case or channel (not counted against case quotas), marked in sophie_core.shuttle_activity_runs (migration 074). Whitelist shows confirmed only after the grant is observed on Discord. Routes: GET /api/shuttle, POST /api/shuttle/board and /api/shuttle/act (Continue, Back, Check), one request key per click. Storage SA01..SA08; T-ACT-CORE-07..09. Full storage suite 1024+2 passed with the 74-migration count (d7191b9).
+- Opening switch on 22 October 2026 (4384b7c): with status open, the entry button and /whitelist start launch the Activity instead of opening a channel; channel runs in progress continue in their channels.
+
+Remaining scope:
+
+- Runs in progress in a channel moving into the Activity at the same step (today the Activity tells the member to finish in their channel).
+- Text version reachable from the rules post, sharing the same run.
+- Live checks against Discord after deployment.
 
 Full task deliverables:
 
@@ -1386,11 +1400,11 @@ Boundary: No AI path. Current eligibility on every action; never grant from a cl
 
 ## P42 — Shuttle Activity: scene renderer, art and sounds
 
-Status: **in_progress**. Phase: Shuttle Activity. Priority: P1.
+Status: **complete**. Phase: Shuttle Activity. Priority: P1.
 
 Depends on: P40. Acceptance: T02, T43, T49, T60.
 
-Owner decisions of 21 October 2026 ("The Shuttle becomes an Activity", D1–D10; sounds chosen and approved; encoding tool). Sounds are converted and approved; the scene engine, renderer and six scenes are built and tested offline. Cozette is pinned. Remaining: owner review of the art.
+Owner decisions of 21 October 2026 ("The Shuttle becomes an Activity", D1-D10; sounds chosen and approved; encoding tool). Sounds converted and approved; scene engine, renderer and six scenes built and tested; Cozette pinned. The owner reviewed the scene fixes in the preview on 21 October 2026 ("The fixes look right in the preview").
 
 Implemented scope:
 
@@ -1403,10 +1417,6 @@ Implemented scope:
 - Scene engine and art on 21 October 2026: bounded scene format, validator and frame composer (modules/onboarding/scenes.js); canvas renderer and player (apps/activity/); six scenes with provenance, landscape and portrait (content/shuttle-activity/scenes/), written deterministically by scripts/author-shuttle-scenes.mjs. The door cannot draw open before Whitelist is confirmed. 10 tests in tests/shuttle-scenes.test.js and tests/shuttle-scene-player.test.js. See docs/shuttle-activity-scenes.md.
 - Cozette 1.30.0 (MIT) downloaded on 21 October 2026, hash matched the release digest, bundled at apps/activity/fonts/CozetteVector.woff2 and pinned in legal/DEPENDENCIES.json with its notice. It maps all 138 SCENE_GLYPHS; tests/shuttle-font.test.js checks hashes and coverage.
 
-Remaining scope:
-
-- Owner review of the scene art.
-
 Full task deliverables:
 
 - Bounded scene format and validator: size, characters present in Cozette, colour keys, frames, fixed effect kinds, file size and alt text
@@ -1418,11 +1428,21 @@ Boundary: Sophie is not depicted and no runtime image generation is added. No mo
 
 ## P43 — Shuttle Activity: visual novel client and main page
 
-Status: **planned_not_started**. Phase: Shuttle Activity. Priority: P1.
+Status: **in_progress**. Phase: Shuttle Activity. Priority: P1.
 
 Depends on: P41, P42. Acceptance: T13, T14, T42, T43, T52, T53, T54.
 
-Owner decisions of 21 October 2026 ("The Shuttle becomes an Activity", D1–D10). Not started.
+Owner decisions of 21 October 2026 (D2, D3, D6, D9, D10). The client is built and tested offline (086ef05) and previewed in a local harness with a fake API; not run inside Discord.
+
+Implemented scope:
+
+- Visual-novel client on 22 October 2026 (086ef05): splash and game-style title menu over the animated hangar; Sophie's radio transmissions of the published copy (every character, in order) over each stop's scene and ambience; Whitelist requested and arrival screens (door opens only after confirmation, arrival theme only then); fixed notices for closed, unavailable, in a channel, unpublished, outside Discord and sign-in failure; settings for levels, sound, motion, typed or instant text and text size; keyboard control; landscape overlay and portrait stack; presence with the stop number only; safe markdown with https links opened through Discord. T-ACT-CLI-01..08. Preview: splash, menu, stops, pending, arrival and closed screen at 474x870 and 1280x720 with no console errors.
+
+Remaining scope:
+
+- Section registry for the title screen with Station log and Codex reserved and hidden; a transmission log.
+- Owner review of the client and its wording (presenter.js TEXT). The hangar art's link panel still reads "READY TO BOARD" on refusal screens: owner to choose the wording.
+- Checks inside Discord: audio unlock, picture-in-picture, mobile portrait, presence, screen readers.
 
 Full task deliverables:
 
@@ -1437,11 +1457,21 @@ Boundary: Published copy is shown as written; art and sound cannot change its me
 
 ## P44 — Shuttle Activity: Rules post, editor and opening
 
-Status: **planned_not_started**. Phase: Shuttle Activity. Priority: P1.
+Status: **in_progress**. Phase: Shuttle Activity. Priority: P1.
 
 Depends on: P43. Acceptance: T05, T19, T42, T55.
 
-Owner decisions of 21 October 2026 ("The Shuttle becomes an Activity", D1–D10). Not started.
+Owner decisions of 21 October 2026 (D5) and 22 October 2026 (ticket switch at the opening). Rules post, launch response and opening switch built and tested offline (4384b7c); docs/shuttle-activity.md written.
+
+Implemented scope:
+
+- Rules post on 22 October 2026 (4384b7c): /whitelist post posts the departures banner (provenance recorded), dashboard-editable title, body and button wording, and a Board the Shuttle button answering LAUNCH_ACTIVITY. T-ACT-POST-01..03.
+- docs/shuttle-activity.md written on 22 October 2026, with the deployment steps and rollback.
+
+Remaining scope:
+
+- Per-stop scene picker in the Shuttle editor, saved with the publication (today the scene follows the stop's position).
+- Tester acceptance on the production application, then the owner-approved opening (status open and the rules post).
 
 Full task deliverables:
 
