@@ -66,7 +66,7 @@ export async function runStagingUpgradeSuite(cluster, run) {
     for(const table of tables)assert.deepEqual(sorted((await pool.query(`SELECT ${columns.get(table)} FROM sophie_core.${table}`)).rows),sorted(before.get(table)),table);
     await pool.query(`GRANT CONNECT ON DATABASE ${source.configuration.database} TO sophie_test_core`);
     await pool.query('GRANT USAGE ON SCHEMA sophie_core,sophie_migrations TO sophie_test_core; GRANT SELECT,INSERT,UPDATE ON ALL TABLES IN SCHEMA sophie_core TO sophie_test_core; GRANT SELECT ON sophie_migrations.applied TO sophie_test_core');
-    const checked=await checkRuntimeDatabase(source.corePool);assert.equal(checked.migrations, 73);assert.ok(checked.checkedTables>54);
+    const checked=await checkRuntimeDatabase(source.corePool);assert.equal(checked.migrations, 74);assert.ok(checked.checkedTables>54);
     await assert.rejects(source.corePool.query('SELECT * FROM sophie_control.events'),e=>e.code==='42501');
     await assert.rejects(source.corePool.query('DELETE FROM sophie_core.case_message_observations'),e=>e.code==='42501');
     assert.ok((await pool.query("SELECT count(*)::int AS total FROM sophie_control.events WHERE operation='baseline'")).rows[0].total>0);
