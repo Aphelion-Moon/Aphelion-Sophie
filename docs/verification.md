@@ -1,5 +1,42 @@
 # Verification and release limits
 
+## Shuttle Activity sixth pass: staging that follows the reader — 22 October 2026 (schema 075, built offline)
+
+Owner review of the audit build (22 notes) and the approved plan (decision log, "Shuttle Activity sixth pass"). Covers
+paging across message boundaries, break and reveal moments, the click-to-continue mark, the username title, the
+radio meter's wave, Beepsky, the staging lint, the review's scene fixes and story copy version 5.
+
+Source and content only: no migration, configuration, credential, dependency or command change. Not installed. Story
+copy version 5 is not published; new runs read version 4 until it is, and runs in progress keep their version.
+
+- **`npm test`: 799 passed.** New:
+  - T-ACT-PAGE-01: pages run across message boundaries, a sign is never split and keeps a short lead-in (a long one
+    does not drag the sign onto its page), and a break moment starts a page at its phrase;
+  - T-ACT-PAGE-02: a reveal beat waits for its phrase and pages already read count it as reached; where the phrase
+    starts in the typed text; only phrase keys may wait or break;
+  - T-ACT-CLI-12: the username title strips control characters, says `crew` when there is no name and keeps the
+    longest (32-character) username whole for the page to cut, and the stylesheet cuts the name with an ellipsis while
+    `@aphelion` never shrinks;
+  - T-ACT-CLI-13: every per-bar meter rule carries the speaking scope, with staggered delays;
+  - T-ACT-CLI-14: the click-to-continue mark is hidden from assistive technology and still with motion off or reduced
+    motion;
+  - T-STAGE-01..04, the staging lint: actors enter and leave beyond the edge of what they cross, named actors never pass
+    behind a standing prop, the deck's flyers never overlap, and tiled floors have no holes with each beat met in order;
+  - P44: a belt tag changes column by column as its item comes out of the gate.
+  - Updated: T-ACT-STORY-01 (signs whole), P44 and P45 (the sea lion's two beats), T-SCENE-DEPTH-08..09 (the cabin's front
+    row is no longer a standing prop; the title slot and no name in the scene), T-STORY-SCENE-01..02 (Beepsky) and the
+    story checklist (Beepsky's line, seeing is not consent, the sea-lion order, no going back to re-read).
+- **Repository check:** passed (687 source files).
+- **`npm run test:storage:fast`:** 1029 passed, none failed.
+- **Composed scenes:** every changed note checked as text dumps in both layouts (Beepsky and EXIT, the mothroach's
+  pause, the baggage floor, monkey and chute, the sea lion's beats, the popper, the litter and cleanbot, the janitor's
+  corner). The walk-behind and collision audits show only deliberate overlaps (floor markings, Beepsky flying in front
+  of a wall poster, people sitting, ticks, the cape and the ID card).
+- **Not used:** the preview pane, which crashed the desktop app earlier in the session.
+
+Not checked: inside Discord (needs the install and the version 5 publication); the reveal timers with instant text and
+a long username rendered at phone width, which no unit test covers and the preview pane would have.
+
 ## Activity audit and staging install of f6c787e — 22 October 2026 (schema 075)
 
 Owner request: "Begin an audit of the entire activity first while I'm having dinner, then publish and install any

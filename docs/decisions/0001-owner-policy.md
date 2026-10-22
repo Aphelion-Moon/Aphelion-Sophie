@@ -1624,3 +1624,47 @@ approval.
 - **Audit.** The owner then asked for "an audit of the entire activity", with the updates installed and published
   afterwards. The audit fixed the scenes to match the story (the cape in locker 12; the gate and its light on phones)
   and polished the phone layouts. It changed no copy, so nothing was published. Installed as `f6c787e` at 19:16 UTC.
+
+### Shuttle Activity sixth pass: staging that follows the reader — 22 October 2026
+
+The owner tested the audit build (`f6c787e`) and sent 22 notes. They asked for the trends, a comparison with other
+simple visual novels, and a workplan. The owner approved the plan, and chose a click-to-continue mark, the heading
+"Real questions are welcome" and Beepsky's line in the copy.
+
+- **Trends.**
+  1. Events don't follow the reader: the sea lion is hit before it can be read about, the confetti pops on entry, and
+     the 18+ light should speak on its page.
+  2. Effects have no visible cause: confetti, litter, an idle monkey.
+  3. Actors break the stage: vanishing mid-screen, hiding behind props, crossing flight paths.
+  4. Holes are left in the floor where things were.
+  5. Automatic paging the author can't steer splits signs and misplaces lines.
+  6. Small regressions (the radio meter in lockstep), plus missing logic and personal touches.
+- **Compared with simple visual novels.** Ren'Py's defaults, Ace Attorney and kinetic novels:
+  - the writer places every text-box break;
+  - staging happens on the line being read;
+  - everyone who speaks is on stage;
+  - a click-to-continue mark ends each box;
+  - auto mode and skipping read text are standard;
+  - a lint runs before release.
+- **Adopted now:**
+  - author page breaks, with signs kept whole and pages flowing across Discord message boundaries;
+  - text-synced moments;
+  - Beepsky as an on-stage speaker;
+  - the click-to-continue mark;
+  - a staging lint in the tests.
+- **Candidates for later:** auto mode, skipping read pages, small non-gating choices.
+- **Story version 5** (needs approval to publish):
+  - Beepsky's 18+ line;
+  - "Read that last bit again" rewritten to flow on;
+  - the sea-lion section re-staged across pages 5 to 7 under "Real questions are welcome", with "We crush sea-lions
+    with shuttles" as the punchline before the THUMP;
+  - "Finish this last stop…" removed.
+- **The terminal title** shows the member's own Discord username (`name@aphelion`). It is shown only to them and never
+  stored or logged.
+- **What the staging lint found beyond the notes** (same kinds of fault, fixed in this pass):
+  - Pip vanished behind each seat back on the way to their seat; they now walk the front row in front of the seats.
+  - Rook and Pip were hidden by the ground crew at the foot of the ramp; the crew now stand behind the boarders.
+  - The carp school shared the pointed greytide's lane; the greytide now drifts out level.
+  - The lounge's mothroach walked over a dropped hat; the hat is off its path.
+  - Floor holes around the help desk, the bay's luggage, the door's cart wheels, the wet floor sign's legs and the
+    monkey: each prop now clears only its own cells.

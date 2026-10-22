@@ -120,8 +120,16 @@ Splash ("press any key"), then the menu, both inside a terminal window drawn in 
 fills the window (no reading column on the main page). The menu numbers its choices (1 to 9 pick one) and ends with
 the Tip of the Round. The hangar's Shuttle Link panel says only what the server last reported (ready, not boarding yet, finish in your channel, held, arrived, no
 signal). Each stop has its scene and ambience; Sophie's transmissions on the `COMMON · 145.9` radio are the stop's
-published pages split into screen-sized pieces (every character, in order). A new piece starts at every heading, so
-each section opens a page of its own and the scene stages exactly the section being read.
+published pages split into screen-sized pieces (every character, in order). Since the sixth pass the pieces are cut
+from the whole stop, not message by message, so a page can run across a Discord message boundary. A new piece starts
+at every heading, so each section opens a page of its own and the scene stages exactly the section being read. A sign
+card is never split (it may fill up to twice a page; only a longer one splits, at its own lines), and it keeps a
+short line of lead-in on its page. The author can start a page at a phrase with a `break` moment.
+
+The terminal window on the title screen is titled with the member's own Discord username, `name@aphelion`
+(`crew@aphelion` when Discord does not give one). The name comes from the SDK's `authenticate` answer and is shown only
+on their own screen: it is never sent back, stored or logged. It is page text laid over the scene's `title` slot, cut
+with an ellipsis when long, and `@aphelion` always shows.
 
 - **The story (fourth pass, 22 October 2026).** The guidance itself is written as a story in a casual voice: Sophie,
   a tired dispatcher on the radio, talks the member through five stops while two companions, Rook (a returning
@@ -140,14 +148,19 @@ each section opens a page of its own and the scene stages exactly the section be
   departure, wipes to the new scene (after a skippable 1.5 s ride between stops when motion is on), cross-fades the
   ambience, then the roger beep, then Sophie and the text. Sophie's radio (static, voice meter, ticks) runs for about
   half the page's typing time at the chosen speed (`speechMs`: normal speed when text shows at once), from 2 s to 6 s,
-  then trails off over 1.5 s while the meter shrinks; music ducks about 6 dB under her. Pressing Next during a cue
-  sheet skips to the text.
+  then trails off over 1.5 s while the meter shrinks; music ducks about 6 dB under her. The meter's bars move as a
+  travelling wave, each a little behind the one before. Pressing Next during a cue sheet skips to the text. When a
+  page has finished typing (at once with instant text), a small ▼ ends it, as visual novels mark the end of a line;
+  it is decorative (hidden from assistive technology) and does not blink with motion off or reduced motion.
 - **Layout.** On the main page the hangar fills the window, and the page lays its splash prompt and menu over the
   scene's `menu` slot (the inside of the terminal window) from the live cell size. While reading, a column on the left
   holds the status window and Sophie's transmission; the scene has the rest of the window to itself (on phones it sits
   above the column, below the menu button). The menu button is fixed to the window's top right corner.
-- **Depth.** Standing objects (signs, desks, carts, seats, the shuttle's hull, vending machines) are drawn in front of
-  people: anyone walking past goes behind them.
+- **Depth.** Standing objects (signs, desks, carts, back-row seats, the shuttle's hull, vending machines) are drawn in
+  front of people: anyone walking past goes behind them. The staging lint (`tests/shuttle-staging-lint.test.js`) keeps
+  the stage honest: looping actors enter and leave beyond the edge of what they cross, the named actors (Rook, Pip,
+  Beepsky, the popper crew) are never hidden behind a standing prop, flyers behind the deck glass keep their own lanes
+  and time slots, and tiled floors have no holes in any state of the story.
 - **Status window.** A fixed-size box: Sophie's radio standing by (name, callsign and a voice meter that moves while
   she speaks; she is not depicted), or, while the section being read has extra material, that material instead. V
   switches back to the radio for that section. At the last stop and on arrival, when no extra material is showing, it
@@ -160,7 +173,10 @@ each section opens a page of its own and the scene stages exactly the section be
   the comic; the story gives it a section of its own). A moment can also name a scene of its own, so a section
   changes scene behind the usual wipe, with that scene's announcement and ambience (each section of Board the Shuttle
   has its own). Scenes play their own event sounds (the THUMP, the shutter, a stamp). Clearance adds "The HoP is
-  processing your ID card…" with a stamp.
+  processing your ID card…" with a stamp. A phrase moment can say `"on": "reveal"`: its beat starts when the typing
+  reaches the phrase (with text shown at once, after the time it takes to read up to it at 25 characters a second,
+  at most 12 s), so the sea lion is struck on the line that says so, not when the page opens. Skipping the typing
+  fires them all; pages already read count their reveal beats as reached.
 - **Section counter.** The scene's section strip counts the stop's top-level sections; the page dots in the reading
   column count pages.
 - **Title sections.** Station log (this run's transmissions), Codex (a fixed glossary), Settings and Credits. "?" shows
@@ -234,6 +250,14 @@ version 4 (18:57 UTC) with the host-only command; runs already in progress keep 
 launch post with `/whitelist post` to show the new wording. An audit of the whole Activity followed; its fixes (the
 cape in locker 12, the gate and its light on phones, the phone baggage hall and cabin, a Codex entry) are installed as
 `sophie-mistral-f6c787e` (source-only, 19:16 UTC). No copy changed.
+
+The sixth pass (the owner's review of the audit build: staging that follows the reader) is built and tested offline,
+not installed yet. It adds paging across message boundaries with signs kept whole and author page breaks, beats that
+start when the typing reaches a phrase, a click-to-continue mark, the member's own name on the title window, the
+radio meter's wave again, Beepsky for the age check, a staging lint and the scene fixes from the review. Its story
+copy is Shuttle version 5 (Beepsky's line, no "read that last bit again", "Real questions are welcome", the sea-lion
+order, no Complete Shuttle instruction), which needs the owner's approval to publish; runs in progress keep their
+version. See the decision log entry "Shuttle Activity sixth pass".
 
 Not yet checked: mobile clients, and whether Discord opens `discord.com/channels` links inside the app.
 
