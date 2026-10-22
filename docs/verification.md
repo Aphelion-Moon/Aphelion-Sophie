@@ -1,5 +1,32 @@
 # Verification and release limits
 
+## Shuttle Activity third pass — 22 October 2026 (schema 075, built offline)
+
+Owner review of `2063a50` and the approved plan (decision log, "Shuttle Activity third pass"): a detailed station, centring
+fixes, the conveyor belt with Wolfgate and disposals, a scene per Board the Shuttle section, the rebuilt viewport and
+door, the station board and boarding pass, and radio length tied to the page. Includes the held seam fix `21a0575`.
+Source only: no migration, configuration, credential, dependency or command change.
+
+- `npm test` 761 passed. New: T-ACT-CUE-03 (`speechMs` bounds and cue sheets), T-ACT-MOM-05 (a moment's own scene),
+  T-ACT-CORE-11 (station counts and the member's own pass: cached, sent only to that member, left out on failure),
+  T-ACT-CLI-11 (announcements for every scene); scene tests for the conveyor (positions, speed, tags by beat, readout
+  timing, diversion to the chute, still frames, bounds), the shipped belt (Meridian and Wolfgate by origin, refused labels
+  per section, chute in the disposal's mouth, the burning bag), dialogue (bubble placement, timing, pause, delay, beat
+  clock, LOOC, bounds), sprite hold, rest, clip and beat clock, text alignment and counts, the Board the Shuttle scenes,
+  the lucky ten thousand and the station board; player tests for the beat clock and squares drawn as shapes.
+  T-ACT-MOM-02 now checks each moment's beat against its own scene. Repository check passed.
+- `npm run test:storage:fast` 1028 passed, none failed (new SA10: a moment's own scene is accepted only with a beat
+  that scene draws, an unknown scene is refused, and runs carry it).
+- Preview harness (fake API with synthetic station counts and pass), 1100x620 and 375x812: the title station; Board the
+  Shuttle swapping landing bay, cabin and forward view by section with the sea-lion viewscreen; Admire the Lights from
+  the festive beat to the lucky ten thousand dialogue and counter; Disembarking with the station board (1234 / 87) and
+  the boarding pass in the status window. No console errors. Fixed during preview: `□` windows were cut to half a box
+  by the cell clip (now drawn as squares), the pass overflowed the phone's status window, and the portrait landing
+  bay's gate board overlapped the shuttle.
+
+**Not covered:** the installed build; real Discord counts and member reads (`with_counts`, member `joined_at`) on the
+production application; how it looks inside Discord's frame on the owner's devices.
+
 ## Staging install of 2063a50: Shuttle Activity layout pass — 22 October 2026 (schema 075)
 
 Owner review of `052864c` (decision log, "Shuttle Activity layout: reading column and status window"); owner approval:

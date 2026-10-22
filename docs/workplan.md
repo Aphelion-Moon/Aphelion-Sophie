@@ -1432,7 +1432,7 @@ Status: **in_progress**. Phase: Shuttle Activity. Priority: P1.
 
 Depends on: P41, P42. Acceptance: T13, T14, T42, T43, T52, T53, T54.
 
-Owner decisions of 21 October 2026 (D2, D3, D6, D9, D10) and 22 October 2026 (second pass: SS13 culture only, ASCII viewscreens with links, arrival links, all at once). Client built and tested offline, previewed in a local harness with a fake API, and tested by the owner in the test Discord (a723a49). The second pass is installed (052864c, schema 075, 22 October 11:51 UTC) for the owner's review.
+Owner decisions of 21 October 2026 (D2, D3, D6, D9, D10) and 22 October 2026 (second pass: SS13 culture only, ASCII viewscreens with links, arrival links, all at once; third pass: station counts and boarding pass, radio at half the typing time, all four Ten Thousand exchanges). Client built and tested offline, previewed in a local harness with a fake API, and tested by the owner in the test Discord (a723a49). The layout pass is installed (2063a50); the third pass is built and tested offline and awaits install approval.
 
 Implemented scope:
 
@@ -1442,11 +1442,11 @@ Implemented scope:
 - Title sections on 22 October 2026: Station log (this run's transmissions), Codex (fixed glossary) and a keys card ("?"); settings add master volume and text speed; swipe, 44 px tap targets; the title link panel reads truthfully per state (link state key) and floats above the console in portrait so the menu never covers it; the splash Enter no longer also presses Board; phone-width overflow in the radio header fixed.
 - Scenes on 22 October 2026: beat and link state keys, sprite effect (carp, Ian, clown, monkey, sea lion), limits 48 layers and 64 effects; the lounge has a panelled wall with framed gridded windows, wall fittings, a detailed floor and cycling departures; the baggage belt runs with the bags. tests/shuttle-scenes.test.js 12 tests.
 - Layout pass on 22 October 2026 (owner review of 052864c): a reading column on the left with a fixed-size status window (Sophie's radio standing by, or the section's extra material) above the splash, menu or transmission, and the scene alone on the right; landscape scenes re-laid at 96 by 40 so nothing sits under text; menu button fixed to the window corner; glyphs clipped to their cells (no lines beside changing text); the baggage hall's ten kinds of bags ride the belt as fixed figures through the scanner with a live scale; Ten Thousand tied to the page that links the comic (phrase moments). Installed as 2063a50 (source-only, 12:34 UTC) with the owner's approval; carp face the way they swim.
+- Third pass on 22 October 2026 (owner review of 2063a50), built and tested offline, not installed: a detailed Aphelion station on the title (mirrored ring, spokes, hub, arrays, beacon, blinking windows); The Brochure's book, wet floor sign and section strip centred; the baggage belt as one conveyor of 13 bags with Wolfgate beside Meridian (SS 14 MONOLITH, HARDLIGHT, AFTERLIGHT, FRONTIER, WAYFARER; SS 13 BUBBER, SPLURT, NOVA, OCULIS, RATWOOD, MARINES), refused bags labelled per section and pushed into DISPOSALS, a burning BLASTWAVE bag and firebot, two passengers talking LOOC, the claim terminal above and left of the belt; a scene per Board the Shuttle section (landing-bay, boarding-cabin with people sitting down and asking first, cabin-turbulence with the sea lion and a cabin jolt); Admire the Lights rebuilt (gas giant, nebula, comet, meteors, cargo hauler, carp school, greytide, info panel row, deck, two crew playing out the four Ten Thousand exchanges); Disembarking re-laid (STATION BOARD with crew and online counts, welcome banner, greeters, janitor, carts, vending); the boarding pass in the status window; Sophie's radio for half the page's typing time (2-6 s) with a trailing meter; squares drawn as shapes. Format: dialogue, conveyor, sprite hold/rest/clip/beat clock, text alignment, {crew}/{online}. T-ACT-CUE-03, T-ACT-MOM-05, T-ACT-CLI-11, P44 scene and player tests.
 
 Remaining scope:
 
-- Owner review of the layout pass in the test Discord.
-- Owner review of the second pass in the test Discord, including the wording in presenter.js (TEXT, ANNOUNCEMENTS, TIPS, CODEX) and moments.json.
+- Owner review of the third pass in the test Discord, including the new wording (dialogue lines, announcements, pass text) and moments.json.
 - Checks inside Discord: whether discord.com/channels links open inside the app (desktop and mobile), audio unlock, picture-in-picture, mobile portrait, presence, screen readers.
 
 Full task deliverables:
@@ -1466,7 +1466,7 @@ Status: **in_progress**. Phase: Shuttle Activity. Priority: P1.
 
 Depends on: P43. Acceptance: T05, T19, T42, T55.
 
-Owner decisions of 21 October 2026 (D5) and 22 October 2026 (ticket switch at the opening; arrival links and the layout editor). Rules post, launch response and opening switch built and tested offline (4384b7c); the layout editor (per-stop scene picker) built and verified offline; docs/shuttle-activity.md updated.
+Owner decisions of 21 October 2026 (D5) and 22 October 2026 (ticket switch at the opening; arrival links and the layout editor; a scene per section and the station board). Rules post, launch response and opening switch built and tested offline (4384b7c); the layout editor (per-stop scene picker, and now a scene per section) built and verified offline; docs/shuttle-activity.md updated.
 
 Implemented scope:
 
@@ -1475,10 +1475,11 @@ Implemented scope:
 - /whitelist post registered on 22 October 2026 with the deployment; not yet posted.
 - Activity layout editor on 22 October 2026: dashboard page /activity (guidance publishers) choosing each stop's scene, each section's moment and viewscreen, and a curated arrival list of up to 12 channels with notes; numbered versions with operator grant and digest in sophie_core.activity_layouts (migration 075); stale versions, reused request keys, beats the scene cannot draw and unknown stops are refused; core lists only channels the member can view now from current roles and overwrites. T-ACT-LAY-01..03, T-ACT-CHAN-01, T-ACT-CORE-10, storage SA09.
 - Installed 052864c (schema 074 -> 075) on 22 October 2026 at 11:51 UTC with the owner's "All at once" approval: 43 files, migration 075 with the core grant, configuration unchanged; services down about 40 s; boundary, installation, dashboard and public checks passed.
+- Third pass on 22 October 2026, built and tested offline: a moment can name its own scene (validators, layout store, editor, client swap); core adds the station counts (GET /guilds/{id}?with_counts=true, cached 5 min) and the member's own pass (fresh member read, cached 60 s) to that member's run view from the last stop on, never stored or logged, left out with ACTIVITY_STATION_UNAVAILABLE / ACTIVITY_PASS_UNAVAILABLE on failure. T-ACT-CORE-11; storage SA10.
 
 Remaining scope:
 
-- Owner review of the second pass and the layout editor in the test Discord; the live check of discord.com/channels links.
+- Owner approval to install the third pass (source update, no migration, with the held seam fix 21a0575), then the owner's review in the test Discord; the live check of discord.com/channels links.
 - Tester acceptance on the production application, then the owner-approved opening (status open and the rules post).
 
 Full task deliverables:

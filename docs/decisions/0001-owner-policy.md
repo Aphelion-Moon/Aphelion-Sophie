@@ -1452,3 +1452,36 @@ information if it exists for the current step". Mid-way the owner added that the
 - **Installed** `2063a50` on 22 October 2026 at 12:34 UTC on the owner's approval ("Approved: install the layout pass
   (source-only update) in the test Discord."): 14 files, no migration or configuration change; core and the worker were
   down 33 seconds. All checks passed. Folder `.agent_docs/aphelion-sophie/deployment-2063a50-2026-10-22`.
+
+### Shuttle Activity third pass: richer scenes, station board and boarding pass — 22 October 2026
+
+After reviewing `2063a50` the owner asked for:
+
+- a higher-detail Aphelion station on the title;
+- centring fixes for The Brochure's book, wet floor sign and the strip under the departures board;
+- Wolfgate as a second destination on the baggage belt, with the named SS 13 and SS 14 origin servers;
+- denied bags pushed into a disposal chute, labelled for the section;
+- a burning BLASTWAVE bag with a firebot;
+- two people talking the LOOC section through;
+- the claim terminal moved up and left of the belt;
+- a different scene for each section of Board the Shuttle (a landing bay, people taking seats, a viewport of the
+  shuttle hitting a sea lion with turbulence in the cabin);
+- a livelier Admire the Lights, with two crew playing out "Ten Thousand" in space;
+- a re-laid Disembarking whose push-to-talk box gives way to server statistics or information about the member;
+- Sophie's radio running for a time tied to the page's text: "Not too long, but a little bit longer."
+
+The owner approved the plan and answered three questions:
+
+- **Arrival information: both.** The Disembarking scene shows the server's approximate member and online counts. The
+  status window shows the member's own boarding pass (display name, join date, Whitelist status) at the last stop and
+  on arrival. Core reads both from Discord, keeps them in memory only and sends the pass to that member alone; no
+  member detail enters a scene.
+- **Radio length: half the typing time.** About half the page's typing time at the chosen speed, from 2 s to 6 s, then
+  the 1.5 s trail-off.
+- **Lucky ten thousand: all four exchanges,** rotating: water in a banana, a monkey cube, a welder and a fuel tank, and
+  Ian the corgi.
+
+A moment can now name a scene of its own, so a section changes scene; the layout editor offers it per section. The
+format gains `dialogue` and `conveyor` effects, sprite `hold`, `rest`, `clip` and the beat clock, text alignment and
+the `{crew}`/`{online}` counts. All art is still original ASCII by the coding agent with provenance; SS13 references
+remain shared culture only. The held seam fix `21a0575` ships with this build.

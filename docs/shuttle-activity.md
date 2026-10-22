@@ -79,7 +79,7 @@ channel to look for instead.
 
 Dashboard → Shuttle → Activity layout (`/activity`), for guidance publishers. For each published stop: the scene
 (default by position), and per section heading a moment (a beat the chosen scene draws, or the plain scene) with an
-optional viewscreen. Plus the curated arrival list: up to 12 channel IDs with notes of up to 120 characters. Each
+optional viewscreen and an optional scene for that section (its beat must then be one that scene draws). Plus the curated arrival list: up to 12 channel IDs with notes of up to 120 characters. Each
 publish is a numbered version with who published it and a digest; a stale version or a reused request key is refused,
 beats must belong to the chosen scene and stops must be published stages. Until a layout is published, the shipped
 defaults in `content/shuttle-activity/moments.json` apply. A layout is presentation only: it never changes a run, a
@@ -92,6 +92,16 @@ permission or the copy.
   "Not boarding yet".
 - **Open** (`status: "open"`): every member who may use the Shuttle. Muzzled or timed-out members see a fixed
   "can't board right now" notice.
+
+## Station counts and the boarding pass
+
+From the last stop on (and once a run is pending or finished), core adds two things to the signed-in member's own run
+view: `station`, the server's approximate member and online counts (`GET /guilds/{id}?with_counts=true`, cached for
+five minutes), and `pass`, that member's own nickname, global name or username and the date they joined (a fresh
+member read, cached for 60 seconds per member). Both are read by core with the bot token, kept only in memory, never
+stored, logged or sent to anyone else. If Discord cannot be read the fields are left out (fault codes
+`ACTIVITY_STATION_UNAVAILABLE` and `ACTIVITY_PASS_UNAVAILABLE`) and the Shuttle carries on. Scenes can show only the
+counts (`{crew}`, `{online}`); no member detail ever enters a scene.
 
 ## Runs
 
@@ -113,18 +123,24 @@ published pages split into screen-sized pieces (every character, in order).
 
 - **Pacing.** Each event plays a cue sheet (`cueSheet` in `presenter.js`) so pieces filter in: a new stop sounds the
   departure, wipes to the new scene (after a skippable 1.5 s ride between stops when motion is on), cross-fades the
-  ambience, then the roger beep, then Sophie and the text. Sophie speaks for 2.4 s as a stage begins and 1.2 s on each
-  page, then trails off; music ducks about 6 dB under her. Pressing Next during a cue sheet skips to the text.
+  ambience, then the roger beep, then Sophie and the text. Sophie's radio (static, voice meter, ticks) runs for about
+  half the page's typing time at the chosen speed (`speechMs`: normal speed when text shows at once), from 2 s to 6 s,
+  then trails off over 1.5 s while the meter shrinks; music ducks about 6 dB under her. Pressing Next during a cue
+  sheet skips to the text.
 - **Layout.** A reading column on the left holds the status window and, below it, the splash prompt, the menu or
   Sophie's transmission; the scene has the rest of the window to itself (on phones it sits above the column). The menu
   button is fixed to the window's top right corner.
 - **Status window.** A fixed-size box: Sophie's radio standing by (name, callsign and a voice meter that moves while
   she speaks; she is not depicted), or, while the section being read has extra material, that material instead. V
-  switches back to the radio for that section. Station announcements lie over its bottom edge for a few seconds.
+  switches back to the radio for that section. At the last stop and on arrival, when no extra material is showing, it
+  shows the member's own **boarding pass** instead of the radio: their server display name, "In the server since"
+  their join date, and their Whitelist status. Station announcements lie over its bottom edge for a few seconds.
+- **Station board.** Disembarking's scene shows the server's approximate member and online counts.
 - **Moments.** A section heading can stage a beat in the scene and name a viewscreen for the status window: original
   ASCII art with https link cards (`moments.json`, or the published layout). A key starting with `~` is a phrase, so the
-  page containing it stages the moment (Ten Thousand follows the page that links the comic). Clearance adds "The HoP is
-  processing your ID card…".
+  page containing it stages the moment (Ten Thousand follows the page that links the comic). A moment can also name a
+  scene of its own, so a section changes scene behind the usual wipe (each section of Board the Shuttle has its own).
+  Clearance adds "The HoP is processing your ID card…".
 - **Title sections.** Station log (this run's transmissions), Codex (a fixed glossary), Settings and Credits. "?" shows
   the keys; L opens the log.
 - **Settings:** volume, music, ambience, radio and effect levels, sound on/off, motion, typed or instant text, text
@@ -171,7 +187,11 @@ deployed in testing" for the record, including a 3 min 43 s outage caused by fou
 
 The owner tested `a723a49` in the test Discord ("It does appear to work"). The second pass (moments, viewscreens,
 arrival links, the layout editor and migration 075) is installed (schema 075); the layout pass that followed the owner's review
-(reading column, fixed status window, re-laid scenes) is installed as `sophie-mistral-2063a50`. See verification.md. No Activity layout is published yet, so the shipped defaults apply.
+(reading column, fixed status window, re-laid scenes) is installed as `sophie-mistral-2063a50`. The third pass (a
+detailed station, centring fixes, the conveyor belt with Wolfgate and disposals, a scene per Board the Shuttle
+section, the rebuilt viewport and door, the station board and boarding pass, radio length tied to the page) is built
+and tested offline, with the held seam fix `21a0575`; it is not installed yet. See verification.md. No Activity
+layout is published yet, so the shipped defaults apply.
 
 Not yet checked: mobile clients, and whether Discord opens `discord.com/channels` links inside the app.
 
