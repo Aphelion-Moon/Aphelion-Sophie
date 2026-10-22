@@ -488,7 +488,19 @@ function lounge(name) {
     for (let r = 0; r < lines.length; r++) for (let c = 0; c < [...lines[r]].length; c++) base.put(x + c, y + r, ' ', ' ');
     prop(base, x, y, lines, keys);
   }
-  if (port) desk(48, 41); else desk(w - 22, 26);
+  if (port) {
+    // Phones have no room for the gate sign on the wall, so the gate stands on the floor over the aisle, with the light
+    // everybody walks under ("See the light over the gate? Age check.").
+    const gx = 30, gy = 24;
+    base.fill(gx, gy, gx + 12, gy + 6, ' ', ' ');
+    base.text(gx + 3, gy, '[     ]', 'o');
+    base.box(gx, gy + 1, gx + 12, gy + 6, 'A', '╔╗╚╝═║'); base.put(gx, gy + 6, '║', 'A'); base.put(gx + 12, gy + 6, '║', 'A'); base.fill(gx + 1, gy + 6, gx + 11, gy + 6, ' ', ' ');
+    base.text(gx + 3, gy + 2, 'GATE 03', 'r'); base.text(gx, gy + 3, '╟───────────╢', 'A');
+    const adult = new Art(w, h); adult.text(gx + 5, gy, '18+', 'p');
+    layers.push(layer('gate-adult', adult, { when: { beat: ['adult'] } }));
+    effects.push({ kind: 'blink', id: 'gate-adult-blink', region: [gx + 5, gy, 3, 1], hz: 1, on: 'p', off: 'A', when: { beat: ['adult'] } });
+    desk(48, 41);
+  } else desk(w - 22, 26);
   // Dust in the light over the benches, kept out of the EXIT sign's box.
   effects.push({ kind: 'drift', id: 'dust', region: [port ? 4 : 14, seatY - 4, port ? w - 18 : w - 28, 3], seed: 9, density: 0.02, speed: 0.3, glyphs: '·', colours: 'I' });
   // Ian makes his rounds.
@@ -759,6 +771,8 @@ function tubes(base, w) { for (let x = 6; x < w - 8; x += 24) { base.put(x - 1, 
 
 // ---------- scene: baggage hall ----------
 const BAGGAGE_BEATS = ['migrating', 'past', 'looc'];
+/** "Someone left a cape in locker 12." (the story, Leave the past in the past). */
+const CAPE_LOCKER = 12;
 // The clown with a horn (picked design), in big shoes (owner's note on the pick).
 const CLOWN = [
   spriteFrame([' HONK!', '  \\o/', '  (|)>', '  / \\', '(__)(__)'], [' aaaaa', '  pip', '  rpra', '  p p', 'rrrrrrrr']),
@@ -850,14 +864,14 @@ function baggage(name) {
   const reserve = (x0, y0, x1, y1) => reserved.push([x0, y0, x1, y1]);
   tubes(base, w);
   effects.push({ kind: 'flicker', id: 'tube-flicker', region: [30, 1, 10, 1], hz: 2, chance: 0.25, colour: 'd' });
-  // Two rows of old lockers; one stands open with something nobody came back for.
+  // Two rows of old lockers; locker 12 stands open with something nobody came back for (the story names it).
   const lockW = 8, lockH = 4, top = 3, rows = 2, x0 = 2, count = Math.floor(((port ? w : w - 34) - 4) / lockW);
   let n = 1, lost = null;
   for (let r = 0; r < rows; r++) for (let i = 0; i < count; i++, n++) {
     const x = x0 + i * lockW, y = top + r * lockH;
     base.text(x, y, '+' + '-'.repeat(lockW - 1), 'o'); base.put(x, y + 1, '|', 'o'); base.put(x, y + 2, '|', 'o'); base.put(x, y + 3, '|', 'o');
     const open = hash(i, r + 41) < 0.14, tagged = !open && hash(i, r + 80) < 0.2;
-    if (open && r === 1 && !lost) { base.fill(x + 1, y + 1, x + lockW - 1, y + 3, '▓', 'd'); lost = [x, y]; continue; }
+    if (n === CAPE_LOCKER) { base.fill(x + 1, y + 1, x + lockW - 1, y + 3, '▓', 'd'); lost = [x, y]; continue; }
     if (open) { base.fill(x + 1, y + 1, x + lockW - 1, y + 3, '▓', 'd'); continue; }
     base.text(x + 3, y + 1, String(n).padStart(2, '0'), hash(x, y) < 0.3 ? 'A' : 'r');
     base.text(x + 3, y + 2, '==', 'I');
@@ -869,7 +883,6 @@ function baggage(name) {
   effects.push({ kind: 'sprite', id: 'mothroach', frames: MOTHROACH, from: [lockRight - 4, top - 3], to: [-8, top - 3], duration: port ? 22 : 20, every: 110, offset: 60, fps: 2 });
   base.hline(x0, lockRight, lockBottom, '-', 'o');
   reserve(x0, top, lockRight, lockBottom);
-  if (!lost) lost = [x0 + 2 * lockW, top + lockH];
   {
     // Leave the past in the past: an old hero's cape, unclaimed.
     const [lx, ly] = lost, cape = new Art(w, h);
@@ -968,7 +981,8 @@ function baggage(name) {
   clear(dx, dy, ['             ', '            ', '  ++++++++++', '  ++++++++++']); prop(standing, dx, dy, ...DISPOSAL);
   const fy = port ? floorTop + 6 : floorTop + 4;
   placeOnFloor(2, fy, ['  .--.  .__.', ' [====][▓▓▓▓]', '|============|', ' o          o'], ['  oooo  oooo', ' AAAAAArrrrrr', 'oooooooooooooo', ' d          d']);
-  const bx = port ? 4 : 18, by = port ? fy + 6 : fy;
+  // On phones the bag lies below the cart with a row of floor between them.
+  const bx = port ? 4 : 18, by = port ? fy + 7 : fy;
   // No tile seam shows through the bag and its flames and smoke, the firebot's lane, or its dock.
   for (const [cx0, cy0, cols, rows] of [[bx + 2, by - 3, 11, 8], [bx + 13, by + 1, 11, 4], [bx + 24, by, 10, 5]]) clear(cx0, cy0, Array(rows).fill(' '.repeat(cols)));
   const fire = blastwave(w, h, bx, by);
@@ -1176,11 +1190,22 @@ function cabin(name) {
   sitAt(stranger, 'O', 'r', 'a'); sitAt(rook, ROOK_LOOK[0], ROOK_LOOK[1], ROOK_LOOK[2]);
   layers.push(layer('front-row', front, { front: true }));
   base.hline(0, w - 1, fy + 8, '▀', 'd');
-  // The aisle: a drinks trolley parked by the galley, and a carpet runner under the front row.
+  // Phones show more of the cabin: another row of seats, some of them taken.
+  let carpet = fy + 10;
+  if (port) {
+    const ry = fy + 11, rear = new Art(w, h);
+    for (let x = 3, i = 0; x + 8 < w; x += big, i++) {
+      prop(rear, x, ry, BIG, BIG_KEYS);
+      if (hash(i, 31) < 0.6) { const [head, key, body] = LOOKS[(i + 4) % LOOKS.length]; rear.text(x + 5, ry + 1, head, key); rear.text(x + 4, ry + 2, '/|', body); rear.text(x + 5, ry + 3, '|', body); }
+    }
+    layers.push(layer('rear-seats', rear, { front: true }));
+    base.hline(0, w - 1, ry + 8, '▀', 'd'); carpet = ry + 10;
+  }
+  // The aisle: a drinks trolley parked by the galley, and a carpet runner under the seats.
   prop(base, w - 18, floor + 3, ['  ___ ', ' [▒▒▒]', '  o o'], ['  ooo ', ' oAAAo', '  d d']);
   base.text(w - 30, floor + 4, 'GALLEY', 'A');
-  for (let y = fy + 10; y < h; y += 3) for (let x = 0; x < w; x += 4) base.put(x + (y % 2), y, '·', 'd');
-  prop(base, 20, fy + 10, [' .--. ', '[====]'], ['oooooo', 'AAAAAA']);
+  for (let y = carpet; y < h; y += 3) for (let x = 0; x < w; x += 4) base.put(x + (y % 2), y, '·', 'd');
+  prop(base, 20, carpet, [' .--. ', '[====]'], ['oooooo', 'AAAAAA']);
   // Pip asks the stranger, takes the no, then asks Rook and sits down beside them. Once, as the section opens.
   // Pip stands in the gap beside whoever they are asking, never over a seat.
   const seat = { when: { beat: ['seat'] } }, gapStranger = stranger + 10, gapRook = rook + 10, askY = fy;

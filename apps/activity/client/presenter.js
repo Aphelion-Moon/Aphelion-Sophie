@@ -103,6 +103,7 @@ export const CODEX = Object.freeze([
   ['Greytide', 'An assistant in a grey jumpsuit with a toolbox and a plan. Station folklore.'],
   ['Robust', 'Very good at a fight. Station folklore; do not try it at the help desk.'],
   ['Space carp', 'Fish that live in space and bite. Do not feed them.'],
+  ['Mothroach', 'Half moth, half cockroach, mostly fluff. Station folklore; they like lamps and dark corners.'],
   ['Ian', 'The Head of Personnel’s corgi. Station folklore and a very good boy.'],
 ]);
 
