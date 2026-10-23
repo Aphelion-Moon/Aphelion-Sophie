@@ -91,10 +91,12 @@ function Set-ProtectedAcl {
 
 # 'current' when the wrapper already has the reviewed configuration, 'legacy' when it has the reviewed supervisor-era one
 # (Manual, no failure restart), which this script upgrades. Anything else stops for operator review.
+# Since 23 October 2026 the service may also start at boot (owner approval: "Set services to restart at reboot"); the
+# wrapper file keeps its reviewed Manual startmode, which only applies when the wrapper registers the service.
 function Assert-WorkerService {
     param($Registration, [xml]$Configuration, [string]$ExpectedWrapperHash)
     if ($Registration.StartName -ne "NT SERVICE\$ServiceId" -or
-        $Registration.PathName -notin @($Wrapper, "`"$Wrapper`"") -or $Registration.StartMode -ne 'Manual') {
+        $Registration.PathName -notin @($Wrapper, "`"$Wrapper`"") -or $Registration.StartMode -notin @('Manual', 'Auto')) {
         throw 'Existing worker service registration differs from the reviewed configuration; repair requires operator review.'
     }
     if ($ExpectedWrapperHash -ne $WrapperSha256) { throw 'Existing worker wrapper hash mismatch' }
