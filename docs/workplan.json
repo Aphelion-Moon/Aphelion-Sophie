@@ -1,6 +1,6 @@
 {
   "schema_version": 2,
-  "revision": "2026-10-23-production-791e2fe",
+  "revision": "2026-10-23-production-b336843",
   "reference_plan_version": "1.1",
   "source": "Sophie-Implementation-Plans-v1.1/backlog.json",
   "owner_decisions": "docs/decisions/0001-owner-policy.md",
@@ -1768,10 +1768,11 @@
         "Installed 791e2fe in the main server on 23 October 2026 at 00:59 UTC with the owner's approval: new sophie_prod_main database, production configuration, commands moved, all checks passed. Story publication waits for the owner's first dashboard sign-in.",
         "Character ported from staging (revision 2 -> production revision 1, same digest) on the owner's request.",
         "Owner published budget and configuration revision 1 on the dashboard; channel settings published as configuration revision 2 (#ask-sophie support, #staff-chatter staff, #main-bots chat) on the owner's request; staging budget not ported because the owner's is newer; story published as production version 1.",
-        "Found on the first live #ask-sophie turn (23 October 2026): support and staff turns (1,024 output tokens) were refused as AI_WORKER_UNAVAILABLE before reaching Mistral, because core's prepared-turn check, the budget estimate and the provider_attempts constraint still stopped at 512. Fixed in b336843 with migration 077 and regression test DS04-I01b. npm test 831 passed; npm run check passed; storage 1033 passed, none failed. Not installed."
+        "Found on the first live #ask-sophie turn (23 October 2026): support and staff turns (1,024 output tokens) were refused as AI_WORKER_UNAVAILABLE before reaching Mistral, because core's prepared-turn check, the budget estimate and the provider_attempts constraint still stopped at 512. Fixed in b336843 with migration 077 and regression test DS04-I01b. npm test 831 passed; npm run check passed; storage 1033 passed, none failed. Not installed.",
+        "Installed b336843 in production at 01:27 UTC on 23 October 2026 with the owner's approval: four files, migration 077, all checks passed."
       ],
       "remaining_scope": [
-        "Install b336843 (four source files and migration 077 on sophie_prod_main) after the owner's recorded approval; then Go live again in each channel, since the release changes.",
+        "Owner: Go live again in each channel on the new release (b336843).",
         "Owner: Go live in each channel on the dashboard; /sophie Yes.",
         "Live checks: a reply in #ask-sophie (code and Guidebook), a saved memory, Get my data, the Activity for a Lead Ops tester, a staff channel turn."
       ]

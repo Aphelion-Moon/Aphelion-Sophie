@@ -1783,3 +1783,14 @@ support, #staff-chatter staff, #main-bots chat). I'll go live on the dashboard m
 - **Story published** into production as version 1 (digest `f826e709…`), now that the owner is known in the database.
 
 AI stays disabled and no channel is qualified: Go live in each channel is the owner's, on the dashboard.
+
+### Production fix b336843 installed — 23 October 2026
+
+The first live #ask-sophie turn was refused before reaching Mistral: core's check of the worker's prepared turn, the budget
+estimate and the  constraint still stopped at 512 output tokens, below the support and staff contexts'
+1,024. Fixed in  (migration 077). On the owner's approval ("Approved: build and run the b336843 production fix
+packet (four source files plus migration 077 on sophie_prod_main), then the checks. I'll Go live again afterwards."), it was
+installed at 01:27 UTC: four files written, migration 077 applied to  with core stopped, new trust from the
+same production runtime and policy (profile hash unchanged), all checks passed. The release changes, so the owner goes live
+again in each channel. Folder ; backup
+;  reverts 077 and restores 791e2fe.

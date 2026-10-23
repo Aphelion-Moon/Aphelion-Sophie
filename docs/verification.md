@@ -1,5 +1,25 @@
 # Verification and release limits
 
+## Production fix b336843 — 23 October 2026 (schema 077)
+
+Owner approval quoted in the decision log. Folder .
+
+- **Cause:** the first live #ask-sophie turn ended  with no provider attempt; core
+  refused the worker's prepared turn because its output budget (1,024) was above a leftover 512 bound.
+- **Offline on :** Unknown command: "test"
+
+
+Did you mean this?
+  npm test # Test a package
+To see a list of supported npm commands, run:
+  npm help 831 passed (new DS04-I01b: a full turn through the real worker preparation at 384,
+  1,024 and 2,048 tokens, failing before the fix);  passed;  1033 passed, none
+  failed.
+- **Install:** preflight (714 pinned files match Git; installed 791e2fe matches its manifest; production runtime and policy
+  unchanged; profile hash unchanged); 4 files written; migration 077 applied (77 migrations); pre-start check passed; service
+  boundaries passed; 29 installed checks passed (main server gateway current, no role jobs); public hosts passed.
+- **Not done:** go-live again on the new release (owner, dashboard); a live turn in #ask-sophie.
+
 ## Production install of 791e2fe in the main server — 23 October 2026 (schema 076)
 
 Owner approval quoted in the decision log. Folder `deployment-791e2fe-production-2026-10-23`.
