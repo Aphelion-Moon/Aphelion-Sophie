@@ -1,4 +1,4 @@
-# Sophie development handoff — 22 October 2026
+# Sophie development handoff — 23 October 2026
 
 Sophie provides deterministic community administration, Whitelist onboarding, private cases and website
 configuration. No AI may receive ticket or onboarding session content. Read [AGENTS.md](../AGENTS.md) first; current
@@ -22,10 +22,31 @@ Where it disagrees with those records, they win.
   closed screen, checked on every request from Sophie's current role reads.
 - **Story:** the Shuttle copy is published as **version 5** (21:15 UTC). Runs keep the version they started on: the
   owner's test run is on version 3, so seeing version 5 needs a new run.
-- **Git:** branch `docs/shuttle-activity-plan`, about 60 commits ahead of `main` and **not pushed** to `origin`. On
-  20 October the owner directed that branches be merged into `main` and work continue there. Merging and pushing this
-  branch needs the owner's go-ahead.
+- **Git:** work is on `main`, pushed to `origin` on 23 October (the Shuttle branch was merged with the owner's
+  approval). Six commits after the push are not installed: `15252f9` (dashboard sign-in), `bbe039d` (one Yes or No
+  and `/sophie`), `28eb1e5` (contexts and longer replies), `a560420` (staff channels), `7115fce` (Guidebook,
+  Wolfgate, authenticated GitHub sync) and `c33a418` (code search). Schema 076 is new and unapplied.
 - **AI:** the AI worker runs in staging under the owner-accepted Mistral processing policy. The Shuttle has no AI path.
+  Memory is off in the installed release (no `automaticMemory` in its policy); the owner accepted automatic memory on
+  23 October, and notice revision 4 is drafted in [ai-notice-r4.md](ai-notice-r4.md).
+- **Host:** the Sophie services start at boot since 23 October (rollback in
+  `.agent_docs/aphelion-sophie/service-autostart-2026-10-23`). The deployment scripts still expect `Manual`, so the
+  next adapter must expect the new start types. The read-only GitHub token is staged at
+  `C:\Aphelion\Sophie\trust\github-token.txt` (core-only ACL) and goes into core's `credentials.githubToken` at the
+  next install.
+- **Dashboard sign-in** is broken in the installed release (Discord now reports the Activity's scope too). The fix is
+  `15252f9`, bundled with the production install by the owner's choice; meanwhile, removing Sophie under Discord's
+  Authorized Apps and signing in again works around it.
+
+## Next: the move to the main server (P50)
+
+Owner decisions of 23 October (decision log): the install moves from the test Discord to the main Aphelion server with a
+fresh production database, for closed testing of the Shuttle Activity behind the tester gate, Sophie's AI with memory,
+and `/sophie`. Tickets, cases, moderation, Crew assignment and Whitelist delivery stay off until the cutover. Before the
+packet: the owner invites Sophie and gives the guild ID, tester role, AI channels with their contexts and the staff
+channels; check that each case and role module can be switched off independently. The packet carries migration 076 and
+its grants, the processing policy with notice revision 4, `automaticMemory` and `staffChannels`, the GitHub token,
+the worker requalification (new profile hash), command registration in the main guild, and the live checks in P50.
 
 ## What was done (the Shuttle Activity, 21–22 October 2026)
 

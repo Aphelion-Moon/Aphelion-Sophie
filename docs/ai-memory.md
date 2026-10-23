@@ -18,8 +18,10 @@ remain as they were. The owner's choices are in the [decision log](decisions/000
   subject list is rejected. Contact details, links and IDs are masked by the same redaction used for prompts. The
   rules tell Sophie never to save real names, physical locations, contact details, account names or identifiers
   (owner choice: skip identifiers only). Nothing checks free text for real names, so members can correct her.
-- **Who can be remembered.** A memory is kept only about members taking part in that conversation, in a channel where
-  they hold current consent, who have not turned memory off and have no departure pending.
+- **Who can be remembered.** A memory is kept only about members taking part in that conversation who have said Yes
+  (one choice for the whole server since 23 October 2026), have no memory opt-out left over from before, and have no
+  departure pending. A memory is used only while every member it names still says Yes; saying No hides it, and Yes again
+  restores it. Memories written in staff channels are used only in staff channels.
 - **What a turn sees.** Up to eight member memories about the people in the conversation, plus four recent memories of
   that channel, in a "Sophie remembers" message. Members in the conversation keep their labels; anyone else reads as
   "a member". A memory deleted, edited or no longer usable before delivery cancels the reply.
@@ -33,14 +35,18 @@ remain as they were. The owner's choices are in the [decision log](decisions/000
 
 ## Who controls it
 
-- **Members** (AI preferences page, `ai.self`): see everything that names them, edit their member memories, forget any
-  one (a channel memory is deleted for everyone), forget everything, or turn memory off.
+- **Members** (`/sophie` in Discord, or the "Sophie and you" page, `ai.self`): see everything that names them, edit their
+  member memories on the page, forget any one (a channel memory is deleted for everyone), forget everything, get a copy
+  (memories included) or delete all their data. The separate memory switch was retired on 23 October 2026: memory follows
+  the member's Yes or No.
 - **Owner audit** (AI page, `ai.memory.audit`, granted on the Permissions page): list every memory with its subject IDs
   and delete any of them.
 
 ## Turning it on
 
-Memory is off until all of these are done. Nothing here is done automatically.
+Memory is off until all of these are done. Nothing here is done automatically. Status on 23 October 2026: the owner
+accepted automatic memory; steps 1 and 3 are done in staging; notice revision 4 is drafted in
+[ai-notice-r4.md](ai-notice-r4.md) and goes into the production install's processing policy (P50).
 
 1. **Grant the control role** access to the new tables after migration 073:
 
@@ -49,9 +55,9 @@ Memory is off until all of these are done. Nothing here is done automatically.
 
    Preference saves re-stamp memories, so these grants are needed before deploying even while memory stays off; installed
    core refuses to start without them.
-2. **Revise the notice** (revision 4) and **re-accept the processing policy** with `"automaticMemory": true`. The
-   field is part of the consent binding, so every member must opt in again under the new notice before Sophie reads
-   their messages. Policies without the field keep their current binding.
+2. **Revise the notice** (revision 4) and **re-accept the processing policy** with `"automaticMemory": true` (and
+   `"staffChannels": true` for staff channels). Both are part of the consent binding, so every member says Yes again
+   under the new notice before Sophie reads their messages. Policies without them keep their current binding.
 3. **Grant `ai.memory.audit`** on the Permissions page to whoever should audit memories.
 4. Deploy the worker release with the new output schema (the worker package changed).
 

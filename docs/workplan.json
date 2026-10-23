@@ -1,6 +1,6 @@
 {
   "schema_version": 2,
-  "revision": "2026-10-20-staging-25b8085",
+  "revision": "2026-10-23-main-c33a418",
   "reference_plan_version": "1.1",
   "source": "Sophie-Implementation-Plans-v1.1/backlog.json",
   "owner_decisions": "docs/decisions/0001-owner-policy.md",
@@ -1589,6 +1589,183 @@
       "remaining_scope": [
         "Owner review of the sixth pass in the test Discord (installed a0eb904, story copy version 5), and the re-posted launch post; the live check of discord.com/channels links.",
         "Tester acceptance on the production application, then the owner-approved opening (status open and the rules post)."
+      ]
+    },
+    {
+      "id": "P45",
+      "title": "Dashboard sign-in after a Shuttle Activity sign-in",
+      "phase": "AI controls",
+      "priority": "P0",
+      "depends_on": [],
+      "deliverables": [
+        "The dashboard OAuth exchange accepts identify alone or with rpc.activities.write, and refuses any other scope with OAUTH_SCOPE_UNEXPECTED"
+      ],
+      "acceptance_tests": [
+        "tests/dashboard-auth.test.js",
+        "storage O03"
+      ],
+      "suggested_owner": "Repository maintainer",
+      "guardrail": "Only users/@me is ever called with the token; no broader scope is accepted.",
+      "status": "in_progress",
+      "implementation_note": "The owner's sign-in failed with DASHBOARD_AUTH_UNAVAILABLE_OAUTH_RESPONSE_INVALID: Discord reports every scope granted to the application, so after an Activity sign-in the dashboard exchange saw two scopes. Fixed in 15252f9; installation bundled with the production install by the owner's choice.",
+      "completed_scope": [
+        "15252f9 on 23 October 2026. Offline on 23 October 2026: npm test 823 passed, npm run check passed, npm run test:storage:fast 1032 passed with none failed. Not installed; no live Discord check yet."
+      ],
+      "remaining_scope": [
+        "Install with the production packet (P50), then sign in to confirm."
+      ]
+    },
+    {
+      "id": "P46",
+      "title": "One Yes or No for the whole server, and /sophie",
+      "phase": "AI controls",
+      "priority": "P0",
+      "depends_on": [
+        "P45"
+      ],
+      "deliverables": [
+        "Migration 076: sophie_ai.member_consents and sophie_ai.consent_invitations",
+        "Admission, memory use and erasure follow the server-wide choice",
+        "/sophie panel (ephemeral or DM): Yes after the whole notice, No, notes, data copy, forget memories, delete, keep-on-leave",
+        "Static Set up Sophie invitation, once a day at most",
+        "Dashboard page rebuilt on the same use cases (/api/ai/me*)",
+        "Notice revision 4 drafted (docs/ai-notice-r4.md)"
+      ],
+      "acceptance_tests": [
+        "tests/sophie-member-panel.test.js",
+        "tests/ai-preferences.test.js",
+        "storage AI04, DS01-C06, DS01-C07, DS08-D01..D03, MEM-S01"
+      ],
+      "suggested_owner": "Repository maintainer",
+      "guardrail": "Component IDs carry no authority; every click re-reads current state and the consent epoch. No model is involved in the panel.",
+      "status": "in_progress",
+      "implementation_note": "Owner decisions of 23 October 2026 (decision log).",
+      "completed_scope": [
+        "bbe039d on 23 October 2026. Offline on 23 October 2026: npm test 823 passed, npm run check passed, npm run test:storage:fast 1032 passed with none failed. Not installed; no live Discord check yet."
+      ],
+      "remaining_scope": [
+        "Install with P50; the owner reviews notice revision 4; live check of /sophie in the channel and in DMs (the DM interaction context is unverified until then)."
+      ]
+    },
+    {
+      "id": "P47",
+      "title": "Channel contexts and longer replies",
+      "phase": "AI controls",
+      "priority": "P1",
+      "depends_on": [
+        "P46"
+      ],
+      "deliverables": [
+        "AI configuration schema 2 with chat, support and staff contexts",
+        "Context brief, reply length, output budget and deadline in the prompt and output contract",
+        "Long replies as embeds in one message",
+        "AI deadline ceiling 30 s",
+        "Dashboard context editor"
+      ],
+      "acceptance_tests": [
+        "tests/ai-contexts.test.js"
+      ],
+      "suggested_owner": "Repository maintainer",
+      "guardrail": "A brief is presentation data and never permission. The worker never asks for more output than its qualified profile allows.",
+      "status": "in_progress",
+      "implementation_note": "Several API keys were considered and not adopted: Mistral limits are per workspace or organisation and keys carry no context.",
+      "completed_scope": [
+        "28eb1e5 on 23 October 2026. Offline on 23 October 2026: npm test 823 passed, npm run check passed, npm run test:storage:fast 1032 passed with none failed. Not installed; no live Discord check yet."
+      ],
+      "remaining_scope": [
+        "Requalify the worker (profile hash changed) with the P50 install; the owner sets each context's brief and reply length on the dashboard."
+      ]
+    },
+    {
+      "id": "P48",
+      "title": "Named staff channels",
+      "phase": "AI controls",
+      "priority": "P1",
+      "depends_on": [
+        "P47"
+      ],
+      "deliverables": [
+        "Restricted channels only as a Staff context under a staffChannels policy",
+        "Worker accepts a restricted lane only as a declared staff turn",
+        "Staff memories stay in staff channels"
+      ],
+      "acceptance_tests": [
+        "tests/ai-staff-context.test.js",
+        "storage TS-AI02, MEM-S08"
+      ],
+      "suggested_owner": "Repository maintainer",
+      "guardrail": "Case, ticket and onboarding channels and their threads stay excluded; each staff member needs their own Yes.",
+      "status": "in_progress",
+      "implementation_note": "Owner decision of 23 October 2026: \"Yes, named staff channels\".",
+      "completed_scope": [
+        "a560420 on 23 October 2026. Offline on 23 October 2026: npm test 823 passed, npm run check passed, npm run test:storage:fast 1032 passed with none failed. Not installed; no live Discord check yet."
+      ],
+      "remaining_scope": [
+        "The owner names the staff channels; activation of each after the P50 install."
+      ]
+    },
+    {
+      "id": "P49",
+      "title": "Code, Guidebook and community sources",
+      "phase": "AI knowledge",
+      "priority": "P1",
+      "depends_on": [
+        "P47"
+      ],
+      "deliverables": [
+        "Wolfgate Guidebook synced source with rule authority",
+        "VanguardControl/Wolfgate in the GitHub sync; authenticated sync with a read-only token",
+        "Code search in contexts that turn it on",
+        "Fixed cause codes for Policies refresh failures"
+      ],
+      "acceptance_tests": [
+        "tests/knowledge-guide.test.js",
+        "tests/code-search.test.js",
+        "tests/knowledge-sources.test.js"
+      ],
+      "suggested_owner": "Repository maintainer",
+      "guardrail": "Fixed allowlist of origins and repositories; nothing cloned or executed; no model chooses what is fetched; the token goes only to api.github.com.",
+      "status": "in_progress",
+      "implementation_note": "Owner decisions of 23 October 2026. Live search against GitHub succeeded for Wolfgate and Meridian-Rift on 23 October.",
+      "completed_scope": [
+        "7115fce and c33a418 on 23 October 2026. Offline on 23 October 2026: npm test 823 passed, npm run check passed, npm run test:storage:fast 1032 passed with none failed. Not installed; no live Discord check yet."
+      ],
+      "remaining_scope": [
+        "Put the token into core credentials (credentials.githubToken) with the P50 install; check the first Guidebook and GitHub sync in the knowledge page."
+      ]
+    },
+    {
+      "id": "P50",
+      "title": "Move to the main server for closed testing",
+      "phase": "Deployment",
+      "priority": "P0",
+      "depends_on": [
+        "P45",
+        "P46",
+        "P47",
+        "P48",
+        "P49"
+      ],
+      "deliverables": [
+        "Production configuration: main guild, tester gate, AI and /sophie on, case and role modules off",
+        "Fresh production database (migrations 001-076), seed, publications, processing policy and story version 5",
+        "Commands registered in the main guild and removed from the test Discord",
+        "Deployment packet with approval, configuration diff, rollback and public checks",
+        "Live checks of memory, /sophie, long replies, code search, Guidebook rules and staff channels"
+      ],
+      "acceptance_tests": [
+        "verify-public.mjs",
+        "W5 live checklist"
+      ],
+      "suggested_owner": "Owner and repository maintainer",
+      "guardrail": "Its own recorded owner approval. The existing bot keeps its roles; Whitelist delivery and tickets stay off until the cutover (P30/P31).",
+      "status": "planned_not_started",
+      "implementation_note": "Owner decisions of 23 October 2026: move the install to the main server; Activity and AI only.",
+      "completed_scope": [],
+      "remaining_scope": [
+        "Owner inputs: invite Sophie to the main server, guild ID, tester role, AI channels with their contexts, staff channels.",
+        "Confirm each case and role module can be switched off independently; fix in code where one cannot.",
+        "Next deployment adapter must expect the services' new automatic start types (Setup and verify scripts check Manual today)."
       ]
     }
   ],

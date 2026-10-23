@@ -1,6 +1,6 @@
 # Current implementation workplan
 
-Revision: 2026-10-20-staging-25b8085. Mistral Small 4 (mistral-small-2603) on the official EU API is the selected provider for trial; DeepSeek Flash is withdrawn. Local models are historical, explicitly selected alternatives only; no automatic fallback. Continue the DS workstream with synthetic data; full readiness and activation remain open.
+Revision: 2026-10-23-main-c33a418. Mistral Small 4 (mistral-small-2603) on the official EU API is the selected provider for trial; DeepSeek Flash is withdrawn. Local models are historical, explicitly selected alternatives only; no automatic fallback. Continue the DS workstream with synthetic data; full readiness and activation remain open.
 
 All production release gates remain open; pure and isolated database checks are not full application acceptance.
 
@@ -226,7 +226,7 @@ These are bounded next steps within the task dependencies below. An unresolved l
 
 ## Task status
 
-Status counts: 3 complete; 35 in progress; 7 planned, not started. These are full-task statuses, not a percentage of code or release readiness.
+Status counts: 3 complete; 40 in progress; 8 planned, not started. These are full-task statuses, not a percentage of code or release readiness.
 
 An in-progress task can contain several verified milestones and still have unfinished implementation or acceptance. Acceptance IDs below link requirements to tasks; they do not assert that those specifications have passed.
 
@@ -277,6 +277,12 @@ An in-progress task can contain several verified milestones and still have unfin
 | P42 — Shuttle Activity: scene renderer, art and sounds | complete | P40 |
 | P43 — Shuttle Activity: visual novel client and main page | in_progress | P41, P42 |
 | P44 — Shuttle Activity: Rules post, editor and opening | in_progress | P43 |
+| P45 — Dashboard sign-in after a Shuttle Activity sign-in | in_progress | None |
+| P46 — One Yes or No for the whole server, and /sophie | in_progress | P45 |
+| P47 — Channel contexts and longer replies | in_progress | P46 |
+| P48 — Named staff channels | in_progress | P47 |
+| P49 — Code, Guidebook and community sources | in_progress | P47 |
+| P50 — Move to the main server for closed testing | planned_not_started | P45, P46, P47, P48, P49 |
 
 ## P00 — Freeze scope and deployment inputs
 
@@ -1507,3 +1513,151 @@ Full task deliverables:
 - Tester acceptance on the production application, then the owner-approved opening
 
 Boundary: Opening the Activity to all members is a separate recorded owner approval.
+
+## P45 — Dashboard sign-in after a Shuttle Activity sign-in
+
+Status: **in_progress**. Phase: AI controls. Priority: P0.
+
+Depends on: None. Acceptance: tests/dashboard-auth.test.js, storage O03.
+
+The owner's sign-in failed with DASHBOARD_AUTH_UNAVAILABLE_OAUTH_RESPONSE_INVALID: Discord reports every scope granted to the application, so after an Activity sign-in the dashboard exchange saw two scopes. Fixed in 15252f9; installation bundled with the production install by the owner's choice.
+
+Implemented scope:
+
+- 15252f9 on 23 October 2026. Offline on 23 October 2026: npm test 823 passed, npm run check passed, npm run test:storage:fast 1032 passed with none failed. Not installed; no live Discord check yet.
+
+Remaining scope:
+
+- Install with the production packet (P50), then sign in to confirm.
+
+Full task deliverables:
+
+- The dashboard OAuth exchange accepts identify alone or with rpc.activities.write, and refuses any other scope with OAUTH_SCOPE_UNEXPECTED
+
+Boundary: Only users/@me is ever called with the token; no broader scope is accepted.
+
+## P46 — One Yes or No for the whole server, and /sophie
+
+Status: **in_progress**. Phase: AI controls. Priority: P0.
+
+Depends on: P45. Acceptance: tests/sophie-member-panel.test.js, tests/ai-preferences.test.js, storage AI04, DS01-C06, DS01-C07, DS08-D01..D03, MEM-S01.
+
+Owner decisions of 23 October 2026 (decision log).
+
+Implemented scope:
+
+- bbe039d on 23 October 2026. Offline on 23 October 2026: npm test 823 passed, npm run check passed, npm run test:storage:fast 1032 passed with none failed. Not installed; no live Discord check yet.
+
+Remaining scope:
+
+- Install with P50; the owner reviews notice revision 4; live check of /sophie in the channel and in DMs (the DM interaction context is unverified until then).
+
+Full task deliverables:
+
+- Migration 076: sophie_ai.member_consents and sophie_ai.consent_invitations
+- Admission, memory use and erasure follow the server-wide choice
+- /sophie panel (ephemeral or DM): Yes after the whole notice, No, notes, data copy, forget memories, delete, keep-on-leave
+- Static Set up Sophie invitation, once a day at most
+- Dashboard page rebuilt on the same use cases (/api/ai/me*)
+- Notice revision 4 drafted (docs/ai-notice-r4.md)
+
+Boundary: Component IDs carry no authority; every click re-reads current state and the consent epoch. No model is involved in the panel.
+
+## P47 — Channel contexts and longer replies
+
+Status: **in_progress**. Phase: AI controls. Priority: P1.
+
+Depends on: P46. Acceptance: tests/ai-contexts.test.js.
+
+Several API keys were considered and not adopted: Mistral limits are per workspace or organisation and keys carry no context.
+
+Implemented scope:
+
+- 28eb1e5 on 23 October 2026. Offline on 23 October 2026: npm test 823 passed, npm run check passed, npm run test:storage:fast 1032 passed with none failed. Not installed; no live Discord check yet.
+
+Remaining scope:
+
+- Requalify the worker (profile hash changed) with the P50 install; the owner sets each context's brief and reply length on the dashboard.
+
+Full task deliverables:
+
+- AI configuration schema 2 with chat, support and staff contexts
+- Context brief, reply length, output budget and deadline in the prompt and output contract
+- Long replies as embeds in one message
+- AI deadline ceiling 30 s
+- Dashboard context editor
+
+Boundary: A brief is presentation data and never permission. The worker never asks for more output than its qualified profile allows.
+
+## P48 — Named staff channels
+
+Status: **in_progress**. Phase: AI controls. Priority: P1.
+
+Depends on: P47. Acceptance: tests/ai-staff-context.test.js, storage TS-AI02, MEM-S08.
+
+Owner decision of 23 October 2026: "Yes, named staff channels".
+
+Implemented scope:
+
+- a560420 on 23 October 2026. Offline on 23 October 2026: npm test 823 passed, npm run check passed, npm run test:storage:fast 1032 passed with none failed. Not installed; no live Discord check yet.
+
+Remaining scope:
+
+- The owner names the staff channels; activation of each after the P50 install.
+
+Full task deliverables:
+
+- Restricted channels only as a Staff context under a staffChannels policy
+- Worker accepts a restricted lane only as a declared staff turn
+- Staff memories stay in staff channels
+
+Boundary: Case, ticket and onboarding channels and their threads stay excluded; each staff member needs their own Yes.
+
+## P49 — Code, Guidebook and community sources
+
+Status: **in_progress**. Phase: AI knowledge. Priority: P1.
+
+Depends on: P47. Acceptance: tests/knowledge-guide.test.js, tests/code-search.test.js, tests/knowledge-sources.test.js.
+
+Owner decisions of 23 October 2026. Live search against GitHub succeeded for Wolfgate and Meridian-Rift on 23 October.
+
+Implemented scope:
+
+- 7115fce and c33a418 on 23 October 2026. Offline on 23 October 2026: npm test 823 passed, npm run check passed, npm run test:storage:fast 1032 passed with none failed. Not installed; no live Discord check yet.
+
+Remaining scope:
+
+- Put the token into core credentials (credentials.githubToken) with the P50 install; check the first Guidebook and GitHub sync in the knowledge page.
+
+Full task deliverables:
+
+- Wolfgate Guidebook synced source with rule authority
+- VanguardControl/Wolfgate in the GitHub sync; authenticated sync with a read-only token
+- Code search in contexts that turn it on
+- Fixed cause codes for Policies refresh failures
+
+Boundary: Fixed allowlist of origins and repositories; nothing cloned or executed; no model chooses what is fetched; the token goes only to api.github.com.
+
+## P50 — Move to the main server for closed testing
+
+Status: **planned_not_started**. Phase: Deployment. Priority: P0.
+
+Depends on: P45, P46, P47, P48, P49. Acceptance: verify-public.mjs, W5 live checklist.
+
+Owner decisions of 23 October 2026: move the install to the main server; Activity and AI only.
+
+Remaining scope:
+
+- Owner inputs: invite Sophie to the main server, guild ID, tester role, AI channels with their contexts, staff channels.
+- Confirm each case and role module can be switched off independently; fix in code where one cannot.
+- Next deployment adapter must expect the services' new automatic start types (Setup and verify scripts check Manual today).
+
+Full task deliverables:
+
+- Production configuration: main guild, tester gate, AI and /sophie on, case and role modules off
+- Fresh production database (migrations 001-076), seed, publications, processing policy and story version 5
+- Commands registered in the main guild and removed from the test Discord
+- Deployment packet with approval, configuration diff, rollback and public checks
+- Live checks of memory, /sophie, long replies, code search, Guidebook rules and staff channels
+
+Boundary: Its own recorded owner approval. The existing bot keeps its roles; Whitelist delivery and tickets stay off until the cutover (P30/P31).

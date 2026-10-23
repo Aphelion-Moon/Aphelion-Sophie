@@ -1676,3 +1676,56 @@ simple visual novels, and a workplan. The owner approved the plan, and chose a c
     author; runs in progress keep their version.
 
   Folder `.agent_docs/aphelion-sophie/deployment-a0eb904-2026-10-22`.
+
+### Simple AI controls, contexts, staff channels, code and the move to the main server — 23 October 2026
+
+The owner asked for Sophie's AI settings to be controlled from Discord with a simple yes or no, for longer replies, for
+code questions, for separate handling of staff, support and chat channels, for memories to work, and for the deployment
+to the main server. Answers given in this session, quoted where they were typed:
+
+- **One choice for the whole server.** The panel is offered "Both" as a private (ephemeral) reply and by DM, "but the
+  'do you want sophie to interact with you? yes / no' should apply to the entire discord." The single Yes covers
+  replies, the member's own notes and Sophie's memories, explained in one notice. Per-channel opt-in, the separate
+  note-sharing switch and the separate memory switch are retired. Saying No withdraws Sophie's replies that used the
+  member's messages in every channel. Members can get a copy of everything Sophie keeps (memories included), make her
+  forget her memories, delete everything (No at once, then the departure erasure), and keep or delete their data on
+  leaving. A member without a choice who mentions or replies to Sophie gets one static, non-AI "Set up Sophie"
+  invitation a day at most.
+- **Reply length is configurable per context.** Each channel belongs to chat, support or staff; each context has an
+  owner-written brief, longest reply (up to 5,500 characters), output budget, deadline (up to 30 s), code search
+  switch and game. A long reply stays one Discord message (text in embeds), so one effect still withdraws it; the plan's
+  "split into several messages" was replaced by this because it keeps erasure and withdrawal unchanged.
+- **Several API keys: not adopted.** Mistral's limits apply to the workspace or organisation, shared by every key, and a
+  key carries no context. Context switching is handled by the contexts above, on one key.
+- **Named staff channels.** "Yes, named staff channels." A private channel qualifies only when its context is Staff and
+  the accepted processing policy declares `staffChannels`. Case, ticket and onboarding channels and their threads stay
+  excluded. Each staff member still needs their own Yes. Staff memories are recalled only in staff channels, and staff
+  contexts default to no code search.
+- **Code and community sources.** "All public repo's, plus our wolfgate repo here at:
+  https://github.com/VanguardControl/Wolfgate. It should also be prepared to use our website: https://meridian.a13.info
+  and our wiki: https://meridian-wiki.a13.info", and "Also include our new Wolfgate Guidebook into the available
+  resources: https://panel.a13.info/guide/wolfgate". The owner supplied a read-only GitHub token (a new credential, held
+  only by core and sent only to api.github.com). Code search uses GitHub's code search inside a fixed allowlist
+  (public non-fork Aphelion-Moon repositories and VanguardControl/Wolfgate) and reads at most two line windows; nothing
+  is cloned or executed and no model chooses what is fetched. Wolfgate's terms are taken from its LEGAL.md (AGPL-3.0
+  for later contributions, MIT for earlier ones).
+- **Rule authority (amends "The wiki is the rulebook", 13 October).** "The Wolfgate ruleset is applicable to questions
+  about SS14/Wolfgate, if there is a gap in policy then defer to the SS13/Meridian Rift wiki." The Guidebook entries
+  under its current rules root are policy; its other upstream rulesets are reference.
+- **Memory policy accepted.** "I accept the new memory processing policy, please document that." Recorded as acceptance
+  of automatic memory under the single-Yes notice (draft: [ai-notice-r4.md](../ai-notice-r4.md)); the processing policy
+  is generated with that notice and the new worker profile hash, and the install packet quotes this acceptance.
+- **Services start at boot.** "Set services to restart at reboot." Done on 23 October: PostgreSQL `auto`; core, worker,
+  tunnel and the closed-screen service `delayed-auto`; core depends on PostgreSQL; the supervisor stays disabled.
+  Rollback and before/after values: `.agent_docs/aphelion-sophie/service-autostart-2026-10-23`.
+- **Merge.** "I approve merging into main." `docs/shuttle-activity-plan` was fast-forwarded into `main` and, after a
+  secret scan of the 254 unpushed commits found no secret, pushed to origin (`02e0e1f..e00550b`). Work continues on
+  `main`.
+- **Production scope.** "I reviewed the story, it's good enough to do some closed testing on production." and
+  "Production deployment should have the onboarding activity and sophie AI functional, with memory support, with the new
+  on-discord systems." The install moves from the test Discord to the main server (one application, one interactions
+  URL), with a fresh production database. It covers the Shuttle Activity behind the tester gate, Sophie's AI with memory
+  and `/sophie` only; tickets, cases, moderation, Crew assignment and Whitelist delivery wait for the cutover (P30/P31)
+  and the existing bot keeps its roles. The guild ID, tester role and channels are still needed from the owner.
+- **Dashboard sign-in.** It failed because Discord now reports the Activity's scope as well; the fix (`15252f9`) is
+  bundled with the production install by the owner's choice ("Bundle it later").

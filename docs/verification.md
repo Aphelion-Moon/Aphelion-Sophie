@@ -1,5 +1,34 @@
 # Verification and release limits
 
+## AI controls, contexts, staff channels and code search — 23 October 2026 (schema 076, built offline)
+
+Owner decisions of 23 October 2026 (decision log). Commits on `main`: `15252f9` (dashboard sign-in), `bbe039d` (one
+Yes or No and `/sophie`), `28eb1e5` (contexts and longer replies), `a560420` (staff channels), `7115fce` (Guidebook,
+Wolfgate and authenticated GitHub sync), `c33a418` (code search). Nothing installed; the test Discord still runs
+`a0eb904`.
+
+- **Offline on `c33a418`:** `npm test` 823 passed; `npm run check` passed; `npm run test:storage:fast` 1032 passed
+  with none failed.
+- **Host, not code:**
+  - the services now start at boot (PostgreSQL `auto`, the others `delayed-auto`, core depending on PostgreSQL;
+    rollback in `.agent_docs/aphelion-sophie/service-autostart-2026-10-23`); no reboot was done to prove it;
+  - the GitHub token was placed in `C:\Aphelion\Sophie\trust\github-token.txt`, readable only by core's service
+    account, and checked against GitHub (5,000 core calls an hour, code search allowed);
+  - `main` was pushed after a secret scan of the 254 unpushed commits (no secret values or token patterns found).
+- **Live reads without an install:**
+  - the owner's failed sign-in at 00:15 local logged `DASHBOARD_AUTH_UNAVAILABLE_OAUTH_RESPONSE_INVALID`, which
+    `15252f9` addresses;
+  - the Guidebook collector, run on the real `panel.a13.info` index, produced 356 documents, 21 of them policy, and
+    skipped everything on an unchanged second run;
+  - code search with the real token found `VanguardControl/Wolfgate` `Content.Server/Access/Systems/AccessOverriderSystem.cs`
+    and `Content.Server/Abilities/Mime/MimePowersSystem.cs`, and `Aphelion-Moon/Meridian-Rift`
+    `code/_globalvars/pipe_info.dm`.
+- **Memory:** not working in the installed release, by design: the installed policy has no `automaticMemory`, and the
+  logs hold no `AI_MEMORY_*` trace. It switches on with the production install's policy.
+- **Not verified:** any of this inside Discord (the panel in a channel and in DMs, the invitation, embeds for long
+  replies, staff activation, code citations), the worker's requalification with the new profile hash, and whether the
+  wiki and Policies refresh failures recur (they now log a fixed cause code).
+
 ## Staging install of a0eb904 and the story's version 5 — 22 October 2026 (schema 075)
 
 Owner approval: "Approved: install the sixth pass (source-only update) in the test Discord, then publish story version
