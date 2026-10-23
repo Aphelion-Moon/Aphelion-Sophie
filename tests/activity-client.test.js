@@ -333,7 +333,7 @@ test('T-ACT-CLI-18 linking never hangs: each try is bounded, tries back off, the
   assert.equal(linkingText(1), 'Establishing link…'); assert.equal(linkingText(3), 'Establishing link… try 3 of 5');
   // Out of tries: trying again is the first choice, with a notice saying how to recover.
   const menu = titleMenu({ state: 'nolink' });
-  assert.equal(menu.items[0].id, 'relink'); assert.match(menu.notice, /Try again, or close the Shuttle and open it again/);
+  assert.equal(menu.items[0].id, 'relink'); assert.equal(menu.notice, 'Cannot re-establish link, try reopening the activity. If that still doesn’t work, ping @matriarch in #crew-support.');
   const client = await readFile(new URL('../apps/activity/client/shuttle.js', import.meta.url), 'utf8');
   assert.match(client, /const timer = timers\.after\(LINK_TIMEOUT_MS, \(\) => reject/, 'every try is bounded');
   assert.match(client, /const wait = linkRetryDelay\(linkAttempt\);\s*if \(wait === null\) \{ described = \{ state: 'nolink' \}; signal\('nolink'\); return; \}/);

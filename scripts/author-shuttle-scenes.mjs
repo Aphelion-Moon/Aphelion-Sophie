@@ -233,10 +233,8 @@ function hangar(name) {
   const lx = 3, ly = 1;
   stripes(base, lx, ly, 5); logo(base, lx + 19, ly); base.text(lx + 19, ly + 7, 'T H E   S H U T T L E', 'i');
   const stationWidth = [...STATION[0]].length, sx0 = port ? w - stationWidth - 2 : w - stationWidth - 1, sy0 = port ? ly + 10 : 0;
-  const { mast, hub } = station(base, effects, sx0, sy0);
-  // The name plate reads across the mast: the station's name on one side, its state on the other.
-  const plate = port ? 'APHELION' : 'APHELION STATION';
-  base.text(mast - 2 - plate.length, sy0, plate, 'p'); base.text(mast + 2, sy0, '· WAKING', 'h');
+  const { hub } = station(base, effects, sx0, sy0);
+  // No name plate across the mast (owner, 24 October 2026: the 'Aphelion station · waking' line is gone).
   const conTop = port ? sy0 + STATION.length + 1 : STATION.length;
   // The orbit: a dotted ellipse under the logo whose right end meets the station's solar array at the hub's height. The
   // shuttle runs along its upper half, clear of the subtitle.
@@ -1605,7 +1603,7 @@ const LOUNGE_ALT = 'A departure lounge. An old split-flap board in amber shows t
 const DECK_ALT = 'A wide observation window in a heavy riveted frame. Outside, a ringed gas giant, a nebula, a comet, the curve of the station dotted with lights, satellites, passing haulers, a tug and a ring freighter, carp and a drifting assistant with a toolbox. On the deck, panels for the deck, the space weather and a photo booth, people on a bench looking out, a telescope, a lamp with a mothroach on its shade, an old camera, a vending machine and hydroponics trays.';
 const RAIL_ALT = 'The cabin on the launch rail. Through the forward window the rail comes up with a sea lion sitting on the Keep clear line';
 const SCENES = [
-  { id: 'hangar-viewport', title: 'Hangar viewport', draw: hangar, alt: [{ text: 'The title APHELION in amber beside rainbow stripes, and The Shuttle under it. A small sun and a dotted orbit; a shuttle moves along it towards Aphelion station, labelled waking: a beacon on a mast with a dish, a ring of lit windows round a cyan hub, solar arrays either side and a docking module below. Below, an old console: a cyan terminal window titled with your own Discord name at aphelion, which holds the menu, beside a cyan Shuttle Link panel, an amber status screen, lamps, switches and a new cable.' }] },
+  { id: 'hangar-viewport', title: 'Hangar viewport', draw: hangar, alt: [{ text: 'The title APHELION in amber beside rainbow stripes, and The Shuttle under it. A small sun and a dotted orbit; a shuttle moves along it towards Aphelion station: a beacon on a mast with a dish, a ring of lit windows round a cyan hub, solar arrays either side and a docking module below. Below, an old console: a cyan terminal window titled with your own Discord name at aphelion, which holds the menu, beside a cyan Shuttle Link panel, an amber status screen, lamps, switches and a new cable.' }] },
   { id: 'departure-lounge', title: 'Departure lounge', draw: lounge, beats: LOUNGE_BEATS, alt: [
     { when: { beat: ['beepsky'] }, text: 'A departure lounge: a split-flap board, benches under a window with an EXIT sign, and a help desk reading AGE CHECK, 18+ ONLY. Officer Beepsky, a little securitron drone with a red and blue light, hovers in over the benches and says: HALT! Age check. 18+ only. No, really. On the next page he flies off.' },
     { text: LOUNGE_ALT },

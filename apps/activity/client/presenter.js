@@ -14,8 +14,9 @@ export const TEXT = Object.freeze({
   linkingTry: 'Establishing link… try {n} of {of}',
   linked: 'Signal linked',
   offline: 'Signal lost. Retrying…',
-  nolinkSignal: 'No link. Reopen the Shuttle',
-  nolink: 'The Shuttle couldn’t link up with Discord. Try again, or close the Shuttle and open it again.',
+  // The owner's wording (24 October 2026), on the status line and the title alike.
+  nolinkSignal: 'Cannot re-establish link, try reopening the activity. If that still doesn’t work, ping @matriarch in #crew-support.',
+  nolink: 'Cannot re-establish link, try reopening the activity. If that still doesn’t work, ping @matriarch in #crew-support.',
   relink: 'Try the link again',
   board: 'Board the Shuttle',
   refresher: 'Take the refresher flight',
