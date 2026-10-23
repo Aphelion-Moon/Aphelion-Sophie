@@ -39,6 +39,16 @@ export function createActivityHttpServer({ configuration, applicationId, guildId
   const hosts = new Set([new URL(configuration.origin).host, `127.0.0.1:${port}`]);
   const fault = code => { try { onFault(code); } catch { /* Never log request content. */ } };
   let active = 0, stopping = false, window = { startedAt: -Infinity, count: 0 };
+  /**
+   * What an unexpected failure was, in fixed vocabulary only (owner request, 24 October 2026): a contract or library code,
+   * a PostgreSQL SQLSTATE or a JavaScript error class. Never a message, ID or payload.
+   */
+  function causeOf(error) {
+    const code = typeof error?.code === 'string' ? error.code : null;
+    if (code !== null && /^[A-Z][A-Z0-9_]{1,62}$/u.test(code) && !/^[0-9A-Z]{5}$/u.test(code)) return code;
+    if (code !== null && /^[0-9A-Z]{5}$/u.test(code)) return `PG_${code}`;
+    return typeof error?.name === 'string' && /^[A-Za-z]{1,30}$/u.test(error.name) ? error.name.toUpperCase() : null;
+  }
   const running = new Set();
 
   function send(response, status, body, headers = {}) {
@@ -169,7 +179,11 @@ export function createActivityHttpServer({ configuration, applicationId, guildId
       const outcome = OUTCOMES.find(([, , codes]) => codes.includes(code));
       if (outcome) send(response, outcome[0], { error: outcome[1] });
       else if (TRANSIENT.has(code) || code === 'OAUTH_DISABLED') send(response, 503, { error: 'retry' }, { 'Retry-After': '3' });
-      else { fault('ACTIVITY_REQUEST_UNAVAILABLE'); send(response, 503, { error: 'unavailable' }, { 'Retry-After': '10' }); }
+      else {
+        const cause = causeOf(error);
+        fault(`ACTIVITY_REQUEST_UNAVAILABLE${cause ? `_${cause}` : ''}`.slice(0, 64).replace(/_+$/u, ''));
+        send(response, 503, { error: 'unavailable' }, { 'Retry-After': '10' });
+      }
     } finally { active--; }
   }
   const server = createServer({ maxHeaderSize: 16_384 }, (request, response) => {

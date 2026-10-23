@@ -207,8 +207,21 @@ test('T-ACT-CORE-09 refusals map to fixed words; transient Discord reads are ret
   try {
     const response = await broken.request('/api/shuttle');
     assert.equal(response.status, 503); assert.deepEqual(await response.json(), { error: 'unavailable' });
-    assert.deepEqual(broken.calls.filter(([name]) => name === 'fault'), [['fault', 'ACTIVITY_REQUEST_UNAVAILABLE']]);
+    // The log names the kind of failure, never its message (owner request, 24 October 2026).
+    assert.deepEqual(broken.calls.filter(([name]) => name === 'fault'), [['fault', 'ACTIVITY_REQUEST_UNAVAILABLE_ERROR']]);
   } finally { await broken.http.close(); }
+  const sqlFailure = Object.assign(new Error('insert violates check constraint on user 100000000000000012'), { code: '23514' });
+  for (const [thrown, logged] of [[new ContractError('CAPABILITY_POLICY_IMMUTABLE'), 'ACTIVITY_REQUEST_UNAVAILABLE_CAPABILITY_POLICY_IMMUTABLE'],
+    [sqlFailure, 'ACTIVITY_REQUEST_UNAVAILABLE_PG_23514'], [new TypeError('x of undefined'), 'ACTIVITY_REQUEST_UNAVAILABLE_TYPEERROR'],
+    [Object.assign(new Error('secret'), { code: 'not a code 123' }), 'ACTIVITY_REQUEST_UNAVAILABLE_ERROR'],
+    [new ContractError('A_VERY_LONG_CONTRACT_CODE_THAT_GOES_ON_AND_ON'), 'ACTIVITY_REQUEST_UNAVAILABLE_A_VERY_LONG_CONTRACT_CODE_THAT_GOES'.slice(0, 64)]]) {
+    const failing = await server({ store: { async describe() { throw thrown; } } });
+    try {
+      assert.equal((await failing.request('/api/shuttle')).status, 503);
+      const faults = failing.calls.filter(([name]) => name === 'fault').map(([, code]) => code);
+      assert.deepEqual(faults, [logged]); assert.ok(faults.every(code => /^[A-Z][A-Z0-9_]{2,63}$/u.test(code)), 'the log writer accepts it');
+    } finally { await failing.http.close(); }
+  }
 });
 
 test('T-ACT-CORE-10 run views carry visible channel links, arrival channels only once confirmed, and a channel failure never blocks the Shuttle', async () => {
