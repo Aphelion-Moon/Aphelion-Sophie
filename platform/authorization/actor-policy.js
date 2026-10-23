@@ -3,7 +3,10 @@ import { validateResponders } from './case-responders.js';
 
 const REQUIRED_CAPABILITIES = Object.freeze(['member.mute', 'member.unmute', 'shuttle.publish', 'case.registry']);
 export const AI_CAPABILITIES = Object.freeze(['ai.control', 'ai.personality.publish', 'ai.knowledge.publish', 'ai.memory.audit', 'ai.sandbox.publish', 'ai.runtime.apply', 'ai.silence']);
-export const CONFIGURED_CAPABILITIES = Object.freeze([...REQUIRED_CAPABILITIES, 'case.forms.publish', 'answers.publish', 'automation.publish', 'permissions.publish', ...AI_CAPABILITIES]);
+// shuttle.activity.test: roles that pass the Shuttle Activity's closed screen while it is in testing, beside the server owner
+// and Lead Ops (owner decision, 24 October 2026: Staff too). Optional; it grants nothing else.
+export const CONFIGURED_CAPABILITIES = Object.freeze([...REQUIRED_CAPABILITIES, 'case.forms.publish', 'answers.publish', 'automation.publish', 'permissions.publish', ...AI_CAPABILITIES,
+  'shuttle.activity.test']);
 export const MAX_CAPABILITY_ROLES = 50;
 
 export function validateActorObservation(actor, now) {

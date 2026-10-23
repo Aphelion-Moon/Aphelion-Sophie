@@ -25,6 +25,11 @@ test('production is only Activity and AI: no capture, automation or case export,
   assert.equal(runtimeScope({ environment: 'staging' }), 'full');
   assert.throws(() => productionConfiguration(input({ roles: { ...input().roles, crew: ids(5) } })), /INVALID_ROLE_OWNERSHIP/);
   assert.throws(() => productionConfiguration(input({ protectedCategoryId: 'support' })));
+  // Tester roles beside Lead Ops (owner decision, 24 October 2026: Staff); never Muzzled or @everyone.
+  assert.equal(Object.hasOwn(configuration.capabilityPolicy.grants, 'shuttle.activity.test'), false);
+  const staffTest = productionConfiguration(input({ activityTesterRoles: [ids(7)] }));
+  assert.deepEqual(staffTest.capabilityPolicy.grants['shuttle.activity.test'], [ids(7)]); validateStagingRuntime(staffTest);
+  for (const roles of [[ids(5)], [ids(1)], [ids(7), ids(7)], ['staff']]) assert.throws(() => productionConfiguration(input({ activityTesterRoles: roles })), JSON.stringify(roles));
 });
 
 test('in production the Discord transport refuses every role, channel and permission write before it leaves', async () => {

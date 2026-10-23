@@ -47,7 +47,7 @@ export async function runShuttleActivitySuite(cluster, run) {
     }
     assert.fail('Synthetic grant queue did not drain');
   }
-  const scenario = (name, work, status = 'testing') => run(name, async () => {
+  const scenario = (name, work, status = 'testing', testerGrants = {}) => run(name, async () => {
     await admin.query("UPDATE sophie_core.discord_backoff SET until_at = '-infinity', paused = false");
     await resetCoreState(admin);
     now = NOW; healthy = true;
@@ -62,7 +62,7 @@ export async function runShuttleActivitySuite(cluster, run) {
         users: [USER, OTHER, OWNER] }) });
     const dashboard = { async resolvePrincipal() { throw new ContractError('UNTRUSTED_PRINCIPAL'); } };
     authorization = createCoreAuthorization({ principals: createCorePrincipals({ interactions: identities.verifier, dashboard, activity: activityAuth }),
-      discord: discord.roles, authorityStore: createActorAuthorityStore({ pool, clock: () => now }), policy, clock: () => now,
+      discord: discord.roles, authorityStore: createActorAuthorityStore({ pool, clock: () => now }), policy: { ...policy, grants: { ...policy.grants, ...testerGrants } }, clock: () => now,
       isAuthorityCurrent: () => healthy, readContinuity: discord.roles.readContinuity });
     core = createCoreStore({ pool, clock: () => now, authorize: authorization.authorize, authorizeRecorded: authorization.authorizeRecorded,
       casePolicy, caseVerification: discord.channels.verification });
@@ -80,6 +80,9 @@ export async function runShuttleActivitySuite(cluster, run) {
       assert.equal(seen.state, 'ready'); assert.equal(seen.mode, 'qualification'); assert.equal(seen.whitelist, 'none');
       assert.deepEqual(seen.stops.map(stop => stop.scene), ['departure-lounge', 'baggage-hall', 'boarding-cabin', 'viewport', 'pressure-door']);
     }
+    // Staff alone does not pass unless the policy grants the tester gate to it (SA13).
+    discord.state.members.set(USER, [...discord.state.members.get(USER), STAFF]);
+    assert.deepEqual(await activity.describe(await member(USER)), { state: 'closed' });
     // The gate follows the current role: a removed lead ops role closes it again on the next request.
     discord.state.members.set(OTHER, [CREW]);
     assert.deepEqual(await activity.describe(await member(OTHER)), { state: 'closed' });
@@ -205,6 +208,17 @@ export async function runShuttleActivitySuite(cluster, run) {
     assert.equal((await rows('sessions')).length, 2, 'the reset run keeps its record');
     await assert.rejects(activity.reset({ ...await member(USER), requestId: requestId() }), error => error.code === 'ACTIVITY_CLOSED');
   });
+
+  await scenario('SA13 a role the policy grants shuttle.activity.test passes the closed screen while testing, and only while it holds it', async () => {
+    // Owner decision, 24 October 2026: Staff test the Activity too.
+    assert.deepEqual(await activity.describe(await member(USER)), { state: 'closed' });
+    discord.state.members.set(USER, [...discord.state.members.get(USER), STAFF]);
+    assert.equal((await activity.describe(await member(USER))).state, 'ready');
+    const { run: first } = await activity.board({ ...await member(USER), requestId: requestId() });
+    assert.equal(first.stop, 0);
+    discord.state.members.set(USER, discord.state.members.get(USER).filter(id => id !== STAFF));
+    assert.deepEqual(await activity.describe(await member(USER)), { state: 'closed' });
+  }, 'testing', { 'shuttle.activity.test': [STAFF] });
 
   await scenario('SA09 the layout editor publishes numbered versions for guidance publishers; runs use the scenes, moments and curated list it names', async () => {
     const content = await loadActivityContent(fileURLToPath(new URL('../../', import.meta.url)));

@@ -319,7 +319,7 @@ test('P44 Board the Shuttle has a scene for each section: boarders walk to the r
     }
     // The shared seat: passengers sit down and stay, and someone asks before sitting; with motion off the question shows.
     const cabin = scene('boarding-cabin'), seated = composeScene(cabin, layout, { time: 0, state: { ...STATE, beat: 'seat' }, motion: false }).glyphs.join('\n');
-    assert.match(seated, /ONE PASSENGER PER SEAT/); assert.match(seated, /"ooh, mind if I squeeze in/); assert.doesNotMatch(seated, /ROOK\. is this one free/, 'one bubble in the still frame');
+    assert.match(seated, /ONE PASSENGER PER SEAT/); assert.match(seated, /"ooh, mind if I squeeze in/); assert.doesNotMatch(seated, /ROOK\. Is this one free/, 'one bubble in the still frame');
     assert.ok(cabin.layouts[layout].effects.filter(fx => fx.kind === 'sprite' && fx.rest && fx.clock === 'beat').length >= 4, layout);
     // Two beats (sixth pass): the sea lion is lined up and keeps asking while the reader reads; only the strike beat bumps it.
     const rail = scene('cabin-turbulence'), { layers, effects } = rail.layouts[layout];

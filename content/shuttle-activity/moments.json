@@ -76,11 +76,11 @@
         "scene": "cabin-turbulence",
         "break": true
       },
-      "~we crush sea-lions with shuttles.": {
+      "~*thump.*": {
         "beat": "strike",
         "viewscreen": "sealion",
         "scene": "cabin-turbulence",
-        "on": "reveal"
+        "break": true
       },
       "~and we're clear from the launch rail": {
         "beat": "strike",

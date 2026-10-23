@@ -755,7 +755,7 @@ function door(name) {
         ...once, delay: who === 'rook' ? 2 : 3, when: { whitelist: ['confirmed'] } });
     }
     const bye = { kind: 'dialogue', id: 'goodbye', speakers: [[cx + 4, qy], [cx - 4, qy]], width: 24, style: 'say', delay: 2, line: 3.5, pause: 1, colours: 'ca', clock: 'beat', once: true,
-      exchanges: [[[0, 'see you on the station?'], [1, "Meridian's that way. walk, don't run."]]], when: { beat: ['get-whitelisted'] } };
+      exchanges: [[[0, 'see you on the station?'], [1, "Meridian's that way. Walk, don't run."]]], when: { beat: ['get-whitelisted'] } };
     effects.push(bye, ...blips(bye));
   }
   // Access granted: an ID card, shown only once Discord has applied Whitelist.
@@ -1035,7 +1035,7 @@ function baggage(name) {
   // Rook and Pip meet at the belt, check in out of character (the copy's own lines), then head off to the gate together.
   const looc = { when: { beat: ['looc'] } };
   const talk = { kind: 'dialogue', id: 'looc-talk', speakers: [[meet[0][0], meet[0][1] - 2], [meet[1][0], meet[1][1] - 2]], width: port ? 30 : 26, style: 'looc',
-    exchanges: [[[0, 'hey, do our characters know each other here or are we starting fresh?'], [1, 'never met you lol. first time here'], [0, "fresh start then. I'm Rook"]]],
+    exchanges: [[[0, 'hey, do our characters know each other here or are we starting fresh?'], [1, 'never met you lol. First time here'], [0, 'oh shit, sorry. Thought you were someone I knew!']]],
     line: 3.5, pause: 1, delay: 3, colours: 'ac', clock: 'beat', once: true, ...looc };
   const stay = talk.delay + talkLength(talk) - 3;
   effects.push({ kind: 'sprite', id: 'looc-rook', frames: ROOK, from: [-4, meet[0][1] - 2], to: [meet[0][0] - 1, meet[0][1] - 2], duration: 3, hold: stay,
@@ -1253,7 +1253,7 @@ function cabin(name) {
     exchanges: [[[0, 'ooh, mind if I squeeze in next to you?'], [1, "I'd rather keep the space, sorry."], [0, 'all good!']]], line: 3, pause: 0.5, colours: 'ci', clock: 'beat', once: true, ...seat };
   const askEnd = ask.delay + talkLength(ask), move = 2.5;
   const rookAsk = { kind: 'dialogue', id: 'seat-rook', speakers: [[gapRook + 1, askY], [rook + 5, fy + 1]], width: port ? 28 : 30, style: 'say', delay: askEnd + move + 0.5,
-    exchanges: [[[0, 'ROOK. is this one free?'], [1, 'all yours.']]], line: 3, pause: 0.5, colours: 'ca', clock: 'beat', once: true, still: false, ...seat };
+    exchanges: [[[0, 'ROOK. Is this one free?'], [1, "all yours. It's the next row anyways. Just don't lean back, yeah?"]]], line: 4, pause: 0.5, colours: 'ca', clock: 'beat', once: true, still: false, ...seat };
   const rookEnd = rookAsk.delay + talkLength(rookAsk);
   const PIP_SITTING = spriteFrame([' o', '/|', ' |'], [' c', 'hh', ' h']);
   effects.push({ kind: 'sprite', id: 'pip-asks', frames: PIP, from: [w + 2, askY], to: [gapStranger, askY], duration: 3, hold: askEnd - 3,
@@ -1575,8 +1575,8 @@ function viewport(name) {
   }
   const talk = (id, beat, exchanges, extra = {}) => ({ kind: 'dialogue', id, speakers: [[ax + 1, walkY], [bx + 1, walkY]], width: 26, style: 'say', delay: 1, line: 3.5, pause: 1,
     colours: 'ac', clock: 'beat', once: true, exchanges, when: { beat: [beat] }, ...extra });
-  const learning = talk('greytide-talk', 'valuable', [[[1, "ok this is probably a dumb question but what's a greytide"], [0, 'not dumb. see the guy floating past the window with the toolbox? greytide.']]], { line: 4.5 });
-  const photo = talk('photo-talk', 'photos', [[[0, 'can I post this one?'], [1, 'sure, just crop my name out']]]);
+  const learning = talk('greytide-talk', 'valuable', [[[1, "ok this is probably a dumb question but what's a greytide"], [0, 'not dumb. See that idiot floating past the window?'], [0, 'A really poor example of a greytider. Look at them wiggle that toolbox...']]], { line: 4.5 });
+  const photo = talk('photo-talk', 'photos', [[[0, 'wait first, let me take a selfie. can I post this one?'], [1, 'sure, just crop my pants out, I forgot to wash them']]], { line: 4.5 });
   const lucky = talk('lucky-talk', 'lucky', [
     [[0, 'Did you know what happens if you inject water into a banana?'], [1, 'Haha, no? Why?'], [0, "Oh boy, we've got something to do this shift..."]],
     [[0, "You've never added water to a monkey cube?"], [1, 'A monkey what?'], [0, 'Grab a glass. Not in the kitchen, though.']],

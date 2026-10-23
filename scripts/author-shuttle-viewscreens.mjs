@@ -173,11 +173,12 @@ const MOMENTS = {
       "a shared seat is not an invitation into someone's lap": { beat: 'seat' },
       'we crush sea-lions with shuttles': { beat: 'sealion', viewscreen: 'sealion', scene: 'cabin-turbulence' },
       // The story (sixth pass): the sea lion is lined up and yaps through the first two pages; the third page opens on the
-      // boundaries line, and the shuttle hits it when the reader reaches the punchline. Then it's off the rail.
+      // boundaries line and the punchline. The shuttle hits it on the page that opens with *THUMP.* (owner review of revision 1,
+      // 24 October 2026: not before), and then it's clear of the launch rail.
       'real questions are welcome': { beat: 'sealion', viewscreen: 'sealion', scene: 'cabin-turbulence' },
       "~that's called [sealioning]": { beat: 'sealion', viewscreen: 'sealion', scene: 'cabin-turbulence', break: true },
       '~nobody owes you an endless defense': { beat: 'sealion', viewscreen: 'sealion', scene: 'cabin-turbulence', break: true },
-      '~we crush sea-lions with shuttles.': { beat: 'strike', viewscreen: 'sealion', scene: 'cabin-turbulence', on: 'reveal' },
+      '~*thump.*': { beat: 'strike', viewscreen: 'sealion', scene: 'cabin-turbulence', break: true },
       "~and we're clear from the launch rail": { beat: 'strike', viewscreen: 'sealion', scene: 'cabin-turbulence', break: true },
     },
     'admire-the-lights': {
