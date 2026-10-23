@@ -9,11 +9,22 @@ import { validateTranscriptExportPolicy } from '../../../modules/tickets/transcr
 import { RESPONDER_TYPES, responderRoles } from '../../../platform/authorization/case-responders.js';
 
 /** Staging is an explicit deployment scope, never a switch that approves production. No secrets in this document. */
+/**
+ * Production, Activity and AI only (owner decision, 23 October 2026): Sophie joins a guild whose roles another bot owns.
+ * Only the Shuttle Activity (tester gate), the AI and /sophie and /lookup run; no member role is reconciled or granted, and
+ * no case, moderation, Shuttle-channel, automation or permission work runs. Every other configuration is isolated staging.
+ */
+export const runtimeScope = value => value?.environment === 'production' ? value.scope : 'full';
+
 export function validateStagingRuntime(value) {
+  const production = value?.environment === 'production';
   requireKeys(value, ['schemaVersion', 'environment', 'isolatedGuild', 'applicationId', 'publicKeyHex', 'mapping',
     'capabilityPolicy', 'casePolicy', 'limits', 'definitionId', 'captureEnabled', 'interactionPort', 'dashboardPort',
-    'dashboard', 'workerIntervalMs', 'exportPolicy', ...['automationEnabled', 'activity'].filter(key => Object.hasOwn(value, key))]);
-  requireCondition(value.schemaVersion === 1 && value.environment === 'staging' && value.isolatedGuild === true, 'ISOLATED_STAGING_REQUIRED');
+    'dashboard', 'workerIntervalMs', 'exportPolicy', ...(production ? ['scope'] : []), ...['automationEnabled', 'activity'].filter(key => Object.hasOwn(value, key))]);
+  requireCondition(value.schemaVersion === 1 && (value.environment === 'staging' && value.isolatedGuild === true ||
+    production && value.isolatedGuild === false && value.scope === 'activity-ai'), 'ISOLATED_STAGING_REQUIRED');
+  // Nothing that writes case records, captures messages, automates channels or exports cases runs in production.
+  if (production) requireCondition(value.captureEnabled === false && value.automationEnabled !== true && value.exportPolicy?.enabled === false, 'PRODUCTION_SCOPE_INVALID');
   requireId(value.applicationId); requireName(value.definitionId);
   requireCondition(typeof value.publicKeyHex === 'string' && /^[a-fA-F0-9]{64}$/.test(value.publicKeyHex), 'INTERACTION_VERIFIER_CONFIGURATION_INVALID');
   validateRoleMapping(value.mapping); validateCapabilityPolicy(value.capabilityPolicy); validateCasePolicy(value.casePolicy); validateTicketLimits(value.limits);

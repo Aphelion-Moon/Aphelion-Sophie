@@ -1,3 +1,4 @@
+import { runtimeScope } from './configuration.js';
 import { createOnboardingChannelClosure, createOnboardingCleanup } from '../discord/onboarding-channel-lifecycle.js';
 import { createDiscordTransport } from '../discord/transport.js';
 import { createDiscordRoles } from '../discord/roles.js';
@@ -50,7 +51,7 @@ import { inspectAutomationChannel } from '../storage/automation-channel-policy.j
 /** One request lane owns its proof issuers and serial transport. Workers use a separate lane. */
 export function createAdministrationLane({ configuration, pool, token, fetch, clock, enabled, rateLimits, observer, principals, verifier, onFault, onTrace = () => {}, readSystemText, knowledge = null, sophieMemberFactory = null }) {
   const { mapping, casePolicy: policy, limits, definitionId, capabilityPolicy } = configuration;
-  const transport = createDiscordTransport({ guildId: mapping.guildId, token, fetch, clock, enabled, ...(rateLimits ? { limits: rateLimits } : {}) });
+  const transport = createDiscordTransport({ guildId: mapping.guildId, token, fetch, clock, enabled, scope: runtimeScope(configuration), ...(rateLimits ? { limits: rateLimits } : {}) });
   // Role, member and channel observations are checked against the authority boundary, so message traffic (including
   // this bot's own posts) no longer overtakes them; message reads keep the full continuity.
   const readAuthority = observer.readAuthorityBoundary ?? null;

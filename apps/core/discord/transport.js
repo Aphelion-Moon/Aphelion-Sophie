@@ -72,9 +72,20 @@ function forgetExpired(cooldowns, now) {
 }
 
 /** Fixed Discord routes. No default fetch, environment-token lookup or live activation. */
+// Production, Activity and AI only (owner decision, 23 October 2026): the writes Sophie may make in a guild whose roles and
+// channels another bot owns. Her own messages, reactions and typing; a DM to a member who asked; her guild commands.
+// Every other write (roles, member roles, channels, permissions, nicknames, bans) is refused before it leaves.
+const ACTIVITY_AI_WRITES = Object.freeze([
+  ['POST', /^\/channels\/\d{17,20}\/messages$/u], ['PATCH', /^\/channels\/\d{17,20}\/messages\/\d{17,20}$/u], ['DELETE', /^\/channels\/\d{17,20}\/messages\/\d{17,20}$/u],
+  ['PUT', /^\/channels\/\d{17,20}\/messages\/\d{17,20}\/reactions\/[^/]{1,200}\/@me$/u], ['DELETE', /^\/channels\/\d{17,20}\/messages\/\d{17,20}\/reactions\/[^/]{1,200}\/@me$/u],
+  ['POST', /^\/channels\/\d{17,20}\/typing$/u], ['POST', /^\/users\/@me\/channels$/u],
+  ['POST', /^\/applications\/\d{17,20}\/guilds\/\d{17,20}\/commands$/u],
+]);
+export const activityAiWriteAllowed = (method, path) => method === 'GET' || ACTIVITY_AI_WRITES.some(([verb, pattern]) => verb === method && pattern.test(path));
+
 export function createDiscordTransport({ guildId, token, fetch, clock, enabled, limits = createDiscordRateLimits(),
-  wait = ms => new Promise(resolve => setTimeout(resolve, ms)) }) {
-  requireId(guildId);
+  wait = ms => new Promise(resolve => setTimeout(resolve, ms)), scope = 'full' }) {
+  requireId(guildId); requireCondition(['full', 'activity-ai'].includes(scope), 'TRUSTED_ADAPTERS_REQUIRED');
   requireCondition(typeof token === 'string' && token.length >= 20 && !/\s/.test(token), 'DISCORD_TOKEN_REQUIRED');
   requireCondition(typeof fetch === 'function' && typeof clock === 'function' && typeof enabled === 'function' && typeof wait === 'function', 'TRUSTED_ADAPTERS_REQUIRED');
   requireCondition(limits?.cooldowns instanceof Map && limits.buckets instanceof Map, 'TRUSTED_ADAPTERS_REQUIRED');
@@ -99,6 +110,7 @@ export function createDiscordTransport({ guildId, token, fetch, clock, enabled, 
   }
   const blockedFor = key => Math.max(limits.globalUntil, limits.cooldowns.get(key) ?? 0) - clock();
   async function request(method, path, route, body = undefined, jsonResult = false, deadline = null) {
+    if (scope === 'activity-ai') requireCondition(activityAiWriteAllowed(method, path.split('?')[0]), 'DISCORD_SCOPE_REFUSED');
     const budget = () => Math.min(SHORT_WAIT_MS, deadline === null ? SHORT_WAIT_MS : deadline - clock() - 250);
     const release = await turn(Math.max(1, budget()), method === 'GET' ? limitKey(limits, method, path).key : null);
     try {

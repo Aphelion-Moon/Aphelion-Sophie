@@ -3,9 +3,12 @@ import { verifyCoreMigrations } from '../storage/migrate.js';
 import { requireUnquarantinedDatabase } from './recovery.js';
 import { runtimeDatabaseAvailable } from '../storage/runtime-maintenance.js';
 
+// Local databases only: staging (sophie_stage_*) or, since 23 October 2026, the Activity-and-AI production database
+// (sophie_prod_*). A database and its identities share one prefix.
 export function requireStagingDatabase(configuration) {
-  requireCondition(configuration?.host === '127.0.0.1' && /^sophie_stage_[a-z0-9_]{1,32}$/.test(configuration.database) &&
-    /^sophie_stage_[a-z0-9_]{1,32}$/.test(configuration.user), 'ISOLATED_STAGING_DATABASE_REQUIRED');
+  const prefix = /^sophie_(stage|prod)_[a-z0-9_]{1,32}$/.exec(configuration?.database ?? '')?.[1];
+  requireCondition(configuration?.host === '127.0.0.1' && prefix !== undefined &&
+    new RegExp(`^sophie_${prefix}_[a-z0-9_]{1,32}$`).test(configuration.user), 'ISOLATED_STAGING_DATABASE_REQUIRED');
 }
 
 /** The privileged coordinator must use a separate identity on the same isolated database. */

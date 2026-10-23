@@ -40,14 +40,18 @@ async function upsertWithCooldown(transport, applicationId, definition, sleep) {
   }
 }
 
+/** Production, Activity and AI only: the member's own panel and the reviewed-source lookup; nothing that touches roles or cases. */
+export const ACTIVITY_AI_COMMANDS = Object.freeze(['sophie', 'lookup']);
+
 /** Explicit call upserts only Sophie's named commands; never bulk-replaces or deletes other commands. */
-export async function registerStagingCommands({ transport, applicationId, botUserId, confirmGuildId, sleep = wait }) {
+export async function registerStagingCommands({ transport, applicationId, botUserId, confirmGuildId, sleep = wait, scope = 'full' }) {
+  requireCondition(['full', 'activity-ai'].includes(scope), 'COMMAND_REGISTRATION_SCOPE_INVALID');
   requireId(applicationId); requireId(botUserId);
   requireCondition(confirmGuildId === transport.guildId, 'COMMAND_REGISTRATION_CONFIRMATION_REQUIRED');
   const identity = await transport.getCurrentUser(), application = await transport.getCurrentApplication();
   requireCondition(identity?.id === botUserId && identity.bot === true && application?.id === applicationId, 'GATEWAY_IDENTITY_MISMATCH');
   const registered = [];
-  for (const definition of administrationCommandDefinitions()) {
+  for (const definition of administrationCommandDefinitions().filter(item => scope === 'full' || ACTIVITY_AI_COMMANDS.includes(item.name))) {
     const result = await upsertWithCooldown(transport, applicationId, definition, sleep);
     requireCondition(result?.name === definition.name && result.type === 1 && result.application_id === applicationId &&
       result.guild_id === transport.guildId, 'COMMAND_REGISTRATION_UNCONFIRMED');

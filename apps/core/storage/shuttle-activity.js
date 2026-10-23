@@ -20,7 +20,7 @@ const ACTIONS = Object.freeze({ advance: advanceOnboarding, back: backOnboarding
  * belongs to a channel finishes it there. While the Activity is `testing`, only the server owner and current lead
  * ops role holders are admitted; every request reads Discord afresh through `authorize`. No AI.
  */
-export function createShuttleActivityStore({ pool, clock, authorize, definitionId, status, defaults = null }) {
+export function createShuttleActivityStore({ pool, clock, authorize, definitionId, status, defaults = null, deliverWhitelist = true }) {
   requireName(definitionId);
   requireCondition(typeof authorize === 'function' && ACTIVITY_STATUSES.includes(status), 'ACTIVITY_CONFIGURATION_INVALID');
   const memberOperation = createMemberOperation({ pool, clock });
@@ -141,10 +141,12 @@ export function createShuttleActivityStore({ pool, clock, authorize, definitionI
         const command = { guildId: member.guildId, userId: member.userId, expectedVersion, nonce: session.nonce, nextNonce: randomBytes(16).toString('hex') };
         const change = ACTIONS[action](session, member, definition, command, clock());
         await saveSession(client, change.session, member);
-        for (const effect of change.effects) await enqueue(client, effect);
+        // In production another bot owns Whitelist: a tester's run reaches the door and no grant is queued.
+        const effects = deliverWhitelist ? change.effects : change.effects.filter(effect => !String(effect.kind).startsWith('whitelist.'));
+        for (const effect of effects) await enqueue(client, effect);
         requireFreshObservation(member.observation, clock());
         await saveReceipt(client, member.guildId, id, { sessionId: session.id });
-        return { duplicate: false, run: await view(client, change.session, member), queued: change.effects.length > 0 };
+        return { duplicate: false, run: await view(client, change.session, member), queued: effects.length > 0 };
       });
     },
   });

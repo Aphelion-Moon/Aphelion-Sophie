@@ -5,7 +5,7 @@ import { createConfigurationDashboard } from './configuration-dashboard.js';
 import { createDiscordTransport, createDiscordRateLimits } from '../discord/transport.js';
 import { permissionDigest } from './permission-configuration.js';
 import { checkRuntimeDatabaseIdentity } from './database.js';
-import { validateStagingRuntime } from './configuration.js';
+import { runtimeScope, validateStagingRuntime } from './configuration.js';
 
 /** Core host composition. Owner credentials stay outside the normal runtime identity. */
 export async function createConfigurableStagingRuntime({ownerPool,configuration,pool,token,clientSecret=null,fetch,connect,clock=Date.now,random=Math.random,onFault,onTrace=()=>{},
@@ -16,7 +16,7 @@ export async function createConfigurableStagingRuntime({ownerPool,configuration,
   let runtime=null,maintenanceDashboard=null,dashboardKey=null,timer=null,inFlight=null,started=false,stopping=false,options={};
   // One bot token, one view of Discord's buckets: the coordinator and every runtime it starts share this registry.
   const rateLimits=createDiscordRateLimits();
-  const transport=createDiscordTransport({guildId:configuration.mapping.guildId,token,fetch,clock,enabled:()=>started&&!stopping,limits:rateLimits});
+  const transport=createDiscordTransport({guildId:configuration.mapping.guildId,token,fetch,clock,enabled:()=>started&&!stopping,limits:rateLimits,scope:runtimeScope(configuration)});
   const stopRuntime=async()=>{if(runtime){const old=runtime;runtime=null;await old.stop();}};
   const coordinator=createConfigurationCoordinator({pool:ownerPool,configuration,transport,stopRuntime,clock});
   async function closeDashboard(){if(maintenanceDashboard){await maintenanceDashboard.close();maintenanceDashboard=null;dashboardKey=null;}}

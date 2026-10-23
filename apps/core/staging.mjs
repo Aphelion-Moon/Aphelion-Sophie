@@ -1,6 +1,6 @@
 import { requireCondition, requireKeys } from '../../contracts/validation.js';
 import { readRuntimeJson } from './runtime/files.js';
-import { validateStagingRuntime } from './runtime/configuration.js';
+import { runtimeScope, validateStagingRuntime } from './runtime/configuration.js';
 import { requireStagingDatabase, requireStagingOwnerDatabase, checkRuntimeDatabase } from './runtime/database.js';
 import { createStagingRuntime } from './runtime/staging.js';
 import { createConfigurableStagingRuntime } from './runtime/configurable-staging.js';
@@ -43,10 +43,10 @@ async function main() {
     if (mode === 'start') requireCondition(options['--database'] && !options['--confirm-database'], 'STAGING_ARGUMENTS_INVALID');
   }
   if (mode === 'commands') {
-    const transport = createDiscordTransport({ guildId: configuration.mapping.guildId, token: process.env.SOPHIE_DISCORD_TOKEN,
+    const transport = createDiscordTransport({ guildId: configuration.mapping.guildId, token: process.env.SOPHIE_DISCORD_TOKEN, scope: runtimeScope(configuration),
       fetch, clock: Date.now, enabled: () => true });
     report({ applied: true, commands: await registerStagingCommands({ transport, applicationId: configuration.applicationId,
-      botUserId: configuration.mapping.botUserId, confirmGuildId: options['--confirm-guild'] }) }); return;
+      botUserId: configuration.mapping.botUserId, confirmGuildId: options['--confirm-guild'], scope: runtimeScope(configuration) }) }); return;
   }
   const database = await readRuntimeJson(options['--database']); requireStagingDatabase(database);
   const ownerDatabase = options['--owner-database'] ? await readRuntimeJson(options['--owner-database']) : null;

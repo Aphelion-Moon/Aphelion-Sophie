@@ -16,6 +16,7 @@ import { createAiAccounting } from '../storage/ai-accounting.js';
 import { createAiEffects } from '../storage/ai-effects.js';
 import { createMeteredAiWorker } from './ai-provider.js';
 import { withCodeSearch } from '../../knowledge/code-search.js';
+import { runtimeScope } from './configuration.js';
 
 /** Core composition only. Inference receives a fixed turn payload, never this pool or Discord transport. */
 export function createAiRuntime({ configuration, corePool, controlPool, worker, knowledge, observer, guildState, token, fetch, clock, enabled, rateLimits, onFault,
@@ -26,7 +27,7 @@ export function createAiRuntime({ configuration, corePool, controlPool, worker, 
   const { mapping, casePolicy, capabilityPolicy } = configuration;
   // Contexts with code search on also get line windows from the community's public code (owner decision, 23 October 2026).
   knowledge = withCodeSearch(knowledge, codeSearch, onFault);
-  const transport = createDiscordTransport({ guildId: mapping.guildId, token, fetch, clock, enabled, ...(rateLimits ? { limits: rateLimits } : {}) });
+  const transport = createDiscordTransport({ guildId: mapping.guildId, token, fetch, clock, enabled, scope: runtimeScope(configuration), ...(rateLimits ? { limits: rateLimits } : {}) });
   const observations = createAiObservations({ pool: corePool, transport, guildState, authorityStore: createActorAuthorityStore({ pool: corePool, clock }),
     capabilityPolicy, mapping, protectedCategoryId: casePolicy.categoryId, observer, clock, trace: onFault });
   const ingress = createAiIngress({ guildId: mapping.guildId, botUserId: mapping.botUserId, clock });

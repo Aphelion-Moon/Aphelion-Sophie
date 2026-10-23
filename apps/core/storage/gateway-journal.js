@@ -15,7 +15,7 @@ export const gatewayMappingHash = mapping => createHash('sha256').update(JSON.st
 
 /** Ordered metadata/revocations and a separate optional core case-content sink share one cursor commit. */
 // leaseMs: how long Gateway ownership outlives its last renewal (30 s in every deployment; tests may shorten it).
-export function createGatewayJournal({ pool, mapping, clock, caseCapture = null, automation = null, leaseMs = 30_000 }) {
+export function createGatewayJournal({ pool, mapping, clock, caseCapture = null, automation = null, leaseMs = 30_000, reconcileMembers = true }) {
   validateRoleMapping(mapping); requireCondition(typeof clock === 'function', 'TRUSTED_ADAPTERS_REQUIRED');
   requireInteger(leaseMs, 3_000, 300_000);
   requireCondition(caseCapture === null || (caseCapture.guildId === mapping.guildId &&
@@ -202,7 +202,8 @@ export function createGatewayJournal({ pool, mapping, clock, caseCapture = null,
           await client.query(`INSERT INTO sophie_core.gateway_members (guild_id, user_id, continuity_epoch, state) VALUES ($1, $2, $3, $4)
             ON CONFLICT (guild_id, user_id) DO UPDATE SET continuity_epoch = EXCLUDED.continuity_epoch, state = EXCLUDED.state`,
           [fixed.guildId, normalized.userId, row.continuity_epoch, normalized]);
-          if (!normalized.bot && normalized.userId !== fixed.botUserId) {
+          // In production (Activity and AI only) another bot owns member roles, so no reconciliation is queued.
+          if (reconcileMembers && !normalized.bot && normalized.userId !== fixed.botUserId) {
             const pending = await client.query(`SELECT 1 FROM sophie_core.outbox WHERE guild_id = $1 AND user_id = $2
               AND kind = 'member.reconcile' AND status IN ('ready', 'leased', 'parked') LIMIT 1`, [fixed.guildId, normalized.userId]);
             if (!pending.rowCount) await enqueue(client, { kind: 'member.reconcile', guildId: fixed.guildId, userId: normalized.userId,

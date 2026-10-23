@@ -20,7 +20,7 @@ import { createSystemWordingReader, createSystemWordingStore } from '../storage/
 import { randomUUID } from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 import { requireCondition } from '../../../contracts/validation.js';
-import { validateStagingRuntime } from './configuration.js';
+import { runtimeScope, validateStagingRuntime } from './configuration.js';
 import { requireUnquarantinedDatabase } from './recovery.js';
 import { createAdministrationLane } from './administration.js';
 import { createDiscordTransport, createDiscordRateLimits } from '../discord/transport.js';
@@ -89,6 +89,8 @@ import { createGuildState } from '../discord/guild-state.js';
 /** Explicit staging host. Construction starts no listener, connection, registration, migration or service. */
 export async function createStagingRuntime({ configuration, pool, aiControlPool = null, aiPreferenceJournal = null, aiWorker = null, aiKnowledge = null, aiKnowledgeAdmin = null, aiKnowledgeAdminFactory = null, aiApproval = null, aiActivationPool = null, aiRestoreCurrent = async () => false, aiGithubToken = null, token, clientSecret = null, fetch, connect, clock = Date.now, random = Math.random, onFault, onTrace = () => {}, rateLimits = createDiscordRateLimits(), configurationApplyEnabled = false, gatewayLeaseMs = 30_000 }) {
   validateStagingRuntime(configuration); const fixed = structuredClone(configuration);
+  // Production, Activity and AI only: no role, case, moderation, Shuttle-channel, automation or permission work (configuration.js).
+  const limited = runtimeScope(fixed) === 'activity-ai';
   requireCondition(typeof onFault === 'function', 'TRUSTED_ADAPTERS_REQUIRED');
   await requireUnquarantinedDatabase(pool);
   requireCondition(await runtimeDatabaseAvailable(pool), 'RUNTIME_MAINTENANCE_ACTIVE');
@@ -106,7 +108,7 @@ export async function createStagingRuntime({ configuration, pool, aiControlPool 
   };
   // Every transport below uses the same bot token, so they share Discord's buckets and must share one view of them.
   // A supervising host passes its own registry so a restarted runtime keeps the cooldowns it already learned.
-  const transport = createDiscordTransport({ guildId: fixed.mapping.guildId, token, fetch, clock, enabled: databaseActive, limits: rateLimits });
+  const transport = createDiscordTransport({ guildId: fixed.mapping.guildId, token, fetch, clock, enabled: databaseActive, limits: rateLimits, scope: runtimeScope(fixed) });
   requireCondition(aiWorker===null || aiKnowledge!==null && aiControlPool!==null, 'AI_ADAPTERS_REQUIRED');
   let aiRuntime = null, activationRebind = null, activationFollow = null;
   const privacyEffects=aiControlPool===null?null:createAiEffects({pool:aiControlPool,guildId:fixed.mapping.guildId,clock});
@@ -124,7 +126,7 @@ export async function createStagingRuntime({ configuration, pool, aiControlPool 
   const aiGateway = guildState === null ? null : { prepare: payload => { guildState.accept(payload); return aiRuntime?.prepare(payload) ?? null; },
     committed: (proof, accepted) => aiRuntime?.committed(proof, accepted), invalidate: () => aiRuntime?.invalidate() };
   // Gateway ownership lease: 30 s in every deployment; isolated tests may shorten it (renewed at a third of it).
-  const journal = createGatewayJournal({ pool, mapping: fixed.mapping, clock, leaseMs: gatewayLeaseMs,
+  const journal = createGatewayJournal({ pool, mapping: fixed.mapping, clock, leaseMs: gatewayLeaseMs, reconcileMembers: !limited,
     automation: fixed.automationEnabled === true ? createAutomationAdmission({guildId:fixed.mapping.guildId,protectedCategoryId:fixed.casePolicy.categoryId,
       channels:createAutomationChannels({transport}),ingress:createAutomationIngress({guildId:fixed.mapping.guildId,botUserId:fixed.mapping.botUserId,clock})}) : null,
     caseCapture: fixed.captureEnabled ? createCaseMessageCapture({ guildId: fixed.mapping.guildId, clock }) : null });
@@ -132,7 +134,7 @@ export async function createStagingRuntime({ configuration, pool, aiControlPool 
   const enabled = async () => await databaseActive() && await observer.isCurrent();
   const gateway = createGatewaySupervisor({ observer, transport, connect, token, clock, random, enabled: active, renewMs: Math.floor(gatewayLeaseMs / 3) });
   const verifier = createInteractionVerifier({ publicKeyHex: fixed.publicKeyHex, applicationId: fixed.applicationId, guildId: fixed.mapping.guildId, clock });
-  const authRoles = createDiscordRoles({ transport: createDiscordTransport({ guildId: fixed.mapping.guildId, token, fetch, clock, enabled, limits: rateLimits }),
+  const authRoles = createDiscordRoles({ transport: createDiscordTransport({ guildId: fixed.mapping.guildId, token, fetch, clock, enabled, scope: runtimeScope(fixed), limits: rateLimits }),
     mapping: fixed.mapping, clock, readContinuity: observer.readContinuity });
   const auth = fixed.dashboard === null ? null : createDashboardAuth({ configuration: fixed.dashboard,
     store: createDashboardAuthStore({ pool, configuration: fixed.dashboard, clock }),
@@ -168,6 +170,7 @@ export async function createStagingRuntime({ configuration, pool, aiControlPool 
   // A recorded Shuttle change has already committed its render intent, so delivery starts now instead of at the next
   // interval. The diagnostic is a fixed code: the command result and whole milliseconds, never IDs or content.
   const interactionCommands = Object.freeze({ async execute(envelope) {
+    if (limited && !(String(envelope.command).startsWith('sophie.') || envelope.command === 'knowledge.lookup')) return 'denied';
     const startedAt = performance.now();
     const result = await requests.commands.execute(envelope);
     if (['shuttle.start', 'shuttle.control'].includes(envelope.command)) {
@@ -178,9 +181,9 @@ export async function createStagingRuntime({ configuration, pool, aiControlPool 
     return result;
   } });
   const interactions = createInteractionHttpServer({ verifier, commands: interactionCommands, respond: responder.respond,
-    onboardingPanel: createOnboardingEntryPanel({ authorization: requests.authorization, transport: requests.transport, store: requests.store, policy: fixed.casePolicy,
+    onboardingPanel: limited ? null : createOnboardingEntryPanel({ authorization: requests.authorization, transport: requests.transport, store: requests.store, policy: fixed.casePolicy,
       definitionId: fixed.definitionId, enabled, readSystemText }),
-    caseIntake: requests.caseIntake, sophiePanel: requests.sophieMember, readSystemText, enabled, onFault: fault, activityOpen: fixed.activity?.status === 'open' });
+    caseIntake: limited ? null : requests.caseIntake, sophiePanel: requests.sophieMember, readSystemText, enabled, onFault: fault, activityOpen: fixed.activity?.status === 'open' });
   const reconciler = createCaseReconciler({ store: createCaseInspectionStore({ pool, policy: fixed.casePolicy }), enabled });
   // No Shuttle work waits for Staff: parked Shuttle jobs are rechecked on their own (see recheckParkedShuttleWork).
   const shuttleOutbox = createOutbox({ pool });
@@ -245,7 +248,10 @@ export async function createStagingRuntime({ configuration, pool, aiControlPool 
       activityLayout: createActivityLayoutHttp({ auth, authorization, store: createActivityLayoutStore({ pool, authorize: authorization.authorize,
         guildId: fixed.mapping.guildId, definitionId: fixed.definitionId, ...activityContent }) }),
       formAuthoring: createCaseFormAuthoringHttp({ auth, authorization, store: createCaseFormAuthoringStore({ pool, authorize: authorization.authorize, guildId: fixed.mapping.guildId }) }),
-      presentation: await createDashboardPresentation() });
+      presentation: await createDashboardPresentation(),
+      // Production keeps only the AI, knowledge, wording, Shuttle copy and Activity layout pages.
+      ...(limited ? { transcripts: null, caseExports: null, notes: null, replies: null, answers: null, automation: null, permissions: null, labels: null,
+        management: null, moderation: null, caseDelivery: null, onboardingStaff: null, contactEntry: null, contactNavigation: null, formAuthoring: null } : {}) });
   }
   let activity = null, activityListening = false;
   if (activityAuth !== null) {
@@ -256,7 +262,7 @@ export async function createStagingRuntime({ configuration, pool, aiControlPool 
       channels: createActivityChannels({ transport: visitor.transport, roles: visitor.roles, guildId: fixed.mapping.guildId, clock }),
       station: createActivityStation({ transport: visitor.transport, guildId: fixed.mapping.guildId, clock }),
       store: createShuttleActivityStore({ pool, clock, authorize: visitor.authorization.authorize, definitionId: fixed.definitionId, status: fixed.activity.status,
-        defaults: activityContent.defaults }) });
+        defaults: activityContent.defaults, deliverWhitelist: !limited }) });
   }
   const owner = `staging.${randomUUID()}`;
   let ticking = false, scheduled = false, wakeQueued = false;
@@ -268,6 +274,8 @@ export async function createStagingRuntime({ configuration, pool, aiControlPool 
       if(active() && knowledgeAdministration && !knowledgeStarted){
         try {await knowledgeAdministration.start();knowledgeStarted=true;}catch{fault('KNOWLEDGE_SYNC_UNAVAILABLE');}
       }
+      // Production (Activity and AI only) runs no case, role or Shuttle-channel worker at all.
+      if (limited) return;
       await reconciler.runOnce();
       try { if (await shuttleOutbox.recheckParkedShuttleWork() > 0) trace('SHUTTLE_SELF_HEAL_REQUEUED'); }
       catch { fault('SHUTTLE_SELF_HEAL_UNAVAILABLE'); }

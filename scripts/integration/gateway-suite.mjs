@@ -357,4 +357,14 @@ export async function runGatewaySuite(cluster, run) {
     } finally { await supervisor.stop(); await finished; await server.stop(); }
     assert.equal((await lifecycle()).status, 'offline'); assert.equal(await observer.isCurrent(), false);
   });
+  await scenario('P50-G01 in production (Activity and AI only) member events are recorded but queue no role work', async () => {
+    journal = createGatewayJournal({ pool, mapping, clock: () => now, reconcileMembers: false }); observer = makeObserver();
+    await boot();
+    await send('GUILD_MEMBER_ADD', { guild_id: GUILD, user: { id: USER }, roles: [] });
+    await memberEvent([MUZZLED, WHITELIST]);
+    assert.deepEqual((await read('gateway_members')).find(row => row.user_id === USER).state.roleIds.sort(), [MUZZLED, WHITELIST].sort(), 'the member is still observed for eligibility');
+    assert.equal((await read('outbox')).filter(row => row.kind === 'member.reconcile').length, 0, 'no Crew, Muzzled or Whitelist reconciliation is queued');
+    await send('GUILD_MEMBER_REMOVE', { guild_id: GUILD, user: { id: USER } });
+    assert.equal((await read('actor_authority')).find(row => row.user_id === USER)?.ai_departure_epoch ?? '1', '1', 'leaving still requests AI cleanup');
+  });
 }
