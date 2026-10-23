@@ -213,3 +213,13 @@ test('RB-H01 a core that resumed its Gateway session hydrates guild state once o
   const offline = fixture({ resumed: true }); offline.disconnect();
   assert.equal(await offline.observations.inspectContext(offline.event), null); assert.equal(offline.restReads(), 0, 'no hydration while the Gateway is not current');
 });
+
+test('P50 an exact channel allowed inside the protected category is observed; its siblings and the category stay excluded', async () => {
+  const allowed = fixture(); allowed.dispatch('CHANNEL_UPDATE', channel({ parent_id: '707' }));
+  const observations = createAiObservations({ ...allowed.options, aiChannelExceptions: ['202'] });
+  assert.ok(await observations.inspectContext(allowed.event), 'the named channel is usable');
+  const sibling = fixture(); sibling.dispatch('CHANNEL_UPDATE', channel({ parent_id: '707' }));
+  assert.equal(await createAiObservations({ ...sibling.options, aiChannelExceptions: ['999'] }).inspectContext(sibling.event), null, 'another channel in the category is not');
+  const recorded = fixture(); recorded.dispatch('CHANNEL_UPDATE', channel({ parent_id: '707' })); recorded.exclude();
+  assert.equal(await createAiObservations({ ...recorded.options, aiChannelExceptions: ['202'] }).inspectContext(recorded.event), null, 'a case exclusion still wins');
+});

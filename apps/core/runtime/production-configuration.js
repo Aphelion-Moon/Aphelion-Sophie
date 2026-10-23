@@ -10,7 +10,7 @@ import { validateStagingRuntime } from './configuration.js';
  */
 export function productionConfiguration(input) {
   requireKeys(input, ['guildId', 'applicationId', 'publicKeyHex', 'botUserId', 'roles', 'protectedCategoryId', 'dashboardOrigin', 'activityOrigin',
-    'interactionPort', 'dashboardPort', 'activityPort']);
+    'interactionPort', 'dashboardPort', 'activityPort', ...(Object.hasOwn(input ?? {}, 'aiChannelExceptions') ? ['aiChannelExceptions'] : [])]);
   requireKeys(input.roles, ['crew', 'muzzled', 'whitelist', 'staff', 'leadOps'], 'INVALID_ROLE_OWNERSHIP');
   for (const id of [input.guildId, input.applicationId, input.botUserId, input.protectedCategoryId, ...Object.values(input.roles)]) requireId(id);
   requireCondition(new Set(Object.values(input.roles)).size === 5 && !Object.values(input.roles).includes(input.guildId), 'INVALID_ROLE_OWNERSHIP');
@@ -27,7 +27,9 @@ export function productionConfiguration(input) {
     interactionPort: input.interactionPort, dashboardPort: input.dashboardPort, workerIntervalMs: 1000,
     exportPolicy: { version: 1, enabled: false, audience: 'current-readers', maxObservations: 100, maxGaps: 200, maxBytes: 2_097_152 },
     dashboard: { guildId, applicationId, version: 1, origin: input.dashboardOrigin },
-    activity: { origin: input.activityOrigin, port: input.activityPort, status: 'testing' } };
+    activity: { origin: input.activityOrigin, port: input.activityPort, status: 'testing' },
+    // Exact channels in the protected category the AI may still use (#ask-sophie in the main server).
+    ...(input.aiChannelExceptions ? { aiChannelExceptions: [...input.aiChannelExceptions] } : {}) };
   validateStagingRuntime(configuration);
   return configuration;
 }

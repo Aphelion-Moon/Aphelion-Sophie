@@ -8,7 +8,7 @@ import { aiDigest } from '../storage/ai-controls.js';
  * the Gateway is not current. The returned narrow adapters cannot expose case content or credentials.
  */
 export function createAiObservations({ pool, transport, guildState, authorityStore, capabilityPolicy, mapping, protectedCategoryId, observer, clock,
-  trace = () => {}, wait = ms => new Promise(resolve => setTimeout(resolve, ms)) }) {
+  aiChannelExceptions = [], trace = () => {}, wait = ms => new Promise(resolve => setTimeout(resolve, ms)) }) {
   requireCondition(guildState && ['accept', 'ready', 'session', 'revision', 'guild', 'roles', 'channel', 'member', 'rememberMember', 'emoji', 'message'].every(name => typeof guildState[name] === 'function'), 'TRUSTED_ADAPTERS_REQUIRED');
   const members = new WeakMap();
   let generation = 0;
@@ -38,10 +38,13 @@ export function createAiObservations({ pool, transport, guildState, authoritySto
     guildState.rememberMember(userId, raw ?? null);
     return guildState.member(userId) ?? null;
   }
+  // An exact channel the owner allowed inside the protected category (owner decision, 23 October 2026). Only that channel:
+  // its siblings, the category itself and any channel Sophie's own case records exclude stay refused.
   async function excluded(channelId, parentId = null) {
-    if (channelId === protectedCategoryId || parentId === protectedCategoryId) return true;
+    const excepted = aiChannelExceptions.includes(channelId) && parentId === protectedCategoryId;
+    if (channelId === protectedCategoryId || parentId === protectedCategoryId && !excepted) return true;
     return (await pool.query('SELECT 1 FROM sophie_core.case_exclusions WHERE guild_id=$1 AND channel_id=ANY($2::text[]) LIMIT 1',
-      [guildId, [channelId, ...(parentId ? [parentId] : [])]])).rowCount > 0;
+      [guildId, [channelId, ...(parentId && !excepted ? [parentId] : [])]])).rowCount > 0;
   }
   // A resumed Gateway session replays missed events but never resends GUILD_CREATE, so a core process that started by
   // resuming has an empty projection. It is hydrated once over REST (one guild read with roles, emojis and owner, one

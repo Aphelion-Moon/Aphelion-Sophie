@@ -1729,3 +1729,17 @@ to the main server. Answers given in this session, quoted where they were typed:
   and the existing bot keeps its roles. The guild ID, tester role and channels are still needed from the owner.
 - **Dashboard sign-in.** It failed because Discord now reports the Activity's scope as well; the fix (`15252f9`) is
   bundled with the production install by the owner's choice ("Bundle it later").
+
+### Production inputs and the #ask-sophie exception — 23 October 2026
+
+The owner supplied the main server's guild, roles and channels (recorded in
+`.agent_docs/aphelion-sophie/production-inputs-2026-10-23`, checked with the bot account): #ask-sophie is support,
+#staff-chatter is staff (private), #main-bots is chat. Lead Ops is the Activity tester gate and holds the AI controls.
+"Tickets should end up in 1528558928382918777 which is the same category that #ask-sophie is in." Asked whether to move
+the channel or add an exception, the owner chose: "Keep #ask-sophie where it is. Add a code exception that allows that one
+channel ID inside the ticket category, with everything else there staying excluded." The configuration's
+`aiChannelExceptions` names exact channels (at most five, never the category itself); a named channel inside the protected
+category is usable by the AI, while the category, every other channel in it (new tickets included) and any channel Sophie's
+own case records exclude stay refused. Automation gets no exception. On Discord permissions: "Sophie has manage roles from
+our bot-grouping rank, not her personal rank. So don't worry about that." Production mode refuses role, channel and
+permission writes in code regardless.

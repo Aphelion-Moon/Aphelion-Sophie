@@ -84,7 +84,8 @@ export function createAdministrationLane({ configuration, pool, token, fetch, cl
     answers: createCuratedAnswers({ pool, authorize, guildId: mapping.guildId }) });
   const lookupChannels=createAutomationChannels({transport});
   const knowledgeLookup=knowledge===null ? null:createKnowledgeLookupCommands({authorization,verifier,knowledge,guildId:mapping.guildId,enabled,clock,
-    inspectChannel:channelId=>inspectAutomationChannel(pool,{guildId:mapping.guildId,protectedCategoryId:policy.categoryId,channels:lookupChannels,channelId})});
+    inspectChannel:channelId=>inspectAutomationChannel(pool,{guildId:mapping.guildId,protectedCategoryId:policy.categoryId,channels:lookupChannels,channelId,
+      exceptions:configuration.aiChannelExceptions??[]})});
   // The member's own Sophie panel (owner decision, 23 October 2026); present only where the AI controls are composed.
   const sophieMember = sophieMemberFactory === null ? null : sophieMemberFactory({ authorization, transport, verifier, enabled, readSystemText });
   const commands = createAdministrationCommands({ sophieMember, onboardingClosure: createOnboardingChannelClosure({ authorization, roles, channels, store, enabled }), moderation: createModerationCommands(common),

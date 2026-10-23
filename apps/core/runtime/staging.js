@@ -197,7 +197,7 @@ export async function createStagingRuntime({ configuration, pool, aiControlPool 
     const knowledge = aiKnowledgeAdmin === null && !knowledgeAdmin ? null : createAiKnowledgeHttp({ auth, authorization, knowledge: aiKnowledgeAdmin ?? knowledgeAdmin.editor, invalidate: () => aiRuntime?.invalidate() });
     const qualificationObservations = aiActivationPool === null || guildState === null ? null : createAiObservations({ pool, transport: browser.transport, guildState,
       authorityStore: createActorAuthorityStore({ pool, clock }), capabilityPolicy: fixed.capabilityPolicy, mapping: fixed.mapping,
-      protectedCategoryId: fixed.casePolicy.categoryId, observer, clock });
+      protectedCategoryId: fixed.casePolicy.categoryId, aiChannelExceptions: fixed.aiChannelExceptions ?? [], observer, clock });
     const activation = qualificationObservations === null || aiApproval === null ? null : createAiActivation({ pool: aiActivationPool,
       guildId: fixed.mapping.guildId, authorize: authorization.authorize, inspectChannel: qualificationObservations.inspectChannel,
       approval: aiApproval, workerRelease: () => aiRuntime?.qualifiedRelease?.() ?? null, restoreCurrent: aiRestoreCurrent, clock,
@@ -214,7 +214,7 @@ export async function createStagingRuntime({ configuration, pool, aiControlPool 
       // A publication also moves active channels onto it (Go live persists); the follow is idempotent and owner-role only.
       invalidate: () => { aiRuntime?.invalidate(); if (activationFollow) void activationFollow().catch(() => fault('AI_QUALIFICATION_FOLLOW_UNAVAILABLE')); },
       inspectChannel: (_client, channelId) => inspectAutomationChannel(pool, { guildId: fixed.mapping.guildId,
-        protectedCategoryId: fixed.casePolicy.categoryId, channels: aiChannels, channelId }),
+        protectedCategoryId: fixed.casePolicy.categoryId, channels: aiChannels, channelId, exceptions: fixed.aiChannelExceptions ?? [] }),
     }), ...(activation ?? { reviewActivation: async () => { requireCondition(false, 'AI_ACTIVATION_UNAVAILABLE'); }, activate: async () => { requireCondition(false, 'AI_ACTIVATION_UNAVAILABLE'); } }) } });
     const permissions = createPermissionEditorHttp({ auth, authorization, store: createPermissionEditor({ pool,
       authorize: authorization.authorize, configuration: fixed, options: createPermissionOptions({ transport: browser.transport }),
