@@ -2083,3 +2083,23 @@ post wording and the logotype and departures board as images served by the Activ
 policy version 2, credentials and story; no migration. All checks passed. Both images are served publicly as
 `image/png` to a Discord-style request and match their pinned bytes. Folder
 `.agent_docs/aphelion-sophie/deployment-d69637c-production-2026-10-24`; `rollback.ps1` restores cc90730.
+
+### The rules post: links that work, and the owner's second edit — 24 October 2026
+
+The owner sent a second edit and asked: "Make sure the channel links and role ID pings are set correctly, they aren't
+linking at the moment. If that's not possible to do, please inform me and leave them as basic text."
+
+- **Links.** Discord links a channel only as `<#id>` and a mention only as `<@id>` or `<@&id>`. Plain `#crew-support`
+  is just text.
+  - When the post is sent, Sophie reads the server's channels, roles and emoji, and links what the wording names.
+  - What the server lacks stays plain text.
+  - The post still notifies nobody: allowed_mentions are empty, and the transport refuses any post that could notify.
+- **The "role ID".** `@138755661537214464` is older than the server, so it is a member's account (the owner's), not one of
+  the server's roles. It becomes a mention of that member: shown as a link, never pinged.
+- **Custom emoji.** `:protopop:` becomes the server's emoji of that name if the server has it. A bot cannot use the
+  shortcode as written.
+- **Wording.** The boarding call becomes Sophie's P-BAND transmission, and the small print keeps the App Launcher line and
+  a "Stuck? Confused?" line with the links. Cleanups:
+  - italics closed against their words (Discord does not italicise "*text *");
+  - trailing spaces dropped;
+  - the launch button renamed **Travel to the Interlink**, because the call tells members to tap a button of that name.

@@ -209,7 +209,12 @@ broadcast (owner's pick of 24 October 2026). It is one amber Components V2 conta
 The logotype and the board are images rendered from 32-column art (`scripts/author-rules-post-art.mjs`, the lounge's
 palette, a hand-made pixel font) and served by the Activity host, pinned by hash. A code block sat in the left half of
 the post on desktop, while an image fills the width and keeps its colours on every client. Each image's alt text is the
-art's words. Without an Activity host the art goes as plain code blocks. The wording is editable in the dashboard (group "Shuttle Activity rules post"; the
+art's words. Without an Activity host the art goes as plain code blocks.
+
+When the post is sent, its wording's `#channel` names link to this server's text, announcement or forum channel of that
+name, `@` followed by a user ID becomes that member, `@name` that role, and `:name:` that server emoji. Anything the
+server lacks, or has twice, stays plain text, as do `@everyone` and `@here`. Mentions show as links and never notify:
+`allowed_mentions` is empty, and the transport refuses a post that would notify anyone. The wording is editable in the dashboard (group "Shuttle Activity rules post"; the
 old embed's title and body are retired). The command itself gets a private "Posted.", or "Sophie couldn't post here"
 when Discord refuses; nothing is retried or stored. The launch button answers with LAUNCH_ACTIVITY and records nothing;
 the Activity signs the member in and checks access itself.

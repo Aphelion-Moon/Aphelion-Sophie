@@ -57,7 +57,7 @@ test('in production the rules post goes out as Sophie\'s own Components V2 messa
   await transport.createActivityPost(ids(11), 'a'.repeat(24), post);
   assert.equal(calls.length, 1); assert.deepEqual(calls[0].slice(0, 2), ['POST', `/api/v10/channels/${ids(11)}/messages`]);
   assert.deepEqual(calls[0][2], { ...post, nonce: 'a'.repeat(24), enforce_nonce: true });
-  for (const body of [{ ...post, content: 'hi' }, { ...post, embeds: [] }, { ...post, flags: 0 }, { ...post, allowed_mentions: { parse: ['everyone'] } }, { ...post, components: [] }])
+  for (const body of [{ ...post, content: 'hi' }, { ...post, embeds: [] }, { ...post, flags: 0 }, { ...post, allowed_mentions: { parse: ['everyone'] } }, { ...post, allowed_mentions: { ...post.allowed_mentions, users: [ids(12)] } }, { ...post, allowed_mentions: { ...post.allowed_mentions, roles: [ids(4)] } }, { ...post, allowed_mentions: { ...post.allowed_mentions, replied_user: true } }, { ...post, components: [] }])
     await assert.rejects(transport.createActivityPost(ids(11), 'a'.repeat(24), body), /INVALID_DISCORD_PAYLOAD/);
   await assert.rejects(transport.createActivityPost(ids(11), 'not-a-nonce', post), /INVALID_DISCORD_PAYLOAD/);
   assert.equal(calls.length, 1);
@@ -90,10 +90,12 @@ test('production registers only /sophie, /lookup and /whitelist post', async () 
 });
 
 test('production posts the Activity launch post for Lead Ops as Sophie\'s own message and refuses the Onboarding-channel entry panel', async () => {
-  let allowed = true, refuse = false;
+  let allowed = true, refuse = false, directoryDown = false;
   const sent = [];
   const panel = createOnboardingEntryPanel({ authorization: { resolveActor: async () => ({}), authorize: async capability => capability === 'shuttle.publish' && allowed },
     transport: { getChannel: async id => ({ id, guild_id: ids(1), type: 0, parent_id: null }),
+      getGuildChannels: async () => { if (directoryDown) throw new Error('DISCORD_BUSY'); return [{ id: ids(41), name: 'crew-support', type: 0 }, { id: ids(42), name: 'open-a-ticket', type: 0 }]; },
+      getRoles: async () => [], getGuild: async () => ({ id: ids(1), emojis: [{ id: ids(43), name: 'protopop', animated: false }] }),
       createActivityPost: async (channelId, nonce, body) => { if (refuse) throw Object.assign(new Error('DISCORD_FORBIDDEN'), { code: 'DISCORD_FORBIDDEN' }); sent.push({ channelId, nonce, body }); return { id: ids(30) }; } },
     store: { hasCaseExclusion: async () => false }, nonce: () => 'f'.repeat(24),
     policy: { guildId: ids(1), categoryId: ids(9) }, definitionId: 'onboarding', enabled: () => true, readSystemText: async () => createSystemText(), commands: ['shuttle.post'] });
@@ -102,6 +104,14 @@ test('production posts the Activity launch post for Lead Ops as Sophie\'s own me
   assert.deepEqual(reply, { content: "Posted. The Shuttle's boarding call is up in this channel.", flags: 64, allowed_mentions: { parse: [], users: [], roles: [], replied_user: false } });
   assert.equal(sent.length, 1); assert.equal(sent[0].channelId, ids(11)); assert.equal(sent[0].body.flags, 1 << 15);
   assert.equal(sent[0].body.components[0].components.find(item => item.type === 9).accessory.custom_id, 'sophie:shuttle:activity:1');
+  // The wording's channels and emoji link to this server's own; nobody is notified.
+  assert.match(JSON.stringify(sent[0].body), new RegExp(`<:protopop:${ids(43)}>[\\s\\S]*<#${ids(41)}>[\\s\\S]*<#${ids(42)}>`));
+  assert.deepEqual(sent[0].body.allowed_mentions, { parse: [], users: [], roles: [], replied_user: false });
+  // Directory unreadable: the post still goes, with plain names.
+  directoryDown = true;
+  await panel.prepare({ command: 'shuttle.post', guildId: ids(1), channelId: ids(11) }, { isCurrent: () => true });
+  assert.equal(sent.length, 2); assert.doesNotMatch(JSON.stringify(sent[1].body), /<#|<:/); assert.match(JSON.stringify(sent[1].body), /#crew-support/);
+  sent.pop(); directoryDown = false;
   // Discord refuses (no access to the channel): reported privately, never retried.
   refuse = true;
   const refused = await panel.prepare({ command: 'shuttle.post', guildId: ids(1), channelId: ids(11) }, { isCurrent: () => true });

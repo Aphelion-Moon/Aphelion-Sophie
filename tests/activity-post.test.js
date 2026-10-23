@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
-import { ACTIVITY_LAUNCH_ID, POST_ART_COLUMNS, POST_BOARD, POST_IMAGES, POST_LOGO, activityLaunchPost, plainArt } from '../modules/onboarding/activity-post.js';
+import { ACTIVITY_LAUNCH_ID, POST_ART_COLUMNS, POST_BOARD, POST_IMAGES, POST_LOGO, activityLaunchPost, plainArt, resolvePostMentions } from '../modules/onboarding/activity-post.js';
 import { rasterise } from '../scripts/author-rules-post-art.mjs';
 import { loadActivityClient } from '../apps/activity/client-assets.js';
 import { inflateSync } from 'node:zlib';
@@ -35,8 +35,11 @@ test('T-ACT-POST-01 the rules post is a station broadcast: logotype, boarding ca
   assert.equal(container.components.indexOf(galleries[0]), 0, 'the logotype opens the post');
   // The launch button sits beside the boarding call; it is the only button that reaches Sophie.
   const section = container.components.find(component => component.type === 9);
-  assert.deepEqual(section.accessory, { type: 2, style: 1, label: 'Board the Shuttle', custom_id: ACTIVITY_LAUNCH_ID });
-  assert.match(section.components[0].content, /^## Now boarding · Gate 03\n\*kssht, CLICK\* Bwoop![\s\S]*five stops[\s\S]*no quiz[\s\S]*\*\*Board the Shuttle\*\*[\s\S]*sign in with your Discord account/);
+  // The call names the button by its label (owner's edit of 24 October 2026: Travel to the Interlink).
+  assert.deepEqual(section.accessory, { type: 2, style: 1, label: 'Travel to the Interlink', custom_id: ACTIVITY_LAUNCH_ID });
+  assert.match(section.components[0].content, /^## Now boarding · Gate 03\n> \*\*\[P-BAND\]\*\* :protopop: Sophie beeps[\s\S]*five stops[\s\S]*\*\*Travel to the Interlink\*\* button/);
+  // Italics close against their words: Discord does not italicise "*text *".
+  assert.doesNotMatch(section.components[0].content, / \*(\n|$)/);
   const buttons = all.filter(component => component.type === 2);
   assert.equal(buttons.filter(button => 'custom_id' in button).length, 1);
   // The rules links open the browser (style 5): https only, no custom id, the story's own rules pages.
@@ -45,10 +48,11 @@ test('T-ACT-POST-01 the rules post is a station broadcast: logotype, boarding ca
   // The owner removed the manifest; the small print carries the must-knows, true to what Sophie does now.
   const words = texts.join('\n');
   assert.doesNotMatch(words, /manifest|Rook|Pip/);
-  assert.match(words, /-# Once you Disembark and Sophie hands you the \*\*Whitelist\*\*, it's valid[\s\S]*App Launcher[\s\S]*@matriarch in #crew-support\./);
+  assert.match(words, /-# Button above does nothing\?[\s\S]*App Launcher[\s\S]*-# Stuck\? Confused\? Ping @138755661537214464 in #crew-support or open a ticket in #open-a-ticket\./);
   assert.doesNotMatch(words, /—|request your|Complete Shuttle/);
   assert.deepEqual(post.allowed_mentions, { parse: [], users: [], roles: [], replied_user: false });
-  assert.doesNotMatch(JSON.stringify(post), /<@|<#|@everyone|@here|\\u001b/);
+  // Without the server's directory nothing is linked.
+  assert.doesNotMatch(JSON.stringify(post), /<@|<#|<:|@everyone|@here|\\u001b/);
   // Without an Activity host the art goes as plain code blocks; a host must be https.
   const plain = activityLaunchPost();
   assert.equal(plain.components[0].components.filter(component => component.type === 12).length, 0);
@@ -81,6 +85,30 @@ test('T-ACT-POST-04 the art images are the rendered art, pinned, recorded and se
     // Served at its path as a PNG, pinned to its recorded hash.
     assert.equal(assets.get(`/${block.path}`)?.type, 'image/png');
   }
+});
+
+test('T-ACT-POST-05 the post links the server\'s own channels, members, roles and emoji, and never notifies anyone', () => {
+  const directory = {
+    channels: [{ id: '100000000000000041', name: 'crew-support', type: 0 }, { id: '100000000000000042', name: 'open-a-ticket', type: 0 },
+      { id: '100000000000000044', name: 'twice', type: 0 }, { id: '100000000000000045', name: 'twice', type: 0 }, { id: '100000000000000046', name: 'voice', type: 2 }],
+    roles: [{ id: '100000000000000047', name: 'Matriarch' }, { id: '100000000000000001', name: '@everyone' }],
+    emojis: [{ id: '100000000000000043', name: 'protopop', animated: false }, { id: '100000000000000048', name: 'spin', animated: true }],
+  };
+  const resolve = text => resolvePostMentions(text, directory);
+  assert.equal(resolve('Ping @138755661537214464 in #crew-support or open a ticket in #open-a-ticket.'),
+    'Ping <@138755661537214464> in <#100000000000000041> or open a ticket in <#100000000000000042>.');
+  assert.equal(resolve('Ask @matriarch (or @Matriarch).'), 'Ask <@&100000000000000047> (or <@&100000000000000047>).');
+  assert.equal(resolve(':protopop: and :spin:'), '<:protopop:100000000000000043> and <a:spin:100000000000000048>');
+  // Unknown, ambiguous or voice channels, @everyone/@here, unknown emoji: plain text. Headings and small print are untouched.
+  for (const plain of ['#nowhere', '#twice', '#voice', '@everyone', '@here', ':unknown:', '## Now boarding', '-# small print', 'mail@example.test'])
+    assert.equal(resolve(plain), plain);
+  assert.equal(resolvePostMentions('#crew-support', null), '#crew-support');
+  // The post with the directory: linked, and still no notifications.
+  const post = activityLaunchPost(undefined, { mediaOrigin: 'https://onboarding.example.test', directory });
+  const text = JSON.stringify(post);
+  assert.match(text, /<:protopop:100000000000000043> Sophie beeps/);
+  assert.match(text, /Ping <@138755661537214464> in <#100000000000000041> or open a ticket in <#100000000000000042>\./);
+  assert.deepEqual(post.allowed_mentions, { parse: [], users: [], roles: [], replied_user: false });
 });
 
 /** A minimal reader for the PNGs the art script writes: 8-bit RGB, every row unfiltered. */

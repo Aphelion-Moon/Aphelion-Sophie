@@ -364,7 +364,8 @@ export function createDiscordTransport({ guildId, token, fetch, clock, enabled, 
     async createActivityPost(channelId, nonce, body) {
       requireId(channelId); requireCondition(typeof nonce === 'string' && /^[a-f0-9]{24}$/u.test(nonce), 'INVALID_DISCORD_PAYLOAD');
       requireCondition(body?.flags === 1 << 15 && Array.isArray(body.components) && body.components.length === 1 && body.components[0].type === 17 &&
-        !('content' in body) && !('embeds' in body) && Array.isArray(body.allowed_mentions?.parse) && body.allowed_mentions.parse.length === 0, 'INVALID_DISCORD_PAYLOAD');
+        !('content' in body) && !('embeds' in body) && ['parse', 'users', 'roles'].every(key => Array.isArray(body.allowed_mentions?.[key]) && body.allowed_mentions[key].length === 0) &&
+        body.allowed_mentions.replied_user === false, 'INVALID_DISCORD_PAYLOAD');
       return request('POST', `/channels/${channelId}/messages`, 'shuttle-message-create', { ...body, nonce, enforce_nonce: true }, true);
     },
     async createOnboardingAlert(channelId, alertId, body) {

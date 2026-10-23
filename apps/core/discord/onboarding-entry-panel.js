@@ -29,7 +29,12 @@ export function createOnboardingEntryPanel({ authorization, transport, store, po
     requireCondition(!await store.hasCaseExclusion({ guildId: policy.guildId, lineage: [channel.id, ...(channel.parent_id ? [channel.parent_id] : [])] }), 'OPERATION_DENIED');
     const text = await readSystemText();
     if (envelope.command !== 'shuttle.post') { const data = onboardingEntryPanel(text); await authorize(); return data; }
-    const post = activityLaunchPost(text, { mediaOrigin });
+    // The wording's #channels, @mentions and :emoji: link to this server's own (read now; unreadable means plain text).
+    const directory = await (async () => {
+      const [channels, roles, guild] = await Promise.all([transport.getGuildChannels(), transport.getRoles(), transport.getGuild()]);
+      return { channels, roles, emojis: guild?.emojis ?? [] };
+    })().catch(() => null);
+    const post = activityLaunchPost(text, { mediaOrigin, directory });
     await authorize();
     let posted = true;
     try { await transport.createActivityPost(channel.id, nonce(), post); } catch { posted = false; }

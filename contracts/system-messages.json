@@ -1735,14 +1735,14 @@
   {
     "id": "activity.post.button",
     "group": "Shuttle Activity rules post",
-    "source": "Board the Shuttle",
+    "source": "Travel to the Interlink",
     "max": 80,
     "format": "plain"
   },
   {
     "id": "activity.post.call",
     "group": "Shuttle Activity rules post",
-    "source": "## Now boarding · Gate 03\n*kssht, CLICK* Bwoop! Sophie here with Community Services, live from the Interlink. Before you play on our servers you ride the Shuttle: five stops from this channel to get your Whitelist.\nAround ten minutes of reading, no quiz.\nHit **Board the Shuttle** and it opens right here in Discord as an Activity.\nYou will need to sign in with your Discord account, just like any other Activity.",
+    "source": "## Now boarding · Gate 03\n> **[P-BAND]** :protopop: Sophie beeps energetically over the frequency,\n> \"*Hey there! So glad you took us up on that offer.*\n> *I'm calling from the Interlink, the halfway point between you and your first shift.*\n> *There's a lot to go over, so I won't bore you with it now, but to give you the short of it,*\n> *before you play on our Servers you ride the Shuttle: five stops from this channel to get your Whitelist.*\n> *The trip is short, and shouldn't take you more than 15 minutes.*\n> *Tap the **Travel to the Interlink** button in our chat here, to launch the Activity here in Discord!*\n> *I'll catch up with you when you get there.*\"",
     "max": 1000
   },
   {
@@ -1754,7 +1754,7 @@
   {
     "id": "activity.post.small_print",
     "group": "Shuttle Activity rules post",
-    "source": "-# Once you Disembark and Sophie hands you the **Whitelist**, it's valid across all of our services.\n-# Button above does nothing? Open the App Launcher next to the message box and pick Sophie.\n-# Stuck? Ping @matriarch in #crew-support.\n-# Already Whitelisted? You can repeat this process at any time, if you want to.",
+    "source": "-# Button above does nothing? Open the App Launcher next to the message box and pick Sophie.\n-# Stuck? Confused? Ping @138755661537214464 in #crew-support or open a ticket in #open-a-ticket.",
     "max": 1000
   },
   {
