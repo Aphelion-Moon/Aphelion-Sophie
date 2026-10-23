@@ -1,5 +1,16 @@
 # Verification and release limits
 
+## Production install of a6730b5 and Shuttle version 4 — 24 October 2026
+
+- **Offline:** `npm test` 847 passed (T-ACT-PAGE-03 About pages keep their link boxes; T-ACT-CLI-15 Glossary and page
+  counter; T-ACT-CLI-16 silent session renewal, once, same request key; P43 Ian's three rounds, barks and bubbles, and the
+  counted-effect contract; the 6,000-character stage); `npm run check` passed; storage 1037 passed.
+- **Install:** preflight (15 reviewed files; runtime unchanged; capability policy equal to the recorded version 2);
+  revision 3 validated against the candidate's contract before publishing; pre-start, service boundaries, installed checks
+  and public hosts passed; version 4 published (3 run(s) reset).
+- **Not covered:** Discord's silent authorize after an hour away, and the new page layout on a phone: the owner's next
+  playtest.
+
 ## Production install of be0fe69: Activity failure kinds — 24 October 2026
 
 - **Offline:** `npm test` 842 passed (T-ACT-CORE-09: each kind, an ID in a message never logged, a malformed code,

@@ -1,6 +1,6 @@
 # Current implementation workplan
 
-Revision: 2026-10-24-production-be0fe69. Mistral Small 4 (mistral-small-2603) on the official EU API is the selected provider for trial; DeepSeek Flash is withdrawn. Local models are historical, explicitly selected alternatives only; no automatic fallback. Continue the DS workstream with synthetic data; full readiness and activation remain open.
+Revision: 2026-10-24-production-a6730b5. Mistral Small 4 (mistral-small-2603) on the official EU API is the selected provider for trial; DeepSeek Flash is withdrawn. Local models are historical, explicitly selected alternatives only; no automatic fallback. Continue the DS workstream with synthetic data; full readiness and activation remain open.
 
 All production release gates remain open; pure and isolated database checks are not full application acceptance.
 
@@ -1669,10 +1669,11 @@ Implemented scope:
 - da5b48a installed on 24 October 2026: scene dialogue follows story revision 1, the sea lion is hit on the THUMP page, Staff join the Activity testers.
 - 366b6cb installed on 24 October 2026: Sophie grants Whitelist in production; UPSTREAM bag; story revision 2 published as Shuttle version 3.
 - be0fe69 installed on 24 October 2026: unexpected Activity request failures log their kind.
+- a6730b5 installed and story revision 3 published as Shuttle version 4 on 24 October 2026: About pages keep their link boxes, Ian barks three times, Meridian IN DEV, Glossary, page counter, silent session renewal, 6,000-character stages.
 
 Remaining scope:
 
-- Owner: Go live again in each channel on the new release (be0fe69); a tester without Whitelist finishes Shuttle version 3 and receives the role from Sophie.
+- Owner: Go live again in each channel on the new release (a6730b5); a tester without Whitelist finishes Shuttle version 4 and receives the role from Sophie; leave the Activity idle over an hour and carry on without reopening it.
 - Owner: Go live in each channel on the dashboard; /sophie Yes.
 - Live checks: a reply in #ask-sophie (code and Guidebook), a saved memory, Get my data, the Activity for a Lead Ops tester, a staff channel turn.
 

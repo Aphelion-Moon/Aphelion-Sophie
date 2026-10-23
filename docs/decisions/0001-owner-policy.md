@@ -1956,3 +1956,39 @@ An unexpected Activity request failure now logs `ACTIVITY_REQUEST_UNAVAILABLE_<k
 or error class; never a message, ID or payload). Same runtime, capability policy version 2 and story (Shuttle version 3).
 All checks passed. Folder `.agent_docs/aphelion-sophie/deployment-be0fe69-production-2026-10-24`; `rollback.ps1` restores
 366b6cb.
+
+### Shuttle story revision 3 and the Activity fixes from the playtest — 24 October 2026
+
+The owner sent revision 3 ("We reintroduced the voluntary section in the brochure again") with a list of Activity changes,
+and asked to "install and publish the next revision".
+
+- **Story.** The Brochure's opening now says, in bold, that Aphelion is not for anyone who takes issue with who runs it, and
+  expects decency to everyone involved; a smaller section "None of us are forced to be here" sits under amenities; Wolfgate's
+  "(still early days)" is back. The checklist gets back its points on respect, boarding voluntarily and not boarding to drive
+  people out. Cleanup as in revision 2 (auto-capitalisation undone, SS14 import steps 1-2, the SS14 rules line one plain
+  link, the Wolfgate sign's link described as the Guidebook), plus: no quotation marks around Sophie's own bold line.
+- **Stage limit.** The Brochure is 5,365 characters. Rather than cut the owner's text by 365 characters, a stage may now
+  hold 6,000 (`STAGE_BODY_LIMIT`). The Discord bound is unchanged: at most five messages of 1,800 characters.
+- **Pages.** A sign stays on a page that is only its heading and one paragraph, so About SS 13 / SS 14 show their link
+  boxes with them ("move the boxes with links onto their respective pages"). The voluntary section opens its own page.
+  Only the Brochure's pagination changes.
+- **Ian.** "Limit Ian to a maximum of 3 barks for the Brochure section, and he needs a little pop-up text like Rook and Pip
+  have which says *BARK!*": Ian makes three rounds on a new scene clock (since the lounge came on screen), each with one bark
+  and a `*BARK!*` bubble (a new `emote` style, without quotation marks), then no more. Read as three rounds, not as a
+  silent dog after the third bark.
+- **Board.** Meridian Rift reads IN DEV on the departures board, like Wolfgate. The help desk is unchanged.
+- **Glossary.** Codex is called Glossary on screen; its sheet id stays `codex`.
+- **Page counter.** A page number ("3 / 14") over the dots, which sit lower than before.
+- **Signal link while away.** Activity sessions end after an hour and on any core restart (tokens live only in memory), and
+  the client then showed "Close the Shuttle and open it again". The client now signs in again through Discord without a
+  prompt and resends the refused request once with the same request key. The core log showed no Activity failure since
+  be0fe69, consistent with an ended session rather than a fault.
+
+### Production install of a6730b5 and Shuttle version 4 — 24 October 2026
+
+On the owner's request ("Update all of that, then install and publish the next revision."; quoted in full in the packet's
+`approval.json`), `a6730b5` was installed over `be0fe69` at 20:16 on 23 October UTC (host clock), and story revision 3 was
+published as **Shuttle version 4** (3 Activity run(s) still being read on version 3 were reset to start version 4).
+Same runtime, capability policy version 2 and credentials; no migration. All checks passed. Folder
+`.agent_docs/aphelion-sophie/deployment-a6730b5-production-2026-10-24`; `rollback.ps1` restores be0fe69, after which
+revision 2 must be republished (be0fe69 accepts at most 5,000 characters a stage).
