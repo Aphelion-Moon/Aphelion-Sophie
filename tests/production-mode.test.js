@@ -3,7 +3,9 @@ import assert from 'node:assert/strict';
 import { runtimeScope, validateStagingRuntime } from '../apps/core/runtime/configuration.js';
 import { productionConfiguration } from '../apps/core/runtime/production-configuration.js';
 import { createDiscordTransport, activityAiWriteAllowed } from '../apps/core/discord/transport.js';
-import { registerStagingCommands } from '../apps/core/discord/command-registration.js';
+import { registerStagingCommands, activityAiCommandDefinitions } from '../apps/core/discord/command-registration.js';
+import { createOnboardingEntryPanel } from '../apps/core/discord/onboarding-entry-panel.js';
+import { createSystemText } from '../contracts/system-messages.js';
 import { requireStagingDatabase } from '../apps/core/runtime/database.js';
 
 const ids = n => `1${String(n).padStart(17, '0')}`;
@@ -41,13 +43,29 @@ test('in production the Discord transport refuses every role, channel and permis
     assert.equal(activityAiWriteAllowed(method, path), allowed, `${method} ${path}`);
 });
 
-test('production registers only /sophie and /lookup', async () => {
-  const names = [];
+test('production registers only /sophie, /lookup and /whitelist post', async () => {
+  const names = [], definitions = [];
   const transport = { guildId: ids(1), getCurrentUser: async () => ({ id: ids(3), bot: true }), getCurrentApplication: async () => ({ id: ids(2) }),
-    upsertGuildCommand: async (_application, definition) => { names.push(definition.name); return { id: ids(20), name: definition.name, type: 1, application_id: ids(2), guild_id: ids(1) }; } };
+    upsertGuildCommand: async (_application, definition) => { names.push(definition.name); definitions.push(definition); return { id: ids(20), name: definition.name, type: 1, application_id: ids(2), guild_id: ids(1) }; } };
   await registerStagingCommands({ transport, applicationId: ids(2), botUserId: ids(3), confirmGuildId: ids(1), scope: 'activity-ai' });
-  assert.deepEqual(names, ['lookup', 'sophie']);
+  assert.deepEqual([...names].sort(), ['lookup', 'sophie', 'whitelist']);
+  // Only the launch post: no start, panel, close or queue in production.
+  assert.deepEqual(definitions.find(item => item.name === 'whitelist').options.map(option => option.name), ['post']);
+  assert.deepEqual(activityAiCommandDefinitions().map(item => item.name).sort(), ['lookup', 'sophie', 'whitelist']);
   await assert.rejects(registerStagingCommands({ transport, applicationId: ids(2), botUserId: ids(3), confirmGuildId: ids(1), scope: 'everything' }), /COMMAND_REGISTRATION_SCOPE_INVALID/);
+});
+
+test('production posts the Activity launch post for Lead Ops and refuses the Onboarding-channel entry panel', async () => {
+  let allowed = true;
+  const panel = createOnboardingEntryPanel({ authorization: { resolveActor: async () => ({}), authorize: async capability => capability === 'shuttle.publish' && allowed },
+    transport: { getChannel: async id => ({ id, guild_id: ids(1), type: 0, parent_id: null }) }, store: { hasCaseExclusion: async () => false },
+    policy: { guildId: ids(1), categoryId: ids(9) }, definitionId: 'onboarding', enabled: () => true, readSystemText: async () => createSystemText(), commands: ['shuttle.post'] });
+  const post = await panel.prepare({ command: 'shuttle.post', guildId: ids(1), channelId: ids(11) }, { isCurrent: () => true });
+  assert.equal(post.components[0].components[0].custom_id, 'sophie:shuttle:activity:1');
+  await assert.rejects(panel.prepare({ command: 'shuttle.panel', guildId: ids(1), channelId: ids(11) }, { isCurrent: () => true }), /OPERATION_DENIED/);
+  allowed = false;
+  await assert.rejects(panel.prepare({ command: 'shuttle.post', guildId: ids(1), channelId: ids(11) }, { isCurrent: () => true }), /OPERATION_DENIED/, 'only Lead Ops (shuttle.publish) may post');
+  assert.throws(() => createOnboardingEntryPanel({ commands: ['shuttle.start'] }), /TRUSTED_ADAPTERS_REQUIRED/);
 });
 
 test('a production database and its identities share the sophie_prod_ prefix, on this host only', () => {

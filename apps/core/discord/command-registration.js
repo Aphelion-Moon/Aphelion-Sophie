@@ -40,8 +40,19 @@ async function upsertWithCooldown(transport, applicationId, definition, sleep) {
   }
 }
 
-/** Production, Activity and AI only: the member's own panel and the reviewed-source lookup; nothing that touches roles or cases. */
-export const ACTIVITY_AI_COMMANDS = Object.freeze(['sophie', 'lookup']);
+/**
+ * Production, Activity and AI only: the member's own panel, the reviewed-source lookup and, for Lead Ops, /whitelist post
+ * (the Activity launch post; owner decision, 24 October 2026). Nothing that touches roles or cases.
+ */
+export const ACTIVITY_AI_COMMANDS = Object.freeze(['sophie', 'lookup', 'whitelist']);
+const ACTIVITY_AI_SUBCOMMANDS = Object.freeze({ whitelist: ['post'] });
+
+/** The production command set: /whitelist keeps only its post subcommand. */
+export function activityAiCommandDefinitions() {
+  return administrationCommandDefinitions().filter(item => ACTIVITY_AI_COMMANDS.includes(item.name)).map(item => ACTIVITY_AI_SUBCOMMANDS[item.name]
+    ? { ...item, description: 'Lead Ops: post the Shuttle Activity launch post here.', options: item.options.filter(option => ACTIVITY_AI_SUBCOMMANDS[item.name].includes(option.name)) }
+    : item);
+}
 
 /** Explicit call upserts only Sophie's named commands; never bulk-replaces or deletes other commands. */
 export async function registerStagingCommands({ transport, applicationId, botUserId, confirmGuildId, sleep = wait, scope = 'full' }) {
@@ -51,7 +62,7 @@ export async function registerStagingCommands({ transport, applicationId, botUse
   const identity = await transport.getCurrentUser(), application = await transport.getCurrentApplication();
   requireCondition(identity?.id === botUserId && identity.bot === true && application?.id === applicationId, 'GATEWAY_IDENTITY_MISMATCH');
   const registered = [];
-  for (const definition of administrationCommandDefinitions().filter(item => scope === 'full' || ACTIVITY_AI_COMMANDS.includes(item.name))) {
+  for (const definition of scope === 'full' ? administrationCommandDefinitions() : activityAiCommandDefinitions()) {
     const result = await upsertWithCooldown(transport, applicationId, definition, sleep);
     requireCondition(result?.name === definition.name && result.type === 1 && result.application_id === applicationId &&
       result.guild_id === transport.guildId, 'COMMAND_REGISTRATION_UNCONFIRMED');

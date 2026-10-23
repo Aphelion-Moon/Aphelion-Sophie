@@ -6,9 +6,10 @@ import { activityLaunchPost } from '../../../modules/onboarding/activity-post.js
  * Public static copy only. The entry panel's button invokes the ordinary signed self-service entry; the Activity
  * launch post's button only asks Discord to open the Activity, which signs in and checks access itself.
  */
-export function createOnboardingEntryPanel({ authorization, transport, store, policy, definitionId, enabled, readSystemText }) {
+export function createOnboardingEntryPanel({ authorization, transport, store, policy, definitionId, enabled, readSystemText, commands = ['shuttle.panel', 'shuttle.post'] }) {
+  requireCondition(Array.isArray(commands) && commands.length > 0 && commands.every(command => ['shuttle.panel', 'shuttle.post'].includes(command)), 'TRUSTED_ADAPTERS_REQUIRED');
   return Object.freeze({ async prepare(envelope, { isCurrent }) {
-    requireCondition(['shuttle.panel', 'shuttle.post'].includes(envelope.command) && envelope.guildId === policy.guildId, 'OPERATION_DENIED');
+    requireCondition(commands.includes(envelope.command) && envelope.guildId === policy.guildId, 'OPERATION_DENIED');
     const actor = await authorization.resolveActor(envelope);
     const authorize = async () => requireCondition(await enabled() && isCurrent() &&
       await authorization.authorize('shuttle.publish', actor, { guildId: policy.guildId, definitionId }), 'OPERATION_DENIED');
