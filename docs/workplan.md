@@ -1,6 +1,6 @@
 # Current implementation workplan
 
-Revision: 2026-10-23-main-c33a418. Mistral Small 4 (mistral-small-2603) on the official EU API is the selected provider for trial; DeepSeek Flash is withdrawn. Local models are historical, explicitly selected alternatives only; no automatic fallback. Continue the DS workstream with synthetic data; full readiness and activation remain open.
+Revision: 2026-10-23-main-ef094a0. Mistral Small 4 (mistral-small-2603) on the official EU API is the selected provider for trial; DeepSeek Flash is withdrawn. Local models are historical, explicitly selected alternatives only; no automatic fallback. Continue the DS workstream with synthetic data; full readiness and activation remain open.
 
 All production release gates remain open; pure and isolated database checks are not full application acceptance.
 
@@ -226,7 +226,7 @@ These are bounded next steps within the task dependencies below. An unresolved l
 
 ## Task status
 
-Status counts: 3 complete; 40 in progress; 8 planned, not started. These are full-task statuses, not a percentage of code or release readiness.
+Status counts: 3 complete; 41 in progress; 7 planned, not started. These are full-task statuses, not a percentage of code or release readiness.
 
 An in-progress task can contain several verified milestones and still have unfinished implementation or acceptance. Acceptance IDs below link requirements to tasks; they do not assert that those specifications have passed.
 
@@ -282,7 +282,7 @@ An in-progress task can contain several verified milestones and still have unfin
 | P47 — Channel contexts and longer replies | in_progress | P46 |
 | P48 — Named staff channels | in_progress | P47 |
 | P49 — Code, Guidebook and community sources | in_progress | P47 |
-| P50 — Move to the main server for closed testing | planned_not_started | P45, P46, P47, P48, P49 |
+| P50 — Move to the main server for closed testing | in_progress | P45, P46, P47, P48, P49 |
 
 ## P00 — Freeze scope and deployment inputs
 
@@ -1640,17 +1640,22 @@ Boundary: Fixed allowlist of origins and repositories; nothing cloned or execute
 
 ## P50 — Move to the main server for closed testing
 
-Status: **planned_not_started**. Phase: Deployment. Priority: P0.
+Status: **in_progress**. Phase: Deployment. Priority: P0.
 
 Depends on: P45, P46, P47, P48, P49. Acceptance: verify-public.mjs, W5 live checklist.
 
 Owner decisions of 23 October 2026: move the install to the main server; Activity and AI only.
 
+Implemented scope:
+
+- Owner inputs received on 23 October 2026 and checked with the bot account: guild, six roles, three channels (Ask-Sophie support, Staff Chatter staff and private, main-bots chat). Recorded in .agent_docs/aphelion-sophie/production-inputs-2026-10-23.
+- Activity-and-AI-only production mode (ef094a0): no role reconciliation, no case/role/Shuttle-channel workers, no Whitelist grant, only /sophie and /lookup, reduced dashboard, a transport that refuses role, channel and permission writes, sophie_prod_ databases. npm test 827 passed; npm run check passed; storage 1033 passed, none failed.
+
 Remaining scope:
 
-- Owner inputs: invite Sophie to the main server, guild ID, tester role, AI channels with their contexts, staff channels.
-- Confirm each case and role module can be switched off independently; fix in code where one cannot.
-- Next deployment adapter must expect the services' new automatic start types (Setup and verify scripts check Manual today).
+- Resolve the ticket category conflict: #ask-sophie sits in the category the existing bot uses for tickets (1528558928382918777).
+- Deployment packet: fresh sophie_prod_ database and identities, migrations 001-076 and grants, production configuration, core credentials with the GitHub token, processing policy with notice revision 4, story version 5, worker requalification, command registration in the main guild and removal from the test Discord, rollback and public checks.
+- Owner approval of the packet, then the W5 live checks.
 
 Full task deliverables:
 
