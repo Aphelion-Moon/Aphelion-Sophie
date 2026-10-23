@@ -18,7 +18,7 @@ const OUTCOMES = [
   [409, 'elsewhere', ['SHUTTLE_ELSEWHERE']],
   [409, 'paused', ['SHUTTLE_PAUSED']],
   [409, 'unpublished', ['DEFINITION_NOT_FOUND', 'SHUTTLE_CONTENT_REQUIRED']],
-  [409, 'stale', ['STALE_SHUTTLE_CONTROL', 'SHUTTLE_NOT_ACTIVE', 'BACK_UNAVAILABLE', 'NO_PENDING_GRANT', 'SHUTTLE_RESTART_REQUIRED',
+  [409, 'stale', ['STALE_SHUTTLE_CONTROL', 'SHUTTLE_NOT_ACTIVE', 'BACK_UNAVAILABLE', 'NO_PENDING_GRANT', 'SHUTTLE_RESTART_REQUIRED', 'SHUTTLE_RESET_PENDING',
     'DEFINITION_WITHDRAWN', 'DEFINITION_MISMATCH', 'INTERACTION_ID_COLLISION']],
   [400, 'invalid', ['ACTIVITY_REQUEST_INVALID', 'INVALID_SHUTTLE_ACTION', 'INVALID_INTEGER', 'ACTIVITY_BODY_INVALID']],
 ];
@@ -140,6 +140,12 @@ export function createActivityHttpServer({ configuration, applicationId, guildId
       // A recorded grant intent is delivered now rather than at the next interval.
       if (result.queued) wake();
       send(response, 200, { run: result.run }); return;
+    }
+    // Reset journey (Settings): the member's run still being read stops being current; boarding starts over.
+    if (path === '/api/shuttle/reset' && request.method === 'POST') {
+      const body = await readJson(request); only(body, ['requestId']);
+      const result = await attempt(async () => store.reset({ ...await member(request, {}), requestId: body.requestId }));
+      send(response, 200, { reset: result.reset === true }); return;
     }
     send(response, 404, { error: 'not_found' });
   }

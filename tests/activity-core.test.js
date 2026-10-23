@@ -122,6 +122,7 @@ async function server(overrides = {}) {
     async describe(input) { calls.push(['describe', input]); return { state: 'ready', mode: 'qualification', stops: [], whitelist: 'none' }; },
     async board(input) { calls.push(['board', input]); return { run: { stop: 0 } }; },
     async act(input) { calls.push(['act', input]); return { run: { stop: 1 }, queued: input.action === 'advance' }; },
+    async reset(input) { calls.push(['reset', input]); return { duplicate: false, reset: true }; },
     ...overrides.store };
   let woken = 0;
   const http = createActivityHttpServer({ configuration: activityConfiguration(), applicationId: APP, guildId: GUILD, port: 38125, assets, channels: overrides.channels ?? null, enabled: async () => true, onFault: code => calls.push(['fault', code]),
@@ -180,6 +181,11 @@ test('T-ACT-CORE-08 API routes: bearer sign-in, fresh member context, closed sha
     assert.equal(woken(), 1);
     assert.equal((await request('/api/shuttle/act', { method: 'POST', body: 'not an object' })).status, 400);
     assert.equal((await request('/api/shuttle/act', { method: 'POST', body: { requestId: 'd'.repeat(32) }, headers: { 'content-type': 'text/plain' } })).status, 400);
+    // Reset journey: the member's own fresh context, a closed body, and only whether something was reset.
+    const reset = await request('/api/shuttle/reset', { method: 'POST', body: { requestId: 'c'.repeat(32) } });
+    assert.deepEqual(await reset.json(), { reset: true });
+    assert.deepEqual(calls.find(([name]) => name === 'reset')[1], { actor: { actorFor: USER }, observation: { observed: USER }, requestId: 'c'.repeat(32) });
+    assert.equal((await request('/api/shuttle/reset', { method: 'POST', body: { requestId: 'c'.repeat(32), userId: '1' } })).status, 400);
     assert.equal((await request('/api/session/end', { method: 'POST' })).status, 204);
     assert.equal((await request('/api/unknown')).status, 404);
     assert.deepEqual(await (await request('/api/config', { token: null })).json(), { applicationId: APP, guildId: GUILD });

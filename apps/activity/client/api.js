@@ -41,6 +41,7 @@ export function createShuttleApi({ fetch, randomBytes, wait = ms => new Promise(
     describe: () => call('/api/shuttle'),
     board: () => call('/api/shuttle/board', { method: 'POST', body: { requestId: requestId() } }),
     act: (action, expectedVersion) => call('/api/shuttle/act', { method: 'POST', body: { requestId: requestId(), action, expectedVersion } }),
+    reset: () => call('/api/shuttle/reset', { method: 'POST', body: { requestId: requestId() } }),
     async signOut() { if (token) await call('/api/session/end', { method: 'POST' }).catch(() => {}); token = null; },
     get signedIn() { return token !== null; },
   });

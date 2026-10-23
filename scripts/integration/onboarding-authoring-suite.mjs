@@ -98,6 +98,22 @@ export async function runOnboardingAuthoringSuite(cluster, run) {
     assert.equal((await read(f)).draft.revision, 1);
   });
 
+  await scenario('E26 publishing new guidance resets Activity runs still being read on older versions; channel runs keep theirs', async f => {
+    // Owner decision, 24 October 2026: a story update disposes of Activity progress, so nobody finishes an outdated story.
+    await f.open(); const channelRun = await f.session();
+    const reader = '100000000000000031'; f.discord.state.members.set(reader, [CREW]);
+    assert.equal(await f.execute(f.payload({ member: { user: { id: reader } } })), 'shuttle_recorded'); await f.drain(f.cases); await f.drain(f.screens);
+    const activityRun = (await f.rows('sessions')).find(row => row.user_id === reader);
+    await f.admin.query('INSERT INTO sophie_core.shuttle_activity_runs (session_id, guild_id, user_id, started_at_ms) VALUES ($1, $2, $3, 1)',
+      [activityRun.id, activityRun.guild_id, activityRun.user_id]);
+    await f.save(draftDocument()); const result = await f.publish(1);
+    assert.equal(result.version, 2); assert.equal(result.activityRunsReset, 1);
+    const sessions = await f.rows('sessions');
+    assert.equal(sessions.find(row => row.id === activityRun.id).current, false, 'the Activity run is set aside, not deleted');
+    assert.deepEqual(await f.session(), channelRun, 'the channel run keeps its version and progress');
+    assert.equal((await f.rows('shuttle_editor_actions')).at(-1).result.activityRunsReset, 1);
+  });
+
   await scenario('E05 publishing is version-checked, a resend is stale, and it cannot ignore another operator withdrawing the reviewed latest version', async f => {
     await f.save(); const request = await publishing(f);
     const results = await Promise.allSettled([f.editorStore.publishOnboardingDraft(request), f.editorStore.publishOnboardingDraft({ ...request, requestId: editorRequestId() })]);

@@ -59,7 +59,7 @@ export function createGuidanceView({ document, controller }) {
           body.append(node('p', 'This draft is not ready to publish. Each step needs a unique identity, title and guidance within the allowed lengths. Check the saved copy before reviewing again.', 'error-box'));
         } else {
           setText('review-title', `Review version ${review.publication.version}`); setText('publish', `Publish version ${review.publication.version}`);
-          body.append(node('p', `Publishing uses saved draft revision ${review.draft.revision}. New runs will use version ${review.publication.version}; existing runs keep their current version and progress.`, 'review-note'));
+          body.append(node('p', `Publishing uses saved draft revision ${review.draft.revision}. New runs will use version ${review.publication.version}; Activity runs still being read start over on it, and Onboarding-channel runs keep their version and progress.`, 'review-note'));
           const sourceComparison = node('details'); sourceComparison.append(node('summary', 'Compare source copy with the current publication'));
           sourceComparison.append(comparison(review.currentPublishedVersion === null ? 'Current publication' : `Current publication · v${review.currentPublishedVersion}`,
             review.previous, `Proposed · v${review.publication.version}`, review.publication)); body.append(sourceComparison);

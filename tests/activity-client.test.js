@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
-import { ANNOUNCEMENTS, TEXT, CHUNK_LIMIT, dialogueControls, momentFor, presence, reachedBeats, revealPoints, sceneStateFor, soundscape, titleMenu, transmissionChunks, windowUser } from '../apps/activity/client/presenter.js';
+import { ANNOUNCEMENTS, TEXT, CHUNK_LIMIT, canResetJourney, dialogueControls, momentFor, presence, reachedBeats, revealPoints, sceneStateFor, soundscape, titleMenu, transmissionChunks, windowUser } from '../apps/activity/client/presenter.js';
 import { validateStageMoments } from '../modules/onboarding/activity-media.js';
 import { ACTIVITY_STOP_SCENES } from '../modules/onboarding/activity.js';
 import { parseInline, parseMarkdown, plainText, safeLink } from '../apps/activity/client/markdown.js';
@@ -71,6 +71,11 @@ test('T-ACT-CLI-02 the title menu follows the server state; refusals show fixed 
   assert.deepEqual(titleMenu({ state: 'ready', mode: 'qualification' }).items.map(item => item.id), ['board', 'codex', 'settings', 'credits']);
   assert.deepEqual(titleMenu({ state: 'ready', mode: 'qualification' }, { log: true }).items.map(item => item.id), ['board', 'log', 'codex', 'settings', 'credits']);
   assert.equal(titleMenu({ state: 'ready', mode: 'refresh' }).items[0].label, TEXT.refresher);
+  // Reset journey (Settings) is offered only while a run is being read.
+  assert.equal(canResetJourney({ state: 'run', run: { status: 'reading' } }), true);
+  assert.equal(canResetJourney({ state: 'run', run: { status: 'paused' } }), true);
+  for (const described of [{ state: 'run', run: { status: 'pending' } }, { state: 'run', run: { status: 'boarded' } }, { state: 'ready' }, null])
+    assert.equal(canResetJourney(described), false, JSON.stringify(described));
   for (const state of ['closed', 'unavailable', 'elsewhere', 'unpublished', 'outside', 'signin', 'failed']) {
     const menu = titleMenu({ state });
     assert.deepEqual(menu.items.map(item => item.id), ['codex', 'settings', 'credits'], state);

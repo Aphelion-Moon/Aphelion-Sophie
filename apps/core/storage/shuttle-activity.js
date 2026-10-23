@@ -43,10 +43,16 @@ export function createShuttleActivityStore({ pool, clock, authorize, definitionI
       FROM sophie_core.sessions s LEFT JOIN sophie_core.shuttle_activity_runs a ON a.session_id = s.id
       WHERE s.guild_id = $1 AND s.user_id = $2 AND s.current FOR UPDATE OF s`, [member.guildId, member.userId])).rows[0] ?? null;
   }
-  /** A run that can carry on: same eligibility and still-published guidance. Otherwise a new run replaces it. */
+  /**
+   * A run that can carry on: same eligibility and still-published guidance. A run still being read must also be on the
+   * latest published version (owner decision, 24 October 2026: a story update disposes of progress, so nobody finishes an
+   * outdated story). A run waiting on its Whitelist grant or already finished keeps its version. Otherwise a new run
+   * replaces it.
+   */
   async function carriesOn(client, session, member) {
     if (session.eligibilityEpoch !== member.eligibilityEpoch) return false;
-    return (await getDefinition(client, session.definitionId, session.definitionVersion)).status === 'published';
+    if ((await getDefinition(client, session.definitionId, session.definitionVersion)).status !== 'published') return false;
+    return session.status !== 'active' || session.definitionVersion === (await latestDefinition(client))?.version;
   }
   async function latestDefinition(client) {
     return (await client.query(`SELECT definition FROM sophie_core.definitions WHERE id = $1
@@ -135,7 +141,7 @@ export function createShuttleActivityStore({ pool, clock, authorize, definitionI
         const found = await currentRun(client, member);
         requireCondition(found?.activity === true, 'SHUTTLE_NOT_ACTIVE');
         const session = found.state;
-        requireCondition(session.eligibilityEpoch === member.eligibilityEpoch, 'SHUTTLE_RESTART_REQUIRED');
+        requireCondition(await carriesOn(client, session, member), 'SHUTTLE_RESTART_REQUIRED');
         requireCondition(session.version === expectedVersion, 'STALE_SHUTTLE_CONTROL');
         const definition = await getDefinition(client, session.definitionId, session.definitionVersion);
         const command = { guildId: member.guildId, userId: member.userId, expectedVersion, nonce: session.nonce, nextNonce: randomBytes(16).toString('hex') };
@@ -147,6 +153,28 @@ export function createShuttleActivityStore({ pool, clock, authorize, definitionI
         requireFreshObservation(member.observation, clock());
         await saveReceipt(client, member.guildId, id, { sessionId: session.id });
         return { duplicate: false, run: await view(client, change.session, member), queued: effects.length > 0 };
+      });
+    },
+
+    /**
+     * Reset journey (owner decision, 24 October 2026): the member's Activity run still being read stops being current, so
+     * boarding starts again at the first stop on the latest story. The run's record is kept. A run waiting on its Whitelist
+     * grant, or one already finished, is not reset (a finished run offers riding again instead).
+     */
+    async reset({ actor, observation, requestId }) {
+      requireActivityRequestId(requestId);
+      return memberOperation(observation, async (client, member) => {
+        await admit(actor, member);
+        const id = receiptId(member.userId, requestId);
+        const previous = await receipt(client, member.guildId, member.userId, id, { action: 'activity.reset', definitionId });
+        if (previous) return { duplicate: true, reset: previous.sessionId !== null };
+        const found = await currentRun(client, member);
+        requireCondition(!found || found.activity, 'SHUTTLE_ELSEWHERE');
+        requireCondition(found?.state.status !== 'role_pending', 'SHUTTLE_RESET_PENDING');
+        const resettable = found?.state.status === 'active';
+        if (resettable) await client.query('UPDATE sophie_core.sessions SET current = false WHERE id = $1', [found.state.id]);
+        await saveReceipt(client, member.guildId, id, { sessionId: resettable ? found.state.id : null });
+        return { duplicate: false, reset: resettable };
       });
     },
   });

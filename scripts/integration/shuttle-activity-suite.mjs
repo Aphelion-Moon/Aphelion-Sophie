@@ -126,7 +126,11 @@ export async function runShuttleActivitySuite(cluster, run) {
     assert.equal((await rows('outbox')).filter(row => row.kind === 'whitelist.grant').length, 1);
     assert.equal(discord.state.members.get(OWNER).includes(WHITELIST), false);
     assert.equal((await activity.describe(await member(OWNER))).run.whitelist, 'requested');
+    // Reset journey never sets aside a run whose Whitelist grant is under way.
+    await assert.rejects(activity.reset({ ...await member(OWNER), requestId: requestId() }), error => error.code === 'SHUTTLE_RESET_PENDING');
     await drainGrants();
+    // A finished run has nothing to reset (it offers riding again instead).
+    assert.equal((await activity.reset({ ...await member(OWNER), requestId: requestId() })).reset, false);
     assert.equal(discord.state.members.get(OWNER).includes(WHITELIST), true);
     const seen = await activity.describe(await member(OWNER));
     assert.equal(seen.state, 'run'); assert.equal(seen.run.status, 'boarded'); assert.equal(seen.run.whitelist, 'confirmed');
@@ -171,6 +175,35 @@ export async function runShuttleActivitySuite(cluster, run) {
     assert.equal(fresh.stop, 0);
     const sessions = await rows('sessions');
     assert.equal(sessions.length, 2); assert.equal(sessions.filter(row => row.current).length, 1);
+  });
+
+  await scenario('SA11 a story update disposes of progress: an outdated run never continues and boarding starts the new version', async () => {
+    // Owner decision, 24 October 2026: nobody comes back to finish an outdated story.
+    const { run: first } = await activity.board({ ...await member(OTHER), requestId: requestId() });
+    const { run: moved } = await activity.act({ ...await member(OTHER), requestId: requestId(), action: 'advance', expectedVersion: first.version });
+    assert.equal(moved.stop, 1);
+    await core.publishOnboarding({ actor: await interactionActor(OTHER), publication: { ...publication, version: 2 } });
+    assert.equal((await activity.describe(await member(OTHER))).state, 'ready', 'the old run is not offered');
+    await assert.rejects(activity.act({ ...await member(OTHER), requestId: requestId(), action: 'advance', expectedVersion: moved.version }),
+      error => error.code === 'SHUTTLE_RESTART_REQUIRED');
+    const { run: fresh, resumed } = await activity.board({ ...await member(OTHER), requestId: requestId() });
+    assert.equal(resumed, false); assert.equal(fresh.stop, 0);
+    const sessions = await rows('sessions');
+    assert.equal(sessions.length, 2); assert.deepEqual(sessions.filter(row => row.current).map(row => row.state.definitionVersion), [2]);
+  });
+
+  await scenario('SA12 Reset journey sets aside the run being read, once; nothing else is reset', async () => {
+    assert.deepEqual(await activity.reset({ ...await member(OTHER), requestId: requestId() }), { duplicate: false, reset: false }, 'no run: nothing to reset');
+    const { run: first } = await activity.board({ ...await member(OTHER), requestId: requestId() });
+    await activity.act({ ...await member(OTHER), requestId: requestId(), action: 'advance', expectedVersion: first.version });
+    const id = requestId();
+    assert.deepEqual(await activity.reset({ ...await member(OTHER), requestId: id }), { duplicate: false, reset: true });
+    assert.deepEqual(await activity.reset({ ...await member(OTHER), requestId: id }), { duplicate: true, reset: true }, 'a replay changes nothing');
+    assert.equal((await activity.describe(await member(OTHER))).state, 'ready');
+    const { run: fresh } = await activity.board({ ...await member(OTHER), requestId: requestId() });
+    assert.equal(fresh.stop, 0);
+    assert.equal((await rows('sessions')).length, 2, 'the reset run keeps its record');
+    await assert.rejects(activity.reset({ ...await member(USER), requestId: requestId() }), error => error.code === 'ACTIVITY_CLOSED');
   });
 
   await scenario('SA09 the layout editor publishes numbered versions for guidance publishers; runs use the scenes, moments and curated list it names', async () => {

@@ -41,6 +41,11 @@ export const TEXT = Object.freeze({
   outside: 'Open the Shuttle from Discord: use the App Launcher, or the Board button in the rules channel.',
   signin: 'Discord didn’t sign you in. Close the Shuttle and open it again.',
   stale: 'That step was already taken. Showing where you are now.',
+  resetJourney: 'Reset journey',
+  resetConfirm: 'Confirm reset',
+  resetAsk: 'This clears your progress. You’ll start again from the first stop of the current story.',
+  resetNone: 'Nothing to reset. You’re not partway through a journey.',
+  resetDone: 'Journey reset. Board the Shuttle to start from the first stop.',
   failed: 'Something went wrong on our side. Try again in a moment.',
   radio: 'Common · 145.9',
   standby: 'Standing by',
@@ -181,6 +186,11 @@ export function transmissionChunks(pages, limit = CHUNK_LIMIT, moments = {}) {
   if (pendingHeading) current = current ? `${current}\n\n${pendingHeading}` : pendingHeading;
   if (current) chunks.push(current);
   return chunks.length ? chunks : [''];
+}
+
+/** Reset journey (Settings) has something to clear only while a run is being read; a finished run offers boarding again. */
+export function canResetJourney(described) {
+  return described?.state === 'run' && ['reading', 'paused'].includes(described.run?.status);
 }
 
 /** The title screen for a described state: one headline item, the always-available items, and a notice. */

@@ -120,8 +120,14 @@ export function createOnboardingAuthoringStore({ pool, authorize, guildId, defin
         const version = expectedLatestVersion + 1, review = reviewOnboardingDraft(definitionId, version, row.document);
         requireCondition(review.valid, 'SHUTTLE_DRAFT_INVALID');
         const sha256 = await writeOnboardingPublication(client, review.publication, grant);
+        // Owner decision, 24 October 2026: a story update disposes of Activity progress on older versions, so nobody
+        // finishes an outdated story; those members start the new version from the first stop. Runs waiting on their
+        // Whitelist grant, finished runs and Onboarding-channel runs keep their version. Records are kept, not deleted.
+        const activityRunsReset = (await client.query(`UPDATE sophie_core.sessions s SET current = false FROM sophie_core.shuttle_activity_runs a
+          WHERE a.session_id = s.id AND s.guild_id = $1 AND s.definition_id = $2 AND s.current AND s.definition_version < $3
+            AND s.state->>'status' = 'active'`, [...args, version])).rowCount;
         return audit(client, grant, requestId, request, row.revision, row.revision, version,
-          { definitionId, action: 'publish', revision: row.revision, version, sha256, preservesExistingRuns: true });
+          { definitionId, action: 'publish', revision: row.revision, version, sha256, preservesExistingRuns: true, activityRunsReset });
       });
     },
     async readOnboardingPublication({ actor, version }) {

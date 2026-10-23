@@ -1,4 +1,4 @@
-import { ANNOUNCEMENTS, CHUNK_LIMIT, CODEX, KEYS, READ_CPS, REVEAL_MAX_MS, TEXT, TIPS, TYPE_CPS, cueEvent, cueSheet, dialogueControls, linkState, momentFor,
+import { ANNOUNCEMENTS, CHUNK_LIMIT, CODEX, KEYS, READ_CPS, REVEAL_MAX_MS, TEXT, TIPS, TYPE_CPS, canResetJourney, cueEvent, cueSheet, dialogueControls, linkState, momentFor,
   presence, revealPoints, sceneStateFor, soundscape, speechMs, titleMenu, transmissionChunks, windowUser } from './presenter.js';
 import { parseMarkdown, plainText, renderMarkdown } from './markdown.js';
 
@@ -539,7 +539,27 @@ export function createShuttle({ document, api, connect, player, loadScene, sound
     const car = $('clown'); car.hidden = false;
     timers.after(CLOWN_MS, () => { car.hidden = true; });
   }
+  // Reset journey asks once, then clears the run on the second press; opening Settings again starts unasked.
+  let resetArmed = false;
+  function syncReset(note = '') {
+    const button = $('reset-journey'), can = canResetJourney(described);
+    button.disabled = !can || busy; button.textContent = resetArmed && can ? TEXT.resetConfirm : TEXT.resetJourney;
+    $('reset-note').textContent = note || (resetArmed && can ? TEXT.resetAsk : can ? '' : TEXT.resetNone);
+  }
+  async function resetJourney() {
+    if (busy || !canResetJourney(described)) return;
+    if (!resetArmed) { resetArmed = true; sound.play('UI-02'); syncReset(); return; }
+    resetArmed = false;
+    await guarded(async () => {
+      const { reset } = await api.reset();
+      described = await api.describe(); log = [];
+      syncReset(reset ? TEXT.resetDone : TEXT.resetNone);
+      if (view === 'radio') { closeSheets(); await showTitle(); } else renderMenu();
+    });
+    syncReset($('reset-note').textContent);
+  }
   function syncSettingsForm() {
+    resetArmed = false; syncReset();
     for (const input of $('settings').querySelectorAll('input[data-level]')) input.value = String(settings.levels[input.dataset.level]);
     for (const name of ['sound', 'motion', 'text', 'speed', 'size']) {
       for (const input of $('settings').querySelectorAll(`input[name="${name}"]`)) input.checked = input.value === settings[name];
@@ -554,6 +574,7 @@ export function createShuttle({ document, api, connect, player, loadScene, sound
         input.addEventListener('change', () => { if (!input.checked) return; settings[name] = input.value; applySettings(); saveSettings(); sound.play('UI-05'); });
       }
     }
+    $('reset-journey').addEventListener('click', () => { void resetJourney(); });
     for (const button of document.querySelectorAll('[data-close]')) button.addEventListener('click', closeSheets);
     for (const link of document.querySelectorAll('a[data-external]')) {
       link.addEventListener('click', event => { event.preventDefault(); discord?.openLink(link.href); });
