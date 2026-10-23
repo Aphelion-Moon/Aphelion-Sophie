@@ -234,10 +234,10 @@ test('P44 the baggage belt: Meridian for SS 13 bags and Wolfgate for SS 14 while
     const seen = Array.from({ length: 160 }, (_, i) => composeScene(hall, layout, { time: i / 4, state: { ...STATE, beat: 'migrating' } }).glyphs.join('\n')).join('\n');
     for (const word of ['DENIED', ' KG', 'MERIDIAN', 'WOLFGATE']) assert.ok(seen.includes(word), `${layout} ${word}`);
   }
-  // The BLASTWAVE bag stands on the floor; its fire, the firebot, foam, smoke and spark are timed sprites (see
+  // The UPSTREAM bag (BLASTWAVE until 24 October 2026) stands on the floor; its fire, the firebot, foam, smoke and spark are timed sprites (see
   // T-SCENE-DEPTH-05), and nothing in the cycle flashes faster than a flicker.
   const fire = hall.layouts.landscape.layers.find(item => item.id === 'blastwave');
-  assert.ok(fire.front && fire.frames.length === 1 && fire.frames[0].text.join('').includes('[BLASTWAVE]'));
+  assert.ok(fire.front && fire.frames.length === 1 && fire.frames[0].text.join('').includes('[UPSTREAM ]'));
   const cycle = hall.layouts.landscape.effects.filter(fx => fx.kind === 'sprite' && /^(blastwave-|firebot)/.test(fx.id));
   assert.deepEqual(cycle.map(fx => fx.id).sort(), ['blastwave-flames', 'blastwave-foam', 'blastwave-smoke', 'blastwave-spark', 'firebot']);
   assert.ok(cycle.every(fx => fx.every === 24 && (fx.fps ?? 0) <= 4));

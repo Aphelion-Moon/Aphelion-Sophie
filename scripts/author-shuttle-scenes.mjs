@@ -827,7 +827,8 @@ const BAGS = [
 // for the section being read.
 const ORIGINS = [['BUBBER', 13], ['MONOLITH', 14], ['SPLURT', 13], ['HARDLIGHT', 14], ['NOVA', 13], ['AFTERLIGHT', 14], ['OCULIS', 13],
   ['FRONTIER', 14], ['RATWOOD', 13], ['WAYFARER', 14], ['MARINES', 13]];
-// BLASTWAVE is the bag burning on the floor, so the belt refuses other things while migrating is read.
+// The bag burning on the floor is labelled UPSTREAM (owner, 24 October 2026; it said BLASTWAVE before), so the belt refuses
+// other things while migrating is read.
 const DENIED = { '*': ['CONTRABAND', 'TOXICITY'], migrating: ['BIGOTRY', 'BAN DODGE'], past: ['GRUDGES', 'OLD DRAMA'], looc: ['METAGAME', 'ASSUMPTION'] };
 /** A sound at the middle of each crossing of a passer-by on the scene's clock (sprite with every and offset). */
 const crossingCue = (fx, cue, fraction = 0.5) => ({ kind: 'cue', id: `${fx.id}-sound`, cue, every: fx.every, ...(fx.when ? { when: fx.when } : {}),
@@ -840,7 +841,7 @@ const PASSENGER_B = [
   spriteFrame([' @ ', '/|\\', '/ \\'], ['rrr', 'aaa', 'III']),
   spriteFrame([' @ ', '/|\\', ' | '], ['rrr', 'aaa', ' I ']),
 ];
-// The BLASTWAVE fire (picked design: glowing blocks), hottest at the base, four flicker frames.
+// The UPSTREAM bag fire (picked design: glowing blocks), hottest at the base, four flicker frames.
 const FIRE = [
   ['   ░  ▒  ░', '  ▒▓░▓▒▓░▒', ' ▓█▓▓█▓▓█▓'], ['  ▒  ░  ▒', '  ░▓▒▓░▓▒▓', ' ▓▓█▓▓█▓▓█'],
   ['    ░ ▒ ░', '  ▓▒░▒▓░▓▒', ' █▓▓█▓▓█▓▓'], ['   ▒ ░  ▒', '  ▒░▓▒▓▒░▓', ' ▓█▓█▓▓▓█▓'],
@@ -851,16 +852,16 @@ const FIREBOT = [
   spriteFrame(['      .-.', '     [o_o]', '    =|___|', '    (o)(o)'], ['      rrr', '     rcrcr', '    crrrrr', '    rorror']),
   spriteFrame(['      .-.', '     [o_o]', '▒░▒░=|___|', '    (O)(O)'], ['      rrr', '     rcrcr', 'cccccrrrrr', '    rorror']),
 ];
-/** The BLASTWAVE fire's cycle on the scene's clock, in seconds. */
+/** The UPSTREAM bag fire's cycle on the scene's clock, in seconds. */
 const FIRE_CYCLE = Object.freeze({ every: 24, flames: 15, roll: 1, foam: 2, back: 1.5, smoke: 18, smokeFor: 2, spark: 23 });
 /**
- * The BLASTWAVE bag lies open on the floor. It burns for a while; the firebot rolls out of its dock, foams it out and
+ * The UPSTREAM bag lies open on the floor. It burns for a while; the firebot rolls out of its dock, foams it out and
  * rolls back; it smokes, sits cold, sparks and lights itself again. One 24-second cycle on the wall clock.
  */
 function blastwave(w, h, x, y) {
   const { every, flames, roll, foam, back, smoke, smokeFor, spark } = FIRE_CYCLE;
   const bag = new Art(w, h), dock = new Art(w, h);
-  prop(bag, x + 2, y + 1, [' _________ ', '/         \\', '[BLASTWAVE]', "'---------'"], [' AAAAAAAAA ', 'A         A', 'ArrrrrrrrrA', 'AAAAAAAAAAA']);
+  prop(bag, x + 2, y + 1, [' _________ ', '/         \\', '[UPSTREAM ]', "'---------'"], [' AAAAAAAAA ', 'A         A', 'ArrrrrrrrrA', 'AAAAAAAAAAA']);
   // The firebot's dock stands beside it; parked inside, the bot is out of sight.
   prop(dock, x + 24, y, ['┌FIREBOT─┐', `│${'▒'.repeat(8)}│`, `│${'▒'.repeat(8)}│`, `│${'▒'.repeat(8)}│`, '└────────┘'], ['oaaaaaaaoo', 'oddddddddo', 'oddddddddo', 'oddddddddo', 'o']);
   // A sprite whose phase starts at a given second of the cycle.
@@ -991,7 +992,7 @@ function baggage(name) {
   }
   wallPanels(base, 0, lockBottom + 1, w - 1, beltY - 4, 7, 12, reserved);
 
-  // Floor: claim-hall tiles, a luggage cart, the burning BLASTWAVE bag and its firebot, and a monkey.
+  // Floor: claim-hall tiles, a luggage cart, the burning UPSTREAM bag and its firebot, and a monkey.
   const floorTop = beltY + 4;
   for (let y = floorTop; y < h; y++) for (let x = 0; x < w; x++) {
     if (base.get(x, y) !== ' ') continue;
@@ -1601,7 +1602,7 @@ const SCENES = [
     { when: { beat: ['beepsky'] }, text: 'A departure lounge: a split-flap board, benches under a window with an EXIT sign, and a help desk reading AGE CHECK, 18+ ONLY. Officer Beepsky, a little securitron drone with a red and blue light, hovers in over the benches and says: HALT! Age check. 18+ only. No, really. On the next page he flies off.' },
     { text: LOUNGE_ALT },
   ] },
-  { id: 'baggage-hall', title: 'Baggage hall', draw: baggage, beats: BAGGAGE_BEATS, alt: [{ text: 'A baggage check-in hall. A wall of old numbered lockers, a few hanging open, some with new cyan tags bolted on; a mothroach walks along their tops. Suitcases ride a conveyor belt through a new cyan scanner arch with two lamps on top, and a cyan strip shows the current stop and section. On the floor a bag labelled BLASTWAVE burns for a while until a little firebot rolls out of its dock and foams it out; it smokes, sits cold, sparks and catches again. A monkey sits by the belt, looking about, blinking and scratching, and covers its ears when the clown honks.' }] },
+  { id: 'baggage-hall', title: 'Baggage hall', draw: baggage, beats: BAGGAGE_BEATS, alt: [{ text: 'A baggage check-in hall. A wall of old numbered lockers, a few hanging open, some with new cyan tags bolted on; a mothroach walks along their tops. Suitcases ride a conveyor belt through a new cyan scanner arch with two lamps on top, and a cyan strip shows the current stop and section. On the floor a bag labelled UPSTREAM burns for a while until a little firebot rolls out of its dock and foams it out; it smokes, sits cold, sparks and catches again. A monkey sits by the belt, looking about, blinking and scratching, and covers its ears when the clown honks.' }] },
   { id: 'boarding-cabin', title: 'Boarding cabin', draw: cabin, beats: CABIN_BEATS, alt: [{ text: 'Inside the shuttle cabin. Overhead lockers and round portholes with stars drifting past, above a row of worn amber seats where an assistant sleeps in a nightcap beside a lizard. Passengers file in and take the free seats. In the front row Pip asks a passenger to share, takes no for an answer, then asks Rook and sits down beside them. A fasten-straps sign glows.' }] },
   { id: 'landing-bay', title: 'Departure bay', draw: landingBay, beats: BAY_BEATS, alt: [{ text: 'A departure bay open to space behind a shimmering field. The Arrivals Shuttle to Aphelion waits on its pad at gate 03 with its door open and the ramp down. Passengers walk across the bay in small groups and up the ramp, Rook and Pip in the first group, past a crew member waving light wands. The engines of the shuttle glow.' }] },
   { id: 'cabin-turbulence', title: 'Cabin, launch rail', draw: cabinStrike, beats: STRIKE_BEATS, alt: [

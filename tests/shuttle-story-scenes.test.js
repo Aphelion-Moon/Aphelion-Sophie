@@ -22,7 +22,8 @@ test('T-STORY-SCENE-01 every scene the story points at shows what it names, in b
     assert.doesNotMatch(picture(lounge, layout, 'adult', ['adult', 'beepsky'], 8), /\[SEC\]/, `${layout}: gone after it`);
     assert.ok(!lounge.layouts[layout].layers.some(item => item.id === 'gate-adult'), `${layout}: no blinking 18+ light any more`);
     assert.match(picture(lounge, layout, 'pride'), /▄▄▄▄▄▄/, `${layout}: the banner`);
-    assert.match(story, /See the EXIT sign\?/); assert.match(picture(lounge, layout, 'voluntary'), /EXIT/, `${layout}: EXIT`);
+    // Revision 2 no longer points at the EXIT sign; the lounge still draws it.
+    assert.match(picture(lounge, layout, 'voluntary'), /EXIT/, `${layout}: EXIT`);
     assert.match(story, /Help desk is \*riiiight\* over there/); assert.match(picture(lounge, layout, 'amenities'), /HELP DESK/, `${layout}: the help desk`);
     assert.match(story, /Ooh, the ticker finally updated\. Tadaaa, \*\*Meridian Rift\*\*/); assert.match(picture(lounge, layout, 'meridian'), /MERIDIAN RIFT/, `${layout}: the board`);
     assert.match(story, /See the box by the door\?/); assert.match(picture(door, layout, 'feedback', ['watch-step', 'feedback']), /FEEDBACK/, `${layout}: the box`);

@@ -1915,3 +1915,15 @@ with the runtime's capability policy at version 2; all checks passed, and a roll
 version 2 records cleanly. Rule from now on: any change to the capability policy's content bumps its version, and every
 packet's preflight checks the new version is newer than production's recorded one. Folder
 `.agent_docs/aphelion-sophie/deployment-da5b48a-policy2-production-2026-10-24`.
+
+### Shuttle story revision 2 and the UPSTREAM bag — 24 October 2026
+
+The owner sent revision 2 ("I removed a step from Boarding. Clean up the script, the story, and the pacing") and asked to
+"relabel the Blastwave bag to Upstream". The "No one is forcing you to get on the shuttle" section is removed on purpose,
+and with it the checklist points on being decent to the people who are, boarding voluntarily and not boarding to drive
+people out. Cleanup: the editor's auto-capitalisation undone ("...is", "a desk", "can I post"), the SS14 import steps
+numbered 1-2, the SS14 rules line made one plain link, and the new Wolfgate sign's link described as the Guidebook (its first
+draft repeated the Meridian website's description). The Brochure was 59 characters over its 5,000 limit; to fit it,
+"(still early days)" left the WHO TO BUG sign (it contradicted the new Wolfgate description) and the two Wolfgate lines were
+shortened (4,991 characters). The baggage hall's burning bag now reads UPSTREAM (art and alt text; internal ids unchanged).
+Pacing checked page by page; the sea lion is still hit only on the *THUMP.* page. Not installed or published.

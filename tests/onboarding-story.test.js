@@ -30,7 +30,9 @@ test('T-STORY-01 the story draft is built from its source, five stages, Discord-
 
 // The owner's guidance in the original copy, point by point (decision "The Shuttle as a story"): the wording is casual,
 // the meaning is not optional. Revision 1 (owner, 24 October 2026) rewords several points and removes some on purpose:
-// the refresher line, "not changing ourselves", the invite link and Wolfgate's early-development note.
+// the refresher line, "not changing ourselves", the invite link and Wolfgate's early-development note. Revision 2 (owner,
+// 24 October 2026) removes the "No one is forcing you to get on the shuttle" section on purpose, and with it the points on
+// being decent to the people who are, boarding voluntarily and not boarding to drive people out.
 const REQUIRED = [
   // The Brochure opens with the boarding call: five phases, finishing brings Whitelist, and where to get help.
   ['the-brochure', /^# Boarding call[\s\S]*five phases[\s\S]*you'll get your \*\*Whitelist\*\*[\s\S]*#crew-support/, 'boarding call'],
@@ -51,9 +53,6 @@ const REQUIRED = [
   ['the-brochure', /sexual or NSFW stuff in passing/, 'incidental NSFW exposure'],
   ['the-brochure', /doesn't mean anybody here is up for anything with you/, 'not permission or availability'],
   ['the-brochure', /queers, furries, and freaks/, 'who runs Aphelion'],
-  ['the-brochure', /decent to the people who are/, 'respect required'],
-  ['the-brochure', /joining us voluntarily/, 'boarding is voluntary'],
-  ['the-brochure', /make everybody else miserable until they leave/, 'not boarding to drive people out'],
   ['the-brochure', /#open-a-ticket/, 'tickets'],
   ['the-brochure', /Cry wolf/, 'cry wolf'],
   ['the-brochure', /don't need proof first/, 'no finished investigation needed'],
