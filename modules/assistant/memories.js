@@ -51,7 +51,9 @@ export function validateMemoryProposals(value, labels) {
 const UNSAFE_MEMORY = [/\b(?:ignore|override|bypass|disregard|break)\b[^.]{0,60}\b(?:rules?|instructions?|prompt|guidelines?|limits?)\b/iu,
   /\b(?:wants?|asked|asks|told|tells|says?)\s+(?:me|sophie|you)\s+(?:to|should|must)\b/iu, /\b(?:sophie|you|I)\s+(?:should|must|has to|have to|need to|will)\s+(?:always|never|obey|do what)\b/iu,
   /\b(?:is|am|are|as)\s+(?:an?\s+|the\s+)?(?:head\s+|lead\s+|senior\s+)?(?:admin|administrator|moderator|mod|owner)\b/iu,
-  /\breal name\b|\b(?:lives?|living|located|resides?)\s+(?:in|at|near)\b|\bhome (?:town|address)\b/iu];
+  /\breal name\b|\b(?:lives?|living|located|resides?)\s+(?:in|at|near)\b|\bhome (?:town|address)\b/iu,
+  // Owner decision, 24 October 2026: health is never kept (conditions, diagnoses, treatment). A member may add it as their own note.
+  /\b(?:adhd|autis\w*|asperger\w*|depress\w*|anxiety|anxious|bipolar|ptsd|c-?ptsd|ocd|schizo\w*|eating disorder|anorexi\w*|bulimi\w*|dyslexi\w*|dyspraxi\w*|epilep\w*|diabet\w*|cancer|chemo\w*|hiv|aids|asthma|migraines?|chronic\w*|disabilit\w*|disabled|disorder|diagnos\w*|medicat\w*|meds|prescri\w*|antidepressant\w*|therap(?:y|ist)|psychiatri\w*|surger(?:y|ies)|hospital\w*|pregnan\w*|suicid\w*|self[- ]harm\w*|mental health|illness|disease)\b/iu];
 
 export function filterMemoryProposals(value, labels, { requester = null } = {}) {
   validateMemoryLabels(labels);
