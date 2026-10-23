@@ -1947,3 +1947,12 @@ UPSTREAM bag), then the checks, then publish story revision 2 as Shuttle version
 UPSTREAM bag. Same runtime and capability policy (version 2, confirmed recorded). All checks passed; story revision 2 was
 published as Shuttle version 3 (`44dbda58…`) and reset the one Activity run in progress on version 2. Folder
 `.agent_docs/aphelion-sophie/deployment-366b6cb-production-2026-10-24`; `rollback.ps1` restores da5b48a.
+
+### Production install of be0fe69: Activity failures log their kind — 24 October 2026
+
+On the owner's approval ("Approved: run the be0fe69 production packet (one file: Activity failures log their kind), then the
+checks. I'll Go live again afterwards."), `be0fe69` was installed over `366b6cb` at 19:09 UTC on 23 October (host clock).
+An unexpected Activity request failure now logs `ACTIVITY_REQUEST_UNAVAILABLE_<kind>` (contract or library code, SQLSTATE
+or error class; never a message, ID or payload). Same runtime, capability policy version 2 and story (Shuttle version 3).
+All checks passed. Folder `.agent_docs/aphelion-sophie/deployment-be0fe69-production-2026-10-24`; `rollback.ps1` restores
+366b6cb.

@@ -1,5 +1,13 @@
 # Verification and release limits
 
+## Production install of be0fe69: Activity failure kinds — 24 October 2026
+
+- **Offline:** `npm test` 842 passed (T-ACT-CORE-09: each kind, an ID in a message never logged, a malformed code,
+  truncation); `npm run check` passed; storage 1037 passed.
+- **Install:** preflight (1 reviewed file; runtime unchanged; capability policy equal to the recorded version 2); pre-start,
+  service boundaries, installed checks and public hosts passed; the installed `activity.js` carries the change.
+- **Open:** the next Activity failure, if any, now names its kind.
+
 ## Production install of 366b6cb and Shuttle version 3 — 24 October 2026
 
 Owner approval quoted in the decision log. Folder `deployment-366b6cb-production-2026-10-24`.
