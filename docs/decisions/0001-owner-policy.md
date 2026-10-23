@@ -1870,3 +1870,13 @@ and typos fixed (its/it's, let's, who's, reasons, a missing full stop). Reworded
 Scene beats follow the reworded headings and phrases (the original pre-story text keeps its own keys), and Beepsky's
 speech in the departure lounge scene now says the revision's line. Not published: production still shows story version 1
 until the owner approves an install (the scene and moments ship with the source) and a story publication.
+
+### Production install of a65ee31 and Shuttle version 2 — 24 October 2026
+
+On the owner's approval ("Approved: run the a65ee31 production packet (two Activity content files, no migration), then the
+checks, then publish story revision 1 as Shuttle version 2. I'll Go live again afterwards."), `a65ee31` was installed over
+`26f72b7` at 15:45 UTC on 23 October (host clock): the departure lounge scene and the moments map, no migration, new trust
+from the same production runtime and policy. All checks passed on the first run. Story revision 1 was then published as
+Shuttle version 2 (author the owner, digest `d095fb01…`); runs already under way keep version 1. Folder
+`.agent_docs/aphelion-sophie/deployment-a65ee31-production-2026-10-24`; `rollback.ps1` restores 26f72b7 and
+`rollback-story.mjs` would republish the version 1 text.

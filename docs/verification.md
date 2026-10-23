@@ -1,5 +1,18 @@
 # Verification and release limits
 
+## Production install of a65ee31 and Shuttle version 2 — 24 October 2026
+
+Owner approval quoted in the decision log. Folder `deployment-a65ee31-production-2026-10-24`.
+
+- **Preflight:** 714 pinned files match Git; installed 26f72b7 matches its manifest; 2 reviewed files; no migration;
+  profile and production configuration unchanged. The revised story validated against the publishing contract (13
+  messages).
+- **Install:** 2 files written; pre-start check passed (release `sophie-mistral-a65ee31`); service boundaries passed;
+  installed checks passed; public hosts passed.
+- **Story:** revision 1 saved and published as Shuttle version 2 (`d095fb01…`) after production's latest was confirmed as
+  version 1; existing runs keep their version.
+- **Not done:** go-live on the new release (owner); a tester run through the Activity on version 2.
+
 ## Production install of 26f72b7 — 24 October 2026
 
 Owner approval quoted in the decision log. Folder `deployment-26f72b7-production-2026-10-24`.
