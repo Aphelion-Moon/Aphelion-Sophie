@@ -35,9 +35,10 @@ export function createAiRuntime({ configuration, corePool, controlPool, worker, 
   const admission = createAiAdmission({ pool: controlPool, guildId: mapping.guildId, ingress, ...observations, clock,
     noticeRevision: worker.provider === 'mistral' ? 2 : 1, readNotice, privacyCurrent, staffChannels, trace: reason => onFault(`AI_ADMISSION_SKIPPED_${reason}`),
     inspectContext: async event => recovered ? observations.inspectContext(event) : null,
-    // Fire and forget: the invitation is a fixed core message and never delays or changes admission.
-    invite: ({ channelId, userId, messageId }) => { void (async () => {
-      if (await recordAiInvitation(controlPool, mapping.guildId, userId)) await transport.sendSophieInvitation(channelId, messageId, renderSophieInvitation(await readSystemText()));
+    // Fire and forget: the invitation is a fixed core message and never delays or changes admission. It goes by DM so only
+    // that member sees it; closed DMs leave the channel silent rather than posting it publicly.
+    invite: ({ userId }) => { void (async () => {
+      if (await recordAiInvitation(controlPool, mapping.guildId, userId)) await transport.sendSophieInvitation(userId, renderSophieInvitation(await readSystemText()));
     })().catch(() => onFault('AI_INVITATION_UNAVAILABLE')); } });
   const accounting = createAiAccounting({ pool: controlPool, guildId: mapping.guildId });
   const inference = worker.provider === 'mistral' ? createMeteredAiWorker({ worker, accounting }) : worker;

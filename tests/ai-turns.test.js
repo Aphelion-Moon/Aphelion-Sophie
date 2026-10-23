@@ -3,7 +3,8 @@ import assert from 'node:assert/strict';
 import { createAiIngress } from '../apps/core/discord/ai-ingress.js';
 import { createAiTurns } from '../apps/core/discord/ai-turns.js';
 import { createAiContext } from '../apps/knowledge-worker/context.js';
-import { defaultParticipation } from '../modules/assistant/participation.js';
+import { defaultParticipation, AI_DEADLINE_MS } from '../modules/assistant/participation.js';
+import { renderSophieInvitation } from '../modules/assistant/member-panel.js';
 import { DRAFT_PERSONALITY } from '../modules/assistant/personality.js';
 import { createDiscordTransport } from '../apps/core/discord/transport.js';
 import { renderAiReply } from '../modules/assistant/output.js';
@@ -395,6 +396,30 @@ test('SAI AT-12/13 transport fixes destination/nonce, refuses unsafe mentions an
   await assert.rejects(transport.createAiMessage('202', '303', { ...payload, allowed_mentions: { parse: ['everyone'] } }, 16000));
   now = 16000; await assert.rejects(transport.createAiMessage('202', '303', payload, 16000), /AI_DEADLINE_EXPIRED/);
   assert.equal(calls.length, 1);
+});
+
+test('SAI AT-12b a reply early in a long context turn is delivered; only a deadline beyond the longest turn is refused', async () => {
+  // Regression: a support turn (25 s) answered after one second was refused because delivery still allowed only 15 s.
+  let now = 1000; const calls = [];
+  const transport = createDiscordTransport({ guildId: '101', token: 'synthetic-test-token-not-a-secret', clock: () => now, enabled: async () => true,
+    fetch: async (url, options) => { calls.push({ url, options }); return new Response(JSON.stringify({ id: '606', author: { id: '505' } }), { status: 200 }); } });
+  const payload = renderAiReply({ kind: 'reply', text: 'Synthetic answer', purpose: 'conversation', support: 'general_knowledge', citations: [] }, []);
+  await transport.createAiMessage('202', '303', payload, now + 24000);
+  await transport.createAiMessage('202', '304', payload, now + AI_DEADLINE_MS);
+  assert.equal(calls.length, 2);
+  await assert.rejects(transport.createAiMessage('202', '305', payload, now + AI_DEADLINE_MS + 1), /AI_DEADLINE_EXPIRED/);
+  assert.equal(calls.length, 2);
+});
+
+test('SAI AT-12c the Set up Sophie invitation goes to the member by DM, never into the channel', async () => {
+  const calls = [];
+  const transport = createDiscordTransport({ guildId: '101', token: 'synthetic-test-token-not-a-secret', clock: () => 1000, enabled: async () => true, scope: 'activity-ai',
+    fetch: async (url, options) => { calls.push({ path: new URL(url).pathname, body: JSON.parse(options.body) }); return Response.json({ id: '100000000000000707' }); } });
+  await transport.sendSophieInvitation('100000000000000404', renderSophieInvitation());
+  assert.deepEqual(calls.map(call => call.path), ['/api/v10/users/@me/channels', '/api/v10/channels/100000000000000707/messages']);
+  assert.deepEqual(calls[0].body, { recipient_id: '100000000000000404' });
+  assert.equal(Object.hasOwn(calls[1].body, 'message_reference'), false); assert.deepEqual(calls[1].body.allowed_mentions, { parse: [] });
+  assert.equal(calls[1].body.components[0].components[0].custom_id.startsWith('sophie:me:v1:'), true);
 });
 
 test('SAI AT-06 control HTTP binds mutations to the authenticated actor and rejects extra authority fields', async () => {

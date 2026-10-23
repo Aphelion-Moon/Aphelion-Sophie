@@ -9,6 +9,7 @@ import { ticketDirectNotice } from '../../../modules/tickets/direct-notice.js';
 import { automationPayload, automationEmoji } from '../../../modules/automation/delivery.js';
 import { validateAiMessagePayload } from '../../../modules/assistant/output.js';
 import { validateSophiePanel } from '../../../modules/assistant/member-panel.js';
+import { AI_DEADLINE_MS } from '../../../modules/assistant/participation.js';
 import { contactStaffControl } from '../../../modules/tickets/intake.js';
 import { shuttleChannelName } from '../../../modules/tickets/channel-policy.js';
 
@@ -126,7 +127,7 @@ export function createDiscordTransport({ guildId, token, fetch, clock, enabled, 
         remaining = blockedFor(limitKey(limits, method, path).key);
       }
       if (remaining > 0) throw new DiscordError('RATE_LIMITED', Math.ceil(remaining));
-      if (deadline !== null) requireCondition(Number.isSafeInteger(deadline) && deadline > clock() && deadline - clock() <= 15000, 'AI_DEADLINE_EXPIRED');
+      if (deadline !== null) requireCondition(Number.isSafeInteger(deadline) && deadline > clock() && deadline - clock() <= AI_DEADLINE_MS, 'AI_DEADLINE_EXPIRED');
       return await send(method, path, route, body, jsonResult, deadline);
     } finally { release(); }
   }
@@ -233,11 +234,12 @@ export function createDiscordTransport({ guildId, token, fetch, clock, enabled, 
       requireId(dmChannelId); validateSophiePanel(panel);
       return request('POST', `/channels/${dmChannelId}/messages`, 'sophie-dm-send', { ...panel, allowed_mentions: { parse: [] } }, true);
     },
-    /** The static "Set up Sophie" invitation: a non-pinging reply carrying only the panel button. No AI output. */
-    async sendSophieInvitation(channelId, messageId, invitation) {
-      requireId(channelId); requireId(messageId); validateSophiePanel(invitation);
-      return request('POST', `/channels/${channelId}/messages`, 'sophie-invite', { ...invitation, nonce: messageId, enforce_nonce: true,
-        allowed_mentions: { parse: [], replied_user: false }, message_reference: { message_id: messageId, channel_id: channelId, fail_if_not_exists: false } }, true);
+    /** The static "Set up Sophie" invitation, sent privately by DM (never in the channel): only the panel button, no AI output. */
+    async sendSophieInvitation(userId, invitation) {
+      requireId(userId); validateSophiePanel(invitation);
+      const channel = await request('POST', '/users/@me/channels', 'sophie-dm-open', { recipient_id: userId }, true);
+      requireId(channel?.id);
+      return request('POST', `/channels/${channel.id}/messages`, 'sophie-dm-send', { ...invitation, allowed_mentions: { parse: [] } }, true);
     },
     async indicateAiTyping(channelId, deadline) {
       requireId(channelId);
