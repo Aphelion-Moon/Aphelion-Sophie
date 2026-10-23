@@ -257,7 +257,7 @@ kept whole and author page breaks, beats that start when the typing reaches a ph
 member's own name on the title window, the radio meter's wave again, Beepsky for the age check, a staging lint and the
 scene fixes from the review. Its story copy is published as Shuttle version 5 (21:15 UTC, host-only command): Beepsky's
 line, no "read that last bit again", "Real questions are welcome", the sea-lion order, no Complete Shuttle
-instruction. Runs in progress keep their version. See the decision log entry "Shuttle Activity sixth pass".
+instruction. Since 24 October 2026 an Activity run still being read continues only on the latest version, publishing sets aside older ones, and Settings has Reset journey. See the decision log entry "Shuttle Activity sixth pass".
 
 Not yet checked: mobile clients, and whether Discord opens `discord.com/channels` links inside the app.
 

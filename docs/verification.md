@@ -1,5 +1,18 @@
 # Verification and release limits
 
+## Production install of 7d3e2ee: outdated runs and Reset journey — 24 October 2026
+
+Owner request quoted in the decision log. Folder `deployment-7d3e2ee-production-2026-10-24`.
+
+- **Offline:** `npm test` 841 passed (reset route, canResetJourney); `npm run check` passed; `npm run test:storage:fast`
+  1036 passed (new SA11 outdated run not continued, SA12 Reset journey, E26 publish resets Activity runs, SA04 pending
+  grant not reset), none failed.
+- **Install:** preflight (10 reviewed files, no migration, profile and configuration unchanged); pre-start, service
+  boundaries, installed checks and public hosts passed. `POST /api/shuttle/reset` answers 401 `signin` publicly and the
+  page carries the Reset journey button.
+- **Production state at install:** one Activity run in progress on version 1; it is no longer offered.
+- **Not done:** the owner's run-through in Discord; go-live on the new release.
+
 ## Production install of a65ee31 and Shuttle version 2 — 24 October 2026
 
 Owner approval quoted in the decision log. Folder `deployment-a65ee31-production-2026-10-24`.

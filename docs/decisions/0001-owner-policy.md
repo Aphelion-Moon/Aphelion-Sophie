@@ -1880,3 +1880,15 @@ from the same production runtime and policy. All checks passed on the first run.
 Shuttle version 2 (author the owner, digest `d095fb01…`); runs already under way keep version 1. Folder
 `.agent_docs/aphelion-sophie/deployment-a65ee31-production-2026-10-24`; `rollback.ps1` restores 26f72b7 and
 `rollback-story.mjs` would republish the version 1 text.
+
+### Story updates dispose of progress; Reset journey — 24 October 2026
+
+The owner asked: "Add a 'reset journey' button to the Settings page. When we update the Story, we should be disposing of
+all prior progress saves. I don't want someone coming back to and finishing an outdated Onboarding story." and "Once you
+have it made, install and publish it". This replaces the earlier rule that runs in progress keep their version, for the
+Activity: a run still being read continues only on the latest published version; publishing a new version sets aside
+Activity runs still being read on older versions (records kept); the Activity's Settings has Reset journey. Runs waiting on
+their Whitelist grant, finished runs and Onboarding-channel runs keep their version. Built in `7d3e2ee` and installed at
+16:00 UTC on 23 October (host clock); all checks passed. The story is unchanged (version 2); the one version 1 run in
+progress at install is no longer offered and its member starts version 2 at the first stop. Folder
+`.agent_docs/aphelion-sophie/deployment-7d3e2ee-production-2026-10-24`; `rollback.ps1` restores a65ee31.
