@@ -1,6 +1,6 @@
 # Current implementation workplan
 
-Revision: 2026-10-24-production-a928b04. Mistral Small 4 (mistral-small-2603) on the official EU API is the selected provider for trial; DeepSeek Flash is withdrawn. Local models are historical, explicitly selected alternatives only; no automatic fallback. Continue the DS workstream with synthetic data; full readiness and activation remain open.
+Revision: 2026-10-24-production-opening. Mistral Small 4 (mistral-small-2603) on the official EU API is the selected provider for trial; DeepSeek Flash is withdrawn. Local models are historical, explicitly selected alternatives only; no automatic fallback. Continue the DS workstream with synthetic data; full readiness and activation remain open.
 
 All production release gates remain open; pure and isolated database checks are not full application acceptance.
 
@@ -1504,11 +1504,11 @@ Implemented scope:
 - Installed ceb46cb (source-only) on 22 October 2026 at 18:55 UTC with the owner's approval: the fifth pass and the launch post wording, 15 files written, none removed, no migration or configuration change; services down 33 s; pre-start, boundary, installation (65 checks), dashboard and public checks passed (the 14 changed Activity files byte for byte; the publishing command and core's messages not served).
 - Installed f6c787e (source-only) on 22 October 2026 at 19:16 UTC on the owner's request to install the audit's updates: 4 files written, none removed, no migration or configuration change. The first run refused before writing anything (SERVICE_CHILD_STILL_RUNNING: a child outlived the 2-second check after the stop); the second run passed, so services were down about 62 s. Pre-start, boundary, installation (65 checks), dashboard and public checks passed.
 - Installed a0eb904 (source-only) on 22 October 2026 at 21:14 UTC with the owner's approval ("Approved: install the sixth pass (source-only update) in the test Discord, then publish story version 5 with the host-only command."): the sixth pass, 17 files written, none removed, no migration or configuration change; services down about 33 s; pre-start, boundary, installation (68 checks), dashboard and public checks passed on the first run (the 16 changed Activity files the page loads byte for byte; the layout editor's module, the publishing command and core's messages not served).
+- The opening on 24 October 2026: 0e513dc installed with activity.status open (owner-approved); the station-broadcast rules post is installed.
 
 Remaining scope:
 
-- Owner review of the sixth pass in the test Discord (installed a0eb904, story copy version 5), and the re-posted launch post; the live check of discord.com/channels links.
-- Tester acceptance on the production application, then the owner-approved opening (status open and the rules post).
+- Owner: check "Use Activities" for members in #rules, post /whitelist post there, watch the first public rides (Whitelist delivered by Sophie), then ping everyone.
 
 Full task deliverables:
 
@@ -1675,10 +1675,11 @@ Implemented scope:
 - cc90730 installed on 24 October 2026: the station-broadcast rules post and the Activity mobile audit fixes.
 - d69637c installed on 24 October 2026: the owner's rules post wording; the logotype and board as images served by the Activity host.
 - a928b04 installed on 24 October 2026: the rules post links its channels, @matriarch and its emoji (never notifying), with the owner's second edit.
+- The Activity opened to every eligible member on 24 October 2026 (0e513dc).
 
 Remaining scope:
 
-- Owner: Go live again in each channel on the new release (a928b04); a tester without Whitelist finishes Shuttle version 4 and receives the role from Sophie; leave the Activity idle over an hour and carry on without reopening it.
+- Owner: Go live again in each channel on the new release (0e513dc).
 - Owner: Go live in each channel on the dashboard; /sophie Yes.
 - Live checks: a reply in #ask-sophie (code and Guidebook), a saved memory, Get my data, the Activity for a Lead Ops tester, a staff channel turn.
 - Owner: /whitelist post in a private channel, check the images on desktop and a phone, then post it in the rules channel and delete the old one; re-open the Activity on a phone.

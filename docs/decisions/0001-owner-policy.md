@@ -2112,3 +2112,20 @@ bare name; the role shows as a link and is never notified. `a928b04` was install
 October (host clock), bringing the owner's second edit and the post's channel, role and emoji links. Same runtime,
 capability policy version 2, credentials and story; no migration. All checks passed. Folder
 `.agent_docs/aphelion-sophie/deployment-a928b04-production-2026-10-24`; `rollback.ps1` restores d69637c.
+
+### The opening: the Shuttle Activity leaves testing — 24 October 2026
+
+The owner: "Get ready for the production cutover, we're taking this out of testing and I'll be posting to the #rules channel
+to get some public user interaction with it done before pinging everyone later." Approved: "run the 0e513dc opening packet
+(Activity status open, one source file), then the checks."
+
+`0e513dc` was installed over `a928b04` at 22:50 UTC on 23 October (host clock), with the production runtime changed only by
+`activity.status: open`. The tester gate no longer applies. Any member in the server who is not timed out or Muzzled can
+ride the Shuttle, and Sophie adds Whitelist at the end (checked again at delivery, never removed). Capability policy version
+2 is unchanged, with no migration; the story stays Shuttle version 4. `productionConfiguration` gained an optional
+`activityStatus`, so this runtime is reproducible from code. All checks passed. Folder
+`.agent_docs/aphelion-sophie/deployment-0e513dc-open-production-2026-10-24`; `rollback.ps1` restores a928b04 with the
+Activity in testing.
+
+This is the Activity's opening (P44), not the administration cutover (P30/P31). Tickets, cases, moderation and Crew stay with
+the existing bot. The owner checks the "Use Activities" permission in #rules, posts there, and pings everyone later.

@@ -1,5 +1,18 @@
 # Verification and release limits
 
+## The opening: 0e513dc, Activity open — 24 October 2026
+
+- **Offline:** the production-mode suite passes on 0e513dc: `activityStatus: 'open'` validates and differs from the testing
+  runtime only in that field; invalid values are refused.
+- **Install:**
+  - preflight: 1 reviewed file; the installed runtime is a928b04's, and the new one differs only by
+    `activity.status`; capability policy equal to the recorded version 2;
+  - pre-start and installed checks require `open` and passed;
+  - service boundaries and public hosts passed;
+  - the trusted core runtime reads `status: open`;
+  - the Activity page serves (200), and its API still requires sign-in (401).
+- **Not covered:** a non-tester member's first ride in Discord, which is the owner's public posting in #rules.
+
 ## Production install of a928b04: rules post links and @matriarch — 24 October 2026
 
 - **Offline:**
