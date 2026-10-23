@@ -1,5 +1,19 @@
 # Verification and release limits
 
+## Production install of d69637c: rules post text and art images — 24 October 2026
+
+- **Offline:**
+  - `npm test` 850 passed:
+    - T-ACT-POST-01: the image panels, alt text, the code-block fallback, the owner's wording;
+    - T-ACT-POST-04: decodes each PNG, compares it to the art rendered now, and checks the pinned hashes and serving;
+  - `npm run check` passed; storage 1037 passed.
+- **Install:**
+  - preflight: 8 reviewed files, two new; runtime unchanged; capability policy equal to the recorded version 2;
+  - the post builds from production's wording with production's Activity origin;
+  - pre-start, service boundaries, installed checks and public hosts passed;
+  - both images are fetched publicly (Discordbot user agent) as `image/png`, matching the pinned bytes.
+- **Not covered:** Discord's own rendering of the images in the post, which is the owner's repost.
+
 ## Production install of cc90730: rules post and mobile fixes — 24 October 2026
 
 - **Offline:**

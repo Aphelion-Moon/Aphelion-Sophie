@@ -2074,3 +2074,12 @@ clients".
   on every client and keep their colours on phones too. The images are 864 px wide, drawn in the lounge's palette with a
   hand-made pixel font, served by the Activity host and pinned by hash, with the art's words as alt text. Discord fetches
   them through its media proxy; the host answered such a fetch on 24 October.
+
+### Production install of d69637c: the rules post's text and art images — 24 October 2026
+
+On the owner's approval ("Build the d69637c packet and install it in production, then the checks. I'll repost /whitelist
+post afterwards."), `d69637c` was installed over `cc90730` at 21:51 UTC on 23 October (host clock). It brings the owner's
+post wording and the logotype and departures board as images served by the Activity host. Same runtime, capability
+policy version 2, credentials and story; no migration. All checks passed. Both images are served publicly as
+`image/png` to a Discord-style request and match their pinned bytes. Folder
+`.agent_docs/aphelion-sophie/deployment-d69637c-production-2026-10-24`; `rollback.ps1` restores cc90730.
