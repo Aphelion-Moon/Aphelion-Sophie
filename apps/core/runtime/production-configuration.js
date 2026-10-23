@@ -4,7 +4,8 @@ import { validateStagingRuntime } from './configuration.js';
 /**
  * The Activity-and-AI production configuration (owner decision, 23 October 2026), built from the guild's existing roles.
  * Unlike staging bootstrap it creates nothing in Discord: Sophie reads Crew, Muzzled, Whitelist, Staff and Lead Ops to check
- * eligibility and grants, and the other bot keeps owning them. Lead Ops is the Activity tester gate and holds the AI
+ * eligibility and grants, and the other bot keeps owning them, except that Sophie adds Whitelist at the end of the Shuttle
+ * (owner decision, 24 October 2026; she never removes it). Lead Ops is the Activity tester gate and holds the AI
  * controls; `activityTesterRoles` (optional) adds roles to the tester gate (owner decision, 24 October 2026: Staff). Mute, case and form grants are present only because the policy contract requires them; no route or command
  * can use them in this scope.
  */

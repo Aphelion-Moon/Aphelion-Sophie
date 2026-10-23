@@ -82,11 +82,19 @@ const ACTIVITY_AI_WRITES = Object.freeze([
   ['POST', /^\/channels\/\d{17,20}\/typing$/u], ['POST', /^\/users\/@me\/channels$/u],
   ['POST', /^\/applications\/\d{17,20}\/guilds\/\d{17,20}\/commands$/u],
 ]);
-export const activityAiWriteAllowed = (method, path) => method === 'GET' || ACTIVITY_AI_WRITES.some(([verb, pattern]) => verb === method && pattern.test(path));
+/**
+ * Owner decision, 24 October 2026: Sophie grants Whitelist at the end of the Shuttle in production too. A transport may be
+ * given the roles it may *add* (only Whitelist, in the administration lane); removing any role, and adding any other, stays
+ * refused.
+ */
+const MEMBER_ROLE_ADD = /^\/guilds\/\d{17,20}\/members\/\d{17,20}\/roles\/(\d{17,20})$/u;
+export const activityAiWriteAllowed = (method, path, grantRoleIds = []) => method === 'GET' || ACTIVITY_AI_WRITES.some(([verb, pattern]) => verb === method && pattern.test(path)) ||
+  method === 'PUT' && grantRoleIds.includes(MEMBER_ROLE_ADD.exec(path)?.[1]);
 
 export function createDiscordTransport({ guildId, token, fetch, clock, enabled, limits = createDiscordRateLimits(),
-  wait = ms => new Promise(resolve => setTimeout(resolve, ms)), scope = 'full' }) {
+  wait = ms => new Promise(resolve => setTimeout(resolve, ms)), scope = 'full', grantRoleIds = [] }) {
   requireId(guildId); requireCondition(['full', 'activity-ai'].includes(scope), 'TRUSTED_ADAPTERS_REQUIRED');
+  requireCondition(Array.isArray(grantRoleIds) && grantRoleIds.length <= 1 && grantRoleIds.every(id => /^[1-9][0-9]{16,19}$/u.test(id) && id !== guildId), 'TRUSTED_ADAPTERS_REQUIRED');
   requireCondition(typeof token === 'string' && token.length >= 20 && !/\s/.test(token), 'DISCORD_TOKEN_REQUIRED');
   requireCondition(typeof fetch === 'function' && typeof clock === 'function' && typeof enabled === 'function' && typeof wait === 'function', 'TRUSTED_ADAPTERS_REQUIRED');
   requireCondition(limits?.cooldowns instanceof Map && limits.buckets instanceof Map, 'TRUSTED_ADAPTERS_REQUIRED');
@@ -111,7 +119,7 @@ export function createDiscordTransport({ guildId, token, fetch, clock, enabled, 
   }
   const blockedFor = key => Math.max(limits.globalUntil, limits.cooldowns.get(key) ?? 0) - clock();
   async function request(method, path, route, body = undefined, jsonResult = false, deadline = null) {
-    if (scope === 'activity-ai') requireCondition(activityAiWriteAllowed(method, path.split('?')[0]), 'DISCORD_SCOPE_REFUSED');
+    if (scope === 'activity-ai') requireCondition(activityAiWriteAllowed(method, path.split('?')[0], grantRoleIds), 'DISCORD_SCOPE_REFUSED');
     const budget = () => Math.min(SHORT_WAIT_MS, deadline === null ? SHORT_WAIT_MS : deadline - clock() - 250);
     const release = await turn(Math.max(1, budget()), method === 'GET' ? limitKey(limits, method, path).key : null);
     try {

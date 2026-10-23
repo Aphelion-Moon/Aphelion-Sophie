@@ -264,7 +264,7 @@ export async function createStagingRuntime({ configuration, pool, aiControlPool 
       channels: createActivityChannels({ transport: visitor.transport, roles: visitor.roles, guildId: fixed.mapping.guildId, clock }),
       station: createActivityStation({ transport: visitor.transport, guildId: fixed.mapping.guildId, clock }),
       store: createShuttleActivityStore({ pool, clock, authorize: visitor.authorization.authorize, definitionId: fixed.definitionId, status: fixed.activity.status,
-        defaults: activityContent.defaults, deliverWhitelist: !limited }) });
+        defaults: activityContent.defaults, deliverWhitelist: true }) });
   }
   const owner = `staging.${randomUUID()}`;
   let ticking = false, scheduled = false, wakeQueued = false;
@@ -276,8 +276,9 @@ export async function createStagingRuntime({ configuration, pool, aiControlPool 
       if(active() && knowledgeAdministration && !knowledgeStarted){
         try {await knowledgeAdministration.start();knowledgeStarted=true;}catch{fault('KNOWLEDGE_SYNC_UNAVAILABLE');}
       }
-      // Production (Activity and AI only) runs no case, role or Shuttle-channel worker at all.
-      if (limited) return;
+      // Production (Activity and AI only) runs no case, membership or Shuttle-channel worker; it only delivers the Whitelist
+      // grants the Shuttle Activity records (owner decision, 24 October 2026).
+      if (limited) { await delivery.whitelistGrants.runOnce(owner); return; }
       await reconciler.runOnce();
       try { if (await shuttleOutbox.recheckParkedShuttleWork() > 0) trace('SHUTTLE_SELF_HEAL_REQUEUED'); }
       catch { fault('SHUTTLE_SELF_HEAL_UNAVAILABLE'); }

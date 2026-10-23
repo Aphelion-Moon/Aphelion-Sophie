@@ -9,6 +9,11 @@ export function createRoleDispatcher(options) {
   return createOwnedRoleDispatcher(options, roleKinds);
 }
 
+/** Production (Activity and AI only): Whitelist grants alone; member reconciliation and Whitelist removal stay with the other bot. */
+export function createWhitelistGrantDispatcher(options) {
+  return createOwnedRoleDispatcher(options, ['whitelist.grant']);
+}
+
 export function createMembershipDispatcher(options) {
   return createOwnedRoleDispatcher(options, ['member.reconcile']);
 }

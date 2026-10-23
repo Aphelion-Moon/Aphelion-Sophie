@@ -1927,3 +1927,14 @@ draft repeated the Meridian website's description). The Brochure was 59 characte
 "(still early days)" left the WHO TO BUG sign (it contradicted the new Wolfgate description) and the two Wolfgate lines were
 shortened (4,991 characters). The baggage hall's burning bag now reads UPSTREAM (art and alt text; internal ids unchanged).
 Pacing checked page by page; the sea lion is still hit only on the *THUMP.* page. Not installed or published.
+
+### Sophie grants Whitelist in production — 24 October 2026
+
+A Staff playtester without the game Whitelist reached the end of the Shuttle and waited, until the owner added the role by
+hand. That was the 23 October production split (Activity and AI only; the existing bot owns Whitelist). Owner answer to
+"How should finishing the Shuttle in production handle the Whitelist role?": **"Sophie grants it now"**, as she did on the
+test server. This narrows the 23 October split and, with the owner's decision, the AGENTS.md rule to keep the existing bot's
+role ownership intact: Sophie now *adds* Whitelist at the end of a Shuttle run in the main server, after the same current
+eligibility and Muzzled checks; she never removes it, runs no member reconciliation and touches no other role, which stay
+with the existing bot. Implementation: the production transport may add only the Whitelist role (one PUT route), a worker
+that handles only `whitelist.grant` runs in production, and the Activity queues the grant.

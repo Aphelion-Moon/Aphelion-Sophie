@@ -147,7 +147,8 @@ export function createShuttleActivityStore({ pool, clock, authorize, definitionI
         const command = { guildId: member.guildId, userId: member.userId, expectedVersion, nonce: session.nonce, nextNonce: randomBytes(16).toString('hex') };
         const change = ACTIONS[action](session, member, definition, command, clock());
         await saveSession(client, change.session, member);
-        // In production another bot owns Whitelist: a tester's run reaches the door and no grant is queued.
+        // deliverWhitelist false queues no grant (the run waits at the door until the role appears). Production grants since
+        // 24 October 2026 (owner decision); the option stays for runtimes where another bot grants it.
         const effects = deliverWhitelist ? change.effects : change.effects.filter(effect => !String(effect.kind).startsWith('whitelist.'));
         for (const effect of effects) await enqueue(client, effect);
         requireFreshObservation(member.observation, clock());

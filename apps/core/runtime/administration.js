@@ -13,7 +13,7 @@ import { createCaseIntakeStore } from '../storage/case-intake.js';
 import { createCaseIntakeDeliveryStore } from '../storage/case-intake-delivery.js';
 import { createCaseDeliveryIssueStore } from '../storage/case-delivery-issues.js';
 import { createOutbox } from '../storage/outbox.js';
-import { createRoleDispatcher, createMembershipDispatcher } from '../discord/dispatcher.js';
+import { createRoleDispatcher, createWhitelistGrantDispatcher, createMembershipDispatcher } from '../discord/dispatcher.js';
 import { createCaseDispatcher } from '../discord/case-dispatcher.js';
 import { createOnboardingDispatcher } from '../discord/onboarding-dispatcher.js';
 import { createOnboardingAlertDispatcher } from '../discord/onboarding-alert-dispatcher.js';
@@ -51,7 +51,10 @@ import { inspectAutomationChannel } from '../storage/automation-channel-policy.j
 /** One request lane owns its proof issuers and serial transport. Workers use a separate lane. */
 export function createAdministrationLane({ configuration, pool, token, fetch, clock, enabled, rateLimits, observer, principals, verifier, onFault, onTrace = () => {}, readSystemText, knowledge = null, sophieMemberFactory = null }) {
   const { mapping, casePolicy: policy, limits, definitionId, capabilityPolicy } = configuration;
-  const transport = createDiscordTransport({ guildId: mapping.guildId, token, fetch, clock, enabled, scope: runtimeScope(configuration), ...(rateLimits ? { limits: rateLimits } : {}) });
+  // In production (Activity and AI only) this lane may add exactly one role: Whitelist, at the end of the Shuttle (owner decision,
+  // 24 October 2026).
+  const transport = createDiscordTransport({ guildId: mapping.guildId, token, fetch, clock, enabled, scope: runtimeScope(configuration),
+    ...(runtimeScope(configuration) === 'activity-ai' ? { grantRoleIds: [mapping.whitelist] } : {}), ...(rateLimits ? { limits: rateLimits } : {}) });
   // Role, member and channel observations are checked against the authority boundary, so message traffic (including
   // this bot's own posts) no longer overtakes them; message reads keep the full continuity.
   const readAuthority = observer.readAuthorityBoundary ?? null;
@@ -113,6 +116,7 @@ export function createAdministrationLane({ configuration, pool, token, fetch, cl
     createOnboardingCleanup({ store, roles, enabled, clock })];
   return { transport, roles, channels, authorization, store, intakeStore, replyStore, issueStore, intakeMessages: answers, replyMessages,
     screenMessages: screens, alertMessages: alerts, commands, workers, caseIntake, automationRecovery, sophieMember,
+    whitelistGrants: createWhitelistGrantDispatcher({ outbox, store, discord: roles, enabled }),
     responseAdapters: { onboardingNavigation: createOnboardingNavigation({ ...common, channels }), onboardingAssistance: assistance,
       onboardingDeliveryIssues: deliveryIssues, caseLifecycle, caseStaff, caseIntake, caseContacts, caseDeliveryIssues, publicAnswers, caseAnswers, knowledgeLookup, sophieMember } };
 }

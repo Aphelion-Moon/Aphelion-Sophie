@@ -48,6 +48,20 @@ test('in production the Discord transport refuses every role, channel and permis
     assert.equal(activityAiWriteAllowed(method, path), allowed, `${method} ${path}`);
 });
 
+test('in production the administration lane may add the Whitelist role and nothing else (owner decision, 24 October 2026)', async () => {
+  const calls = [];
+  const transport = createDiscordTransport({ guildId: ids(1), token: 'synthetic-token-not-a-secret-xx', clock: Date.now, enabled: async () => true, scope: 'activity-ai',
+    grantRoleIds: [ids(6)], fetch: async (url, init) => { calls.push([init.method, new URL(url).pathname]); return new Response(null, { status: 204 }); } });
+  await transport.changeMemberRole(ids(12), ids(6), true);
+  assert.deepEqual(calls, [['PUT', `/api/v10/guilds/${ids(1)}/members/${ids(12)}/roles/${ids(6)}`]]);
+  await assert.rejects(transport.changeMemberRole(ids(12), ids(6), false), /DISCORD_SCOPE_REFUSED/, 'never removes Whitelist');
+  for (const role of [ids(4), ids(5), ids(7), ids(8)]) await assert.rejects(transport.changeMemberRole(ids(12), role, true), /DISCORD_SCOPE_REFUSED/, `never adds ${role}`);
+  assert.equal(calls.length, 1);
+  assert.equal(activityAiWriteAllowed('PUT', `/guilds/${ids(1)}/members/${ids(12)}/roles/${ids(6)}`), false, 'without the grant list nothing is added');
+  assert.throws(() => createDiscordTransport({ guildId: ids(1), token: 'synthetic-token-not-a-secret-xx', clock: Date.now, enabled: async () => true,
+    scope: 'activity-ai', grantRoleIds: [ids(6), ids(4)], fetch }), /TRUSTED_ADAPTERS_REQUIRED/, 'one grantable role at most');
+});
+
 test('production registers only /sophie, /lookup and /whitelist post', async () => {
   const names = [], definitions = [];
   const transport = { guildId: ids(1), getCurrentUser: async () => ({ id: ids(3), bot: true }), getCurrentApplication: async () => ({ id: ids(2) }),
