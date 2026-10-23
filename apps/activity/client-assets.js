@@ -7,13 +7,14 @@ import { moduleClosure } from './module-closure.js';
 export const CLIENT_PAGE = 'apps/activity/client/index.html';
 export const CLIENT_ENTRY = 'apps/activity/client/app.js';
 const TYPES = Object.freeze({ '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.mjs': 'text/javascript; charset=utf-8',
-  '.css': 'text/css; charset=utf-8', '.json': 'application/json; charset=utf-8', '.woff2': 'font/woff2', '.opus': 'audio/ogg', '.mp3': 'audio/mpeg' });
+  '.css': 'text/css; charset=utf-8', '.json': 'application/json; charset=utf-8', '.woff2': 'font/woff2', '.opus': 'audio/ogg', '.mp3': 'audio/mpeg', '.png': 'image/png' });
 const sha256 = bytes => createHash('sha256').update(bytes).digest('hex');
 
 /**
  * Every file the Shuttle Activity client may load, read once at start and served at its repository path: the page,
  * the module graph of its entry (scene engine, shared validation, the vendored SDK), its stylesheet, the pinned font,
- * the scenes and the approved sounds. Pinned files are checked against their recorded hashes; nothing else is served.
+ * the scenes, the approved sounds, and the rules post's art images (fetched by Discord for the post, not by the client).
+ * Pinned files are checked against their recorded hashes; nothing else is served.
  */
 export async function loadActivityClient(root) {
   const files = new Map();
@@ -45,5 +46,6 @@ export async function loadActivityClient(root) {
   for (const sound of (await json('legal/shuttle-activity-sounds.json')).sounds) {
     for (const output of [sound.outputs.opus, sound.outputs.mp3]) await add(output.path, output.sha256);
   }
+  for (const block of (await json('content/shuttle-activity/rules-post-banner.json')).blocks) await add(block.path, block.sha256);
   return files;
 }

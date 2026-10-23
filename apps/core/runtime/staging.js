@@ -184,7 +184,8 @@ export async function createStagingRuntime({ configuration, pool, aiControlPool 
     // Production posts only the Activity launch post (owner decision, 24 October 2026): its button opens the Activity, which
     // checks access itself; the Onboarding-channel entry panel stays with the full runtime.
     onboardingPanel: createOnboardingEntryPanel({ authorization: requests.authorization, transport: requests.transport, store: requests.store, policy: fixed.casePolicy,
-      definitionId: fixed.definitionId, enabled, readSystemText, commands: limited ? ['shuttle.post'] : ['shuttle.panel', 'shuttle.post'] }),
+      definitionId: fixed.definitionId, enabled, readSystemText, commands: limited ? ['shuttle.post'] : ['shuttle.panel', 'shuttle.post'],
+      mediaOrigin: fixed.activity?.origin ?? null }),
     caseIntake: limited ? null : requests.caseIntake, sophiePanel: requests.sophieMember, readSystemText, enabled, onFault: fault, activityOpen: fixed.activity?.status === 'open' });
   const reconciler = createCaseReconciler({ store: createCaseInspectionStore({ pool, policy: fixed.casePolicy }), enabled });
   // No Shuttle work waits for Staff: parked Shuttle jobs are rechecked on their own (see recheckParkedShuttleWork).

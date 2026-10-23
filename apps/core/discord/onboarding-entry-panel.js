@@ -11,10 +11,11 @@ const NO_MENTIONS = Object.freeze({ parse: [], users: [], roles: [], replied_use
  *
  * The Activity launch post is Sophie's own message in the channel, not a reply to the command (owner's pick of 24
  * October 2026: no "used /whitelist post" line), sent only after every check; the command gets a private answer either
- * way. A post Discord refuses (no access to the channel) is reported, never retried.
+ * way. A post Discord refuses (no access to the channel) is reported, never retried. mediaOrigin is the Activity host that
+ * serves the post's art images (null: the art goes as code blocks).
  */
 export function createOnboardingEntryPanel({ authorization, transport, store, policy, definitionId, enabled, readSystemText, commands = ['shuttle.panel', 'shuttle.post'],
-  nonce = () => randomBytes(12).toString('hex') }) {
+  nonce = () => randomBytes(12).toString('hex'), mediaOrigin = null }) {
   requireCondition(Array.isArray(commands) && commands.length > 0 && commands.every(command => ['shuttle.panel', 'shuttle.post'].includes(command)), 'TRUSTED_ADAPTERS_REQUIRED');
   return Object.freeze({ async prepare(envelope, { isCurrent }) {
     requireCondition(commands.includes(envelope.command) && envelope.guildId === policy.guildId, 'OPERATION_DENIED');
@@ -28,7 +29,7 @@ export function createOnboardingEntryPanel({ authorization, transport, store, po
     requireCondition(!await store.hasCaseExclusion({ guildId: policy.guildId, lineage: [channel.id, ...(channel.parent_id ? [channel.parent_id] : [])] }), 'OPERATION_DENIED');
     const text = await readSystemText();
     if (envelope.command !== 'shuttle.post') { const data = onboardingEntryPanel(text); await authorize(); return data; }
-    const post = activityLaunchPost(text);
+    const post = activityLaunchPost(text, { mediaOrigin });
     await authorize();
     let posted = true;
     try { await transport.createActivityPost(channel.id, nonce(), post); } catch { posted = false; }

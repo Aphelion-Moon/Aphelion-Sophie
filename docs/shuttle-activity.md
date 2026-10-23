@@ -200,15 +200,16 @@ member's settings.
 `/whitelist post` (Guidance publishers) posts the launch post as Sophie's own message in that channel, a station
 broadcast (owner's pick of 24 October 2026). It is one amber Components V2 container holding:
 
-- the APHELION logotype with Shuttle Service and the lounge's rainbow neon bar;
+- the APHELION logotype with Shuttle Service and the lounge's pride banner;
 - the boarding call ("Now boarding · Gate 03", Sophie's radio line) with **Board the Shuttle** beside it;
 - the departures board of the five stops;
-- today's manifest (Rook, Pip, Officer Beepsky, Ian, the sea lion);
-- small print (18+, Whitelist when you disembark, the App Launcher fallback, where to ask);
-- two link buttons to the SS 13 and SS 14 rules.
+- small print (Whitelist when you disembark, the App Launcher fallback, where to ask);
+- two link buttons, to the SS 13 wiki and the SS 14 Guidebook.
 
-The art is at most 32 columns, so phones do not wrap it, and is coloured in `ansi` code blocks; `POST_COLOUR` turns the
-colour off if a phone shows the codes. The wording is editable in the dashboard (group "Shuttle Activity rules post"; the
+The logotype and the board are images rendered from 32-column art (`scripts/author-rules-post-art.mjs`, the lounge's
+palette, a hand-made pixel font) and served by the Activity host, pinned by hash. A code block sat in the left half of
+the post on desktop, while an image fills the width and keeps its colours on every client. Each image's alt text is the
+art's words. Without an Activity host the art goes as plain code blocks. The wording is editable in the dashboard (group "Shuttle Activity rules post"; the
 old embed's title and body are retired). The command itself gets a private "Posted.", or "Sophie couldn't post here"
 when Discord refuses; nothing is retried or stored. The launch button answers with LAUNCH_ACTIVITY and records nothing;
 the Activity signs the member in and checks access itself.

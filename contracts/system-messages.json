@@ -1742,32 +1742,32 @@
   {
     "id": "activity.post.call",
     "group": "Shuttle Activity rules post",
-    "source": "## Now boarding · Gate 03\n*kssht* ...is this thing on? Sophie here, Community Services, live from the Interlink. Before you play on our servers you ride the Shuttle: five stops from this server to Aphelion. A bit of reading, no quiz. Hit **Board the Shuttle** and it opens right here in Discord.",
+    "source": "## Now boarding · Gate 03\n*kssht, CLICK* Bwoop! Sophie here with Community Services, live from the Interlink. Before you play on our servers you ride the Shuttle: five stops from this channel to get your Whitelist.\nAround ten minutes of reading, no quiz.\nHit **Board the Shuttle** and it opens right here in Discord as an Activity.\nYou will need to sign in with your Discord account, just like any other Activity.",
     "max": 1000
   },
   {
     "id": "activity.post.manifest",
-    "group": "Shuttle Activity rules post",
+    "group": "Shuttle Activity rules post (retired manifest)",
     "source": "### Today's manifest\n» **Rook**, back after a long time away\n» **Pip**, first trip, visitor badge on\n» **Officer Beepsky**, on age checks\n» **Ian**, the HoP's corgi, on his rounds\n» a **sea lion** on the launch rail. Again.",
     "max": 1000
   },
   {
     "id": "activity.post.small_print",
     "group": "Shuttle Activity rules post",
-    "source": "-# 18+ only, no exceptions. Disembark and Sophie hands you **Whitelist**, valid across all of our services.\n-# Button does nothing? Open the App Launcher next to the message box and pick Sophie.\n-# Stuck? Ping @matriarch in #crew-support. Already Whitelisted? Ride along any time, you keep your access.",
+    "source": "-# Once you Disembark and Sophie hands you the **Whitelist**, it's valid across all of our services.\n-# Button above does nothing? Open the App Launcher next to the message box and pick Sophie.\n-# Stuck? Ping @matriarch in #crew-support.\n-# Already Whitelisted? You can repeat this process at any time, if you want to.",
     "max": 1000
   },
   {
     "id": "activity.post.rules_ss13",
     "group": "Shuttle Activity rules post",
-    "source": "SS 13 rules",
+    "source": "SS 13 Wiki",
     "max": 80,
     "format": "plain"
   },
   {
     "id": "activity.post.rules_ss14",
     "group": "Shuttle Activity rules post",
-    "source": "SS 14 rules",
+    "source": "SS 14 Guidebook",
     "max": 80,
     "format": "plain"
   },
@@ -1780,7 +1780,7 @@
   {
     "id": "activity.post.not_posted",
     "group": "Shuttle Activity rules post",
-    "source": "Sophie couldn't post here. She needs to see this channel and send messages in it.",
+    "source": "Sophie couldn't post here. She needs to see this channel and be able to send messages in it.",
     "max": 300
   },
   {

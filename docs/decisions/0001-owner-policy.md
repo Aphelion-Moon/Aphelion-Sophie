@@ -2052,3 +2052,25 @@ installed over `a6730b5` at 21:19 UTC on 23 October (host clock). It carries the
 never run) and the Activity's mobile audit fixes. Same runtime, capability policy version 2, credentials and story
 (Shuttle version 4); no migration. All checks passed, and the public Activity host serves the new page and stylesheet.
 Folder `.agent_docs/aphelion-sophie/deployment-cc90730-production-2026-10-24`; `rollback.ps1` restores a6730b5.
+
+### The rules post: the owner's edit, and the art as images — 24 October 2026
+
+The owner edited the post's text (rules-post-script.md) and reported that "the code blocks are not centering on desktop
+clients".
+
+- **Text.** The owner's wording, with three small cleanups:
+  - "its valid" corrected to "it's valid";
+  - the stray space before a full stop removed;
+  - Whitelist capitalised.
+  The changes:
+  - a new boarding call ("*kssht, CLICK* Bwoop!", around ten minutes of reading, opens as an Activity, signs in with
+    Discord);
+  - the manifest removed on purpose (its key retired);
+  - small print without the 18+ line, which the Brochure's age check carries;
+  - rules buttons "SS 13 Wiki" and "SS 14 Guidebook";
+  - on the board, the Shuttle is DELAYED and the last stop reads DEEP SPACE (in capitals, as the board is).
+- **Centring.** Discord draws a code block left-aligned at the message's full width, and spaces cannot centre it for both
+  desktop and phone widths. The logotype and the board are now images rendered from the same art, so they fill the post
+  on every client and keep their colours on phones too. The images are 864 px wide, drawn in the lounge's palette with a
+  hand-made pixel font, served by the Activity host and pinned by hash, with the art's words as alt text. Discord fetches
+  them through its media proxy; the host answered such a fetch on 24 October.

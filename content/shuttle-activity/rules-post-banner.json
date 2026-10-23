@@ -1,28 +1,36 @@
 {
-  "schemaVersion": 2,
+  "schemaVersion": 3,
   "id": "rules-post-banner",
   "title": "Shuttle Activity rules post art (station broadcast)",
-  "source": "modules/onboarding/activity-post.js (POST_LOGO, POST_BOARD)",
-  "hashOf": "Each block's plain characters (no colour codes), lines joined with a line feed",
+  "source": "modules/onboarding/activity-post.js (POST_LOGO, POST_BOARD), rendered by scripts/author-rules-post-art.mjs",
+  "hashOf": "sha256: the PNG bytes; artSha256: the art's plain characters, lines joined with a line feed",
   "columns": 32,
   "blocks": [
     {
       "id": "logo",
-      "sha256": "d5317d6c097fe71edcef363bc929e36a8ae7ca74dc600166976ab156f8c06377",
-      "alt": "The word APHELION in a three-row block face, the line Shuttle Service between shaded ends, and a rainbow bar beneath (the departure lounge pride banner)."
+      "path": "content/shuttle-activity/post/rules-post-logo-1.png",
+      "width": 864,
+      "height": 336,
+      "sha256": "86847f7218cec5c082862dc1cd1e76cc98db19a6813190b546f12773b0cdc172",
+      "artSha256": "d5317d6c097fe71edcef363bc929e36a8ae7ca74dc600166976ab156f8c06377",
+      "alt": "APHELION in amber block letters over the words Shuttle Service, with the departure lounge's rainbow pride banner beneath."
     },
     {
       "id": "board",
-      "sha256": "9834bf7b0cb021c4f2f22b210fa8d595d88f91ad4bfba3dd06a3450c7d4510ea",
-      "alt": "A departures board for gate 03 listing the five stops: The Brochure boarding, Pack Your Bags, Board the Shuttle and Admire the Lights on time, Disembarking at Aphelion."
+      "path": "content/shuttle-activity/post/rules-post-board-1.png",
+      "width": 864,
+      "height": 528,
+      "sha256": "099b32a89e832feb3b63e8e52890f76926733b1431125d042f3284a6978b67ff",
+      "artSha256": "874032f917f611fad369c70cc5ac020a961e9472df96b44e6aa1b8953bf0ccd0",
+      "alt": "Departures board, gate 03: 01 The Brochure, boarding. 02 Pack Your Bags, on time. 03 Board the Shuttle, delayed. 04 Admire the Lights, on time. 05 Disembarking, deep space."
     }
   ],
   "provenance": {
     "author": "Made by the coding agent (Claude) at owner direction",
     "created": "2026-10-24",
-    "replaces": "The 32-column departures sign of 22 October 2026 (sha256 cc99466b28b4eef9d2ae996bde3107b24841e2ee1a8a7855cfde13700ab3875b)",
-    "decision": "docs/decisions/0001-owner-policy.md (The Shuttle becomes an Activity, D2 and D5; the station broadcast rules post, 24 October 2026)",
-    "generator": "Written by hand in the module; no generator, model or image tool. Colour is ANSI escape codes over the same characters.",
+    "replaces": "The 32-column departures sign of 22 October 2026 (sha256 cc99466b28b4eef9d2ae996bde3107b24841e2ee1a8a7855cfde13700ab3875b) and the ANSI-coloured code blocks of the first station broadcast",
+    "decision": "docs/decisions/0001-owner-policy.md (The Shuttle becomes an Activity, D2 and D5; the station broadcast rules post and its art as images, 24 October 2026)",
+    "generator": "Written by hand: the art in the module, a 5x7 pixel font and block and box shapes in the script; colours from the Activity scene palette. No font file, model or image tool.",
     "rights": "Machine-made art; it may not attract copyright in every jurisdiction. Published with the repository."
   }
 }

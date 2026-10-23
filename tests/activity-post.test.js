@@ -2,15 +2,19 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
-import { ACTIVITY_LAUNCH_ID, POST_ART_COLUMNS, POST_BOARD, POST_COLOUR, POST_LOGO, activityLaunchPost, artBlock, plainArt } from '../modules/onboarding/activity-post.js';
+import { ACTIVITY_LAUNCH_ID, POST_ART_COLUMNS, POST_BOARD, POST_IMAGES, POST_LOGO, activityLaunchPost, plainArt } from '../modules/onboarding/activity-post.js';
+import { rasterise } from '../scripts/author-rules-post-art.mjs';
+import { loadActivityClient } from '../apps/activity/client-assets.js';
+import { inflateSync } from 'node:zlib';
+import { fileURLToPath } from 'node:url';
 import { ONBOARDING_ENTRY_ID, onboardingCommandDefinition } from '../modules/onboarding/entry-controls.js';
 import { createInteractionHttpServer } from '../apps/core/discord/interaction-http.js';
 import { syntheticInteractions } from './fixtures/interactions.js';
 
 const component = customId => ({ type: 3, message: { id: '100000000000000020' }, data: { component_type: 2, custom_id: customId } });
 
-test('T-ACT-POST-01 the rules post is a station broadcast: logotype, boarding call with the button, board, manifest, small print, rules links', async () => {
-  const post = activityLaunchPost();
+test('T-ACT-POST-01 the rules post is a station broadcast: logotype, boarding call with the button, board, small print, rules links', async () => {
+  const origin = 'https://onboarding.example.test', post = activityLaunchPost(undefined, { mediaOrigin: origin });
   assert.equal(post.flags, 1 << 15); assert.ok(!('content' in post) && !('embeds' in post));
   assert.equal(post.components.length, 1);
   const [container] = post.components;
@@ -21,46 +25,78 @@ test('T-ACT-POST-01 the rules post is a station broadcast: logotype, boarding ca
   assert.ok(all.length <= 40, `${all.length} components`);
   const texts = all.filter(component => component.type === 10).map(component => component.content);
   assert.ok(texts.join('').length <= 4_000);
+  // The art panels are images on the Activity host, so they fill the width on desktop too (a code block sat left), with
+  // the art's own words as alt text.
+  const galleries = container.components.filter(component => component.type === 12);
+  assert.deepEqual(galleries.map(gallery => gallery.items.map(item => item.media.url)),
+    [[`${origin}/content/shuttle-activity/post/rules-post-logo-1.png`], [`${origin}/content/shuttle-activity/post/rules-post-board-1.png`]]);
+  assert.match(galleries[0].items[0].description, /APHELION[\s\S]*Shuttle Service[\s\S]*pride banner/);
+  assert.match(galleries[1].items[0].description, /gate 03[\s\S]*The Brochure, boarding[\s\S]*Board the Shuttle, delayed[\s\S]*Disembarking, deep space/);
+  assert.equal(container.components.indexOf(galleries[0]), 0, 'the logotype opens the post');
   // The launch button sits beside the boarding call; it is the only button that reaches Sophie.
   const section = container.components.find(component => component.type === 9);
   assert.deepEqual(section.accessory, { type: 2, style: 1, label: 'Board the Shuttle', custom_id: ACTIVITY_LAUNCH_ID });
-  assert.match(section.components[0].content, /^## Now boarding · Gate 03\n\*kssht\*[\s\S]*five stops[\s\S]*no quiz[\s\S]*\*\*Board the Shuttle\*\*/);
+  assert.match(section.components[0].content, /^## Now boarding · Gate 03\n\*kssht, CLICK\* Bwoop![\s\S]*five stops[\s\S]*no quiz[\s\S]*\*\*Board the Shuttle\*\*[\s\S]*sign in with your Discord account/);
   const buttons = all.filter(component => component.type === 2);
   assert.equal(buttons.filter(button => 'custom_id' in button).length, 1);
   // The rules links open the browser (style 5): https only, no custom id, the story's own rules pages.
   const links = buttons.filter(button => button.style === 5);
-  assert.deepEqual(links.map(link => [link.label, link.url]), [['SS 13 rules', 'https://meridian-wiki.a13.info/wiki/Policies'], ['SS 14 rules', 'https://panel.a13.info/guide/wolfgate']]);
-  // The manifest is the story's cast; the small print carries the must-knows, true to what Sophie does now.
+  assert.deepEqual(links.map(link => [link.label, link.url]), [['SS 13 Wiki', 'https://meridian-wiki.a13.info/wiki/Policies'], ['SS 14 Guidebook', 'https://panel.a13.info/guide/wolfgate']]);
+  // The owner removed the manifest; the small print carries the must-knows, true to what Sophie does now.
   const words = texts.join('\n');
-  assert.match(words, /### Today's manifest[\s\S]*Rook[\s\S]*Pip[\s\S]*Officer Beepsky[\s\S]*Ian[\s\S]*sea lion/);
-  assert.match(words, /-# 18\+ only[\s\S]*Sophie hands you \*\*Whitelist\*\*[\s\S]*App Launcher[\s\S]*@matriarch in #crew-support/);
+  assert.doesNotMatch(words, /manifest|Rook|Pip/);
+  assert.match(words, /-# Once you Disembark and Sophie hands you the \*\*Whitelist\*\*, it's valid[\s\S]*App Launcher[\s\S]*@matriarch in #crew-support\./);
   assert.doesNotMatch(words, /—|request your|Complete Shuttle/);
   assert.deepEqual(post.allowed_mentions, { parse: [], users: [], roles: [], replied_user: false });
-  assert.doesNotMatch(JSON.stringify(post), /<@|<#|@everyone|@here/);
-  // The art: coloured on desktop as `ansi` blocks; the plain variant is the same characters without the escape codes.
-  assert.equal(POST_COLOUR, true);
-  for (const art of [POST_LOGO, POST_BOARD]) {
-    assert.ok(texts.includes(artBlock(art, true)));
-    const coloured = artBlock(art, true).replace(/^```ansi\n/u, '').replace(/\n```$/u, '').replace(/\u001b\[[0-9;]*m/gu, '');
-    assert.equal(coloured, plainArt(art).join('\n'));
-    assert.equal(artBlock(art, false), `\`\`\`\n${plainArt(art).join('\n')}\n\`\`\``);
-    // At most 32 columns, so a phone's code block never wraps it.
-    for (const line of plainArt(art)) assert.equal([...line].length, POST_ART_COLUMNS, line);
-  }
-  const plain = activityLaunchPost(undefined, { colour: false });
-  assert.doesNotMatch(JSON.stringify(plain), /\\u001b|ansi/);
-  // The logotype is centred (one column either way), and the neon bar runs the full width in six colours.
+  assert.doesNotMatch(JSON.stringify(post), /<@|<#|@everyone|@here|\\u001b/);
+  // Without an Activity host the art goes as plain code blocks; a host must be https.
+  const plain = activityLaunchPost();
+  assert.equal(plain.components[0].components.filter(component => component.type === 12).length, 0);
+  assert.ok(plain.components[0].components.some(component => component.type === 10 && component.content === `\`\`\`\n${plainArt(POST_LOGO).join('\n')}\n\`\`\``));
+  for (const bad of ['http://onboarding.example.test', 'https://example.test/path', 'javascript:alert(1)']) assert.throws(() => activityLaunchPost(undefined, { mediaOrigin: bad }), /MEDIA_ORIGIN/);
+  // The art: at most 32 columns, the logotype centred, the pride banner in the lounge's seven stripes, the owner's board.
+  for (const art of [POST_LOGO, POST_BOARD]) for (const line of plainArt(art)) assert.equal([...line].length, POST_ART_COLUMNS, line);
   const [first] = plainArt(POST_LOGO), inner = first.trim(), left = first.length - first.trimStart().length;
   assert.ok(Math.abs(left - (POST_ART_COLUMNS - inner.length - left)) <= 1, 'APHELION is centred');
-  assert.equal(plainArt(POST_LOGO).at(-1), '▄'.repeat(32)); assert.equal(new Set(POST_LOGO.at(-1).map(([, code]) => code)).size, 6);
-  assert.match(plainArt(POST_BOARD).join('\n'), /DEPARTURES +GATE 03[\s\S]*01 THE BROCHURE +BOARDING[\s\S]*05 DISEMBARKING +APHELION/);
-  // Provenance: each block's plain characters are recorded.
-  const record = JSON.parse(await readFile(new URL('../content/shuttle-activity/rules-post-banner.json', import.meta.url), 'utf8'));
-  const sha = art => createHash('sha256').update(plainArt(art).join('\n')).digest('hex');
-  assert.deepEqual(record.blocks.map(block => [block.id, block.sha256]), [['logo', sha(POST_LOGO)], ['board', sha(POST_BOARD)]]);
-  assert.match(record.provenance.decision, /0001-owner-policy/); assert.ok(record.blocks.every(block => block.alt.length > 40));
+  assert.equal(plainArt(POST_LOGO).at(-1), '▄'.repeat(32)); assert.deepEqual(POST_LOGO.at(-1).map(([, key]) => key), ['1', '2', '3', '4', '5', '6', '7']);
+  assert.match(plainArt(POST_BOARD).join('\n'), /DEPARTURES +GATE 03[\s\S]*01 THE BROCHURE +BOARDING[\s\S]*03 BOARD THE SHUTTLE DELAYED[\s\S]*05 DISEMBARKING +DEEP SPACE/);
   assert.ok(onboardingCommandDefinition().options.some(option => option.name === 'post' && option.type === 1));
 });
+
+test('T-ACT-POST-04 the art images are the rendered art, pinned, recorded and served by the Activity host', async () => {
+  const record = JSON.parse(await readFile(new URL('../content/shuttle-activity/rules-post-banner.json', import.meta.url), 'utf8'));
+  assert.match(record.provenance.decision, /0001-owner-policy/); assert.match(record.provenance.generator, /No font file, model or image tool/);
+  assert.deepEqual(record.blocks.map(block => block.id), ['logo', 'board']);
+  const assets = await loadActivityClient(fileURLToPath(new URL('..', import.meta.url)));
+  for (const block of record.blocks) {
+    const image = POST_IMAGES[block.id], bytes = await readFile(new URL(`../${block.path}`, import.meta.url));
+    assert.equal(block.path, image.path); assert.equal(block.alt, image.alt);
+    assert.equal(createHash('sha256').update(bytes).digest('hex'), block.sha256);
+    assert.equal(createHash('sha256').update(plainArt(image.art).join('\n')).digest('hex'), block.artSha256);
+    // The PNG's pixels are exactly the art rendered now (decoded here, so a different zlib build cannot fail it).
+    const decoded = decodePng(bytes), raster = rasterise(image.art);
+    assert.deepEqual([decoded.width, decoded.height], [raster.width, raster.height]); assert.deepEqual([block.width, block.height], [raster.width, raster.height]);
+    assert.ok(decoded.pixels.equals(raster.pixels), `${block.id}: the image is the current art`);
+    assert.ok(raster.width >= 800, 'wide enough to fill the post on desktop');
+    // Served at its path as a PNG, pinned to its recorded hash.
+    assert.equal(assets.get(`/${block.path}`)?.type, 'image/png');
+  }
+});
+
+/** A minimal reader for the PNGs the art script writes: 8-bit RGB, every row unfiltered. */
+function decodePng(bytes) {
+  assert.deepEqual([...bytes.subarray(0, 8)], [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
+  let at = 8, width = 0, height = 0; const data = [];
+  while (at < bytes.length) {
+    const length = bytes.readUInt32BE(at), type = bytes.toString('latin1', at + 4, at + 8), body = bytes.subarray(at + 8, at + 8 + length);
+    if (type === 'IHDR') { width = body.readUInt32BE(0); height = body.readUInt32BE(4); assert.deepEqual([...body.subarray(8, 13)], [8, 2, 0, 0, 0]); }
+    if (type === 'IDAT') data.push(body);
+    at += 12 + length;
+  }
+  const raw = inflateSync(Buffer.concat(data)), pixels = Buffer.alloc(width * height * 3);
+  for (let y = 0; y < height; y++) { assert.equal(raw[y * (width * 3 + 1)], 0); raw.copy(pixels, y * width * 3, y * (width * 3 + 1) + 1, (y + 1) * (width * 3 + 1)); }
+  return { width, height, pixels };
+}
 
 test('T-ACT-POST-02 signed routing: the launch button and /whitelist post have their own commands', () => {
   const identities = syntheticInteractions();

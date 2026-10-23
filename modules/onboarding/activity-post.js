@@ -6,54 +6,58 @@ export const ACTIVITY_LAUNCH_ID = 'sophie:shuttle:activity:1';
 /**
  * The rules post as a station broadcast (owner's pick of 24 October 2026: option B, Components V2). Its art is made by
  * the coding agent at owner direction (decision of 21 October 2026); provenance in
- * content/shuttle-activity/rules-post-banner.json. Every art line is at most 32 columns, so a phone's code block does not
- * wrap it.
+ * content/shuttle-activity/rules-post-banner.json.
  *
- * Each art line is a list of [text, ANSI SGR code or null] segments, so the coloured block (desktop Discord colours
- * `ansi` code blocks) and the plain one are the same characters. POST_COLOUR turns the colour off if a phone shows the
- * escape codes instead of plain text.
+ * Each art line is a list of [text, scene colour key] segments (the keys of SCENE_COLOURS, so the art wears the
+ * lounge's palette). Discord draws a code block left-aligned at the message's full width, so on desktop the art sat in
+ * the left half (owner review, 24 October 2026). The post therefore shows each art panel as an image rendered from these
+ * lines (scripts/author-rules-post-art.mjs), served by the Activity host, which fills the width and keeps its colours on
+ * every client; the plain characters are its alt text. Without an Activity host the art falls back to plain code blocks,
+ * at most 32 columns so a phone does not wrap them.
  */
-export const POST_COLOUR = true;
 export const POST_ART_COLUMNS = 32;
-const AMBER = 0xffb84d, ESC = '\u001b';
-const [GREY, RED, GREEN, YELLOW, BLUE, PINK, CYAN, WHITE] = ['30', '31', '32', '33', '34', '35', '36', '37'];
-const bold = code => `1;${code}`;
+const AMBER = 0xffb84d;
 
 // The station's name in a three-row block face (each letter three cells, a space between), the line it runs, and the
-// lounge's pride banner as a neon bar: "it isn't Pride Month, it's just us".
+// lounge's pride banner beneath: "it isn't Pride Month, it's just us".
 const LOGO = [
   ' ▄▀▄ █▀▄ █ █ █▀▀ █   ▀█▀ ▄▀▄ █▀▄',
   ' █▀█ █▀  █▀█ █▀  █    █  █ █ █ █',
   ' ▀ ▀ ▀   ▀ ▀ ▀▀▀ ▀▀▀ ▀▀▀  ▀  ▀ ▀',
 ];
-const NEON = [[RED, 5], [YELLOW, 5], [GREEN, 6], [CYAN, 5], [BLUE, 5], [PINK, 6]];
+const STRIPES = [['1', 5], ['2', 4], ['3', 5], ['4', 4], ['5', 5], ['6', 4], ['7', 5]];
 export const POST_LOGO = Object.freeze([
-  ...LOGO.map(line => [[line, bold(YELLOW)]]),
-  [['   ░▒▓', CYAN], ['  SHUTTLE  SERVICE  ', bold(WHITE)], ['▓▒░   ', CYAN]],
-  NEON.map(([code, width]) => ['▄'.repeat(width), bold(code)]),
+  ...LOGO.map(line => [[line, 'a']]),
+  [['   ░▒▓', 'h'], ['  SHUTTLE  SERVICE  ', 'c'], ['▓▒░   ', 'h']],
+  STRIPES.map(([key, width]) => ['▄'.repeat(width), key]),
 ].map(line => Object.freeze(line)));
 
-// The lounge's departures board: the five stops, the first one boarding.
-const row = (number, stop, status, code) => [['│ ', GREY], [`${number} `, GREY], [stop.padEnd(25 - status.length), YELLOW], [`${status} `, code], ['│', GREY]];
+// The lounge's departures board: the five stops (owner's edit of 24 October 2026: the Shuttle delayed, the last stop
+// bound for deep space).
+const row = (number, stop, status, key) => [['│ ', 'o'], [`${number} `, 'I'], [stop.padEnd(25 - status.length), 'a'], [`${status} `, key], ['│', 'o']];
 export const POST_BOARD = Object.freeze([
-  [['┌──────────────────────────────┐', GREY]],
-  [['│ ', GREY], ['DEPARTURES', bold(YELLOW)], ['           ', null], ['GATE 03', bold(WHITE)], [' │', GREY]],
-  [['├──────────────────────────────┤', GREY]],
-  row('01', 'THE BROCHURE', 'BOARDING', bold(CYAN)),
-  row('02', 'PACK YOUR BAGS', 'ON TIME', GREEN),
-  row('03', 'BOARD THE SHUTTLE', 'ON TIME', GREEN),
-  row('04', 'ADMIRE THE LIGHTS', 'ON TIME', GREEN),
-  row('05', 'DISEMBARKING', 'APHELION', bold(PINK)),
-  [['└──────────────────────────────┘', GREY]],
+  [['┌──────────────────────────────┐', 'o']],
+  [['│ ', 'o'], ['DEPARTURES', 'a'], ['           ', '.'], ['GATE 03', 'c'], [' │', 'o']],
+  [['├──────────────────────────────┤', 'o']],
+  row('01', 'THE BROCHURE', 'BOARDING', 'h'),
+  row('02', 'PACK YOUR BAGS', 'ON TIME', '4'),
+  row('03', 'BOARD THE SHUTTLE', 'DELAYED', '1'),
+  row('04', 'ADMIRE THE LIGHTS', 'ON TIME', '4'),
+  row('05', 'DISEMBARKING', 'DEEP SPACE', 'p'),
+  [['└──────────────────────────────┘', 'o']],
 ].map(line => Object.freeze(line)));
 
 /** The plain characters of one art block, line by line. */
 export const plainArt = art => art.map(line => line.map(([text]) => text).join(''));
-/** A code block of one art block: coloured (`ansi`) or plain. */
-export function artBlock(art, colour = POST_COLOUR) {
-  const lines = colour ? art.map(line => line.map(([text, code]) => code ? `${ESC}[${code}m${text}${ESC}[0m` : text).join('')) : plainArt(art);
-  return `\`\`\`${colour ? 'ansi' : ''}\n${lines.join('\n')}\n\`\`\``;
-}
+
+/** The art panels as images on the Activity host (named per version, since Discord caches media by URL), with alt text. */
+export const POST_IMAGES = Object.freeze({
+  logo: Object.freeze({ art: POST_LOGO, path: 'content/shuttle-activity/post/rules-post-logo-1.png',
+    alt: 'APHELION in amber block letters over the words Shuttle Service, with the departure lounge\'s rainbow pride banner beneath.' }),
+  board: Object.freeze({ art: POST_BOARD, path: 'content/shuttle-activity/post/rules-post-board-1.png',
+    alt: 'Departures board, gate 03: 01 The Brochure, boarding. 02 Pack Your Bags, on time. 03 Board the Shuttle, delayed. ' +
+      '04 Admire the Lights, on time. 05 Disembarking, deep space.' }),
+});
 
 /** Where the rules live (the story's own rules sign): Meridian Rift's Policies, Wolfgate's Guidebook. Links only. */
 export const POST_RULES = Object.freeze([
@@ -63,26 +67,30 @@ export const POST_RULES = Object.freeze([
 /** Components V2 message flag: the post is built from components, with no content or embeds. */
 export const COMPONENTS_V2 = 1 << 15;
 
+/** An art panel: its image on the Activity host, or (without one) a plain code block. */
+function artPanel(image, mediaOrigin) {
+  if (mediaOrigin === null) return { type: 10, content: `\`\`\`\n${plainArt(image.art).join('\n')}\n\`\`\`` };
+  return { type: 12, items: [{ media: { url: `${mediaOrigin}/${image.path}` }, description: image.alt }] };
+}
+
 /**
  * The post for the rules channel: one amber container of panels (the logotype, the boarding call with the launch button
- * beside it, the departures board, today's manifest, small print) and two rules links. Fixed wording; no mentions, member
- * data or AI.
+ * beside it, the departures board, small print) and two rules links. Fixed wording; no mentions, member data or AI.
+ * mediaOrigin is the Activity host (https://…) serving the art images, or null for code blocks.
  */
-export function activityLaunchPost(text = defaultSystemText, { colour = POST_COLOUR } = {}) {
-  const say = content => ({ type: 10, content });
-  const line = { type: 14, divider: true, spacing: 1 }, gap = { type: 14, divider: false, spacing: 1 };
+export function activityLaunchPost(text = defaultSystemText, { mediaOrigin = null } = {}) {
+  if (mediaOrigin !== null && !/^https:\/\/[a-z0-9.-]+(?::\d{1,5})?$/u.test(mediaOrigin)) throw new Error('ACTIVITY_POST_MEDIA_ORIGIN_INVALID');
+  const line = { type: 14, divider: true, spacing: 1 };
   return {
     flags: COMPONENTS_V2,
     components: [{ type: 17, accent_color: AMBER, components: [
-      say(artBlock(POST_LOGO, colour)),
+      artPanel(POST_IMAGES.logo, mediaOrigin),
       line,
-      { type: 9, components: [say(text('activity.post.call'))],
+      { type: 9, components: [{ type: 10, content: text('activity.post.call') }],
         accessory: { type: 2, style: 1, label: text('activity.post.button'), custom_id: ACTIVITY_LAUNCH_ID } },
       line,
-      say(artBlock(POST_BOARD, colour)),
-      say(text('activity.post.manifest')),
-      gap,
-      say(text('activity.post.small_print')),
+      artPanel(POST_IMAGES.board, mediaOrigin),
+      { type: 10, content: text('activity.post.small_print') },
       line,
       { type: 1, components: POST_RULES.map(({ key, url }) => ({ type: 2, style: 5, label: text(key), url })) },
     ] }],
