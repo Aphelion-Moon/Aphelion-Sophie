@@ -1,4 +1,5 @@
 import { previewsOf, screensOf } from './controller.js';
+import { STAGE_BODY_LIMIT } from '../../modules/onboarding/presentation.js';
 import { renderMarkdown } from './markdown.js';
 
 /** Persistent form controls and local static previews; no HTML evaluation or remote embeds. */
@@ -182,8 +183,8 @@ export function createGuidanceView({ document, controller }) {
       setText('page-number', `STEP ${String(state.page + 1).padStart(2, '0')} / ${String(count).padStart(2, '0')}`); setText('page-heading', page.title || 'Untitled step');
       setText('page-completion', page.title.trim() && page.body.trim() ? 'Text entered' : 'Needs text');
       for (const [id, value] of [['page-title', page.title], ['page-body', screens[screenIndex]]]) { if (byId(id).value !== value) byId(id).value = value; byId(id).readOnly = locked; }
-      byId('page-body').maxLength = Math.min(1_800, 5_000 - (screens.join('\n\n').length - screens[screenIndex].length));
-      setText('title-count', `${page.title.length} / 80`); setText('body-count', `${screens[screenIndex].length} / 1,800 · step ${page.body.length} / 5,000`);
+      byId('page-body').maxLength = Math.min(1_800, STAGE_BODY_LIMIT - (screens.join('\n\n').length - screens[screenIndex].length));
+      setText('title-count', `${page.title.length} / 80`); setText('body-count', `${screens[screenIndex].length} / 1,800 · step ${page.body.length} / ${STAGE_BODY_LIMIT.toLocaleString('en')}`);
       disabled('add-page', locked || count >= 20); disabled('remove-page', locked || count <= 1);
       disabled('move-up', locked || state.page === 0); disabled('move-down', locked || state.page === count - 1);
       for (const [index, choice] of choices.entries()) {

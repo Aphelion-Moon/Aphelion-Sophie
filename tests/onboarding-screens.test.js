@@ -68,7 +68,9 @@ test('draft source, invalid pause rules and oversized copy cannot be published o
     stages: draft.stages.map(({ id, title, body }) => ({ id, title, body })) });
   validatePublication({ ...publication, helpPauses: true });
   assert.throws(() => validatePublication({ ...publication, helpPauses: 'true' }), /SHUTTLE_HELP_MODE_UNSUPPORTED/);
-  assert.throws(() => validatePublication({ ...publication, stages: publication.stages.map(stage => ({ ...stage, body: 'x'.repeat(5_001) })) }), /INVALID_STATIC_COPY/);
+  // 6,000 characters fit in five messages; one more does not publish.
+  validatePublication({ ...publication, stages: publication.stages.map(stage => ({ ...stage, body: 'word '.repeat(1_200).trim() })) });
+  assert.throws(() => validatePublication({ ...publication, stages: publication.stages.map(stage => ({ ...stage, body: 'x'.repeat(6_001) })) }), /INVALID_STATIC_COPY/);
   const body = renderOnboardingScreen({ screenId, session: started(), publication });
   assert.throws(() => validateOnboardingPayload({ ...body, allowed_mentions: { parse: ['everyone'] } }, screenId), /INVALID_SHUTTLE_PAYLOAD/);
   assert.throws(() => parseOnboardingControl(`sophie:shuttle:v1:${screenId}:sql`), /INTERACTION_COMPONENT_UNSUPPORTED/);

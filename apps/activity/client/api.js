@@ -8,11 +8,16 @@ const RETRY_MS = Object.freeze([1_000, 2_000, 4_000]);
 /**
  * The Activity's calls to core (P43). The bearer token from sign-in lives only in this closure. A click keeps one
  * request key through its retries, so a retried Continue never moves the run twice.
+ *
+ * A session ends after an hour, or when core restarts. Once Discord has signed the member in, a request refused for an
+ * ended session signs in again through Discord without a prompt (setRenewal) and is sent once more with the same
+ * request key, so a member back from being away keeps reading (owner report, 24 October 2026).
  */
 export function createShuttleApi({ fetch, randomBytes, wait = ms => new Promise(resolve => setTimeout(resolve, ms)), onSignal = () => {} }) {
-  let token = null;
+  let token = null, renewal = null, renewing = null;
   const requestId = () => [...randomBytes(16)].map(byte => byte.toString(16).padStart(2, '0')).join('');
   async function call(path, { method = 'GET', body } = {}) {
+    let renewedOnce = false;
     for (let attempt = 0; ; attempt++) {
       let response = null;
       try {
@@ -24,12 +29,20 @@ export function createShuttleApi({ fetch, randomBytes, wait = ms => new Promise(
         onSignal(true);
         const value = response.status === 204 ? null : await response.json().catch(() => null);
         if (response.ok) return value;
-        throw new ShuttleApiError(typeof value?.error === 'string' ? value.error : 'failed', response.status);
+        const word = typeof value?.error === 'string' ? value.error : 'failed';
+        if (word === 'signin' && response.status === 401 && path !== '/api/session' && !renewedOnce) { renewedOnce = true; if (await renewed()) continue; }
+        throw new ShuttleApiError(word, response.status);
       }
       onSignal(false);
       if (attempt >= RETRY_MS.length) throw new ShuttleApiError(response ? 'retry' : 'offline', response?.status ?? 0);
       await wait(RETRY_MS[attempt]);
     }
+  }
+  /** Signs in again, once per call that needs it; requests refused together share one renewal. False when it cannot. */
+  async function renewed() {
+    if (renewal === null || token === null) return false;
+    renewing ??= renewal().then(() => true, () => false).finally(() => { renewing = null; });
+    return renewing;
   }
   return Object.freeze({
     config: () => call('/api/config'),
@@ -42,7 +55,9 @@ export function createShuttleApi({ fetch, randomBytes, wait = ms => new Promise(
     board: () => call('/api/shuttle/board', { method: 'POST', body: { requestId: requestId() } }),
     act: (action, expectedVersion) => call('/api/shuttle/act', { method: 'POST', body: { requestId: requestId(), action, expectedVersion } }),
     reset: () => call('/api/shuttle/reset', { method: 'POST', body: { requestId: requestId() } }),
-    async signOut() { if (token) await call('/api/session/end', { method: 'POST' }).catch(() => {}); token = null; },
+    /** How to sign in again without a prompt (Discord's authorize, then signIn); set once the first sign-in worked. */
+    setRenewal(renew) { renewal = typeof renew === 'function' ? renew : null; },
+    async signOut() { renewal = null; if (token) await call('/api/session/end', { method: 'POST' }).catch(() => {}); token = null; },
     get signedIn() { return token !== null; },
   });
 }

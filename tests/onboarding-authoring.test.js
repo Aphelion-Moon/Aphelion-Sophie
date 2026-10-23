@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { canonicalOnboardingDraft, reviewOnboardingDraft, requireEditorRequestId } from '../modules/onboarding/authoring.js';
+import { STAGE_BODY_LIMIT } from '../modules/onboarding/presentation.js';
 import { draftDocument, editorRequestId } from './fixtures/onboarding-authoring.js';
 import { publication } from './fixtures/domain.js';
 
@@ -13,7 +14,10 @@ test('incomplete authored pages can be saved as bounded drafts but cannot be pub
 
 test('drafts reject executable settings, oversized text, invalid Unicode and unsupported workflow shapes', () => {
   assert.throws(() => canonicalOnboardingDraft({ ...draftDocument(), execute: 'anything' }), /INVALID_FIELDS/);
-  for (const body of ['x'.repeat(5_001), '\u0000', '\ud800']) {
+  // A stage holds up to 6,000 characters (owner revision 3 of the story, 24 October 2026), and not one more.
+  assert.equal(STAGE_BODY_LIMIT, 6_000);
+  { const draft = draftDocument(); draft.stages[0].body = 'x'.repeat(STAGE_BODY_LIMIT); canonicalOnboardingDraft(draft); }
+  for (const body of ['x'.repeat(STAGE_BODY_LIMIT + 1), '\u0000', '\ud800']) {
     const draft = draftDocument(); draft.stages[0].body = body; assert.throws(() => canonicalOnboardingDraft(draft), /INVALID_STATIC_COPY/);
   }
   assert.throws(() => canonicalOnboardingDraft({ ...draftDocument(), stages: [] }), /INVALID_SHUTTLE_STEPS/);

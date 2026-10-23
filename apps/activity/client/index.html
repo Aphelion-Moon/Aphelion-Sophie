@@ -91,7 +91,10 @@
         </section>
         <footer class="radio-controls">
           <button id="radio-back" type="button" class="control">◂ <span>Back</span></button>
-          <span id="radio-progress" class="radio-progress" aria-hidden="true"></span>
+          <span class="radio-pager" aria-hidden="true">
+            <span id="radio-page" class="radio-page"></span>
+            <span id="radio-progress" class="radio-progress"></span>
+          </span>
           <button id="radio-forward" type="button" class="control primary"><span>Continue</span> ▸</button>
         </footer>
       </div>
@@ -135,7 +138,7 @@
 
   <section id="codex" class="sheet" hidden aria-labelledby="codex-heading">
     <div class="sheet-panel">
-      <h2 id="codex-heading" class="sheet-heading">Codex</h2>
+      <h2 id="codex-heading" class="sheet-heading">Glossary</h2>
       <dl id="codex-list" class="codex-list"></dl>
       <button type="button" class="control primary" data-close>Close</button>
     </div>

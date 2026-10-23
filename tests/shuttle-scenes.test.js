@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { readdir, readFile } from 'node:fs/promises';
-import { SCENE_COLOURS, SCENE_GLYPHS, SCENE_LAYOUTS, composeScene, sceneAlt, sceneState, validateScene } from '../modules/onboarding/scenes.js';
+import { SCENE_COLOURS, SCENE_GLYPHS, SCENE_LAYOUTS, composeScene, sceneAlt, sceneCues, sceneState, validateScene } from '../modules/onboarding/scenes.js';
 
 const dir = new URL('../content/shuttle-activity/scenes/', import.meta.url);
 const scenes = await Promise.all((await readdir(dir)).filter(name => name.endsWith('.json')).sort()
@@ -136,11 +136,13 @@ test('P43 beats stage the section being read and fall back to the plain scene', 
 test('P43 sprites cross only in their window, never with motion off, and stay small', () => {
   const lounge = scenes.find(([, s]) => s.id === 'departure-lounge')[1];
   const ian = lounge.layouts.landscape.effects.find(fx => fx.id === 'ian');
-  const start = ian.every - (ian.offset % ian.every);
-  const frame = (time, motion) => composeScene(lounge, 'landscape', { time, state: STATE, motion }).glyphs.join('\n');
+  // Ian runs on the scene's clock (since the lounge came on screen), whatever the page's clock says.
+  const start = ian.delay;
+  const frame = (sceneTime, motion, time = 5_000) => composeScene(lounge, 'landscape', { time, sceneTime, state: STATE, motion }).glyphs.join('\n');
   assert.match(frame(start + ian.duration / 2, true), /~\(____\/ o>/);
   assert.doesNotMatch(frame(start + ian.duration + 5, true), /\(____\/.o>/);
   assert.doesNotMatch(frame(start + ian.duration / 2, false), /\(____\/.o>/);
+  assert.doesNotMatch(frame(start - 1, true), /\(____\/.o>/, 'not before his first round');
   const { fps: _fps, ...still } = ian;
   const huge = { ...still, id: 'huge', frames: [{ text: Array(9).fill('x'), colours: Array(9).fill('a') }] };
   assert.throws(() => validateScene({ ...lounge, layouts: { ...lounge.layouts, landscape: { ...lounge.layouts.landscape,
@@ -373,4 +375,45 @@ test('P43 fish swim head first: every carp faces the way it travels', () => {
     for (const frame of fx.frames) assert.match(frame.text.join('\n'), left ? /<o\)/ : /\(o>/, `${scene.id} ${fx.id}`);
   }
   assert.ok(carp >= 6);
+});
+
+test('P43 Ian comes round three times while the lounge is on screen, with a *BARK!* bubble and a bark each time', () => {
+  const lounge = scenes.find(([, s]) => s.id === 'departure-lounge')[1];
+  for (const layoutName of ['landscape', 'portrait']) {
+    const { effects } = lounge.layouts[layoutName], ian = effects.find(fx => fx.id === 'ian');
+    assert.deepEqual([ian.clock, ian.times], ['scene', 3], layoutName);
+    const frame = sceneTime => composeScene(lounge, layoutName, { time: 9_999, sceneTime, state: STATE }).glyphs.join('\n');
+    const bark = effects.find(fx => fx.id === 'ian-barks'), barkAt = bark.delay;
+    for (const round of [0, 1, 2]) {
+      const at = barkAt + round * ian.every + 0.5;
+      assert.match(frame(at), /~\(____\/ o>/, `${layoutName}: round ${round + 1}`); assert.match(frame(at), /\*BARK!\*/, `${layoutName}: bark ${round + 1}`);
+      assert.doesNotMatch(frame(at), /"\*BARK!\*"/, 'an emote, not a quotation');
+      assert.doesNotMatch(frame(at + bark.line), /\*BARK!\*/, 'the bubble pops up for a moment');
+    }
+    // No fourth round, bark or bubble, however long the member stays.
+    for (const later of [3, 4, 10]) assert.doesNotMatch(frame(barkAt + later * ian.every + 0.5), /\(____\/.o>|BARK/, `${layoutName}: round ${later + 1}`);
+    // The bark sound: three times in all, on the scene's clock.
+    let barks = 0;
+    for (let t = 0; t < 30 * 60; t += 0.5) barks += sceneCues(lounge, layoutName, { from: 9_999 + t, to: 9_999 + t + 0.5, sceneFrom: t, sceneTo: t + 0.5, state: STATE }).filter(cue => cue === 'SC-20').length;
+    assert.equal(barks, 3, layoutName);
+    // With motion off, neither Ian nor his bubble is in the still frame.
+    assert.doesNotMatch(composeScene(lounge, layoutName, { sceneTime: barkAt + 0.5, state: STATE, motion: false }).glyphs.join('\n'), /\(____\/.o>|BARK/);
+  }
+  // The board flags both servers in development (owner review of revision 3).
+  const board = composeScene(lounge, 'landscape', { time: 1, state: { ...STATE, beat: 'meridian', reached: ['meridian'] } }).glyphs.join('\n');
+  assert.equal(board.match(/IN DEV/g)?.length, 2); assert.doesNotMatch(board, /ONLINE/);
+});
+
+test('P43 counted effects run only on the scene clock, and a counted bubble may wait out a long round', () => {
+  const lounge = scenes.find(([, s]) => s.id === 'departure-lounge')[1];
+  const ian = lounge.layouts.landscape.effects.find(fx => fx.id === 'ian'), bark = lounge.layouts.landscape.effects.find(fx => fx.id === 'ian-barks');
+  const withEffects = (...changed) => ({ ...lounge, layouts: { ...lounge.layouts, landscape: { ...lounge.layouts.landscape,
+    effects: lounge.layouts.landscape.effects.map(fx => changed.find(change => change.id === fx.id) ?? fx) } } });
+  for (const broken of [{ ...ian, clock: 'beat' }, { ...ian, clock: undefined }, { ...ian, times: 0 }, { ...ian, times: 21 }, { ...bark, clock: 'beat' }]) {
+    const clean = Object.fromEntries(Object.entries(broken).filter(([, value]) => value !== undefined));
+    assert.throws(() => validateScene(withEffects(clean)), error => /^INVALID_/.test(error.code), JSON.stringify([clean.id, clean.clock, clean.times]));
+  }
+  const { times: _times, ...uncounted } = bark;
+  assert.throws(() => validateScene(withEffects(uncounted)), error => error.code === 'INVALID_SCENE_DIALOGUE', 'a long pause needs a count');
+  assert.throws(() => validateScene(withEffects({ ...bark, style: 'shout' })), error => error.code === 'INVALID_SCENE_DIALOGUE');
 });

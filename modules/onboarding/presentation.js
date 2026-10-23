@@ -1,5 +1,11 @@
 import { requireCondition, requireInteger } from '../../contracts/validation.js';
 
+/**
+ * Characters of static copy in one stage. Each stage is posted as at most five messages of up to 1,800 characters; the
+ * owner's revision 3 of the Brochure needs more than the earlier 5,000 (owner decision, 24 October 2026).
+ */
+export const STAGE_BODY_LIMIT = 6_000;
+
 /** Deterministic draft-copy pagination. Discord compatibility still needs staging. */
 export function paginateStaticText(text, limit = 1_800) {
   requireCondition(typeof text === 'string' && text.trim().length > 0 && text.length <= 50_000, 'INVALID_STATIC_COPY');

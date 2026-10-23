@@ -58,7 +58,8 @@ export const TEXT = Object.freeze({
   arrivalNone: 'Your new channels appear in Discord’s channel list.',
   log: 'Station log',
   logEmpty: 'Nothing received yet. Sophie’s transmissions appear here as you travel.',
-  codex: 'Codex',
+  // The sheet's id stays codex; the owner renamed it (review of revision 3, 24 October 2026).
+  codex: 'Glossary',
   keys: 'Keys',
   transit: 'In transit',
   skip: 'Tap to skip',
@@ -179,13 +180,25 @@ export function transmissionChunks(pages, limit = CHUNK_LIMIT, moments = {}) {
     pendingHeading = '';
     // A section (top-level heading) always opens a fresh transmission, so the scene stages exactly what is read.
     const starts = /^# /.test(piece) || breaks.some(phrase => piece.toLowerCase().includes(phrase));
-    const room = isSign(block) && current.length <= limit / 3 ? limit * 2 : limit;
+    // A sign card also stays on a page that is only its heading and one paragraph: the About pages keep their link boxes
+    // (owner review of revision 3, 24 October 2026).
+    const opening = /^#{1,3} [^\n]+\n\n[^#\n][^\n]*$/.test(current);
+    const room = isSign(block) && (current.length <= limit / 3 || opening) ? limit * 2 : limit;
     if (current && (starts || current.length + 2 + piece.length > room)) { chunks.push(current); current = piece; }
     else current = current ? `${current}\n\n${piece}` : piece;
   }
   if (pendingHeading) current = current ? `${current}\n\n${pendingHeading}` : pendingHeading;
   if (current) chunks.push(current);
   return chunks.length ? chunks : [''];
+}
+
+/**
+ * Where the reader is in a stop: a page counter ("3 / 14") over the dots, filled for pages read. Empty unless the stop
+ * is being read and has more than one page.
+ */
+export function pageProgress(chunk, count, reading = true) {
+  if (!reading || count <= 1) return { counter: '', dots: '' };
+  return { counter: `${chunk + 1} / ${count}`, dots: Array.from({ length: count }, (_, index) => index === chunk ? '■' : index < chunk ? '▪' : '□').join(' ') };
 }
 
 /** Reset journey (Settings) has something to clear only while a run is being read; a finished run offers boarding again. */

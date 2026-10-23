@@ -32,7 +32,9 @@ test('T-STORY-01 the story draft is built from its source, five stages, Discord-
 // the meaning is not optional. Revision 1 (owner, 24 October 2026) rewords several points and removes some on purpose:
 // the refresher line, "not changing ourselves", the invite link and Wolfgate's early-development note. Revision 2 (owner,
 // 24 October 2026) removes the "No one is forcing you to get on the shuttle" section on purpose, and with it the points on
-// being decent to the people who are, boarding voluntarily and not boarding to drive people out.
+// being decent to the people who are, boarding voluntarily and not boarding to drive people out. Revision 3 (owner, 24
+// October 2026) brings them back: decency in the Brochure's opening, and a smaller voluntary section under amenities;
+// Wolfgate's early-days note is back on the WHO TO BUG sign.
 const REQUIRED = [
   // The Brochure opens with the boarding call: five phases, finishing brings Whitelist, and where to get help.
   ['the-brochure', /^# Boarding call[\s\S]*five phases[\s\S]*you'll get your \*\*Whitelist\*\*[\s\S]*#crew-support/, 'boarding call'],
@@ -53,6 +55,10 @@ const REQUIRED = [
   ['the-brochure', /sexual or NSFW stuff in passing/, 'incidental NSFW exposure'],
   ['the-brochure', /doesn't mean anybody here is up for anything with you/, 'not permission or availability'],
   ['the-brochure', /queers, furries, and freaks/, 'who runs Aphelion'],
+  ['the-brochure', /\*\*If that's an issue, Aphelion is not for you\.[^*]*decent to everyone involved\.\*\*/, 'respect required'],
+  ['the-brochure', /## None of us are forced to be here\n\nThe entirety of this community is voluntary\./, 'boarding is voluntary'],
+  ['the-brochure', /make everybody else miserable until they leave/, 'not boarding to drive people out'],
+  ['the-brochure', /our SS 14 server \(still early days\)/, "Wolfgate's early days"],
   ['the-brochure', /#open-a-ticket/, 'tickets'],
   ['the-brochure', /Cry wolf/, 'cry wolf'],
   ['the-brochure', /don't need proof first/, 'no finished investigation needed'],

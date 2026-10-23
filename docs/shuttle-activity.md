@@ -51,7 +51,7 @@ words, never codes, IDs or messages.
 | Route | What it does |
 |---|---|
 | `GET /api/config` | The public application ID the SDK needs, and the server ID for channel links. |
-| `POST /api/session` `{code, instanceId}` | Exchanges the Discord code (no redirect URI; only `identify` and `rpc.activities.write`), checks the instance with the bot token (this server, this member in it) and that the member is present, then issues a one-hour in-memory bearer token. The Discord access token is returned once for the SDK and never stored. 60 sign-ins a minute at most. |
+| `POST /api/session` `{code, instanceId}` | Exchanges the Discord code (no redirect URI; only `identify` and `rpc.activities.write`), checks the instance with the bot token (this server, this member in it) and that the member is present, then issues a one-hour in-memory bearer token. When a token has ended (an hour, or a core restart), the Activity signs in again through Discord without a prompt and resends the refused request once with the same request key, so a member back from being away keeps their place. The Discord access token is returned once for the SDK and never stored. 60 sign-ins a minute at most. |
 | `POST /api/session/end` | Forgets the token. |
 | `GET /api/shuttle` | What to show: `closed`, `unavailable`, `elsewhere`, `unpublished`, `ready` (with the stops) or `run`. A run carries the current stop's moments, `channels` (channels its copy names that the member can see) and, once Whitelist is confirmed, `arrival`. |
 | `POST /api/shuttle/board` `{requestId}` | Starts a run, or resumes the current Activity run. |
@@ -178,8 +178,8 @@ with an ellipsis when long, and `@aphelion` always shows.
   at most 12 s), so the sea lion is struck on the line that says so, not when the page opens. Skipping the typing
   fires them all; pages already read count their reveal beats as reached.
 - **Section counter.** The scene's section strip counts the stop's top-level sections; the page dots in the reading
-  column count pages.
-- **Title sections.** Station log (this run's transmissions), Codex (a fixed glossary), Settings and Credits. "?" shows
+  column count pages, with the page number ("3 / 14") above them.
+- **Title sections.** Station log (this run's transmissions), Glossary (fixed; its sheet id stays `codex`), Settings and Credits. "?" shows
   the keys; L opens the log.
 - **Settings:** volume, music, ambience, radio and effect levels, sound on/off, motion, typed or instant text, text
   speed, text size.

@@ -2,11 +2,11 @@
 
 For owner review. Not published. Edit content/onboarding/story.md and rebuild.
 
-Source SHA-256: `e27d0f8972416999c63a74a0abbc956be4cad0fc6b255f8ad9ecea41d5307e84`.
+Source SHA-256: `c14058afcd954540efc4264a790c91a2dba69b0172a0d23694e49e07adce8a8f`.
 
 ## The Brochure
 
-3 Discord message segment(s).
+4 Discord message segment(s).
 
 ### Message 1
 
@@ -38,7 +38,7 @@ First things first, because we don't budge on this one. Age check. Everybody get
 
 # Aphelion is owned and operated by queers, furries, and freaks
 
-We operate a wild yet warm community of social oddities and minorities. If that's going to be a problem for you, honestly, this is a great place to turn back. Chances are that's why you signed up, but I'm just going to remind you anyways.
+We operate a wild yet warm community of social oddities and minorities. **If that's an issue, Aphelion is not for you. We are a welcoming community, but we expect those welcomed to be decent to everyone involved.** Chances are that's why you signed up, but I'm just going to remind you anyways.
 
 # Know your equipment, amenities, and rights
 
@@ -51,7 +51,13 @@ Think you see a wolf? Cry wolf. Smell smoke? Shout. Hear a breach? Screech. Look
 > **NOTICE · WHO TO BUG**
 > * ** #ask-mewn **: owns the place, writes the rules, handles most things.
 > * ** #ask-mal **: runs **Meridian Rift**, our SS 13 server.
-> * ** #ask-cobalt **: runs **Wolfgate**, our SS 14 server.
+> * ** #ask-cobalt **: runs **Wolfgate**, our SS 14 server (still early days).
+
+## None of us are forced to be here
+
+The entirety of this community is voluntary. If at any time it becomes overbearing, stepping back matters more than hurting others.
+
+Deciding we're not your thing? Totally fine. Getting on board just to make everybody else miserable until they leave? Not fine.
 
 # Understand our expectations for whitelisting
 
@@ -59,14 +65,14 @@ Okay! Rules and regulations are up next. You don't need to memorize them, but yo
 
 Nobody shows up knowing everything. Ask stuff, take advice, mess up, learn from the fallout. What wears out the team is someone being told the same thing five times and doing it a sixth. They enjoy helping, and you should take advantage of that.
 
+---
+
+### Message 3
+
 > **NOTICE · WHERE THE RULES ACTUALLY LIVE**
 > **[Start with our recommended reading for SS13](https://meridian-wiki.a13.info/wiki/Policies#RP-01).**
 > SS14: [the Wolfgate rules](https://panel.a13.info/guide/wolfgate).
 > This process gives you the gist of our expectations. It doesn't replace the real rules. For anything about the games, the Wiki and Rule References have the final word. Always.
-
----
-
-### Message 3
 
 # About SS 13 - Meridian Rift
 
@@ -84,6 +90,10 @@ Ooh, the ticker finally updated. Tadaaa, **Meridian Rift**, our SS 13 server. St
 > **NOTICE · WOLFGATE**
 > [Guidebook](https://panel.a13.info/guide/wolfgate): rules and guides.
 > [GitHub](https://github.com/VanguardControl/Wolfgate): the code, if you're into that.
+
+---
+
+### Message 4
 
 Ah, great, Boarding's open. Hit **Continue** and get your bags sorted. I hope you packed well.
 

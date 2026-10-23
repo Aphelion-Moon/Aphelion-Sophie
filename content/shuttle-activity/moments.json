@@ -9,8 +9,15 @@
         "beat": "beepsky",
         "break": true
       },
+      "~none of us are forced to be here": {
+        "beat": "voluntary",
+        "break": true
+      },
       "aphelion is owned and operated by queers, furries, and freaks": {
         "beat": "pride"
+      },
+      "none of us are forced to be here": {
+        "beat": "voluntary"
       },
       "no one is forcing you to get on the shuttle": {
         "beat": "voluntary"

@@ -75,6 +75,10 @@ A scene is JSON with exactly `schema`, `id`, `title`, `alt`, `provenance` and `l
   with a looping effect) or on the beat clock (once per section). The cue must be a sound in
   `content/shuttle-activity/sounds/index.json` or one still being chosen (`PENDING_SOUND_CUES`); the Activity refuses
   to start otherwise. Cues fire only while the scene animates, so a still frame or Back plays nothing.
+- **Scene clock:** a sprite, dialogue or repeating cue may instead keep `clock: 'scene'`, the time since the scene came
+  on screen (the same scene shown again keeps it), and come round at most `times` times (1 to 20). Ian the corgi makes
+  three rounds of the departure lounge this way, each with one bark and a `*BARK!*` bubble (owner review of revision
+  3, 24 October 2026), however long the member stays in the Brochure.
 - **Sprites** are small multi-line figures (up to 8 by 24 cells and 4 frames) crossing along a line every so many
   seconds. A sprite may `hold` at its destination (people who walk in and stay), show a `rest` frame once there
   (sitting down), keep the section's `beat` clock (so it walks in when the section opens, not mid-cycle), and be
@@ -85,7 +89,7 @@ A scene is JSON with exactly `schema`, `id`, `title`, `alt`, `provenance` and `l
   case it is drawn where it ends up.
 - **Dialogue:** two speakers' anchor points and up to six exchanges of up to six lines, each `[speaker, text]` of at
   most 120 characters, wrapped into a bubble up to 40 cells wide above whoever is speaking (`say` in quotes, `looc`
-  in double brackets). Lines show one at a time with a pause between exchanges, after an optional delay, on the wall
+  in double brackets, `emote` as written: a sound such as `*BARK!*`). Lines show one at a time with a pause between exchanges, after an optional delay, on the wall
   or beat clock, and play `once` (then the bubbles are gone). With motion off the opening line stays, unless the
   dialogue says `still: false`. The scene's alt text carries the content, and every line a companion says is also in
   the transcript.

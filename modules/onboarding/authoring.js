@@ -1,6 +1,6 @@
 import { ContractError, requireCondition, requireInteger, requireKeys, requireName } from '../../contracts/validation.js';
 import { canonicalPublication } from './screens.js';
-import { paginateStaticText, requireAuthoredScreens } from './presentation.js';
+import { paginateStaticText, requireAuthoredScreens, STAGE_BODY_LIMIT } from './presentation.js';
 import { requireOnboardingSteps } from './index.js';
 
 export function requireEditorRequestId(value) {
@@ -17,7 +17,7 @@ export function canonicalOnboardingDraft(value) {
   // The help-pause rule is retired: Staff take no part in the Shuttle (owner direction, 20 October 2026).
   const document = { helpPauses: false, stages: value.stages.map(stage => {
     requireKeys(stage, ['id', 'title', 'body', ...['screens', 'linkPreviews'].filter(key => Object.hasOwn(stage, key))]);
-    requireName(stage.id); text(stage.title, 80); text(stage.body, 5_000);
+    requireName(stage.id); text(stage.title, 80); text(stage.body, STAGE_BODY_LIMIT);
     requireAuthoredScreens(stage);
     // All-off previews are the default and are not stored, so unchanged documents keep their canonical form.
     return { id: stage.id, title: stage.title, body: stage.body, ...(stage.screens ? { screens: [...stage.screens] } : {}),

@@ -1,6 +1,6 @@
 import { defaultSystemText } from '../../contracts/system-messages.js';
 import { requireCondition, requireInteger, requireKeys, requireName } from '../../contracts/validation.js';
-import { paginateStaticText, requireAuthoredScreens } from './presentation.js';
+import { paginateStaticText, requireAuthoredScreens, STAGE_BODY_LIMIT } from './presentation.js';
 import { requireOnboardingSteps } from './index.js';
 
 export function validatePublication(value) {
@@ -14,7 +14,7 @@ export function validatePublication(value) {
     requireCondition(typeof stage.title === 'string' && stage.title.trim() === stage.title &&
       stage.title.length > 0 && stage.title.length <= 80 && !/[\r\n]/.test(stage.title), 'INVALID_STATIC_TITLE');
     requireCondition(typeof stage.body === 'string' && stage.body.trim() === stage.body &&
-      stage.body.length > 0 && stage.body.length <= 5_000, 'INVALID_STATIC_COPY');
+      stage.body.length > 0 && stage.body.length <= STAGE_BODY_LIMIT, 'INVALID_STATIC_COPY');
     requireCondition(paginateStaticText(stage.body).length <= 5, 'STATIC_COPY_TOO_MANY_SEGMENTS');
   }
   requireCondition(new Set(value.stages.map(stage => stage.id)).size === value.stages.length, 'DUPLICATE_SHUTTLE_STEPS');

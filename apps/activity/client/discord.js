@@ -16,9 +16,11 @@ export function insideDiscord(search) {
 export async function connectDiscord({ applicationId, guildId, api, onLayout = () => {}, onThermal = () => {} }) {
   const sdk = new DiscordSDK(applicationId, { disableConsoleLogOverride: true });
   await sdk.ready();
-  const { code } = await sdk.commands.authorize({ client_id: applicationId, response_type: 'code', state: '', prompt: 'none',
-    scope: ['identify', 'rpc.activities.write'] });
-  const signed = await api.signIn({ code, instanceId: sdk.instanceId });
+  const authorize = async () => (await sdk.commands.authorize({ client_id: applicationId, response_type: 'code', state: '', prompt: 'none',
+    scope: ['identify', 'rpc.activities.write'] })).code;
+  const signed = await api.signIn({ code: await authorize(), instanceId: sdk.instanceId });
+  // An ended session (an hour away, a core restart) is renewed the same way, without a prompt.
+  api.setRenewal?.(async () => { await api.signIn({ code: await authorize(), instanceId: sdk.instanceId }); });
   let presence = false, name = null;
   try {
     const auth = await sdk.commands.authenticate({ access_token: signed.accessToken });

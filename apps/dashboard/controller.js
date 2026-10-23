@@ -1,5 +1,5 @@
 import { createAuthoringController } from './authoring-controller.js';
-import { paginateStaticText } from '../../modules/onboarding/presentation.js';
+import { paginateStaticText, STAGE_BODY_LIMIT } from '../../modules/onboarding/presentation.js';
 
 export const INITIAL_STAGES = Object.freeze([
   ['the-brochure', 'The Brochure'], ['pack-your-bags', 'Pack Your Bags'], ['board-the-shuttle', 'Board the Shuttle'],
@@ -47,7 +47,7 @@ export function createGuidanceController({ api, onChange, newRequestId }) {
       const stage = workflow.snapshot().document?.stages[index];
       if (!stage || !Number.isInteger(screen) || screen < 0 || typeof value !== 'string' || value.length > 1_800) return;
       const screens = screensOf(stage); if (screen >= screens.length) return; screens[screen] = value;
-      if (screens.join('\n\n').length > 5_000) return;
+      if (screens.join('\n\n').length > STAGE_BODY_LIMIT) return;
       edit(document => { setMessages(document.stages[index], screens, previewsOf(stage)); });
     },
     setLinkPreview(index, screen, value) {
@@ -58,7 +58,7 @@ export function createGuidanceController({ api, onChange, newRequestId }) {
     },
     addScreen(index) {
       const stage = workflow.snapshot().document?.stages[index]; if (!stage) return;
-      const screens = [...screensOf(stage), '']; if (screens.length > 5 || screens.join('\n\n').length > 5_000) return;
+      const screens = [...screensOf(stage), '']; if (screens.length > 5 || screens.join('\n\n').length > STAGE_BODY_LIMIT) return;
       edit(document => { setMessages(document.stages[index], screens, [...previewsOf(stage), false]); });
     },
     removeScreen(index, screen) {

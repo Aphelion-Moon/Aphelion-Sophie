@@ -8,7 +8,7 @@ one of them has. Voice rules: no em dashes; Sophie, Rook and Pip talk like peopl
 carry the must-know facts. tests/onboarding-story.test.js checks that every required point is still here.
 Revision 1 (owner, 24 October 2026): story-revised-1.md, cleaned for format and typos only.
 Revision 2 (owner, 24 October 2026): the "No one is forcing you" section removed; cleaned for format (see the decision log).
-Revision 2 (owner, 24 October 2026): the "No one is forcing you" section removed; cleaned for format (see the decision log).
+Revision 3 (owner, 24 October 2026): a voluntary section back in the Brochure; cleaned for format (see the decision log).
 -->
 === the-brochure | The Brochure
 
@@ -36,7 +36,7 @@ First things first, because we don't budge on this one. Age check. Everybody get
 
 # Aphelion is owned and operated by queers, furries, and freaks
 
-We operate a wild yet warm community of social oddities and minorities. If that's going to be a problem for you, honestly, this is a great place to turn back. Chances are that's why you signed up, but I'm just going to remind you anyways.
+We operate a wild yet warm community of social oddities and minorities. **If that's an issue, Aphelion is not for you. We are a welcoming community, but we expect those welcomed to be decent to everyone involved.** Chances are that's why you signed up, but I'm just going to remind you anyways.
 
 # Know your equipment, amenities, and rights
 
@@ -49,7 +49,13 @@ Think you see a wolf? Cry wolf. Smell smoke? Shout. Hear a breach? Screech. Look
 > **NOTICE · WHO TO BUG**
 > * ** #ask-mewn **: owns the place, writes the rules, handles most things.
 > * ** #ask-mal **: runs **Meridian Rift**, our SS 13 server.
-> * ** #ask-cobalt **: runs **Wolfgate**, our SS 14 server.
+> * ** #ask-cobalt **: runs **Wolfgate**, our SS 14 server (still early days).
+
+## None of us are forced to be here
+
+The entirety of this community is voluntary. If at any time it becomes overbearing, stepping back matters more than hurting others.
+
+Deciding we're not your thing? Totally fine. Getting on board just to make everybody else miserable until they leave? Not fine.
 
 # Understand our expectations for whitelisting
 

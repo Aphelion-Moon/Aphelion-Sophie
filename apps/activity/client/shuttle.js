@@ -1,4 +1,4 @@
-import { ANNOUNCEMENTS, CHUNK_LIMIT, CODEX, KEYS, READ_CPS, REVEAL_MAX_MS, TEXT, TIPS, TYPE_CPS, canResetJourney, cueEvent, cueSheet, dialogueControls, linkState, momentFor,
+import { ANNOUNCEMENTS, CHUNK_LIMIT, CODEX, KEYS, READ_CPS, REVEAL_MAX_MS, TEXT, TIPS, TYPE_CPS, canResetJourney, cueEvent, pageProgress, cueSheet, dialogueControls, linkState, momentFor,
   presence, revealPoints, sceneStateFor, soundscape, speechMs, titleMenu, transmissionChunks, windowUser } from './presenter.js';
 import { parseMarkdown, plainText, renderMarkdown } from './markdown.js';
 
@@ -260,7 +260,7 @@ export function createShuttle({ document, api, connect, player, loadScene, sound
   function holdTransmission() {
     stopTyping();
     const waiting = document.createElement('p'); waiting.className = 'receiving'; waiting.textContent = TEXT.receiving;
-    $('radio-text').replaceChildren(waiting); $('radio-live').textContent = ''; $('radio-progress').textContent = '';
+    $('radio-text').replaceChildren(waiting); $('radio-live').textContent = ''; $('radio-page').textContent = ''; $('radio-progress').textContent = '';
     $('arrival').hidden = true; setStatus(null);
     header(); renderControls();
   }
@@ -275,7 +275,8 @@ export function createShuttle({ document, api, connect, player, loadScene, sound
     $('radio-live').textContent = plain;
     const points = run.status === 'reading' ? revealPoints(chunks[chunk], plain, run.moments ?? {}).filter(point => !revealed.has(point.key)) : [];
     header();
-    $('radio-progress').textContent = run.status === 'reading' && chunks.length > 1 ? chunks.map((_, index) => index === chunk ? '■' : index < chunk ? '▪' : '□').join(' ') : '';
+    const progress = pageProgress(chunk, chunks.length, run.status === 'reading');
+    $('radio-page').textContent = progress.counter; $('radio-progress').textContent = progress.dots;
     player.setState(stateNow());
     followScene();
     renderArrival();

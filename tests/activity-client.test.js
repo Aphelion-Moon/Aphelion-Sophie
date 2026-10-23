@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
-import { ANNOUNCEMENTS, TEXT, CHUNK_LIMIT, canResetJourney, dialogueControls, momentFor, presence, reachedBeats, revealPoints, sceneStateFor, soundscape, titleMenu, transmissionChunks, windowUser } from '../apps/activity/client/presenter.js';
+import { ANNOUNCEMENTS, TEXT, CHUNK_LIMIT, canResetJourney, dialogueControls, momentFor, pageProgress, presence, reachedBeats, revealPoints, sceneStateFor, soundscape, titleMenu, transmissionChunks, windowUser } from '../apps/activity/client/presenter.js';
 import { validateStageMoments } from '../modules/onboarding/activity-media.js';
 import { ACTIVITY_STOP_SCENES } from '../modules/onboarding/activity.js';
 import { parseInline, parseMarkdown, plainText, safeLink } from '../apps/activity/client/markdown.js';
@@ -240,4 +240,55 @@ test('T-ACT-CLI-14 the click-to-continue mark is decorative and still with motio
   const css = await readFile(new URL('../apps/activity/client/app.css', import.meta.url), 'utf8'), client = await readFile(new URL('../apps/activity/client/shuttle.js', import.meta.url), 'utf8');
   assert.match(client, /mark\.className = 'ctc'; mark\.setAttribute\('aria-hidden', 'true'\); mark\.textContent = '▼'/);
   assert.match(css, /main\[data-motion="off"\] :is\(\.ctc,/); assert.match(css, /prefers-reduced-motion: reduce\) \{\s*\.ctc,/);
+});
+
+test('T-ACT-PAGE-03 a section that is a heading and one paragraph keeps its sign on its page; a longer one does not', () => {
+  const sign = `> **NOTICE · LINKS**\n${Array.from({ length: 4 }, (_, i) => `> [Link ${i}](https://example.invalid/${i}): ${'what it is for '.repeat(4)}`).join('\n')}`;
+  const paragraph = 'About this server. '.repeat(15).trim();
+  assert.ok(paragraph.length > CHUNK_LIMIT / 3 && paragraph.length + sign.length < CHUNK_LIMIT * 2);
+  // The About pages (owner review of revision 3): the link box shares the section's page.
+  assert.deepEqual(transmissionChunks([`# About a server\n\n${paragraph}\n\n${sign}\n\nOn we go.`]),
+    [`# About a server\n\n${paragraph}\n\n${sign}`, 'On we go.']);
+  // Two paragraphs before the sign: it gets its own page, as before.
+  const two = transmissionChunks([`# About a server\n\n${paragraph}\n\nAnother paragraph.\n\n${sign}`]);
+  assert.equal(two.length, 2); assert.ok(two[1].startsWith('> **NOTICE'));
+});
+
+test('T-ACT-CLI-15 the Glossary keeps its sheet id; the page counter sits over the dots and shows only while reading', () => {
+  assert.equal(TEXT.codex, 'Glossary');
+  assert.ok(titleMenu({ state: 'ready', mode: 'qualification' }).items.some(item => item.id === 'codex' && item.label === 'Glossary'));
+  assert.deepEqual(pageProgress(2, 5), { counter: '3 / 5', dots: '▪ ▪ ■ □ □' });
+  assert.deepEqual(pageProgress(0, 1), { counter: '', dots: '' });
+  assert.deepEqual(pageProgress(1, 4, false), { counter: '', dots: '' });
+});
+
+test('T-ACT-CLI-16 an ended session signs in again through Discord without a prompt and resends the same request once', async () => {
+  const tokens = ['a'.repeat(64), 'b'.repeat(64)], live = new Set([tokens[0]]);
+  let issued = 0, acts = [];
+  const fetch = async (path, options) => {
+    if (path === '/api/session') { const token = tokens[issued++]; live.add(token); return new Response(JSON.stringify({ token, accessToken: 'x', scopes: ['identify'] }), { status: 200 }); }
+    const bearer = options.headers.Authorization?.slice(7);
+    if (path === '/api/shuttle/act') acts.push({ bearer, requestId: JSON.parse(options.body).requestId });
+    if (!live.has(bearer)) return new Response(JSON.stringify({ error: 'signin' }), { status: 401 });
+    return new Response(JSON.stringify({ run: { stop: 2 } }), { status: 200 });
+  };
+  const signals = [];
+  const api = createShuttleApi({ randomBytes: count => new Uint8Array(count).fill(171), wait: async () => {}, fetch, onSignal: online => signals.push(online) });
+  await api.signIn({ code: 'c', instanceId: 'i-1' });
+  // Without a way to renew (outside Discord), an ended session is still the sign-in notice.
+  live.clear();
+  await assert.rejects(api.act('advance', 4), error => error.word === 'signin' && error.status === 401);
+  // With one, the member keeps reading: one renewal, and the same request key on the new token.
+  let renewals = 0; acts = [];
+  api.setRenewal(async () => { renewals++; await api.signIn({ code: 'again', instanceId: 'i-1' }); });
+  assert.deepEqual(await api.act('advance', 4), { run: { stop: 2 } });
+  assert.equal(renewals, 1); assert.deepEqual(acts.map(act => act.bearer), [tokens[0], tokens[1]]);
+  assert.equal(new Set(acts.map(act => act.requestId)).size, 1);
+  assert.ok(signals.every(Boolean), 'a refused session is not a lost signal');
+  // A renewal that fails, or a session refused again straight after renewing, ends in the notice; never a loop.
+  live.clear(); renewals = 0;
+  api.setRenewal(async () => { renewals++; throw new Error('declined'); });
+  await assert.rejects(api.describe(), error => error.word === 'signin'); assert.equal(renewals, 1);
+  api.setRenewal(async () => { renewals++; });
+  renewals = 0; await assert.rejects(api.describe(), error => error.word === 'signin'); assert.equal(renewals, 1);
 });

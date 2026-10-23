@@ -366,7 +366,8 @@ function lounge(name) {
   // About our servers: the board lists them in place of the first two flavour rows.
   ours.text(bx + 6, by + 4, 'MERIDIAN RIFT  · SS 13', 'a'); ours.text(bx + 6, by + 5, 'WOLFGATE       · SS 14', 'a');
   layers.push(layer('board-usual', usual, { when: { beat: except(LOUNGE_BEATS, ...servers) } }), layer('board-ours', ours, { when: { beat: servers } }));
-  effects.push({ kind: 'flap', id: 'board-meridian', x: bx + bw - 12, y: by + 4, width: 10, texts: ['ONLINE'], period: 30, flip: 0.5, colour: 'c', when: { beat: servers } });
+  // Both servers are flagged in development (owner review of revision 3, 24 October 2026: Meridian too, not ONLINE).
+  effects.push({ kind: 'flap', id: 'board-meridian', x: bx + bw - 12, y: by + 4, width: 10, texts: ['IN DEV'], period: 30, flip: 0.5, colour: 'h', when: { beat: servers } });
   effects.push({ kind: 'flap', id: 'board-wolfgate', x: bx + bw - 12, y: by + 5, width: 10, texts: ['IN DEV'], period: 30, flip: 0.5, colour: 'h', when: { beat: servers } });
   // The new strip, on fresh brackets.
   const sy = by + 10, sw = bw - 2, sx0 = bx + 1;
@@ -511,11 +512,18 @@ function lounge(name) {
   }
   // Dust in the light over the benches, kept out of the EXIT sign's box.
   effects.push({ kind: 'drift', id: 'dust', region: [14, seatY - 4, w - 28, 3], seed: 9, density: 0.02, speed: 0.3, glyphs: '·', colours: 'I' });
-  // Ian makes his rounds.
+  // Ian makes his rounds: three of them while the lounge is on screen, one bark each (owner review of revision 3, 24
+  // October 2026: at most three barks in the Brochure, each with a *BARK!* bubble, as Rook and Pip have).
   // He trots between tile seams, his feet on one, so no seam runs through his face.
-  const ian = { kind: 'sprite', id: 'ian', frames: CORGI, from: [-12, port ? 44 : 33], to: [w + 2, port ? 44 : 33], duration: port ? 10 : 14, every: 75, offset: 40, fps: 4 };
-  // One bark, halfway across.
-  effects.push(ian, crossingCue(ian, 'SC-20', 0.5));
+  const ianY = port ? 44 : 33;
+  const ian = { kind: 'sprite', id: 'ian', frames: CORGI, from: [-12, ianY], to: [w + 2, ianY], duration: port ? 10 : 14, every: 75, delay: 35,
+    clock: 'scene', times: 3, fps: 4 };
+  // The bark, halfway across; the bubble rides over his head for a moment and moves with him as far as it can.
+  const barkAt = ian.delay + ian.duration * 0.5, barkFor = 1.5;
+  const barkX = Math.round(ian.from[0] + (ian.to[0] - ian.from[0]) * (0.5 + barkFor / 2 / ian.duration)) + 8;
+  effects.push(ian, { kind: 'cue', id: 'ian-sound', cue: 'SC-20', at: barkAt, every: ian.every, clock: 'scene', times: ian.times },
+    { kind: 'dialogue', id: 'ian-barks', speakers: [[barkX, ianY], [barkX, ianY]], width: 14, style: 'emote', exchanges: [[[0, '*BARK!*']]],
+      line: barkFor, pause: ian.every - barkFor, colours: 'aa', clock: 'scene', delay: barkAt, times: ian.times, still: false });
   return { layers: [layer('base', base), ...layers], effects };
 }
 

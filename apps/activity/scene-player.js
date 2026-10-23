@@ -13,7 +13,7 @@ export function createScenePlayer({ host, canvas, altElement, palette, backgroun
   const painter = createSceneCanvas(canvas, { palette, background, font });
   const paused = new Set();
   let scene = null, layout = 'landscape', state = {}, motion = true, frameHandle = null, lastDraw = -Infinity, geometry = null;
-  let confirmedAt = null, beatAt = 0, cueClock = -1, cueTime = null, onCue = cueHandler, onLayout = layoutHandler, size = { width: 0, height: 0 };
+  let confirmedAt = null, beatAt = 0, sceneAt = 0, cueClock = -1, sceneClock = -1, cueTime = null, onCue = cueHandler, onLayout = layoutHandler, size = { width: 0, height: 0 };
   const DOOR_SECONDS = 1.8;
 
   function chooseLayout() {
@@ -33,11 +33,11 @@ export function createScenePlayer({ host, canvas, altElement, palette, backgroun
   function render(now) {
     if (!scene || !size.width) return;
     // People who walk in and talk keep their own clock, from the moment the section (beat) or scene began.
-    const beatTime = Math.max(0, now - beatAt), animating = motion && paused.size === 0;
-    const frame = composeScene(scene, layout, { time: now, beatTime, motion: animating, state: { ...state, doorOpen: doorOpen(now) } });
+    const beatTime = Math.max(0, now - beatAt), sceneTime = Math.max(0, now - sceneAt), animating = motion && paused.size === 0;
+    const frame = composeScene(scene, layout, { time: now, beatTime, sceneTime, motion: animating, state: { ...state, doorOpen: doorOpen(now) } });
     // A scene's sounds play as the section's clock passes them, only while animating; time spent paused skips them.
-    if (onCue && animating && cueTime !== null) for (const cue of sceneCues(scene, layout, { from: cueTime, to: now, beatFrom: cueClock, beatTo: beatTime, state })) onCue(cue);
-    cueClock = beatTime; cueTime = now;
+    if (onCue && animating && cueTime !== null) for (const cue of sceneCues(scene, layout, { from: cueTime, to: now, beatFrom: cueClock, beatTo: beatTime, sceneFrom: sceneClock, sceneTo: sceneTime, state })) onCue(cue);
+    cueClock = beatTime; sceneClock = sceneTime; cueTime = now;
     painter.draw(frame, SCENE_COLOURS);
     lastDraw = now;
   }
@@ -55,7 +55,13 @@ export function createScenePlayer({ host, canvas, altElement, palette, backgroun
 
   return {
     /** Shows a validated scene. */
-    setScene(next) { scene = validateScene(next); beatAt = clock(); cueClock = -1; cueTime = null; wake(); this.refreshAlt(); layoutChanged(); },
+    setScene(next) {
+      // The same scene shown again (the run refreshed) keeps its scene clock, so what comes round a set number of times does not start over.
+      const fresh = scene?.id !== next?.id;
+      scene = validateScene(next); beatAt = clock(); cueClock = -1; cueTime = null;
+      if (fresh) { sceneAt = clock(); sceneClock = -1; }
+      wake(); this.refreshAlt(); layoutChanged();
+    },
     /** A named slot of the scene on screen, in CSS pixels from the canvas's top-left corner; null when it has none. */
     slotRect(name) {
       const slot = scene?.layouts[layout]?.slots?.[name];

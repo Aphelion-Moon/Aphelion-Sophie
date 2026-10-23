@@ -153,7 +153,11 @@ const MOMENTS = {
       'this is an adult community': { beat: 'adult' },
       // Beepsky flies in for the 18+ sign and says the line (sixth pass): his page starts at his line (revision 1 wording).
       '~halt-- oh': { beat: 'beepsky', break: true },
+      // Revision 3's voluntary section is a smaller heading, so its page starts at it and keeps both of its lines.
+      '~none of us are forced to be here': { beat: 'voluntary', break: true },
       'aphelion is owned and operated by queers, furries, and freaks': { beat: 'pride' },
+      // Revision 3 brings the voluntary section back as a smaller heading under amenities; revision 1's heading stays for its runs.
+      'none of us are forced to be here': { beat: 'voluntary' },
       'no one is forcing you to get on the shuttle': { beat: 'voluntary' },
       'know your equipment, amenities, and rights': { beat: 'amenities' },
       'understand our expectations for whitelisting': { beat: 'expectations', viewscreen: 'rules' },

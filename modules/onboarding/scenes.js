@@ -135,14 +135,17 @@ function effect(value, grid, ids, beats) {
     pulse: [['path', 'speed', 'glyph', 'colour'], ['trail', 'trailGlyph', 'trailColour']],
     flap: [['x', 'y', 'width', 'texts', 'period', 'flip', 'colour'], ['align']],
     text: [['x', 'y', 'width', 'template', 'colour'], ['align']],
-    sprite: [['frames', 'from', 'to', 'duration', 'every'], ['offset', 'fps', 'still', 'hold', 'clock', 'rest', 'clip', 'exit', 'once', 'delay']],
-    dialogue: [['speakers', 'width', 'style', 'exchanges', 'line', 'pause', 'colours'], ['clock', 'delay', 'once', 'still']],
-    cue: [['at', 'cue'], ['clock', 'every']],
+    sprite: [['frames', 'from', 'to', 'duration', 'every'], ['offset', 'fps', 'still', 'hold', 'clock', 'rest', 'clip', 'exit', 'once', 'delay', 'times']],
+    dialogue: [['speakers', 'width', 'style', 'exchanges', 'line', 'pause', 'colours'], ['clock', 'delay', 'once', 'still', 'times']],
+    cue: [['at', 'cue'], ['clock', 'every', 'times']],
     conveyor: [['y', 'from', 'to', 'gate', 'gateWidth', 'speed', 'spacing', 'items', 'tags', 'chute', 'readout'], []],
   }[value.kind];
   exactKeys(value, [...common, ...shapes[0]], [...shapes[1], 'when'], 'INVALID_SCENE_EFFECT');
   requireCondition(ID.test(value.id) && !ids.has(value.id), 'INVALID_SCENE_ID'); ids.add(value.id);
   condition(value.when, beats);
+  // times: on the scene's clock (since the scene came on screen), something that comes round does so at most this often
+  // (Ian barks three times in the lounge, owner review of revision 3, 24 October 2026).
+  if (value.times !== undefined) { requireInteger(value.times, 1, 20); requireCondition(value.clock === 'scene' && value.once === undefined, 'INVALID_SCENE_EFFECT'); }
   const cells = grid.cols * grid.rows;
   switch (value.kind) {
     case 'blink':
@@ -195,11 +198,12 @@ function effect(value, grid, ids, beats) {
         point(value.exit.to, grid, LIMITS.spriteCols, 'INVALID_SCENE_SPRITE'); number(value.exit.duration, 1, 60, 'INVALID_SCENE_SPRITE');
       }
       number(value.every, value.duration + (value.hold ?? 0) + (value.exit?.duration ?? 0), 600, 'INVALID_SCENE_SPRITE');
-      if (value.clock !== undefined) requireCondition(value.clock === 'beat', 'INVALID_SCENE_SPRITE');
+      if (value.clock !== undefined) requireCondition(['beat', 'scene'].includes(value.clock), 'INVALID_SCENE_SPRITE');
       // once: on the section's clock, the figure's walk happens a single time and never comes round again.
       if (value.once !== undefined) requireCondition(value.once === true && value.clock === 'beat', 'INVALID_SCENE_SPRITE');
-      // delay: a once-only figure waits this long into the section before it appears (someone sits down after talking).
-      if (value.delay !== undefined) { requireCondition(value.once === true, 'INVALID_SCENE_SPRITE'); number(value.delay, 0, 600, 'INVALID_SCENE_SPRITE'); }
+      // delay: a once-only figure waits this long into the section before it appears (someone sits down after talking); a
+      // figure that comes round a set number of times waits this long before its first walk.
+      if (value.delay !== undefined) { requireCondition(value.once === true || value.times !== undefined, 'INVALID_SCENE_SPRITE'); number(value.delay, 0, 600, 'INVALID_SCENE_SPRITE'); }
       if (value.offset !== undefined) number(value.offset, 0, 600, 'INVALID_SCENE_SPRITE');
       if (value.still !== undefined) number(value.still, 0, 1, 'INVALID_SCENE_SPRITE');
       // clip: only this region shows the sprite (something outside a window stays behind the glass, not over its frame).
@@ -214,7 +218,8 @@ function effect(value, grid, ids, beats) {
       // Two people talking: one line at a time in a speech (or LOOC) bubble above whoever is speaking.
       requireCondition(Array.isArray(value.speakers) && value.speakers.length === 2, 'INVALID_SCENE_DIALOGUE');
       value.speakers.forEach(at => point(at, grid, 0, 'INVALID_SCENE_DIALOGUE'));
-      requireInteger(value.width, 8, LIMITS.bubble); requireCondition(['say', 'looc'].includes(value.style), 'INVALID_SCENE_DIALOGUE');
+      // emote: a sound someone makes (*BARK!*), shown as written, without quotation marks.
+      requireInteger(value.width, 8, LIMITS.bubble); requireCondition(['say', 'looc', 'emote'].includes(value.style), 'INVALID_SCENE_DIALOGUE');
       requireCondition(Array.isArray(value.exchanges) && value.exchanges.length >= 1 && value.exchanges.length <= LIMITS.exchanges, 'INVALID_SCENE_DIALOGUE');
       for (const exchange of value.exchanges) {
         requireCondition(Array.isArray(exchange) && exchange.length >= 1 && exchange.length <= LIMITS.lines, 'INVALID_SCENE_DIALOGUE');
@@ -224,10 +229,11 @@ function effect(value, grid, ids, beats) {
           requireCondition(line[1].split(' ').every(word => [...word].length <= value.width - 6), 'INVALID_SCENE_DIALOGUE');
         }
       }
-      number(value.line, 1, 12, 'INVALID_SCENE_DIALOGUE'); number(value.pause, 0, 30, 'INVALID_SCENE_DIALOGUE');
+      // A counted bubble (a bark each time Ian comes round) waits as long as his round takes.
+      number(value.line, 1, 12, 'INVALID_SCENE_DIALOGUE'); number(value.pause, 0, value.times === undefined ? 30 : 600, 'INVALID_SCENE_DIALOGUE');
       requireCondition(typeof value.colours === 'string' && [...value.colours].length === 2, 'INVALID_SCENE_DIALOGUE');
       for (const key of value.colours) colourKey(key);
-      if (value.clock !== undefined) requireCondition(value.clock === 'beat', 'INVALID_SCENE_DIALOGUE');
+      if (value.clock !== undefined) requireCondition(['beat', 'scene'].includes(value.clock), 'INVALID_SCENE_DIALOGUE');
       if (value.delay !== undefined) number(value.delay, 0, 60, 'INVALID_SCENE_DIALOGUE');
       // once: the talk plays through a single time on the section's clock, then the bubbles stop.
       if (value.once !== undefined) requireCondition(value.once === true && value.clock === 'beat', 'INVALID_SCENE_DIALOGUE');
@@ -240,8 +246,9 @@ function effect(value, grid, ids, beats) {
       // only with motion on. The content check confirms the cue exists in the sound index.
       // On the scene's own clock a cue may repeat every so often, in step with a belt, a passer-by or a loop.
       number(value.at, 0, 600, 'INVALID_SCENE_CUE'); requireCondition(typeof value.cue === 'string' && CUE_ID.test(value.cue), 'INVALID_SCENE_CUE');
-      if (value.clock !== undefined) requireCondition(value.clock === 'beat', 'INVALID_SCENE_CUE');
+      if (value.clock !== undefined) requireCondition(['beat', 'scene'].includes(value.clock), 'INVALID_SCENE_CUE');
       if (value.every !== undefined) number(value.every, 1, 600, 'INVALID_SCENE_CUE');
+      if (value.times !== undefined) requireCondition(value.every !== undefined, 'INVALID_SCENE_CUE');
       break;
     case 'conveyor': {
       // Items riding a belt through a gate: each keeps its own art and tag, and a diverted item leaves for the chute.
@@ -368,15 +375,17 @@ function wrap(text, width) {
 /**
  * Composes one frame. With motion off, time is ignored and every effect shows its still state. beatTime is the time
  * since the current section began; effects on the beat clock (people who walk in and talk) use it instead of time.
+ * sceneTime is the time since the scene came on screen, for effects on the scene clock (Ian's three rounds).
  * Returns rows of glyphs and rows of colour keys, each exactly cols long.
  */
-export function composeScene(scene, layoutName, { time = 0, beatTime = time, state = {}, motion = true } = {}) {
+export function composeScene(scene, layoutName, { time = 0, beatTime = time, sceneTime = time, state = {}, motion = true } = {}) {
   const grid = SCENE_LAYOUTS[layoutName];
   requireCondition(grid !== undefined, 'INVALID_SCENE_LAYOUT');
   requireCondition(typeof time === 'number' && Number.isFinite(time) && time >= 0, 'INVALID_SCENE_TIME');
   requireCondition(typeof beatTime === 'number' && Number.isFinite(beatTime) && beatTime >= 0, 'INVALID_SCENE_TIME');
-  const s = forScene(scene, sceneState(state)), t = motion ? time : 0, bt = motion ? beatTime : 0;
-  const clockOf = fx => fx.clock === 'beat' ? bt : t;
+  requireCondition(typeof sceneTime === 'number' && Number.isFinite(sceneTime) && sceneTime >= 0, 'INVALID_SCENE_TIME');
+  const s = forScene(scene, sceneState(state)), t = motion ? time : 0, bt = motion ? beatTime : 0, st = motion ? sceneTime : 0;
+  const clockOf = fx => fx.clock === 'beat' ? bt : fx.clock === 'scene' ? st : t;
   const layout = scene.layouts[layoutName];
   const glyph = Array.from({ length: grid.rows }, () => Array(grid.cols).fill(' '));
   const colour = Array.from({ length: grid.rows }, () => Array(grid.cols).fill('.'));
@@ -467,13 +476,13 @@ export function composeScene(scene, layoutName, { time = 0, beatTime = time, sta
         const clock = motion ? clockOf(fx) - (fx.delay ?? 0) : 0, lengths = fx.exchanges.map(exchange => exchange.length * fx.line + fx.pause);
         if (clock < 0) break;
         const total = lengths.reduce((a, b) => a + b, 0);
-        if (motion && fx.once && clock >= total) break;
+        if (motion && (fx.once ? clock >= total : fx.times !== undefined && clock >= fx.times * total)) break;
         let at = motion ? clock % total : 0, exchange = 0;
         while (at >= lengths[exchange]) { at -= lengths[exchange]; exchange++; }
         const index = Math.floor(at / fx.line);
         if (index >= fx.exchanges[exchange].length) break;
         const [speaker, words] = fx.exchanges[exchange][index], [ax, ay] = fx.speakers[speaker];
-        const text = fx.style === 'looc' ? `(( ${words} ))` : `"${words}"`;
+        const text = fx.style === 'looc' ? `(( ${words} ))` : fx.style === 'emote' ? words : `"${words}"`;
         const lines = wrap(text, fx.width), width = Math.max(...lines.map(line => [...line].length));
         const x0 = Math.max(0, Math.min(grid.cols - width - 2, ax - Math.floor(width / 2))), y0 = Math.max(0, ay - lines.length - 1);
         for (let y = y0; y < y0 + lines.length; y++) for (let x = x0; x < x0 + width + 2; x++) put(x, y, ' ', '.');
@@ -519,7 +528,8 @@ export function composeScene(scene, layoutName, { time = 0, beatTime = time, sta
         // Someone who leaves after their part is not in the still frame either, unless they name a still position.
         if (!motion && fx.still === undefined && (fx.hold === undefined || fx.exit !== undefined)) break;
         const hold = fx.hold ?? 0, leave = fx.exit?.duration ?? 0, elapsed = clockOf(fx) + (fx.offset ?? 0) - (fx.delay ?? 0);
-        if (motion && fx.once && elapsed < 0) break;
+        if (motion && (fx.once || fx.times !== undefined) && elapsed < 0) break;
+        if (motion && fx.times !== undefined && Math.floor(elapsed / fx.every) >= fx.times) break;
         const phase = motion ? (fx.once ? elapsed : elapsed % fx.every) : fx.still !== undefined ? fx.still * fx.duration : fx.duration;
         if (phase >= fx.duration + hold + leave) break;
         // In: from -> to. Then holding at 'to' (resting pose if any). Then out: to -> exit.to, walking again.
@@ -541,11 +551,12 @@ export function composeScene(scene, layoutName, { time = 0, beatTime = time, sta
 }
 
 /**
- * The sound cues a scene plays between two readings of its clocks, for the staged state: the scene's own clock
- * (from, to) and the section's clock (beatFrom, beatTo), each from exclusive to inclusive. A cue fires as its clock
- * passes its moment (and every 'every' seconds after, when it repeats). With motion off nothing is played.
+ * The sound cues a scene plays between two readings of its clocks, for the staged state: the page's clock (from, to),
+ * the section's clock (beatFrom, beatTo) and the time since the scene came on screen (sceneFrom, sceneTo), each from
+ * exclusive to inclusive. A cue fires as its clock passes its moment (and every 'every' seconds after, when it repeats,
+ * up to 'times' in all). With motion off nothing is played.
  */
-export function sceneCues(scene, layoutName, { from = 0, to = 0, beatFrom = 0, beatTo = 0, state = {}, motion = true }) {
+export function sceneCues(scene, layoutName, { from = 0, to = 0, beatFrom = 0, beatTo = 0, sceneFrom = from, sceneTo = to, state = {}, motion = true }) {
   const layout = scene.layouts[layoutName];
   requireCondition(layout !== undefined, 'INVALID_SCENE_LAYOUT');
   if (!motion) return [];
@@ -553,10 +564,11 @@ export function sceneCues(scene, layoutName, { from = 0, to = 0, beatFrom = 0, b
   const passes = (fx, a, b) => {
     if (!(b > a)) return false;
     if (!fx.every) return fx.at > a && fx.at <= b;
-    const next = fx.at + Math.max(0, Math.floor((a - fx.at) / fx.every) + 1) * fx.every;
-    return (fx.at > a && fx.at <= b) || (next > a && next <= b);
+    const round = Math.max(0, Math.floor((a - fx.at) / fx.every) + 1), next = fx.at + round * fx.every;
+    return (fx.at > a && fx.at <= b) || (next > a && next <= b && (fx.times === undefined || round < fx.times));
   };
-  return layout.effects.filter(fx => fx.kind === 'cue' && matches(fx.when, s) && (fx.clock === 'beat' ? passes(fx, beatFrom, beatTo) : passes(fx, from, to))).map(fx => fx.cue);
+  const clocks = { beat: [beatFrom, beatTo], scene: [sceneFrom, sceneTo] };
+  return layout.effects.filter(fx => fx.kind === 'cue' && matches(fx.when, s) && passes(fx, ...(clocks[fx.clock] ?? [from, to]))).map(fx => fx.cue);
 }
 
 /** The alt text for the current state: the first entry whose condition matches. */
