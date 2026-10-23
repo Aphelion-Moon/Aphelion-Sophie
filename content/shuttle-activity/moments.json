@@ -5,7 +5,7 @@
       "this is an adult community": {
         "beat": "adult"
       },
-      "~halt! age check": {
+      "~halt-- oh": {
         "beat": "beepsky",
         "break": true
       },
@@ -43,6 +43,10 @@
       }
     },
     "board-the-shuttle": {
+      "you are not traveling alone": {
+        "beat": "together",
+        "scene": "landing-bay"
+      },
       "you are not travelling alone": {
         "beat": "together",
         "scene": "landing-bay"
@@ -60,13 +64,13 @@
         "viewscreen": "sealion",
         "scene": "cabin-turbulence"
       },
-      "~that's [sealioning]": {
+      "~that's called [sealioning]": {
         "beat": "sealion",
         "viewscreen": "sealion",
         "scene": "cabin-turbulence",
         "break": true
       },
-      "~nobody owes you an endless defence": {
+      "~nobody owes you an endless defense": {
         "beat": "sealion",
         "viewscreen": "sealion",
         "scene": "cabin-turbulence",
@@ -78,7 +82,7 @@
         "scene": "cabin-turbulence",
         "on": "reveal"
       },
-      "~and we're off the rail": {
+      "~and we're clear from the launch rail": {
         "beat": "strike",
         "viewscreen": "sealion",
         "scene": "cabin-turbulence",
@@ -117,6 +121,9 @@
       },
       "be safe, spacer": {
         "beat": "be-safe"
+      },
+      "ready to enter the station": {
+        "beat": "ready"
       },
       "ready to disembark": {
         "beat": "ready"

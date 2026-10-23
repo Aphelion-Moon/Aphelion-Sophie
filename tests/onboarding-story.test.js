@@ -29,17 +29,17 @@ test('T-STORY-01 the story draft is built from its source, five stages, Discord-
 });
 
 // The owner's guidance in the original copy, point by point (decision "The Shuttle as a story"): the wording is casual,
-// the meaning is not optional.
+// the meaning is not optional. Revision 1 (owner, 24 October 2026) rewords several points and removes some on purpose:
+// the refresher line, "not changing ourselves", the invite link and Wolfgate's early-development note.
 const REQUIRED = [
-  // The Brochure opens with the boarding call: five stops, finishing requests Whitelist, help, and the refresher.
-  ['the-brochure', /^# Boarding call[\s\S]*Five stops[\s\S]*finish up and we request your \*\*Whitelist\*\* role[\s\S]*#crew-support/, 'boarding call'],
+  // The Brochure opens with the boarding call: five phases, finishing brings Whitelist, and where to get help.
+  ['the-brochure', /^# Boarding call[\s\S]*five phases[\s\S]*you'll get your \*\*Whitelist\*\*[\s\S]*#crew-support/, 'boarding call'],
   ['the-brochure', /Whitelist[\s\S]*@matriarch in #crew-support/, 'help in #crew-support'],
-  ['the-brochure', /Already Whitelisted\? Ride along any time[\s\S]*keep your access/, 'refresher keeps access'],
-  // Sixth pass: Beepsky delivers the age check as a line, and the sign explains what NSFW means for you on its own.
-  ['the-brochure', /\*\*Beepsky:\*\* "HALT! Age check\. 18\+ only\. No, really\."\n\n> \*\*NOTICE · 18\+ ONLY/, "Beepsky's age check, then the sign"],
+  // Sixth pass: Beepsky stops the reader for the age check, and the sign explains what NSFW means for you on its own.
+  ['the-brochure', /\*\*Beepsky:\*\* "HALT[^\n]*"\n\n> \*\*NOTICE · 18\+ ONLY/, "Beepsky's age check, then the sign"],
   ['the-brochure', /> That means you might \*see\* things\. It doesn't mean anybody here is up for anything with you/, 'seeing is not consent'],
   // The sea lion: lined up and named, then the boundaries line, the punchline and the THUMP, in that order.
-  ['board-the-shuttle', /^# Real questions are welcome[\s\S]*sea lion on the rail[\s\S]*Saying it politely[\s\S]*Nobody owes you an endless defence[\s\S]*\*\*We crush sea-lions with shuttles\.\*\*\n\n\*THUMP\.\*/m, 'sea lion, boundaries, punchline, THUMP'],
+  ['board-the-shuttle', /^# Real questions are welcome[\s\S]*sea lion on the rail[\s\S]*politely[\s\S]*Nobody owes you an endless defen[cs]e[\s\S]*\*\*We crush sea-lions with shuttles\.\*\*\n\n\*THUMP\.\*/m, 'sea lion, boundaries, punchline, THUMP'],
   ['the-brochure', /18 or older/, 'age 18+'],
   ['the-brochure', /play on our servers, hang out in our Discord, or have any account tied to Aphelion/, 'servers, Discord and any account'],
   ['the-brochure', /under 18 at any point/, 'ever underage'],
@@ -52,21 +52,18 @@ const REQUIRED = [
   ['the-brochure', /doesn't mean anybody here is up for anything with you/, 'not permission or availability'],
   ['the-brochure', /queers, furries, and freaks/, 'who runs Aphelion'],
   ['the-brochure', /decent to the people who are/, 'respect required'],
-  ['the-brochure', /We are not changing ourselves for you/, 'not changing ourselves'],
-  ['the-brochure', /got on this shuttle yourself/, 'boarding is voluntary'],
+  ['the-brochure', /joining us voluntarily/, 'boarding is voluntary'],
   ['the-brochure', /make everybody else miserable until they leave/, 'not boarding to drive people out'],
   ['the-brochure', /#open-a-ticket/, 'tickets'],
   ['the-brochure', /Cry wolf/, 'cry wolf'],
   ['the-brochure', /don't need proof first/, 'no finished investigation needed'],
   ['the-brochure', /#ask-mewn[\s\S]*#ask-mal[\s\S]*#ask-cobalt/, 'leadership channels'],
-  ['the-brochure', /discord\.gg\/Aphelion/, 'invite'],
   ['the-brochure', /rough idea of what's in there before you get Whitelisted/, 'passing understanding of the rules'],
   ['the-brochure', /told the same thing five times/, 'low tolerance for repeatedly ignoring guidance'],
   ['the-brochure', /Policies#RP-01/, 'recommended reading'],
   ['the-brochure', /doesn't replace the real rules/, 'the Shuttle does not replace the rules'],
-  ['the-brochure', /Wiki has the final word/, 'the Wiki is authoritative'],
+  ['the-brochure', /Wiki and Rule References have the final word/, 'the Wiki is authoritative'],
   ['the-brochure', /meridian\.a13\.info\/about[\s\S]*Main_Page[\s\S]*wiki\/Policies[\s\S]*Meridian-Rift/, 'Meridian links'],
-  ['the-brochure', /Wolfgate[\s\S]*early development[\s\S]*@cobalthusky/i, 'Wolfgate status'],
   ['pack-your-bags', /Bubber, Splurt, Nova Sector/, 'import origins'],
   ['pack-your-bags', /Export-Preferences[\s\S]*Import-Character-Preferences[\s\S]*Reconnect/, 'import steps'],
   ['pack-your-bags', /own lore/, 'own lore'],
@@ -76,8 +73,8 @@ const REQUIRED = [
   ['pack-your-bags', /LOOC/, 'LOOC check'],
   ['pack-your-bags', /both want to keep the history/, 'both players agree'],
   ['pack-your-bags', /Nobody owes you an old friendship, romance, rivalry, or grudge/, 'no owed relationships'],
-  ['pack-your-bags', /safety thing[\s\S]*bring it to staff/, 'safety concerns to staff'],
-  ['pack-your-bags', /inheriting a fight/, 'feuds stay behind'],
+  ['pack-your-bags', /safety thing[\s\S]*bring it to staff/i, 'safety concerns to staff'],
+  ['pack-your-bags', /inheriting old problems/, 'feuds stay behind'],
   ['board-the-shuttle', /You are not the main character\. None of us are\./, 'not the main character'],
   ['board-the-shuttle', /owes you their time, attention, or a spot in their scene/, 'no entitlement'],
   ['board-the-shuttle', /Ask, don't assume/, 'ask rather than assume'],
@@ -87,8 +84,8 @@ const REQUIRED = [
   ['board-the-shuttle', /without being cruel/, 'difficult stories without cruelty'],
   ['board-the-shuttle', /Sealioning/i, 'sealioning'],
   ['board-the-shuttle', /bad faith/, 'bad faith'],
-  ['board-the-shuttle', /doesn't stop it being harassment/, 'polite harassment is harassment'],
-  ['board-the-shuttle', /endless defence of who they are/, 'no endless defence'],
+  ['board-the-shuttle', /doesn't stop this being harassment/, 'polite harassment is harassment'],
+  ['board-the-shuttle', /endless defen[cs]e of who they are/, 'no endless defence'],
   ['board-the-shuttle', /debate service/, 'staff are not a debate service'],
   ['board-the-shuttle', /tell us which bit/, 'sincere questions welcome'],
   ['admire-the-lights', /hobby/, 'it is a hobby'],
@@ -102,7 +99,7 @@ const REQUIRED = [
   ['admire-the-lights', /sending evidence to staff/, 'evidence to staff'],
   ['admire-the-lights', /xkcd\.com\/1053/, 'Ten Thousand'],
   ['disembarking', /Take two extra seconds/, 'take your time'],
-  ['disembarking', /something we run, one of our services, someone's behaviour, a call we made/i, 'what to give feedback on'],
+  ['disembarking', /something we run, one of our services, [^,]*someone's behavio(?:u)?r, a call we made/i, 'what to give feedback on'],
   ['disembarking', /#open-a-ticket \*\*, the leadership question channels, or public discussion/, 'feedback routes'],
   ['disembarking', /don't need a finished fix/, 'no finished solution needed'],
   ['disembarking', /can't fix stuff nobody tells us about/, 'tell us'],

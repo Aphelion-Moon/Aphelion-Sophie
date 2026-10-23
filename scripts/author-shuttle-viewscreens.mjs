@@ -151,8 +151,8 @@ const MOMENTS = {
   stages: {
     'the-brochure': {
       'this is an adult community': { beat: 'adult' },
-      // Beepsky flies in for the 18+ sign and says the line (sixth pass): his page starts at his line.
-      '~halt! age check': { beat: 'beepsky', break: true },
+      // Beepsky flies in for the 18+ sign and says the line (sixth pass): his page starts at his line (revision 1 wording).
+      '~halt-- oh': { beat: 'beepsky', break: true },
       'aphelion is owned and operated by queers, furries, and freaks': { beat: 'pride' },
       'no one is forcing you to get on the shuttle': { beat: 'voluntary' },
       'know your equipment, amenities, and rights': { beat: 'amenities' },
@@ -167,16 +167,18 @@ const MOMENTS = {
     },
     'board-the-shuttle': {
       // Each section of Board the Shuttle has its own scene; the shared seat stays in the stop's cabin.
+      'you are not traveling alone': { beat: 'together', scene: 'landing-bay' },
+      // The original pre-story Shuttle text (content/onboarding/definition.json) spells it the British way.
       'you are not travelling alone': { beat: 'together', scene: 'landing-bay' },
       "a shared seat is not an invitation into someone's lap": { beat: 'seat' },
       'we crush sea-lions with shuttles': { beat: 'sealion', viewscreen: 'sealion', scene: 'cabin-turbulence' },
       // The story (sixth pass): the sea lion is lined up and yaps through the first two pages; the third page opens on the
       // boundaries line, and the shuttle hits it when the reader reaches the punchline. Then it's off the rail.
       'real questions are welcome': { beat: 'sealion', viewscreen: 'sealion', scene: 'cabin-turbulence' },
-      "~that's [sealioning]": { beat: 'sealion', viewscreen: 'sealion', scene: 'cabin-turbulence', break: true },
-      '~nobody owes you an endless defence': { beat: 'sealion', viewscreen: 'sealion', scene: 'cabin-turbulence', break: true },
+      "~that's called [sealioning]": { beat: 'sealion', viewscreen: 'sealion', scene: 'cabin-turbulence', break: true },
+      '~nobody owes you an endless defense': { beat: 'sealion', viewscreen: 'sealion', scene: 'cabin-turbulence', break: true },
       '~we crush sea-lions with shuttles.': { beat: 'strike', viewscreen: 'sealion', scene: 'cabin-turbulence', on: 'reveal' },
-      "~and we're off the rail": { beat: 'strike', viewscreen: 'sealion', scene: 'cabin-turbulence', break: true },
+      "~and we're clear from the launch rail": { beat: 'strike', viewscreen: 'sealion', scene: 'cabin-turbulence', break: true },
     },
     'admire-the-lights': {
       'we are here to enjoy ourselves': { beat: 'enjoy' },
@@ -193,6 +195,8 @@ const MOMENTS = {
       'watch your step and do not run': { beat: 'watch-step' },
       'feedback is a two-way street': { beat: 'feedback' },
       'be safe, spacer': { beat: 'be-safe' },
+      'ready to enter the station': { beat: 'ready' },
+      // The original pre-story Shuttle text keeps its heading.
       'ready to disembark': { beat: 'ready' },
       "you will need to click the 'get whitelisted' button in game and complete discord sign in to link your account to our server completely": { beat: 'get-whitelisted', viewscreen: 'get-whitelisted' },
       // The story draft's shorter heading for the same step; both stay until the story version is published.

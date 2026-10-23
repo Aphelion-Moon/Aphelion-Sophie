@@ -506,7 +506,7 @@ function lounge(name) {
     effects.push({ kind: 'sprite', id: 'beepsky-leaves', frames: BEEPSKY, from: [hx, hy], to: [hx, hy], duration: 1, hold: 0.5, exit: { to: [w + 2, hy - 2], duration: 2.5 },
       every: 600, fps: 2, ...beepsky, when: { beat: ['adult'], after: ['beepsky'] } });
     const halt = { kind: 'dialogue', id: 'beepsky-says', speakers: [who, who], width: 24, style: 'say', delay: 2.5, line: 4, pause: 3, colours: 'rr', clock: 'beat',
-      exchanges: [[[0, 'HALT! Age check. 18+ only. No, really.']]], when: { beat: ['beepsky'] } };
+      exchanges: [[[0, 'HALT-- oh. You\'re ancient. Move along.']]], when: { beat: ['beepsky'] } };
     effects.push(halt, ...blips(halt));
   }
   // Dust in the light over the benches, kept out of the EXIT sign's box.

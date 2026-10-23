@@ -1856,3 +1856,17 @@ server's commands are now `/lookup`, `/sophie` and `/whitelist` with only `post`
 live again in each channel. Folder `.agent_docs/aphelion-sophie/deployment-26f72b7-production-2026-10-24`; backup
 `D:\Backups\sophie-staging\production-26f72b7-20261024`; `rollback.ps1` removes `/whitelist` and restores 1e02c98. The
 earlier `7394de5` packet was never run and is marked superseded.
+
+### Shuttle story revision 1 — 24 October 2026
+
+The owner rewrote the Shuttle story (`content/onboarding/story-revised-1.md`) and asked for the file and the story process to
+be cleaned up. Owner answers: "Everything removed was intentional. Adapt to it." (the refresher line for members already
+Whitelisted, "We are not changing ourselves for you", the permanent invite link and Wolfgate's early-development note leave
+the story and its meaning checklist), and "journey" is swapped for "ride" (the ban on stock phrasing stays).
+
+`content/onboarding/story.md` now holds the revision, cleaned for format only: the header comment restored, sign cards
+rejoined into single quote blocks, whitespace normalised, two plain quotes made paragraphs (only signs are quote blocks),
+and typos fixed (its/it's, let's, who's, reasons, a missing full stop). Reworded checklist points take the new wording.
+Scene beats follow the reworded headings and phrases (the original pre-story text keeps its own keys), and Beepsky's
+speech in the departure lounge scene now says the revision's line. Not published: production still shows story version 1
+until the owner approves an install (the scene and moments ship with the source) and a story publication.

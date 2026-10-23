@@ -6,69 +6,68 @@ story-draft.json (the editor document to publish) and story-preview.md. Each par
 One text serves the Activity and the text version, so it describes what you do, never the name of a button that only
 one of them has. Voice rules: no em dashes; Sophie, Rook and Pip talk like people; the signs ("> **NOTICE · ...**")
 carry the must-know facts. tests/onboarding-story.test.js checks that every required point is still here.
+Revision 1 (owner, 24 October 2026): story-revised-1.md, cleaned for format and typos only.
 -->
 === the-brochure | The Brochure
+
 # Boarding call
-*kssht* is this thing on? Hi! Sophie, Community Services, coming to you live from a desk with three cold coffees on it.
 
-Five stops, a bit of reading at each, then hit **Continue**. No quiz. At the last one you finish up and we request your **Whitelist** role, the thing that gets you onto our game servers. Stuck anywhere? Ping @matriarch in #crew-support.
+*kssht* ...is this thing on? Oh, shit-! Hi! I'm Sophie, with Community Services, coming to you live from... a desk with *plastic rattling noises* three cold coffees on it. Nice to meet you.
 
--# Already Whitelisted? Ride along any time to catch up. You keep your access.
--# “The Shuttle”: An Interactive Theory and Onboarding Process. Last updated: 22 October 2026.
+So you're here about joining our... What, collective? Our group of misfits. This trip won't take you terribly long; there are five phases to the ride, and I'll yap to you throughout the process. No quiz, relax. Once you Disembark, you'll get your **Whitelist** which is valid across all of our services. If you get stuck anywhere, you can ping the @matriarch in #crew-support and she will help out.
 
 # This is an *adult* community
-First things first, because we don't budge on this one. Age check. Everybody gets one.
 
-**Beepsky:** "HALT! Age check. 18+ only. No, really."
+First things first, because we don't budge on this one. Age check. Everybody gets one before even arriving at the Interlink here.
+
+**Beepsky:** "HALT-- oh. You're ancient. Move along."
 
 > **NOTICE · 18+ ONLY. NO, REALLY.**
 > You have to be 18 or older to play on our servers, hang out in our Discord, or have any account tied to Aphelion. Full stop.
-> No second chances on this one. If we find out, or have good reason to believe, that you're under 18, or that you were under 18 at any point while you were with us, you're gone. Permanently. Doesn't matter how long you've been around or what you've made.
+> If we find out, or have good reason to believe, that you're under 18, or that you were under 18 at any point while you were with us, you're gone. Permanently. Doesn't matter how long you've been around or what you've made. No second chances.
 > Yes, you already did an age check. This applies on top of it.
 
-> **NOTICE · THE LEGAL BIT**
+> **NOTICE · LEGAL NONSENSE**
 > Aphelion is based in the European Union and runs under EU law. Making sure you're allowed to be here where you live is on you.
 > By playing, using any Aphelion service, or sticking around our Discord, you're agreeing you might bump into sexual or NSFW stuff in passing.
 > That means you might *see* things. It doesn't mean anybody here is up for anything with you. Nobody's "available" just because the server's for adults.
 
 # Aphelion is owned and operated by queers, furries, and freaks
-Oh, you noticed the banner. Yeah, it's staying up. It isn't Pride Month. It's just us.
 
-If that's going to be a problem for you, honestly, this is a great stop to get off at. No hard feelings.
-
-Nobody needs you to be into everything that goes on in here. You just have to be decent to the people who are.
-
-**We are not changing ourselves for you.**
+If that's going to be a problem for you, honestly, this is a great place to turn back. Nobody needs you to be into everything that goes on in here. You just have to be decent to the people who are.
 
 # No one is forcing you to get on the shuttle
-See the EXIT sign? Always lit. You can leave whenever you like. You got on this shuttle yourself, remember that.
+
+See the EXIT sign? Always lit. You can leave whenever you like. You are joining us voluntarily, you can leave at any time.
 
 Deciding we're not your thing? Totally fine. Getting on board just to make everybody else miserable until they leave? Not fine.
 
 # Know your equipment, amenities, and rights
-Help desk's over there. It's never closed. The person behind it just sometimes looks like it is.
+
+Help desk is *riiiight* over there. It's free, and the people that handle tickets volunteer their time willingly to support you.
 
 You don't have to figure everything out alone. Whatever you need, ** #open-a-ticket **.
 
-Think you see a wolf? Cry wolf. Smell smoke? Shout. Looking into it is our job, and you don't need proof first. You just need to tell us.
+Think you see a wolf? Cry wolf. Smell smoke? Shout. Hear a breach? Screech. Looking into it is our job, and you don't need proof first. You just need to tell us.
 
 > **NOTICE · WHO TO BUG**
 > * ** #ask-mewn **: owns the place, writes the rules, handles most things.
 > * ** #ask-mal **: runs **Meridian Rift**, our SS 13 server.
 > * ** #ask-cobalt **: runs **Wolfgate**, our SS 14 server (still early days).
-> Lost the invite? https://discord.gg/Aphelion never expires.
 
 # Understand our expectations for whitelisting
-Okay. Rules. You don't need to memorise them, but you do need a rough idea of what's in there before you get Whitelisted.
 
-Nobody shows up knowing everything. Ask stuff, take advice, mess up, learn. What wears us out is someone being told the same thing five times and doing it a sixth.
+Okay. Rules. You don't need to memorize them, but you do need a rough idea of what's in there before you get Whitelisted.
+
+Nobody shows up knowing everything. Ask stuff, take advice, mess up, learn from the fallout. What wears out the team is someone being told the same thing five times and doing it a sixth. They enjoy helping, and you should take advantage of that.
 
 > **NOTICE · WHERE THE RULES ACTUALLY LIVE**
 > **[Start with our recommended reading](https://meridian-wiki.a13.info/wiki/Policies#RP-01).**
-> This shuttle gives you the gist. It doesn't replace the real rules. For anything about the games, the Wiki has the final word. Always.
+> This process gives you the gist of our expectations. It doesn't replace the real rules. For anything about the games, the Wiki and Rule References have the final word. Always.
 
 # About SS 13 - Meridian Rift
-Ooh, the board changed. **Meridian Rift**, our SS 13 server. Bookmark these, you'll want them.
+
+Ooh, the ticker finally updated. Tadaaa, **Meridian Rift**, our SS 13 server. Station oriented experiences, with a system focus on customization and character creativity. Bookmark these links I'm about to send you in your brain 'er somewhere convenient, you'll want them later.
 
 > **NOTICE · MERIDIAN RIFT**
 > [Main website](https://meridian.a13.info/about/): project info, maps, achievements, player lookup, round logs and more.
@@ -76,158 +75,186 @@ Ooh, the board changed. **Meridian Rift**, our SS 13 server. Bookmark these, you
 > [GitHub](https://github.com/AphelionDevelopment/Meridian-Rift/): the code, if you're into that.
 
 # About SS 14 - Wolfgate
-And **Wolfgate**, our SS 14 server! Which has… nothing to show yet. Early development. Go poke @cobalthusky about it. :wink:
 
-Boarding's open. Hit **Continue** and get your bags sorted.
+*tap-taps on a panel noisily.* Annnnnd **Wolfgate**, our SS 14 server! Ship-oriented, exploration focused, and packed full of new features that our competition doesn't have. Still plenty of ways to play dress-up, but the work experience is... More dangerous, let's say. Black holes and all that, you know? Hazardous.
+
+Ah, great, Boarding's open. Hit **Continue** and get your bags sorted. I hope you packed well.
 
 === pack-your-bags | Pack Your Bags
+
 # If you are migrating from elsewhere...
+
 Bags on the belt. The scanner's a bit dramatic, don't take it personally. Watch which way yours goes.
 
-Coming over from another server? You can bring your old faces along. They might just need different luggage.
+Coming over from another server? You can bring your old sweaters and blorbos if you really want to. They might just need different luggage tags.
 
 > **NOTICE · MOVING YOUR PREFS (SS 13: Bubber, Splurt, Nova Sector)**
 > 1. On your old server, run `Export-Preferences`.
 > 2. Once you've got Whitelist and can get into Meridian Rift, run `Import-Character-Preferences`.
 > 3. It'll kick you after the import. That's normal. Reconnect.
 
-Your prefs come with you. The setting doesn't.
+> **NOTICE · MOVING YOUR PREFS (SS 14: Hardlight, Monolith, Frontier and similar)**
+> 1. At your prior server, download your information through their provided systems.
+> 2. Once you've got Whitelist and can get into Wolfgate, go to the Character Creator, select a profile, and then you can import in the bottom right. It should just work!
+
+Your prefs come with you. The setting your prefs are coming from doesn't.
 
 # Leave the past in the past
-Someone left a cape in locker 12. They'll live.
 
-New community, new stories. Our servers have their own lore, and your old hero isn't automatically the main plot here.
+You know, I'm just looking at this camera feed now. Seems like some poor forgetful soul left a cape in locker 12. Seems old, ratty, and I can see a mustard stain on it too. Yuck.
 
-Bring characters from other servers if you want, but rework their backstory so it fits our lore. A name people recognise doesn't come with rank, authority, or a spotlight.
+It's probably for the best. New company, a new opportunity to collect new gear, and leave behind old memories bogging you down. It's a chance for a fresh start! That cloak isn't going to get any better with a spin cycle.
 
-Honestly, we'd wipe most of your old character relationships too. Let people try something new, even if they're wearing a face you know.
+Just in case it ain't clear, our servers have their own lore, and your old hero isn't automatically the main plot here. Bring characters from other servers if you want, but rework their backstory so it fits our lore. A name people recognize doesn't come with rank, authority, or a spotlight.
+
+Honestly, we'd suggest you wipe most of your old character relationships too. Let people try something new, even if they're wearing a face you know! Who knows, you might make an entertaining rival out of a long term friend. Or maybe fall in love again all the same. Who's to say?
 
 # Don't assume your character knows their friends or enemies
-Ooh, over by the belt. That one thinks they know the other one. Watch.
+
+Ooh, in the corner there. Check it out, that sweaty vet thinks they know that blueberry. Watch, let's see if they get it right.
 
 **Rook:** (( hey, do our characters know each other here or are we starting fresh? ))
-**Pip:** (( never met you lol. first time here ))
-**Rook:** (( fresh start then. I'm Rook ))
 
-Easy. One quick **LOOC** message (local out-of-character chat) before you assume your character knows someone else's.
+**Pip:** (( never met you lol. First time here ))
 
-If you both want to keep the history, keep it. If not, introduce yourself like a normal person. Nobody owes you an old friendship, romance, rivalry, or grudge.
+**Rook:** (( oh shit, sorry. Thought you were someone I knew! ))
 
-Same for drama from other servers: leave it there. If it's an actual safety thing, that's different, bring it to staff. We just don't want your new neighbours inheriting a fight they were never in.
+Easy, even for a case of mistaken identity. One quick **LOOC** message (local out-of-character chat) before you assume your character knows someone else's will save you both the confusion.
 
-Bags are in. **Continue** to Gate 03.
+Now I'm not saying it's company policy or anything, if you both want to keep the history, keep it. Not our business. But hey, if not, introduce yourself like a normal person. Nobody owes you an old friendship, romance, rivalry, or grudge. Don't assume people want to keep ties to their past.
+
+*pauses for a moment, as you hear a page shuffling and Sophie grumbling at someone out of clear reach of her microphone* Yeah yeah, and same for drama from other servers: leave it there. If it's an actual safety thing, that's different, bring it to Staff. We just don't want your new neighbors inheriting old problems, or strangers having to witness it.
+
+Your bags got through the check, check it out! **Continue** to Gate 03, I'll be watching. No- hey! I saw you look up at that camera! I've been forced to watch all of you fresh aphids. Get going, you're gonna miss your flight.
 
 === board-the-shuttle | Board the Shuttle
-# You are not travelling alone
-Look at this queue. Every one of these people came here for the same reason you did, and their evening matters just as much as yours.
+
+# You are not traveling alone
+
+Look at this queue. Every single one of these travelers and employees are headed in for different reasons, and their evening matters just as much as yours.
 
 **You are not the main character. None of us are.**
 
-Your character still matters! So does everyone else's.
+Hey I see that frown, you still matter! Just, so does everyone else.
 
-Give people something to work with. Let what they do actually change things. Leave room for someone else to talk, try stuff, win, or completely blindside you. The best scenes are the ones you make with people, not the ones you make them sit through.
+Give people something to work with. Let what they do actually change things, for you and for others. Leave room for someone else to talk, try stuff, win, or completely blindside you. The best scenes are the ones you **make** with people, not the ones you make them sit through. We're working alongside each other, not holding a stageplay for solo actors.
 
 # A shared seat is not an invitation into someone’s lap
+
 **Pip:** "ooh, mind if I squeeze in next to you?"
+
 **Passenger:** "I'd rather keep the space, sorry."
-**Pip:** "all good!" … "ROOK. is this one free?"
-**Rook:** "all yours."
+
+**Pip:** "all good!" … "ROOK. Is this one free?"
+
+**Rook:** "all yours. It's the next row anyways. Just don't lean back, yeah?"
 
 Did you catch that? Pip asked, got a no, said "all good", and moved on. Honestly, that's most of it.
 
-Being on the same server doesn't mean anyone owes you their time, attention, or a spot in their scene.
+Being in the same room doesn't mean anyone owes you their time, attention, or a spot in their scene.
 
-Ask, don't assume. When someone says no, take it, and don't make them justify it. A yes last week isn't a yes forever. Whatever your characters are to each other, the players' boundaries come first.
-
-You can tell dark, messy stories without being cruel to the actual people helping you tell them.
+Ask, don't assume. When someone says no, listen, and don't make them justify it. A yes last week isn't a yes forever. Whatever your characters are to each other, the players' boundaries come first. Respect the person behind the keyboard; you can tell dark and messy stories without being cruel to the actual people helping you tell, or being subjected to, them.
 
 # Real questions are welcome
-Straps on, we're rolling out to the launch rail. Real questions? Love those. Disagree with us? Fine. Want something clarified? Please ask.
 
-…there's a sea lion on the rail. It wants us to explain why it should move. We did. It wants us to explain again.
+Straps on, we're rolling out to the launch rail. Got any real questions? Awesome, we love those, take a note in your phone to pester the Team with later. Disagree with us? Hating your travel experience so far? That's fine, we would like to hear why. Need something clarified? Please ask, in earnest and with clear intent, and you'll likely get help from your fellow co-workers before a Staffer even has a chance to help.
 
-That's [sealioning](https://en.wikipedia.org/wiki/Sealioning): demanding explanations or evidence over and over in bad faith, ignoring every answer, and keeping someone stuck in a conversation they've already tried to leave.
+…there's a space sea lion on the rail. Is it... Hold on let me tap into the external camera and read its maw... It wants us to explain why it shouldn't lay on the launch rail. Again. Look, I already reached out to the SCPS last week about this creature. We had an akulan swim out there and explain why it can't lay there. It's probably demanding we explain why we didn't find a way to fly over it this time.
 
-Saying it politely doesn't stop it being harassment. Grinding someone down isn't "just asking questions".
+That's called [sealioning](https://en.wikipedia.org/wiki/Sealioning) by the way: demanding explanations or evidence over and over in bad faith, ignoring every answer, and keeping someone stuck in a situation they've already tried to leave.
 
-Nobody owes you an endless defence of who they are, what their boundaries are, or why they get to be here. Staff are always up for feedback. That doesn't make anybody your personal debate service.
+Just because he's sitting there waving his fin politely doesn't stop this being harassment of our usual processes. Grinding someone down isn't "just asking questions". I already saw that Akula in the bar throwing back shots.
 
-**We crush sea-lions with shuttles.**
+Nobody owes you an endless defense of who they are, what their boundaries are, or why they get to be here. Staff aren't obligated to keep explaining why things operate the way they do. Staff are always up for feedback, this guy had none. We're not a personal debate service. This isn't the first one we've seen, there is procedure in place...
 
-*THUMP.* He's fine. Bit dazed. Anyway: if you honestly don't get something, tell us which bit. We'd much rather answer a real question than leave you guessing.
+Sorry for the delay. Let me reach out to the traffic controller.
 
-And we're off the rail. **Continue** when you want a look out the window.
+To be clear: **We crush sea-lions with shuttles.**
+
+*THUMP.* He's fine, probably. Surely just a bit dazed. Anyways! If you honestly don't get something, tell us which bit. We'd much rather answer a real question than leave you guessing.
+
+And we're clear from the launch rail now, finally. You can **Continue** when you want a look out the window, it'll be a little bit of a flight. I heard the observation deck has a good view.
 
 === admire-the-lights | Admire the Lights
+
 # We are here to enjoy ourselves
-Straps off. Go look out the window, Rook and Pip already beat you to it.
 
-At the end of the day this is a hobby. It should give you a bit of energy back, not eat whatever you had left after work.
+Yeah, good. Take those straps off. Go look out the window, Rook and Pip already beat you to it.
 
-Don't build your fun out of somebody else's bad night. Winning, getting noticed, getting the exact scene you pictured in the shower: none of it is worth someone logging off wishing they hadn't logged on.
+At the end of the day this is a hobby and a volunteer organization. It should give you a bit of energy back, not eat whatever you had left after working elsewhere.
+
+Don't build your fun out of somebody else's bad night. Winning, getting noticed, getting the exact scene you pictured in the shower: none of it is worth someone logging off and heading home wishing they hadn't logged on today.
 
 Need a break? Take one. You don't owe the game every evening you've got. We'll still be here.
 
 # Every life is valuable, every experience is unique
+
 **Pip:** "ok this is probably a dumb question but what's a greytide"
-**Rook:** "not dumb. see the guy floating past the window with the toolbox? greytide."
 
-Everyone behind a character has lived a different life to yours. Nobody arrives knowing everything, and what's easy for you might not be easy for them.
+**Rook:** "not dumb. See that idiot floating past the window? A really poor example of a greytider. Look at them wiggle that toolbox..."
 
-Let people ask, learn, and fix their own mistakes. Getting it wrong doesn't mean they meant it. And being new does not make somebody the punchline.
+Everyone behind a character has lived a different life to yours. Nobody arrives knowing everything, and what's easy for you might not be easy for them. It's difficult to explain why people make the choices they do in life.
 
-Goes both ways, though. If someone tells you that you hurt them or crossed a line, listen. Being up for learning means being up for actually changing what you're doing.
+Let people ask, learn, and fix their own mistakes. Getting it wrong doesn't mean they meant it. And being new does not make somebody the punchline. Except that greysuit out here. I can ping her IFF, she was already warned about this before. I'm sure one of the drones will pick her up soon.
 
-These games are a chance to get better at stuff, together. Leave people readier for next time, not scared of it.
+That goes the other way too, mind you. If someone tells you that you hurt them or crossed a line, listen. Being up for learning means being up for actually changing what you're doing.
+
+These games are a chance to better ourselves as people, together. Leave your fellow crew more ready for next shift, not scared of it.
 
 # Take photos and make memories
-**Rook:** "can I post this one?"
-**Pip:** "sure, just crop my name out"
 
-Keep the funny logs, screenshots, clips, all the little moments you'd have forgotten by Tuesday. Share whatever made you glad you showed up.
+**Rook:** "wait first, let me take a selfie. can I post this one?"
+
+**Pip:** "sure, just crop my pants out, I forgot to wash them"
+
+Keep the funny logs, screenshots, clips, all the little moments you'd have forgotten by Tuesday. Share whatever made you glad you showed up. The best memories have other people in them, make sure other people are happy to be in yours.
 
 > **NOTICE · BEFORE YOU POST**
 > Sharing a private conversation or a sexual scene? Get the OK from the people in it first. Crop personal info out of screenshots and recordings.
 > None of that stops you sending evidence to staff when you need help. Reporting a problem isn't the same as putting someone on blast.
 
-The best memories have other people in them. Make sure they're happy to be in yours.
-
 # The lucky ten thousand
-Listen to these two. Somebody out there is hearing about something for the first time today. The move isn't "wait, you've NEVER…?" It's "oh, you're in for a treat."
 
-[XKCD's "Ten Thousand"](https://xkcd.com/1053/) says it better than I can, and it works on people in general.
+Listen to these two yap. Damn, he really is new to Space. You know, every day, somebody out there is hearing about something you probably consider to be common knowledge for the first time. The smooth move isn't to hit them with a "wait, you've NEVER…?" lambasting of inexperience. Jump on it, invite them to experience it with you.
 
-Station's in sight! **Continue** when you're ready to get off.
+[XKCD's "Ten Thousand"](https://xkcd.com/1053/) says it better than I can.
+
+Oh shit, look, station's in sight! **Continue** when you're ready to start Disembarking.
 
 === disembarking | Disembarking
+
 # Watch your step and do not run
-Welcome to Aphelion! Mind the wet floor. Seriously, they *just* mopped.
 
-No rush. Take two extra seconds and actually look around.
+Welcome to Aphelion! Mind the wet floor. Seriously, they *just* mopped. We don't know who keeps pissing on the floor, probably one of the *dozens* of dogs this org employs.
 
-For a lot of us these games have turned into a routine. Try not to sprint straight to your locker for the usual gear. Say hi. Notice who's standing next to you. Let a weird situation turn into a story.
+No rush, yeah? Take two extra seconds and actually look around. Things might look familiar, but if you don't stop to smell the... Flowersss- oh those hydroponics trays are empty. I'll put a notice in for Botany. Smell the uhhh- hey did you know we have state of the art air filtration systems? Just enjoy the clean air.
 
-You've arrived somewhere new. Enjoy that while it lasts.
+For many of us these games have turned into a routine. Try not to sprint straight to your locker for the usual gear once you get on station. Stop and say hi to the clown staring at that wall. Watch the felinid chase a mouse and eat it. Stop by the bar and get something you've not had to drink before. Notice who's standing next to you. Let a weird situation turn into a story.
+
+You've arrived somewhere new. Enjoy that while it lasts. Nothing lasts forever; not you, not this station, not the frame of time we live in.
 
 # Feedback is a two-way street
+
 See the box by the door? People actually read what goes in it. Staff and leadership keep this place running, and you get a say in how.
 
-Tell us when something isn't working. Something we run, one of our services, someone's behaviour, a call we made. Writing the rules doesn't put us above being told we got it wrong.
+Tell us when something isn't working. Something we run, one of our services, problems with someone's behavior, a call we made, anything. Writing the rules and building this place doesn't put us above being told we got it wrong. Our Matriarch and Developers, reliable as they try to be, constantly make mistakes. They're human, just like you-- well actually I can't see under that hood you've been wearing. You know, it's weird, why didn't you get a pat down? Maybe I need to bring that up...
 
 > **NOTICE · HOW TO COMPLAIN AT US**
 > Use ** #open-a-ticket **, the leadership question channels, or public discussion, whatever fits. Tell us what happened, what the problem is, and what you think might help. You don't need a finished fix before you bring something up.
 
-We can't promise every idea becomes a change. We can promise we can't fix stuff nobody tells us about.
+We can't promise every idea becomes a change. We can promise we can't fix stuff nobody tells us about, until we notice it ourselves or it impacts us. I don't know how often you've been to medbay (y'know I don't get ANY access to your record when I'm handling these things???), but there is a concept called triage; when you have to decide which of your injured and broken get healing first.
 
 # Be safe, Spacer
-Space is mean, and you can't plan for everything. That locker has internals in it for a reason.
+
+Space is mean, and you can't plan for everything. That locker over there has spare internals in it for a reason. We try to provide enough to keep you safe and healthy, but you're still going to have to look out for and advocate for yourself.
 
 Keep an eye on what's going on around you. Look out for the people around you too, and don't forget you're one of them.
 
-If something's wrong, say so. If you need help, ask. Please don't quietly disappear on us.
+If something's wrong, say so. If you need help, ask. If someone is making your life here unpleasant, unfun, or uncomfortable, please don't quietly disappear on us. Tell us. An airlock that doesn't screech, doesn't get grease. I used to say something about a squeaky wheel, but we went and turned to magnetic bearings. Not really the same issue.
 
-# Ready to disembark?
-Last check before the door, and this one counts.
+# Ready to enter the station?
+
+Last check before you cross the threshold. The shuttle can still take you back if you disagree.
 
 > **NOTICE · FINISHING THE SHUTTLE MEANS YOU'RE TELLING US:**
 > * You're 18 or older, and you've got the adult-content stuff from the first stop.
@@ -236,10 +263,13 @@ Last check before the door, and this one counts.
 > * You know where to find the rules, where to ask questions, and where to raise concerns.
 
 # One last step, in the game
+
 **Pip:** "see you on the station?"
-**Rook:** "Meridian's that way. walk, don't run."
 
-> **NOTICE · DON'T FORGET**
+**Rook:** "Meridian's that way. Walk, don't run."
+
+> **NOTICE · FINALIZING YOUR WHITELIST PER-SERVER**
 > In the game, click the **Get Whitelisted** button and finish the Discord sign-in. That links your account to our server properly. Skip it and you're not done.
+> If you leave the Discord, your access will be automatically revoked.
 
-Welcome to **Aphelion**. Really glad you made it.
+We're done here! Welcome to **Aphelion**, creature. I'm really glad you made it. <3
