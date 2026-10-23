@@ -1,6 +1,6 @@
 {
   "schema_version": 2,
-  "revision": "2026-10-24-production-opening",
+  "revision": "2026-10-24-production-a4f8b71",
   "reference_plan_version": "1.1",
   "source": "Sophie-Implementation-Plans-v1.1/backlog.json",
   "owner_decisions": "docs/decisions/0001-owner-policy.md",
@@ -1784,13 +1784,15 @@
         "cc90730 installed on 24 October 2026: the station-broadcast rules post and the Activity mobile audit fixes.",
         "d69637c installed on 24 October 2026: the owner's rules post wording; the logotype and board as images served by the Activity host.",
         "a928b04 installed on 24 October 2026: the rules post links its channels, @matriarch and its emoji (never notifying), with the owner's second edit.",
-        "The Activity opened to every eligible member on 24 October 2026 (0e513dc)."
+        "The Activity opened to every eligible member on 24 October 2026 (0e513dc).",
+        "a4f8b71 installed and Shuttle version 5 published on 24 October 2026: error alerts to the alert channel pinging @matriarch, a link that retries then offers to try again, frames on a fixed grid at 30 fps, typewriter speed independent of refresh, music at 50%, Akula."
       ],
       "remaining_scope": [
-        "Owner: Go live again in each channel on the new release (0e513dc).",
+        "Owner: Go live again in each channel on the new release (a4f8b71).",
         "Owner: Go live in each channel on the dashboard; /sophie Yes.",
         "Live checks: a reply in #ask-sophie (code and Guidebook), a saved memory, Get my data, the Activity for a Lead Ops tester, a staff channel turn.",
-        "Owner: /whitelist post in a private channel, check the images on desktop and a phone, then post it in the rules channel and delete the old one; re-open the Activity on a phone."
+        "Owner: /whitelist post in a private channel, check the images on desktop and a phone, then post it in the rules channel and delete the old one; re-open the Activity on a phone.",
+        "Confirm the first error alert reaches the alert channel and pings @matriarch (Sophie needs to see and send messages there)."
       ]
     },
     {

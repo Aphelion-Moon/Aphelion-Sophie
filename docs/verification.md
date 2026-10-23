@@ -1,5 +1,23 @@
 # Verification and release limits
 
+## Production install of a4f8b71 and Shuttle version 5 — 24 October 2026
+
+- **Offline:**
+  - `npm test` 860 passed:
+    - T-ALERT-01..06: classification, cooldowns and counts, hourly cap, ping cooldown, role by name, transport refusals,
+      configuration;
+    - T-ACT-CLI-18: the link's bounded tries and backoff, then "try again"; the typewriter carry; music at 50%;
+    - the frame grid at 60 and 144 Hz, and step rates at 30 fps;
+  - `npm run check` passed; storage 1037 passed.
+- **Install:**
+  - preflight: 11 reviewed files; the runtime differs only by errorAlerts, validated by the candidate; capability policy
+    equal to the recorded version 2;
+  - pre-start, service boundaries, installed checks and public hosts passed;
+  - version 5 published (2 runs reset);
+  - the trusted runtime carries errorAlerts.
+- **Not covered:** an alert actually posting, since no error has happened since the install; and the smoother motion and
+  link retries on real devices.
+
 ## The opening: 0e513dc, Activity open — 24 October 2026
 
 - **Offline:** the production-mode suite passes on 0e513dc: `activityStatus: 'open'` validates and differs from the testing

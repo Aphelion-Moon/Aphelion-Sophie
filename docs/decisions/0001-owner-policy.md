@@ -2169,3 +2169,11 @@ timing elsewhere, a reported double space in Pack Your Bags, and "change 'akulan
   reads wider than a space. No change.
 - **Akula.** "We had an akulan swim out there" now reads "We had an Akula swim out there" (story revision 4), published
   as Shuttle version 5. Activity runs still being read on version 4 restart at the first stop, as with every story update.
+
+### Production install of a4f8b71 and Shuttle version 5 — 24 October 2026
+
+On the owner's "Install it when you're done.", `a4f8b71` was installed over `0e513dc` at 23:23 UTC on 23 October (host clock).
+The runtime gains `errorAlerts` (channel 1528812406724231288, role matriarch). The Activity stays open, capability policy
+version 2 is unchanged, and there is no migration. All checks passed. Story revision 4 (Akula) was published as **Shuttle
+version 5**, and the 2 rides in progress on version 4 restart at the first stop. Folder
+`.agent_docs/aphelion-sophie/deployment-a4f8b71-production-2026-10-24`; `rollback.ps1` restores 0e513dc.
