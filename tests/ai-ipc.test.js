@@ -8,6 +8,7 @@ import { createMeteredAiWorker } from '../apps/core/runtime/ai-provider.js';
 import { createAiIpcWorker } from '../apps/knowledge-worker/ipc-server.js';
 import { createAiIpcChannel } from '../apps/knowledge-worker/ipc-channel.js';
 import { createMistralClient, MISTRAL_MODEL } from '../apps/knowledge-worker/mistral-client.js';
+import { aiReservationNanos } from '../modules/assistant/budget.js';
 
 const key = Buffer.alloc(32,7), identity = {workerId:'1'.repeat(64),bootId:'2'.repeat(64),releaseHash:'3'.repeat(64),profileHash:'4'.repeat(64),provider:'mistral',domain:'public'};
 const output = {kind:'reply',text:'Synthetic reply',purpose:'conversation',support:'current_conversation',citations:[]};
@@ -57,6 +58,18 @@ test('DS04-I01 authenticated private-stream turn preserves dispatch/settlement o
     assert.equal(Object.hasOwn(f.inputs[0],'local'),false); assert.equal(Object.hasOwn(f.inputs[0],'token'),false);
     await tick(); assert.equal(f.worker.status().active,0);
   } finally {await f.close();}
+});
+
+test('DS04-I01b a context output budget above 512 tokens crosses the worker boundary and is reserved',async()=>{
+  // Regression: the support and staff contexts (1,024 tokens) were refused by core's check of the prepared turn.
+  for(const outputTokens of [384,1024,2048]) {
+    let reserved; const f=await fixture({reserve:async value=>{reserved=value; return {};}}); try {
+      const payload=prompt(); payload.outputContract={...payload.outputContract,replyChars:3800,outputTokens};
+      assert.deepEqual(await f.generate(payload),output);
+      assert.equal(reserved.outputTokens,outputTokens);
+      assert.ok(aiReservationNanos(reserved,{missNanos:1,outputNanos:1})>0n);
+    } finally {await f.close();}
+  }
 });
 
 test('DS04-I02 wrong authentication, worker boot and qualification prevent prompt preparation',async()=>{

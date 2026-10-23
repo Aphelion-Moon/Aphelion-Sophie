@@ -28,7 +28,7 @@ export function aiBudgetPeriods(milliseconds) {
 }
 
 export function aiReservationNanos({ bytes, outputTokens }, policy) {
-  requireInteger(bytes, 1, 32768); requireInteger(outputTokens, 1, 512);
+  requireInteger(bytes, 1, 32768); requireInteger(outputTokens, 1, 2048);
   // Conservative estimate, not an exact tokenizer/framing guarantee. Overruns hold new admission.
   return BigInt(bytes + 1024) * BigInt(policy.missNanos) + BigInt(outputTokens) * BigInt(policy.outputNanos);
 }
