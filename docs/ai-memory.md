@@ -16,14 +16,19 @@ remain as they were. The owner's choices are in the [decision log](decisions/000
 - **Names never reach storage.** The model sees members as turn labels ("Member 2") and must refer to them that way.
   Core maps each label to its member and stores `{1}`, `{2}` placeholders. A memory that names a label outside its
   subject list is rejected. Contact details, links and IDs are masked by the same redaction used for prompts. The
-  rules tell Sophie never to save real names, physical locations, contact details, account names or identifiers
-  (owner choice: skip identifiers only). Nothing checks free text for real names, so members can correct her.
+  rules tell Sophie never to save real names, physical locations, contact details, account names or identifiers.
+  Since 24 October 2026 core also refuses, whatever the model says: a member memory about anyone but the member she is
+  replying to; instructions for how she should behave; rank or authority claims; text naming a "real name" or where
+  someone lives; and health (conditions, diagnoses, treatment; owner decision). A refused or malformed item is dropped
+  and the reply is still delivered (`AI_OUTPUT_DROPPED_MEMORY`). Free-text names are not detected otherwise.
 - **Who can be remembered.** A memory is kept only about members taking part in that conversation who have said Yes
   (one choice for the whole server since 23 October 2026), have no memory opt-out left over from before, and have no
   departure pending. A memory is used only while every member it names still says Yes; saying No hides it, and Yes again
-  restores it. Memories written in staff channels are used only in staff channels.
-- **What a turn sees.** Up to eight member memories about the people in the conversation, plus four recent memories of
-  that channel, in a "Sophie remembers" message. Members in the conversation keep their labels; anyone else reads as
+  restores it. Since 24 October 2026 staff channels neither read nor write memories (owner decision), so case talk is
+  never kept; memories written there earlier are no longer shown anywhere.
+- **What a turn sees.** Up to eight of the requester's own member memories (owner decision, 24 October 2026: never
+  another member's, which the model had repeated to others), plus four recent memories of that channel, in a "Sophie
+  remembers" message. Members in the conversation keep their labels; anyone else reads as
   "a member". A memory deleted, edited or no longer usable before delivery cancels the reply.
 - **Retention.** 90 days after Sophie last used a memory (owner choice). At most 40 member memories per member and 60
   channel memories per channel, least recently used removed first. Expired memories are deleted by the same timer as
@@ -32,6 +37,12 @@ remain as they were. The owner's choices are in the [decision log](decisions/000
   save advances that epoch through the independent journal and re-stamps the member's remaining memories, so a restored
   database copy of a forgotten memory stays unusable. Leaving the server deletes every memory naming the member (unless
   they chose to keep their AI data), along with their memory opt-out.
+
+- **Honesty (24 October 2026).** A sentence in her reply that claims a save, note, deletion or compliance that did not
+  happen, or claims to remember something about another member, is removed by core before delivery
+  (`AI_OUTPUT_CLAIM_REMOVED`); a reply left empty gets the owner wording `ai.reply.claim_removed`. When a memory naming
+  the member is actually saved, core DMs them what was saved, with a button to their panel (owner decision: a DM rather
+  than a public line). `AI_MEMORY_PROPOSED_<n>` is traced on every turn that may remember.
 
 ## Who controls it
 

@@ -1,6 +1,6 @@
 # Current implementation workplan
 
-Revision: 2026-10-24-p51-review. Mistral Small 4 (mistral-small-2603) on the official EU API is the selected provider for trial; DeepSeek Flash is withdrawn. Local models are historical, explicitly selected alternatives only; no automatic fallback. Continue the DS workstream with synthetic data; full readiness and activation remain open.
+Revision: 2026-10-24-p52-built. Mistral Small 4 (mistral-small-2603) on the official EU API is the selected provider for trial; DeepSeek Flash is withdrawn. Local models are historical, explicitly selected alternatives only; no automatic fallback. Continue the DS workstream with synthetic data; full readiness and activation remain open.
 
 All production release gates remain open; pure and isolated database checks are not full application acceptance.
 
@@ -226,7 +226,7 @@ These are bounded next steps within the task dependencies below. An unresolved l
 
 ## Task status
 
-Status counts: 3 complete; 41 in progress; 7 planned, not started. These are full-task statuses, not a percentage of code or release readiness.
+Status counts: 3 complete; 42 in progress; 7 planned, not started. These are full-task statuses, not a percentage of code or release readiness.
 
 An in-progress task can contain several verified milestones and still have unfinished implementation or acceptance. Acceptance IDs below link requirements to tasks; they do not assert that those specifications have passed.
 
@@ -284,7 +284,7 @@ An in-progress task can contain several verified milestones and still have unfin
 | P49 — Code, Guidebook and community sources | in_progress | P47 |
 | P50 — Move to the main server for closed testing | in_progress | P45, P46, P47, P48, P49 |
 | P51 — Sophie accuracy and memory: adversarial review and regression probe | completed | P50 |
-| P52 — Memory privacy and honesty (release blocker for memory) | pending | P51 |
+| P52 — Memory privacy and honesty (release blocker for memory) | in_progress | P51 |
 | P53 — Grounding, capabilities and community vocabulary | pending | P51 |
 | P54 — Retrieval, citations, code search and lookup | pending | P51 |
 | P55 — Model profile and the probe as a release gate | pending | P52, P53 |
@@ -1704,11 +1704,21 @@ Boundary: Reads production publications and knowledge with SELECT only; spends a
 
 ## P52 — Memory privacy and honesty (release blocker for memory)
 
-Status: **pending**. Phase: AI quality. Priority: P0.
+Status: **in_progress**. Phase: AI quality. Priority: P0.
 
 Depends on: P51. Acceptance: MEM-S storage test: forPrompt never returns a non-requester member memory, rv-mem-* probe classes at their review.md gates (privacy, safety and staff: all runs pass; capture >= 5 of 7; honesty 100%), npm test, npm run check, npm run test:storage:fast.
 
 Review findings C1, C2, C3, H4, H6, M2, M3, M4 in .agent_docs/aphelion-sophie/sophie-probe-2026-10-24/review.md.
+
+Implemented scope:
+
+- Built 24 October 2026 (5137d5b, 26f72b7): requester-only member memories (C1); no staff memories (H6); per-item memory and citation dropping, missing citations field tolerated (H4); member memories about the requester only, instruction, rank, real-name, location and health text refused (M2, M3 owner decision); unbacked claim sentences removed and real saves announced by DM (C3, owner decisions); memory-bearing reply shape, triggers and exclusions, AI_MEMORY_PROPOSED traces (C2 part). Offline and probe evidence in docs/verification.md.
+
+Remaining scope:
+
+- Install with the owner's recorded approval (combined with 7394de5), then Go live again and check a save DM, a removed claim and a staff turn live.
+- C2 rest: owner-written memory examples so project mentions are captured.
+- M4: retention renewal, same-subject replacement, written-days-ago, no relative-time words (owner decision on retention).
 
 Full task deliverables:
 

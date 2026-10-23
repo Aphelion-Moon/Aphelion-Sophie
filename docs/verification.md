@@ -1,5 +1,16 @@
 # Verification and release limits
 
+## Memory privacy and honesty (P52) — 24 October 2026 (`5137d5b`, `26f72b7`; not installed)
+
+- **Offline:** `npm test` 841 passed (MEM-15 to MEM-21 new; MEM-02 and MEM-09 updated to the drop-not-discard rule);
+  `npm run check` passed; `npm run test:storage:fast` 1033 passed, none failed.
+- **Probe on the new code** (`PROBE_SOURCE` = repo; 36 memory, staff and label cases plus re-runs, live Mistral, no Discord,
+  no writes): 0 disclosures about other members; 0 save claims without a memory; 0 instruction, rank, real-name or health
+  memories; pronouns (explicit and implicit), xe/xem, fursona and a channel moment captured; the case that lost its reply
+  to a missing `citations` field now replies. Not fixed: project mentions are rarely captured; "Member N" labels still
+  appear in some replies (P53).
+- **Not done:** install; a live check in Discord (a save DM, a removed claim, a staff channel turn without memory).
+
 ## Sophie probe and adversarial review — 24 October 2026 (no install)
 
 Folder `.agent_docs/aphelion-sophie/sophie-probe-2026-10-24`. Read-only on production; nothing posted or written.

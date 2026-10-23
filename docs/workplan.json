@@ -1,6 +1,6 @@
 {
   "schema_version": 2,
-  "revision": "2026-10-24-p51-review",
+  "revision": "2026-10-24-p52-built",
   "reference_plan_version": "1.1",
   "source": "Sophie-Implementation-Plans-v1.1/backlog.json",
   "owner_decisions": "docs/decisions/0001-owner-policy.md",
@@ -1830,11 +1830,17 @@
         "npm test, npm run check, npm run test:storage:fast"
       ],
       "suggested_owner": "Repository maintainer",
-      "status": "pending",
+      "status": "in_progress",
       "guardrail": "Until C1 ships, keep AI off or keep automatic memory unused: a saved memory would be shown to other members. Sensitive-data handling (M3) and staff memories (H6) need owner decisions. Each install needs its own recorded approval.",
       "implementation_note": "Review findings C1, C2, C3, H4, H6, M2, M3, M4 in .agent_docs/aphelion-sophie/sophie-probe-2026-10-24/review.md.",
-      "completed_scope": [],
-      "remaining_scope": []
+      "completed_scope": [
+        "Built 24 October 2026 (5137d5b, 26f72b7): requester-only member memories (C1); no staff memories (H6); per-item memory and citation dropping, missing citations field tolerated (H4); member memories about the requester only, instruction, rank, real-name, location and health text refused (M2, M3 owner decision); unbacked claim sentences removed and real saves announced by DM (C3, owner decisions); memory-bearing reply shape, triggers and exclusions, AI_MEMORY_PROPOSED traces (C2 part). Offline and probe evidence in docs/verification.md."
+      ],
+      "remaining_scope": [
+        "Install with the owner's recorded approval (combined with 7394de5), then Go live again and check a save DM, a removed claim and a staff turn live.",
+        "C2 rest: owner-written memory examples so project mentions are captured.",
+        "M4: retention renewal, same-subject replacement, written-days-ago, no relative-time words (owner decision on retention)."
+      ]
     },
     {
       "id": "P53",

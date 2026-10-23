@@ -1828,3 +1828,19 @@ memories about every member in a conversation and repeats them to others (no pro
 none has leaked), that memory capture rarely fires and she claims saves that did not happen, and that she invents
 community facts behind real citations. Workplan tasks P51-P55 carry the fixes. Until the memory privacy fix (P52) ships,
 AI stays off or automatic memory stays unused.
+
+### Memory privacy and honesty (P52) — 24 October 2026
+
+The owner asked to "Start P52: requester-only memories, no staff memories, drop invalid memory items instead of the reply,
+and only claim saves that happened", and answered:
+
+- **Save notice:** a ping and an ephemeral reply were asked for; Discord allows ephemeral messages only in answer to a
+  command or button, so the owner chose **"DM the member"**. Core DMs the member what was saved, from the stored text.
+- **False claims:** **"Remove the sentence"**. The rest of the reply is delivered; an emptied reply gets fixed wording.
+- **Health:** **"Never keep health"**. Conditions, diagnoses and treatment are refused as memories in code; a member may add
+  such a note themselves with /sophie. This narrows the 20 October choice that declined a sensitive-data exclusion.
+
+Built in `5137d5b` and `26f72b7`, not installed. A turn reads only the requester's own member memories; staff channels
+neither read nor write memories; malformed items, surplus citations and a missing citations field are dropped instead of
+the reply; member memories must be about the member being replied to, and instructions, rank claims, real names and home
+locations are refused.
