@@ -48,7 +48,7 @@ test('T-ACT-POST-01 the rules post is a station broadcast: logotype, boarding ca
   // The owner removed the manifest; the small print carries the must-knows, true to what Sophie does now.
   const words = texts.join('\n');
   assert.doesNotMatch(words, /manifest|Rook|Pip/);
-  assert.match(words, /-# Button above does nothing\?[\s\S]*App Launcher[\s\S]*-# Stuck\? Confused\? Ping @138755661537214464 in #crew-support or open a ticket in #open-a-ticket\./);
+  assert.match(words, /-# Button above does nothing\?[\s\S]*App Launcher[\s\S]*-# Stuck\? Confused\? Ping @matriarch in #crew-support or open a ticket in #open-a-ticket\./);
   assert.doesNotMatch(words, /—|request your|Complete Shuttle/);
   assert.deepEqual(post.allowed_mentions, { parse: [], users: [], roles: [], replied_user: false });
   // Without the server's directory nothing is linked.
@@ -98,6 +98,11 @@ test('T-ACT-POST-05 the post links the server\'s own channels, members, roles an
   assert.equal(resolve('Ping @138755661537214464 in #crew-support or open a ticket in #open-a-ticket.'),
     'Ping <@138755661537214464> in <#100000000000000041> or open a ticket in <#100000000000000042>.');
   assert.equal(resolve('Ask @matriarch (or @Matriarch).'), 'Ask <@&100000000000000047> (or <@&100000000000000047>).');
+  // A decorated role name still matches its bare name; an exact name wins over a decorated one; two bare matches stay plain.
+  const roles = list => text => resolvePostMentions(text, { ...directory, roles: list });
+  assert.equal(roles([{ id: '100000000000000050', name: '👑 Matriarch' }])('@matriarch'), '<@&100000000000000050>');
+  assert.equal(roles([{ id: '100000000000000050', name: '👑 Matriarch' }, { id: '100000000000000051', name: 'matriarch' }])('@matriarch'), '<@&100000000000000051>');
+  assert.equal(roles([{ id: '100000000000000050', name: '👑 Matriarch' }, { id: '100000000000000051', name: 'Matriarch ✦' }])('@matriarch'), '@matriarch');
   assert.equal(resolve(':protopop: and :spin:'), '<:protopop:100000000000000043> and <a:spin:100000000000000048>');
   // Unknown, ambiguous or voice channels, @everyone/@here, unknown emoji: plain text. Headings and small print are untouched.
   for (const plain of ['#nowhere', '#twice', '#voice', '@everyone', '@here', ':unknown:', '## Now boarding', '-# small print', 'mail@example.test'])
@@ -107,7 +112,7 @@ test('T-ACT-POST-05 the post links the server\'s own channels, members, roles an
   const post = activityLaunchPost(undefined, { mediaOrigin: 'https://onboarding.example.test', directory });
   const text = JSON.stringify(post);
   assert.match(text, /<:protopop:100000000000000043> Sophie beeps/);
-  assert.match(text, /Ping <@138755661537214464> in <#100000000000000041> or open a ticket in <#100000000000000042>\./);
+  assert.match(text, /Ping <@&100000000000000047> in <#100000000000000041> or open a ticket in <#100000000000000042>\./);
   assert.deepEqual(post.allowed_mentions, { parse: [], users: [], roles: [], replied_user: false });
 });
 

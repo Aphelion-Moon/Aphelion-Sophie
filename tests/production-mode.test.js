@@ -95,7 +95,7 @@ test('production posts the Activity launch post for Lead Ops as Sophie\'s own me
   const panel = createOnboardingEntryPanel({ authorization: { resolveActor: async () => ({}), authorize: async capability => capability === 'shuttle.publish' && allowed },
     transport: { getChannel: async id => ({ id, guild_id: ids(1), type: 0, parent_id: null }),
       getGuildChannels: async () => { if (directoryDown) throw new Error('DISCORD_BUSY'); return [{ id: ids(41), name: 'crew-support', type: 0 }, { id: ids(42), name: 'open-a-ticket', type: 0 }]; },
-      getRoles: async () => [], getGuild: async () => ({ id: ids(1), emojis: [{ id: ids(43), name: 'protopop', animated: false }] }),
+      getRoles: async () => [{ id: ids(44), name: 'matriarch' }], getGuild: async () => ({ id: ids(1), emojis: [{ id: ids(43), name: 'protopop', animated: false }] }),
       createActivityPost: async (channelId, nonce, body) => { if (refuse) throw Object.assign(new Error('DISCORD_FORBIDDEN'), { code: 'DISCORD_FORBIDDEN' }); sent.push({ channelId, nonce, body }); return { id: ids(30) }; } },
     store: { hasCaseExclusion: async () => false }, nonce: () => 'f'.repeat(24),
     policy: { guildId: ids(1), categoryId: ids(9) }, definitionId: 'onboarding', enabled: () => true, readSystemText: async () => createSystemText(), commands: ['shuttle.post'] });
@@ -105,7 +105,7 @@ test('production posts the Activity launch post for Lead Ops as Sophie\'s own me
   assert.equal(sent.length, 1); assert.equal(sent[0].channelId, ids(11)); assert.equal(sent[0].body.flags, 1 << 15);
   assert.equal(sent[0].body.components[0].components.find(item => item.type === 9).accessory.custom_id, 'sophie:shuttle:activity:1');
   // The wording's channels and emoji link to this server's own; nobody is notified.
-  assert.match(JSON.stringify(sent[0].body), new RegExp(`<:protopop:${ids(43)}>[\\s\\S]*<#${ids(41)}>[\\s\\S]*<#${ids(42)}>`));
+  assert.match(JSON.stringify(sent[0].body), new RegExp(`<:protopop:${ids(43)}>[\\s\\S]*Ping <@&${ids(44)}> in <#${ids(41)}>[\\s\\S]*<#${ids(42)}>`));
   assert.deepEqual(sent[0].body.allowed_mentions, { parse: [], users: [], roles: [], replied_user: false });
   // Directory unreadable: the post still goes, with plain names.
   directoryDown = true;

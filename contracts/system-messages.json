@@ -1754,7 +1754,7 @@
   {
     "id": "activity.post.small_print",
     "group": "Shuttle Activity rules post",
-    "source": "-# Button above does nothing? Open the App Launcher next to the message box and pick Sophie.\n-# Stuck? Confused? Ping @138755661537214464 in #crew-support or open a ticket in #open-a-ticket.",
+    "source": "-# Button above does nothing? Open the App Launcher next to the message box and pick Sophie.\n-# Stuck? Confused? Ping @matriarch in #crew-support or open a ticket in #open-a-ticket.",
     "max": 1000
   },
   {
