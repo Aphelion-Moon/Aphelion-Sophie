@@ -1722,13 +1722,13 @@
   },
   {
     "id": "activity.post.title",
-    "group": "Shuttle Activity rules post",
+    "group": "Shuttle Activity rules post (retired embed)",
     "source": "The Shuttle's boarding",
     "max": 256
   },
   {
     "id": "activity.post.body",
-    "group": "Shuttle Activity rules post",
+    "group": "Shuttle Activity rules post (retired embed)",
     "source": "*kssht* Sophie here, Community Services. Before you play on our servers you ride the Shuttle: five short stops through how Aphelion works. A bit of reading, no quiz. Finish it and we request your **Whitelist** role.\n\nHit **Board the Shuttle** and it opens right here in Discord.\n-# Button does nothing? Open the App Launcher next to the message box and pick Sophie. Stuck? Ping @matriarch in #crew-support. Already Whitelisted? Ride along any time, you keep your access.",
     "max": 1800
   },
@@ -1738,6 +1738,50 @@
     "source": "Board the Shuttle",
     "max": 80,
     "format": "plain"
+  },
+  {
+    "id": "activity.post.call",
+    "group": "Shuttle Activity rules post",
+    "source": "## Now boarding · Gate 03\n*kssht* ...is this thing on? Sophie here, Community Services, live from the Interlink. Before you play on our servers you ride the Shuttle: five stops from this server to Aphelion. A bit of reading, no quiz. Hit **Board the Shuttle** and it opens right here in Discord.",
+    "max": 1000
+  },
+  {
+    "id": "activity.post.manifest",
+    "group": "Shuttle Activity rules post",
+    "source": "### Today's manifest\n» **Rook**, back after a long time away\n» **Pip**, first trip, visitor badge on\n» **Officer Beepsky**, on age checks\n» **Ian**, the HoP's corgi, on his rounds\n» a **sea lion** on the launch rail. Again.",
+    "max": 1000
+  },
+  {
+    "id": "activity.post.small_print",
+    "group": "Shuttle Activity rules post",
+    "source": "-# 18+ only, no exceptions. Disembark and Sophie hands you **Whitelist**, valid across all of our services.\n-# Button does nothing? Open the App Launcher next to the message box and pick Sophie.\n-# Stuck? Ping @matriarch in #crew-support. Already Whitelisted? Ride along any time, you keep your access.",
+    "max": 1000
+  },
+  {
+    "id": "activity.post.rules_ss13",
+    "group": "Shuttle Activity rules post",
+    "source": "SS 13 rules",
+    "max": 80,
+    "format": "plain"
+  },
+  {
+    "id": "activity.post.rules_ss14",
+    "group": "Shuttle Activity rules post",
+    "source": "SS 14 rules",
+    "max": 80,
+    "format": "plain"
+  },
+  {
+    "id": "activity.post.posted",
+    "group": "Shuttle Activity rules post",
+    "source": "Posted. The Shuttle's boarding call is up in this channel.",
+    "max": 300
+  },
+  {
+    "id": "activity.post.not_posted",
+    "group": "Shuttle Activity rules post",
+    "source": "Sophie couldn't post here. She needs to see this channel and send messages in it.",
+    "max": 300
   },
   {
     "id": "reply.shuttle_closed",

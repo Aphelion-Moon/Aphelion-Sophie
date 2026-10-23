@@ -6,6 +6,7 @@ import { createDiscordTransport, activityAiWriteAllowed } from '../apps/core/dis
 import { registerStagingCommands, activityAiCommandDefinitions } from '../apps/core/discord/command-registration.js';
 import { createOnboardingEntryPanel } from '../apps/core/discord/onboarding-entry-panel.js';
 import { createSystemText } from '../contracts/system-messages.js';
+import { activityLaunchPost } from '../modules/onboarding/activity-post.js';
 import { requireStagingDatabase } from '../apps/core/runtime/database.js';
 
 const ids = n => `1${String(n).padStart(17, '0')}`;
@@ -48,6 +49,20 @@ test('in production the Discord transport refuses every role, channel and permis
     assert.equal(activityAiWriteAllowed(method, path), allowed, `${method} ${path}`);
 });
 
+test('in production the rules post goes out as Sophie\'s own Components V2 message, and nothing else rides on it', async () => {
+  const calls = [];
+  const transport = createDiscordTransport({ guildId: ids(1), token: 'synthetic-token-not-a-secret-xx', clock: Date.now, enabled: async () => true, scope: 'activity-ai',
+    fetch: async (url, init) => { calls.push([init.method, new URL(url).pathname, JSON.parse(init.body)]); return Response.json({ id: ids(30), channel_id: ids(11) }); } });
+  const post = activityLaunchPost();
+  await transport.createActivityPost(ids(11), 'a'.repeat(24), post);
+  assert.equal(calls.length, 1); assert.deepEqual(calls[0].slice(0, 2), ['POST', `/api/v10/channels/${ids(11)}/messages`]);
+  assert.deepEqual(calls[0][2], { ...post, nonce: 'a'.repeat(24), enforce_nonce: true });
+  for (const body of [{ ...post, content: 'hi' }, { ...post, embeds: [] }, { ...post, flags: 0 }, { ...post, allowed_mentions: { parse: ['everyone'] } }, { ...post, components: [] }])
+    await assert.rejects(transport.createActivityPost(ids(11), 'a'.repeat(24), body), /INVALID_DISCORD_PAYLOAD/);
+  await assert.rejects(transport.createActivityPost(ids(11), 'not-a-nonce', post), /INVALID_DISCORD_PAYLOAD/);
+  assert.equal(calls.length, 1);
+});
+
 test('in production the administration lane may add the Whitelist role and nothing else (owner decision, 24 October 2026)', async () => {
   const calls = [];
   const transport = createDiscordTransport({ guildId: ids(1), token: 'synthetic-token-not-a-secret-xx', clock: Date.now, enabled: async () => true, scope: 'activity-ai',
@@ -74,16 +89,28 @@ test('production registers only /sophie, /lookup and /whitelist post', async () 
   await assert.rejects(registerStagingCommands({ transport, applicationId: ids(2), botUserId: ids(3), confirmGuildId: ids(1), scope: 'everything' }), /COMMAND_REGISTRATION_SCOPE_INVALID/);
 });
 
-test('production posts the Activity launch post for Lead Ops and refuses the Onboarding-channel entry panel', async () => {
-  let allowed = true;
+test('production posts the Activity launch post for Lead Ops as Sophie\'s own message and refuses the Onboarding-channel entry panel', async () => {
+  let allowed = true, refuse = false;
+  const sent = [];
   const panel = createOnboardingEntryPanel({ authorization: { resolveActor: async () => ({}), authorize: async capability => capability === 'shuttle.publish' && allowed },
-    transport: { getChannel: async id => ({ id, guild_id: ids(1), type: 0, parent_id: null }) }, store: { hasCaseExclusion: async () => false },
+    transport: { getChannel: async id => ({ id, guild_id: ids(1), type: 0, parent_id: null }),
+      createActivityPost: async (channelId, nonce, body) => { if (refuse) throw Object.assign(new Error('DISCORD_FORBIDDEN'), { code: 'DISCORD_FORBIDDEN' }); sent.push({ channelId, nonce, body }); return { id: ids(30) }; } },
+    store: { hasCaseExclusion: async () => false }, nonce: () => 'f'.repeat(24),
     policy: { guildId: ids(1), categoryId: ids(9) }, definitionId: 'onboarding', enabled: () => true, readSystemText: async () => createSystemText(), commands: ['shuttle.post'] });
-  const post = await panel.prepare({ command: 'shuttle.post', guildId: ids(1), channelId: ids(11) }, { isCurrent: () => true });
-  assert.equal(post.components[0].components[0].custom_id, 'sophie:shuttle:activity:1');
+  // The post goes into the channel as a message (no "used /whitelist post" line); the command gets a private answer.
+  const reply = await panel.prepare({ command: 'shuttle.post', guildId: ids(1), channelId: ids(11) }, { isCurrent: () => true });
+  assert.deepEqual(reply, { content: "Posted. The Shuttle's boarding call is up in this channel.", flags: 64, allowed_mentions: { parse: [], users: [], roles: [], replied_user: false } });
+  assert.equal(sent.length, 1); assert.equal(sent[0].channelId, ids(11)); assert.equal(sent[0].body.flags, 1 << 15);
+  assert.equal(sent[0].body.components[0].components.find(item => item.type === 9).accessory.custom_id, 'sophie:shuttle:activity:1');
+  // Discord refuses (no access to the channel): reported privately, never retried.
+  refuse = true;
+  const refused = await panel.prepare({ command: 'shuttle.post', guildId: ids(1), channelId: ids(11) }, { isCurrent: () => true });
+  assert.equal(refused.flags, 64); assert.match(refused.content, /couldn't post here/); assert.equal(sent.length, 1);
+  refuse = false;
   await assert.rejects(panel.prepare({ command: 'shuttle.panel', guildId: ids(1), channelId: ids(11) }, { isCurrent: () => true }), /OPERATION_DENIED/);
   allowed = false;
   await assert.rejects(panel.prepare({ command: 'shuttle.post', guildId: ids(1), channelId: ids(11) }, { isCurrent: () => true }), /OPERATION_DENIED/, 'only Lead Ops (shuttle.publish) may post');
+  assert.equal(sent.length, 1, 'nothing is posted without the authority');
   assert.throws(() => createOnboardingEntryPanel({ commands: ['shuttle.start'] }), /TRUSTED_ADAPTERS_REQUIRED/);
 });
 

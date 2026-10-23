@@ -38,7 +38,7 @@ It needs the dashboard's OAuth configuration (the same application and client se
 | Layout editor (scene per stop, moments, arrival list) | `modules/onboarding/activity-layout.js`, `apps/core/storage/activity-layout.js`, migration `075-activity-layouts.sql`, `apps/core/http/activity-layout.js`, dashboard page `/activity` |
 | Channel links | `apps/core/discord/activity-channels.js` |
 | Shipped content core reads at start | `apps/activity/content.js` |
-| Rules post | `modules/onboarding/activity-post.js`, `/whitelist post`, banner provenance in `content/shuttle-activity/rules-post-banner.json` |
+| Rules post | `modules/onboarding/activity-post.js`, `/whitelist post`, art provenance in `content/shuttle-activity/rules-post-banner.json` |
 | Client | `apps/activity/client/` (page, controller, presenter, markdown, sound, SDK adapter), `apps/activity/scene-*.js` |
 | Files the client may load | `apps/activity/client-assets.js` (page, module graph, SDK, font, scenes, viewscreens, moments, sounds; pinned hashes checked) |
 | SDK | `apps/activity/vendor/embedded-app-sdk/`, pinned in `legal/embedded-app-sdk.json` by `scripts/vendor-embedded-sdk.mjs` |
@@ -193,12 +193,21 @@ member's settings.
 
 ## Rules post and the opening
 
-`/whitelist post` (Guidance publishers) posts the launch post: the departures banner, editable title, body and button
-wording (dashboard wording editor, group "Shuttle Activity rules post"), and one **Board the Shuttle** button. The
-default wording is in Sophie's voice: what the Shuttle is (five short stops, a bit of reading, no quiz), that finishing
-it requests the Whitelist role, the real button name, what to do if the button does nothing, and where to ask. Wording
-already edited in the dashboard still wins over the defaults. The
-button answers with LAUNCH_ACTIVITY and records nothing; the Activity signs the member in and checks access itself.
+`/whitelist post` (Guidance publishers) posts the launch post as Sophie's own message in that channel, a station
+broadcast (owner's pick of 24 October 2026). It is one amber Components V2 container holding:
+
+- the APHELION logotype with Shuttle Service and the lounge's rainbow neon bar;
+- the boarding call ("Now boarding · Gate 03", Sophie's radio line) with **Board the Shuttle** beside it;
+- the departures board of the five stops;
+- today's manifest (Rook, Pip, Officer Beepsky, Ian, the sea lion);
+- small print (18+, Whitelist when you disembark, the App Launcher fallback, where to ask);
+- two link buttons to the SS 13 and SS 14 rules.
+
+The art is at most 32 columns, so phones do not wrap it, and is coloured in `ansi` code blocks; `POST_COLOUR` turns the
+colour off if a phone shows the codes. The wording is editable in the dashboard (group "Shuttle Activity rules post"; the
+old embed's title and body are retired). The command itself gets a private "Posted.", or "Sophie couldn't post here"
+when Discord refuses; nothing is retried or stored. The launch button answers with LAUNCH_ACTIVITY and records nothing;
+the Activity signs the member in and checks access itself.
 
 At the opening (`status: "open"`), the Shuttle entry button and `/whitelist start` also launch the Activity, so new runs
 stop opening Onboarding channels. Channel runs already in progress carry on in their channels.

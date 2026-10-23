@@ -1992,3 +1992,26 @@ published as **Shuttle version 4** (3 Activity run(s) still being read on versio
 Same runtime, capability policy version 2 and credentials; no migration. All checks passed. Folder
 `.agent_docs/aphelion-sophie/deployment-a6730b5-production-2026-10-24`; `rollback.ps1` restores be0fe69, after which
 revision 2 must be republished (be0fe69 accepts at most 5,000 characters a stage).
+
+### The rules post becomes a station broadcast — 24 October 2026
+
+The owner found the `/whitelist post` embed weak and not reflective of the Activity ("Aphelion isn't centered"), asked for
+research and options, and picked option B, a station broadcast in Discord's Components V2, with every extra offered: rules
+links, desktop colour, and "drop the 'used' line", plus "the rainbow neon bar if you can".
+
+- **Layout:** one amber container:
+  - the APHELION logotype in a new block face, centred in 32 columns, with Shuttle Service and the lounge's pride banner as
+    a neon bar;
+  - "Now boarding · Gate 03" with Sophie's radio line and **Board the Shuttle** beside it;
+  - the departures board of the five stops;
+  - today's manifest;
+  - small print;
+  - links to the SS 13 Policies and the SS 14 Guidebook (the story's own rules sign).
+- **Colour:** in `ansi` code blocks over the same characters. Phones are reported to show these plainly or badly, so a
+  switch turns colour off if the first post looks wrong on a phone.
+- **No "used" line:** the post is Sophie's own channel message, which production's transport already allows (her own
+  messages). It goes out only after the same Lead Ops authority, channel and case-exclusion checks; the command gets a
+  private reply. No allowlist change was needed.
+- **Wording:** new keys, so earlier edits to the old embed's title and body cannot land in the new slots. The copy is true
+  to what Sophie does now: she hands out Whitelist when you disembark, not "we request".
+- **Art:** made by the coding agent at owner direction, provenance in `content/shuttle-activity/rules-post-banner.json`.

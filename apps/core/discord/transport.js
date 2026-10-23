@@ -357,6 +357,16 @@ export function createDiscordTransport({ guildId, token, fetch, clock, enabled, 
       requireId(channelId); requireId(messageId); requireReplyId(recordId);
       return request('DELETE', `/channels/${channelId}/messages/${messageId}`, 'case-reply-delete');
     },
+    /**
+     * The Shuttle's rules post as Sophie's own channel message (owner's pick of 24 October 2026): Components V2, no
+     * mentions. Sent only by /whitelist post after its authorization and channel checks.
+     */
+    async createActivityPost(channelId, nonce, body) {
+      requireId(channelId); requireCondition(typeof nonce === 'string' && /^[a-f0-9]{24}$/u.test(nonce), 'INVALID_DISCORD_PAYLOAD');
+      requireCondition(body?.flags === 1 << 15 && Array.isArray(body.components) && body.components.length === 1 && body.components[0].type === 17 &&
+        !('content' in body) && !('embeds' in body) && Array.isArray(body.allowed_mentions?.parse) && body.allowed_mentions.parse.length === 0, 'INVALID_DISCORD_PAYLOAD');
+      return request('POST', `/channels/${channelId}/messages`, 'shuttle-message-create', { ...body, nonce, enforce_nonce: true }, true);
+    },
     async createOnboardingAlert(channelId, alertId, body) {
       requireId(channelId); validateOnboardingAlertPayload(body, alertId);
       return request('POST', `/channels/${channelId}/messages`, 'shuttle-message-create',
