@@ -17,8 +17,11 @@ Owner approval quoted in the decision log. Folder `deployment-791e2fe-production
 - **Installed checks:** release `sophie-mistral-791e2fe`, notice revision 4; main server gateway current; 76 migrations;
   no member-reconcile or Whitelist job queued; 25 dashboard and Activity checks passed; public hosts passed. No refused
   Discord write logged after start.
-- **Not done:** story publication (refused until the owner is known in the new database; re-run after their first
-  dashboard sign-in); AI publications and go-live (owner, dashboard); any check inside Discord.
+- **After the install:** character ported (production revision 1, same digest as staging); budget revision 1 and
+  configuration revision 1 published by the owner on the dashboard; channel settings published as configuration revision 2
+  (three channels, each re-read with the bot account); story published as version 1. AI still disabled, no channel
+  qualified.
+- **Not done:** go-live (owner, dashboard); any check inside Discord.
 
 ## AI controls, contexts, staff channels and code search — 23 October 2026 (schema 076, built offline)
 

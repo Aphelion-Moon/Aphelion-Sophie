@@ -1767,3 +1767,19 @@ owner publishes the character, budget and channel settings and goes live. Folder
 On the owner's request ("Port Sophie's Character setup over please.") the published character was copied from staging
 (revision 2) into the production database as revision 1, unchanged (digest `8ee3c4ad…`), attributed to the owner, with AI
 still disabled (`port-character.mjs` in the deployment folder). The budget and channel settings are still to be published.
+
+### Production channel settings and story — 23 October 2026
+
+On the owner's request ("Yes, port the budget from staging and publish the drafted channel settings (#ask-sophie
+support, #staff-chatter staff, #main-bots chat). I'll go live on the dashboard myself."):
+
+- **Budget not ported.** The owner had already published production budget revision 1 from the dashboard at 01:03 UTC.
+  It equals staging's except for a later price review date (1 December 2026 against 31 October), so it was kept.
+- **Channels published** as configuration revision 2 (01:06 UTC, attributed to the owner, digest `12e2ff81…`), on top of
+  the owner's revision 1, which listed no channels; its contexts, deadline, reactions and enabled flag were kept unchanged.
+  Channels: #ask-sophie (1562980657293164601) support, answers questions; #staff-chatter (1528121657464721490) staff,
+  when mentioned; #main-bots (1530200440032202802) chat, when mentioned. Each was re-read with the bot account first (a text
+  channel; private only for staff; #ask-sophie the one excepted channel in the ticket category; no recorded case).
+- **Story published** into production as version 1 (digest `f826e709…`), now that the owner is known in the database.
+
+AI stays disabled and no channel is qualified: Go live in each channel is the owner's, on the dashboard.

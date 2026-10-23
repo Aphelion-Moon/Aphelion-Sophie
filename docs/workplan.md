@@ -1653,11 +1653,11 @@ Implemented scope:
 - #ask-sophie exception (owner decision): aiChannelExceptions allows exact channels inside the protected category for the AI only; siblings, the category and recorded case exclusions stay refused. npm test 830 passed; npm run check passed; storage 1033 passed, none failed.
 - Installed 791e2fe in the main server on 23 October 2026 at 00:59 UTC with the owner's approval: new sophie_prod_main database, production configuration, commands moved, all checks passed. Story publication waits for the owner's first dashboard sign-in.
 - Character ported from staging (revision 2 -> production revision 1, same digest) on the owner's request.
+- Owner published budget and configuration revision 1 on the dashboard; channel settings published as configuration revision 2 (#ask-sophie support, #staff-chatter staff, #main-bots chat) on the owner's request; staging budget not ported because the owner's is newer; story published as production version 1.
 
 Remaining scope:
 
-- Re-run publish-story.mjs after the owner signs in to the dashboard.
-- Owner: publish the budget and channel settings and Go live in each channel; /sophie Yes.
+- Owner: Go live in each channel on the dashboard; /sophie Yes.
 - Live checks: a reply in #ask-sophie (code and Guidebook), a saved memory, Get my data, the Activity for a Lead Ops tester, a staff channel turn.
 
 Full task deliverables:
