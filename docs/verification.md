@@ -1,5 +1,17 @@
 # Verification and release limits
 
+## Production install of da5b48a: scene dialogue, THUMP, Staff testers — 24 October 2026
+
+Owner request quoted in the decision log. Folder `deployment-da5b48a-production-2026-10-24`.
+
+- **Offline:** `npm test` 841 passed; `npm run check` passed; `npm run test:storage:fast` 1037 passed (new SA13 Staff tester
+  granted and revoked; SA01 Staff without the grant stays closed), none failed. Page check: Board the Shuttle pages 4-7 stage
+  the sea lion, page 8 (opens with *THUMP.*) the strike.
+- **Install:** preflight (8 reviewed files; the runtime differs only by `shuttle.activity.test: [Staff]`); pre-start, service
+  boundaries, installed checks and public hosts passed. The public Activity serves the new baggage hall and viewport
+  dialogue and the `*thump.*` moment.
+- **Not done:** the owner's run-through; go-live on the new release.
+
 ## Production install of 7d3e2ee: outdated runs and Reset journey — 24 October 2026
 
 Owner request quoted in the decision log. Folder `deployment-7d3e2ee-production-2026-10-24`.

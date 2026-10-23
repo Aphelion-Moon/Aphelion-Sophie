@@ -1892,3 +1892,14 @@ their Whitelist grant, finished runs and Onboarding-channel runs keep their vers
 16:00 UTC on 23 October (host clock); all checks passed. The story is unchanged (version 2); the one version 1 run in
 progress at install is no longer offered and its member starts version 2 at the first stop. Folder
 `.agent_docs/aphelion-sophie/deployment-7d3e2ee-production-2026-10-24`; `rollback.ps1` restores a65ee31.
+
+### Scene dialogue, the THUMP, and Staff testers — 24 October 2026
+
+Owner review of story version 2: scene conversations still used the old lines (Pack Your Bags, Admire the Lights, and others),
+the sea lion was hit before the *THUMP* page, and "expand the allowed testers to Staff (1528124823874703470) now, please",
+then "Create and install and publish the new updates". `da5b48a` updates every scene conversation to the story's lines
+(Pack Your Bags, Board the Shuttle, Admire the Lights, Disembarking; Beepsky already matched), moves the strike to the page that
+opens with *THUMP.*, and makes `shuttle.activity.test` an optional configured capability. Installed at 16:50 UTC on
+23 October (host clock) with a production runtime that differs from the reviewed one only by granting it to Staff; all
+checks passed. Testers are now the server owner, Lead Ops and Staff. The story itself is unchanged (version 2). Folder
+`.agent_docs/aphelion-sophie/deployment-da5b48a-production-2026-10-24`; `rollback.ps1` restores 7d3e2ee (and its runtime).
