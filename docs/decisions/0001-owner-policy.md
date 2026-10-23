@@ -1807,3 +1807,24 @@ checks. I'll Go live again afterwards."), it was installed at 01:41 UTC: three f
 same production runtime and policy. The first installation and public checks ran while core was still starting and saw 503;
 re-run a minute later, all passed. The owner goes live again in each channel. Folder
 `.agent_docs/aphelion-sophie/deployment-1e02c98-production-2026-10-23`; `rollback.ps1` restores b336843.
+
+### After go-live: review, workplan and the launch post — 24 October 2026
+
+Live testing on 23 October found two made-up answers (that "CI" meant GitHub continuous integration; that Sophie could
+play song requests) and single links on multi-source answers. The owner asked for one Opus sub-agent at extra-high effort
+to review the memory and personality design adversarially, allowed direct testing of Sophie's input and output, and asked
+for a workplan. Owner answers of 24 October:
+
+- **Launch post:** "Yes, post-only". Production gets `/whitelist` with only `post`, for Lead Ops, so the Shuttle Activity
+  launch post can be posted while the Activity stays behind its tester gate; no other `/whitelist` action and no Whitelist
+  grant (built as `7394de5`, not installed).
+- **Glossary:** "Extract from wiki". The reviewer proposed a seed list from the wiki and the Guidebook (review section 4);
+  the owner approves it before publication.
+- **CI:** the owner says CI is Combat Intent in community policy; the published wiki calls it Combat Indicator (CI) and
+  no published passage says "combat intent". The canonical name is an open owner decision.
+
+The review (`.agent_docs/aphelion-sophie/sophie-probe-2026-10-24/review.md`) found, among others, that Sophie is given
+memories about every member in a conversation and repeats them to others (no production memory has been saved yet, so
+none has leaked), that memory capture rarely fires and she claims saves that did not happen, and that she invents
+community facts behind real citations. Workplan tasks P51-P55 carry the fixes. Until the memory privacy fix (P52) ships,
+AI stays off or automatic memory stays unused.

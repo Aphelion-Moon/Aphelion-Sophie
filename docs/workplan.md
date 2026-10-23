@@ -1,6 +1,6 @@
 # Current implementation workplan
 
-Revision: 2026-10-23-production-1e02c98. Mistral Small 4 (mistral-small-2603) on the official EU API is the selected provider for trial; DeepSeek Flash is withdrawn. Local models are historical, explicitly selected alternatives only; no automatic fallback. Continue the DS workstream with synthetic data; full readiness and activation remain open.
+Revision: 2026-10-24-p51-review. Mistral Small 4 (mistral-small-2603) on the official EU API is the selected provider for trial; DeepSeek Flash is withdrawn. Local models are historical, explicitly selected alternatives only; no automatic fallback. Continue the DS workstream with synthetic data; full readiness and activation remain open.
 
 All production release gates remain open; pure and isolated database checks are not full application acceptance.
 
@@ -283,6 +283,11 @@ An in-progress task can contain several verified milestones and still have unfin
 | P48 — Named staff channels | in_progress | P47 |
 | P49 — Code, Guidebook and community sources | in_progress | P47 |
 | P50 — Move to the main server for closed testing | in_progress | P45, P46, P47, P48, P49 |
+| P51 — Sophie accuracy and memory: adversarial review and regression probe | completed | P50 |
+| P52 — Memory privacy and honesty (release blocker for memory) | pending | P51 |
+| P53 — Grounding, capabilities and community vocabulary | pending | P51 |
+| P54 — Retrieval, citations, code search and lookup | pending | P51 |
+| P55 — Model profile and the probe as a release gate | pending | P52, P53 |
 
 ## P00 — Freeze scope and deployment inputs
 
@@ -1657,9 +1662,11 @@ Implemented scope:
 - Found on the first live #ask-sophie turn (23 October 2026): support and staff turns (1,024 output tokens) were refused as AI_WORKER_UNAVAILABLE before reaching Mistral, because core's prepared-turn check, the budget estimate and the provider_attempts constraint still stopped at 512. Fixed in b336843 with migration 077 and regression test DS04-I01b. npm test 831 passed; npm run check passed; storage 1033 passed, none failed. Not installed.
 - Installed b336843 in production at 01:27 UTC on 23 October 2026 with the owner's approval: four files, migration 077, all checks passed.
 - Installed 1e02c98 at 01:41 UTC on 23 October 2026 with the owner's approval: replies in long context turns are delivered (delivery still capped AI deadlines at 15 s) and the Set up Sophie invitation goes by DM. Three files, no migration; checks passed on re-run after core finished starting.
+- 7394de5 built on 24 October 2026 (owner chose post-only): /whitelist post for Lead Ops in production; install packet prepared, not installed. npm test 834 passed; npm run check passed; storage 1033 passed, none failed.
 
 Remaining scope:
 
+- Install 7394de5 and register /whitelist (post only) in the main server after the owner's recorded approval; then /whitelist post in the rules channel.
 - Owner: Go live again in each channel on the new release (1e02c98).
 - Owner: Go live in each channel on the dashboard; /sophie Yes.
 - Live checks: a reply in #ask-sophie (code and Guidebook), a saved memory, Get my data, the Activity for a Lead Ops tester, a staff channel turn.
@@ -1673,3 +1680,98 @@ Full task deliverables:
 - Live checks of memory, /sophie, long replies, code search, Guidebook rules and staff channels
 
 Boundary: Its own recorded owner approval. The existing bot keeps its roles; Whitelist delivery and tickets stay off until the cutover (P30/P31).
+
+## P51 — Sophie accuracy and memory: adversarial review and regression probe
+
+Status: **completed**. Phase: AI quality. Priority: P0.
+
+Depends on: P50. Acceptance: probe baseline-1e02c98.json, review.md scorecard.
+
+Owner request of 24 October 2026 after live testing: two made-up answers (CI, song requests) and single links on multi-source answers.
+
+Implemented scope:
+
+- Baseline: 6 pass, 11 partial, 19 fail of 36. Review on the shipped prompt: 20 pass, 20 partial, 52 fail of 92 (22%).
+
+Full task deliverables:
+
+- Read-only probe harness running the installed production pipeline without Discord (.agent_docs/aphelion-sophie/sophie-probe-2026-10-24/probe.mjs)
+- Baseline scorecard on 1e02c98 (36 cases) and an adversarial review by one Opus sub-agent at extra-high effort (review.md, 139 case runs, 103 Mistral calls)
+- Regression case set with machine assertions (cases-review.json, 56 cases) and pass criteria per class
+- Seed glossary from the wiki and Guidebook (39 entries, each with its source heading) for owner approval
+
+Boundary: Reads production publications and knowledge with SELECT only; spends a few cents of Mistral budget; never posts to Discord or writes a database.
+
+## P52 — Memory privacy and honesty (release blocker for memory)
+
+Status: **pending**. Phase: AI quality. Priority: P0.
+
+Depends on: P51. Acceptance: MEM-S storage test: forPrompt never returns a non-requester member memory, rv-mem-* probe classes at their review.md gates (privacy, safety and staff: all runs pass; capture >= 5 of 7; honesty 100%), npm test, npm run check, npm run test:storage:fast.
+
+Review findings C1, C2, C3, H4, H6, M2, M3, M4 in .agent_docs/aphelion-sophie/sophie-probe-2026-10-24/review.md.
+
+Full task deliverables:
+
+- C1: a turn sees only the requester's own member memories plus channel memories; the remembering block forbids revealing what she remembers about anyone else
+- H6: no memories in staff channels (recommended) or a case-vocabulary filter (owner decision)
+- M2: a member memory must be about the requester; instruction-shaped and role-claim memory text is refused
+- H4: an invalid memory item is dropped instead of discarding the reply; more than 4 citations are trimmed; local validation failures trace AI_OUTPUT_INVALID, not AI_WORKER_UNAVAILABLE
+- C3: core shows "-# Sophie will remember: ... (/sophie to review)" only when a memory is actually saved, and a reply that claims to have saved, noted, deleted or complied without a matching memory is refused or corrected
+- C2: memory capture works: a memory-bearing reply shape when memory labels are offered, explicit triggers and exclusions in the per-turn guidance, owner-written memory examples, AI_MEMORY_PROPOSED_n traces
+- M4: retention renews only on re-proposal or member edit (or an absolute cap), same-subject replacement, written-days-ago in the memory view, no relative-time words
+
+Boundary: Until C1 ships, keep AI off or keep automatic memory unused: a saved memory would be shown to other members. Sensitive-data handling (M3) and staff memories (H6) need owner decisions. Each install needs its own recorded approval.
+
+## P53 — Grounding, capabilities and community vocabulary
+
+Status: **pending**. Phase: AI quality. Priority: P0.
+
+Depends on: P51. Acceptance: rv-cap-*, rv-ground-*, rv-auth-*, rv-label-* at their review.md gates, unit tests for each validation check, npm test, npm run check, npm run test:storage:fast.
+
+Review findings C4, H1, H2, H3, H5, H7, M5, M6 in .agent_docs/aphelion-sophie/sophie-probe-2026-10-24/review.md; seed glossary in section 4.
+
+Full task deliverables:
+
+- H3: owner-published capability manifest and channel directory (commands /sophie, /lookup, /whitelist post; what she cannot do: voice, music, moderation, roles, live server or build status); a rule and a validation check that she never names a channel, command or process outside it
+- H2: owner-approved glossary published as a knowledge document with aliases (CI, PMS, RDM, EORG ...), plus alias query expansion; settle Combat Indicator versus Combat Intent
+- C4: lexical support check for provided_sources answers (numbers, channels, commands and rule codes must appear in a cited passage or the glossary); proactive replies need a retrieval score floor
+- H1: Guidebook upstream rulesets relabelled as upstream references (or left out) and every evidence block names its game; an answer naming Wolfgate cites Wolfgate policy or says it relies on the Meridian fallback
+- H7: defunct or banner-flagged pages (Red Server Policy, Starter Guide intents) withdrawn or marked historical
+- H5: "Member N" labels removed from rendered replies; an addressed turn that comes back silent gets an owner-worded template reply
+- M5: character examples may carry support and citations; owner-written examples for a capability refusal, "not verified" and a memory; joke about herself, never about facts; system message 0 exempt from redaction
+- M6: owner-written context briefs; game per channel (schema change, owner approval); prompts say /sophie instead of the preferences page
+
+Boundary: Manifest, directory, glossary, briefs and character changes are owner publications. Validation may refuse or replace a reply; it never grants anything.
+
+## P54 — Retrieval, citations, code search and lookup
+
+Status: **pending**. Phase: AI quality. Priority: P1.
+
+Depends on: P51. Acceptance: rv-retrieval-*, rv-code-*, rv-cite-* probe cases, unit tests for anchors, acronyms, code terms, lookup with 5 results, no KNOWLEDGE_SOURCE_GITHUB_RATE_LIMITED after a full sync.
+
+Review findings H8, L1, M1, M7, M9 in .agent_docs/aphelion-sophie/sophie-probe-2026-10-24/review.md.
+
+Full task deliverables:
+
+- L1: section anchors in link lines so different sections of one page show as separate links, with the rule code
+- M1: parenthesised heading acronyms treated like rule codes; title boost only when the title covers the rarest word; a fallback for chatty questions; no retrieval in chat unless the message looks like a question
+- H8: code search maps game words to a repository scope, stop-lists verbs, searches identifiers first, recognises "codebase"
+- M7: GitHub file contents fetched through the authenticated API; 403 and 429 told apart; redirects keep auth on the same origin
+- M9: /lookup takes the first 4 passages instead of failing on 5 (verify live)
+
+Boundary: GitHub token only in Authorization headers to api.github.com; no generic URL fetching.
+
+## P55 — Model profile and the probe as a release gate
+
+Status: **pending**. Phase: AI quality. Priority: P1.
+
+Depends on: P52, P53. Acceptance: cases-review.json gates pass before every AI release.
+
+Review findings M8 and M10 in .agent_docs/aphelion-sophie/sophie-probe-2026-10-24/review.md.
+
+Full task deliverables:
+
+- M10: probe evaluator for the assert fields, N runs per case, a pinned knowledge snapshot, and a staging-backed memory suite
+- M8: trials of strict JSON schema output, temperature by context (support and staff about 0.2) and mistral-medium for support, compared on cases-review.json
+
+Boundary: A model or profile change alters mistralProfileHash and needs policy re-acceptance and requalification.

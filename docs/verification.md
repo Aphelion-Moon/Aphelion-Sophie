@@ -1,5 +1,20 @@
 # Verification and release limits
 
+## Sophie probe and adversarial review — 24 October 2026 (no install)
+
+Folder `.agent_docs/aphelion-sophie/sophie-probe-2026-10-24`. Read-only on production; nothing posted or written.
+
+- **Probe harness:** `probe.mjs` runs a question through the installed 1e02c98 pipeline: published character and contexts,
+  the real knowledge lookup and code search, the real prompt, Mistral client, validation and rendering.
+- **Baseline (36 cases, 36 calls):** 6 pass, 11 partial, 19 fail. No case proposed a memory; "Member N" labels reached
+  replies; the music case invented an ability.
+- **Review (Opus, extra-high effort; 103 further calls):** 20 pass, 20 partial, 52 fail of 92 on the shipped prompt. One
+  memory-bearing example raised memory proposals from 2 of 6 to 4 of 6; a capability list fixed 4 of 7 capability cases.
+  Findings and gates feed P52-P55.
+- **Launch post change `7394de5`:** `npm test` 834 passed; `npm run check` passed; `npm run test:storage:fast` 1033
+  passed, none failed. Packet `deployment-7394de5-production-2026-10-24` preflight passed (3 files, no migration, profile
+  and configuration unchanged). Not installed.
+
 ## Production fix 1e02c98 — 23 October 2026 (schema 077)
 
 Owner approval quoted in the decision log. Folder `deployment-1e02c98-production-2026-10-23`.
