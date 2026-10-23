@@ -1,6 +1,6 @@
 # Current implementation workplan
 
-Revision: 2026-10-23-main-askexception. Mistral Small 4 (mistral-small-2603) on the official EU API is the selected provider for trial; DeepSeek Flash is withdrawn. Local models are historical, explicitly selected alternatives only; no automatic fallback. Continue the DS workstream with synthetic data; full readiness and activation remain open.
+Revision: 2026-10-23-production-791e2fe. Mistral Small 4 (mistral-small-2603) on the official EU API is the selected provider for trial; DeepSeek Flash is withdrawn. Local models are historical, explicitly selected alternatives only; no automatic fallback. Continue the DS workstream with synthetic data; full readiness and activation remain open.
 
 All production release gates remain open; pure and isolated database checks are not full application acceptance.
 
@@ -1651,11 +1651,13 @@ Implemented scope:
 - Owner inputs received on 23 October 2026 and checked with the bot account: guild, six roles, three channels (Ask-Sophie support, Staff Chatter staff and private, main-bots chat). Recorded in .agent_docs/aphelion-sophie/production-inputs-2026-10-23.
 - Activity-and-AI-only production mode (ef094a0): no role reconciliation, no case/role/Shuttle-channel workers, no Whitelist grant, only /sophie and /lookup, reduced dashboard, a transport that refuses role, channel and permission writes, sophie_prod_ databases. npm test 827 passed; npm run check passed; storage 1033 passed, none failed.
 - #ask-sophie exception (owner decision): aiChannelExceptions allows exact channels inside the protected category for the AI only; siblings, the category and recorded case exclusions stay refused. npm test 830 passed; npm run check passed; storage 1033 passed, none failed.
+- Installed 791e2fe in the main server on 23 October 2026 at 00:59 UTC with the owner's approval: new sophie_prod_main database, production configuration, commands moved, all checks passed. Story publication waits for the owner's first dashboard sign-in.
 
 Remaining scope:
 
-- Deployment packet: fresh sophie_prod_ database and identities, migrations 001-076 and grants, production configuration, core credentials with the GitHub token, processing policy with notice revision 4, story version 5, worker requalification, command registration in the main guild and removal from the test Discord, rollback and public checks.
-- Owner approval of the packet, then the W5 live checks.
+- Re-run publish-story.mjs after the owner signs in to the dashboard.
+- Owner: publish character, budget and channel settings and Go live in each channel; /sophie Yes.
+- Live checks: a reply in #ask-sophie (code and Guidebook), a saved memory, Get my data, the Activity for a Lead Ops tester, a staff channel turn.
 
 Full task deliverables:
 

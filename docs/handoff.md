@@ -9,6 +9,12 @@ Where it disagrees with those records, they win.
 
 ## Where things stand
 
+**Update, 23 October 2026, 01:00 UTC:** `791e2fe` is installed in the **main Aphelion server** in the Activity-and-AI
+production mode, on the new `sophie_prod_main` database (decision log entry of 23 October). The test Discord no longer has
+Sophie's commands. The story still has to be published (after the owner's first dashboard sign-in), and AI goes live when
+the owner publishes the character, budget and channel settings. Rollback: `rollback.ps1` in the deployment folder. The
+bullets below describe the state before this install.
+
 - **Installed release:** `sophie-mistral-a0eb904` (schema 075), installed 22 October 2026 at 21:14 UTC as a
   source-only update, on the Windows Server 2022 host under `C:\Aphelion\Sophie`. Services: `aphelion-bot` (core),
   `aphelion-bot-ai-worker`, `aphelion-bot-activity` (the closed "not boarding yet" screen on `127.0.0.1:38124`, kept

@@ -1,5 +1,25 @@
 # Verification and release limits
 
+## Production install of 791e2fe in the main server — 23 October 2026 (schema 076)
+
+Owner approval quoted in the decision log. Folder `deployment-791e2fe-production-2026-10-23`.
+
+- **Offline on `791e2fe`** (same code as `f8369d8` plus the ops script): `npm test` 830 passed; `npm run check`
+  passed; `npm run test:storage:fast` 1033 passed, none failed.
+- **Database:** `sophie_prod_main` created with `sophie_prod_{owner,core,control,knowledge,knowledge_editor}`, 76
+  migrations, 306 grants copied plus the 076 grants; core, control, knowledge and knowledge-owner identities verified with
+  installed core's checks.
+- **Install:** 713 pinned files verified, 65 written, 1 removed; pre-start check passed (reviewed production runtime and
+  policy, production databases, unchanged Discord application, GitHub token present, journal unchanged); service boundaries
+  passed.
+- **Commands:** main server `lookup, sophie`; removed from the test Discord `answer, lookup, mute, ticket, unmute,
+  whitelist`.
+- **Installed checks:** release `sophie-mistral-791e2fe`, notice revision 4; main server gateway current; 76 migrations;
+  no member-reconcile or Whitelist job queued; 25 dashboard and Activity checks passed; public hosts passed. No refused
+  Discord write logged after start.
+- **Not done:** story publication (refused until the owner is known in the new database; re-run after their first
+  dashboard sign-in); AI publications and go-live (owner, dashboard); any check inside Discord.
+
 ## AI controls, contexts, staff channels and code search — 23 October 2026 (schema 076, built offline)
 
 Owner decisions of 23 October 2026 (decision log). Commits on `main`: `15252f9` (dashboard sign-in), `bbe039d` (one

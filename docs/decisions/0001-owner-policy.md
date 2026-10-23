@@ -1743,3 +1743,23 @@ category is usable by the AI, while the category, every other channel in it (new
 own case records exclude stay refused. Automation gets no exception. On Discord permissions: "Sophie has manage roles from
 our bot-grouping rank, not her personal rank. So don't worry about that." Production mode refuses role, channel and
 permission writes in code regardless.
+
+### Production install of 791e2fe in the main server — 23 October 2026
+
+On the owner's approval ("Approved: run the 791e2fe production install packet (new production database, install,
+commands moved to the main server, story published), then the checks."), `791e2fe` was installed at 00:59 UTC in the
+Activity-and-AI production mode for the main Aphelion server:
+
+- a new database, `sophie_prod_main`, with five new identities, 76 migrations and 306 grants copied from staging plus the
+  076 grants, each identity verified; staging's database is untouched;
+- 65 files written and 1 removed; trust v2 from the production configuration; the pre-start check confirmed the runtime,
+  policy (notice revision 4), databases and credentials are the reviewed ones; core was down about a minute;
+- `/sophie` and `/lookup` registered in the main server, Sophie's six commands removed from the test Discord;
+- checks passed: service boundaries, installation (main server gateway current, 76 migrations, no role jobs, dashboard
+  and Activity routes), public hosts.
+
+The story publication was refused (`LOCAL_OPERATOR_AUTHOR_UNKNOWN`): the host-only publisher needs the owner to be known
+in the new database, which happens at their first dashboard sign-in. It is re-run then, unchanged. AI is off until the
+owner publishes the character, budget and channel settings and goes live. Folder
+`.agent_docs/aphelion-sophie/deployment-791e2fe-production-2026-10-23`; backup
+`D:\Backups\sophie-staging\production-791e2fe-20261023`.
