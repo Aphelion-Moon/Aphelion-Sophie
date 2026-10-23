@@ -6,18 +6,22 @@ import { validateStagingRuntime } from './configuration.js';
  * Unlike staging bootstrap it creates nothing in Discord: Sophie reads Crew, Muzzled, Whitelist, Staff and Lead Ops to check
  * eligibility and grants, and the other bot keeps owning them, except that Sophie adds Whitelist at the end of the Shuttle
  * (owner decision, 24 October 2026; she never removes it). Lead Ops is the Activity tester gate and holds the AI
- * controls; `activityTesterRoles` (optional) adds roles to the tester gate (owner decision, 24 October 2026: Staff). Mute, case and form grants are present only because the policy contract requires them; no route or command
+ * controls; `activityTesterRoles` (optional) adds roles to the tester gate (owner decision, 24 October 2026: Staff), and
+ * `activityStatus` (optional, 'testing' by default) set to 'open' admits every eligible member. Mute, case and form grants are present only because the policy contract requires them; no route or command
  * can use them in this scope.
  */
 export function productionConfiguration(input) {
   requireKeys(input, ['guildId', 'applicationId', 'publicKeyHex', 'botUserId', 'roles', 'protectedCategoryId', 'dashboardOrigin', 'activityOrigin',
-    'interactionPort', 'dashboardPort', 'activityPort', ...['aiChannelExceptions', 'activityTesterRoles'].filter(key => Object.hasOwn(input ?? {}, key))]);
+    'interactionPort', 'dashboardPort', 'activityPort', ...['aiChannelExceptions', 'activityTesterRoles', 'activityStatus'].filter(key => Object.hasOwn(input ?? {}, key))]);
   requireKeys(input.roles, ['crew', 'muzzled', 'whitelist', 'staff', 'leadOps'], 'INVALID_ROLE_OWNERSHIP');
   for (const id of [input.guildId, input.applicationId, input.botUserId, input.protectedCategoryId, ...Object.values(input.roles)]) requireId(id);
   requireCondition(new Set(Object.values(input.roles)).size === 5 && !Object.values(input.roles).includes(input.guildId), 'INVALID_ROLE_OWNERSHIP');
   const { guildId, applicationId, botUserId, roles } = input, leadOps = [roles.leadOps], testers = input.activityTesterRoles ?? [];
   requireCondition(Array.isArray(testers) && new Set(testers).size === testers.length && testers.every(id => id !== roles.muzzled && id !== guildId), 'INVALID_ROLE_OWNERSHIP');
   testers.forEach(requireId);
+  // The opening (owner, 24 October 2026): 'open' admits every eligible member, not just the tester gate.
+  const activityStatus = Object.hasOwn(input, 'activityStatus') ? input.activityStatus : 'testing';
+  requireCondition(['testing', 'open'].includes(activityStatus), 'ACTIVITY_CONFIGURATION_INVALID');
   const configuration = { schemaVersion: 1, environment: 'production', isolatedGuild: false, scope: 'activity-ai',
     applicationId, publicKeyHex: input.publicKeyHex,
     mapping: { guildId, botUserId, ...roles, externallyOwnedRoleIds: [] },
@@ -30,7 +34,7 @@ export function productionConfiguration(input) {
     interactionPort: input.interactionPort, dashboardPort: input.dashboardPort, workerIntervalMs: 1000,
     exportPolicy: { version: 1, enabled: false, audience: 'current-readers', maxObservations: 100, maxGaps: 200, maxBytes: 2_097_152 },
     dashboard: { guildId, applicationId, version: 1, origin: input.dashboardOrigin },
-    activity: { origin: input.activityOrigin, port: input.activityPort, status: 'testing' },
+    activity: { origin: input.activityOrigin, port: input.activityPort, status: activityStatus },
     // Exact channels in the protected category the AI may still use (#ask-sophie in the main server).
     ...(input.aiChannelExceptions ? { aiChannelExceptions: [...input.aiChannelExceptions] } : {}) };
   validateStagingRuntime(configuration);

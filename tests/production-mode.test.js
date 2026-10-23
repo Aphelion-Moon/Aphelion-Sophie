@@ -31,6 +31,11 @@ test('production is only Activity and AI: no capture, automation or case export,
   const staffTest = productionConfiguration(input({ activityTesterRoles: [ids(7)] }));
   assert.deepEqual(staffTest.capabilityPolicy.grants['shuttle.activity.test'], [ids(7)]); validateStagingRuntime(staffTest);
   for (const roles of [[ids(5)], [ids(1)], [ids(7), ids(7)], ['staff']]) assert.throws(() => productionConfiguration(input({ activityTesterRoles: roles })), JSON.stringify(roles));
+  // The opening (owner, 24 October 2026): 'open' admits every eligible member; nothing else in the runtime changes.
+  const opened = productionConfiguration(input({ activityTesterRoles: [ids(7)], activityStatus: 'open' }));
+  assert.equal(opened.activity.status, 'open'); validateStagingRuntime(opened);
+  assert.deepEqual({ ...opened, activity: { ...opened.activity, status: 'testing' } }, staffTest);
+  for (const status of ['public', '', null]) assert.throws(() => productionConfiguration(input({ activityStatus: status })), /ACTIVITY_CONFIGURATION_INVALID/);
 });
 
 test('in production the Discord transport refuses every role, channel and permission write before it leaves', async () => {
