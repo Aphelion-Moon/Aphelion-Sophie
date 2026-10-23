@@ -11,7 +11,7 @@ a run.
 |---|---|
 | `modules/onboarding/scenes.js` | Scene format, validator and frame composer. Pure: runs in Node and in the browser. |
 | `apps/activity/scene-canvas.js` | Paints composed frames on a canvas, redrawing only changed cells. |
-| `apps/activity/scene-player.js` | Picks the grid, runs playback at up to 12 frames a second, holds still frames, opens the door. |
+| `apps/activity/scene-player.js` | Picks the grid, runs playback at 30 frames a second on a fixed grid of the clock (owner report, 24 October 2026: at 12 the belt and walkers stepped unevenly), holds still frames, opens the door. |
 | `content/shuttle-activity/scenes/*.json` | The eight scenes, as validated data. |
 | `content/shuttle-activity/viewscreens/*.json`, `moments.json` | Viewscreen art with link cards, and which section stages which beat. Written by `scripts/author-shuttle-viewscreens.mjs`; validated by `modules/onboarding/activity-media.js`. |
 | `scripts/author-shuttle-scenes.mjs` | The drawing tool that writes those files. Output is deterministic. |

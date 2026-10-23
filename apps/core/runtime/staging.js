@@ -16,6 +16,7 @@ import { createKnowledgeLookupHttp } from '../http/knowledge-lookup.js';
 import { inspectAutomationChannel } from '../storage/automation-channel-policy.js';
 import { createSystemWordingHttp } from '../http/system-wording.js';
 import { createOnboardingEntryPanel } from '../discord/onboarding-entry-panel.js';
+import { createErrorAlerts } from './error-alerts.js';
 import { createSystemWordingReader, createSystemWordingStore } from '../storage/system-wording.js';
 import { randomUUID } from 'node:crypto';
 import { fileURLToPath } from 'node:url';
@@ -98,7 +99,9 @@ export async function createStagingRuntime({ configuration, pool, aiControlPool 
   let knowledgeAdministration = null, knowledgeStarted = false;
   let maintenanceObserved = false;
   const active = () => started && !stopping && !maintenanceObserved;
-  const fault = code => { try { onFault(code); } catch { /* Never log original dependency errors or payloads. */ } };
+  // Errors also go to the configured alert channel (codes only; apps/core/runtime/error-alerts.js).
+  let errorAlerts = null;
+  const fault = code => { try { onFault(code); } catch { /* Never log original dependency errors or payloads. */ } errorAlerts?.report(code); };
   // Timing diagnostics (fixed codes: outcome, milliseconds, request counts). Never faults, IDs or content.
   const trace = code => { try { onTrace(code); } catch { /* Diagnostics never affect the runtime. */ } };
   const databaseActive = async () => {
@@ -109,6 +112,9 @@ export async function createStagingRuntime({ configuration, pool, aiControlPool 
   // Every transport below uses the same bot token, so they share Discord's buckets and must share one view of them.
   // A supervising host passes its own registry so a restarted runtime keeps the cooldowns it already learned.
   const transport = createDiscordTransport({ guildId: fixed.mapping.guildId, token, fetch, clock, enabled: databaseActive, limits: rateLimits, scope: runtimeScope(fixed) });
+  // Its own transport, live while the runtime runs, so a database outage can still be reported; same Discord buckets.
+  if (fixed.errorAlerts) errorAlerts = createErrorAlerts({ ...fixed.errorAlerts, clock,
+    transport: createDiscordTransport({ guildId: fixed.mapping.guildId, token, fetch, clock, enabled: async () => started && !stopping, limits: rateLimits, scope: runtimeScope(fixed) }) });
   requireCondition(aiWorker===null || aiKnowledge!==null && aiControlPool!==null, 'AI_ADAPTERS_REQUIRED');
   let aiRuntime = null, activationRebind = null, activationFollow = null;
   const privacyEffects=aiControlPool===null?null:createAiEffects({pool:aiControlPool,guildId:fixed.mapping.guildId,clock});

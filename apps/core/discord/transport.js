@@ -368,6 +368,21 @@ export function createDiscordTransport({ guildId, token, fetch, clock, enabled, 
         body.allowed_mentions.replied_user === false, 'INVALID_DISCORD_PAYLOAD');
       return request('POST', `/channels/${channelId}/messages`, 'shuttle-message-create', { ...body, nonce, enforce_nonce: true }, true);
     },
+    /**
+     * An error alert (apps/core/runtime/error-alerts.js): a short text message in the alert channel that may ping one
+     * role and nothing else (owner request, 24 October 2026). No embeds, components, @everyone, @here or member pings.
+     */
+    async createErrorAlert(channelId, nonce, body) {
+      requireId(channelId); requireCondition(typeof nonce === 'string' && /^[a-f0-9]{24}$/u.test(nonce), 'INVALID_DISCORD_PAYLOAD');
+      const roles = body?.allowed_mentions?.roles;
+      requireCondition(body !== null && typeof body === 'object' && Object.keys(body).every(key => ['content', 'allowed_mentions'].includes(key)) &&
+        typeof body.content === 'string' && body.content.length > 0 && body.content.length <= 2_000 && !/@(everyone|here)|<@!?\d/u.test(body.content) &&
+        Array.isArray(body.allowed_mentions?.parse) && body.allowed_mentions.parse.length === 0 && Array.isArray(body.allowed_mentions.users) &&
+        body.allowed_mentions.users.length === 0 && body.allowed_mentions.replied_user === false && Array.isArray(roles) && roles.length <= 1 &&
+        roles.every(id => /^[1-9][0-9]{16,19}$/u.test(id) && id !== guildId) &&
+        [...body.content.matchAll(/<@&(\d+)>/gu)].every(([, id]) => roles.includes(id)), 'INVALID_DISCORD_PAYLOAD');
+      return request('POST', `/channels/${channelId}/messages`, 'error-alert', { ...body, nonce, enforce_nonce: true }, true);
+    },
     async createOnboardingAlert(channelId, alertId, body) {
       requireId(channelId); validateOnboardingAlertPayload(body, alertId);
       return request('POST', `/channels/${channelId}/messages`, 'shuttle-message-create',

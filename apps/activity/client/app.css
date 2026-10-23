@@ -263,7 +263,7 @@ h2.md-heading { font-size: 1.3em; }
   letter-spacing: .12em; text-transform: uppercase; background: var(--bay); border-top: 1px solid var(--rule); z-index: 1; }
 .signal::before { content: '●'; margin-right: 6px; color: var(--amber); }
 .signal[data-state="linked"]::before { color: var(--holo); }
-.signal[data-state="lost"]::before { color: var(--rose); }
+.signal:is([data-state="lost"], [data-state="nolink"])::before { color: var(--rose); }
 .toast { position: fixed; left: 50%; top: calc(12px + env(safe-area-inset-top)); transform: translateX(-50%); z-index: 3; max-width: calc(100% - 32px);
   background: var(--panel); border: 1px solid var(--amber-dim); padding: 8px 12px; color: var(--ivory); }
 

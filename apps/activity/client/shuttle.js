@@ -1,9 +1,9 @@
-import { ANNOUNCEMENTS, CHUNK_LIMIT, CODEX, KEYS, READ_CPS, REVEAL_MAX_MS, TEXT, TIPS, TYPE_CPS, canResetJourney, cueEvent, pageProgress, cueSheet, dialogueControls, linkState, momentFor,
+import { ANNOUNCEMENTS, CHUNK_LIMIT, CODEX, KEYS, READ_CPS, REVEAL_MAX_MS, TEXT, TIPS, TYPE_CPS, canResetJourney, cueEvent, pageProgress, LINK_TIMEOUT_MS, linkRetryDelay, linkingText, cueSheet, dialogueControls, linkState, momentFor,
   presence, revealPoints, sceneStateFor, soundscape, speechMs, titleMenu, transmissionChunks, windowUser } from './presenter.js';
 import { parseMarkdown, plainText, renderMarkdown } from './markdown.js';
 
 const SETTINGS_KEY = 'shuttle.settings.v1';
-const DEFAULT_SETTINGS = Object.freeze({ levels: { master: 100, music: 60, ambience: 70, radio: 80, effects: 80 }, sound: 'on', motion: 'system',
+const DEFAULT_SETTINGS = Object.freeze({ levels: { master: 100, music: 50, ambience: 70, radio: 80, effects: 80 }, sound: 'on', motion: 'system',
   text: 'typed', speed: 'normal', size: 'normal' });
 const POLL_MS = 5_000, POLL_LIMIT_MS = 10 * 60_000, RETRY_AFTER_MS = 120_000;
 // Text ticks, at most this often, sound only while Sophie speaks: briefly at each stage and page (owner feedback,
@@ -25,6 +25,8 @@ export function createShuttle({ document, api, connect, player, loadScene, sound
   const $ = id => document.getElementById(id);
   const root = $('shuttle');
   let view = 'splash', described = null, run = null, chunks = [''], chunk = 0, busy = false, started = false, linked = false;
+  // Linking: whether a link attempt is running, which try it is, and the background check while a linked signal is lost.
+  let linkingNow = false, linkAttempt = 1, heartbeat = null;
   let discord = null, typing = null, poll = null, pendingSince = null, toastTimer = null, speechTimer = null, trailTimer = null, talking = false;
   let currentScene = null, cues = [], cueHandlers = {}, sectionScreen = null, statusScreen = null, showRadio = false, bannerTimer = null, transitTimer = null, tipTimer = null;
   let tip = Math.floor(random() * TIPS.length), konamiAt = 0, log = [], swipe = null, lastSwipe = -Infinity;
@@ -90,7 +92,47 @@ export function createShuttle({ document, api, connect, player, loadScene, sound
   }
   function signal(state) {
     const element = $('signal'); element.dataset.state = state;
-    element.textContent = state === 'linked' ? TEXT.linked : state === 'lost' ? TEXT.offline : TEXT.linking;
+    element.textContent = state === 'linked' ? TEXT.linked : state === 'lost' ? TEXT.offline : state === 'nolink' ? TEXT.nolinkSignal : linkingText(linkAttempt);
+  }
+  /** One link attempt: connect to Discord (once) and sign in, then ask core what to show; bounded, so a hung step cannot hold the screen. */
+  function attemptLink() {
+    return new Promise((resolve, reject) => {
+      const timer = timers.after(LINK_TIMEOUT_MS, () => reject(Object.assign(new Error('LINK_TIMEOUT'), { word: 'timeout' })));
+      (async () => {
+        const connected = discord ?? await connect({ onLayout: mode => player.setPaused('pip', mode === 1), onThermal: state => player.setPaused('heat', state >= 2) });
+        return { connected, next: connected === null ? { state: 'outside' } : await api.describe() };
+      })().then(value => { timers.clear(timer); resolve(value); }, error => { timers.clear(timer); reject(error); });
+    });
+  }
+  /**
+   * Links up, trying again on a failure or a timeout (owner report, 24 October 2026: stuck on "Establishing link…").
+   * Out of tries, the title asks the member to try again or reopen the Shuttle. A closed Shuttle or a refused member is an
+   * answer, not a failure, and is not retried.
+   */
+  async function link() {
+    linkingNow = true;
+    try {
+      for (linkAttempt = 1; ; linkAttempt++) {
+        signal('linking'); if (view === 'title') renderMenu();
+        try {
+          const { connected, next } = await attemptLink();
+          discord = connected; setUser(discord?.name); described = next;
+          if (discord === null) { signal('lost'); return; }
+          linked = true; signal('linked'); return;
+        } catch (error) {
+          if (['closed', 'denied'].includes(error?.word)) { described = { state: error.word === 'closed' ? 'closed' : 'signin' }; signal('lost'); return; }
+          const wait = linkRetryDelay(linkAttempt);
+          if (wait === null) { described = { state: 'nolink' }; signal('nolink'); return; }
+          await new Promise(resolve => timers.after(wait, resolve));
+        }
+      }
+    } finally { linkingNow = false; }
+  }
+  /** Once linked, a lost signal is checked again every 15 seconds until core answers, so the status line comes back by itself. */
+  function checkSignal(online) {
+    if (online) { timers.clear(heartbeat); heartbeat = null; if (linked) signal('linked'); else if (linkingNow) signal('linking'); return; }
+    signal('lost');
+    if (linked && heartbeat === null) heartbeat = timers.every(15_000, () => { api.describe().catch(() => {}); });
   }
   function toast(text, ms = 4_000) {
     const element = $('toast'); element.textContent = text; element.hidden = false;
@@ -171,12 +213,13 @@ export function createShuttle({ document, api, connect, player, loadScene, sound
       const entry = document.createElement('li'); entry.append(button); return entry;
     }));
     const notice = $('notice'), waiting = !described && started;
-    notice.hidden = !(menu.notice || waiting); notice.textContent = menu.notice ?? (waiting ? TEXT.linking : '');
+    notice.hidden = !(menu.notice || waiting); notice.textContent = menu.notice ?? (waiting ? linkingText(linkAttempt) : '');
     if (view === 'title') list.querySelector('button')?.focus({ preventScroll: true });
   }
   async function choose(id) {
     if (busy) return;
     if (SHEETS.includes(id)) { sound.play('UI-02'); openSheet(id); return; }
+    if (id === 'relink') { sound.play('UI-02'); described = null; renderMenu(); await link(); if (view === 'title') await showTitle(); return; }
     if (id === 'board') {
       sound.play('UI-02');
       await guarded(async () => { const { run: next } = await api.board(); log = []; await enterRun(next); });
@@ -344,13 +387,16 @@ export function createShuttle({ document, api, connect, player, loadScene, sound
     while (walker.nextNode()) nodes.push(walker.currentNode);
     const texts = nodes.map(node => node.data), cps = TYPE_CPS[settings.speed] ?? TYPE_CPS.normal;
     nodes.forEach(node => { node.data = ''; });
-    let index = 0, offset = 0, lastTick = 0, last = timers.now(), typed = 0, next = 0;
+    // carry keeps the fraction of a character between frames, so the speed is the setting's on any display refresh (rounding
+    // each frame up to one character typed 144 a second on a 144 Hz screen, and alternated 1 and 2 at 60 Hz).
+    let index = 0, offset = 0, lastTick = 0, last = timers.now(), typed = 0, next = 0, carry = 0;
     // Text-synced moments fire as the typing reaches their phrase; skipping the typing reaches them all.
     const reach = upTo => { while (next < points.length && points[next].at <= upTo) reveal(points[next++].key, page); };
     const finish = () => { nodes.forEach((node, i) => { node.data = texts[i]; }); timers.cancelFrame(typing?.frame); typing = null; reach(Infinity); markDone(box); };
     const step = () => {
       const now = timers.now();
-      let budget = Math.max(1, Math.round((now - last) * cps / 1000)); last = now;
+      const due = carry + Math.max(0, now - last) * cps / 1000; last = now;
+      let budget = Math.floor(due); carry = due - budget;
       while (budget > 0 && index < nodes.length) {
         const take = Math.min(budget, texts[index].length - offset);
         offset += take; budget -= take; typed += take; nodes[index].data = texts[index].slice(0, offset);
@@ -663,18 +709,11 @@ export function createShuttle({ document, api, connect, player, loadScene, sound
       $('press-text').textContent = TEXT.pressStart; $('status-title').textContent = TEXT.radio; $('status-state').textContent = TEXT.standby;
       $('transit-skip').textContent = TEXT.skip; $('pass-kicker').textContent = TEXT.pass;
       await scene('hangar-viewport', { whitelist: 'none', link: 'none' });
-      try {
-        discord = await connect({ onLayout: mode => player.setPaused('pip', mode === 1), onThermal: state => player.setPaused('heat', state >= 2) });
-        setUser(discord?.name);
-        if (discord === null) { described = { state: 'outside' }; signal('lost'); }
-        else { described = await api.describe(); linked = true; signal('linked'); }
-      } catch (error) {
-        described = { state: error?.word === 'closed' ? 'closed' : error?.word === 'signin' || error?.word === 'denied' ? 'signin' : 'failed' }; signal('lost');
-      }
+      await link();
       if (view === 'title') await showTitle();
       else if (view === 'splash') player.setState({ ...(described?.state === 'run' ? sceneStateFor(described.run) : {}), link: linkState(described) });
     },
-    setSignal: online => signal(online ? (linked ? 'linked' : 'linking') : 'lost'),
+    setSignal: checkSignal,
     get view() { return view; },
   });
 }

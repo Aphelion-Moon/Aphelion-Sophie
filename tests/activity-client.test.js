@@ -325,3 +325,23 @@ test('T-ACT-CLI-17 phones (owner audit, 24 October 2026): sheets open at their t
   assert.match(glossary.Whitelist, /Sophie hands it to you when you disembark/); assert.doesNotMatch(glossary.Whitelist, /request/);
   assert.match(glossary['Meridian Rift'], /in development/); assert.doesNotMatch(glossary['The Shuttle'], /journey/i);
 });
+
+test('T-ACT-CLI-18 linking never hangs: each try is bounded, tries back off, then the member is asked to try again or reopen', async () => {
+  const { LINK_TIMEOUT_MS, LINK_ATTEMPTS, linkRetryDelay, linkingText } = await import('../apps/activity/client/presenter.js');
+  assert.equal(LINK_TIMEOUT_MS, 15_000);
+  assert.deepEqual(Array.from({ length: LINK_ATTEMPTS }, (_, i) => linkRetryDelay(i + 1)), [2_000, 5_000, 10_000, 20_000, null]);
+  assert.equal(linkingText(1), 'Establishing link…'); assert.equal(linkingText(3), 'Establishing link… try 3 of 5');
+  // Out of tries: trying again is the first choice, with a notice saying how to recover.
+  const menu = titleMenu({ state: 'nolink' });
+  assert.equal(menu.items[0].id, 'relink'); assert.match(menu.notice, /Try again, or close the Shuttle and open it again/);
+  const client = await readFile(new URL('../apps/activity/client/shuttle.js', import.meta.url), 'utf8');
+  assert.match(client, /const timer = timers\.after\(LINK_TIMEOUT_MS, \(\) => reject/, 'every try is bounded');
+  assert.match(client, /const wait = linkRetryDelay\(linkAttempt\);\s*if \(wait === null\) \{ described = \{ state: 'nolink' \}; signal\('nolink'\); return; \}/);
+  assert.match(client, /setSignal: checkSignal/); assert.match(client, /heartbeat = timers\.every\(15_000/);
+  // Typing keeps the fraction of a character between frames: the speed setting holds on any display refresh.
+  assert.match(client, /let budget = Math\.floor\(due\); carry = due - budget;/); assert.doesNotMatch(client, /Math\.max\(1, Math\.round\(\(now - last\) \* cps/);
+  // Music starts at half volume (owner, 24 October 2026).
+  assert.match(client, /levels: \{ master: 100, music: 50,/);
+  const discord = await readFile(new URL('../apps/activity/client/discord.js', import.meta.url), 'utf8');
+  assert.match(discord, /shared \?\?= /, 'one Discord SDK for the page, reused by every try');
+});

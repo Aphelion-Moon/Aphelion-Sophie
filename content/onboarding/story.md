@@ -9,6 +9,7 @@ carry the must-know facts. tests/onboarding-story.test.js checks that every requ
 Revision 1 (owner, 24 October 2026): story-revised-1.md, cleaned for format and typos only.
 Revision 2 (owner, 24 October 2026): the "No one is forcing you" section removed; cleaned for format (see the decision log).
 Revision 3 (owner, 24 October 2026): a voluntary section back in the Brochure; cleaned for format (see the decision log).
+Revision 4 (owner, 24 October 2026): "akulan" becomes Akula.
 -->
 === the-brochure | The Brochure
 
@@ -166,7 +167,7 @@ Ask, don't assume. When someone says no, listen, and don't make them justify it.
 
 Straps on, we're rolling out to the launch rail. Got any real questions? Awesome, we love those, take a note in your phone to pester the Team with later. Disagree with us? Hating your travel experience so far? That's fine, we would like to hear why. Need something clarified? Please ask, in earnest and with clear intent, and you'll likely get help from your fellow co-workers before a Staffer even has a chance to help.
 
-…there's a space sea lion on the rail. Is it... Hold on let me tap into the external camera and read its maw... It wants us to explain why it shouldn't lay on the launch rail. Again. Look, I already reached out to the SCPS last week about this creature. We had an akulan swim out there and explain why it can't lay there. It's probably demanding we explain why we didn't find a way to fly over it this time.
+…there's a space sea lion on the rail. Is it... Hold on let me tap into the external camera and read its maw... It wants us to explain why it shouldn't lay on the launch rail. Again. Look, I already reached out to the SCPS last week about this creature. We had an Akula swim out there and explain why it can't lay there. It's probably demanding we explain why we didn't find a way to fly over it this time.
 
 That's called [sealioning](https://en.wikipedia.org/wiki/Sealioning) by the way: demanding explanations or evidence over and over in bad faith, ignoring every answer, and keeping someone stuck in a situation they've already tried to leave.
 

@@ -30,7 +30,7 @@ function harness() {
     player, calls, altElement, canvas,
     resize: (w, h) => sizeCallback(w, h),
     /** Runs scheduled frames, advancing the clock; returns how many ran. */
-    run(seconds, step = 1 / 12) {
+    run(seconds, step = 1 / 30) {
       let ran = 0;
       for (let t = 0; t < seconds && queue.length; t += step) { now += step; const fns = queue; queue = []; fns.forEach(fn => fn()); ran += fns.length; }
       return ran;
@@ -47,6 +47,34 @@ test('P42 the player picks the grid from the host shape and shows the alt text',
   assert.equal(h.player.layout, 'portrait'); assert.equal(h.canvas.width, 72 * 5);
   assert.match(h.altElement.textContent, /departure lounge/);
   h.player.destroy();
+});
+
+test('P42 frames fall on a fixed 1/30 s grid, one per slot, however the display refresh jitters (the belt moved unevenly)', async () => {
+  // A 60 Hz and a 144 Hz display whose refreshes land a little early or late. Timing each frame from the last one drawn
+  // used to round a frame to 5 or 6 refreshes at random.
+  for (const hz of [60, 144]) {
+    const h = harness(), scene = await sceneFile('baggage-hall');
+    h.resize(960, 400); h.player.setScene(scene); h.player.setState({ stopTitle: 'Synthetic stop', section: 1, sections: 2 });
+    const frames = [];
+    for (let i = 0; i < hz * 4; i++) { const step = 1 / hz + (i % 3 === 0 ? 0.0004 : -0.0002); h.run(step, step); frames.push(h.player.frameTime); }
+    const drawn = [...new Set(frames)].filter(Number.isFinite);
+    for (const at of drawn) assert.ok(Math.abs(at * 30 - Math.round(at * 30)) < 1e-6, `${hz} Hz: ${at} is on the grid`);
+    const steps = drawn.slice(1).map((at, i) => Math.round((at - drawn[i]) * 30));
+    assert.ok(steps.every(step => step === 1), `${hz} Hz: every grid slot drawn once: ${steps.join(',')}`);
+    h.player.destroy();
+  }
+});
+
+test('P42 at 30 frames a second, every walker and belt steps at most one cell a frame, so motion reads as steady', async () => {
+  // At 12 frames a second Ian moved 0.66 cells a frame, alternating one- and two-frame steps; at 30 he takes a cell about
+  // every 4 frames. The player redraws only the cells that change, so the extra frames cost little.
+  for (const name of ['departure-lounge', 'baggage-hall', 'boarding-cabin', 'pressure-door']) {
+    const scene = await sceneFile(name);
+    for (const [layout, { effects }] of Object.entries(scene.layouts)) for (const fx of effects) {
+      const rates = fx.kind === 'conveyor' ? [fx.speed] : fx.kind === 'sprite' ? [Math.max(...fx.to.map((v, i) => Math.abs(v - fx.from[i]))) / fx.duration] : [];
+      for (const rate of rates) assert.ok(rate / 30 <= 1, `${name}/${layout} ${fx.id}: ${(rate / 30).toFixed(2)} cells a frame`);
+    }
+  }
 });
 
 test('P42 with motion off the player draws one still frame and stops scheduling', async () => {

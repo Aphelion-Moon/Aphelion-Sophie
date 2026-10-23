@@ -2129,3 +2129,43 @@ Activity in testing.
 
 This is the Activity's opening (P44), not the administration cutover (P30/P31). Tickets, cases, moderation and Crew stay with
 the existing bot. The owner checks the "Use Activities" permission in #rules, posts there, and pings everyone later.
+
+### After the opening: alerts, the link, motion, music and Akula — 24 October 2026
+
+The owner, after the opening: "Set music volume to 50% by default. Sophie's errors should output to a channel (use this one
+for now: 1528812406724231288) and should ping me @matriarch. We shouldn't be getting stuck on Establishing Link. It should
+keep retrying, or prompt the user to restart the Activity." Then: investigate the belt's stutter in Pack Your Bags, check frame
+timing elsewhere, a reported double space in Pack Your Bags, and "change 'akulan' to Akula". "Install it when you're done."
+
+- **Music** starts at 50% (was 60%). A member's saved level is kept.
+- **Error alerts.** The runtime's `errorAlerts` (channel 1528812406724231288, role matriarch) posts each error code to that
+  channel and pings the matriarch role, found by name; a decorated name such as "👑 Matriarch" also matches.
+  - Only errors alert: codes reporting something unavailable, failed, uncertain, relaunched, silent or invalid. Routine
+    traces never do: AI turns skipped, admitted or delivered, members refused at the dashboard.
+  - Each code alerts at most once per 30 minutes (6 hours for the background knowledge sync), with a count of
+    occurrences since. At most 12 alerts an hour, and a ping at most once per 30 minutes.
+  - Codes only, as in the log: never a message, ID, member or payload. The transport lets an alert ping that one role and
+    nothing else.
+  - Alerts use their own transport, so a database outage can still be reported. An error that stops core itself before it
+    runs cannot be posted; it stays in the host log.
+- **The link.**
+  - Each link attempt is bounded (15 seconds). Failures and timeouts are tried again after 2, 5, 10 and 20 seconds, with the
+    status line showing the try.
+  - Out of tries, the title says the Shuttle couldn't link up with Discord and offers "Try the link again" first.
+  - Once linked, a lost signal is checked every 15 seconds until core answers.
+  - One Discord SDK serves every try. Before this, a hung step held "Establishing link…" forever, and a failed start said
+    "Retrying…" without retrying.
+- **Motion.**
+  - The scene player drew each frame when 1/12 s had passed since the last one drawn. On a 60 Hz screen that rounded to 5
+    or 6 refreshes at random, and the belt stuttered. Frames now fall on a fixed grid of the clock, composed at their grid
+    time.
+  - At 12 frames a second, 147 movements (Ian, the cabin passengers, Beepsky, the carp) could not step evenly. Playback is
+    now 30 frames a second, which is exactly 2 refreshes at 60 Hz and 4 at 120 Hz. A frame takes about 0.17 ms to compose
+    here, and only changed cells are redrawn.
+  - The typewriter rounded each frame up to at least one character, so "normal" typed about 144 characters a second on a
+    144 Hz screen and alternated 1 and 2 at 60 Hz. It now carries the fraction of a character between frames.
+- **The double space** ("hey,  if not, introduce yourself") is not in the text: the published story has single spaces
+  there, with no unusual space characters anywhere. In the Activity's monospaced font a comma fills a whole cell, so ", "
+  reads wider than a space. No change.
+- **Akula.** "We had an akulan swim out there" now reads "We had an Akula swim out there" (story revision 4), published
+  as Shuttle version 5. Activity runs still being read on version 4 restart at the first stop, as with every story update.

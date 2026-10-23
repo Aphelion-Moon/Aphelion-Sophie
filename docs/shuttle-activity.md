@@ -185,6 +185,9 @@ with an ellipsis when long, and `@aphelion` always shows.
   speed, text size.
 - **Sheets** (Settings, Glossary, Station log, Keys, Credits) share one shape: a header bar with the title and a close
   button that stays in reach, a body that scrolls on its own and opens at its top, and a backdrop that closes on a tap.
+- **Linking:** each try at linking with Discord and core is bounded (15 s). Failed tries are retried after 2, 5, 10 and
+  20 s; then the title offers "Try the link again" and suggests reopening the Shuttle. A lost signal after linking is
+  checked every 15 s until it is back.
 - **Phones:** hover styling only where a pointer hovers; 44 px touch targets; a short portrait phone gives the scene two
   fifths of the height; a phone on its side keeps the side-by-side layout with a compact status window.
 - **Input:** arrows, 1 to 9 on the main menu, Enter/Space, Backspace, Escape, swipe on touch screens; 44 px tap targets

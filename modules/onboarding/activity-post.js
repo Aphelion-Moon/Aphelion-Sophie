@@ -67,6 +67,18 @@ export const POST_RULES = Object.freeze([
 /** Components V2 message flag: the post is built from components, with no content or embeds. */
 export const COMPONENTS_V2 = 1 << 15;
 
+const unique = (items, name, same = (a, b) => a === b) => { const found = (items ?? []).filter(item => same(item.name, name)); return found.length === 1 ? found[0] : null; };
+const lower = (a, b) => typeof a === 'string' && a.toLowerCase() === b.toLowerCase();
+const bare = value => value.toLowerCase().replace(/[^a-z0-9_-]/gu, '');
+/**
+ * The server's role of this name, or null: an exact name (any case) wins; else the one role whose name reads the same
+ * with only its letters, digits, hyphens and underscores kept ("👑 Matriarch" for matriarch). Two candidates: null.
+ */
+export function roleByName(roles, name) {
+  if (typeof name !== 'string' || bare(name) === '') return null;
+  return unique(roles, name, lower) ?? ((roles ?? []).some(item => lower(item.name, name)) ? null : unique(roles, name, (a, b) => typeof a === 'string' && bare(a) === bare(b)));
+}
+
 /**
  * Links in the post's wording, resolved against the server when the post is sent (owner request, 24 October 2026):
  * #name becomes that text, announcement or forum channel, @ followed by a user ID becomes that member, @name becomes
@@ -76,20 +88,13 @@ export const COMPONENTS_V2 = 1 << 15;
  */
 export function resolvePostMentions(text, directory) {
   if (!directory) return text;
-  const unique = (items, name, same = (a, b) => a === b) => { const found = (items ?? []).filter(item => same(item.name, name)); return found.length === 1 ? found[0] : null; };
-  const lower = (a, b) => typeof a === 'string' && a.toLowerCase() === b.toLowerCase();
-  // A role's name may carry decoration ("👑 Matriarch"): an exact name wins, else the name with only its letters, digits,
-  // hyphens and underscores kept.
-  const bare = value => value.toLowerCase().replace(/[^a-z0-9_-]/gu, '');
-  const roleNamed = name => unique(directory.roles, name, lower) ??
-    ((directory.roles ?? []).some(item => lower(item.name, name)) ? null : unique(directory.roles, name, (a, b) => typeof a === 'string' && bare(a) === bare(b) && bare(b) !== ''));
   const channels = (directory.channels ?? []).filter(channel => [0, 5, 15].includes(channel.type));
   return text
     .replace(/(^|[\s(])#([a-z0-9][a-z0-9_-]{0,99})(?=$|[\s.,!?;:)])/gmu, (all, before, name) => { const channel = unique(channels, name); return channel ? `${before}<#${channel.id}>` : all; })
     .replace(/(^|[\s(])@(\d{17,20})(?=$|[\s.,!?;:)])/gmu, (_, before, id) => `${before}<@${id}>`)
     .replace(/(^|[\s(])@([A-Za-z][\w-]{0,99})(?=$|[\s.,!?;:)])/gmu, (all, before, name) => {
       if (['everyone', 'here'].includes(name.toLowerCase())) return all;
-      const role = roleNamed(name); return role ? `${before}<@&${role.id}>` : all;
+      const role = roleByName(directory.roles, name); return role ? `${before}<@&${role.id}>` : all;
     })
     .replace(/(?<![<\w]):([A-Za-z0-9_]{2,32}):(?!\d)/gu, (all, name) => { const emoji = unique(directory.emojis, name); return emoji ? `<${emoji.animated ? 'a' : ''}:${emoji.name}:${emoji.id}>` : all; });
 }

@@ -3,13 +3,13 @@ import { createSceneCanvas } from './scene-canvas.js';
 
 /**
  * Plays one scene at a time in a host element (P42). It picks the landscape or portrait grid from the host's shape,
- * draws at no more than 12 frames a second, and holds a still frame when motion is off or playback is paused
+ * draws at 30 frames a second on a fixed grid of the clock, and holds a still frame when motion is off or playback is paused
  * (hidden page, picture-in-picture, heat warning). Run state only chooses what is drawn; the door opens on screen
  * only after the server has reported Whitelist as confirmed.
  *
  * Every platform hook is injected so the player can run under test or in Discord's frame.
  */
-export function createScenePlayer({ host, canvas, altElement, palette, background, font, clock, scheduler, observeSize, pixelRatio = () => 1, fps = 12, onCue: cueHandler = null, onLayout: layoutHandler = null }) {
+export function createScenePlayer({ host, canvas, altElement, palette, background, font, clock, scheduler, observeSize, pixelRatio = () => 1, fps = 30, onCue: cueHandler = null, onLayout: layoutHandler = null }) {
   const painter = createSceneCanvas(canvas, { palette, background, font });
   const paused = new Set();
   let scene = null, layout = 'landscape', state = {}, motion = true, frameHandle = null, lastDraw = -Infinity, geometry = null;
@@ -46,7 +46,11 @@ export function createScenePlayer({ host, canvas, altElement, palette, backgroun
     const now = clock();
     const animating = motion && paused.size === 0;
     const opening = state.whitelist === 'confirmed' && confirmedAt !== null && now - confirmedAt < DOOR_SECONDS && motion;
-    if (now - lastDraw >= 1 / fps) render(now);
+    // Frames fall on a fixed 1/fps grid of the clock and each is composed at its grid time, so motion advances evenly. Timing
+    // each frame from the last one drawn let the display's refresh round a frame to 5 or 6 refreshes at random, and the
+    // baggage belt stuttered (owner report, 24 October 2026).
+    const frameAt = Math.floor(now * fps + 1e-6) / fps;
+    if (frameAt > lastDraw) render(frameAt);
     if (animating || opening) frameHandle = scheduler.request(tick);
   }
   function wake() { painter.invalidate(); lastDraw = -Infinity; if (frameHandle === null) frameHandle = scheduler.request(tick); }
@@ -89,6 +93,8 @@ export function createScenePlayer({ host, canvas, altElement, palette, backgroun
     /** Call once the scene font has loaded, so glyphs are measured against it rather than a fallback. */
     fontReady() { painter.fontChanged(); wake(); },
     get layout() { return layout; },
+    /** The clock time of the frame last drawn (on the 1/fps grid). */
+    get frameTime() { return lastDraw; },
     destroy() { if (frameHandle !== null) scheduler.cancel(frameHandle); frameHandle = null; stopObserving(); },
   };
 }

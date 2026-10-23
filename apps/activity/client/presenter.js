@@ -11,8 +11,12 @@ export { headingKey };
 export const TEXT = Object.freeze({
   pressStart: 'Press any key or tap to begin',
   linking: 'Establishing link…',
+  linkingTry: 'Establishing link… try {n} of {of}',
   linked: 'Signal linked',
   offline: 'Signal lost. Retrying…',
+  nolinkSignal: 'No link. Reopen the Shuttle',
+  nolink: 'The Shuttle couldn’t link up with Discord. Try again, or close the Shuttle and open it again.',
+  relink: 'Try the link again',
   board: 'Board the Shuttle',
   refresher: 'Take the refresher flight',
   resume: 'Resume journey',
@@ -201,6 +205,18 @@ export function pageProgress(chunk, count, reading = true) {
   return { counter: `${chunk + 1} / ${count}`, dots: Array.from({ length: count }, (_, index) => index === chunk ? '■' : index < chunk ? '▪' : '□').join(' ') };
 }
 
+/**
+ * Linking with Discord and core at start (owner report, 24 October 2026: stuck on "Establishing link…"). Each attempt has
+ * LINK_TIMEOUT_MS; a failed or timed-out attempt is tried again after the next delay here, and once these run out the
+ * member is asked to try again or reopen the Shuttle. null: no more tries.
+ */
+export const LINK_TIMEOUT_MS = 15_000;
+const LINK_RETRY_MS = Object.freeze([2_000, 5_000, 10_000, 20_000]);
+export const LINK_ATTEMPTS = LINK_RETRY_MS.length + 1;
+export function linkRetryDelay(attempt) { return Number.isInteger(attempt) && attempt >= 1 && attempt <= LINK_RETRY_MS.length ? LINK_RETRY_MS[attempt - 1] : null; }
+/** The status line while linking: which try this is, after the first. */
+export function linkingText(attempt) { return attempt > 1 ? TEXT.linkingTry.replace('{n}', String(attempt)).replace('{of}', String(LINK_ATTEMPTS)) : TEXT.linking; }
+
 /** Reset journey (Settings) has something to clear only while a run is being read; a finished run offers boarding again. */
 export function canResetJourney(described) {
   return described?.state === 'run' && ['reading', 'paused'].includes(described.run?.status);
@@ -211,7 +227,9 @@ export function titleMenu(described, { log = false } = {}) {
   const extras = [...(log ? [{ id: 'log', label: TEXT.log }] : []), { id: 'codex', label: TEXT.codex }];
   const settings = { id: 'settings', label: TEXT.settings }, credits = { id: 'credits', label: TEXT.credits };
   const notice = { closed: TEXT.closed, unavailable: TEXT.unavailable, elsewhere: TEXT.elsewhere, unpublished: TEXT.unpublished,
-    outside: TEXT.outside, signin: TEXT.signin, failed: TEXT.failed }[described?.state] ?? null;
+    outside: TEXT.outside, signin: TEXT.signin, failed: TEXT.failed, nolink: TEXT.nolink }[described?.state] ?? null;
+  // The link gave up after its retries: trying again comes first, so nobody is left waiting on a screen that will not change.
+  if (described?.state === 'nolink') return { items: [{ id: 'relink', label: TEXT.relink }, ...extras, settings, credits], notice };
   if (described?.state === 'ready') {
     return { items: [{ id: 'board', label: described.mode === 'refresh' ? TEXT.refresher : TEXT.board }, ...extras, settings, credits], notice: null };
   }
