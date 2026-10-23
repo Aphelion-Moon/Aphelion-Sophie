@@ -2044,3 +2044,11 @@ fixed in the client (no server change):
   The credits name the rules post art.
 
 Not covered offline: the look on real phones, which is the owner's next playtest.
+
+### Production install of cc90730: the station-broadcast rules post and the mobile fixes — 24 October 2026
+
+On the owner's request ("Then publish and install the updates."; quoted in the packet's `approval.json`), `cc90730` was
+installed over `a6730b5` at 21:19 UTC on 23 October (host clock). It carries the ba7486c rules post (its own packet was
+never run) and the Activity's mobile audit fixes. Same runtime, capability policy version 2, credentials and story
+(Shuttle version 4); no migration. All checks passed, and the public Activity host serves the new page and stylesheet.
+Folder `.agent_docs/aphelion-sophie/deployment-cc90730-production-2026-10-24`; `rollback.ps1` restores a6730b5.

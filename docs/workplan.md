@@ -1,6 +1,6 @@
 # Current implementation workplan
 
-Revision: 2026-10-24-mobile-audit. Mistral Small 4 (mistral-small-2603) on the official EU API is the selected provider for trial; DeepSeek Flash is withdrawn. Local models are historical, explicitly selected alternatives only; no automatic fallback. Continue the DS workstream with synthetic data; full readiness and activation remain open.
+Revision: 2026-10-24-production-cc90730. Mistral Small 4 (mistral-small-2603) on the official EU API is the selected provider for trial; DeepSeek Flash is withdrawn. Local models are historical, explicitly selected alternatives only; no automatic fallback. Continue the DS workstream with synthetic data; full readiness and activation remain open.
 
 All production release gates remain open; pure and isolated database checks are not full application acceptance.
 
@@ -1672,13 +1672,14 @@ Implemented scope:
 - a6730b5 installed and story revision 3 published as Shuttle version 4 on 24 October 2026: About pages keep their link boxes, Ian barks three times, Meridian IN DEV, Glossary, page counter, silent session renewal, 6,000-character stages.
 - Rules post redesigned as a station broadcast (Components V2, posted as Sophie's own message, rules links, desktop colour, neon bar); built and tested offline on 24 October 2026, not installed.
 - Mobile audit of the Activity on 24 October 2026: sheets open at their top with one header-bar shape, backdrop closes, hover only on hover devices, 44 px touch targets, short portrait and landscape layouts, narrow glossary, glossary wording.
+- cc90730 installed on 24 October 2026: the station-broadcast rules post and the Activity mobile audit fixes.
 
 Remaining scope:
 
-- Owner: Go live again in each channel on the new release (a6730b5); a tester without Whitelist finishes Shuttle version 4 and receives the role from Sophie; leave the Activity idle over an hour and carry on without reopening it.
+- Owner: Go live again in each channel on the new release (cc90730); a tester without Whitelist finishes Shuttle version 4 and receives the role from Sophie; leave the Activity idle over an hour and carry on without reopening it.
 - Owner: Go live in each channel on the dashboard; /sophie Yes.
 - Live checks: a reply in #ask-sophie (code and Guidebook), a saved memory, Get my data, the Activity for a Lead Ops tester, a staff channel turn.
-- Install the station-broadcast rules post (its own approval); the owner posts it in a private channel first, checks desktop and a phone (colour readable, art not wrapped), then posts it in the rules channel and deletes the old one.
+- Owner: /whitelist post in a private channel, check desktop and a phone (colour readable, art not wrapped), then post it in the rules channel and delete the old one; re-open the Activity on a phone.
 
 Full task deliverables:
 

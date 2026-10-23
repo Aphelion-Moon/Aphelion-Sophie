@@ -1,5 +1,22 @@
 # Verification and release limits
 
+## Production install of cc90730: rules post and mobile fixes — 24 October 2026
+
+- **Offline:**
+  - `npm test` 849 passed:
+    - T-ACT-POST-01: the station broadcast's shape, limits, art width, colour and plain variants, and provenance;
+    - production-mode: the post sent as Sophie's own message, the private reply, refusals, and transport payload checks;
+    - T-ACT-CLI-17: sheets open at their top with one shape, hover only on hover devices, touch sizes, short-screen
+      layouts, glossary wording;
+  - `npm run check` passed; storage 1037 passed.
+- **Install:**
+  - preflight: 9 reviewed files; runtime unchanged; capability policy equal to the recorded version 2;
+  - saved wording (none) loads under the new catalogue;
+  - pre-start, service boundaries, installed checks and public hosts passed;
+  - the public host serves the new page and stylesheet.
+- **Not covered:** how Discord renders the post (desktop colour, a phone's width) and the client on real phones. These
+  are the owner's first post and next playtest.
+
 ## Production install of a6730b5 and Shuttle version 4 — 24 October 2026
 
 - **Offline:** `npm test` 847 passed (T-ACT-PAGE-03 About pages keep their link boxes; T-ACT-CLI-15 Glossary and page
