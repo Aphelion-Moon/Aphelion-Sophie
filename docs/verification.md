@@ -1,5 +1,18 @@
 # Verification and release limits
 
+## Production install of 366b6cb and Shuttle version 3 — 24 October 2026
+
+Owner approval quoted in the decision log. Folder `deployment-366b6cb-production-2026-10-24`.
+
+- **Offline:** `npm test` 842 passed (production transport adds Whitelist only); `npm run check` passed; storage 1037 passed.
+  Not covered offline: the production runtime's grant worker loop end to end.
+- **Install:** preflight (7 reviewed files; runtime unchanged; capability policy equal to the recorded version 2); pre-start,
+  service boundaries, installed checks and public hosts passed. Story revision 2 validated (13 messages) and published as
+  version 3; `activityRunsReset` 1. A rolled-back dry run of the policy registration passes; the public baggage hall
+  shows `[UPSTREAM ]`.
+- **Open:** one `ACTIVITY_REQUEST_UNAVAILABLE` after the policy fix (cause not recorded by the fault code); the first
+  production Whitelist grant by Sophie; go-live on the new release.
+
 ## Configuration fix: capability policy version 2 — 24 October 2026 (incident)
 
 - **Symptom:** after da5b48a, every Activity request failed (`ACTIVITY_REQUEST_UNAVAILABLE`).

@@ -1938,3 +1938,12 @@ role ownership intact: Sophie now *adds* Whitelist at the end of a Shuttle run i
 eligibility and Muzzled checks; she never removes it, runs no member reconciliation and touches no other role, which stay
 with the existing bot. Implementation: the production transport may add only the Whitelist role (one PUT route), a worker
 that handles only `whitelist.grant` runs in production, and the Activity queues the grant.
+
+### Production install of 366b6cb and Shuttle version 3 — 24 October 2026
+
+On the owner's approval ("Approved: run the 366b6cb production packet (seven files: Whitelist grants in production, the
+UPSTREAM bag), then the checks, then publish story revision 2 as Shuttle version 3. I'll Go live again afterwards."),
+`366b6cb` was installed over `da5b48a` at 18:17 UTC on 23 October (host clock): Sophie grants Whitelist in production, the
+UPSTREAM bag. Same runtime and capability policy (version 2, confirmed recorded). All checks passed; story revision 2 was
+published as Shuttle version 3 (`44dbda58…`) and reset the one Activity run in progress on version 2. Folder
+`.agent_docs/aphelion-sophie/deployment-366b6cb-production-2026-10-24`; `rollback.ps1` restores da5b48a.

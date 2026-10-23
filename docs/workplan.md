@@ -1,6 +1,6 @@
 # Current implementation workplan
 
-Revision: 2026-10-24-production-da5b48a. Mistral Small 4 (mistral-small-2603) on the official EU API is the selected provider for trial; DeepSeek Flash is withdrawn. Local models are historical, explicitly selected alternatives only; no automatic fallback. Continue the DS workstream with synthetic data; full readiness and activation remain open.
+Revision: 2026-10-24-production-366b6cb. Mistral Small 4 (mistral-small-2603) on the official EU API is the selected provider for trial; DeepSeek Flash is withdrawn. Local models are historical, explicitly selected alternatives only; no automatic fallback. Continue the DS workstream with synthetic data; full readiness and activation remain open.
 
 All production release gates remain open; pure and isolated database checks are not full application acceptance.
 
@@ -1667,10 +1667,11 @@ Implemented scope:
 - Story revision 1 (owner) installed with a65ee31 and published as Shuttle version 2 on 24 October 2026; all checks passed.
 - 7d3e2ee installed on 24 October 2026: story updates dispose of Activity progress on older versions; Reset journey in Settings.
 - da5b48a installed on 24 October 2026: scene dialogue follows story revision 1, the sea lion is hit on the THUMP page, Staff join the Activity testers.
+- 366b6cb installed on 24 October 2026: Sophie grants Whitelist in production; UPSTREAM bag; story revision 2 published as Shuttle version 3.
 
 Remaining scope:
 
-- Owner: Go live again in each channel on the new release (da5b48a); a tester run through Shuttle version 2 (owner, Lead Ops or Staff).
+- Owner: Go live again in each channel on the new release (366b6cb); a tester without Whitelist finishes Shuttle version 3 and receives the role from Sophie.
 - Owner: Go live in each channel on the dashboard; /sophie Yes.
 - Live checks: a reply in #ask-sophie (code and Guidebook), a saved memory, Get my data, the Activity for a Lead Ops tester, a staff channel turn.
 
