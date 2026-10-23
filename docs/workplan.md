@@ -1,6 +1,6 @@
 # Current implementation workplan
 
-Revision: 2026-10-24-production-d69637c. Mistral Small 4 (mistral-small-2603) on the official EU API is the selected provider for trial; DeepSeek Flash is withdrawn. Local models are historical, explicitly selected alternatives only; no automatic fallback. Continue the DS workstream with synthetic data; full readiness and activation remain open.
+Revision: 2026-10-24-production-a928b04. Mistral Small 4 (mistral-small-2603) on the official EU API is the selected provider for trial; DeepSeek Flash is withdrawn. Local models are historical, explicitly selected alternatives only; no automatic fallback. Continue the DS workstream with synthetic data; full readiness and activation remain open.
 
 All production release gates remain open; pure and isolated database checks are not full application acceptance.
 
@@ -1674,10 +1674,11 @@ Implemented scope:
 - Mobile audit of the Activity on 24 October 2026: sheets open at their top with one header-bar shape, backdrop closes, hover only on hover devices, 44 px touch targets, short portrait and landscape layouts, narrow glossary, glossary wording.
 - cc90730 installed on 24 October 2026: the station-broadcast rules post and the Activity mobile audit fixes.
 - d69637c installed on 24 October 2026: the owner's rules post wording; the logotype and board as images served by the Activity host.
+- a928b04 installed on 24 October 2026: the rules post links its channels, @matriarch and its emoji (never notifying), with the owner's second edit.
 
 Remaining scope:
 
-- Owner: Go live again in each channel on the new release (d69637c); a tester without Whitelist finishes Shuttle version 4 and receives the role from Sophie; leave the Activity idle over an hour and carry on without reopening it.
+- Owner: Go live again in each channel on the new release (a928b04); a tester without Whitelist finishes Shuttle version 4 and receives the role from Sophie; leave the Activity idle over an hour and carry on without reopening it.
 - Owner: Go live in each channel on the dashboard; /sophie Yes.
 - Live checks: a reply in #ask-sophie (code and Guidebook), a saved memory, Get my data, the Activity for a Lead Ops tester, a staff channel turn.
 - Owner: /whitelist post in a private channel, check the images on desktop and a phone, then post it in the rules channel and delete the old one; re-open the Activity on a phone.

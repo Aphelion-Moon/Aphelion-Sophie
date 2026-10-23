@@ -1,5 +1,18 @@
 # Verification and release limits
 
+## Production install of a928b04: rules post links and @matriarch — 24 October 2026
+
+- **Offline:**
+  - on 3488482: `npm test` 851 passed, `npm run check` passed, storage 1037 passed;
+  - on a928b04, one wording and role-matching change later: the activity-post and production-mode suites passed
+    (T-ACT-POST-05 the resolver, including decorated role names; the panel's directory and its fallback; the transport's
+    refusal of anything that could notify).
+- **Install:**
+  - preflight: 4 reviewed files; runtime unchanged; capability policy equal to the recorded version 2;
+  - pre-start, service boundaries, installed checks and public hosts passed.
+- **Not covered:** whether the live server's role, channel and emoji names resolve. That shows in the owner's repost;
+  anything unresolved stays plain text.
+
 ## Production install of d69637c: rules post text and art images — 24 October 2026
 
 - **Offline:**

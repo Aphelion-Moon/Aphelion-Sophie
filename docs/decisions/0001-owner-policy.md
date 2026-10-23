@@ -2103,3 +2103,12 @@ linking at the moment. If that's not possible to do, please inform me and leave 
   - italics closed against their words (Discord does not italicise "*text *");
   - trailing spaces dropped;
   - the launch button renamed **Travel to the Interlink**, because the call tells members to tap a button of that name.
+
+### Production install of a928b04: the rules post's links and @matriarch — 24 October 2026
+
+The owner: "My role is @matriarch so please configure that. Once you've done that you can install." The small print now
+names @matriarch, which resolves to the role of that name when the post is sent. A decorated role name still matches its
+bare name; the role shows as a link and is never notified. `a928b04` was installed over `d69637c` at 22:29 UTC on 23
+October (host clock), bringing the owner's second edit and the post's channel, role and emoji links. Same runtime,
+capability policy version 2, credentials and story; no migration. All checks passed. Folder
+`.agent_docs/aphelion-sophie/deployment-a928b04-production-2026-10-24`; `rollback.ps1` restores d69637c.
