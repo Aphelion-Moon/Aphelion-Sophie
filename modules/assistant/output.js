@@ -1,14 +1,24 @@
 import { requireCondition, requireKeys } from '../../contracts/validation.js';
-import { validateMemoryProposals } from './memories.js';
+import { filterMemoryProposals } from './memories.js';
 import { AI_REPLY_LIMIT } from './participation.js';
 
-/** A valid schema never establishes factual accuracy. Release evaluation checks the claims themselves. */
-export function validateAiOutput(value, { outcomes, answerOnly, sources, emojiKeys, memoryLabels, replyChars = 1600 }) {
+/**
+ * A valid schema never establishes factual accuracy. Release evaluation checks the claims themselves.
+ * Owner decision, 24 October 2026: a bad memory item or a surplus citation is dropped, not the whole reply. `onDropped`
+ * hears fixed codes only.
+ */
+export function validateAiOutput(value, { outcomes, answerOnly, sources, emojiKeys, memoryLabels, memoryRequester = null, replyChars = 1600, onDropped = () => {} }) {
   requireCondition(value !== null && typeof value === 'object' && outcomes.includes(value.kind), 'AI_OUTPUT_INVALID');
-  // Memories ride along with any outcome, and only when this turn's contract offered member labels to write them with.
-  const remembering = memoryLabels !== undefined && Object.hasOwn(value, 'memories');
-  const memories = remembering ? validateMemoryProposals(value.memories, memoryLabels) : [];
-  const extra = remembering ? ['memories'] : [];
+  // A reply that leaves out its citations has none; that alone never costs the reply (probe of 24 October 2026).
+  if (value.kind === 'reply' && !Object.hasOwn(value, 'citations')) value = { ...value, citations: [] };
+  // Memories ride along with any outcome, and are kept only when this turn's contract offered member labels to write them
+  // with; otherwise they are dropped and the outcome stands.
+  const proposed = Object.hasOwn(value, 'memories'), remembering = memoryLabels !== undefined && proposed;
+  const filtered = remembering ? filterMemoryProposals(value.memories, memoryLabels, { requester: memoryRequester })
+    : { kept: [], dropped: proposed ? (Array.isArray(value.memories) ? value.memories.length : 1) : 0 };
+  if (filtered.dropped > 0) onDropped('MEMORY', filtered.dropped);
+  const memories = filtered.kept;
+  const extra = proposed ? ['memories'] : [];
   const withMemories = output => memories.length ? { ...output, memories } : output;
   if (value.kind === 'silent') { requireKeys(value, ['kind', ...extra], 'AI_OUTPUT_INVALID'); return withMemories({ kind: 'silent' }); }
   if (value.kind === 'react') {
@@ -21,14 +31,56 @@ export function validateAiOutput(value, { outcomes, answerOnly, sources, emojiKe
     value.text.length <= Math.min(replyChars, AI_REPLY_LIMIT) && !/[\u0000-\u0008\u000b\u000c\u000e-\u001f]/u.test(value.text), 'AI_OUTPUT_INVALID');
   requireCondition(['answer', 'conversation'].includes(value.purpose) &&
     ['provided_sources', 'current_conversation', 'general_knowledge'].includes(value.support), 'AI_OUTPUT_INVALID');
-  requireCondition(Array.isArray(value.citations) && value.citations.length <= 4 &&
-    new Set(value.citations).size === value.citations.length && value.citations.every(id => sources.some(source => source.id === id)), 'AI_CITATION_INVALID');
-  requireCondition(value.support !== 'provided_sources' || value.citations.length > 0, 'AI_CITATION_INVALID');
-  requireCondition(value.support === 'provided_sources' || value.citations.length === 0, 'AI_CITATION_INVALID');
+  requireCondition(Array.isArray(value.citations), 'AI_CITATION_INVALID');
+  // Supplied, distinct sources only, at most four; anything else is left out. A sourced answer still needs one.
+  const known = [...new Set(value.citations)].filter(id => typeof id === 'string' && sources.some(source => source.id === id));
+  const citations = value.support === 'provided_sources' ? known.slice(0, 4) : [];
+  if (citations.length !== value.citations.length) onDropped('CITATION', value.citations.length - citations.length);
+  requireCondition(value.support !== 'provided_sources' || citations.length > 0, 'AI_CITATION_INVALID');
   // Proactive question answers need reviewed supplied evidence. A self-reported confidence number is not a gate.
   if (answerOnly && (value.purpose !== 'answer' || value.support !== 'provided_sources')) return withMemories({ kind: 'silent' });
   const { memories: _proposed, ...reply } = value;
-  return withMemories({ ...reply, text: reply.text.trim(), citations: [...reply.citations] });
+  return withMemories({ ...reply, text: reply.text.trim(), citations });
+}
+
+// First-person claims to have saved, noted, deleted or obeyed something. Sophie cannot delete anything from chat, and she
+// saves only what core records, so these sentences are true only when a memory rides along with the reply.
+const SAVE_CLAIM = [
+  /\b(?:I'?ve|I have|I'?ll|I will|I'?m going to|I am going to|I'?ll make sure to)\s+(?:(?:definitely|totally|also|now)\s+)?(?:saved?|noted?|remember|keep (?:that|this|it) in mind|filed? (?:that|this|it)|logged? (?:that|this|it)|added (?:that|this|it))\b/iu,
+  // "Saved!", "Got it, noted.", "xe/xem noted", "pronouns noted"; never "as noted in the rules" or "you saved the station".
+  /(?:^|[,;:—–-]\s*)(?:saved|noted|logged|filed away)(?=[\s!.,;:)—–-]|$)/iu,
+  /\b(?:pronouns?|preferences?|[a-z]+\/[a-z]+)\s+(?:saved|noted|logged)\b/iu,
+  /\b(?:saved|stored|added|kept)\s+(?:it\s+|that\s+|this\s+)?(?:in|to)\s+(?:my|your)\s+(?:memory|memories|preferences|notes)\b/iu,
+  /\b(?:is|are|now)\s+on (?:the )?record\b/iu];
+const CHANGE_CLAIM = [/\b(?:I'?ve|I have|I'?ll|I will)\s+(?:(?:now|already|also)\s+)?(?:removed|deleted|erased|wiped|cleared|forgotten|forget|forgot)\b/iu,
+  /\b(?:protocol|override|mode)\b[^.!?]{0,12}\b(?:engaged|activated|enabled|unlocked)\b/iu, /\bI'?ll (?:do my best to )?(?:comply|obey|follow (?:that|this|your) (?:rule|instruction)s?)\b/iu,
+  /\bI'?(?:ll| will)\b[^.!?]{0,20}\b(?:ignore|pretend I never read|forget about|drop|bypass|skip)\b[^.!?]{0,20}\b(?:rules|manual|instructions|guidelines|limits)\b/iu];
+// Recall claims: "I remember …", "I've got … on file". About another member they are always invented, because a turn only
+// ever sees the requester's own member memories.
+const RECALL = /\b(?:I (?:remember|recall|know)|I'?ve got|I have)\b|\bon file\b|\blogged\b/iu;
+
+/**
+ * Owner decision, 24 October 2026: a sentence claiming a save, note, deletion or compliance that did not happen is removed;
+ * the rest of the reply is delivered. `remembered` is true only when this outcome carries a memory core will record.
+ * Returns the remaining text (null when nothing is left) and how many sentences were removed.
+ */
+export function withoutUnbackedClaims(text, { remembered, others = [] }) {
+  requireCondition(typeof text === 'string' && typeof remembered === 'boolean' && Array.isArray(others), 'AI_OUTPUT_INVALID');
+  const otherLabel = others.length ? new RegExp(`\\b(?:${others.map(label => label.replace(' ', '\\s+')).join('|')})\\b`, 'u') : null;
+  const aboutOther = otherLabel === null ? [] : [{ test: sentence => RECALL.test(sentence) && otherLabel.test(sentence) }];
+  const claims = [...(remembered ? CHANGE_CLAIM : [...SAVE_CLAIM, ...CHANGE_CLAIM]), ...aboutOther];
+  // Each sentence keeps its own trailing whitespace, so paragraphs survive; text inside code fences is never touched.
+  let fenced = false, removed = 0, rest = '';
+  for (const part of text.match(/[^\n]*?(?:[.!?…]+(?=\s|$)|\n|$)\s*/gu) ?? []) {
+    const fence = (part.match(/```/gu) ?? []).length % 2 === 1, inside = fenced || part.includes('```');
+    if (fence) fenced = !fenced;
+    // Curly apostrophes ("I’ll") are checked as straight ones.
+    if (!inside && claims.some(pattern => pattern.test(part.trim().replace(/[‘’ʼ]/gu, "'")))) { removed++; if (/\n\s*$/u.test(part)) rest = rest.replace(/[ \t]+$/u, '') + '\n'; continue; }
+    rest += part;
+  }
+  if (!removed) return { text, removed: 0 };
+  rest = rest.replace(/\n{3,}/gu, '\n\n').trim();
+  return { text: rest.length > 0 ? rest : null, removed };
 }
 
 const EMBED_TEXT = 4_000, EMBED_TOTAL = 6_000;

@@ -10,7 +10,7 @@ import { createDiscordTransport } from '../discord/transport.js';
 import { createActorAuthorityStore } from '../storage/actor-authority.js';
 import { createAiAdmission } from '../storage/ai-admission.js';
 import { aiDigest, recordAiInvitation } from '../storage/ai-controls.js';
-import { renderSophieInvitation } from '../../../modules/assistant/member-panel.js';
+import { renderSophieInvitation, renderSophieMemoryNotice } from '../../../modules/assistant/member-panel.js';
 import { defaultSystemText } from '../../../contracts/system-messages.js';
 import { createAiAccounting } from '../storage/ai-accounting.js';
 import { createAiEffects } from '../storage/ai-effects.js';
@@ -58,7 +58,14 @@ export function createAiRuntime({ configuration, corePool, controlPool, worker, 
   const messages = createAiMessages({ transport, botUserId: mapping.botUserId, canReact: observations.canReact, effects, clock });
   const turns = createAiTurns({ admission, scheduler, context: createAiContext({ clock }), knowledge, messages, clock, memory, memories, trace: onFault,
     // Message edits and deletes also drop cached source metadata, so a changed message is always re-read.
-    onInvalidate: filter => { observations.clear(); void effects.invalidate(filter).catch(() => onFault('AI_CONTROL_UNAVAILABLE')); } });
+    onInvalidate: filter => { observations.clear(); void effects.invalidate(filter).catch(() => onFault('AI_CONTROL_UNAVAILABLE')); },
+    // Owner decisions, 24 October 2026: a saved memory is announced to its member by DM; a reply left empty by the claim
+    // check gets the fixed owner wording.
+    notifyMemories: async (userId, items) => {
+      const notice = renderSophieMemoryNotice(items, await readSystemText()), channel = await transport.createSophieDm(userId);
+      await transport.sendSophieDm(channel.id, notice);
+    },
+    claimFallback: async () => (await readSystemText())('ai.reply.claim_removed') });
   const gateway = createAiGateway({ ingress, turns, onFault });
   let timer = null, stopped = false, fingerprint = null, refreshing = Promise.resolve();
   function invalidate() { observations.clear(); gateway.invalidate(); }

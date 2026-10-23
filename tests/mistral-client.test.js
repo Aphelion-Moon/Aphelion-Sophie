@@ -317,7 +317,7 @@ test('evidence names its heading, so a passage can be matched to the rule it is'
   assert.match(JSON.parse(evidence.content.slice(evidence.content.indexOf('\n') + 1)).heading, /CR 1: The Social Contract/u);
 });
 
-test('MEM-09 a turn that may remember returns Sophie\'s memories from the worker; one that may not rejects them', async () => {
+test('MEM-09 a turn that may remember returns Sophie\'s memories from the worker; one that may not drops them and keeps the reply', async () => {
   const remembering = { ...output, memories: [{ scope: 'member', about: ['Member 1'], text: 'Member 1 likes moths' }] };
   const respond = () => new Response(JSON.stringify(completion({ choices: [{ finish_reason: 'stop', message: { role: 'assistant', content: JSON.stringify(remembering) } }] })),
     { headers: { 'content-type': 'application/json' } });
@@ -326,5 +326,7 @@ test('MEM-09 a turn that may remember returns Sophie\'s memories from the worker
   const f = fixture({ response: respond });
   assert.deepEqual((await f.generate(payload)).memories, remembering.memories);
   assert.match(JSON.stringify(f.calls[0].body.messages), /memories/u);
-  await assert.rejects(fixture({ response: respond }).generate(), /AI_WORKER_UNAVAILABLE/);
+  // Owner decision, 24 October 2026: stray memories are dropped, never the reply they rode on.
+  const plain = await fixture({ response: respond }).generate();
+  assert.equal(Object.hasOwn(plain, 'memories'), false); assert.equal(plain.text, remembering.text);
 });

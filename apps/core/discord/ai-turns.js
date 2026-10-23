@@ -1,5 +1,5 @@
 import { requireCondition } from '../../../contracts/validation.js';
-import { validateAiOutput, renderAiReply } from '../../../modules/assistant/output.js';
+import { validateAiOutput, renderAiReply, withoutUnbackedClaims } from '../../../modules/assistant/output.js';
 import { aiSpeakerLabels, buildAiPrompt } from '../../knowledge-worker/prompt.js';
 import { encodeMemory } from '../../../modules/assistant/memories.js';
 import { redactAiIdentifiers } from '../../knowledge-worker/redaction.js';
@@ -7,7 +7,8 @@ import { freezeAiMaterial } from '../../knowledge-worker/prompt-contract.js';
 import { effectContextFits } from '../storage/ai-effects.js';
 
 /** Core owns delivery. No worker can choose a recipient, target message or operational indicator. */
-export function createAiTurns({ admission, scheduler, context, knowledge, messages, clock, memory = null, memories = null, onInvalidate = () => {}, trace = () => {} }) {
+export function createAiTurns({ admission, scheduler, context, knowledge, messages, clock, memory = null, memories = null, onInvalidate = () => {}, trace = () => {},
+  notifyMemories = null, claimFallback = async () => null }) {
   const outstanding = new Map(), gatherings = new Map(); let stopped = false, generation = 0;
   // Fixed diagnostic codes only: the stage a turn ended at, its outcome and whole seconds since receipt. No IDs or text.
   const code = value => typeof value === 'string' && /^[A-Z][A-Z0-9_]{2,40}$/u.test(value) ? value : 'ERROR';
@@ -80,12 +81,20 @@ export function createAiTurns({ admission, scheduler, context, knowledge, messag
     if (memories === null || remembered === null) return;
     try {
       await memories.touch(remembered);
+      // Traced even when nothing is proposed, so "never proposed" is told apart from "never ran".
+      trace(`AI_MEMORY_PROPOSED_${output.memories?.length ?? 0}`);
       if (!output.memories?.length) return;
       const userOf = new Map([...speakers].map(([userId, label]) => [label, userId]));
-      const saved = await memories.record({ channelId: request.channelId, restricted: request.binding.restricted === true, memories: output.memories.map(item => encodeMemory(item, label => userOf.get(label)))
-        // Contact details, links and IDs are masked before anything is kept, as they are before anything is sent.
-        .map(item => ({ ...item, text: redactAiIdentifiers(item.text) })) });
+      // Contact details, links and IDs are masked before anything is kept, as they are before anything is sent.
+      const proposals = output.memories.map(item => ({ ...item, text: redactAiIdentifiers(item.text) }));
+      const saved = await memories.record({ channelId: request.channelId, restricted: request.binding.restricted === true, memories: proposals.map(item => encodeMemory(item, label => userOf.get(label))) });
       trace(`AI_MEMORY_SAVED_${saved}`);
+      // Owner decision, 24 October 2026: the member hears by DM, from core, what was actually saved about them.
+      const own = speakers.get(request.userId), mine = proposals.filter(item => item.about.includes(own));
+      if (saved > 0 && mine.length && notifyMemories !== null) {
+        const shown = mine.map(item => item.text.replace(new RegExp(`^${own}\\s+`, 'u'), '').replace(/\bMember [1-9][0-9]?\b/gu, label => label === own ? 'you' : 'another member'));
+        void Promise.resolve().then(() => notifyMemories(request.userId, shown)).catch(() => { try { trace('AI_MEMORY_NOTICE_UNAVAILABLE'); } catch { /* Diagnostics only. */ } });
+      }
     } catch { try { trace('AI_MEMORY_UNAVAILABLE'); } catch { /* Diagnostics only. */ } }
   }
   async function run(request) {
@@ -121,8 +130,10 @@ export function createAiTurns({ admission, scheduler, context, knowledge, messag
       const saved = memory === null ? null : await memory.read(request.userId);
       // Sophie's own memories, only while an accepted notice discloses them; null means this turn cannot remember.
       const speakers = aiSpeakerLabels(request, history);
-      const remembered = memories !== null && await memories.enabled() === true
-        ? await memories.forPrompt({ channelId: request.channelId, userIds: [...speakers.keys()], restricted: request.binding.restricted === true }) : null;
+      // Owner decisions, 24 October 2026: a turn sees only the requester's own member memories (plus this channel's), and
+      // staff channels neither read nor write memories, so case talk is never kept.
+      const remembered = memories !== null && request.binding.restricted !== true && await memories.enabled() === true
+        ? await memories.forPrompt({ channelId: request.channelId, userIds: [request.userId], restricted: false }) : null;
       if (expired(request)) { await admission.settle(request, 'expired'); return { state: 'expired', stage }; }
       stage = 'GENERATE';
       const generated = await scheduler.submit({ id: request.messageId, member: `${request.guildId}.${request.userId}`, channel: `${request.guildId}.${request.channelId}`, receivedAt: request.receivedAt,
@@ -137,8 +148,22 @@ export function createAiTurns({ admission, scheduler, context, knowledge, messag
           ...buildAiPrompt({ request, history, sources, memory: saved, memories: remembered }) }) });
       if (generated.state !== 'completed') { const state = ['expired', 'cancelled'].includes(generated.state) ? generated.state : 'unavailable'; await admission.settle(request, state); return { state, stage, reason: String(generated.state).toUpperCase() }; }
       stage = 'VALIDATE';
-      const output = validateAiOutput(generated.result, { outcomes: request.decision.outcomes, answerOnly: request.decision.answerOnly,
-        sources, emojiKeys: request.config.emojis.map(emoji => emoji.key), replyChars: request.context?.replyChars ?? 1600, ...(remembered === null ? {} : { memoryLabels: [...speakers.values()] }) });
+      let output = validateAiOutput(generated.result, { outcomes: request.decision.outcomes, answerOnly: request.decision.answerOnly,
+        sources, emojiKeys: request.config.emojis.map(emoji => emoji.key), replyChars: request.context?.replyChars ?? 1600,
+        ...(remembered === null ? {} : { memoryLabels: [...speakers.values()], memoryRequester: speakers.get(request.userId) }),
+        onDropped: kind => { try { trace(`AI_OUTPUT_DROPPED_${kind}`); } catch { /* Diagnostics only. */ } } });
+      // A sentence claiming a save, note, deletion or compliance that did not happen is removed; nothing left means the
+      // fixed owner wording instead.
+      if (output.kind === 'reply') {
+        const own = speakers.get(request.userId), others = [...speakers.values()].filter(label => label !== own);
+        const checked = withoutUnbackedClaims(output.text, { remembered: remembered !== null && (output.memories?.length ?? 0) > 0, others });
+        if (checked.removed > 0) {
+          try { trace('AI_OUTPUT_CLAIM_REMOVED'); } catch { /* Diagnostics only. */ }
+          const text = checked.text ?? await claimFallback();
+          output = text === null ? { kind: 'silent', ...(output.memories ? { memories: output.memories } : {}) }
+            : checked.text === null ? { ...output, text, purpose: 'conversation', support: 'current_conversation', citations: [] } : { ...output, text };
+        }
+      }
       if (output.kind === 'silent') { await admission.settle(request, 'silent'); await remember(request, speakers, output, remembered); return { state: 'silent', stage }; }
       stage = 'DELIVER';
       if (!await dependenciesCurrent(request, sources, history, saved, remembered) || !await admission.beginDelivery(request)) {

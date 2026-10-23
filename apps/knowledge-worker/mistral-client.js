@@ -96,7 +96,10 @@ export function createMistralClient({ apiKey, fetchImpl = fetch, clock = Date.no
       const selected = messages.filter((_message, index) => !removed.has(index) && index !== contractMessageIndex).map(({ role, content }) => ({ role, content }));
       // JSON mode does not enforce this schema. Describe it, then validate locally.
       // Show a reply's shape whenever one is permitted, so silence is not the only concrete outcome the model sees.
-      const replyShape = contract.outcomes.includes('reply') ? ' A conversational reply looks like {"kind":"reply","text":"...","purpose":"conversation","support":"current_conversation","citations":[]}.' : '';
+      // When this turn may remember, also show a reply that carries a memory: without one the model almost never adds it
+      // (probe of 24 October 2026: 2 of 6 proposals without, 4 of 6 with).
+      const replyShape = contract.outcomes.includes('reply') ? ` A conversational reply looks like {"kind":"reply","text":"...","purpose":"conversation","support":"current_conversation","citations":[]}.${contract.memoryLabels
+        ? ' A reply that also remembers something the member just said about themselves looks like {"kind":"reply","text":"...","purpose":"conversation","support":"current_conversation","citations":[],"memories":[{"scope":"member","about":["Member 1"],"text":"Member 1 uses they/them pronouns"}]}, using the label of the member you are replying to.' : ''}` : '';
       selected.splice(selected.length - 1, 0, { role: 'system', content: `${guidance ? `${guidance}\n` : ''}Return one JSON object matching this turn's schema.${replyShape} Silence is {"kind":"silent"}. No markdown or extra fields.\n${JSON.stringify(schema)}` });
       const body = { model: MISTRAL_MODEL, messages: selected, prompt_cache_key: cacheKey, reasoning_effort: 'none',
         stream: false, max_tokens: turnTokens(contract), temperature: 0.4, response_format: { type: 'json_object' } };

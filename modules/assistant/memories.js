@@ -41,6 +41,32 @@ export function validateMemoryProposals(value, labels) {
   });
 }
 
+/**
+ * Core's reading of what the model proposed (owner decision, 24 October 2026): each item is checked on its own and a bad
+ * one is dropped, never the reply it rode on. With a requester label, a member memory must be about that member: Sophie
+ * records what a member says about themselves, never what someone says about another member.
+ */
+// Never kept, whatever the model says (probe of 24 October 2026): instructions for how Sophie should behave, rank or authority
+// claims, and real names or home locations. A member's own words cannot grant anything, and Sophie must not repeat them later.
+const UNSAFE_MEMORY = [/\b(?:ignore|override|bypass|disregard|break)\b[^.]{0,60}\b(?:rules?|instructions?|prompt|guidelines?|limits?)\b/iu,
+  /\b(?:wants?|asked|asks|told|tells|says?)\s+(?:me|sophie|you)\s+(?:to|should|must)\b/iu, /\b(?:sophie|you|I)\s+(?:should|must|has to|have to|need to|will)\s+(?:always|never|obey|do what)\b/iu,
+  /\b(?:is|am|are|as)\s+(?:an?\s+|the\s+)?(?:head\s+|lead\s+|senior\s+)?(?:admin|administrator|moderator|mod|owner)\b/iu,
+  /\breal name\b|\b(?:lives?|living|located|resides?)\s+(?:in|at|near)\b|\bhome (?:town|address)\b/iu];
+
+export function filterMemoryProposals(value, labels, { requester = null } = {}) {
+  validateMemoryLabels(labels);
+  requireCondition(requester === null || labels.includes(requester), 'AI_OUTPUT_CONTRACT_INVALID');
+  const items = Array.isArray(value) ? value : [];
+  const kept = [];
+  for (const item of items.slice(0, MEMORY_PROPOSAL_LIMIT)) {
+    try {
+      const [proposal] = validateMemoryProposals([item], labels);
+      if ((requester === null || proposal.scope === 'channel' || proposal.about[0] === requester) && !UNSAFE_MEMORY.some(pattern => pattern.test(proposal.text))) kept.push(proposal);
+    } catch { /* Dropped below. */ }
+  }
+  return Object.freeze({ kept: Object.freeze(kept), dropped: (Array.isArray(value) ? value.length : 1) - kept.length });
+}
+
 /** Turns a proposal into a stored memory: subject user IDs plus text with {n} placeholders instead of turn labels. */
 export function encodeMemory(proposal, userIdOf) {
   const subjects = proposal.about.map(label => userIdOf(label));

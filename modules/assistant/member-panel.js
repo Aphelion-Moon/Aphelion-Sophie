@@ -116,6 +116,15 @@ export function validateSophiePanel(panel) {
   return panel;
 }
 
+/**
+ * The DM a member gets when Sophie has actually saved a memory naming them (owner decision, 24 October 2026). Core writes it
+ * after the save, from the stored text; the model never writes it. The button opens the member's own panel.
+ */
+export function renderSophieMemoryNotice(items, text = defaultSystemText) {
+  requireCondition(Array.isArray(items) && items.length >= 1 && items.length <= 2 && items.every(item => typeof item === 'string' && item.length >= 1 && item.length <= 260 && !/[\r\n]/u.test(item)), 'SOPHIE_PANEL_INVALID');
+  return { content: [text('ai.memory.saved'), ...items.map(item => `> ${item}`)].join('\n'), components: [row(button(text('ai.button.memories'), 'panel'))] };
+}
+
 /** Static, non-AI invitation posted once a day at most to a member without a choice who addresses Sophie. */
 export function renderSophieInvitation(text = defaultSystemText) {
   return { content: text('ai.invite'), components: [row(button(text('ai.button.setup'), 'panel', 1))] };
