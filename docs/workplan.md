@@ -1,6 +1,6 @@
 # Current implementation workplan
 
-Revision: 2026-10-23-production-b336843. Mistral Small 4 (mistral-small-2603) on the official EU API is the selected provider for trial; DeepSeek Flash is withdrawn. Local models are historical, explicitly selected alternatives only; no automatic fallback. Continue the DS workstream with synthetic data; full readiness and activation remain open.
+Revision: 2026-10-23-production-1e02c98. Mistral Small 4 (mistral-small-2603) on the official EU API is the selected provider for trial; DeepSeek Flash is withdrawn. Local models are historical, explicitly selected alternatives only; no automatic fallback. Continue the DS workstream with synthetic data; full readiness and activation remain open.
 
 All production release gates remain open; pure and isolated database checks are not full application acceptance.
 
@@ -1656,10 +1656,11 @@ Implemented scope:
 - Owner published budget and configuration revision 1 on the dashboard; channel settings published as configuration revision 2 (#ask-sophie support, #staff-chatter staff, #main-bots chat) on the owner's request; staging budget not ported because the owner's is newer; story published as production version 1.
 - Found on the first live #ask-sophie turn (23 October 2026): support and staff turns (1,024 output tokens) were refused as AI_WORKER_UNAVAILABLE before reaching Mistral, because core's prepared-turn check, the budget estimate and the provider_attempts constraint still stopped at 512. Fixed in b336843 with migration 077 and regression test DS04-I01b. npm test 831 passed; npm run check passed; storage 1033 passed, none failed. Not installed.
 - Installed b336843 in production at 01:27 UTC on 23 October 2026 with the owner's approval: four files, migration 077, all checks passed.
+- Installed 1e02c98 at 01:41 UTC on 23 October 2026 with the owner's approval: replies in long context turns are delivered (delivery still capped AI deadlines at 15 s) and the Set up Sophie invitation goes by DM. Three files, no migration; checks passed on re-run after core finished starting.
 
 Remaining scope:
 
-- Owner: Go live again in each channel on the new release (b336843).
+- Owner: Go live again in each channel on the new release (1e02c98).
 - Owner: Go live in each channel on the dashboard; /sophie Yes.
 - Live checks: a reply in #ask-sophie (code and Guidebook), a saved memory, Get my data, the Activity for a Lead Ops tester, a staff channel turn.
 

@@ -1,5 +1,20 @@
 # Verification and release limits
 
+## Production fix 1e02c98 — 23 October 2026 (schema 077)
+
+Owner approval quoted in the decision log. Folder `deployment-1e02c98-production-2026-10-23`.
+
+- **Cause:** two #ask-sophie turns were answered by Mistral (settled, 40–49 completion tokens) and then refused at delivery,
+  because the transport still required an AI deadline within 15 s of now; support turns allow 25 s.
+- **Offline on `1e02c98`:** `npm test` 833 passed (new SAI AT-12b: delivery early in a 25 s turn, refusal only beyond
+  `AI_DEADLINE_MS`; SAI AT-12c: the invitation goes to the member's DM, never the channel; both fail before the fix);
+  `npm run check` passed; `npm run test:storage:fast` 1033 passed, none failed.
+- **Install:** preflight (714 pinned files match Git; installed b336843 matches its manifest; 3 reviewed files; no
+  migration; profile and configuration unchanged); 3 files written; pre-start check passed; service boundaries passed. The
+  first installation and public checks saw 503 while core was starting; re-run: 29 installed checks passed (77 migrations,
+  main server gateway current, no role jobs) and the public hosts passed.
+- **Not done:** go-live again on the new release (owner, dashboard); a delivered reply in #ask-sophie; an invitation DM.
+
 ## Production fix b336843 — 23 October 2026 (schema 077)
 
 Owner approval quoted in the decision log. Folder `deployment-b336843-production-2026-10-23`.

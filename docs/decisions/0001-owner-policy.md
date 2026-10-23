@@ -1794,3 +1794,16 @@ installed at 01:27 UTC: four files written, migration 077 applied to `sophie_pro
 same production runtime and policy (profile hash unchanged), all checks passed. The release changes, so the owner goes live
 again in each channel. Folder `.agent_docs/aphelion-sophie/deployment-b336843-production-2026-10-23`; backup
 `D:\Backups\sophie-staging\production-b336843-20261023`; `rollback.ps1` reverts 077 and restores 791e2fe.
+
+### Production fix 1e02c98 installed — 23 October 2026
+
+After `b336843`, #ask-sophie turns reached Mistral and were billed, but nothing was posted: Discord delivery still refused
+an AI deadline more than 15 seconds away, so a support turn (25 s) answered after one second was dropped
+(`AI_TURN_UNCERTAIN_DELIVER_…_AI_DEADLINE_EXPIRED`). The owner also reported that the "Set up Sophie" invitation, a channel
+reply, was visible to everyone. `1e02c98` sets the delivery bound to the longest turn (30 s) and sends the invitation to the
+member by DM only (closed DMs leave the channel silent); its wording now says the member mentioned Sophie in the server.
+On the owner's approval ("Approved: run the 1e02c98 production fix packet (three source files, no migration), then the
+checks. I'll Go live again afterwards."), it was installed at 01:41 UTC: three files written, no migration, new trust from the
+same production runtime and policy. The first installation and public checks ran while core was still starting and saw 503;
+re-run a minute later, all passed. The owner goes live again in each channel. Folder
+`.agent_docs/aphelion-sophie/deployment-1e02c98-production-2026-10-23`; `rollback.ps1` restores b336843.
