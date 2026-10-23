@@ -183,6 +183,10 @@ with an ellipsis when long, and `@aphelion` always shows.
   the keys; L opens the log.
 - **Settings:** volume, music, ambience, radio and effect levels, sound on/off, motion, typed or instant text, text
   speed, text size.
+- **Sheets** (Settings, Glossary, Station log, Keys, Credits) share one shape: a header bar with the title and a close
+  button that stays in reach, a body that scrolls on its own and opens at its top, and a backdrop that closes on a tap.
+- **Phones:** hover styling only where a pointer hovers; 44 px touch targets; a short portrait phone gives the scene two
+  fifths of the height; a phone on its side keeps the side-by-side layout with a compact status window.
 - **Input:** arrows, 1 to 9 on the main menu, Enter/Space, Backspace, Escape, swipe on touch screens; 44 px tap targets
   (40 px on phones).
 - Presence shows "Riding the Arrivals Shuttle" and the stop number only. Links in the copy open through Discord's own

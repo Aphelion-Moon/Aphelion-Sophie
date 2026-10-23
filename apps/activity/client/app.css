@@ -14,7 +14,7 @@ body { font: var(--text)/1.45 Cozette, ui-monospace, Consolas, monospace; -webki
 main[data-text-size="large"] { --text: 20px; }
 [hidden] { display: none !important; }
 .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
-button, input { font: inherit; color: inherit; }
+button, input { font: inherit; color: inherit; touch-action: manipulation; }
 :focus-visible { outline: 2px solid var(--holo); outline-offset: 2px; }
 
 /* Layout: the reading column on the left (status window, then the splash, the menu or the transmission) and the scene
@@ -89,7 +89,7 @@ main[data-speaking="trailing"] .wave i:is(:nth-child(-n + 4), :nth-last-child(-n
 .viewscreen-links { list-style: none; margin: 8px 0 0; padding: 0; display: flex; flex-wrap: wrap; gap: 6px; }
 .viewscreen-link { min-height: 36px; display: inline-flex; gap: 8px; align-items: baseline; padding: 6px 10px; cursor: pointer;
   background: var(--panel); border: 1px solid var(--rule); color: var(--ivory); text-align: left; }
-.viewscreen-link:hover, .viewscreen-link:focus-visible { border-color: var(--holo); color: var(--cold); }
+.viewscreen-link:focus-visible { border-color: var(--holo); color: var(--cold); }
 .viewscreen-host { color: var(--holo-dim); font-size: .8em; }
 
 /* The menu slot: the inside of the terminal window drawn in the hangar's console (owner's pick). The page places it over
@@ -126,10 +126,10 @@ main[data-speaking="trailing"] .wave i:is(:nth-child(-n + 4), :nth-last-child(-n
 .menu-item { width: 100%; min-height: 44px; text-align: left; background: none; border: 0; padding: .1em .4em .1em 1.3em; position: relative; cursor: pointer;
   color: var(--ivory); letter-spacing: .04em; text-transform: lowercase; font-size: 1em; }
 .menu-key { color: var(--holo-dim); margin-right: .5em; }
-.menu-item:hover, .menu-item:focus-visible { color: var(--amber); background: rgba(255, 184, 77, .08); outline: none; }
-.menu-item:hover .menu-key, .menu-item:focus-visible .menu-key { color: var(--holo); }
-.menu-item:hover::before, .menu-item:focus-visible::before { content: '>'; position: absolute; left: .3em; top: 50%; transform: translateY(-50%); color: var(--holo); }
-.menu-item:hover::after, .menu-item:focus-visible::after { content: ' <'; color: var(--holo); }
+.menu-item:focus-visible { color: var(--amber); background: rgba(255, 184, 77, .08); outline: none; }
+.menu-item:focus-visible .menu-key { color: var(--holo); }
+.menu-item:focus-visible::before { content: '>'; position: absolute; left: .3em; top: 50%; transform: translateY(-50%); color: var(--holo); }
+.menu-item:focus-visible::after { content: ' <'; color: var(--holo); }
 .menu-item.primary { color: var(--amber); }
 .tip { color: var(--ivory-dim); font-size: .8em; letter-spacing: .04em; }
 .notice { margin: 10px 0 0; padding: 8px 10px; border: 1px dashed var(--amber-dim); color: var(--ivory); background: var(--panel); }
@@ -140,7 +140,6 @@ main[data-speaking="trailing"] .wave i:is(:nth-child(-n + 4), :nth-last-child(-n
 .radio-head { display: flex; align-items: center; gap: 10px; padding: 6px 12px; border-bottom: 1px solid var(--rule); background: var(--panel); }
 .chip { background: var(--panel); border: 1px solid var(--holo-dim); color: var(--holo); padding: 2px 10px; min-height: 32px; min-width: 32px; cursor: pointer;
   letter-spacing: .1em; text-transform: uppercase; font-size: .8em; }
-.chip:hover { border-color: var(--holo); color: var(--cold); }
 .radio-stop { min-width: 0; color: var(--amber); font-size: .85em; letter-spacing: .08em; text-transform: uppercase;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .radio-text { padding: 12px 14px; overflow-y: auto; overscroll-behavior: contain; min-height: 6em; cursor: pointer; touch-action: pan-y; }
@@ -156,7 +155,6 @@ main[data-speaking="trailing"] .wave i:is(:nth-child(-n + 4), :nth-last-child(-n
 .corner { position: fixed; z-index: 2; top: calc(8px + env(safe-area-inset-top)); right: calc(8px + env(safe-area-inset-right));
   background: rgba(10, 10, 8, .88); border: 1px solid var(--rule); color: var(--ivory-dim); min-height: 36px;
   padding: 6px 10px; cursor: pointer; letter-spacing: .1em; text-transform: uppercase; font-size: .85em; }
-.corner:hover { color: var(--amber); border-color: var(--amber-dim); }
 
 /* Markdown from the published copy */
 .radio-text p, .sheet-panel p { margin: 0 0 .8em; }
@@ -167,11 +165,11 @@ h2.md-heading { font-size: 1.3em; }
 .radio-text em { color: var(--ivory); font-style: italic; }
 .md-underline { text-decoration: underline; }
 .md-spoiler { background: var(--rule); color: var(--rule); }
-.md-spoiler:hover, .md-spoiler:focus { color: var(--ivory); }
+.md-spoiler:focus { color: var(--ivory); }
 .md-mention { color: var(--holo); }
 .md-at { color: var(--holo); background: rgba(114, 230, 255, .1); padding: 0 2px; }
 .md-channel { font: inherit; color: var(--holo); background: rgba(114, 230, 255, .12); border: 1px solid var(--holo-dim); padding: 0 6px; cursor: pointer; }
-.md-channel:hover, .md-channel:focus-visible { color: var(--cold); border-color: var(--holo); }
+.md-channel:focus-visible { color: var(--cold); border-color: var(--holo); }
 .md-link, .credits a { color: var(--holo); text-decoration: underline; text-underline-offset: 3px; }
 .radio-text code { background: var(--panel); padding: 0 4px; }
 .radio-text pre { background: var(--panel); padding: 8px; overflow-x: auto; }
@@ -198,7 +196,7 @@ h2.md-heading { font-size: 1.3em; }
 .arrival-list { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 15em), 1fr)); gap: 6px; }
 .arrival-card { width: 100%; min-height: 44px; text-align: left; display: grid; gap: 2px; padding: 6px 10px; cursor: pointer; background: var(--panel);
   border: 1px solid var(--rule); border-left: 3px solid var(--holo); }
-.arrival-card:hover, .arrival-card:focus-visible { border-color: var(--holo); }
+.arrival-card:focus-visible { border-color: var(--holo); }
 .arrival-name { color: var(--holo); }
 .arrival-note { color: var(--ivory-dim); font-size: .85em; }
 .arrival-none { color: var(--ivory-dim); }
@@ -226,15 +224,24 @@ h2.md-heading { font-size: 1.3em; }
 /* Controls */
 .control { background: var(--panel); border: 1px solid var(--rule); padding: 8px 14px; cursor: pointer; letter-spacing: .1em; text-transform: uppercase;
   min-height: 40px; min-width: 44px; }
-.control:hover:not(:disabled) { border-color: var(--amber-dim); color: var(--amber); }
 .control.primary { border-color: var(--amber); color: var(--bay); background: var(--amber); }
-.control.primary:hover:not(:disabled) { background: var(--cold); border-color: var(--cold); color: var(--bay); }
 .control:disabled { opacity: .35; cursor: default; }
 
-/* Settings and credits */
-.sheet { position: fixed; inset: 0; z-index: 3; display: flex; align-items: center; justify-content: center; padding: var(--gutter); background: rgba(10, 10, 8, .7); }
-.sheet-panel { width: min(520px, 100%); max-height: 100%; overflow-y: auto; background: var(--ink); border: 1px solid var(--rule); border-top: 2px solid var(--amber); padding: 16px; }
-.sheet-heading { margin: 0 0 12px; color: var(--amber); font-weight: normal; letter-spacing: .14em; text-transform: uppercase; }
+/* Sheets (settings, glossary, log, keys, credits): one shape. A header bar like the status and radio windows' (the title,
+   and a close button that stays in reach), a body that scrolls on its own and opens at its top, and room for a phone's
+   notch and home bar. A tap on the backdrop closes the sheet. */
+.sheet { position: fixed; inset: 0; z-index: 3; display: flex; align-items: center; justify-content: center; background: rgba(10, 10, 8, .7);
+  padding: max(var(--gutter), env(safe-area-inset-top)) max(var(--gutter), env(safe-area-inset-right)) max(var(--gutter), env(safe-area-inset-bottom)) max(var(--gutter), env(safe-area-inset-left)); }
+.sheet-panel { width: min(520px, 100%); max-height: 100%; display: flex; flex-direction: column; overflow: hidden; background: var(--ink);
+  border: 1px solid var(--rule); border-top: 2px solid var(--amber); }
+.sheet-panel:focus { outline: none; }
+.sheet-head { flex: none; display: flex; align-items: center; gap: 10px; padding: 4px 4px 4px 14px; border-bottom: 1px solid var(--rule); background: var(--panel); }
+.sheet-heading { flex: 1; min-width: 0; margin: 0; color: var(--amber); font-weight: normal; font-size: 1em; letter-spacing: .14em; text-transform: uppercase;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sheet-close { flex: none; min-width: 44px; min-height: 44px; background: none; border: 1px solid transparent; color: var(--ivory-dim); cursor: pointer; }
+.sheet-close:focus-visible { color: var(--amber); }
+.sheet-body { flex: 1 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding: 14px 16px 16px; }
+.sheet-done { display: block; margin-left: auto; }
 .setting-group { display: grid; gap: 10px; margin-bottom: 12px; }
 .setting { display: grid; grid-template-columns: 9em 1fr; align-items: center; gap: 10px; }
 .setting input[type="range"] { accent-color: var(--amber); width: 100%; }
@@ -295,6 +302,62 @@ h2.md-heading { font-size: 1.3em; }
   .pass-since { margin: 0 0 4px; font-size: .8em; }
   .pass-access { padding: 1px 6px; font-size: .7em; }
   .menu-item { min-height: 40px; }
+}
+/* Hover, only where a pointer can hover: on a touch screen a tapped item kept its hover look until the next tap. */
+@media (hover: hover) {
+  .viewscreen-link:hover { border-color: var(--holo); color: var(--cold); }
+  .menu-item:hover { color: var(--amber); background: rgba(255, 184, 77, .08); outline: none; }
+  .menu-item:hover .menu-key { color: var(--holo); }
+  .menu-item:hover::before { content: '>'; position: absolute; left: .3em; top: 50%; transform: translateY(-50%); color: var(--holo); }
+  .menu-item:hover::after { content: ' <'; color: var(--holo); }
+  .chip:hover { border-color: var(--holo); color: var(--cold); }
+  .corner:hover { color: var(--amber); border-color: var(--amber-dim); }
+  .md-spoiler:hover { color: var(--ivory); }
+  .md-channel:hover { color: var(--cold); border-color: var(--holo); }
+  .arrival-card:hover { border-color: var(--holo); }
+  .control:hover:not(:disabled) { border-color: var(--amber-dim); color: var(--amber); }
+  .control.primary:hover:not(:disabled) { background: var(--cold); border-color: var(--cold); color: var(--bay); }
+  .sheet-close:hover { color: var(--amber); border-color: var(--amber-dim); }
+}
+/* Fingers: every control at least 44 px (owner's mobile audit, 24 October 2026). */
+@media (pointer: coarse) {
+  /* The title menu keeps its 40 px rows so it fits the hangar window it sits in. */
+  .control, .corner, .viewscreen-link, .arrival-card { min-height: 44px; }
+  .corner { min-width: 44px; }
+  .md-channel { min-height: 32px; }
+  .setting-choice label { min-height: 44px; display: inline-flex; align-items: center; gap: 6px; }
+  .setting input[type="range"] { min-height: 32px; }
+}
+/* A narrow glossary or key card puts each term over its meaning. */
+@media (max-width: 480px) {
+  .codex-list { grid-template-columns: minmax(0, 1fr); gap: 2px 0; }
+  .codex-list dd { margin-bottom: 8px; }
+  .setting { grid-template-columns: 7em minmax(0, 1fr); }
+}
+/* A short portrait phone gives the reading column more of the height: the scene keeps two fifths of it. */
+@media (orientation: portrait) and (max-height: 760px) {
+  #shuttle { grid-template-rows: minmax(0, 40vh) minmax(0, 1fr) auto; }
+  .radio-text { padding: 10px 12px; }
+}
+/* A phone on its side: the same compact status window as in portrait, so the transmission keeps room to read. */
+@media (orientation: landscape) and (max-height: 500px) {
+  :root { --gutter: 12px; --column: clamp(300px, 44vw, 460px); }
+  /* Side by side even under 720 px wide, where the portrait rules would stack a scene over a few lines of text. */
+  #shuttle { grid-template-columns: var(--column) minmax(0, 1fr); grid-template-rows: minmax(0, 1fr) auto; }
+  #stage { grid-column: 2; grid-row: 1; }
+  #shuttle[data-view="radio"] #stage { padding-top: 0; }
+  .column { grid-column: 1; grid-row: 1; border-top: 0; border-right: 1px solid var(--rule); }
+  .status-bar { grid-row: 2; }
+  .column { padding: 6px; gap: 6px; }
+  .status { height: clamp(84px, 26vh, 130px); }
+  .status-radio { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: 2px 12px; padding: 6px 10px; }
+  .callsign { font-size: 1em; }
+  .callsign-sub, .status .tip { display: none; }
+  .wave { height: 18px; }
+  .radio-head { padding: 4px 10px; }
+  .radio-text { padding: 8px 12px; }
+  .radio-controls { padding: 4px 10px; }
+  .status-bar { padding: 2px var(--gutter); }
 }
 /* Click to continue: the page has finished typing. */
 .ctc { color: var(--amber); margin-left: .4em; font-size: .8em; animation: blink 1.1s steps(2, jump-none) infinite; }

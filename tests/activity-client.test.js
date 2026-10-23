@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
-import { ANNOUNCEMENTS, TEXT, CHUNK_LIMIT, canResetJourney, dialogueControls, momentFor, pageProgress, presence, reachedBeats, revealPoints, sceneStateFor, soundscape, titleMenu, transmissionChunks, windowUser } from '../apps/activity/client/presenter.js';
+import { ANNOUNCEMENTS, CODEX, TEXT, CHUNK_LIMIT, canResetJourney, dialogueControls, momentFor, pageProgress, presence, reachedBeats, revealPoints, sceneStateFor, soundscape, titleMenu, transmissionChunks, windowUser } from '../apps/activity/client/presenter.js';
 import { validateStageMoments } from '../modules/onboarding/activity-media.js';
 import { ACTIVITY_STOP_SCENES } from '../modules/onboarding/activity.js';
 import { parseInline, parseMarkdown, plainText, safeLink } from '../apps/activity/client/markdown.js';
@@ -291,4 +291,37 @@ test('T-ACT-CLI-16 an ended session signs in again through Discord without a pro
   await assert.rejects(api.describe(), error => error.word === 'signin'); assert.equal(renewals, 1);
   api.setRenewal(async () => { renewals++; });
   renewals = 0; await assert.rejects(api.describe(), error => error.word === 'signin'); assert.equal(renewals, 1);
+});
+
+test('T-ACT-CLI-17 phones (owner audit, 24 October 2026): sheets open at their top, one sheet shape, touch-sized controls, no sticky hover', async () => {
+  const page = await readFile(new URL('../apps/activity/client/index.html', import.meta.url), 'utf8');
+  const css = await readFile(new URL('../apps/activity/client/app.css', import.meta.url), 'utf8');
+  const client = await readFile(new URL('../apps/activity/client/shuttle.js', import.meta.url), 'utf8');
+  // Every sheet: a focusable panel, a header bar with its title and a close button, a scrolling body ending in Close.
+  for (const id of ['settings', 'codex', 'log', 'keys', 'credits']) {
+    const sheet = new RegExp(String.raw`<section id="${id}" class="sheet" hidden aria-labelledby="${id}-heading">\s*<div class="sheet-panel[^"]*" tabindex="-1">\s*` +
+      String.raw`<header class="sheet-head"><h2 id="${id}-heading" class="sheet-heading">[^<]+</h2><button type="button" class="sheet-close" data-close aria-label="Close">✕</button></header>\s*` +
+      String.raw`<div class="sheet-body">[\s\S]*?<button type="button" class="control primary sheet-done" data-close>Close</button>\s*</div>\s*</div>\s*</section>`);
+    assert.match(page, sheet, id);
+  }
+  assert.match(page, /id="codex-heading" class="sheet-heading">Glossary</);
+  // Opening focuses the panel without scrolling and puts the body at its top (the Glossary opened at its bottom before).
+  assert.match(client, /if \(body\) body\.scrollTop = 0;\s*panel\?\.focus\?\.\(\{ preventScroll: true \}\);/);
+  assert.doesNotMatch(client, /querySelector\('input, button, a'\)\?\.focus\(\)/);
+  assert.match(client, /\$\(id\)\.addEventListener\('click', event => \{ if \(event\.target === event\.currentTarget\) closeSheets\(\); \}\)/, 'the backdrop closes');
+  assert.match(css, /\.sheet-body \{[^}]*overflow-y: auto; overscroll-behavior: contain;/);
+  assert.match(css, /\.sheet \{[^}]*env\(safe-area-inset-top\)[^}]*env\(safe-area-inset-bottom\)/);
+  // Hover only where a pointer hovers; fingers get 44 px; buttons never double-tap zoom.
+  const hoverAt = css.indexOf('@media (hover: hover)');
+  assert.ok(hoverAt > 0); assert.doesNotMatch(css.slice(0, hoverAt), /:hover/);
+  assert.match(css, /@media \(pointer: coarse\) \{[\s\S]*\.control, \.corner, \.viewscreen-link, \.arrival-card \{ min-height: 44px; \}/);
+  assert.match(css, /button, input \{[^}]*touch-action: manipulation;/);
+  // Short screens: a short portrait phone gives reading more room; a phone on its side keeps the side-by-side layout.
+  assert.match(css, /@media \(orientation: portrait\) and \(max-height: 760px\) \{\s*#shuttle \{ grid-template-rows: minmax\(0, 40vh\)/);
+  assert.match(css, /@media \(orientation: landscape\) and \(max-height: 500px\) \{[\s\S]*#shuttle \{ grid-template-columns: var\(--column\) minmax\(0, 1fr\);[\s\S]*\.status \{ height: clamp\(84px/);
+  assert.match(css, /@media \(max-width: 480px\) \{\s*\.codex-list \{ grid-template-columns: minmax\(0, 1fr\);/);
+  // The glossary says what Sophie does now.
+  const glossary = Object.fromEntries(CODEX);
+  assert.match(glossary.Whitelist, /Sophie hands it to you when you disembark/); assert.doesNotMatch(glossary.Whitelist, /request/);
+  assert.match(glossary['Meridian Rift'], /in development/); assert.doesNotMatch(glossary['The Shuttle'], /journey/i);
 });

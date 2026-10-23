@@ -2015,3 +2015,32 @@ links, desktop colour, and "drop the 'used' line", plus "the rainbow neon bar if
 - **Wording:** new keys, so earlier edits to the old embed's title and body cannot land in the new slots. The copy is true
   to what Sophie does now: she hands out Whitelist when you disembark, not "we request".
 - **Art:** made by the coding agent at owner direction, provenance in `content/shuttle-activity/rules-post-banner.json`.
+
+### Mobile audit of the Activity — 24 October 2026
+
+The owner asked for an audit "for usability on mobile devices" ("the glossary page opens to the very bottom of the
+glossary"), "not just for usability, but also for view consistency", then to "publish and install the updates". Found and
+fixed in the client (no server change):
+
+- **Sheets opened at the bottom.** Opening a sheet focused its first control. In the Glossary, Credits and Keys that is
+  the Close button at the end, so phones scrolled to it. A sheet now opens at its top with the panel focused.
+- **One sheet shape (consistency).** Settings, Glossary, Station log, Keys and Credits share a header bar like the status
+  and radio windows: the title, and a close button that stays in reach while the body scrolls. The body scrolls on its own
+  without dragging Discord's view, and the sheet keeps clear of a phone's notch and home bar. A tap on the backdrop closes
+  it.
+- **Sticky hover on touch.** A tapped menu item, control or link kept its hover look (the menu's `> … <` brackets) until
+  the next tap. Hover styles now apply only where a pointer can hover.
+- **Touch targets.** On touch screens controls, the corner Menu button, viewscreen links and settings choices are at least
+  44 px. The title menu keeps its 40 px rows, so it still fits the hangar window it is drawn in. Buttons no longer
+  double-tap zoom when Continue is tapped quickly.
+- **Short screens.**
+  - A short portrait phone (760 px or less) gives the scene two fifths of the height instead of 46%, so a page has more
+    lines.
+  - A phone on its side keeps the side-by-side layout with a compact status window. Under 720 px wide it used to stack
+    the scene over a few lines of text.
+- **Narrow glossary.** Each term sits over its meaning, rather than squeezing both into two columns.
+- **Glossary wording (consistency).** Whitelist: Sophie hands it to you when you disembark, where it used to say "you
+  request it". Meridian Rift is in development, as on the departures board. The Shuttle is "this ride", not "journey".
+  The credits name the rules post art.
+
+Not covered offline: the look on real phones, which is the owner's next playtest.

@@ -98,13 +98,13 @@ export const TIPS = Object.freeze([
 
 /** A short glossary for new arrivals. Plain facts about this community; jokes are labelled as such. */
 export const CODEX = Object.freeze([
-  ['Whitelist', 'The Discord role that lets you play on our game servers. You request it at the end of the Shuttle; it stays while you follow the rules.'],
-  ['The Shuttle', 'This journey: our expectations, stop by stop. It introduces the rules; the published rules on the wiki are the authority.'],
+  ['Whitelist', 'The Discord role that lets you play on our game servers. Sophie hands it to you when you disembark at the end of the Shuttle; it stays while you follow the rules.'],
+  ['The Shuttle', 'This ride: five stops through our expectations. It introduces the rules; the published rules (the wiki and the Guidebook) are the authority.'],
   ['Ticket', 'A private conversation with Staff. Use #open-a-ticket for support of any kind.'],
   ['IC and OOC', 'In character and out of character: what your character says, and what you say as a player.'],
   ['LOOC', 'Local out-of-character chat, for a quick word with the players around you: “do our characters know each other?”'],
-  ['Meridian Rift', 'Our SS 13 server.'],
-  ['Wolfgate', 'Our SS 14 server, still in early development.'],
+  ['Meridian Rift', 'Our SS 13 server, in development.'],
+  ['Wolfgate', 'Our SS 14 server, still early days.'],
   ['HoP', 'Head of Personnel: the one who changes your ID card’s access. (Here, Discord does that.)'],
   ['Greytide', 'An assistant in a grey jumpsuit with a toolbox and a plan. Station folklore.'],
   ['Robust', 'Very good at a fight. Station folklore; do not try it at the help desk.'],

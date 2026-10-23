@@ -504,11 +504,18 @@ export function createShuttle({ document, api, connect, player, loadScene, sound
 
   // Sheets, easter eggs and input ----------------------------------------------------------------------------------
   let sheetReturn = null;
+  /**
+   * A sheet opens at its top with its panel focused, not its first control: focusing the Glossary's only button (Close,
+   * at the bottom) scrolled phones to the end of the list (owner's mobile audit, 24 October 2026). Tab still reaches the
+   * close button in the header first.
+   */
   function openSheet(id) {
     sheetReturn = document.activeElement; $(id).hidden = false;
     if (id === 'settings') syncSettingsForm();
     if (id === 'log') renderLog();
-    $(id).querySelector('input, button, a')?.focus();
+    const panel = $(id).querySelector('.sheet-panel'), body = $(id).querySelector('.sheet-body');
+    if (body) body.scrollTop = 0;
+    panel?.focus?.({ preventScroll: true });
   }
   function closeSheets() {
     let closed = false;
@@ -577,6 +584,8 @@ export function createShuttle({ document, api, connect, player, loadScene, sound
     }
     $('reset-journey').addEventListener('click', () => { void resetJourney(); });
     for (const button of document.querySelectorAll('[data-close]')) button.addEventListener('click', closeSheets);
+    // A tap on the dimmed backdrop around a sheet closes it, as on a phone's own sheets.
+    for (const id of SHEETS) $(id).addEventListener('click', event => { if (event.target === event.currentTarget) closeSheets(); });
     for (const link of document.querySelectorAll('a[data-external]')) {
       link.addEventListener('click', event => { event.preventDefault(); discord?.openLink(link.href); });
     }

@@ -104,73 +104,83 @@
   <button id="radio-menu" type="button" class="corner" hidden aria-label="Menu">≡ Menu</button>
 
   <section id="settings" class="sheet" hidden aria-labelledby="settings-heading">
-    <div class="sheet-panel">
-      <h2 id="settings-heading" class="sheet-heading">Settings</h2>
-      <div class="setting-group">
-        <label class="setting"><span>Volume</span><input type="range" min="0" max="100" step="5" data-level="master"></label>
-        <label class="setting"><span>Music</span><input type="range" min="0" max="100" step="5" data-level="music"></label>
-        <label class="setting"><span>Ambience</span><input type="range" min="0" max="100" step="5" data-level="ambience"></label>
-        <label class="setting"><span>Sophie’s radio</span><input type="range" min="0" max="100" step="5" data-level="radio"></label>
-        <label class="setting"><span>Effects</span><input type="range" min="0" max="100" step="5" data-level="effects"></label>
+    <div class="sheet-panel" tabindex="-1">
+      <header class="sheet-head"><h2 id="settings-heading" class="sheet-heading">Settings</h2><button type="button" class="sheet-close" data-close aria-label="Close">✕</button></header>
+      <div class="sheet-body">
+        <div class="setting-group">
+          <label class="setting"><span>Volume</span><input type="range" min="0" max="100" step="5" data-level="master"></label>
+          <label class="setting"><span>Music</span><input type="range" min="0" max="100" step="5" data-level="music"></label>
+          <label class="setting"><span>Ambience</span><input type="range" min="0" max="100" step="5" data-level="ambience"></label>
+          <label class="setting"><span>Sophie’s radio</span><input type="range" min="0" max="100" step="5" data-level="radio"></label>
+          <label class="setting"><span>Effects</span><input type="range" min="0" max="100" step="5" data-level="effects"></label>
+        </div>
+        <fieldset class="setting-choice"><legend>Sound</legend>
+          <label><input type="radio" name="sound" value="on"> On</label><label><input type="radio" name="sound" value="off"> Off</label>
+        </fieldset>
+        <fieldset class="setting-choice"><legend>Motion</legend>
+          <label><input type="radio" name="motion" value="system"> Device setting</label><label><input type="radio" name="motion" value="on"> On</label><label><input type="radio" name="motion" value="off"> Off</label>
+        </fieldset>
+        <fieldset class="setting-choice"><legend>Text</legend>
+          <label><input type="radio" name="text" value="typed"> Typed out</label><label><input type="radio" name="text" value="instant"> All at once</label>
+        </fieldset>
+        <fieldset class="setting-choice"><legend>Text speed</legend>
+          <label><input type="radio" name="speed" value="slow"> Slow</label><label><input type="radio" name="speed" value="normal"> Normal</label><label><input type="radio" name="speed" value="fast"> Fast</label>
+        </fieldset>
+        <fieldset class="setting-choice"><legend>Text size</legend>
+          <label><input type="radio" name="size" value="normal"> Normal</label><label><input type="radio" name="size" value="large"> Large</label>
+        </fieldset>
+        <div class="setting-group setting-reset">
+          <button type="button" id="reset-journey" class="control">Reset journey</button>
+          <p id="reset-note" class="setting-note" aria-live="polite"></p>
+        </div>
+        <button type="button" class="control primary sheet-done" data-close>Close</button>
       </div>
-      <fieldset class="setting-choice"><legend>Sound</legend>
-        <label><input type="radio" name="sound" value="on"> On</label><label><input type="radio" name="sound" value="off"> Off</label>
-      </fieldset>
-      <fieldset class="setting-choice"><legend>Motion</legend>
-        <label><input type="radio" name="motion" value="system"> Device setting</label><label><input type="radio" name="motion" value="on"> On</label><label><input type="radio" name="motion" value="off"> Off</label>
-      </fieldset>
-      <fieldset class="setting-choice"><legend>Text</legend>
-        <label><input type="radio" name="text" value="typed"> Typed out</label><label><input type="radio" name="text" value="instant"> All at once</label>
-      </fieldset>
-      <fieldset class="setting-choice"><legend>Text speed</legend>
-        <label><input type="radio" name="speed" value="slow"> Slow</label><label><input type="radio" name="speed" value="normal"> Normal</label><label><input type="radio" name="speed" value="fast"> Fast</label>
-      </fieldset>
-      <fieldset class="setting-choice"><legend>Text size</legend>
-        <label><input type="radio" name="size" value="normal"> Normal</label><label><input type="radio" name="size" value="large"> Large</label>
-      </fieldset>
-      <div class="setting-group setting-reset">
-        <button type="button" id="reset-journey" class="control">Reset journey</button>
-        <p id="reset-note" class="setting-note" aria-live="polite"></p>
-      </div>
-      <button type="button" class="control primary" data-close>Close</button>
     </div>
   </section>
 
   <section id="codex" class="sheet" hidden aria-labelledby="codex-heading">
-    <div class="sheet-panel">
-      <h2 id="codex-heading" class="sheet-heading">Glossary</h2>
-      <dl id="codex-list" class="codex-list"></dl>
-      <button type="button" class="control primary" data-close>Close</button>
+    <div class="sheet-panel" tabindex="-1">
+      <header class="sheet-head"><h2 id="codex-heading" class="sheet-heading">Glossary</h2><button type="button" class="sheet-close" data-close aria-label="Close">✕</button></header>
+      <div class="sheet-body">
+        <dl id="codex-list" class="codex-list"></dl>
+        <button type="button" class="control primary sheet-done" data-close>Close</button>
+      </div>
     </div>
   </section>
 
   <section id="log" class="sheet" hidden aria-labelledby="log-heading">
-    <div class="sheet-panel">
-      <h2 id="log-heading" class="sheet-heading">Station log</h2>
-      <ol id="log-list" class="log-list"></ol>
-      <button type="button" class="control primary" data-close>Close</button>
+    <div class="sheet-panel" tabindex="-1">
+      <header class="sheet-head"><h2 id="log-heading" class="sheet-heading">Station log</h2><button type="button" class="sheet-close" data-close aria-label="Close">✕</button></header>
+      <div class="sheet-body">
+        <ol id="log-list" class="log-list"></ol>
+        <button type="button" class="control primary sheet-done" data-close>Close</button>
+      </div>
     </div>
   </section>
 
   <section id="keys" class="sheet" hidden aria-labelledby="keys-heading">
-    <div class="sheet-panel">
-      <h2 id="keys-heading" class="sheet-heading">Keys</h2>
-      <dl id="keys-list" class="codex-list keys-list"></dl>
-      <button type="button" class="control primary" data-close>Close</button>
+    <div class="sheet-panel" tabindex="-1">
+      <header class="sheet-head"><h2 id="keys-heading" class="sheet-heading">Keys</h2><button type="button" class="sheet-close" data-close aria-label="Close">✕</button></header>
+      <div class="sheet-body">
+        <dl id="keys-list" class="codex-list keys-list"></dl>
+        <button type="button" class="control primary sheet-done" data-close>Close</button>
+      </div>
     </div>
   </section>
 
   <section id="credits" class="sheet" hidden aria-labelledby="credits-heading">
-    <div class="sheet-panel credits">
-      <h2 id="credits-heading" class="sheet-heading">Credits</h2>
-      <p>Sophie, Community Services, speaks for the Aphelion Staff team. Her lines are the published Shuttle guidance, unchanged.</p>
-      <p>Scenes, viewscreens, effects and the rules post banner were made for Aphelion by the coding agent at the owner’s direction. Space Station 13 references are affectionate nods to shared community culture.</p>
-      <p>Music: “Suspension: Mellow Electro-Ambient Soundscape” by kjartan_abel
-        (<a href="https://freesound.org/people/kjartan_abel/sounds/531854/" data-external>Freesound</a>), licensed under
-        <a href="https://creativecommons.org/licenses/by/4.0/" data-external>CC BY 4.0</a>; converted to Ogg Opus and MP3 and made quieter.
-        “Outer Space Loop” by wipics, CC0. Other sounds: CC0 contributors listed in the Shuttle sounds record.</p>
-      <p>Type: Cozette by Ines, MIT License. Discord Embedded App SDK, MIT License, with zod, uuid and eventemitter3 (MIT) and big-integer (Unlicense).</p>
-      <button type="button" class="control primary" data-close>Close</button>
+    <div class="sheet-panel credits" tabindex="-1">
+      <header class="sheet-head"><h2 id="credits-heading" class="sheet-heading">Credits</h2><button type="button" class="sheet-close" data-close aria-label="Close">✕</button></header>
+      <div class="sheet-body">
+        <p>Sophie, Community Services, speaks for the Aphelion Staff team. Her lines are the published Shuttle guidance, unchanged.</p>
+        <p>Scenes, viewscreens, effects and the rules post art were made for Aphelion by the coding agent at the owner’s direction. Space Station 13 references are affectionate nods to shared community culture.</p>
+        <p>Music: “Suspension: Mellow Electro-Ambient Soundscape” by kjartan_abel
+          (<a href="https://freesound.org/people/kjartan_abel/sounds/531854/" data-external>Freesound</a>), licensed under
+          <a href="https://creativecommons.org/licenses/by/4.0/" data-external>CC BY 4.0</a>; converted to Ogg Opus and MP3 and made quieter.
+          “Outer Space Loop” by wipics, CC0. Other sounds: CC0 contributors listed in the Shuttle sounds record.</p>
+        <p>Type: Cozette by Ines, MIT License. Discord Embedded App SDK, MIT License, with zod, uuid and eventemitter3 (MIT) and big-integer (Unlicense).</p>
+        <button type="button" class="control primary sheet-done" data-close>Close</button>
+      </div>
     </div>
   </section>
 
