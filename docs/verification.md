@@ -1,5 +1,15 @@
 # Verification and release limits
 
+## Configuration fix: capability policy version 2 — 24 October 2026 (incident)
+
+- **Symptom:** after da5b48a, every Activity request failed (`ACTIVITY_REQUEST_UNAVAILABLE`).
+- **Cause:** the Staff tester grant was added under the already-recorded policy version 1 (`CAPABILITY_POLICY_IMMUTABLE`).
+  The installed checks did not exercise a signed-in authorization, so they passed.
+- **Fix:** same code, runtime capability policy version 2. Preflight now asserts the version is newer than the recorded one
+  (1 → 2). Pre-start, service boundaries, installed checks and public hosts passed. A rolled-back dry run of
+  `registerPolicy` for the installed policy passes (recorded 1, registers 2, immutability check true).
+- **Not done:** a signed-in Activity run by the owner or a tester.
+
 ## Production install of da5b48a: scene dialogue, THUMP, Staff testers — 24 October 2026
 
 Owner request quoted in the decision log. Folder `deployment-da5b48a-production-2026-10-24`.

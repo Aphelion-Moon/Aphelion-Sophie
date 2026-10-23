@@ -1903,3 +1903,15 @@ opens with *THUMP.*, and makes `shuttle.activity.test` an optional configured ca
 23 October (host clock) with a production runtime that differs from the reviewed one only by granting it to Staff; all
 checks passed. Testers are now the server owner, Lead Ops and Staff. The story itself is unchanged (version 2). Folder
 `.agent_docs/aphelion-sophie/deployment-da5b48a-production-2026-10-24`; `rollback.ps1` restores 7d3e2ee (and its runtime).
+
+### Incident: Activity unavailable after da5b48a, fixed with capability policy version 2 — 24 October 2026
+
+After the da5b48a install (16:50 UTC, host clock) the owner reported "Something went wrong on our side" at the link step;
+nobody could test. Cause: the new runtime added the Staff tester grant to capability policy **version 1**, which production
+had already recorded without it. A recorded policy version is immutable, so every authorization failed with
+`CAPABILITY_POLICY_IMMUTABLE`, reported by the Activity as `ACTIVITY_REQUEST_UNAVAILABLE` (dashboard sign-in and AI
+admission were affected the same way; AI was off). Fix at 17:02 UTC: a configuration-only install of the same da5b48a code
+with the runtime's capability policy at version 2; all checks passed, and a rolled-back dry run of the registration confirms
+version 2 records cleanly. Rule from now on: any change to the capability policy's content bumps its version, and every
+packet's preflight checks the new version is newer than production's recorded one. Folder
+`.agent_docs/aphelion-sophie/deployment-da5b48a-policy2-production-2026-10-24`.
