@@ -1,6 +1,6 @@
 # Current implementation workplan
 
-Revision: 2026-10-24-p52-built. Mistral Small 4 (mistral-small-2603) on the official EU API is the selected provider for trial; DeepSeek Flash is withdrawn. Local models are historical, explicitly selected alternatives only; no automatic fallback. Continue the DS workstream with synthetic data; full readiness and activation remain open.
+Revision: 2026-10-24-production-26f72b7. Mistral Small 4 (mistral-small-2603) on the official EU API is the selected provider for trial; DeepSeek Flash is withdrawn. Local models are historical, explicitly selected alternatives only; no automatic fallback. Continue the DS workstream with synthetic data; full readiness and activation remain open.
 
 All production release gates remain open; pure and isolated database checks are not full application acceptance.
 
@@ -1663,11 +1663,11 @@ Implemented scope:
 - Installed b336843 in production at 01:27 UTC on 23 October 2026 with the owner's approval: four files, migration 077, all checks passed.
 - Installed 1e02c98 at 01:41 UTC on 23 October 2026 with the owner's approval: replies in long context turns are delivered (delivery still capped AI deadlines at 15 s) and the Set up Sophie invitation goes by DM. Three files, no migration; checks passed on re-run after core finished starting.
 - 7394de5 built on 24 October 2026 (owner chose post-only): /whitelist post for Lead Ops in production; install packet prepared, not installed. npm test 834 passed; npm run check passed; storage 1033 passed, none failed.
+- /whitelist post installed with 26f72b7 on 24 October 2026; main server commands lookup, sophie, whitelist(post).
 
 Remaining scope:
 
-- Install 7394de5 and register /whitelist (post only) in the main server after the owner's recorded approval; then /whitelist post in the rules channel.
-- Owner: Go live again in each channel on the new release (1e02c98).
+- Owner: Go live again in each channel on the new release (26f72b7); /whitelist post in the rules channel.
 - Owner: Go live in each channel on the dashboard; /sophie Yes.
 - Live checks: a reply in #ask-sophie (code and Guidebook), a saved memory, Get my data, the Activity for a Lead Ops tester, a staff channel turn.
 
@@ -1713,10 +1713,11 @@ Review findings C1, C2, C3, H4, H6, M2, M3, M4 in .agent_docs/aphelion-sophie/so
 Implemented scope:
 
 - Built 24 October 2026 (5137d5b, 26f72b7): requester-only member memories (C1); no staff memories (H6); per-item memory and citation dropping, missing citations field tolerated (H4); member memories about the requester only, instruction, rank, real-name, location and health text refused (M2, M3 owner decision); unbacked claim sentences removed and real saves announced by DM (C3, owner decisions); memory-bearing reply shape, triggers and exclusions, AI_MEMORY_PROPOSED traces (C2 part). Offline and probe evidence in docs/verification.md.
+- Installed in production as 26f72b7 on 24 October 2026 with the owner's approval; all checks passed.
 
 Remaining scope:
 
-- Install with the owner's recorded approval (combined with 7394de5), then Go live again and check a save DM, a removed claim and a staff turn live.
+- Owner: Go live again; live checks of a save DM, a removed claim and a staff turn without memory.
 - C2 rest: owner-written memory examples so project mentions are captured.
 - M4: retention renewal, same-subject replacement, written-days-ago, no relative-time words (owner decision on retention).
 

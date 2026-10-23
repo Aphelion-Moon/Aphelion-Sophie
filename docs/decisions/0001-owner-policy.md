@@ -1844,3 +1844,15 @@ Built in `5137d5b` and `26f72b7`, not installed. A turn reads only the requester
 neither read nor write memories; malformed items, surplus citations and a missing citations field are dropped instead of
 the reply; member memories must be about the member being replied to, and instructions, rank claims, real names and home
 locations are refused.
+
+### Production install of 26f72b7 — 24 October 2026
+
+On the owner's approval ("Approved: run the 26f72b7 production packet (eleven source files, no migration; /whitelist post
+plus P52 memory privacy and honesty) and register /whitelist with only post in the main server, then the checks. I'll Go
+live again afterwards."), `26f72b7` was installed over `1e02c98` at 14:10 UTC on 23 October (host clock; the owner's
+24 October): eleven files written, no migration, new trust from the same production runtime and policy (profile hash
+unchanged). All checks passed on the first run (pre-start, service boundaries, 29 installed checks, public hosts). The main
+server's commands are now `/lookup`, `/sophie` and `/whitelist` with only `post`. AI was off at install; the owner goes
+live again in each channel. Folder `.agent_docs/aphelion-sophie/deployment-26f72b7-production-2026-10-24`; backup
+`D:\Backups\sophie-staging\production-26f72b7-20261024`; `rollback.ps1` removes `/whitelist` and restores 1e02c98. The
+earlier `7394de5` packet was never run and is marked superseded.

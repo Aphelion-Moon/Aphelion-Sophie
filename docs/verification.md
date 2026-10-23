@@ -1,5 +1,18 @@
 # Verification and release limits
 
+## Production install of 26f72b7 — 24 October 2026
+
+Owner approval quoted in the decision log. Folder `deployment-26f72b7-production-2026-10-24`.
+
+- **Preflight:** 714 pinned files match Git; installed 1e02c98 matches its manifest; 11 reviewed files; no migration;
+  profile and production configuration unchanged.
+- **Install:** 11 files written; pre-start check passed (release `sophie-mistral-26f72b7`, notice revision 4, production
+  databases, unchanged Discord application); service boundaries passed; 29 installed checks passed (77 migrations, main
+  server gateway current, no role jobs); public hosts passed.
+- **Commands:** main server `lookup`, `sophie`, `whitelist` (options: `post` only).
+- **Not done:** go-live on the new release (owner); live checks in Discord (a save DM, a removed claim, a staff turn
+  without memory, `/whitelist post` and launching the Activity as a tester).
+
 ## Memory privacy and honesty (P52) — 24 October 2026 (`5137d5b`, `26f72b7`; not installed)
 
 - **Offline:** `npm test` 841 passed (MEM-15 to MEM-21 new; MEM-02 and MEM-09 updated to the drop-not-discard rule);
