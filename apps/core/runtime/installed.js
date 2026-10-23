@@ -103,7 +103,7 @@ export async function createInstalledCoreService({pipes,signal,onFault,onTrace=(
     const compose=async input=>{
       const worker=createInstalledAiWorker({pipes,signal});let instance,closed;
       try {instance=await runtimeFactory({...input,aiControlPool:controlPool,aiKnowledge,aiWorker:worker,aiApproval,aiPreferenceJournal,
-        aiActivationPool:ownerPool,aiRestoreCurrent:restoreCurrent,
+        aiActivationPool:ownerPool,aiRestoreCurrent:restoreCurrent,aiGithubToken:githubToken,
         aiKnowledgeAdminFactory:knowledgeOwnerPool===null?null:({authorize,invalidate})=>createKnowledgeRuntime({pool:knowledgeOwnerPool,
           guildId:input.configuration.mapping.guildId,authorize,qualified,restoreCurrent:async()=>{await requireUnquarantinedDatabase(knowledgeOwnerPool);return true;},
           fetchImpl,invalidate,onFault,githubToken})});}

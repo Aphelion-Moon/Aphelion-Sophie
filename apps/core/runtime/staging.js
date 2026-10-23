@@ -34,6 +34,7 @@ import { createInteractionResponder } from '../discord/interaction-response.js';
 import { createInteractionHttpServer } from '../discord/interaction-http.js';
 import { createSophieMemberCommands } from '../discord/sophie-member.js';
 import { createAiMemberControls } from './ai-member.js';
+import { createCodeSearch } from '../../knowledge/code-search.js';
 import { createOutbox } from '../storage/outbox.js';
 import { createCaseReconciler } from '../discord/case-reconciler.js';
 import { createCaseInspectionStore } from '../storage/case-inspections.js';
@@ -86,7 +87,7 @@ import { runtimeDatabaseAvailable } from '../storage/runtime-maintenance.js';
 import { createGuildState } from '../discord/guild-state.js';
 
 /** Explicit staging host. Construction starts no listener, connection, registration, migration or service. */
-export async function createStagingRuntime({ configuration, pool, aiControlPool = null, aiPreferenceJournal = null, aiWorker = null, aiKnowledge = null, aiKnowledgeAdmin = null, aiKnowledgeAdminFactory = null, aiApproval = null, aiActivationPool = null, aiRestoreCurrent = async () => false, token, clientSecret = null, fetch, connect, clock = Date.now, random = Math.random, onFault, onTrace = () => {}, rateLimits = createDiscordRateLimits(), configurationApplyEnabled = false, gatewayLeaseMs = 30_000 }) {
+export async function createStagingRuntime({ configuration, pool, aiControlPool = null, aiPreferenceJournal = null, aiWorker = null, aiKnowledge = null, aiKnowledgeAdmin = null, aiKnowledgeAdminFactory = null, aiApproval = null, aiActivationPool = null, aiRestoreCurrent = async () => false, aiGithubToken = null, token, clientSecret = null, fetch, connect, clock = Date.now, random = Math.random, onFault, onTrace = () => {}, rateLimits = createDiscordRateLimits(), configurationApplyEnabled = false, gatewayLeaseMs = 30_000 }) {
   validateStagingRuntime(configuration); const fixed = structuredClone(configuration);
   requireCondition(typeof onFault === 'function', 'TRUSTED_ADAPTERS_REQUIRED');
   await requireUnquarantinedDatabase(pool);
@@ -146,6 +147,7 @@ export async function createStagingRuntime({ configuration, pool, aiControlPool 
     memory: aiPreferenceJournal === null ? null : createAiMemory({ pool: aiControlPool, guildId: fixed.mapping.guildId, journal: aiPreferenceJournal, clock }),
     memories: aiMemories === null ? null : { ...aiMemories, enabled: async () => aiApproval !== null && typeof aiApproval.automaticMemory === 'function' && await aiApproval.automaticMemory() },
     readSystemText: createSystemWordingReader({ pool, guildId: fixed.mapping.guildId }),
+    codeSearch: aiGithubToken === null ? null : createCodeSearch({ token: aiGithubToken, fetchImpl: fetch, clock }),
     ...(aiApproval === null ? {} : { readNotice: aiApproval.notice, staffChannels: async () => typeof aiApproval.staffChannels === 'function' && await aiApproval.staffChannels() }) });
   if(aiWorker!==null)aiRuntime=createAiLane(aiWorker);
   const readSystemText = createSystemWordingReader({ pool, guildId: fixed.mapping.guildId });

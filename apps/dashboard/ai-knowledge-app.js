@@ -74,7 +74,7 @@ function useWiki() {
   el('document-state').textContent = 'Wiki source attached. Enter complete reviewed extracts below, including qualifications. Publishing requires a separate confirmation.';
   changed(); notice('Source attached to the editor. No text was published or automatically summarized.');
 }
-const sourceNames = { wiki: 'Meridian wiki', site: 'Main website', gh: 'GitHub repositories' };
+const sourceNames = { wiki: 'Meridian wiki', site: 'Main website', gh: 'GitHub repositories', guide: 'Wolfgate Guidebook' };
 async function loadSources() {
   const status = await api.knowledgeSourcesStatus(), list = el('sources-status'); list.replaceChildren();
   el('sync-sources').disabled = !status.available;

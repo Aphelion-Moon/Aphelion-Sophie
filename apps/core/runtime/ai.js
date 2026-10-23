@@ -15,14 +15,17 @@ import { defaultSystemText } from '../../../contracts/system-messages.js';
 import { createAiAccounting } from '../storage/ai-accounting.js';
 import { createAiEffects } from '../storage/ai-effects.js';
 import { createMeteredAiWorker } from './ai-provider.js';
+import { withCodeSearch } from '../../knowledge/code-search.js';
 
 /** Core composition only. Inference receives a fixed turn payload, never this pool or Discord transport. */
 export function createAiRuntime({ configuration, corePool, controlPool, worker, knowledge, observer, guildState, token, fetch, clock, enabled, rateLimits, onFault,
   readNotice = async () => ({ revision: worker.provider === 'mistral' ? 2 : 1, binding: null, approved: worker.provider !== 'mistral' }), privacyCurrent = async () => false, memory = null, memories = null, readSystemText = async () => defaultSystemText,
-  staffChannels = async () => false }) {
+  staffChannels = async () => false, codeSearch = null }) {
   requireCondition(worker && typeof worker.generate === 'function' && typeof worker.current === 'function' && knowledge &&
     ['lookup','current','currentReferences'].every(name => typeof knowledge[name] === 'function'), 'AI_ADAPTERS_REQUIRED');
   const { mapping, casePolicy, capabilityPolicy } = configuration;
+  // Contexts with code search on also get line windows from the community's public code (owner decision, 23 October 2026).
+  knowledge = withCodeSearch(knowledge, codeSearch, onFault);
   const transport = createDiscordTransport({ guildId: mapping.guildId, token, fetch, clock, enabled, ...(rateLimits ? { limits: rateLimits } : {}) });
   const observations = createAiObservations({ pool: corePool, transport, guildState, authorityStore: createActorAuthorityStore({ pool: corePool, clock }),
     capabilityPolicy, mapping, protectedCategoryId: casePolicy.categoryId, observer, clock, trace: onFault });
