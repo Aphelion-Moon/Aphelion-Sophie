@@ -1763,3 +1763,7 @@ in the new database, which happens at their first dashboard sign-in. It is re-ru
 owner publishes the character, budget and channel settings and goes live. Folder
 `.agent_docs/aphelion-sophie/deployment-791e2fe-production-2026-10-23`; backup
 `D:\Backups\sophie-staging\production-791e2fe-20261023`.
+
+On the owner's request ("Port Sophie's Character setup over please.") the published character was copied from staging
+(revision 2) into the production database as revision 1, unchanged (digest `8ee3c4ad…`), attributed to the owner, with AI
+still disabled (`port-character.mjs` in the deployment folder). The budget and channel settings are still to be published.
