@@ -1,6 +1,6 @@
 # Current implementation workplan
 
-Revision: 2026-10-24-production-68881eb. Mistral Small 4 (mistral-small-2603) on the official EU API is the selected provider for trial; DeepSeek Flash is withdrawn. Local models are historical, explicitly selected alternatives only; no automatic fallback. Continue the DS workstream with synthetic data; full readiness and activation remain open.
+Revision: 2026-10-24-production-aff1bc0. Mistral Small 4 (mistral-small-2603) on the official EU API is the selected provider for trial; DeepSeek Flash is withdrawn. Local models are historical, explicitly selected alternatives only; no automatic fallback. Continue the DS workstream with synthetic data; full readiness and activation remain open.
 
 All production release gates remain open; pure and isolated database checks are not full application acceptance.
 
@@ -1678,10 +1678,11 @@ Implemented scope:
 - The Activity opened to every eligible member on 24 October 2026 (0e513dc).
 - a4f8b71 installed and Shuttle version 5 published on 24 October 2026: error alerts to the alert channel pinging @matriarch, a link that retries then offers to try again, frames on a fixed grid at 30 fps, typewriter speed independent of refresh, music at 50%, Akula.
 - 68881eb installed and Shuttle version 6 published on 24 October 2026: the memorial for ArcanaObscura (cross, candles, icon from :mikmoff:, linking her gallery), clearer links, alerts naming who was affected, lock timeouts retried.
+- aff1bc0 installed on 24 October 2026: Activity capability checks before the member lock (PG_55P03), the link recovering on return to the window, Resume keeping the page, link arrows typed last, Recommended Reading redrawn as an open book (owner pick C).
 
 Remaining scope:
 
-- Owner: Go live again in each channel on the new release (68881eb).
+- Owner: Go live again in each channel on the new release (aff1bc0).
 - Owner: Go live in each channel on the dashboard; /sophie Yes.
 - Live checks: a reply in #ask-sophie (code and Guidebook), a saved memory, Get my data, the Activity for a Lead Ops tester, a staff channel turn.
 - Owner: /whitelist post in a private channel, check the images on desktop and a phone, then post it in the rules channel and delete the old one; re-open the Activity on a phone.

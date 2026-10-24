@@ -2269,3 +2269,17 @@ What changed:
 - **Link arrows** are a character inside the link, after its label, so the typewriter types them last.
 - **Recommended Reading** is the redrawn open book, made by the coding agent like the other viewscreens: two pages headed
   RP-01 and POLICIES with ruled lines, a solid spine, and the cyan bookmark hanging from it. The links are unchanged.
+
+### Production install of aff1bc0 — 24 October 2026
+
+On the owner's "Option C. Get that in then install." (quoted in the packet's `approval.json`), `aff1bc0` was installed
+over `68881eb` at 01:08 UTC on 24 October. It brings:
+- no Discord read under the member lock;
+- the link recovering on return to the window;
+- Resume keeping the page;
+- link arrows typed last;
+- the redrawn Recommended Reading book.
+
+The runtime, capability policy version 2 and credentials are unchanged, with no migration and no story change (Shuttle
+version 6 stays published). All checks passed. Folder `.agent_docs/aphelion-sophie/deployment-aff1bc0-production-2026-10-24`;
+`rollback.ps1` restores 68881eb.

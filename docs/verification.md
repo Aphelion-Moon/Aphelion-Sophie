@@ -1,5 +1,23 @@
 # Verification and release limits
 
+## Production install of aff1bc0 — 24 October 2026
+
+- **Offline:**
+  - the affected test files passed (activity client, core, story, moments, post and the Shuttle scene suites, 121 tests):
+    - T-ACT-MD-03: a link's arrow types after its label;
+    - T-ACT-CLI-21: a renewal Discord never answers gives up after 10 s; focus or visibility back re-checks the link;
+    - T-ACT-CLI-22: Resume returns to the saved page;
+    - T-ACT-VS-07: the redrawn book;
+    - T-ACT-CORE-09: the `instance` word;
+  - `npm run check` passed; storage 1037 passed (capability checks before the member lock).
+- **Install:**
+  - preflight: 7 reviewed files, none new; installed 68881eb verified; runtime unchanged;
+  - pre-start, service boundaries, installed checks and public hosts passed;
+  - the public host serves the new client files and `rules.json` byte for byte;
+  - no Activity faults or PostgreSQL errors after the restart.
+- **Not covered:** leaving and returning to the Activity window inside Discord, Resume on a real device, and how the book
+  looks there. Whether the member lock was the whole cause of the link loss is shown only by use.
+
 ## Production install of 68881eb and Shuttle version 6 — 24 October 2026
 
 - **Offline:**
