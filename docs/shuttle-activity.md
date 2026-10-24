@@ -119,7 +119,19 @@ sessions the Activity drives.
 Splash ("press any key"), then the menu, both inside a terminal window drawn in the animated hangar's console, which
 fills the window (no reading column on the main page). The menu numbers its choices (1 to 9 pick one) and ends with
 the Tip of the Round. The hangar's Shuttle Link panel says only what the server last reported (ready, not boarding yet, finish in your channel, held, arrived, no
-signal). Each stop has its scene and ambience; Sophie's transmissions on the `COMMON · 145.9` radio are the stop's
+signal).
+
+Above the console (owner picks, 24 October 2026, picked on the Hangar Art Picks page): deep space behind the art, with
+three layers of drifting stars, a faint nebula, a navigator's chart (a grid, the orbit's long axis, PERIHELION and
+APHELION named) and a thin asteroid belt below the station. The Wing flies in from beyond the left edge along the
+orbit's lower arc, docks at the station for three seconds and flies home, on a 15-second cycle (docked in the still
+frame). Easter eggs: the beacon blinks HONK in Morse; an engineer comes out of a hatch in the solar truss to weld
+(every three minutes); a cargo pod slides out of the docking module (every four); a carp bonks into the docked Wing
+(every five); the singularity drifts across the sky (every ten); and the status screen says so (SINGULO LOOSE, CARP
+NEARBY: 3, CARGO SHIPPED), adds NUKE DISK: SECURE to its checks, and now and then reads AI LAW 4: MEOW or NUKE DISK: ???.
+The station itself is the Ring Hub, to be reworked once the background is settled.
+
+Each stop has its scene and ambience; Sophie's transmissions on the `COMMON · 145.9` radio are the stop's
 published pages split into screen-sized pieces (every character, in order). Since the sixth pass the pieces are cut
 from the whole stop, not message by message, so a page can run across a Discord message boundary. A new piece starts
 at every heading, so each section opens a page of its own and the scene stages exactly the section being read. A sign

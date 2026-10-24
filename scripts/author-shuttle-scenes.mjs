@@ -163,6 +163,33 @@ function mirrorFrame(frame) {
 // Carp swim right to left across every window, so they face left; mirrored, they face right.
 const CARP_LEFT = CARP_DRAWN.map(frame => ({ text: frame.text.map(row => row.replace(/^ /, '')), colours: frame.colours.map(row => row.replace(/^ /, '')) }));
 const CARP = CARP_LEFT.map(mirrorFrame);
+// The Wing (owner pick of 24 October 2026): a cockpit between swept wings, its engine flickering behind. It flies to the
+// station nose first; WING_BACK is the same craft flying home. WING_NOSE is the nose cell within a frame.
+const WING = [
+  spriteFrame(['  ╲╲', '═[□□□]>', '  ╱╱'], ['  II', 'rchhhcc', '  II']),
+  spriteFrame(['  ╲╲', '•[□□□]>', '  ╱╱'], ['  II', 'rchhhcc', '  II']),
+];
+const WING_NOSE = [6, 1];
+const WING_BACK = WING.map(mirrorFrame).map(frame => ({ ...frame, text: frame.text.map(row => row.replace(/[╲╱]/g, ch => (ch === '╲' ? '╱' : '╲'))) }));
+// Easter eggs of the main menu (owner picks, 24 October 2026). The singularity: a dark ball that swallows the stars it
+// passes. The EVA engineer: a suited figure who welds at the solar array. A cargo pod leaving the docking module.
+const SINGULO = [
+  spriteFrame(['·░·', '░●░', '·░·'], ['H6H', '6d6', 'H6H']),
+  spriteFrame(['░·░', '·●·', '░·░'], ['6H6', 'HdH', '6H6']),
+];
+const EVA = [spriteFrame(['o', 'Y'], ['c', 'i']), spriteFrame(['o', 'y'], ['c', 'i'])];
+const SPARKS = [spriteFrame(['•'], 'a'), spriteFrame(['*'], 'c'), spriteFrame(['·'], 'r')];
+const CARGO_POD = [spriteFrame(['·[■■]'], 'roaao'), spriteFrame(['•[■■]'], 'roaao')];
+// The station's beacon spells HONK in Morse: dot one step, dash three, a step between marks, three between letters,
+// seven before it starts again.
+const MORSE_HONK = '1010101' + '000' + '11101110111' + '000' + '11101' + '000' + '111010111' + '0000000';
+/** Smooth noise for the nebula: hash values on a lattice, blended between corners. */
+function valueNoise(x, y, seed) {
+  const xi = Math.floor(x), yi = Math.floor(y), xf = x - xi, yf = y - yi, u = xf * xf * (3 - 2 * xf), v = yf * yf * (3 - 2 * yf);
+  const at = (i, j) => hash(i * 131 + seed * 7919, j * 977 + seed);
+  const a = at(xi, yi), b = at(xi + 1, yi), c = at(xi, yi + 1), d = at(xi + 1, yi + 1);
+  return a + (b - a) * u + (c - a) * v + (a - b - c + d) * u * v;
+}
 // The mothroach in side view (picked design), walking left; MOTHROACH_RIGHT walks the other way. SS13 culture only.
 const MOTHROACH = [
   spriteFrame([' ,=,', '(@)=}~', " ''''"], [' AiA', 'IcIiiA', ' AAAA']),
@@ -215,7 +242,7 @@ function station(a, effects, x0, y0) {
       : r >= arrays[0] && r <= arrays[1] && Math.abs(c - mid) <= 6 ? 'h' : r === hub || '═╪'.includes(ch) ? 'o' : r >= dock[0] && r <= dock[1] ? 'o' : 'I';
     a.put(x0 + c, y0 + r, ch, key);
   }));
-  effects.push({ kind: 'blink', id: 'station-beacon', region: [x0 + mid, y0, 1, 1], hz: 0.8, on: 'p', off: 'd' });
+  effects.push({ kind: 'blink', id: 'station-beacon', region: [x0 + mid, y0, 1, 1], hz: 3, on: 'p', off: 'd', pattern: MORSE_HONK });
   effects.push({ kind: 'blink', id: 'station-core', region: [x0 + mid, y0 + hub, 1, 1], hz: 0.4, on: 'c', off: 'h' });
   windows.forEach(([c, r], i) => effects.push({ kind: 'blink', id: `station-window-${i + 1}`, region: [x0 + c, y0 + r, 1, 1], hz: 0.3 + i * 0.12, on: 'a', off: 'A' }));
   // The docking module's light: a slow amber pulse across the hatch.
@@ -232,30 +259,105 @@ function hangar(name) {
   const base = new Art(w, h), effects = [], layers = [];
   const lx = 3, ly = 1;
   stripes(base, lx, ly, 5); logo(base, lx + 19, ly); base.text(lx + 19, ly + 7, 'T H E   S H U T T L E', 'i');
+  let logoRight = 0;
+  for (let y = ly; y <= ly + 7; y++) for (let x = 0; x < w; x++) if (base.get(x, y) !== ' ') logoRight = Math.max(logoRight, x);
   const stationWidth = [...STATION[0]].length, sx0 = port ? w - stationWidth - 2 : w - stationWidth - 1, sy0 = port ? ly + 10 : 0;
   const { hub } = station(base, effects, sx0, sy0);
   // No name plate across the mast (owner, 24 October 2026: the 'Aphelion station · waking' line is gone).
   const conTop = port ? sy0 + STATION.length + 1 : STATION.length;
   // The orbit: a dotted ellipse under the logo whose right end meets the station's solar array at the hub's height. The
-  // shuttle runs along its upper half, clear of the subtitle.
+  // shuttle flies its lower half, clear of the subtitle.
   const ra = port ? Math.round((sx0 - 4) / 2) : 22, rb = 3, cx = sx0 - 1 - ra, cy = hub;
   for (let th = 0; th < Math.PI * 2; th += 0.01) {
     const x = Math.round(cx + ra * Math.cos(th)), y = Math.round(cy - rb * Math.sin(th));
     if (base.get(x, y) === ' ' && ((x + y) & 1)) base.put(x, y, '·', 'H');
   }
-  sun(base, Math.round(cx - ra * 0.55), cy, port ? 3 : 3.4);
-  const path = [];
-  for (let k = 0; k <= 80; k++) {
-    const th = Math.PI * (1 - k / 80), p = [Math.round(cx + ra * Math.cos(th)), Math.round(cy - rb * Math.sin(th))];
-    if (!path.length || path.at(-1)[0] !== p[0] || path.at(-1)[1] !== p[1]) path.push(p);
+  const sunX = Math.round(cx - ra * 0.55);
+  sun(base, sunX, cy, port ? 3 : 3.4);
+
+  // Deep space behind it all (owner pick of 24 October 2026: every background idea at once, without the gas giant). A
+  // layer under the art holds what does not move: a faint nebula rising from under the sun towards the station, and a
+  // navigator's chart (a faint grid, the orbit's long axis from the sun to the station, and its two ends named: the
+  // station's name is the far end of an orbit). The title, the sun and the station's ring are kept clear.
+  const backdrop = new Art(w, h);
+  const inBox = (x, y, [x0, y0, x1, y1]) => x >= x0 && x <= x1 && y >= y0 && y <= y1;
+  const titleBox = [lx, ly, logoRight, ly + 7], ringBox = [sx0, sy0 + 8, sx0 + stationWidth - 1, sy0 + 16], sunBox = [sunX - 8, cy - 4, sunX + 8, cy + 4];
+  const stationBox = [sx0, sy0, sx0 + stationWidth - 1, sy0 + STATION.length - 1];
+  const open = (x, y) => y < conTop && base.get(x, y) === ' ' && !inBox(x, y, titleBox) && !inBox(x, y, ringBox);
+  for (let y = 0; y < conTop; y++) for (let x = 0; x < w; x++) {
+    if (!open(x, y) || inBox(x, y, sunBox) || inBox(x, y, stationBox)) continue;
+    const cloud = 0.65 * valueNoise(x / 9, y / 3.4, 11) + 0.35 * valueNoise(x / 4.2, y / 1.7, 12), band = Math.exp(-((y - (conTop - (x * 0.8 * conTop) / w)) ** 2) / 9);
+    const v = cloud * band;
+    if (v > 0.52) backdrop.put(x, y, v > 0.76 ? '▒' : '░', hash(x * 3 + 7, y * 5 + 1) > 0.6 ? '7' : hash(x * 5 + 2, y * 3 + 9) > 0.75 ? 'H' : '6');
   }
-  effects.push({ kind: 'pulse', id: 'shuttle', path, speed: path.length / 14, glyph: '>', colour: 'c', trail: 6, trailGlyph: '·', trailColour: 'h' });
+  for (let x = sunX + 7; x < cx + ra - 1; x += 2) if (open(x, cy)) backdrop.put(x, cy, '─', 'd');
+  backdrop.text(Math.max(1, cx - ra - 3), cy + 5, 'PERIHELION', 'H');
+  const aphelion = 'APHELION »', ax = cx + ra - aphelion.length - 1;
+  backdrop.text(ax, cy + 7, aphelion, 'H'); backdrop.put(ax + aphelion.length - 1, cy + 7, '»', 'a');
+  // The grid's crosses keep a clear cell either side, so they never run into a label or the axis.
+  const clear = (x, y) => [-1, 0, 1].every(dx => (backdrop.get(x + dx, y) ?? ' ') === ' ');
+  for (let y = 0; y < conTop; y += 4) for (let x = 3; x < w; x += 8) if (open(x, y) && clear(x, y)) backdrop.put(x, y, '+', 'd');
+  // A few bright stars that twinkle, where the sky is open.
+  [[2, 0], [47, 7], [33, 18], [91, 20], [58, 1], [12, 19], [70, 18]].map(([x, y]) => [Math.round((x * w) / 96), Math.round((y * (conTop - 1)) / 20)])
+    .filter(([x, y]) => open(x, y) && [-1, 0, 1].every(dx => (backdrop.get(x + dx, y) ?? ' ') === ' '))
+    .forEach(([x, y], i) => { backdrop.put(x, y, '+', 'c'); effects.push({ kind: 'blink', id: `star-twinkle-${i + 1}`, region: [x, y, 1, 1], hz: 0.23 + i * 0.02, on: 'c', off: 'I' }); });
+  // The deep field: three layers of stars at different speeds, in the open sky around the title (never inside it).
+  const sky = [[0, 0, w, ly], [logoRight + 2, ly, w - logoRight - 2, 8], [0, ly + 8, w, conTop - ly - 8]].filter(([, , rw, rh]) => rw > 0 && rh > 0);
+  const depths = [{ density: 0.0126, speed: 0.25, glyphs: '.', colours: 'd' }, { density: 0.0112, speed: 0.6, glyphs: '··.', colours: 'II.' },
+    { density: 0.0042, speed: 1.3, glyphs: "+'", colours: 'iI' }];
+  sky.forEach((region, r) => depths.forEach((depth, d) => effects.push({ kind: 'drift', id: `stars-${r + 1}-${d + 1}`, region, seed: 31 + r * 10 + d, ...depth })));
+  // A thin asteroid belt drifts past below the station, the near rocks faster than the far ones.
+  const belt = [sx0 + 2, conTop - 4, w - sx0 - 2, 4];
+  effects.push({ kind: 'drift', id: 'belt-far', region: belt, seed: 52, density: 0.045, speed: 0.45, glyphs: '..,:o■', colours: 'oAdoAo' });
+  effects.push({ kind: 'drift', id: 'belt-near', region: [belt[0], belt[1] + 1, belt[2], belt[3] - 1], seed: 53, density: 0.025, speed: 0.9, glyphs: 'o.■', colours: 'oAI' });
+
+  // The Wing (owner pick): in from beyond the left edge along the orbit's lower arc, under the sun, to the station; docked
+  // for three seconds, then home the same way. Four sprites share one 15-second cycle: two legs in, the second holding at
+  // the dock (which is also the still frame), then the two legs back, mirrored. The legs hand over mid-flight; the craft
+  // itself only ever comes and goes beyond the edge.
+  const CYCLE = 15, nose = { start: [-1, cy + rb], mid: [cx + Math.round(ra * 0.6), cy + rb], dock: [cx + ra, cy] };
+  const leg = (a, b) => Math.max(1, Math.round((Math.max(Math.abs(b[0] - a[0]), Math.abs(b[1] - a[1])) / 10) * 10) / 10);
+  const legA = leg(nose.start, nose.mid), legB = leg(nose.mid, nose.dock), docked = legA + legB;
+  // Homeward, the craft turns round in the cells it docked in (its nose now at the left), so it never overlaps the array.
+  const flyIn = ([x, y]) => [x - WING_NOSE[0], y - WING_NOSE[1]], flyOut = flyIn;
+  const offsetFor = start => (start > 0 ? { offset: Math.round((CYCLE - start) * 100) / 100 } : {});
+  for (const { start, ...wing } of [
+    { id: 'wing-in', frames: WING, from: flyIn(nose.start), to: flyIn(nose.mid), duration: legA, start: 0 },
+    { id: 'wing-dock', frames: WING, from: flyIn(nose.mid), to: flyIn(nose.dock), duration: legB, hold: 3, start: legA },
+    { id: 'wing-undock', frames: WING_BACK, from: flyOut(nose.dock), to: flyOut(nose.mid), duration: legB, start: docked + 3 },
+    { id: 'wing-home', frames: WING_BACK, from: flyOut(nose.mid), to: flyOut(nose.start), duration: legA, start: docked + 3 + legB },
+  ]) effects.push({ kind: 'sprite', ...wing, every: CYCLE, ...offsetFor(start), fps: 6, clip: [0, 0, w, conTop] });
   // A carp swims out from behind the station and away across space, above the console.
   effects.push({ kind: 'sprite', id: 'carp-hangar', frames: CARP_LEFT, from: [sx0 + 2, cy + 3], to: [-10, cy + 5], duration: port ? 10 : 16, every: 60, offset: 18, fps: 2,
     clip: [0, 0, sx0, conTop] });
-  // Stars drift only in open space: above the logo, and between the subtitle and the console left of the station.
-  const starRegions = [[0, 0, sx0 - 1, ly], [0, ly + 8, sx0 - 1, conTop - ly - 8]];
-  starRegions.forEach((region, i) => effects.push({ kind: 'drift', id: `stars-${i + 1}`, region, seed: 11 + i, density: 0.028, speed: 1.2, glyphs: ".·'+", colours: '..Ih' }));
+  // Carp versus shuttle: every five minutes a carp swims up to the docked Wing, bonks into it and drifts back, dazed. It
+  // arrives just after the Wing docks (the cycles line up: 300 is a whole number of 15-second cycles).
+  const carpWidth = Math.max(...CARP[0].text.map(row => [...row].length)), swim = 7, bonk = 0.8, dazed = 6;
+  const carpStart = ((((docked + 0.7 - swim) % CYCLE) + CYCLE) % CYCLE) + CYCLE * 15, carpTimes = { every: 300, offset: Math.round((300 - carpStart) * 100) / 100 };
+  effects.push({ kind: 'sprite', id: 'carp-bump', frames: CARP, from: [-carpWidth, cy - 1], to: [nose.dock[0] - WING_NOSE[0] - carpWidth, cy - 1], duration: swim, hold: bonk,
+    exit: { to: [-carpWidth - 2, cy], duration: dazed }, ...carpTimes, fps: 2, clip: [0, 0, sx0, conTop] });
+  // The singularity gets loose every ten minutes (the longest a scene repeats; first five minutes in), swallowing the
+  // stars it passes, until it goes behind the station.
+  const singulo = { duration: port ? 30 : 40, every: 600, offset: 300 };
+  effects.push({ kind: 'sprite', id: 'singulo', frames: SINGULO, from: [-3, cy + 5], to: [sx0, cy + 4], ...singulo, fps: 4, clip: [0, 0, sx0, conTop] });
+  // Standing props: copies of station parts that hide whoever is behind them, so figures come and go through hatches.
+  const standing = (id, [x0, y0, x1, y1]) => {
+    const a = new Art(w, h);
+    for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) { if (base.get(x, y) === ' ') throw new Error(`PROP_GAP ${id} ${name} ${x},${y}`); a.put(x, y, base.get(x, y), base.k[y][x]); }
+    layers.push(layer(id, a, { front: true, opaque: true }));
+  };
+  // An engineer on EVA every three minutes (first a minute in): out of a hatch in the left solar truss, six seconds of
+  // welding just above it, and back in.
+  const [a0, a1] = STATION_PARTS.arrays;
+  standing('solar-truss', [sx0, sy0 + a0, sx0 + 4, sy0 + a1]);
+  const eva = { from: [sx0 + 2, sy0 + a0], at: [sx0 + 2, sy0 + a0 - 2] }, spark = [eva.at[0] + 1, eva.at[1] + 1];
+  for (const [x, y] of [eva.at, [eva.at[0], eva.at[1] + 1], spark]) if (base.get(x, y) !== ' ') throw new Error(`EVA_PATH_BLOCKED ${name} ${x},${y}`);
+  effects.push({ kind: 'sprite', id: 'eva', frames: EVA, from: eva.from, to: eva.at, duration: 4, hold: 6, exit: { to: eva.from, duration: 4 }, every: 180, offset: 120, fps: 2 });
+  effects.push({ kind: 'sprite', id: 'eva-sparks', frames: SPARKS, from: spark, to: spark, duration: 6, every: 180, offset: 116, fps: 8 });
+  // A cargo pod slides out of the docking module every four minutes (first two minutes in) and away off the edge.
+  const { mid, dock: [d0, d1] } = STATION_PARTS, cargo = { duration: 6, every: 240, offset: 120 }, podRow = sy0 + d0 + 1;
+  standing('docking-module', [sx0 + mid - 3, sy0 + d0, sx0 + mid + 3, sy0 + d1]);
+  effects.push({ kind: 'sprite', id: 'cargo', frames: CARGO_POD, from: [sx0 + mid - 2, podRow], to: [w + 1, podRow], ...cargo, fps: 4, clip: [0, 0, w, conTop] });
 
   // Console: old painted metal, panel seams and scuffs, with a cyan seam filling a crack.
   base.fill(0, conTop + 1, w - 1, h - 1, ' ', ' ');
@@ -297,7 +399,7 @@ function hangar(name) {
   const [sx, sy] = port ? [px + pw + 3, py + 1] : [px, panelBottom + 2];
   base.fill(sx, sy, sx + 19, sy + 4, ' ', ' '); base.text(sx, sy, '+------------------+', 'o'); base.text(sx, sy + 4, '+------------------+', 'o');
   for (let r = 1; r <= 3; r++) { base.put(sx, sy + r, '|', 'o'); base.put(sx + 19, sy + r, '|', 'o'); }
-  effects.push({ kind: 'flap', id: 'console-status', x: sx + 2, y: sy + 1, width: 16, texts: ['SYS 07   NOMINAL', 'SM ENGINE     OK', 'SINGULO     CALM', 'CARP NEARBY:   2', 'HONK LEVEL:  LOW'], period: 7, flip: 0.4, colour: 'a', align: 'left' });
+  effects.push({ kind: 'flap', id: 'console-status', x: sx + 2, y: sy + 1, width: 16, texts: ['SYS 07   NOMINAL', 'SM ENGINE     OK', 'SINGULO     CALM', 'CARP NEARBY:   2', 'HONK LEVEL:  LOW', 'NUKE DISK:SECURE'], period: 7, flip: 0.4, colour: 'a', align: 'left' });
   base.text(sx + 2, sy + 3, 'O2 ████░  87', 'a');
   const waves = [];
   for (let f = 0; f < 12; f++) {
@@ -322,7 +424,16 @@ function hangar(name) {
     const cable = []; for (let y = panelBottom + 1; y < by; y++) cable.push([cxl, y]); cable.push([cxl, by], [cxl + 1, by], [cxl + 2, by]);
     effects.push({ kind: 'pulse', id: 'cable-pulse', path: cable, speed: 4, glyph: '•', colour: 'c' });
   }
-  return { layers: [layer('base', base), ...layers], effects, slots: { menu: slot, title } };
+  // The status screen speaks up during the easter eggs, over its usual checks. A sprite draws only its non-space cells, so
+  // the gaps are dark dot leaders (the weather board's style) and nothing of the line underneath shows through.
+  const overlay = (id, words, key, times) => effects.push({ kind: 'sprite', id, frames: [{ text: [words.replaceAll(' ', '·')],
+    colours: [[...words].map(ch => (ch === ' ' ? 'd' : key)).join('')] }], from: [sx + 2, sy + 1], to: [sx + 2, sy + 1], ...times });
+  overlay('console-singulo', 'SINGULO    LOOSE', 'p', singulo);
+  overlay('console-carp', 'CARP NEARBY:   3', 'a', { duration: swim + bonk + dazed, ...carpTimes });
+  overlay('console-cargo', 'CARGO    SHIPPED', 'o', cargo);
+  overlay('console-ai-law', 'AI LAW 4:   MEOW', 'h', { duration: 5, every: 420, offset: 220 });
+  overlay('console-nuke-disk', 'NUKE DISK:   ???', 'p', { duration: 4, every: 600, offset: 140 });
+  return { layers: [layer('backdrop', backdrop), layer('base', base), ...layers], effects, slots: { menu: slot, title } };
 }
 
 // ---------- scene: departure lounge ----------
@@ -1634,7 +1745,7 @@ const LOUNGE_ALT = 'A departure lounge. An old split-flap board in amber shows t
 const DECK_ALT = 'A wide observation window in a heavy riveted frame. Outside, a ringed gas giant, a nebula, a comet, the curve of the station dotted with lights, satellites, passing haulers, a tug and a ring freighter, carp and a drifting assistant with a toolbox. On the deck, panels for the deck, the space weather and a photo booth, people on a bench looking out, a telescope, a lamp with a mothroach on its shade, an old camera, a vending machine and hydroponics trays.';
 const RAIL_ALT = 'The cabin on the launch rail. Through the forward window the rail comes up with a sea lion sitting on the Keep clear line';
 const SCENES = [
-  { id: 'hangar-viewport', title: 'Hangar viewport', draw: hangar, alt: [{ text: 'The title APHELION in amber beside rainbow stripes, and The Shuttle under it. A small sun and a dotted orbit; a shuttle moves along it towards Aphelion station: a beacon on a mast with a dish, a ring of lit windows round a cyan hub, solar arrays either side and a docking module below. Below, an old console: a cyan terminal window titled with your own Discord name at aphelion, which holds the menu, beside a cyan Shuttle Link panel, an amber status screen, lamps, switches and a new cable.' }] },
+  { id: 'hangar-viewport', title: 'Hangar viewport', draw: hangar, alt: [{ text: 'The title APHELION in amber beside rainbow stripes, and The Shuttle under it, against deep space: drifting stars, a faint violet nebula, a navigator’s chart marking perihelion and aphelion, and a few asteroids. A small sun and a dotted orbit; a winged shuttle flies its lower arc to Aphelion station, docks, and flies back. The station: a beacon on a mast, a ring of lit windows round a cyan hub, solar arrays and a docking module. Below, an old console: a terminal window titled with your Discord name at aphelion, holding the menu, a Shuttle Link panel and an amber status screen.' }] },
   { id: 'departure-lounge', title: 'Departure lounge', draw: lounge, beats: LOUNGE_BEATS, alt: [
     { when: { beat: ['beepsky'] }, text: 'A departure lounge: a split-flap board, benches under a window with an EXIT sign, and a help desk reading AGE CHECK, 18+ ONLY. Officer Beepsky, a little securitron drone with a red and blue light, hovers in over the benches and says: HALT! Age check. 18+ only. No, really. On the next page he flies off.' },
     { text: LOUNGE_ALT },

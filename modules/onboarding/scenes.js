@@ -131,7 +131,7 @@ function effect(value, grid, ids, beats) {
   requireCondition(EFFECT_KINDS.includes(value.kind), 'INVALID_SCENE_EFFECT');
   const common = ['kind', 'id'];
   const shapes = {
-    blink: [['region', 'hz', 'on', 'off'], []],
+    blink: [['region', 'hz', 'on', 'off'], ['pattern']],
     flicker: [['region', 'hz', 'chance', 'colour'], []],
     drift: [['region', 'seed', 'density', 'speed', 'glyphs', 'colours'], []],
     scan: [['region', 'speed', 'glyph', 'colour'], []],
@@ -153,6 +153,10 @@ function effect(value, grid, ids, beats) {
   switch (value.kind) {
     case 'blink':
       region(value.region, grid); number(value.hz, 0.1, LIMITS.flashHz, 'SCENE_FLASH_TOO_FAST');
+      // pattern: on (1) and off (0) steps played at hz steps a second (the hangar beacon's Morse), so it never flashes
+      // faster than a plain blink at the same hz.
+      if (value.pattern !== undefined) requireCondition(typeof value.pattern === 'string' && /^[01]{2,64}$/.test(value.pattern) &&
+        value.pattern.includes('0') && value.pattern.includes('1'), 'INVALID_SCENE_EFFECT');
       colourKey(value.on); colourKey(value.off); break;
     case 'flicker':
       requireCondition(region(value.region, grid) <= cells * LIMITS.flickerArea, 'SCENE_FLICKER_TOO_LARGE');
@@ -431,7 +435,7 @@ export function composeScene(scene, layoutName, { time = 0, beatTime = time, sce
     if (!matches(fx.when, s)) continue;
     switch (fx.kind) {
       case 'blink': {
-        const on = !motion || Math.floor(t * fx.hz * 2) % 2 === 0;
+        const on = !motion || (fx.pattern ? fx.pattern[Math.floor(t * fx.hz) % fx.pattern.length] === '1' : Math.floor(t * fx.hz * 2) % 2 === 0);
         const [x0, y0, w, h] = fx.region;
         for (let y = y0; y < y0 + h; y++) for (let x = x0; x < x0 + w; x++) if (glyph[y][x] !== ' ') colour[y][x] = on ? fx.on : fx.off;
         break;

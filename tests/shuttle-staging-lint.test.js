@@ -26,8 +26,9 @@ function placed(fx, t) {
 
 test('T-STAGE-01 actors that come and go enter and leave beyond the edge of what they cross, never mid-screen', () => {
   // Exempt by design: meteors and the fire's flames, foam, smoke and spark burn out where they are; boarders hand over
-  // from the walk to the ramp and step into the shuttle's door.
-  const exempt = /^(meteor-|blastwave-|boarder-\d+-(walk|ramp)$)/;
+  // from the walk to the ramp and step into the shuttle's door; the hangar's Wing hands over from leg to leg (T-STAGE-05
+  // checks that the whole flight comes and goes beyond the edge).
+  const exempt = /^(meteor-|blastwave-|boarder-\d+-(walk|ramp)$|wing-(in|dock|undock|home)$)/;
   for (const scene of scenes) for (const layout of LAYOUTS) {
     const { cols, rows } = { landscape: { cols: 96, rows: 40 }, portrait: { cols: 72, rows: 57 } }[layout];
     const fronts = scene.layouts[layout].layers.filter(item => item.front && item.opaque).map(item => [item.x, item.y, item.x + Math.max(...item.frames[0].text.map(r => [...r].length)) - 1, item.y + item.frames[0].text.length - 1]);
@@ -121,5 +122,24 @@ test('T-STAGE-04 tiled floors have no holes: a run of bare floor beside tiles is
         }
       });
     }
+  }
+});
+
+test('T-STAGE-05 the hangar Wing flies in and home beyond the edge, its legs meeting exactly, docked in the still frame', () => {
+  const hangar = scenes.find(scene => scene.id === 'hangar-viewport');
+  for (const layout of LAYOUTS) {
+    const legs = ['wing-in', 'wing-dock', 'wing-undock', 'wing-home'].map(id => hangar.layouts[layout].effects.find(fx => fx.id === id));
+    assert.ok(legs.every(Boolean), layout);
+    const width = widthOf(legs[0]);
+    assert.ok(legs[0].from[0] + width <= 0 && legs[3].to[0] + width <= 0, `${layout}: comes and goes beyond the left edge`);
+    for (let i = 1; i < 4; i++) assert.deepEqual(legs[i].from, legs[i - 1].to, `${layout}: ${legs[i].id} starts where ${legs[i - 1].id} ends`);
+    assert.ok(legs.every(fx => fx.every === legs[0].every), layout);
+    // Each leg starts as the one before it ends, and the cycle has room for all of them.
+    const start = fx => (fx.every - (fx.offset ?? 0)) % fx.every;
+    for (let i = 1; i < 4; i++) assert.ok(Math.abs(start(legs[i]) - (start(legs[i - 1]) + legs[i - 1].duration + (legs[i - 1].hold ?? 0))) < 1e-6, `${layout}: ${legs[i].id} timing`);
+    assert.ok(start(legs[3]) + legs[3].duration <= legs[0].every, layout);
+    // With motion off the craft is docked: the dock leg holds there.
+    const still = composeScene(hangar, layout, { state: STATE, motion: false }).glyphs.join('\n');
+    assert.match(still, /═\[□□□\]>/, `${layout}: docked in the still frame`);
   }
 });

@@ -438,3 +438,40 @@ test('P44 the memorial is a link: her name opens her art gallery; a scene link i
   const { link: _link, ...noLink } = door;
   assert.throws(() => validateScene(noLink), error => error.code === 'INVALID_SCENE_LINK', 'a slot needs its link');
 });
+
+test('P50 a blink can play a pattern of steps: the hangar beacon spells HONK in Morse, never faster than the flash limit', () => {
+  const hangar = scenes.find(([, s]) => s.id === 'hangar-viewport')[1];
+  const beacon = hangar.layouts.landscape.effects.find(fx => fx.id === 'station-beacon');
+  // H .... O --- N -. K -.- : dots one step, dashes three, one between marks, three between letters, seven at the end.
+  assert.equal(beacon.pattern, ['1010101', '000', '11101110111', '000', '11101', '000', '111010111', '0000000'].join(''));
+  assert.ok(beacon.hz <= 3);
+  const [x, y] = beacon.region, lit = t => composeScene(hangar, 'landscape', { time: t, state: {} }).colours[y][x] === beacon.on;
+  assert.deepEqual([0, 1, 2, 3, 4, 5, 6, 7].map(step => lit((step + 0.5) / beacon.hz)), [true, false, true, false, true, false, true, false]);
+  const add = (pattern, code) => { const s = structuredClone(hangar); s.layouts.landscape.effects.find(fx => fx.id === 'station-beacon').pattern = pattern; assert.throws(() => validateScene(s), new RegExp(code)); };
+  for (const bad of ['', '1', '1111', '0000', '10a1', '1'.repeat(65) + '0', 7]) add(bad, 'INVALID_SCENE_EFFECT');
+});
+
+test('P50 the hangar main menu: deep space behind the art, the Wing, and the console speaking up for its easter eggs', () => {
+  const hangar = scenes.find(([, s]) => s.id === 'hangar-viewport')[1];
+  for (const layout of ['landscape', 'portrait']) {
+    const { layers, effects } = hangar.layouts[layout], at = t => composeScene(hangar, layout, { time: t, state: { link: 'ready' } }).glyphs.join('\n');
+    // The backdrop is the first layer, under everything; the chart names both ends of the orbit.
+    assert.equal(layers[0].id, 'backdrop', layout);
+    const still = composeScene(hangar, layout, { state: { link: 'ready' }, motion: false }).glyphs.join('\n');
+    assert.match(still, /PERIHELION/, layout); assert.match(still, /APHELION »/, layout);
+    assert.ok(effects.some(fx => fx.kind === 'drift' && fx.id.startsWith('belt-')), layout);
+    // The old cursor shuttle is gone.
+    assert.ok(!effects.some(fx => fx.id === 'shuttle'), layout);
+    // Every console line covers all sixteen cells (a sprite skips spaces, so gaps are dot leaders) and turns up on time.
+    for (const [id, words] of [['console-singulo', 'SINGULO····LOOSE'], ['console-carp', 'CARP·NEARBY:···3'], ['console-cargo', 'CARGO····SHIPPED'],
+      ['console-ai-law', 'AI·LAW·4:···MEOW'], ['console-nuke-disk', 'NUKE·DISK:···???']]) {
+      const fx = effects.find(item => item.id === id);
+      assert.equal(fx.frames[0].text[0], words, `${layout} ${id}`); assert.doesNotMatch(fx.frames[0].text[0], / /);
+      const first = (fx.every - (fx.offset ?? 0)) % fx.every;
+      assert.ok(at(first + 0.5).includes(words), `${layout} ${id} shows at ${first}s`);
+    }
+    assert.ok(effects.find(fx => fx.id === 'console-status').texts.includes('NUKE DISK:SECURE'), layout);
+    // The engineer and the cargo pod come out from behind standing station parts.
+    for (const id of ['solar-truss', 'docking-module']) assert.ok(layers.some(item => item.id === id && item.front && item.opaque), `${layout} ${id}`);
+  }
+});

@@ -2370,3 +2370,32 @@ After the change, the same measurement shows no stage resize and no canvas wipe 
 3 files, same runtime (Node 24.22.1), capability policy version 2 and credentials, no migration, no story change. All
 checks passed. Folder `.agent_docs/aphelion-sophie/deployment-8ad8324-production-2026-10-24`; `rollback.ps1` restores
 `2301f3a`.
+
+### The main menu, first release of the redesign — 24 October 2026
+
+The owner asked for options to spruce up the main menu's art. On the Hangar Art Picks page (an artifact; the preview
+drew each option with the Activity's own painter) the owner kept the **Ring Hub** station ("only really the Ring Hub";
+a reworked version comes once the background is settled, so it can be drawn against it), picked the **Wing** shuttle
+flying **dock and depart**, ticked all fourteen easter egg ideas, and for the background asked for a mix of all the
+ideas, then chose the **Everything** mix "but remove the gas giant", and directed: "Proceed, publish, and install."
+
+This first release (scene art and one engine addition; no client logic):
+- **Background:** a backdrop layer behind the art (a faint nebula; a navigator's chart with a grid, the orbit's long
+  axis, PERIHELION and APHELION), three layers of drifting stars in the open sky, a few twinkling stars, and a thin
+  asteroid belt below the station. The title, the sun and the station stay clear.
+- **The Wing:** four sprites on one 15-second cycle, from beyond the left edge along the orbit's lower arc to the
+  dock, three seconds docked (the still frame), then home mirrored, turning round in the cells it docked in.
+- **Seven easter eggs:** the beacon's Morse HONK; the EVA engineer (from a hatch in the solar truss, every 3 minutes);
+  the cargo pod (from the docking module, every 4); carp versus the docked Wing (every 5); the singularity (every 10:
+  scene repeats are capped at 600 seconds, so not every 20 as first proposed); AI LAW 4: MEOW (every 7); and NUKE DISK:
+  SECURE among the console's checks, with a rare NUKE DISK: ???. The status screen speaks up during each with a line in
+  the weather board's dot-leader style, since a sprite draws only its non-space cells.
+- **Engine:** a blink may carry a `pattern` of on and off steps played at `hz` steps a second (2 to 64 steps), so it
+  never flashes faster than a plain blink at the same `hz`.
+- **Staging:** the owner's rule that figures enter and leave beyond the edge holds. The engineer and the pod come out
+  from behind standing copies of the truss and the module; the Wing's legs hand over mid-flight like the boarders'
+  walk and ramp, and a test (T-STAGE-05) checks the whole flight starts and ends beyond the edge.
+
+Still to come: the date and clock eggs (Halloween before the 31st, winter lights, night shift, welcome back) need scene
+conditions the engine does not have yet; the typed and tapped eggs (HONK, poking the sun, the barrel roll) need client
+code; then the Ring Hub rework.
