@@ -1,5 +1,27 @@
 # Verification and release limits
 
+## Production install of df3856b on Node.js 24.22.1 — 24 October 2026
+
+- **Offline, on Node 24.22.1:**
+  - `npm test` 870 passed, including T-ACT-CLI-23 (Large reaches the text; Aa in the radio header toggles it);
+  - `npm run check` passed; storage 1037 passed;
+  - the CSS cascade checked in a browser: before the fix Large left the text at 16 px, after it 20 px, with sheets and
+    status bar scaling and the hangar menu keeping its own size.
+- **Runtime review** (`.agent_docs/aphelion-sophie/node-distribution-24.22.1`): the executable matches the published
+  `win-x64/node.exe` hash; Authenticode valid (OpenJS Foundation); PE imports and the seven notices identical to
+  24.19.0; the vendor LICENSE differs only in the bundled zlib version line and year. The executable was not run as
+  part of the review; the suites above ran on it.
+- **Install:**
+  - preflight: the installed aff1bc0 verified after the rollback; 12 reviewed files, none new; dependencies unchanged
+    apart from the engines field; the host Node is the reviewed one;
+  - pre-start, service boundaries, installed checks (runtime `node.exe` and `LICENSE` hashes) and public hosts passed;
+  - the public host serves the new `app.css`, `index.html` and `shuttle.js` byte for byte;
+  - core, the worker and the Activity closed screen run `package\runtime\node.exe` 24.22.1; the closed screen answers;
+    core's log shows only the expected fixed codes (AI admission skipped until Go live, the checks' unauthenticated
+    dashboard probes, GitHub rate limiting); PostgreSQL shows no errors.
+- **First attempt:** `1d3c0ff` stopped at `NODE_RUNTIME_CHANGED` (host Node updated); `rollback.ps1` restored aff1bc0.
+- **Not covered:** Aa and Large on real devices inside Discord; long-running behaviour on the new runtime.
+
 ## Production install of aff1bc0 — 24 October 2026
 
 - **Offline:**

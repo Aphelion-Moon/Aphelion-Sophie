@@ -2318,3 +2318,18 @@ versions, redistribution or containers). Review folder `.agent_docs/aphelion-sop
 Sophie's pins move with it: `legal/node-runtime.json`, `legal/DEPENDENCIES.json`, the engines in `package.json` and the
 lock, `.node-version`, and the five entry points that require the reviewed version. The installed runtime folder
 (`package\runtime`: `node.exe`, `LICENSE`, notices) is replaced in the same install as the code.
+
+### Production install of df3856b on Node.js 24.22.1 — 24 October 2026
+
+On the owner's "Update Sophie and redeploy." (quoted with the earlier "Fix both then publish and install." in the
+packet's `approval.json`), `df3856b` was installed over `aff1bc0` at 11:04 UTC on 24 October. It brings:
+- Large text working, and Aa in the radio's header;
+- Node.js 24.22.1: the reviewed `node.exe` and `LICENSE` written over `package\runtime` in place, keeping each file's
+  ACL; the seven notices unchanged.
+
+The Activity closed screen (`aphelion-bot-activity`) runs the same `node.exe`, so it now stops and starts with core and
+the worker, in the deploy and in `rollback.ps1`. The production configuration, capability policy version 2 and
+credentials are unchanged, with no migration and no story change (Shuttle version 6 stays published). All checks passed.
+The first attempt (`1d3c0ff`, folder `deployment-1d3c0ff-production-2026-10-24`) stopped at `NODE_RUNTIME_CHANGED` with
+Sophie down from 10:51:15 to 10:54:41 UTC, when its `rollback.ps1` had restored `aff1bc0`. Folder
+`.agent_docs/aphelion-sophie/deployment-df3856b-production-2026-10-24`; `rollback.ps1` restores `aff1bc0` on Node 24.19.0.
