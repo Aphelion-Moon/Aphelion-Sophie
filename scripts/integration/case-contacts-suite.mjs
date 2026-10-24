@@ -94,7 +94,7 @@ export async function runCaseContactsSuite(cluster, run) {
   });
 
   await scenario('SC06 lost initiating Staff authority cancels first creation while preserving answers and revoked invitations', async f => {
-    await pending(f); f.discord.state.members.set(OTHER, [CREW]); await settle(f);
+    await pending(f); f.discord.state.members.set(OTHER, [CREW]); f.discord.announce(); await settle(f);
     assert.equal(writes(f).length, 0); assert.equal((await f.rows('case_reservations'))[0].state, 'failed');
     assert.equal((await f.rows('case_intakes'))[0].contact_status, 'revoked'); assert.deepEqual((await f.rows('case_intakes'))[0].answers, syntheticCaseValues());
     assert.equal((await f.rows('case_participants'))[0].status, 'revoked');
@@ -104,7 +104,7 @@ export async function runCaseContactsSuite(cluster, run) {
   await scenario('SC07 late initial audience writes after Staff revocation are sealed and never confirm contact delivery', async f => {
     await pending(f); let changed = false;
     f.discord.state.afterWrite = call => { if (!changed && call.method === 'PATCH' && /\/channels\/\d+$/.test(call.path)) {
-      changed = true; f.discord.state.members.set(OTHER, [CREW]);
+      changed = true; f.discord.state.members.set(OTHER, [CREW]); f.discord.announce();
     } };
     await settle(f); assert.equal(changed, true);
     assert.equal((await f.rows('case_intakes'))[0].contact_status, 'revoked');
@@ -311,7 +311,7 @@ export async function runCaseContactsSuite(cluster, run) {
   });
 
   await scenario('SC23 explicit reopening of a revoked contact keeps original audits and does not revive old recipients', async f => {
-    await pending(f); f.discord.state.afterWrite = call => { if (call.method === 'PATCH') { f.discord.state.afterWrite = null; f.discord.state.members.set(OTHER, [CREW]); } };
+    await pending(f); f.discord.state.afterWrite = call => { if (call.method === 'PATCH') { f.discord.state.afterWrite = null; f.discord.state.members.set(OTHER, [CREW]); f.discord.announce(); } };
     await settle(f); let row = (await f.rows('case_reservations'))[0]; assert.equal(row.state, 'failed');
     const token = (await provision(f)).operation_token, initial = (await f.rows('case_participant_actions'))[0]; f.discord.state.members.set(USER, [STAFF]);
     f.clock.now += 1_000;

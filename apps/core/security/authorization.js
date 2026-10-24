@@ -23,11 +23,9 @@ export function createCoreAuthorization({ principals, discord, authorityStore, p
   // authority stamp is unchanged, so one request observes the member once rather than once per step. The stamp moves on
   // any member, role, channel or guild change and on a reconnect, so a reused observation is as current as a new one.
   // Presence-bound checks (case reads, invitations, AI consent) still record afresh. A reused observation is never recorded again, so stored authority cannot move backwards.
-  // REUSE_CAPABILITIES: the Activity's and Sophie's AI. Staff administration (cases, moderation, forms, publishing,
-  // permissions, automation, answers), which production does not run yet, still observes once per check until its tests,
-  // built around changes injected during that read, are reworked.
-  const REUSE_MS = 1_500, REUSE_CAPABILITIES = ['shuttle.self', 'shuttle.activity.test', 'ai.control', 'ai.personality.publish',
-    'ai.knowledge.publish', 'ai.self'];
+  // This covers every capability check: the Activity's, Sophie's AI and Staff administration (cases, moderation, forms,
+  // publishing, permissions, automation, answers). PRESENCE_BOUND checks record afresh.
+  const REUSE_MS = 1_500, PRESENCE_BOUND = ['case.read'];
   const recent = new Map();
   function reusable(userId, version) {
     const saved = recent.get(userId), now = clock();
@@ -68,7 +66,7 @@ export function createCoreAuthorization({ principals, discord, authorityStore, p
   async function check(capability, grant, scope) {
     validateOperatorGrant(grant);
     requireCondition(grant.guildId === fixed.guildId && (scope.guildId === undefined || scope.guildId === fixed.guildId), 'OPERATION_DENIED');
-    const { observation, grant: latest, unchanged, presenceEpoch } = await current(grant.userId, capability === 'case.read', REUSE_CAPABILITIES.includes(capability));
+    const { observation, grant: latest, unchanged, presenceEpoch } = await current(grant.userId, PRESENCE_BOUND.includes(capability));
     requireCondition(latest.capabilityEpoch === grant.capabilityEpoch && latest.policyVersion === grant.policyVersion, 'CAPABILITY_REVOKED');
     requireCondition(observation.present && !observation.bot, 'OPERATION_DENIED');
     if (['shuttle.self', 'case.create', 'ai.self'].includes(capability)) {

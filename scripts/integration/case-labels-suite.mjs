@@ -40,7 +40,7 @@ export async function runCaseLabelsSuite(cluster, run) {
   await scenario('CL03 role loss suppresses reads and rolls back both state and audit during saves', async f => {
     let checks = 0;
     const racing = createCaseLabels({ pool: f.pool, clock: () => f.clock.now, authorize: async (...args) => {
-      if (++checks === 2) f.discord.state.members.set(OTHER, []);
+      if (++checks === 2) { f.discord.state.members.set(OTHER, []); f.discord.announce(); }
       return f.authorization.authorize(...args);
     } });
     await assert.rejects(racing.changeCaseLabels(request(f)), /CASE_ACCESS_DENIED/);

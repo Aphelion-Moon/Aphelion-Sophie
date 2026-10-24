@@ -37,9 +37,9 @@ test('DA-REUSE-01 one request observes the member once: its actor, then every ca
   // The next request observes its actor afresh, once.
   const next = await f.authorization.resolveActor(f.proof); assert.equal(f.reads(), 2);
   assert.equal(await f.authorization.authorize('shuttle.self', next, self), true); assert.equal(f.reads(), 2);
-  // Staff administration, not yet in production, still observes once per check.
+  // Staff administration takes the same observation.
   assert.equal(await f.authorization.authorize('permissions.publish', actor, {}), false, 'a denial is still a denial');
-  assert.equal(f.reads(), 3);
+  assert.equal(f.reads(), 2);
 });
 
 test('DA-REUSE-02 a change to the member (or any role, channel or guild change) ends reuse, so a removal is seen at once', async () => {

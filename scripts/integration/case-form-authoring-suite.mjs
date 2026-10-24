@@ -10,6 +10,8 @@ import { createDashboardAuthHttpServer } from '../../apps/core/http/dashboard-au
 import { authDigest, sessionCsrf } from '../../apps/core/security/dashboard-auth.js';
 import { createDashboardApi } from '../../apps/dashboard/api.js';
 import { createFormController } from '../../apps/dashboard/form-controller.js';
+import { createCaseFormAuthoringStore } from '../../apps/core/storage/case-form-authoring.js';
+import { createCaseFormAuthoringHttp } from '../../apps/core/http/case-form-authoring.js';
 
 /** Authored synthetic configuration and locally simulated intake only. */
 export async function runCaseFormAuthoringSuite(cluster, run) {
@@ -138,7 +140,7 @@ export async function runCaseFormAuthoringSuite(cluster, run) {
   await scenario('Z11 every editor operation and receipt requires current explicitly granted authority', async f => {
     const save = await saveRequest(f); await f.formEditor.saveCaseFormDraft(save); const publish = await publishRequest(f);
     await f.formEditor.publishCaseFormDraft(publish); const withdraw = await withdrawRequest(f), actor = await f.formActor();
-    f.discord.state.members.set(OTHER, [STAFF]);
+    f.discord.state.members.set(OTHER, [STAFF]); f.discord.announce();
     for (const operation of [() => f.formEditor.readCaseFormDraft({ actor, caseType: 'admin-help' }),
       () => f.formEditor.listCaseFormHistory({ actor, caseType: 'admin-help', kind: 'publications' }),
       () => f.formEditor.reviewCaseFormDraft({ actor, caseType: 'admin-help', revision: 1 }),
@@ -150,13 +152,17 @@ export async function runCaseFormAuthoringSuite(cluster, run) {
   });
 
   await scenario('Z12 revoked capability or browser logout before commit rolls back draft and audit together', async f => {
-    const request = await saveRequest(f); let calls = 0;
-    f.discord.state.before = call => { if (call.path.endsWith(`/members/${OTHER}`) && ++calls === 2) f.discord.state.members.set(OTHER, [STAFF]); };
-    await assert.rejects(f.formEditor.saveCaseFormDraft(request), /OPERATION_DENIED/); f.discord.state.before = null;
+    // The change lands before the save's second check: an announced role loss, then a logout.
+    const request = await saveRequest(f); let calls = 0, change = null;
+    const racing = createCaseFormAuthoringStore({ pool: f.pool, guildId: GUILD, authorize: async (...args) => {
+      if (++calls === 2) await change(); return f.dashboardAuthorization.authorize(...args);
+    } });
+    change = async () => { f.discord.state.members.set(OTHER, [STAFF]); f.discord.announce(); };
+    await assert.rejects(racing.saveCaseFormDraft(request), /OPERATION_DENIED/);
     f.discord.state.members.set(OTHER, [LEAD]); const session = await f.login(), identity = await f.auth.authenticate({ token: session.token });
     const actor = await f.dashboardAuthorization.resolveActor(identity.proof); calls = 0;
-    f.discord.state.before = async call => { if (call.path.endsWith(`/members/${OTHER}`) && ++calls === 2) await f.authStore.revokeSession(authDigest(session.token)); };
-    await assert.rejects(f.formEditor.saveCaseFormDraft({ ...request, actor }), /OPERATION_DENIED/); f.discord.state.before = null;
+    change = () => f.authStore.revokeSession(authDigest(session.token));
+    await assert.rejects(racing.saveCaseFormDraft({ ...request, actor }), /OPERATION_DENIED/);
     assert.equal((await f.rows('case_form_drafts')).length, 0); assert.equal((await f.rows('case_form_editor_actions')).length, 0);
   });
 
@@ -232,10 +238,16 @@ export async function runCaseFormAuthoringSuite(cluster, run) {
   });
 
   await scenario('Z18 revocation after commit suppresses the HTTP result and a resend is stale', async f => {
-    await withServer(f, async ({ post, faults }) => {
-      const request = { caseType: 'admin-help', requestId: formRequestId(), expectedRevision: 0, document: syntheticCaseForm() }; let calls = 0;
-      f.discord.state.before = call => { if (call.path.endsWith(`/members/${OTHER}`) && ++calls === 4) f.discord.state.members.set(OTHER, [STAFF]); };
-      assert.equal((await post('/api/ticket-forms/save', request)).status, 403); f.discord.state.before = null;
+    // The editor loses the capability after the commit, before the route's final check, and Discord announces it.
+    let revoke = true;
+    const authorize = async (...args) => {
+      if (revoke) { revoke = false; f.discord.state.members.set(OTHER, [STAFF]); f.discord.announce(); }
+      return f.dashboardAuthorization.authorize(...args);
+    };
+    const formHttp = createCaseFormAuthoringHttp({ auth: f.auth, authorization: { ...f.dashboardAuthorization, authorize }, store: f.formEditor });
+    await withServer({ ...f, formHttp }, async ({ post, faults }) => {
+      const request = { caseType: 'admin-help', requestId: formRequestId(), expectedRevision: 0, document: syntheticCaseForm() };
+      assert.equal((await post('/api/ticket-forms/save', request)).status, 403);
       assert.equal((await f.rows('case_form_editor_actions')).length, 1); f.discord.state.members.set(OTHER, [LEAD]);
       assert.equal((await post('/api/ticket-forms/save', request)).status, 409);
       assert.equal((await f.rows('case_form_drafts')).length, 1); assert.deepEqual(faults, []);

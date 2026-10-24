@@ -121,7 +121,7 @@ export async function runOnboardingArtifactRecoverySuite(cluster, run) {
     const { issue, record, messageId } = await parkedOnboardingMessage(f), count = f.discord.state.calls.length;
     assert.equal(await messageRecovery(f, issue, messageId, { member: { user: { id: USER }, roles: [STAFF] } }), 'denied');
     assert.equal(f.discord.state.calls.slice(count).some(call => call.path.includes('/messages/')), false);
-    f.discord.state.before = call => { if (call.path.endsWith(`/messages/${messageId}`)) f.discord.state.members.set(OTHER, []); return null; };
+    f.discord.state.before = call => { if (call.path.endsWith(`/messages/${messageId}`)) { f.discord.state.members.set(OTHER, []); f.discord.announce(); } return null; };
     assert.equal(await messageRecovery(f, issue, messageId), 'denied'); f.discord.state.before = null;
     assert.equal((await recorded(f, 'screen', record.id)).message_id, null); assert.equal((await audits(f)).length, 0);
   });

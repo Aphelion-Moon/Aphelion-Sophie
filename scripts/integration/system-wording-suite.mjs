@@ -33,7 +33,7 @@ export async function runSystemWordingSuite(cluster, run) {
   await run('L02 wording requires current publisher authority on reads and writes', async () => {
     const f = await fixture(), actor = await f.editorActor();
     const input = { actor, requestId: 'e'.repeat(64), expectedRevision: 0, wording: { 'onboarding.next': 'Next page' } };
-    await f.editor.save(input); f.discord.state.members.set(OTHER, [STAFF]);
+    await f.editor.save(input); f.discord.state.members.set(OTHER, [STAFF]); f.discord.announce();
     await assert.rejects(f.editor.read({ actor }), /OPERATION_DENIED|CAPABILITY_REVOKED/);
     await assert.rejects(f.editor.save(input), /OPERATION_DENIED|CAPABILITY_REVOKED/);
     await assert.rejects(f.editor.save({ ...input, actor: { ...actor } }), /OPERATION_DENIED|UNTRUSTED_PRINCIPAL/);

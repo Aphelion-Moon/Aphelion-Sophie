@@ -152,13 +152,13 @@ export async function runOnboardingAssistanceSuite(cluster, run) {
     const request = await help(), before = await currentScreen(), operation = await direct(request);
     let checks = 0;
     const guarded = makeStore(async (...args) => {
-      if (args[0] === 'case.manage' && ++checks === 3) discord.state.members.set(OTHER, []);
+      if (args[0] === 'case.manage' && ++checks === 3) { discord.state.members.set(OTHER, []); discord.announce(); }
       return authorization.authorize(...args);
     });
     await assert.rejects(guarded.resolveOnboardingHelp(operation), /OPERATION_DENIED/);
     assert.equal((await rows('shuttle_help_requests'))[0].status, 'open'); assert.equal((await rows('shuttle_help_resolutions')).length, 0);
     assert.equal((await currentScreen()).id, before.id);
-    discord.state.members.set(OTHER, [STAFF]);
+    discord.state.members.set(OTHER, [STAFF]); discord.announce();
     await assert.rejects(store.resolveOnboardingHelp(operation), /OPERATION_DENIED/);
     assert.equal(await resolve(request), 'shuttle_help_resolved');
   });

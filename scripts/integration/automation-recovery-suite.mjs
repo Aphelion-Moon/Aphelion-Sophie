@@ -92,7 +92,8 @@ export async function runAutomationRecoverySuite(cluster,run) {
     assert.equal((await f.record()).receipt_available,false);assert.equal((await f.rows('automation_recovery_actions')).length,0);
   });
   await scenario('AR10 final publisher revocation rolls back candidate adoption audit and queue release',async f=>{
-    const {messageId}=await f.uncertain(),messages={...f.messages,recover:async(...args)=>{const proof=await f.messages.recover(...args);f.discord.state.members.set(OTHER,[]);return proof;}};
+    // Discord has not announced the loss before the final check, so the check's 1.5 s window passes; an announced change would invalidate the recovery proof instead.
+    const {messageId}=await f.uncertain(),messages={...f.messages,recover:async(...args)=>{const proof=await f.messages.recover(...args);f.discord.state.members.set(OTHER,[]);f.step(1_501);return proof;}};
     await assert.rejects(f.recoveryServices({messages}).change(await f.request('recover',messageId)),/OPERATION_DENIED/);
     assert.equal((await f.record()).receipt_available,false);assert.equal((await f.job()).status,'parked');assert.equal((await f.rows('automation_recovery_actions')).length,0);
   });

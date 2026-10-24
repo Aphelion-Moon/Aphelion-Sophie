@@ -2566,10 +2566,17 @@ observations that follow in the same request (the member's Shuttle roles, the Ac
 role list and guild reads the actor check just made. A role change Sophie makes ends shared reads, since Discord's event for
 it may arrive after the next read. Presence-bound checks (case reads, invitations, AI consent) record afresh.
 
-Scope of this change: the Activity's checks (`shuttle.self`, the tester gate) and Sophie's AI checks. Staff
-administration (cases, moderation, forms, publishing, permissions, automation, answers), which production does not run,
-still observes once per check: about twenty of its storage scenarios inject a change during that read, and they are to be
-reworked before it moves to the same rule.
+Scope: every capability check. The Activity's checks (`shuttle.self`, the tester gate) and Sophie's AI checks moved
+first; Staff administration (cases, moderation, forms, publishing, permissions, automation, answers), which production
+does not run, followed the same day. Only presence-bound checks (case reads, invitations, AI consent) and a moderation
+target's own observation still read Discord each time. Staff administration's storage scenarios that changed the
+simulated Discord without its Gateway event, or injected a change during a read that no longer happens, were reworked
+without weakening what they deny: the simulated Discord's `announce()` now models the event (the stamp moves and the next
+check reads again); where an announced change would instead invalidate an observation or proof still in use, the change
+lands unannounced and the test clock passes the 1.5 s window (AR10, K09, MG06, Q06); a revocation or logout "before
+commit" or "after commit" is injected at the check itself rather than at a Discord read count (Z12, Z18, E12, E18); and
+K08 changes the assignee at the one read its check now takes. A09 announces a change before its outage so the check
+still reads during it; O10 announces one so the check reads the member while the session is revoked.
 
 The review of the Activity path for other repeated checks found and removed:
 - the actor observed twice per request (resolving it, then the capability check: bot identity, guild, roles and member
@@ -2590,4 +2597,5 @@ resolving the actor made another full actor read.
 
 Tests: DA-REUSE-01 to 04 replace DA-VIEW-01 to 04; T18 (an actor check reads; the member observation after it takes its
 read) and T18b (a role change Sophie makes ends shared reads); A11 now states that within one request the check stands
-until Discord announces a change, and the next request is refused; SA16 keeps the budget.
+until Discord announces a change, and the next request is refused; SA16 keeps the budget. With Staff administration:
+DA-REUSE-01 now has a Staff check take the request's observation too, and 49 storage scenarios were reworked as above.
