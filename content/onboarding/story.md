@@ -10,6 +10,7 @@ Revision 1 (owner, 24 October 2026): story-revised-1.md, cleaned for format and 
 Revision 2 (owner, 24 October 2026): the "No one is forcing you" section removed; cleaned for format (see the decision log).
 Revision 3 (owner, 24 October 2026): a voluntary section back in the Brochure; cleaned for format (see the decision log).
 Revision 4 (owner, 24 October 2026): "akulan" becomes Akula.
+Revision 5 (owner, 24 October 2026): the "telling us" sign reworded by the owner; rule links and named channels added.
 -->
 === the-brochure | The Brochure
 
@@ -26,7 +27,7 @@ First things first, because we don't budge on this one. Age check. Everybody get
 **Beepsky:** "HALT-- oh. You're ancient. Move along."
 
 > **NOTICE · 18+ ONLY. NO, REALLY.**
-> You have to be 18 or older to play on our servers, hang out in our Discord, or have any account tied to Aphelion. Full stop.
+> You have to be [18 or older](https://meridian-wiki.a13.info/wiki/Policies#RP-09) to play on our servers, hang out in our Discord, or have any account tied to Aphelion. Full stop.
 > If we find out, or have good reason to believe, that you're under 18, or that you were under 18 at any point while you were with us, you're gone. Permanently. Doesn't matter how long you've been around or what you've made. No second chances.
 > Yes, you already did an age check. This applies on top of it.
 
@@ -113,7 +114,7 @@ You know, I'm just looking at this camera feed now. Seems like some poor forgetf
 
 It's probably for the best. New company, a new opportunity to collect new gear, and leave behind old memories bogging you down. It's a chance for a fresh start! That cloak isn't going to get any better with a spin cycle.
 
-Just in case it ain't clear, our servers have their own lore, and your old hero isn't automatically the main plot here. Bring characters from other servers if you want, but rework their backstory so it fits our lore. A name people recognize doesn't come with rank, authority, or a spotlight.
+Just in case it ain't clear, our servers have their own [lore](https://meridian-wiki.a13.info/wiki/Lore), and your old hero isn't automatically [the main plot](https://meridian-wiki.a13.info/wiki/Policies#RP-05) here. Bring characters from other servers if you want, but rework their backstory so it fits our lore. A name people recognize doesn't come with rank, authority, or a spotlight.
 
 Honestly, we'd suggest you wipe most of your old character relationships too. Let people try something new, even if they're wearing a face you know! Who knows, you might make an entertaining rival out of a long term friend. Or maybe fall in love again all the same. Who's to say?
 
@@ -127,7 +128,7 @@ Ooh, in the corner there. Check it out, that sweaty vet thinks they know that bl
 
 **Rook:** (( oh shit, sorry. Thought you were someone I knew! ))
 
-Easy, even for a case of mistaken identity. One quick **LOOC** message (local out-of-character chat) before you assume your character knows someone else's will save you both the confusion.
+Easy, even for a case of mistaken identity. One quick **LOOC** message (local out-of-character chat) before you assume your character knows someone else's will save you both the confusion. ([You and your character are separate.](https://meridian-wiki.a13.info/wiki/Policies#CR-04))
 
 Now I'm not saying it's company policy or anything, if you both want to keep the history, keep it. Not our business. But hey, if not, introduce yourself like a normal person. Nobody owes you an old friendship, romance, rivalry, or grudge. Don't assume people want to keep ties to their past.
 
@@ -161,7 +162,7 @@ Did you catch that? Pip asked, got a no, said "all good", and moved on. Honestly
 
 Being in the same room doesn't mean anyone owes you their time, attention, or a spot in their scene.
 
-Ask, don't assume. When someone says no, listen, and don't make them justify it. A yes last week isn't a yes forever. Whatever your characters are to each other, the players' boundaries come first. Respect the person behind the keyboard; you can tell dark and messy stories without being cruel to the actual people helping you tell, or being subjected to, them.
+Ask, don't assume ([consent and agency](https://meridian-wiki.a13.info/wiki/Policies#CR-07)). When someone says no, listen, and don't make them justify it. A yes last week isn't a yes forever. Whatever your characters are to each other, the players' boundaries come first. Respect the person behind the keyboard; you can tell dark and messy stories without being cruel to the actual people helping you tell, or being subjected to, them.
 
 # Real questions are welcome
 
@@ -248,7 +249,7 @@ See the box by the door? People actually read what goes in it. Staff and leaders
 Tell us when something isn't working. Something we run, one of our services, problems with someone's behavior, a call we made, anything. Writing the rules and building this place doesn't put us above being told we got it wrong. Our Matriarch and Developers, reliable as they try to be, constantly make mistakes. They're human, just like you-- well actually I can't see under that hood you've been wearing. You know, it's weird, why didn't you get a pat down? Maybe I need to bring that up...
 
 > **NOTICE · HOW TO COMPLAIN AT US**
-> Use ** #open-a-ticket **, the leadership question channels, or public discussion, whatever fits. Tell us what happened, what the problem is, and what you think might help. You don't need a finished fix before you bring something up.
+> Use ** #open-a-ticket **, the leadership question channels ( #ask-mewn, #ask-mal, #ask-cobalt ), or public discussion, whatever fits. Tell us what happened, what the problem is, and what you think might help. You don't need a finished fix before you bring something up.
 
 We can't promise every idea becomes a change. We can promise we can't fix stuff nobody tells us about, until we notice it ourselves or it impacts us. I don't know how often you've been to medbay (y'know I don't get ANY access to your record when I'm handling these things???), but there is a concept called triage; when you have to decide which of your injured and broken get healing first.
 
@@ -265,10 +266,10 @@ If something's wrong, say so. If you need help, ask. If someone is making your l
 Last check before you cross the threshold. The shuttle can still take you back if you disagree.
 
 > **NOTICE · FINISHING THE SHUTTLE MEANS YOU'RE TELLING US:**
-> * You're 18 or older, and you've got the adult-content stuff from the first stop.
+> * You're 18 or older, and you accept you will be exposed to adult content by being here.
 > * You know our published rules apply to you, and that keeping Whitelist means following them.
 > * You'll respect other players' boundaries and their place in the stories we share.
-> * You know where to find the rules, where to ask questions, and where to raise concerns.
+> * You know where to find the #rules, where to ask questions (#crew-support, and the ask channels in the Support category), and where to raise concerns (#open-a-ticket).
 
 # One last step, in the game
 

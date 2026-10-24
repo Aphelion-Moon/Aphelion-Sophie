@@ -166,11 +166,14 @@ h2.md-heading { font-size: 1.3em; }
 .md-underline { text-decoration: underline; }
 .md-spoiler { background: var(--rule); color: var(--rule); }
 .md-spoiler:focus { color: var(--ivory); }
-.md-mention { color: var(--holo); }
-.md-at { color: var(--holo); background: rgba(114, 230, 255, .1); padding: 0 2px; }
+/* Only what can be tapped looks tappable (owner review, 24 October 2026): links are underlined with a ↗, channels the
+   member can open are bordered chips. A mention or a channel they cannot open is plain text. */
+.md-mention { color: var(--ivory); }
+.md-at { color: var(--ivory); }
 .md-channel { font: inherit; color: var(--holo); background: rgba(114, 230, 255, .12); border: 1px solid var(--holo-dim); padding: 0 6px; cursor: pointer; }
 .md-channel:focus-visible { color: var(--cold); border-color: var(--holo); }
 .md-link, .credits a { color: var(--holo); text-decoration: underline; text-underline-offset: 3px; }
+.md-link::after, .credits a::after { content: '↗'; display: inline-block; margin-left: .15em; font-size: .85em; text-decoration: none; }
 .radio-text code { background: var(--panel); padding: 0 4px; }
 .radio-text pre { background: var(--panel); padding: 8px; overflow-x: auto; }
 .radio-text blockquote { margin: 0 0 .8em; padding-left: 10px; border-left: 2px solid var(--amber-dim); }

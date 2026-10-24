@@ -2,7 +2,7 @@
 
 For owner review. Not published. Edit content/onboarding/story.md and rebuild.
 
-Source SHA-256: `b9a9152bd54a64fba59109d17b4fbfd4813af679c87b6fbe9ad12470ed9423d8`.
+Source SHA-256: `36c2d9a0f663673c482c9e821272a91ec89a31e3253fffcb147bf9fd1eb92e2f`.
 
 ## The Brochure
 
@@ -23,18 +23,18 @@ First things first, because we don't budge on this one. Age check. Everybody get
 **Beepsky:** "HALT-- oh. You're ancient. Move along."
 
 > **NOTICE · 18+ ONLY. NO, REALLY.**
-> You have to be 18 or older to play on our servers, hang out in our Discord, or have any account tied to Aphelion. Full stop.
+> You have to be [18 or older](https://meridian-wiki.a13.info/wiki/Policies#RP-09) to play on our servers, hang out in our Discord, or have any account tied to Aphelion. Full stop.
 > If we find out, or have good reason to believe, that you're under 18, or that you were under 18 at any point while you were with us, you're gone. Permanently. Doesn't matter how long you've been around or what you've made. No second chances.
 > Yes, you already did an age check. This applies on top of it.
+
+---
+
+### Message 2
 
 > **NOTICE · LEGAL NONSENSE**
 > Aphelion is based in the European Union and runs under EU law. Making sure you're allowed to be here where you live is on you.
 > By playing, using any Aphelion service, or sticking around our Discord, you're agreeing you might bump into sexual or NSFW stuff in passing.
 > That means you might *see* things. It doesn't mean anybody here is up for anything with you. Nobody's "available" just because the server's for adults.
-
----
-
-### Message 2
 
 # Aphelion is owned and operated by queers, furries, and freaks
 
@@ -59,15 +59,15 @@ The entirety of this community is voluntary. If at any time it becomes overbeari
 
 Deciding we're not your thing? Totally fine. Getting on board just to make everybody else miserable until they leave? Not fine.
 
+---
+
+### Message 3
+
 # Understand our expectations for whitelisting
 
 Okay! Rules and regulations are up next. You don't need to memorize them, but you do need a rough idea of what's in there before you get Whitelisted.
 
 Nobody shows up knowing everything. Ask stuff, take advice, mess up, learn from the fallout. What wears out the team is someone being told the same thing five times and doing it a sixth. They enjoy helping, and you should take advantage of that.
-
----
-
-### Message 3
 
 > **NOTICE · WHERE THE RULES ACTUALLY LIVE**
 > **[Start with our recommended reading for SS13](https://meridian-wiki.a13.info/wiki/Policies#RP-01).**
@@ -85,15 +85,15 @@ Ooh, the ticker finally updated. Tadaaa, **Meridian Rift**, our SS 13 server. St
 
 # About SS 14 - Wolfgate
 
+---
+
+### Message 4
+
 *tap-taps on a panel noisily.* Annnnnd **Wolfgate**, our SS 14 server! Ship-oriented, exploration focused, and packed full of new features that our competition doesn't have. Still plenty of ways to play dress-up, but the work experience is... More dangerous, let's say. Black holes and all that, you know? Hazardous.
 
 > **NOTICE · WOLFGATE**
 > [Guidebook](https://panel.a13.info/guide/wolfgate): rules and guides.
 > [GitHub](https://github.com/VanguardControl/Wolfgate): the code, if you're into that.
-
----
-
-### Message 4
 
 Ah, great, Boarding's open. Hit **Continue** and get your bags sorted. I hope you packed well.
 
@@ -101,7 +101,7 @@ Ah, great, Boarding's open. Hit **Continue** and get your bags sorted. I hope yo
 
 ## Pack Your Bags
 
-2 Discord message segment(s).
+3 Discord message segment(s).
 
 ### Message 1
 
@@ -128,11 +128,11 @@ You know, I'm just looking at this camera feed now. Seems like some poor forgetf
 
 It's probably for the best. New company, a new opportunity to collect new gear, and leave behind old memories bogging you down. It's a chance for a fresh start! That cloak isn't going to get any better with a spin cycle.
 
-Just in case it ain't clear, our servers have their own lore, and your old hero isn't automatically the main plot here. Bring characters from other servers if you want, but rework their backstory so it fits our lore. A name people recognize doesn't come with rank, authority, or a spotlight.
-
 ---
 
 ### Message 2
+
+Just in case it ain't clear, our servers have their own [lore](https://meridian-wiki.a13.info/wiki/Lore), and your old hero isn't automatically [the main plot](https://meridian-wiki.a13.info/wiki/Policies#RP-05) here. Bring characters from other servers if you want, but rework their backstory so it fits our lore. A name people recognize doesn't come with rank, authority, or a spotlight.
 
 Honestly, we'd suggest you wipe most of your old character relationships too. Let people try something new, even if they're wearing a face you know! Who knows, you might make an entertaining rival out of a long term friend. Or maybe fall in love again all the same. Who's to say?
 
@@ -146,9 +146,13 @@ Ooh, in the corner there. Check it out, that sweaty vet thinks they know that bl
 
 **Rook:** (( oh shit, sorry. Thought you were someone I knew! ))
 
-Easy, even for a case of mistaken identity. One quick **LOOC** message (local out-of-character chat) before you assume your character knows someone else's will save you both the confusion.
+Easy, even for a case of mistaken identity. One quick **LOOC** message (local out-of-character chat) before you assume your character knows someone else's will save you both the confusion. ([You and your character are separate.](https://meridian-wiki.a13.info/wiki/Policies#CR-04))
 
 Now I'm not saying it's company policy or anything, if you both want to keep the history, keep it. Not our business. But hey, if not, introduce yourself like a normal person. Nobody owes you an old friendship, romance, rivalry, or grudge. Don't assume people want to keep ties to their past.
+
+---
+
+### Message 3
 
 *pauses for a moment, as you hear a page shuffling and Sophie grumbling at someone out of clear reach of her microphone* Yeah yeah, and same for drama from other servers: leave it there. If it's an actual safety thing, that's different, bring it to Staff. We just don't want your new neighbors inheriting old problems, or strangers having to witness it.
 
@@ -186,7 +190,7 @@ Did you catch that? Pip asked, got a no, said "all good", and moved on. Honestly
 
 Being in the same room doesn't mean anyone owes you their time, attention, or a spot in their scene.
 
-Ask, don't assume. When someone says no, listen, and don't make them justify it. A yes last week isn't a yes forever. Whatever your characters are to each other, the players' boundaries come first. Respect the person behind the keyboard; you can tell dark and messy stories without being cruel to the actual people helping you tell, or being subjected to, them.
+Ask, don't assume ([consent and agency](https://meridian-wiki.a13.info/wiki/Policies#CR-07)). When someone says no, listen, and don't make them justify it. A yes last week isn't a yes forever. Whatever your characters are to each other, the players' boundaries come first. Respect the person behind the keyboard; you can tell dark and messy stories without being cruel to the actual people helping you tell, or being subjected to, them.
 
 # Real questions are welcome
 
@@ -301,7 +305,7 @@ Tell us when something isn't working. Something we run, one of our services, pro
 ### Message 2
 
 > **NOTICE · HOW TO COMPLAIN AT US**
-> Use ** #open-a-ticket **, the leadership question channels, or public discussion, whatever fits. Tell us what happened, what the problem is, and what you think might help. You don't need a finished fix before you bring something up.
+> Use ** #open-a-ticket **, the leadership question channels ( #ask-mewn, #ask-mal, #ask-cobalt ), or public discussion, whatever fits. Tell us what happened, what the problem is, and what you think might help. You don't need a finished fix before you bring something up.
 
 We can't promise every idea becomes a change. We can promise we can't fix stuff nobody tells us about, until we notice it ourselves or it impacts us. I don't know how often you've been to medbay (y'know I don't get ANY access to your record when I'm handling these things???), but there is a concept called triage; when you have to decide which of your injured and broken get healing first.
 
@@ -322,10 +326,10 @@ Last check before you cross the threshold. The shuttle can still take you back i
 ### Message 3
 
 > **NOTICE · FINISHING THE SHUTTLE MEANS YOU'RE TELLING US:**
-> * You're 18 or older, and you've got the adult-content stuff from the first stop.
+> * You're 18 or older, and you accept you will be exposed to adult content by being here.
 > * You know our published rules apply to you, and that keeping Whitelist means following them.
 > * You'll respect other players' boundaries and their place in the stories we share.
-> * You know where to find the rules, where to ask questions, and where to raise concerns.
+> * You know where to find the #rules, where to ask questions (#crew-support, and the ask channels in the Support category), and where to raise concerns (#open-a-ticket).
 
 # One last step, in the game
 

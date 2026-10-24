@@ -1,0 +1,21 @@
+{
+  "schemaVersion": 1,
+  "id": "memorial-arcanaobscura",
+  "title": "Memorial shelf for ArcanaObscura (Disembarking, pressure door scene)",
+  "dedication": "In memory of ArcanaObscura. Fly peacefully into the night.",
+  "placement": "scripts/author-shuttle-scenes.mjs (MEMORIAL_ICON and the memorial block), where the boarding checklist hung",
+  "source": {
+    "what": "The server emoji :mikmoff:, added by the community to remember her",
+    "emojiId": "1551421018118291476",
+    "url": "https://cdn.discordapp.com/emojis/1551421018118291476.png?size=96&quality=lossless",
+    "size": "21x21 RGBA PNG",
+    "sha256": "fdfe8dd97aef5c7fc371200dd88bcf1fac64268ff701878c5868e8e656e8e730",
+    "suppliedBy": "The owner, 24 October 2026, who asked for the icon to be pulled and used"
+  },
+  "derivation": "Cropped to the drawn 20x18 pixels; box-sampled to 12x12; each pixel the nearest Activity scene palette colour; pairs of pixel rows drawn as half-block characters, one colour a cell (where two pixels differ, the eye and highlights win over the cloak and outline). No model or image tool.",
+  "provenance": {
+    "author": "Arranged by the coding agent (Claude) at owner direction",
+    "created": "2026-10-24",
+    "decision": "docs/decisions/0001-owner-policy.md (Memorial for ArcanaObscura, 24 October 2026)"
+  }
+}

@@ -116,6 +116,14 @@ test('P45 the shipped scenes introduce, use and clean up their people and props'
   assert.match(at('pressure-door', { beat: 'be-safe', reached: ['watch-step', 'feedback', 'be-safe'] }), /│WET {2}FLOOR│[\s\S]*│NO RUNNING│/);
   assert.doesNotMatch(at('pressure-door', { beat: 'ready', reached: ['watch-step', 'feedback', 'be-safe', 'ready'] }), /WET {2}FLOOR/);
   const clearance = at('pressure-door', { beat: 'none', whitelist: 'requested', reached: ['watch-step', 'feedback', 'be-safe', 'ready', 'get-whitelisted'] });
-  assert.equal(clearance.match(/■ /g)?.length, 4, 'ticked stays ticked through clearance'); assert.match(clearance, /> link via Discord/);
+  assert.match(clearance, /> link via Discord/);
+  // The memorial for ArcanaObscura (owner, 24 October 2026) hangs where the boarding checklist was, through every section,
+  // clearance and arrival: her icon, the owner's words, two candles beneath.
+  for (const [beat, reached] of [['watch-step', ['watch-step']], ['ready', ['watch-step', 'feedback', 'be-safe', 'ready']], ['none', ['ready', 'get-whitelisted']]]) {
+    const frame = at('pressure-door', { beat, reached });
+    assert.match(frame, /▀▀▀▄████▄▀▀▀ In memory of[\s\S]*ArcanaObscura[\s\S]*Fly peacefully[\s\S]*into the night\.[\s\S]*\[_\][\s\S]*\[_\]/, beat);
+    assert.doesNotMatch(frame, /BOARDING CHECK/, beat);
+  }
+  assert.match(clearance, /In memory of/);
   assert.match(at('pressure-door', { beat: 'none', whitelist: 'confirmed', doorOpen: 1, reached: ['ready', 'get-whitelisted'] }), /CONCOURSE/);
 });

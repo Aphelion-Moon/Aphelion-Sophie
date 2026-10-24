@@ -2177,3 +2177,28 @@ The runtime gains `errorAlerts` (channel 1528812406724231288, role matriarch). T
 version 2 is unchanged, and there is no migration. All checks passed. Story revision 4 (Akula) was published as **Shuttle
 version 5**, and the 2 rides in progress on version 4 restart at the first stop. Folder
 `.agent_docs/aphelion-sophie/deployment-a4f8b71-production-2026-10-24`; `rollback.ps1` restores 0e513dc.
+
+### Memorial for ArcanaObscura; links that read as links — 24 October 2026
+
+The owner: "We had a player pass away, I'd like to include a little memorial plaque for her there instead [of the Boarding
+Check sign]. We have an emoji which we added to memorialize her too, :mikmoff: … use it as part of the memorial."
+
+- **Memorial.** The owner picked the candle shelf, and the wording "In memory of ArcanaObscura. Fly peacefully into the
+  night."
+  - It replaces the boarding checklist in the Disembarking scene: left of the door in landscape, on the deck in portrait.
+  - A brass frame holds her icon and the words; two candles hang beneath, their flames flickering, still with motion off.
+  - The icon comes from the server emoji :mikmoff: (ID 1551421018118291476), which the owner supplied and asked to be
+    used. It is drawn as 12 by 6 half-block cells in the scene palette; provenance is in
+    `content/shuttle-activity/memorial.json`.
+  - The scene's alt text names her and carries the words.
+  - The "Ready to disembark?" section no longer stages a ticking checklist; the memorial is there for the whole stop.
+- **Links.** A member said it was not clear what is clickable, and that there were too few contextual links.
+  - Links to the exact Policies sections Sophie talks about: 18 or older (RP-09); the main plot (RP-05) and the Lore page;
+    you and your character are separate (CR-04); consent and agency (CR-07).
+  - The leadership channels are named (#ask-mewn, #ask-mal, #ask-cobalt), and the owner's edit of the "telling us" sign
+    names #rules, #crew-support and #open-a-ticket. Each becomes a tappable chip for a member who can see that channel.
+  - Only tappable things look tappable now: links are underlined with a ↗, and channel chips are bordered. An @mention,
+    or a channel the member cannot open, is plain text; before, both were cyan, the mention on a chip-like background.
+- **Story revision 5** (the owner's two lines in the "telling us" sign, the links), to publish as Shuttle version 6.
+- **The hangar** no longer shows "Aphelion station · waking". The no-link message is the owner's: "Cannot re-establish
+  link, try reopening the activity. If that still doesn't work, ping @matriarch in #crew-support."

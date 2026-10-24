@@ -326,6 +326,21 @@ test('T-ACT-CLI-17 phones (owner audit, 24 October 2026): sheets open at their t
   assert.match(glossary['Meridian Rift'], /in development/); assert.doesNotMatch(glossary['The Shuttle'], /journey/i);
 });
 
+test('T-ACT-CLI-19 only tappable things look tappable: links underlined with a mark, channel chips bordered, mentions plain', async () => {
+  const css = await readFile(new URL('../apps/activity/client/app.css', import.meta.url), 'utf8');
+  assert.match(css, /\.md-link::after, \.credits a::after \{ content: '↗';/);
+  assert.match(css, /\.md-channel \{[^}]*border: 1px solid var\(--holo-dim\);[^}]*cursor: pointer;/);
+  // A mention or an unreachable channel neither wears the link colour nor a chip's background.
+  for (const selector of ['md-mention', 'md-at']) {
+    const rule = new RegExp(`\\.${selector} \\{([^}]*)\\}`).exec(css)?.[1] ?? '';
+    assert.doesNotMatch(rule, /holo|background|border|cursor/, selector);
+  }
+  // The story now names the channels and links the rule sections it talks about.
+  const story = await readFile(new URL('../content/onboarding/story.md', import.meta.url), 'utf8');
+  for (const anchor of ['#RP-09', '#RP-05', '#CR-04', '#CR-07', '/wiki/Lore']) assert.ok(story.includes(anchor), anchor);
+  assert.match(story, /leadership question channels \( #ask-mewn, #ask-mal, #ask-cobalt \)/);
+});
+
 test('T-ACT-CLI-18 linking never hangs: each try is bounded, tries back off, then the member is asked to try again or reopen', async () => {
   const { LINK_TIMEOUT_MS, LINK_ATTEMPTS, linkRetryDelay, linkingText } = await import('../apps/activity/client/presenter.js');
   assert.equal(LINK_TIMEOUT_MS, 15_000);
