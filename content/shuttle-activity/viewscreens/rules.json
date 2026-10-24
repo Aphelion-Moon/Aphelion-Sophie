@@ -4,29 +4,33 @@
  "title": "Recommended reading",
  "art": {
   "text": [
-   "  __________   __________  ",
-   " /          \\ /          \\ ",
-   "|   RULES    |    WIKI    |",
-   "|   ~~~~~~   |   ~~~~~~   |",
-   "|   ~~~~~~   |   ~~~~~~   |",
-   "|   ~~~~     |     ~~~~   |",
-   " \\__________\\|/__________/ ",
-   "            |▌|            ",
-   "        ____|_|____        "
+   " ▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄ ▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄",
+   "▐                █                ▌",
+   "▐  RP-01         █  POLICIES      ▌",
+   "▐  ────────────  █  ────────────  ▌",
+   "▐  ──────────    █  ───────────   ▌",
+   "▐  ────────────  █  ─────────     ▌",
+   "▐  ───────       █  ────────────  ▌",
+   "▐  ───────────   █  ────────      ▌",
+   "▐▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄█▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▌",
+   "                 █",
+   "                 ▀"
   ],
   "colours": [
-   "  oooooooooo   oooooooooo  ",
-   " o          o o          o ",
-   "o   aaaaa    o    hhhh    o",
-   "o   IIIIII   o   IIIIII   o",
-   "o   IIIIII   o   IIIIII   o",
-   "o   IIII     o     IIII   o",
-   " ooooooooooooooooooooooooo ",
-   "            oho            ",
-   "        ooooooooooo        "
+   " iiiiiiiiiiiiiiii iiiiiiiiiiiiiiii",
+   "i                A                i",
+   "i  aaaaa         A  hhhhhhhh      i",
+   "i  IIIIIIIIIIII  A  IIIIIIIIIIII  i",
+   "i  IIIIIIIIII    A  IIIIIIIIIII   i",
+   "i  IIIIIIIIIIII  A  IIIIIIIII     i",
+   "i  IIIIIII       A  IIIIIIIIIIII  i",
+   "i  IIIIIIIIIII   A  IIIIIIII      i",
+   "iiiiiiiiiiiiiiiiiAiiiiiiiiiiiiiiiii",
+   "                 h",
+   "                 h"
   ]
  },
- "alt": "An old rulebook, open on a lectern, with a new cyan bookmark. The wiki is the authority for game rules.",
+ "alt": "An open rulebook with a cyan bookmark hanging from its spine. The left page is headed RP-01, the right page Policies. The wiki is the authority for game rules.",
  "links": [
   {
    "label": "Start with our recommended reading",

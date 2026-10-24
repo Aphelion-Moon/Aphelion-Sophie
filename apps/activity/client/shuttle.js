@@ -2,7 +2,7 @@ import { ANNOUNCEMENTS, CHUNK_LIMIT, CODEX, KEYS, READ_CPS, REVEAL_MAX_MS, TEXT,
   presence, revealPoints, sceneStateFor, soundscape, speechMs, titleMenu, transmissionChunks, windowUser } from './presenter.js';
 import { parseMarkdown, plainText, renderMarkdown } from './markdown.js';
 
-const SETTINGS_KEY = 'shuttle.settings.v1';
+const SETTINGS_KEY = 'shuttle.settings.v1', PLACE_KEY = 'shuttle.place.v1';
 const DEFAULT_SETTINGS = Object.freeze({ levels: { master: 100, music: 50, ambience: 70, radio: 80, effects: 80 }, sound: 'on', motion: 'system',
   text: 'typed', speed: 'normal', size: 'normal' });
 const POLL_MS = 5_000, POLL_LIMIT_MS = 10 * 60_000, RETRY_AFTER_MS = 120_000;
@@ -119,8 +119,11 @@ export function createShuttle({ document, api, connect, player, loadScene, sound
    * Out of tries, the title asks the member to try again or reopen the Shuttle. A closed Shuttle or a refused member is an
    * answer, not a failure, and is not retried.
    */
-  async function link() {
+  async function link({ fresh = false } = {}) {
     linkingNow = true;
+    // A fresh link signs in through Discord again, as reopening the Shuttle would, rather than reusing a session that may
+    // have ended (owner report, 24 October 2026: after leaving the window, only reopening brought the link back).
+    if (fresh && discord !== null) discord = null;
     try {
       for (linkAttempt = 1; ; linkAttempt++) {
         signal('linking'); if (view === 'title') renderMenu();
@@ -143,6 +146,20 @@ export function createShuttle({ document, api, connect, player, loadScene, sound
     if (online) { timers.clear(heartbeat); heartbeat = null; if (linked) signal('linked'); else if (linkingNow) signal('linking'); return; }
     signal('lost');
     if (linked && heartbeat === null) heartbeat = timers.every(15_000, () => { api.describe().catch(() => {}); });
+  }
+  /**
+   * Back in the window (it was hidden, or another window had focus): a signal that was lost or never came back is tried
+   * again at once instead of waiting for the heartbeat, and a link that ran out of tries starts over with a fresh sign-in.
+   */
+  async function returned() {
+    if (document.hidden || linkingNow) return;
+    const state = $('signal').dataset.state;
+    if (state === 'nolink') {
+      described = null; if (view === 'title') renderMenu();
+      await link({ fresh: true }); if (view === 'title') await showTitle();
+      return;
+    }
+    if (state === 'lost' && linked) { try { described = await api.describe(); } catch { /* The heartbeat keeps trying. */ } }
   }
   function toast(text, ms = 4_000) {
     const element = $('toast'); element.textContent = text; element.hidden = false;
@@ -229,7 +246,7 @@ export function createShuttle({ document, api, connect, player, loadScene, sound
   async function choose(id) {
     if (busy) return;
     if (SHEETS.includes(id)) { sound.play('UI-02'); openSheet(id); return; }
-    if (id === 'relink') { sound.play('UI-02'); described = null; renderMenu(); await link(); if (view === 'title') await showTitle(); return; }
+    if (id === 'relink') { sound.play('UI-02'); described = null; renderMenu(); await link({ fresh: true }); if (view === 'title') await showTitle(); return; }
     if (id === 'board') {
       sound.play('UI-02');
       await guarded(async () => { const { run: next } = await api.board(); log = []; await enterRun(next); });
@@ -271,7 +288,8 @@ export function createShuttle({ document, api, connect, player, loadScene, sound
    */
   async function enterRun(next, { atEnd = false } = {}) {
     const previous = run; run = next;
-    chunks = transmissionChunks(run.pages, CHUNK_LIMIT, run.moments ?? {}); chunk = atEnd ? chunks.length - 1 : 0;
+    chunks = transmissionChunks(run.pages, CHUNK_LIMIT, run.moments ?? {}); chunk = atEnd ? chunks.length - 1 : savedPage();
+    savePlace();
     const event = cueEvent(previous, run), sceneId = sceneNow();
     show('radio'); discord?.setPresence(presence(run));
     if (run.status === 'pending') startPolling(); else stopPolling();
@@ -284,6 +302,29 @@ export function createShuttle({ document, api, connect, player, loadScene, sound
       transition: async () => { swapScene(sceneId, await loaded, stateNow); if (event === 'stop') banner(ANNOUNCEMENTS[sceneId]); },
       reveal: renderTransmission,
     });
+  }
+  /**
+   * The page being read within a stop, kept on this device so Resume, a relink or reopening the Shuttle picks up on that
+   * page rather than the stop's first (owner report, 24 October 2026). Core keeps only the stop; the mark ties the page to
+   * this run's step and its text, so a new run, a new stop or an updated story starts at the top.
+   */
+  function placeMark() {
+    if (run?.status !== 'reading') return null;
+    let hash = 0; for (const character of chunks.join('\u0000')) hash = (hash * 31 + character.codePointAt(0)) >>> 0;
+    return `${run.version}:${run.stop}:${chunks.length}:${hash.toString(36)}`;
+  }
+  let place = null;
+  function savePlace() {
+    const mark = placeMark(); if (mark === null) return;
+    place = { mark, page: chunk };
+    try { storage?.setItem(PLACE_KEY, JSON.stringify(place)); } catch { /* Kept for this visit only. */ }
+  }
+  function savedPage() {
+    try {
+      const saved = place ?? JSON.parse(storage?.getItem(PLACE_KEY) ?? 'null');
+      if (saved?.mark === placeMark() && Number.isInteger(saved.page) && saved.page >= 0 && saved.page < chunks.length) return saved.page;
+    } catch { /* Private window or blocked storage: the first page. */ }
+    return 0;
   }
   function preloadAhead() {
     const following = run.stops[run.stop + 1];
@@ -430,7 +471,7 @@ export function createShuttle({ document, api, connect, player, loadScene, sound
 
   /** A page within a stop: the page sound, then Sophie briefly with the new text. */
   function turnPage(next) {
-    chunk = next; stopTyping();
+    chunk = next; savePlace(); stopTyping();
     runCues(cueSheet('page', run, { speech: speechFor() }), { reveal: renderTransmission });
   }
   /** Sophie speaks for a time tied to what is on screen: half its typing time at the member's speed, 2 to 6 seconds. */
@@ -700,7 +741,8 @@ export function createShuttle({ document, api, connect, player, loadScene, sound
         if (item) { event.preventDefault(); item.focus(); item.click(); }
       }
     });
-    document.addEventListener('visibilitychange', () => sound.setHidden(document.hidden));
+    document.addEventListener('visibilitychange', () => { sound.setHidden(document.hidden); returned(); });
+    globalThis.addEventListener?.('focus', () => { returned(); });
     // A resized or rotated window repaints the status window's art to its new room.
     let resizing = null;
     globalThis.addEventListener?.('resize', () => {

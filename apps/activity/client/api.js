@@ -4,6 +4,7 @@ export class ShuttleApiError extends Error {
 }
 
 const RETRY_MS = Object.freeze([1_000, 2_000, 4_000]);
+export const RENEWAL_MS = 10_000;
 
 /**
  * The Activity's calls to core (P43). The bearer token from sign-in lives only in this closure. A click keeps one
@@ -38,10 +39,17 @@ export function createShuttleApi({ fetch, randomBytes, wait = ms => new Promise(
       await wait(RETRY_MS[attempt]);
     }
   }
-  /** Signs in again, once per call that needs it; requests refused together share one renewal. False when it cannot. */
+  /**
+   * Signs in again, once per call that needs it; requests refused together share one renewal. False when it cannot, or
+   * when Discord has not answered within RENEWAL_MS: a renewal that never settled was shared by every later request, so
+   * the link could not come back without reopening the Shuttle.
+   */
   async function renewed() {
     if (renewal === null || token === null) return false;
-    renewing ??= renewal().then(() => true, () => false).finally(() => { renewing = null; });
+    renewing ??= new Promise(resolve => {
+      const timer = setTimeout(() => resolve(false), RENEWAL_MS);
+      renewal().then(() => true, () => false).then(value => { clearTimeout(timer); resolve(value); });
+    }).finally(() => { renewing = null; });
     return renewing;
   }
   return Object.freeze({

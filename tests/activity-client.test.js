@@ -328,7 +328,10 @@ test('T-ACT-CLI-17 phones (owner audit, 24 October 2026): sheets open at their t
 
 test('T-ACT-CLI-19 only tappable things look tappable: links underlined with a mark, channel chips bordered, mentions plain', async () => {
   const css = await readFile(new URL('../apps/activity/client/app.css', import.meta.url), 'utf8');
-  assert.match(css, /\.md-link::after, \.credits a::after \{ content: '↗';/);
+  // A story link's arrow is text inside the link, after its label, so the typewriter never shows it first.
+  assert.match(css, /\.md-link-arrow, \.credits a::after \{/); assert.doesNotMatch(css, /\.md-link::after/);
+  const markdown = await readFile(new URL('../apps/activity/client/markdown.js', import.meta.url), 'utf8');
+  assert.match(markdown, /element\('a', 'md-link', \[\.\.\.inline\(node\.children\), arrow\]\)/);
   assert.match(css, /\.md-channel \{[^}]*border: 1px solid var\(--holo-dim\);[^}]*cursor: pointer;/);
   // A mention or an unreachable channel neither wears the link colour nor a chip's background.
   for (const selector of ['md-mention', 'md-at']) {
@@ -359,6 +362,46 @@ test('T-ACT-CLI-18 linking never hangs: each try is bounded, tries back off, the
   assert.match(client, /levels: \{ master: 100, music: 50,/);
   const discord = await readFile(new URL('../apps/activity/client/discord.js', import.meta.url), 'utf8');
   assert.match(discord, /shared \?\?= /, 'one Discord SDK for the page, reused by every try');
+});
+
+test('T-ACT-CLI-21 back in the window, a lost link recovers without reopening (owner report, 24 October 2026)', async t => {
+  // A renewal Discord never answers gives up after RENEWAL_MS; the next refused request renews afresh instead of waiting on it.
+  const { RENEWAL_MS } = await import('../apps/activity/client/api.js');
+  assert.equal(RENEWAL_MS, 10_000);
+  t.mock.timers.enable({ apis: ['setTimeout'] });
+  const fetch = async path => path === '/api/session'
+    ? new Response(JSON.stringify({ token: 'a'.repeat(64), accessToken: 'x', scopes: [] }), { status: 200 })
+    : new Response(JSON.stringify({ error: 'signin' }), { status: 401 });
+  const api = createShuttleApi({ randomBytes: count => new Uint8Array(count), wait: async () => {}, fetch });
+  await api.signIn({ code: 'c', instanceId: 'i-1' });
+  let renewals = 0;
+  api.setRenewal(() => { renewals++; return new Promise(() => {}); });
+  const settle = async () => { for (let i = 0; i < 5; i++) await new Promise(resolve => setImmediate(resolve)); };
+  for (const expected of [1, 2]) {
+    const pending = api.describe();
+    await settle(); t.mock.timers.tick(RENEWAL_MS);
+    await assert.rejects(pending, error => error.word === 'signin'); assert.equal(renewals, expected);
+  }
+  const client = await readFile(new URL('../apps/activity/client/shuttle.js', import.meta.url), 'utf8');
+  // Focus or visibility back: a link out of tries starts over with a fresh sign-in; a lost signal is checked at once.
+  assert.match(client, /addEventListener\('visibilitychange', \(\) => \{ sound\.setHidden\(document\.hidden\); returned\(\); \}\)/);
+  assert.match(client, /addEventListener\?\.\('focus', \(\) => \{ returned\(\); \}\)/);
+  assert.match(client, /if \(state === 'nolink'\) \{[\s\S]*?await link\(\{ fresh: true \}\)/);
+  assert.match(client, /if \(id === 'relink'\) \{[^\n]*await link\(\{ fresh: true \}\)/);
+  assert.match(client, /if \(fresh && discord !== null\) discord = null;/);
+  // Only a closed Shuttle or a refusal stops the tries; a member Discord has not listed in the instance yet is retried.
+  assert.match(client, /if \(\['closed', 'denied'\]\.includes\(error\?\.word\)\)/);
+});
+
+test('T-ACT-CLI-22 Resume picks up on the page the member was reading, not the stop\'s first (owner report, 24 October 2026)', async () => {
+  const client = await readFile(new URL('../apps/activity/client/shuttle.js', import.meta.url), 'utf8');
+  assert.match(client, /PLACE_KEY = 'shuttle\.place\.v1'/);
+  // Entering a run restores the saved page when the mark (run version, stop, and the stop's text) still matches.
+  assert.match(client, /chunk = atEnd \? chunks\.length - 1 : savedPage\(\);\s*savePlace\(\);/);
+  assert.match(client, /function turnPage\(next\) \{\s*chunk = next; savePlace\(\);/);
+  assert.match(client, /if \(run\?\.status !== 'reading'\) return null;/);
+  assert.match(client, /return `\$\{run\.version\}:\$\{run\.stop\}:\$\{chunks\.length\}:\$\{hash\.toString\(36\)\}`;/);
+  assert.match(client, /saved\.page >= 0 && saved\.page < chunks\.length\) return saved\.page;/);
 });
 
 test('T-ACT-CLI-20 a scene link is a real button over its slot while reading, opening the page through Discord', async () => {

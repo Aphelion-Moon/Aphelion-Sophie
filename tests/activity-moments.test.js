@@ -273,3 +273,15 @@ test('T-ACT-CUE-03 Sophie speaks for about half of a page\'s typing time, betwee
   assert.equal(sheet.find(step => step.action === 'speak').value, 3_000);
   assert.equal(cueSheet('stop', run(), { speech: 4_500 }).find(step => step.action === 'speak').value, 4_500);
 });
+
+test('T-ACT-VS-07 Recommended reading is the redrawn open book: RP-01 and Policies pages, a spine, the bookmark (owner pick, 24 October 2026)', async () => {
+  const screen = validateViewscreen(JSON.parse(await readFile(new URL('../content/shuttle-activity/viewscreens/rules.json', import.meta.url), 'utf8')));
+  const rows = screen.art.text.map(row => [...row]);
+  assert.ok(rows.every(row => row.length <= 35));
+  assert.match(screen.art.text[2], /RP-01 +█  POLICIES/);
+  // The spine runs the book's height in column 17, and the bookmark hangs from it in cyan.
+  for (let r = 1; r < rows.length; r++) assert.equal(rows[r][17], r === rows.length - 1 ? '▀' : '█', `row ${r}`);
+  assert.deepEqual(screen.art.colours.slice(-2).map(row => [...row][17]), ['h', 'h']);
+  assert.doesNotMatch(screen.art.text.join(''), /~|lectern/); assert.doesNotMatch(screen.alt, /lectern/);
+  assert.deepEqual(screen.links.map(link => link.url), ['https://meridian-wiki.a13.info/wiki/Policies#RP-01', 'https://meridian-wiki.a13.info/wiki/Policies']);
+});

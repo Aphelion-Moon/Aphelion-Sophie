@@ -36,6 +36,14 @@ test('T-ACT-MD-02 signs render as posted notices and named lines as people talki
   assert.equal(find(out, item => item.className === 'md-line').length, 2, 'a bold opener alone is not dialogue');
 });
 
+test('T-ACT-MD-03 a link\'s arrow is its last text, so it types after the label', () => {
+  const out = renderMarkdown(fakeDocument(), parseMarkdown('See [the rules](https://example.test/rules) now.'), { onLink() {} });
+  const [link] = find(out, item => item.className === 'md-link');
+  assert.equal(textOf(link), 'the rules↗');
+  const arrow = link.children.at(-1);
+  assert.equal(arrow.className, 'md-link-arrow'); assert.equal(arrow.attributes['aria-hidden'], 'true');
+});
+
 test('T-ACT-STORY-01 story pages: each section opens its own page, pages stay short, and every page stages its own section', async () => {
   const content = await loadActivityContent(root);
   story.stages.forEach((stage, index) => {

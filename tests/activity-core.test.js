@@ -214,7 +214,8 @@ test('T-ACT-CORE-10 a database lock timeout is retried; one that persists alerts
 
 test('T-ACT-CORE-09 refusals map to fixed words; transient Discord reads are retried; anything unexpected logs one code', async () => {
   let attempts = 0;
-  const outcomes = { ACTIVITY_CLOSED: [403, 'closed'], SHUTTLE_ELSEWHERE: [409, 'elsewhere'], STALE_SHUTTLE_CONTROL: [409, 'stale'], OPERATION_DENIED: [403, 'denied'] };
+  const outcomes = { ACTIVITY_CLOSED: [403, 'closed'], SHUTTLE_ELSEWHERE: [409, 'elsewhere'], STALE_SHUTTLE_CONTROL: [409, 'stale'], OPERATION_DENIED: [403, 'denied'],
+    ACTIVITY_INSTANCE_INVALID: [403, 'instance'] };
   for (const [code, [status, word]] of Object.entries(outcomes)) {
     const { http, request } = await server({ store: { async describe() { throw new ContractError(code); } } });
     try { const response = await request('/api/shuttle'); assert.equal(response.status, status); assert.deepEqual(await response.json(), { error: word }); }

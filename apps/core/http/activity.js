@@ -17,7 +17,9 @@ const ACTIONS = new Set(['advance', 'back', 'retry']);
 const OUTCOMES = [
   [401, 'signin', ['ACTIVITY_SESSION_INVALID', 'UNTRUSTED_PRINCIPAL']],
   [403, 'closed', ['ACTIVITY_CLOSED']],
-  [403, 'denied', ['OPERATION_DENIED', 'FOREIGN_GUILD', 'ACTIVITY_INSTANCE_INVALID', 'OAUTH_IDENTITY_INVALID', 'OAUTH_CODE_INVALID',
+  // Discord may not list the member in the instance yet (the frame was just reopened); the Activity tries again.
+  [403, 'instance', ['ACTIVITY_INSTANCE_INVALID']],
+  [403, 'denied', ['OPERATION_DENIED', 'FOREIGN_GUILD', 'OAUTH_IDENTITY_INVALID', 'OAUTH_CODE_INVALID',
     'OAUTH_RESPONSE_INVALID', 'NOT_IN_GUILD', 'MEMBER_MUZZLED', 'CAPABILITY_REVOKED']],
   [409, 'elsewhere', ['SHUTTLE_ELSEWHERE']],
   [409, 'paused', ['SHUTTLE_PAUSED']],

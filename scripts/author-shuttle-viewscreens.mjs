@@ -31,17 +31,19 @@ const spanOf = (lines, row, text, key) => { const at = lines[row].indexOf(text);
 /** Lines framed in a box, each centred. */
 const framed = (width, rows) => ['┌' + '─'.repeat(width - 2) + '┐', ...rows.map(row => '│' + centre(row, width - 2) + '│'), '└' + '─'.repeat(width - 2) + '┘'];
 const TEN_THOUSAND = framed(37, ['PEOPLE LEARNING THIS TODAY', '', '1 0 , 0 0 0', '', 'o  o  o  o  o  o  o  o  o', '/|\\/|\\/|\\/|\\/|\\/|\\/|\\/|\\/|\\', '/ \\/ \\/ \\/ \\/ \\/ \\/ \\/ \\/ \\', '', 'Lucky them. Lucky you.']);
-// An open book on a lectern: two equal pages either side of the spine, the bookmark hanging at the centre.
+// An open book, redrawn (owner pick of option C, 24 October 2026, after the first book was called too poor): two pages
+// headed RP-01 and POLICIES with ruled lines for text, a solid spine, and the cyan bookmark hanging from it. Columns 0
+// and 34 are the page edges, 1-16 and 18-33 the pages, 17 the spine.
+const pageOf = (head, lengths) => [head, ...lengths.map(n => '─'.repeat(n))];
+const LEFT_PAGE = pageOf('RP-01', [12, 10, 12, 7, 11]), RIGHT_PAGE = pageOf('POLICIES', [12, 11, 9, 12, 8]);
+const padTo = (text, width) => text + ' '.repeat(width - [...text].length);
 const BOOK = [
-  '  __________   __________  ',
-  ' /          \\ /          \\ ',
-  '|' + centre('RULES', 12) + '|' + centre('WIKI', 12) + '|',
-  '|   ~~~~~~   |   ~~~~~~   |',
-  '|   ~~~~~~   |   ~~~~~~   |',
-  '|   ~~~~     |     ~~~~   |',
-  ' \\__________\\|/__________/ ',
-  '            |▌|            ',
-  '        ____|_|____        ',
+  ' ' + '▄'.repeat(16) + ' ' + '▄'.repeat(16),
+  '▐' + ' '.repeat(16) + '█' + ' '.repeat(16) + '▌',
+  ...LEFT_PAGE.map((line, i) => '▐' + padTo(`  ${line}`, 16) + '█' + padTo(`  ${RIGHT_PAGE[i]}`, 16) + '▌'),
+  '▐' + '▄'.repeat(16) + '█' + '▄'.repeat(16) + '▌',
+  ' '.repeat(17) + '█',
+  ' '.repeat(17) + '▀',
 ];
 
 const VIEWSCREENS = [
@@ -96,10 +98,11 @@ const VIEWSCREENS = [
   },
   {
     id: 'rules', title: 'Recommended reading',
-    alt: 'An old rulebook, open on a lectern, with a new cyan bookmark. The wiki is the authority for game rules.',
+    alt: 'An open rulebook with a cyan bookmark hanging from its spine. The left page is headed RP-01, the right page Policies. The wiki is the authority for game rules.',
     lines: BOOK,
-    rules: [[/[~]/, 'I'], [/[▌]/, 'h']], spans: [spanOf(BOOK, 2, 'RULES', 'a'), spanOf(BOOK, 2, 'WIKI', 'h')],
-    fallback: 'o',
+    rules: [[/[─]/, 'I'], [/[▀▄▐▌]/, 'i'], [/[█]/, 'A']],
+    spans: [spanOf(BOOK, 2, 'RP-01', 'a'), spanOf(BOOK, 2, 'POLICIES', 'h'), [BOOK.length - 2, 17, 18, 'h'], [BOOK.length - 1, 17, 18, 'h']],
+    fallback: 'i',
     links: [
       { label: 'Start with our recommended reading', url: 'https://meridian-wiki.a13.info/wiki/Policies#RP-01' },
       { label: 'The rules', url: 'https://meridian-wiki.a13.info/wiki/Policies' },

@@ -2238,3 +2238,34 @@ On the owner's "Commit it, install it in production with the checks, and publish
 The runtime, capability policy version 2 and credentials are unchanged, with no migration. All checks passed. Story
 revision 5 was published as **Shuttle version 6**, and 1 ride in progress restarted at the first stop. Folder
 `.agent_docs/aphelion-sophie/deployment-68881eb-production-2026-10-24`; `rollback.ps1` restores a4f8b71.
+
+### Link loss after leaving the window, Resume's page, link arrows, the reading screen — 24 October 2026
+
+The owner reported:
+- "Tabbing out or clicking out of the activity window breaks the signal link … It fails to successfully re-establish link
+  after doing so too. Requires re-launching the activity."
+- "Resuming doesn't pick up from the page you left off on."
+- The ↗ link arrow showed before the link's text while typing.
+- The Recommended Reading screen was called too poor. Of three drafts the owner picked **C, the open book redrawn**.
+
+What changed:
+- **The member lock.** The PostgreSQL log of 02:20 showed two Activity requests timing out while inserting into
+  `members`: they waited on the same member's row. Every Activity request checked its capabilities, which read Discord,
+  while it held that row lock. A slow Discord read made the member's next request wait past the 3 s lock timeout.
+  - The capability checks (`shuttle.activity.test`, `shuttle.self`) now run before the lock.
+  - They still run on every request; eligibility is still read under the lock.
+  - Other stores (tickets, the message Shuttle) keep the older pattern and are not changed here.
+- **Recovery without reopening.**
+  - When the window becomes visible or gets focus again, a lost signal is checked at once.
+  - A link that ran out of tries starts over with a fresh Discord sign-in, as reopening did; "Try again" does the same.
+  - A session renewal Discord never answers gives up after 10 s, instead of holding every later request.
+  - A sign-in refused because Discord does not list the member in the instance yet gets its own word, `instance`, and is
+    tried again like a failure.
+- The exact client-side cause could not be reproduced outside Discord, and the client does not report its failures.
+  If the link loss returns, the next step is a fixed-code client report to the alerts channel.
+- **Resume's page.** The page within a stop is kept on the device, marked with the run's version, stop and the stop's
+  text. Resume, a relink or reopening returns to it; a new stop, a new run or an updated story starts at the top. Core
+  still keeps only the stop.
+- **Link arrows** are a character inside the link, after its label, so the typewriter types them last.
+- **Recommended Reading** is the redrawn open book, made by the coding agent like the other viewscreens: two pages headed
+  RP-01 and POLICIES with ruled lines, a solid spine, and the cyan bookmark hanging from it. The links are unchanged.

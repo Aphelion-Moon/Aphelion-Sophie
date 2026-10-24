@@ -173,7 +173,8 @@ h2.md-heading { font-size: 1.3em; }
 .md-channel { font: inherit; color: var(--holo); background: rgba(114, 230, 255, .12); border: 1px solid var(--holo-dim); padding: 0 6px; cursor: pointer; }
 .md-channel:focus-visible { color: var(--cold); border-color: var(--holo); }
 .md-link, .credits a { color: var(--holo); text-decoration: underline; text-underline-offset: 3px; }
-.md-link::after, .credits a::after { content: '↗'; display: inline-block; margin-left: .15em; font-size: .85em; text-decoration: none; }
+.credits a::after { content: '↗'; }
+.md-link-arrow, .credits a::after { display: inline-block; margin-left: .15em; font-size: .85em; text-decoration: none; }
 .radio-text code { background: var(--panel); padding: 0 4px; }
 .radio-text pre { background: var(--panel); padding: 8px; overflow-x: auto; }
 .radio-text blockquote { margin: 0 0 .8em; padding-left: 10px; border-left: 2px solid var(--amber-dim); }

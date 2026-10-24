@@ -24,19 +24,29 @@ export function createShuttleActivityStore({ pool, clock, authorize, definitionI
   requireName(definitionId);
   requireCondition(typeof authorize === 'function' && ACTIVITY_STATUSES.includes(status), 'ACTIVITY_CONFIGURATION_INVALID');
   const memberOperation = createMemberOperation({ pool, clock });
-  const scope = member => ({ guildId: member.guildId, userId: member.userId });
+  const scope = observation => ({ guildId: observation.guildId, userId: observation.userId });
 
-  /** null when admitted; otherwise what the member sees instead. */
-  async function refusal(actor, member) {
-    if (status === 'testing' && await authorize('shuttle.activity.test', actor, scope(member)) !== true) return 'closed';
-    if (await authorize('shuttle.self', actor, scope(member)) !== true) return 'unavailable';
+  /**
+   * The capability checks, made before the member row is locked: they read Discord, and holding the lock across that call
+   * made the same member's next request wait past the 3 s lock timeout (owner report, 24 October 2026: PG_55P03, and the
+   * link lost after leaving the window). Each still runs on every request; eligibility is read under the lock.
+   * null when allowed; otherwise what the member sees instead.
+   */
+  async function capability(actor, observation) {
+    if (status === 'testing' && await authorize('shuttle.activity.test', actor, scope(observation)) !== true) return 'closed';
+    if (await authorize('shuttle.self', actor, scope(observation)) !== true) return 'unavailable';
+    return null;
+  }
+  /** The capability outcome, then the locked member's current eligibility. */
+  function refusal(refused, member) {
+    if (refused) return refused;
     try { requireOnboardingEligibility(member, clock()); }
     catch (error) { if (error instanceof ContractError) return 'unavailable'; throw error; }
     return null;
   }
-  async function admit(actor, member) {
-    const refused = await refusal(actor, member);
-    requireCondition(refused === null, refused === 'closed' ? 'ACTIVITY_CLOSED' : 'OPERATION_DENIED');
+  function admit(refused, member) {
+    const outcome = refusal(refused, member);
+    requireCondition(outcome === null, outcome === 'closed' ? 'ACTIVITY_CLOSED' : 'OPERATION_DENIED');
   }
   async function currentRun(client, member) {
     return (await client.query(`SELECT s.state, a.session_id IS NOT NULL AS activity
@@ -78,8 +88,9 @@ export function createShuttleActivityStore({ pool, clock, authorize, definitionI
   return Object.freeze({
     /** What the Activity shows now. Reads only; it records the fresh membership observation like every member action. */
     async describe({ actor, observation }) {
+      const allowed = await capability(actor, observation);
       return memberOperation(observation, async (client, member) => {
-        const refused = await refusal(actor, member);
+        const refused = refusal(allowed, member);
         if (refused) return { state: refused };
         const found = await currentRun(client, member);
         if (found && !found.activity) return { state: 'elsewhere' };
@@ -101,8 +112,9 @@ export function createShuttleActivityStore({ pool, clock, authorize, definitionI
     /** Starts a run, or resumes the current Activity run. */
     async board({ actor, observation, requestId }) {
       requireActivityRequestId(requestId);
+      const allowed = await capability(actor, observation);
       return memberOperation(observation, async (client, member) => {
-        await admit(actor, member);
+        admit(allowed, member);
         const id = receiptId(member.userId, requestId);
         const previous = await receipt(client, member.guildId, member.userId, id, { action: 'activity.board', definitionId });
         if (previous) return replay(client, member, previous);
@@ -133,8 +145,9 @@ export function createShuttleActivityStore({ pool, clock, authorize, definitionI
     async act({ actor, observation, requestId, action, expectedVersion }) {
       requireActivityRequestId(requestId); requireInteger(expectedVersion);
       requireCondition(ACTIVITY_ACTIONS.includes(action), 'INVALID_SHUTTLE_ACTION');
+      const allowed = await capability(actor, observation);
       return memberOperation(observation, async (client, member) => {
-        await admit(actor, member);
+        admit(allowed, member);
         const id = receiptId(member.userId, requestId);
         const previous = await receipt(client, member.guildId, member.userId, id, { action: `activity.${action}`, expectedVersion });
         if (previous) return replay(client, member, previous);
@@ -164,8 +177,9 @@ export function createShuttleActivityStore({ pool, clock, authorize, definitionI
      */
     async reset({ actor, observation, requestId }) {
       requireActivityRequestId(requestId);
+      const allowed = await capability(actor, observation);
       return memberOperation(observation, async (client, member) => {
-        await admit(actor, member);
+        admit(allowed, member);
         const id = receiptId(member.userId, requestId);
         const previous = await receipt(client, member.guildId, member.userId, id, { action: 'activity.reset', definitionId });
         if (previous) return { duplicate: true, reset: previous.sessionId !== null };

@@ -169,7 +169,10 @@ export function renderMarkdown(document, nodes, { onLink, channels = {}, onChann
       case 'strike': return element('s', null, inline(node.children));
       case 'spoiler': return element('span', 'md-spoiler', inline(node.children));
       case 'link': {
-        const link = element('a', 'md-link', inline(node.children));
+        // The arrow is real text after the label, so the typewriter types it last (a CSS ::after showed before the label).
+        const arrow = element('span', 'md-link-arrow', [document.createTextNode('↗')]);
+        arrow.setAttribute('aria-hidden', 'true');
+        const link = element('a', 'md-link', [...inline(node.children), arrow]);
         link.href = node.href; link.rel = 'noopener noreferrer'; link.target = '_blank';
         link.addEventListener('click', event => { event.preventDefault(); onLink(node.href); });
         return link;
