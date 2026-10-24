@@ -5,6 +5,7 @@ import { recordAiDeparture } from './ai-departures.js';
 
 /** Records observed revocations. It does not make an offline interval authoritative. */
 export function createActorAuthorityStore({ pool, clock }) {
+  const registered = new Set();
   async function observe(observation, policyVersion) {
     validateActorObservation(observation, clock()); requireInteger(policyVersion, 1);
     const normalized = { ...observation, roleIds: [...observation.roleIds].sort() };
@@ -40,7 +41,12 @@ export function createActorAuthorityStore({ pool, clock }) {
   return Object.freeze({
     async registerPolicy(policy) {
       validateCapabilityPolicy(policy);
-      return inTransaction(pool, async client => {
+      // Once recorded, a policy version never changes (CAPABILITY_POLICY_IMMUTABLE), so a process registers each policy it
+      // holds once. Every observation still checks that no newer version was recorded since (CAPABILITY_POLICY_ROLLBACK in
+      // observe). It ran on every check before, under a lock all checks share (Activity audit, 24 October 2026).
+      const key = JSON.stringify(policy);
+      if (registered.has(key)) return;
+      await inTransaction(pool, async client => {
         await client.query('SELECT pg_advisory_xact_lock(182745, 3)');
         const latest = (await client.query('SELECT max(version) AS version FROM sophie_core.capability_policies WHERE guild_id = $1', [policy.guildId])).rows[0].version;
         requireCondition(latest === null || latest <= policy.version, 'CAPABILITY_POLICY_ROLLBACK');
@@ -49,6 +55,8 @@ export function createActorAuthorityStore({ pool, clock }) {
         const recorded = (await client.query('SELECT policy = $3::jsonb AS same FROM sophie_core.capability_policies WHERE guild_id = $1 AND version = $2', [policy.guildId, policy.version, policy])).rows[0];
         requireCondition(recorded.same, 'CAPABILITY_POLICY_IMMUTABLE');
       });
+      if (registered.size >= 16) registered.clear();
+      registered.add(key);
     },
     async observe(observation, policyVersion) { return (await observe(observation, policyVersion)).grant; },
     observeWithPresence: observe,

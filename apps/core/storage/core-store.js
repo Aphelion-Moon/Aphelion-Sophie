@@ -45,7 +45,8 @@ async function queueMemberInspection(client, member, suffix = 'observed') {
  * these methods must never be bound directly to client-controlled JSON.
  * authorize is injected by the composition root and must check current capabilities.
  */
-export function createCoreStore({ pool, clock, authorize, authorizeRecorded = async () => false, resolveCaseResponder = async () => null, resolveCaseParticipant = async () => null, authorizeCaseParticipant = async () => false, casePolicy = null, caseVerification = null, onboardingMessageVerification = null, onboardingAlertVerification = null }) {
+export function createCoreStore({ pool, clock, authorize, authorizeRecorded = async () => false, resolveCaseResponder = async () => null, resolveCaseParticipant = async () => null, authorizeCaseParticipant = async () => false, casePolicy = null, caseVerification = null, onboardingMessageVerification = null, onboardingAlertVerification = null, whitelistNotices = false }) {
+  requireCondition(typeof whitelistNotices === 'boolean', 'TRUSTED_ADAPTERS_REQUIRED');
   requireCondition(typeof clock === 'function' && typeof authorize === 'function', 'TRUSTED_ADAPTERS_REQUIRED');
   const checkAccess = async (capability, actor, scope) => requireCondition(await authorize(capability, actor, scope) === true, 'OPERATION_DENIED');
   requireCondition(typeof authorizeRecorded === 'function', 'TRUSTED_ADAPTERS_REQUIRED');
@@ -274,6 +275,11 @@ export function createCoreStore({ pool, clock, authorize, authorizeRecorded = as
           const complete = confirmWhitelist(session, member, job.effect, definition, clock());
           await saveSession(client, complete, member);
           await finishClaim(client, claim, 'done');
+          // Sophie's own grant (confirmed after her add, or found in place after an add she may already have made) is
+          // announced to Staff, with the confirmation and at most once (owner request, 24 October 2026). A role someone
+          // else gave is not hers to announce.
+          if (whitelistNotices && (confirm || job.dispatch_started)) await enqueue(client, { kind: 'whitelist.notice',
+            operationId: `${claim.operationId}.notice`, guildId: member.guildId, userId: member.userId, sessionId: session.id });
           return { deliver: false, confirmed: true, session: complete };
         }
         // Revalidate the fence after lock waits and mark the possible external effect durably.

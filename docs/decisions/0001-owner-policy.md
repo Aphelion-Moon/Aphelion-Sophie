@@ -2510,3 +2510,41 @@ On the owner's "Commit, prepare, and install." (quoted in the packet's `approval
 `b45d7dd` at 15:12 UTC on 24 October: 4 files, same runtime (Node 24.22.1), capability policy version 2 and credentials, no
 migration, no story change. All checks passed. Folder
 `.agent_docs/aphelion-sophie/deployment-f288aae-production-2026-10-24`; `rollback.ps1` restores `b45d7dd`.
+
+### A quiet transport gate, Whitelist notices for Staff, and the Activity audit — 24 October 2026
+
+**The alert.** The owner forwarded an alert, ACTIVITY_REQUEST_UNAVAILABLE_DISCORD_TRANSPORT_DISABLED for a member's
+first Continue at 15:32:49 UTC; asked, the member had noticed nothing. The new log line said where: phase `actor`, 21 ms,
+one try. Core's Discord gate (`enabled`: the runtime database flag and a current Gateway session) was shut for a moment,
+with no maintenance, restart or database error around it: a heartbeat late or a resume. The authorization path reports
+the same moment as AUTHORITY_UNCERTAIN, which the Activity already retried; this code was not, so it alerted, and the
+client's own retry carried the member on. Fixed: DISCORD_TRANSPORT_DISABLED is transient in `apps/core/http/activity.js`
+(tried again, then a quiet 503 "retry", still logged as ACTIVITY_REQUEST_RETRY) (T-ACT-CORE-17).
+
+**Whitelist notices (owner request).** "I also want Sophie to output to this channel when someone is given their
+whitelist successfully by the Onboarding application: 1528802745136447508. That's the staff-bot-channel." The production
+runtime takes `whitelistNotices: { channelId }`. When Sophie's own grant is confirmed (after her add, or found in place
+after an add she began), the transaction that confirms it queues a `whitelist.notice` job (migration 078 adds the outbox
+kind); a dispatcher posts "**Whitelist granted** · @member finished the Arrivals Shuttle and Sophie gave them Whitelist."
+with a nonce from the job, so a resend is the same post, and with no one notified. A role given by hand is not announced.
+Without the setting nothing is queued (SA15, T-NOTICE-01/02).
+
+**Activity audit (owner request: performance and API efficiency).** Measured on the real store: one Continue made 33
+database round trips and 4 Discord reads after its actor was resolved; in production every gate check adds two queries.
+- The capability policy was re-registered on every authorization check (twice per Activity request), each time a
+  six-statement transaction under one advisory lock that every check in the bot shares. A process now registers each
+  policy once; each observation still refuses a newer recorded version (CAPABILITY_POLICY_ROLLBACK). 33 → 26 round trips
+  for the measured part; about 13 fewer and two lock waits fewer per request in all (SA16 keeps the budget).
+- The runtime gate is asked before every Discord request and authorization check, often several at once within one
+  request; concurrent callers now share one check. Nothing is cached once it settles.
+- The client loads 71 modules one import level at a time through Discord's proxy and the tunnel; the served page now
+  preloads every module, so they are fetched together (T-ACT-CLI-27).
+- Waiting for Whitelist polled every 5 s for up to ten minutes, also in a hidden window. Checks now come at 1.5, 2.5, 4 and
+  6 s, then every 10 s; none while hidden, and one at once on return; the lost-signal heartbeat also rests while hidden.
+- Fine as they are: channel links (directory cached 15 s and shared, role reads shared 3 s), station counts (5 min) and
+  pass (1 min), run views (only the current stop's pages), the per-member budget.
+- Not changed (owner decision needed): each request observes the member's roles in Discord three times: resolving the
+  actor, the capability check (each bot identity, guild, roles and member), and the membership observation, all within
+  about a second. The 12 October 2026 decision lets only dashboard views reuse an observation; every action reads afresh.
+  One observation per Activity request, bound to the same authority stamp, would save about 4 of 7 Discord reads and 13
+  database round trips per request.

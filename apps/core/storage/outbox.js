@@ -4,7 +4,7 @@ import { commonParkedCodes, caseParkedCodes, onboardingParkedCodes, onboardingAl
 import { recordOnboardingDeliveryIssue } from './onboarding-issue-records.js';
 import { recordCaseDeliveryIssue } from './case-issue-records.js';
 
-const deliveryKinds = Object.freeze(['whitelist.grant', 'whitelist.reconcile', 'member.reconcile', 'case.provision', 'shuttle.render', 'shuttle.alert', 'case.intake', 'case.dm', 'case.reply', 'automation.dispatch']);
+const deliveryKinds = Object.freeze(['whitelist.grant', 'whitelist.reconcile', 'member.reconcile', 'case.provision', 'shuttle.render', 'shuttle.alert', 'case.intake', 'case.dm', 'case.reply', 'automation.dispatch', 'whitelist.notice']);
 
 // Issues are recorded for history. Shuttle failures no longer ping Staff (owner direction, 20 October 2026): parked
 // Shuttle work is rechecked on its own, see recheckParkedShuttleWork.
@@ -156,6 +156,10 @@ export function createOutbox({ pool }) {
           ORDER BY parked_at LIMIT $1 FOR UPDATE SKIP LOCKED) due
         WHERE o.guild_id = due.guild_id AND o.operation_id = due.operation_id`, [limit]);
       return result.rowCount;
+    },
+    /** A job with no state of its own to settle (a notice) is done once its one effect is confirmed sent. */
+    async finish(claim) {
+      return inTransaction(pool, async client => { await lockClaim(client, claim); await finishClaim(client, claim, 'done'); });
     },
     /** Successful progress can release a job for its next bounded role operation. */
     async continue(claim) {

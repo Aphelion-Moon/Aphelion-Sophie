@@ -7,8 +7,11 @@ import { DiscordError } from '../discord/transport.js';
 const PAGE_CSP = "default-src 'none'; script-src 'self'; style-src 'self'; font-src 'self'; img-src 'self'; media-src 'self'; connect-src 'self'; base-uri 'none'; form-action 'none'";
 const COMMON = Object.freeze({ 'X-Content-Type-Options': 'nosniff', 'Referrer-Policy': 'no-referrer', 'Cross-Origin-Resource-Policy': 'same-origin' });
 const BODY_LIMIT = 4_096, MAX_ACTIVE = 16, SIGN_INS_PER_MINUTE = 60;
+// DISCORD_TRANSPORT_DISABLED: core's Discord gate is shut while the Gateway session is not current (a heartbeat late, a
+// resume), the same moment AUTHORITY_UNCERTAIN reports on the authorization path; it passes in seconds (owner report,
+// 24 October 2026: an alert for a member who noticed nothing). A lasting outage still shows as a run of retry lines.
 const TRANSIENT = new Set(['OBSERVATION_INVALIDATED', 'OBSERVATION_UNAVAILABLE', 'OBSERVATION_OUT_OF_ORDER', 'MEMBERSHIP_STALE', 'DISCORD_BUSY',
-  'RATE_LIMITED', 'DISCORD_UNAVAILABLE', 'AUTHORITY_UNCERTAIN', 'OAUTH_PROVIDER_UNAVAILABLE']);
+  'RATE_LIMITED', 'DISCORD_UNAVAILABLE', 'AUTHORITY_UNCERTAIN', 'OAUTH_PROVIDER_UNAVAILABLE', 'DISCORD_TRANSPORT_DISABLED']);
 // PostgreSQL lock timeout, serialization failure and deadlock: raised before COMMIT, so the transaction rolled back and the
 // request (keyed, or read-only) is safe to try again (owner report, 24 October 2026: ACTIVITY_REQUEST_UNAVAILABLE_PG_55P03).
 const RETRYABLE_SQLSTATES = new Set(['55P03', '40001', '40P01']);

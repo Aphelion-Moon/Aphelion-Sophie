@@ -384,6 +384,14 @@ export function createDiscordTransport({ guildId, token, fetch, clock, enabled, 
         [...body.content.matchAll(/<@&(\d+)>/gu)].every(([, id]) => roles.includes(id)), 'INVALID_DISCORD_PAYLOAD');
       return request('POST', `/channels/${channelId}/messages`, 'error-alert', { ...body, nonce, enforce_nonce: true }, true);
     },
+    /** A Whitelist notice for Staff: plain text that names members without notifying anyone; the nonce makes a resend one post. */
+    async createWhitelistNotice(channelId, nonce, body) {
+      requireId(channelId); requireCondition(typeof nonce === 'string' && /^[a-f0-9]{24}$/u.test(nonce), 'INVALID_DISCORD_PAYLOAD');
+      requireCondition(body !== null && typeof body === 'object' && Object.keys(body).every(key => ['content', 'allowed_mentions'].includes(key)) &&
+        typeof body.content === 'string' && body.content.length > 0 && body.content.length <= 2_000 && !/@(everyone|here)|<@[!&]/u.test(body.content) &&
+        JSON.stringify(body.allowed_mentions) === JSON.stringify({ parse: [], users: [], roles: [], replied_user: false }), 'INVALID_DISCORD_PAYLOAD');
+      return request('POST', `/channels/${channelId}/messages`, 'whitelist-notice', { ...body, nonce, enforce_nonce: true }, true);
+    },
     async createOnboardingAlert(channelId, alertId, body) {
       requireId(channelId); validateOnboardingAlertPayload(body, alertId);
       return request('POST', `/channels/${channelId}/messages`, 'shuttle-message-create',

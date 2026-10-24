@@ -485,3 +485,22 @@ test('T-ACT-CLI-26 the game servers appear on the main menu and at the last step
   assert.match(client, /const channel = games\.channels\?\.\[game\.channel\];\s*if \(channel && /);
   assert.match(client, /play\.addEventListener\('click', \(\) => \{ sound\.play\('UI-02'\); outside\(game\.play\); \}\);/);
 });
+
+test('T-ACT-CLI-27 opening is one round of module fetches, and waiting for Whitelist checks quickly then less often, never while hidden', async () => {
+  // Activity audit, 24 October 2026.
+  const assets = await loadActivityClient(root);
+  const page = assets.get('/').body.toString('utf8'), raw = await readFile(new URL('../apps/activity/client/index.html', import.meta.url), 'utf8');
+  const preloads = [...page.matchAll(/<link rel="modulepreload" href="([^"]+)">/g)].map(match => match[1]);
+  const modules = [...assets.entries()].filter(([path, file]) => path !== '/' && file.type.startsWith('text/javascript')).map(([path]) => path);
+  assert.deepEqual([...preloads].sort(), modules.filter(path => path !== '/apps/activity/client/app.js').sort(), 'every module but the entry, and nothing else');
+  assert.equal(page.replace(/<link rel="modulepreload" href="[^"]+">\n/g, ''), raw, 'the page is otherwise the file as written');
+  assert.ok(page.indexOf('modulepreload') < page.indexOf('<script type="module"'));
+  assert.equal(assets.get('/apps/activity/client/index.html'), assets.get('/'));
+  const { clearanceDelay, CLEARANCE_LATER_MS } = await import('../apps/activity/client/presenter.js');
+  assert.deepEqual(Array.from({ length: 7 }, (_, i) => clearanceDelay(i + 1)), [1_500, 2_500, 4_000, 6_000, CLEARANCE_LATER_MS, CLEARANCE_LATER_MS, CLEARANCE_LATER_MS]);
+  // In ten minutes: 4 quick checks, then one every 10 s (about 60), where a flat 5 s made 120.
+  const client = await readFile(new URL('../apps/activity/client/shuttle.js', import.meta.url), 'utf8');
+  assert.match(client, /if \(!document\.hidden\) await check\(false\);/, 'a hidden window is not checked');
+  assert.match(client, /if \(poll !== null && run\?\.status === 'pending'\) await check\(false\);/, 'returning checks at once');
+  assert.match(client, /heartbeat = timers\.every\(15_000, \(\) => \{ if \(!document\.hidden\)/);
+});

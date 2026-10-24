@@ -8,12 +8,13 @@ import { validateStagingRuntime } from './configuration.js';
  * (owner decision, 24 October 2026; she never removes it). Lead Ops is the Activity tester gate and holds the AI
  * controls; `activityTesterRoles` (optional) adds roles to the tester gate (owner decision, 24 October 2026: Staff), and
  * `activityStatus` (optional, 'testing' by default) set to 'open' admits every eligible member. `errorAlerts` (optional,
- * { channelId, roleName }) posts Sophie's errors to a channel and pings that role. Mute, case and form grants are present only because the policy contract requires them; no route or command
+ * { channelId, roleName }) posts Sophie's errors to a channel and pings that role. `whitelistNotices` (optional, { channelId }) says
+ * there each time Sophie's grant of Whitelist is confirmed (owner request, 24 October 2026: the staff bot channel). Mute, case and form grants are present only because the policy contract requires them; no route or command
  * can use them in this scope.
  */
 export function productionConfiguration(input) {
   requireKeys(input, ['guildId', 'applicationId', 'publicKeyHex', 'botUserId', 'roles', 'protectedCategoryId', 'dashboardOrigin', 'activityOrigin',
-    'interactionPort', 'dashboardPort', 'activityPort', ...['aiChannelExceptions', 'activityTesterRoles', 'activityStatus', 'errorAlerts'].filter(key => Object.hasOwn(input ?? {}, key))]);
+    'interactionPort', 'dashboardPort', 'activityPort', ...['aiChannelExceptions', 'activityTesterRoles', 'activityStatus', 'errorAlerts', 'whitelistNotices'].filter(key => Object.hasOwn(input ?? {}, key))]);
   requireKeys(input.roles, ['crew', 'muzzled', 'whitelist', 'staff', 'leadOps'], 'INVALID_ROLE_OWNERSHIP');
   for (const id of [input.guildId, input.applicationId, input.botUserId, input.protectedCategoryId, ...Object.values(input.roles)]) requireId(id);
   requireCondition(new Set(Object.values(input.roles)).size === 5 && !Object.values(input.roles).includes(input.guildId), 'INVALID_ROLE_OWNERSHIP');
@@ -39,7 +40,9 @@ export function productionConfiguration(input) {
     // Exact channels in the protected category the AI may still use (#ask-sophie in the main server).
     ...(input.aiChannelExceptions ? { aiChannelExceptions: [...input.aiChannelExceptions] } : {}),
     // Sophie's errors to a channel, pinging a role (owner request, 24 October 2026).
-    ...(input.errorAlerts ? { errorAlerts: { channelId: input.errorAlerts.channelId, roleName: input.errorAlerts.roleName } } : {}) };
+    ...(input.errorAlerts ? { errorAlerts: { channelId: input.errorAlerts.channelId, roleName: input.errorAlerts.roleName } } : {}),
+    // A line in a staff channel for each Whitelist Sophie gives (owner request, 24 October 2026).
+    ...(input.whitelistNotices ? { whitelistNotices: { channelId: input.whitelistNotices.channelId } } : {}) };
   validateStagingRuntime(configuration);
   return configuration;
 }

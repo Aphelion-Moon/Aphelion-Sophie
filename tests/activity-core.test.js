@@ -467,3 +467,22 @@ test('T-ACT-CORE-16 a refused or quietly retried request is logged with who, whe
   assert.equal(installedLogLine('P', 'CODE_X', 'not pairs; DROP TABLE', new Date(0)), '1970-01-01T00:00:00.000Z P CODE_X\n');
   assert.equal(installedLogLine('P', 'lower case', null, new Date(0)), '1970-01-01T00:00:00.000Z P\n');
 });
+
+test('T-ACT-CORE-17 core\'s Discord gate shut for a moment (Gateway not current) is tried again and answered quietly, never alerted', async () => {
+  // Owner report, 24 October 2026: an alert ACTIVITY_REQUEST_UNAVAILABLE_DISCORD_TRANSPORT_DISABLED for a member who noticed nothing.
+  let tries = 0;
+  const brief = await server({ server: { authorization: { resolveActor: async proof => { if (++tries < 3) throw new ContractError('DISCORD_TRANSPORT_DISABLED'); return { actorFor: proof.userId }; } } } });
+  try {
+    const response = await brief.request('/api/shuttle/act', { method: 'POST', body: { requestId: 'r'.repeat(32), action: 'advance', expectedVersion: 0 } });
+    assert.equal(response.status, 200); assert.equal(tries, 3);
+    assert.deepEqual(brief.calls.filter(([name]) => name === 'fault'), []);
+  } finally { await brief.http.close(); }
+  const shut = await server({ server: { authorization: { resolveActor: async () => { throw new ContractError('DISCORD_TRANSPORT_DISABLED'); } } } });
+  try {
+    const response = await shut.request('/api/shuttle/act', { method: 'POST', body: { requestId: 'r'.repeat(32), action: 'advance', expectedVersion: 0 } });
+    assert.equal(response.status, 503); assert.deepEqual(await response.json(), { error: 'retry' });
+    assert.deepEqual(shut.calls.filter(([name]) => name === 'fault'), [], 'no alert');
+    assert.deepEqual(shut.calls.filter(([name]) => name === 'trace').map(([, code, context]) => [code, context.phase, context.cause, context.tries]),
+      [['ACTIVITY_REQUEST_RETRY', 'actor', 'DISCORD_TRANSPORT_DISABLED', 4]], 'still logged');
+  } finally { await shut.http.close(); }
+});

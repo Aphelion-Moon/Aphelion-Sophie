@@ -12,6 +12,7 @@ import { createCorePrincipals } from '../../apps/core/security/principals.js';
 import { createActivityAuth } from '../../apps/core/security/activity-auth.js';
 import { createOnboardingCommands } from '../../apps/core/discord/onboarding-commands.js';
 import { createRoleDispatcher } from '../../apps/core/discord/dispatcher.js';
+import { createWhitelistNoticeDispatcher } from '../../apps/core/discord/whitelist-notices.js';
 import { simulatedCases, casePolicy } from '../../tests/fixtures/cases.js';
 import { CREW, BYOND_ROLE, WHITELIST, MUZZLED } from '../../tests/fixtures/discord.js';
 import { syntheticInteractions, APPLICATION } from '../../tests/fixtures/interactions.js';
@@ -298,7 +299,76 @@ export async function runShuttleActivitySuite(cluster, run) {
     const last = await slow.act({ ...await member(USER), requestId: requestId(), action: 'advance', expectedVersion: shown.version });
     assert.equal(last.run.status, 'pending'); assert.equal(last.queued, true);
     assert.deepEqual((await rows('outbox')).map(row => row.kind), ['whitelist.grant']);
+    assert.equal((await rows('outbox')).some(row => row.kind === 'whitelist.notice'), false, 'no notice unless configured');
     // The observation must be of the member the actor names.
     await assert.rejects(slow.describe({ ...await member(USER), observe: () => discord.roles.observe(OTHER) }), error => error.code === 'MEMBER_MISMATCH');
+  }, 'open');
+
+  await scenario('SA16 one Continue stays within its budget of database round trips and Discord reads', async () => {
+    // Activity audit, 24 October 2026: every authorization check re-registered the capability policy under a global lock.
+    let queries = 0;
+    const counted = client => new Proxy(client, { get(target, key) {
+      if (key === 'query') return (...input) => { queries++; return target.query(...input); };
+      const value = target[key]; return typeof value === 'function' ? value.bind(target) : value; } });
+    const countedPool = { query: (...input) => { queries++; return pool.query(...input); }, connect: async () => counted(await pool.connect()) };
+    const measured = createCoreAuthorization({ principals: createCorePrincipals({ interactions: identities.verifier, dashboard: { async resolvePrincipal() { throw new ContractError('UNTRUSTED_PRINCIPAL'); } }, activity: activityAuth }),
+      discord: discord.roles, authorityStore: createActorAuthorityStore({ pool: countedPool, clock: () => now }), policy, clock: () => now,
+      isAuthorityCurrent: () => healthy, readContinuity: discord.roles.readContinuity });
+    const store = createShuttleActivityStore({ pool: countedPool, clock: () => now, authorize: measured.authorize, definitionId: definition.id, status: 'open' });
+    const request = async () => {
+      const { token } = await activityAuth.signIn({ code: `code-${USER}`, instanceId: INSTANCE });
+      const proof = await activityAuth.authenticate(token);
+      return { actor: await measured.resolveActor(proof), observe: () => discord.roles.observe(USER) };
+    };
+    let { run: shown } = await store.board({ ...await request(), requestId: requestId() });
+    // Warm: the first check of a process registers the policy.
+    ({ run: shown } = await store.act({ ...await request(), requestId: requestId(), action: 'advance', expectedVersion: shown.version }));
+    const input = await request();
+    queries = 0; const reads = discord.state.calls.length;
+    await store.act({ ...input, requestId: requestId(), action: 'advance', expectedVersion: shown.version });
+    // Measured 24 October 2026: 33 round trips before the policy was registered once per process, 26 after; the capability
+    // check's actor reads (bot identity shared), then the member read.
+    assert.ok(queries <= 26, `database round trips: ${queries}`);
+    assert.ok(discord.state.calls.length - reads <= 4, `Discord reads: ${discord.state.calls.length - reads}`);
+    // The policy is still checked: a newer recorded version refuses this process's checks.
+    await admin.query(`INSERT INTO sophie_core.capability_policies (guild_id, version, policy) VALUES ($1, $2, $3)`, [GUILD, policy.version + 1, { ...policy, version: policy.version + 1 }]);
+    await assert.rejects((async () => store.act({ ...await request(), requestId: requestId(), action: 'back', expectedVersion: shown.version + 1 }))(), error => error.code === 'CAPABILITY_POLICY_ROLLBACK');
+  }, 'open');
+
+  await scenario('SA15 Sophie tells Staff once for each Whitelist she gives, never for one given by hand', async () => {
+    // Owner request, 24 October 2026: a line in the staff bot channel when the Onboarding Activity gives Whitelist.
+    const announcing = createCoreStore({ pool, clock: () => now, authorize: authorization.authorize, authorizeRecorded: authorization.authorizeRecorded,
+      casePolicy, caseVerification: discord.channels.verification, whitelistNotices: true });
+    const granting = createRoleDispatcher({ outbox, store: announcing, discord: discord.roles, enabled: () => healthy });
+    const posts = [], CHANNEL = '100000000000000555';
+    let failNext = false;
+    const notices = createWhitelistNoticeDispatcher({ outbox, channelId: CHANNEL, enabled: () => healthy, transport: { guildId: GUILD,
+      async createWhitelistNotice(...input) { posts.push(input); if (failNext) { failNext = false; throw Object.assign(new Error('timeout'), { code: 'DISCORD_UNAVAILABLE' }); } } } });
+    const ride = async userId => {
+      let { run: shown } = await activity.board({ ...await member(userId), requestId: requestId() });
+      while (shown.status === 'reading') ({ run: shown } = await activity.act({ ...await member(userId), requestId: requestId(), action: 'advance', expectedVersion: shown.version }));
+    };
+    const drain = async dispatcher => { for (let i = 0; i < 20; i++) if ((await dispatcher.runOnce('activity-notices')).status === 'idle') return; assert.fail('queue did not drain'); };
+    await ride(USER); await drain(granting);
+    assert.equal(discord.state.members.get(USER).includes(WHITELIST), true);
+    const queued = (await rows('outbox')).filter(row => row.kind === 'whitelist.notice');
+    assert.equal(queued.length, 1); assert.equal(queued[0].user_id, USER);
+    // An uncertain send is tried again as the same post (the nonce comes from the job), and the job ends done.
+    failNext = true;
+    assert.equal((await notices.runOnce('activity-notices')).status, 'retry_scheduled');
+    await admin.query("UPDATE sophie_core.outbox SET available_at = clock_timestamp() WHERE kind = 'whitelist.notice'");
+    await drain(notices);
+    assert.equal(posts.length, 2); assert.deepEqual(posts[0], posts[1]);
+    const [channelId, nonce, body] = posts[0];
+    assert.equal(channelId, CHANNEL); assert.match(nonce, /^[a-f0-9]{24}$/u);
+    assert.equal(body.content, `**Whitelist granted** · <@${USER}> finished the Arrivals Shuttle and Sophie gave them Whitelist.`);
+    assert.deepEqual(body.allowed_mentions, { parse: [], users: [], roles: [], replied_user: false }, 'nobody is notified');
+    assert.deepEqual((await rows('outbox')).filter(row => row.kind === 'whitelist.notice').map(row => row.status), ['done']);
+    // A member given the role by hand before Sophie's grant ran: the run completes, and no notice is queued.
+    await ride(OWNER);
+    discord.state.members.set(OWNER, [...discord.state.members.get(OWNER), WHITELIST]);
+    await drain(granting);
+    assert.equal((await activity.describe(await member(OWNER))).run.whitelist, 'confirmed');
+    assert.equal((await rows('outbox')).filter(row => row.kind === 'whitelist.notice').length, 1);
   }, 'open');
 }

@@ -227,6 +227,13 @@ export const LINK_TIMEOUT_MS = 15_000;
 const LINK_RETRY_MS = Object.freeze([2_000, 5_000, 10_000, 20_000]);
 export const LINK_ATTEMPTS = LINK_RETRY_MS.length + 1;
 export function linkRetryDelay(attempt) { return Number.isInteger(attempt) && attempt >= 1 && attempt <= LINK_RETRY_MS.length ? LINK_RETRY_MS[attempt - 1] : null; }
+/**
+ * Waiting for Whitelist (Activity audit, 24 October 2026): Sophie's grant usually lands within seconds, so the first checks
+ * come quickly and later ones spread out, rather than one request every 5 s for ten minutes. The nth check's delay.
+ */
+const CLEARANCE_MS = Object.freeze([1_500, 2_500, 4_000, 6_000]);
+export const CLEARANCE_LATER_MS = 10_000;
+export function clearanceDelay(check) { return Number.isInteger(check) && check >= 1 && check <= CLEARANCE_MS.length ? CLEARANCE_MS[check - 1] : CLEARANCE_LATER_MS; }
 /** The status line while linking: which try this is, after the first. */
 export function linkingText(attempt) { return attempt > 1 ? TEXT.linkingTry.replace('{n}', String(attempt)).replace('{of}', String(LINK_ATTEMPTS)) : TEXT.linking; }
 

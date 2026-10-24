@@ -1,11 +1,11 @@
-import { ANNOUNCEMENTS, CHUNK_LIMIT, CODEX, GAMES, KEYS, READ_CPS, REVEAL_MAX_MS, TEXT, TIPS, TYPE_CPS, canResetJourney, cueEvent, pageProgress, LINK_TIMEOUT_MS, linkRetryDelay, linkingText, cueSheet, dialogueControls, linkState, momentFor,
+import { ANNOUNCEMENTS, CHUNK_LIMIT, CODEX, GAMES, KEYS, READ_CPS, REVEAL_MAX_MS, TEXT, TIPS, TYPE_CPS, canResetJourney, cueEvent, pageProgress, LINK_TIMEOUT_MS, linkRetryDelay, linkingText, clearanceDelay, cueSheet, dialogueControls, linkState, momentFor,
   presence, revealPoints, sceneStateFor, soundscape, speechMs, titleMenu, transmissionChunks, windowUser } from './presenter.js';
 import { parseMarkdown, plainText, renderMarkdown } from './markdown.js';
 
 const SETTINGS_KEY = 'shuttle.settings.v1', PLACE_KEY = 'shuttle.place.v1';
 const DEFAULT_SETTINGS = Object.freeze({ levels: { master: 100, music: 50, ambience: 70, radio: 80, effects: 80 }, sound: 'on', motion: 'system',
   text: 'typed', speed: 'normal', size: 'normal' });
-const POLL_MS = 5_000, POLL_LIMIT_MS = 10 * 60_000, RETRY_AFTER_MS = 120_000;
+const POLL_LIMIT_MS = 10 * 60_000, RETRY_AFTER_MS = 120_000;
 // Text ticks, at most this often, sound only while Sophie speaks: briefly at each stage and page (owner feedback,
 // 22 October 2026). The rest of the copy types out quietly.
 const TICK_MS = 110, TRAIL_MS = 1_500, WIPE_MS = 400, BANNER_MS = 4_500, TIP_MS = 12_000, CLOWN_MS = 6_000, LOG_LIMIT = 80, SWIPE_PX = 60;
@@ -27,7 +27,7 @@ export function createShuttle({ document, api, connect, player, loadScene, sound
   let view = 'splash', described = null, run = null, chunks = [''], chunk = 0, busy = false, started = false, linked = false;
   // Linking: whether a link attempt is running, which try it is, and the background check while a linked signal is lost.
   let linkingNow = false, linkAttempt = 1, heartbeat = null;
-  let discord = null, typing = null, poll = null, pendingSince = null, toastTimer = null, speechTimer = null, trailTimer = null, talking = false;
+  let discord = null, typing = null, poll = null, pollChain = 0, pendingSince = null, toastTimer = null, speechTimer = null, trailTimer = null, talking = false;
   let currentScene = null, cues = [], cueHandlers = {}, sectionScreen = null, statusScreen = null, showRadio = false, bannerTimer = null, transitTimer = null, tipTimer = null;
   let tip = Math.floor(random() * TIPS.length), konamiAt = 0, log = [], swipe = null, lastSwipe = -Infinity;
   // Text-synced moments reached on the page being read, and which page that is.
@@ -161,7 +161,7 @@ export function createShuttle({ document, api, connect, player, loadScene, sound
   function checkSignal(online) {
     if (online) { timers.clear(heartbeat); heartbeat = null; if (linked) signal('linked'); else if (linkingNow) signal('linking'); return; }
     signal('lost');
-    if (linked && heartbeat === null) heartbeat = timers.every(15_000, () => { api.describe().catch(() => {}); });
+    if (linked && heartbeat === null) heartbeat = timers.every(15_000, () => { if (!document.hidden) api.describe().catch(() => {}); });
   }
   /**
    * Back in the window (it was hidden, or another window had focus): a signal that was lost or never came back is tried
@@ -175,7 +175,9 @@ export function createShuttle({ document, api, connect, player, loadScene, sound
       await link({ fresh: true }); if (view === 'title') await showTitle();
       return;
     }
-    if (state === 'lost' && linked) { try { described = await api.describe(); } catch { /* The heartbeat keeps trying. */ } }
+    if (state === 'lost' && linked) { try { described = await api.describe(); } catch { /* The heartbeat keeps trying. */ } return; }
+    // Waiting for Whitelist: the checks paused while the window was hidden, so look now.
+    if (poll !== null && run?.status === 'pending') await check(false);
   }
   function toast(text, ms = 4_000) {
     const element = $('toast'); element.textContent = text; element.hidden = false;
@@ -609,12 +611,25 @@ export function createShuttle({ document, api, connect, player, loadScene, sound
   }
 
   // Clearance ------------------------------------------------------------------------------------------------------
+  /**
+   * Checks for Whitelist quickly at first, then less often (clearanceDelay), for up to ten minutes. A hidden window is not
+   * checked; returning to it checks at once (returned).
+   */
   function startPolling() {
     if (poll !== null) return;
     pendingSince ??= timers.now();
-    poll = timers.every(POLL_MS, () => { if (timers.now() - pendingSince > POLL_LIMIT_MS) stopPolling(); else check(false); });
+    // Each start is its own chain; one stopped (or replaced by a restart during its check) schedules nothing more.
+    const chain = ++pollChain;
+    let checks = 0;
+    const next = () => { poll = timers.after(clearanceDelay(++checks), async () => {
+      if (chain !== pollChain) return;
+      if (timers.now() - pendingSince > POLL_LIMIT_MS) { stopPolling(); return; }
+      if (!document.hidden) await check(false);
+      if (chain === pollChain && poll !== null) next();
+    }); };
+    next();
   }
-  function stopPolling() { if (poll !== null) timers.clear(poll); poll = null; }
+  function stopPolling() { pollChain++; if (poll !== null) timers.clear(poll); poll = null; }
   async function check(asked) {
     if (busy && asked) return;
     try {

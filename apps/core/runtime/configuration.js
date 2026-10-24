@@ -20,7 +20,7 @@ export function validateStagingRuntime(value) {
   const production = value?.environment === 'production';
   requireKeys(value, ['schemaVersion', 'environment', 'isolatedGuild', 'applicationId', 'publicKeyHex', 'mapping',
     'capabilityPolicy', 'casePolicy', 'limits', 'definitionId', 'captureEnabled', 'interactionPort', 'dashboardPort',
-    'dashboard', 'workerIntervalMs', 'exportPolicy', ...(production ? ['scope'] : []), ...['automationEnabled', 'activity', 'aiChannelExceptions', 'errorAlerts'].filter(key => Object.hasOwn(value, key))]);
+    'dashboard', 'workerIntervalMs', 'exportPolicy', ...(production ? ['scope'] : []), ...['automationEnabled', 'activity', 'aiChannelExceptions', 'errorAlerts', 'whitelistNotices'].filter(key => Object.hasOwn(value, key))]);
   requireCondition(value.schemaVersion === 1 && (value.environment === 'staging' && value.isolatedGuild === true ||
     production && value.isolatedGuild === false && value.scope === 'activity-ai'), 'ISOLATED_STAGING_REQUIRED');
   // Nothing that writes case records, captures messages, automates channels or exports cases runs in production.
@@ -37,6 +37,11 @@ export function validateStagingRuntime(value) {
     requireKeys(value.errorAlerts, ['channelId', 'roleName'], 'STAGING_CONFIGURATION_INVALID'); requireId(value.errorAlerts.channelId);
     requireCondition(typeof value.errorAlerts.roleName === 'string' && /^[A-Za-z0-9 _-]{1,100}$/u.test(value.errorAlerts.roleName) &&
       ![value.casePolicy?.categoryId, value.mapping?.guildId].includes(value.errorAlerts.channelId), 'STAGING_CONFIGURATION_INVALID');
+  }
+  // Where Sophie says she gave a member Whitelist (apps/core/discord/whitelist-notices.js); never the protected category.
+  if (value.whitelistNotices !== undefined) {
+    requireKeys(value.whitelistNotices, ['channelId'], 'STAGING_CONFIGURATION_INVALID'); requireId(value.whitelistNotices.channelId);
+    requireCondition(![value.casePolicy?.categoryId, value.mapping?.guildId].includes(value.whitelistNotices.channelId), 'STAGING_CONFIGURATION_INVALID');
   }
   requireId(value.applicationId); requireName(value.definitionId);
   requireCondition(typeof value.publicKeyHex === 'string' && /^[a-fA-F0-9]{64}$/.test(value.publicKeyHex), 'INTERACTION_VERIFIER_CONFIGURATION_INVALID');

@@ -14,6 +14,7 @@ import { createCaseIntakeDeliveryStore } from '../storage/case-intake-delivery.j
 import { createCaseDeliveryIssueStore } from '../storage/case-delivery-issues.js';
 import { createOutbox } from '../storage/outbox.js';
 import { createRoleDispatcher, createWhitelistGrantDispatcher, createMembershipDispatcher } from '../discord/dispatcher.js';
+import { createWhitelistNoticeDispatcher } from '../discord/whitelist-notices.js';
 import { createCaseDispatcher } from '../discord/case-dispatcher.js';
 import { createOnboardingDispatcher } from '../discord/onboarding-dispatcher.js';
 import { createOnboardingAlertDispatcher } from '../discord/onboarding-alert-dispatcher.js';
@@ -67,7 +68,8 @@ export function createAdministrationLane({ configuration, pool, token, fetch, cl
   const screens = createOnboardingMessages(messageOptions), alerts = createOnboardingAlertMessages(messageOptions), answers = createCaseIntakeMessages(messageOptions);
   const replyMessages = createCaseReplyMessages(messageOptions);
   const store = createCoreStore({ pool, clock, authorize, authorizeRecorded, resolveCaseResponder, resolveCaseParticipant, authorizeCaseParticipant,
-    casePolicy: policy, caseVerification: channels.verification, onboardingMessageVerification: screens.verification, onboardingAlertVerification: alerts.verification });
+    casePolicy: policy, caseVerification: channels.verification, onboardingMessageVerification: screens.verification, onboardingAlertVerification: alerts.verification,
+    whitelistNotices: configuration.whitelistNotices !== undefined });
   const intakeStore = createCaseIntakeStore({ pool, clock, authorize, authorizeRecorded, resolveCaseParticipant, authorizeCaseParticipant,
     policy, limits, verification: channels.verification });
   const deliveryStore = createCaseIntakeDeliveryStore({ pool, clock, policy, caseVerification: channels.verification, messageVerification: answers.verification });
@@ -114,9 +116,13 @@ export function createAdministrationLane({ configuration, pool, token, fetch, cl
     createCaseReplyDispatcher({ outbox, store: replyDelivery, roles, messages: replyMessages, enabled }),
     createAutomationDispatcher({outbox,store:automationDelivery,messages:automationMessages,enabled}),
     createOnboardingCleanup({ store, roles, enabled, clock })];
+  // Staff hear of each Whitelist Sophie gives, when a channel is configured (owner request, 24 October 2026).
+  const whitelistNotices = configuration.whitelistNotices === undefined ? null :
+    createWhitelistNoticeDispatcher({ outbox, transport, channelId: configuration.whitelistNotices.channelId, enabled });
+  if (whitelistNotices) workers.push(whitelistNotices);
   return { transport, roles, channels, authorization, store, intakeStore, replyStore, issueStore, intakeMessages: answers, replyMessages,
     screenMessages: screens, alertMessages: alerts, commands, workers, caseIntake, automationRecovery, sophieMember,
-    whitelistGrants: createWhitelistGrantDispatcher({ outbox, store, discord: roles, enabled }),
+    whitelistGrants: createWhitelistGrantDispatcher({ outbox, store, discord: roles, enabled }), whitelistNotices,
     responseAdapters: { onboardingNavigation: createOnboardingNavigation({ ...common, channels }), onboardingAssistance: assistance,
       onboardingDeliveryIssues: deliveryIssues, caseLifecycle, caseStaff, caseIntake, caseContacts, caseDeliveryIssues, publicAnswers, caseAnswers, knowledgeLookup, sophieMember } };
 }

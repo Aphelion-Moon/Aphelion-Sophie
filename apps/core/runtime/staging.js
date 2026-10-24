@@ -156,7 +156,11 @@ export async function createStagingRuntime({ configuration, pool, aiControlPool 
       channels:createAutomationChannels({transport}),ingress:createAutomationIngress({guildId:fixed.mapping.guildId,botUserId:fixed.mapping.botUserId,clock})}) : null,
     caseCapture: fixed.captureEnabled ? createCaseMessageCapture({ guildId: fixed.mapping.guildId, clock }) : null });
   const observer = createGatewayObserver({ journal, mapping: fixed.mapping, applicationId: fixed.applicationId, clock, ai: aiGateway });
-  const enabled = async () => await databaseActive() && await observer.isCurrent();
+  // Every Discord request and authorization check asks this gate (two database reads), several at once within one member's
+  // request; callers asking while a check is under way share its answer instead of each sending their own (Activity audit,
+  // 24 October 2026). Nothing is kept once it settles, so a later caller always checks afresh.
+  let gating = null;
+  const enabled = () => gating ??= (async () => await databaseActive() && await observer.isCurrent())().finally(() => { gating = null; });
   const gateway = createGatewaySupervisor({ observer, transport, connect, token, clock, random, enabled: active, renewMs: Math.floor(gatewayLeaseMs / 3) });
   const verifier = createInteractionVerifier({ publicKeyHex: fixed.publicKeyHex, applicationId: fixed.applicationId, guildId: fixed.mapping.guildId, clock });
   const authRoles = createDiscordRoles({ transport: createDiscordTransport({ guildId: fixed.mapping.guildId, token, fetch, clock, enabled, scope: runtimeScope(fixed), limits: rateLimits }),
@@ -310,6 +314,11 @@ export async function createStagingRuntime({ configuration, pool, aiControlPool 
         const startedAt = performance.now(), result = await delivery.whitelistGrants.runOnce(owner);
         if (!['idle', 'disabled'].includes(result?.status)) trace(`WHITELIST_GRANT_${String(result?.status).toUpperCase().replace(/[^A-Z]/g, '_').slice(0, 24)}`,
           { code: result?.code ?? null, ms: Math.min(99_999, Math.round(performance.now() - startedAt)) });
+        // Then the staff notice of a grant just confirmed, if configured.
+        if (delivery.whitelistNotices && active()) {
+          const noticed = await delivery.whitelistNotices.runOnce(owner);
+          if (!['idle', 'disabled'].includes(noticed?.status)) trace(`WHITELIST_NOTICE_${String(noticed?.status).toUpperCase().replace(/[^A-Z]/g, '_').slice(0, 24)}`, { code: noticed?.code ?? null });
+        }
         return;
       }
       await reconciler.runOnce();

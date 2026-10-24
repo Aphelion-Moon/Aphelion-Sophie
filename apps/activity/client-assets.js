@@ -19,6 +19,16 @@ const sha256 = bytes => createHash('sha256').update(bytes).digest('hex');
 export async function loadActivityClient(root) {
   const files = new Map();
   const json = async path => JSON.parse(await readFile(resolve(root, path), 'utf8'));
+  /** The page, with a modulepreload link for each module before the entry script. Its ETag is of the page as served. */
+  async function addPage(preloads) {
+    const page = await readFile(resolve(root, CLIENT_PAGE), 'utf8'), entry = `<script type="module" src="/${CLIENT_ENTRY}"></script>`;
+    if (page.split(entry).length !== 2) throw new Error('ACTIVITY_PAGE_ENTRY_INVALID');
+    const links = preloads.map(path => `<link rel="modulepreload" href="/${path}">
+`).join('');
+    const body = Buffer.from(page.replace(entry, `${links}${entry}`), 'utf8');
+    const file = Object.freeze({ body, type: TYPES['.html'], etag: `"${sha256(body).slice(0, 32)}"` });
+    files.set(`/${CLIENT_PAGE}`, file); files.set('/', file);
+  }
   async function add(path, expected = null) {
     const type = TYPES[extname(path)];
     if (!type) throw new Error(`ACTIVITY_ASSET_TYPE_UNSUPPORTED ${path}`);
@@ -26,10 +36,13 @@ export async function loadActivityClient(root) {
     if (expected !== null && digest !== expected) throw new Error(`ACTIVITY_ASSET_PIN_MISMATCH ${path}`);
     files.set(`/${path}`, Object.freeze({ body, type, etag: `"${digest.slice(0, 32)}"` }));
   }
-  await add(CLIENT_PAGE); files.set('/', files.get(`/${CLIENT_PAGE}`));
   const read = path => { try { return readFileSync(resolve(root, path), 'utf8'); } catch { return null; } };
   const sdk = await json('legal/embedded-app-sdk.json'), pinned = new Map(sdk.files.map(file => [file.path, file.sha256]));
-  for (const path of moduleClosure(read, '', [CLIENT_ENTRY])) await add(path, pinned.get(path) ?? null);
+  const modules = moduleClosure(read, '', [CLIENT_ENTRY]);
+  for (const path of modules) await add(path, pinned.get(path) ?? null);
+  // The page names every module the entry imports, so the browser fetches them together rather than one import level at a
+  // time; through Discord's proxy and the tunnel each level was a round trip on every open (Activity audit, 24 October 2026).
+  await addPage(modules.filter(path => path !== CLIENT_ENTRY));
   // The client must use every vendored module through the SDK's own imports, never a copy of its own.
   for (const path of pinned.keys()) if (!files.has(`/${path}`)) throw new Error(`ACTIVITY_SDK_INCOMPLETE ${path}`);
   await add('apps/activity/client/app.css');
