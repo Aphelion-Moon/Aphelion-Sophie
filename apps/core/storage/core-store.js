@@ -45,8 +45,12 @@ async function queueMemberInspection(client, member, suffix = 'observed') {
  * these methods must never be bound directly to client-controlled JSON.
  * authorize is injected by the composition root and must check current capabilities.
  */
-export function createCoreStore({ pool, clock, authorize, authorizeRecorded = async () => false, resolveCaseResponder = async () => null, resolveCaseParticipant = async () => null, authorizeCaseParticipant = async () => false, casePolicy = null, caseVerification = null, onboardingMessageVerification = null, onboardingAlertVerification = null, whitelistNotices = false }) {
-  requireCondition(typeof whitelistNotices === 'boolean', 'TRUSTED_ADAPTERS_REQUIRED');
+export function createCoreStore({ pool, clock, authorize, authorizeRecorded = async () => false, resolveCaseResponder = async () => null, resolveCaseParticipant = async () => null, authorizeCaseParticipant = async () => false, casePolicy = null, caseVerification = null, onboardingMessageVerification = null, onboardingAlertVerification = null, whitelistNotices = false, whitelistReconciliation = true }) {
+  requireCondition(typeof whitelistNotices === 'boolean' && typeof whitelistReconciliation === 'boolean', 'TRUSTED_ADAPTERS_REQUIRED');
+  // Production (Activity and AI only) runs no reconciliation and Sophie never removes Whitelist there, so it queues none: an
+  // uncertain grant is settled by its own next attempt (owner's production install of 24 October 2026 found one such job
+  // left behind, after the member's own update overtook the read confirming the add).
+  const reconcile = (...input) => whitelistReconciliation ? queueReconciliation(...input) : undefined;
   requireCondition(typeof clock === 'function' && typeof authorize === 'function', 'TRUSTED_ADAPTERS_REQUIRED');
   const checkAccess = async (capability, actor, scope) => requireCondition(await authorize(capability, actor, scope) === true, 'OPERATION_DENIED');
   requireCondition(typeof authorizeRecorded === 'function', 'TRUSTED_ADAPTERS_REQUIRED');
@@ -102,7 +106,7 @@ export function createCoreStore({ pool, clock, authorize, authorizeRecorded = as
             WHERE guild_id = $1 AND user_id = $2 AND kind = 'whitelist.grant'
               AND dispatch_started AND status IN ('cancelled', 'parked')
             ORDER BY created_at DESC, operation_id DESC LIMIT 1`, [member.guildId, member.userId]);
-          if (uncertain.rowCount) await queueReconciliation(client, member, uncertain.rows[0].operation_id, `observed.${member.version}`);
+          if (uncertain.rowCount) await reconcile(client, member, uncertain.rows[0].operation_id, `observed.${member.version}`);
         }
         const action = await latestMemberAction(client, member);
         const desired = action && (action.muted || action.status === 'pending') ? action.muted : null;
@@ -268,7 +272,7 @@ export function createCoreStore({ pool, clock, authorize, authorizeRecorded = as
         catch (error) {
           if (!(error instanceof ContractError)) throw error;
           await finishClaim(client, claim, 'cancelled', error.code);
-          if (job.dispatch_started || confirm) await queueReconciliation(client, member, claim.operationId);
+          if (job.dispatch_started || confirm) await reconcile(client, member, claim.operationId);
           return { deliver: false, reason: error.code, reconciliationRequired: job.dispatch_started || confirm };
         }
         if (confirm || member.observation.whitelist) {
@@ -338,7 +342,7 @@ export function createCoreStore({ pool, clock, authorize, authorizeRecorded = as
         const original = row.kind === 'whitelist.grant' ? claim.operationId : row.effect.sourceOperation;
         // The attempted job's unique operation identity, not an unbounded suffix chain.
         const suffix = `late.${claim.fence}.${row.kind === 'whitelist.grant' ? 'g' : 'r'}.${member.version}`;
-        await queueReconciliation(client, member, original, suffix);
+        await reconcile(client, member, original, suffix);
       });
     },
 

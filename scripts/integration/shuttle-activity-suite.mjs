@@ -11,7 +11,7 @@ import { createCoreAuthorization } from '../../apps/core/security/authorization.
 import { createCorePrincipals } from '../../apps/core/security/principals.js';
 import { createActivityAuth } from '../../apps/core/security/activity-auth.js';
 import { createOnboardingCommands } from '../../apps/core/discord/onboarding-commands.js';
-import { createRoleDispatcher } from '../../apps/core/discord/dispatcher.js';
+import { createRoleDispatcher, createWhitelistGrantDispatcher } from '../../apps/core/discord/dispatcher.js';
 import { createWhitelistNoticeDispatcher } from '../../apps/core/discord/whitelist-notices.js';
 import { simulatedCases, casePolicy } from '../../tests/fixtures/cases.js';
 import { CREW, BYOND_ROLE, WHITELIST, MUZZLED } from '../../tests/fixtures/discord.js';
@@ -337,6 +337,31 @@ export async function runShuttleActivitySuite(cluster, run) {
     await admin.query(`INSERT INTO sophie_core.capability_policies (guild_id, version, policy) VALUES ($1, $2, $3)`, [GUILD, policy.version + 1, { ...policy, version: policy.version + 1 }]);
     now += 1_501;
     await assert.rejects((async () => store.act({ ...await request(), requestId: requestId(), action: 'back', expectedVersion: shown.version + 1 }))(), error => error.code === 'CAPABILITY_POLICY_ROLLBACK');
+  }, 'open');
+
+  await scenario('SA17 in production an uncertain Whitelist add leaves no reconciliation job; its next attempt confirms it', async () => {
+    // Owner's production install, 24 October 2026: the read confirming an add failed (overtaken by the member's own update),
+    // and a whitelist.reconcile job was queued that nothing in production runs.
+    const uncertainAdd = async (store, userId) => {
+      let { run: shown } = await activity.board({ ...await member(userId), requestId: requestId() });
+      while (shown.status === 'reading') ({ run: shown } = await activity.act({ ...await member(userId), requestId: requestId(), action: 'advance', expectedVersion: shown.version }));
+      let added = false;
+      discord.state.afterWrite = async () => { added = true; };
+      discord.state.before = call => added && call.method === 'GET' && call.path.endsWith(`/members/${userId}`) ? (added = false, new Response(null, { status: 503 })) : null;
+      const dispatcher = createWhitelistGrantDispatcher({ outbox, store, discord: discord.roles, enabled: () => healthy });
+      assert.equal((await dispatcher.runOnce('activity-grants')).status, 'retry_scheduled');
+      discord.state.before = null; discord.state.afterWrite = null;
+      await admin.query("UPDATE sophie_core.outbox SET available_at = clock_timestamp() WHERE kind = 'whitelist.grant'");
+      assert.equal((await dispatcher.runOnce('activity-grants')).status, 'settled');
+      return (await rows('outbox')).filter(row => row.user_id === userId).map(row => row.kind).sort();
+    };
+    const production = createCoreStore({ pool, clock: () => now, authorize: authorization.authorize, authorizeRecorded: authorization.authorizeRecorded,
+      casePolicy, caseVerification: discord.channels.verification, whitelistReconciliation: false });
+    assert.deepEqual(await uncertainAdd(production, USER), ['whitelist.grant']);
+    assert.equal(discord.state.members.get(USER).includes(WHITELIST), true);
+    assert.equal((await activity.describe(await member(USER))).run.whitelist, 'confirmed');
+    // Where reconciliation runs (staging), the same uncertainty still queues it.
+    assert.deepEqual(await uncertainAdd(core, OWNER), ['whitelist.grant', 'whitelist.reconcile']);
   }, 'open');
 
   await scenario('SA15 Sophie tells Staff once for each Whitelist she gives, never for one given by hand', async () => {

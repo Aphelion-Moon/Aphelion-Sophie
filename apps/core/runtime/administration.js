@@ -69,7 +69,7 @@ export function createAdministrationLane({ configuration, pool, token, fetch, cl
   const replyMessages = createCaseReplyMessages(messageOptions);
   const store = createCoreStore({ pool, clock, authorize, authorizeRecorded, resolveCaseResponder, resolveCaseParticipant, authorizeCaseParticipant,
     casePolicy: policy, caseVerification: channels.verification, onboardingMessageVerification: screens.verification, onboardingAlertVerification: alerts.verification,
-    whitelistNotices: configuration.whitelistNotices !== undefined });
+    whitelistNotices: configuration.whitelistNotices !== undefined, whitelistReconciliation: runtimeScope(configuration) === 'full' });
   const intakeStore = createCaseIntakeStore({ pool, clock, authorize, authorizeRecorded, resolveCaseParticipant, authorizeCaseParticipant,
     policy, limits, verification: channels.verification });
   const deliveryStore = createCaseIntakeDeliveryStore({ pool, clock, policy, caseVerification: channels.verification, messageVerification: answers.verification });
