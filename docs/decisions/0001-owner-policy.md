@@ -2399,3 +2399,8 @@ This first release (scene art and one engine addition; no client logic):
 Still to come: the date and clock eggs (Halloween before the 31st, winter lights, night shift, welcome back) need scene
 conditions the engine does not have yet; the typed and tapped eggs (HONK, poking the sun, the barrel roll) need client
 code; then the Ring Hub rework.
+
+`e6aab6b` was installed over `8ad8324` at 12:41 UTC on 24 October (approval quoted in the packet's `approval.json`):
+2 files (the hangar scene and the scene engine), same runtime (Node 24.22.1), capability policy version 2 and
+credentials, no migration, no story change. All checks passed; the public host serves both files byte for byte. Folder
+`.agent_docs/aphelion-sophie/deployment-e6aab6b-production-2026-10-24`; `rollback.ps1` restores `8ad8324`.
