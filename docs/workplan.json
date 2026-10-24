@@ -1800,7 +1800,7 @@
       ],
       "remaining_scope": [
         "Main menu redesign, next: date and clock eggs (Halloween before 31 October, winter lights, night shift, welcome back), typed and tapped eggs (HONK, the sun, barrel roll), then the Ring Hub rework.",
-        "Owner: approve removing the one leftover whitelist.reconcile job from 16:12 UTC (a production database write; the installed check tolerates only that one). Confirm Sophie can post in the staff bot channel for Whitelist notices.",
+        "Owner: confirm Sophie can post in the staff bot channel for Whitelist notices (the leftover reconciliation job was removed 24 October 2026 at 17:49 UTC).",
         "Owner: Go live again in each channel on the new release (33e7a5d) when the AI is next tested; the onboarding Activity is the current focus.",
         "Owner: Go live in each channel on the dashboard; /sophie Yes.",
         "Live checks: a reply in #ask-sophie (code and Guidebook), a saved memory, Get my data, the Activity for a Lead Ops tester, a staff channel turn.",

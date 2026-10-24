@@ -2621,3 +2621,9 @@ assertion dropped) was merged into main as `33e7a5d` with `b959415`, and install
 migration, no story change. All checks passed; the installed check tolerates exactly the one `whitelist.reconcile` left at
 16:12 UTC under f288aae, whose removal awaits the owner. Folder
 `.agent_docs/aphelion-sophie/deployment-33e7a5d-production-2026-10-24`; `rollback.ps1` restores `a36973c`.
+
+On the owner's "Yes, remove the leftover whitelist.reconcile job from 16:12 UTC in production." the one job was deleted at
+17:49 UTC in a single transaction that first confirmed it was the only reconciliation job, still ready and never claimed,
+and that its grant had completed. A copy of the row and the result are in
+`.agent_docs/aphelion-sophie/production-cleanup-2026-10-24`. Production now holds no reconciliation job; later installed
+checks need tolerate none.
