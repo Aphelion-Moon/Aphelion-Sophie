@@ -414,6 +414,8 @@ test('T-ACT-CLI-23 Large text reaches the text, and Aa in the radio header switc
   assert.match(client, /\$\('radio-size'\)\.setAttribute\('aria-pressed', String\(settings\.size === 'large'\)\);/);
   assert.match(client, /settings\.size = settings\.size === 'large' \? 'normal' : 'large'; applySettings\(\); saveSettings\(\);/);
   assert.match(css, /@media \(pointer: coarse\) \{[\s\S]*\.radio-chip, \.sound-mute \{ min-width: 44px; min-height: 44px; \}/);
+  // The status line keeps a fixed size: it sits under the scene, and its growing with Large resized the scene (it flickered).
+  assert.match(css, /\.status-bar \{[^}]*font-size: 12px;/);
 });
 
 test('T-ACT-CLI-24 ♪ beside Aa opens the master volume and mute; M mutes; a slider drag is no swipe (member feedback, 24 October 2026)', async () => {

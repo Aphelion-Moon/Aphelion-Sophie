@@ -46,6 +46,9 @@ export function createSceneCanvas(canvas, { palette, background, font = 'Cozette
   /** Sizes the canvas for a grid inside a CSS box; returns the cell geometry actually used. */
   function resize(cssWidth, cssHeight, cols, rows, pixelRatio = 1) {
     const cellW = Math.max(1, Math.floor((cssWidth / cols) * pixelRatio)), cellH = Math.max(1, Math.floor((cssHeight / rows) * pixelRatio));
+    // The same grid at the same cell size keeps the picture: assigning the canvas's size wipes it, even to the same value.
+    if (geometry && geometry.cellW === cellW && geometry.cellH === cellH && geometry.cols === cols && geometry.rows === rows
+      && canvas.width === cellW * cols && canvas.height === cellH * rows) return geometry;
     canvas.width = cellW * cols; canvas.height = cellH * rows;
     canvas.style.width = `${(cellW * cols) / pixelRatio}px`; canvas.style.height = `${(cellH * rows) / pixelRatio}px`;
     geometry = { cellW, cellH, cols, rows };

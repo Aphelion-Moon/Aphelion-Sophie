@@ -2352,3 +2352,16 @@ opens a small master-volume slider with mute, plus M to mute. Test it, then publ
 4 client files, same runtime (Node 24.22.1), capability policy version 2 and credentials, no migration, no story change.
 All checks passed. Folder `.agent_docs/aphelion-sophie/deployment-2301f3a-production-2026-10-24`; `rollback.ps1`
 restores `df3856b`.
+
+### Aa made the page flicker — 24 October 2026
+
+The owner reported: "The entire page flickers when clicking the adjust text size button. Fix that and redeploy."
+Measured in headless Edge at 1280×720: Large grew the status line under the scene from 26.4 to 30.75 px, the stage
+shrank by 5 px, and the scene's size observer reassigned the canvas's size (to the same 768×680), which wipes it. The
+redraw waited for the next animation frame, so one empty scene was painted. Three changes:
+- the status line has a fixed size (12 px): it is window chrome, not reading text, so Large no longer moves the scene;
+- the scene canvas is resized only when its cell grid changes, so a few pixels within a cell keep the picture;
+- on a real resize the player draws the new frame at once, inside the size observer (before the browser paints),
+  so a window resize or a phone's rotation never shows an empty scene either.
+
+After the change, the same measurement shows no stage resize and no canvas wipe on Aa, at desktop and phone sizes.

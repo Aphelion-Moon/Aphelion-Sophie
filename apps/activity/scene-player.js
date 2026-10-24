@@ -55,7 +55,11 @@ export function createScenePlayer({ host, canvas, altElement, palette, backgroun
   }
   function wake() { painter.invalidate(); lastDraw = -Infinity; if (frameHandle === null) frameHandle = scheduler.request(tick); }
 
-  const stopObserving = observeSize(host, (width, height) => { size = { width, height }; chooseLayout(); wake(); layoutChanged(); });
+  // A resize can wipe the canvas, so the frame is drawn at once: size observers run before the browser paints, and waiting
+  // for the next animation frame put one empty scene on screen (the page flickered, owner report, 24 October 2026).
+  const stopObserving = observeSize(host, (width, height) => {
+    size = { width, height }; chooseLayout(); wake(); render(Math.floor(clock() * fps + 1e-6) / fps); layoutChanged();
+  });
 
   return {
     /** Shows a validated scene. */

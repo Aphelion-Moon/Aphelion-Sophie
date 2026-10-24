@@ -140,9 +140,9 @@ test('P44 people who walk in and talk keep the section clock: a new beat starts 
   // The pair walk in and talk once on the section's clock; on the wall clock (a hundred seconds in) it would be over.
   h.player.setState({ beat: 'looc' });
   h.run(3.4);
-  h.resize(960, 400);
+  // A resize draws one full frame at once; that frame is the one read.
   const mark = h.calls.text.length;
-  h.run(1 / 12);
+  h.resize(960, 400);
   const drawn = h.calls.text.slice(mark).sort((a, b) => a.y - b.y || a.x - b.x).map(call => call.ch).join('');
   assert.match(drawn, /hey,doourcharacters/);
   h.player.destroy();
@@ -154,5 +154,22 @@ test('P44 square windows are drawn as squares inside their cell, not as font gly
   h.run(1);
   assert.equal(h.calls.text.some(call => call.ch === '□' || call.ch === '■'), false);
   assert.ok(h.calls.rects.some(([x, y, w, hgt]) => w === 6 && hgt === 1 && x % 10 === 2 && y % 10 === 2), 'the top edge of a 6 px square centred in a 10 px cell');
+  h.player.destroy();
+});
+
+test('P42 a resize draws its frame at once, and a size that keeps the cell grid keeps the picture (Aa flickered, 24 October 2026)', async () => {
+  const h = harness();
+  let wipes = 0, width = 0;
+  Object.defineProperty(h.canvas, 'width', { get: () => width, set: value => { wipes++; width = value; } });
+  h.resize(960, 400); h.player.setScene(await sceneFile('baggage-hall')); h.run(1 / 30);
+  assert.equal(wipes, 1);
+  // A few pixels off within a cell (as when the status line grew): the same 10 px cells, so the canvas is neither resized nor wiped.
+  h.resize(960, 405);
+  assert.equal(wipes, 1, 'same cell grid, no wipe');
+  // A real change of size wipes the canvas, and the new frame is drawn before any scheduled frame runs.
+  const glyphs = h.calls.text.length;
+  h.resize(1200, 500);
+  assert.equal(wipes, 2);
+  assert.ok(h.calls.text.length > glyphs, 'drawn in the resize itself, not on the next animation frame');
   h.player.destroy();
 });

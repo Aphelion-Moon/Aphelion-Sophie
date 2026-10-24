@@ -287,7 +287,9 @@ h2.md-heading { font-size: 1.3em; }
 .log-list p { margin: 0 0 .6em; }
 
 /* Status line and messages */
-.status-bar { grid-column: 1 / -1; grid-row: 2; display: flex; justify-content: space-between; gap: 12px; padding: 4px var(--gutter); font-size: .75em; color: var(--ivory-dim);
+/* The status line is window chrome, not reading text: a fixed size, so Large never changes its height. It sits under the
+   scene, which repainted (and flickered) whenever the line grew (owner report, 24 October 2026). */
+.status-bar { grid-column: 1 / -1; grid-row: 2; display: flex; justify-content: space-between; gap: 12px; padding: 4px var(--gutter); font-size: 12px; color: var(--ivory-dim);
   letter-spacing: .12em; text-transform: uppercase; background: var(--bay); border-top: 1px solid var(--rule); z-index: 1; }
 .signal::before { content: '●'; margin-right: 6px; color: var(--amber); }
 .signal[data-state="linked"]::before { color: var(--holo); }
