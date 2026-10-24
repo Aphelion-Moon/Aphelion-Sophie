@@ -2505,3 +2505,8 @@ Fixed:
   grant (ACTIVITY_GRANT_QUEUED) and each Whitelist grant delivery outcome (WHITELIST_GRANT_*) are logged too. Detail is
   fixed tokens only, never content (T-ACT-CORE-16). The user ID in the host log is new: until now the log held codes only
   and only the alert channel named members.
+
+On the owner's "Commit, prepare, and install." (quoted in the packet's `approval.json`), `f288aae` was installed over
+`b45d7dd` at 15:12 UTC on 24 October: 4 files, same runtime (Node 24.22.1), capability policy version 2 and credentials, no
+migration, no story change. All checks passed. Folder
+`.agent_docs/aphelion-sophie/deployment-f288aae-production-2026-10-24`; `rollback.ps1` restores `b45d7dd`.

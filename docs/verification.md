@@ -1,5 +1,22 @@
 # Verification and release limits
 
+## Production install of f288aae — 24 October 2026
+
+- **Found in production (read only):** a member's final Continue was refused on every press with nothing logged; no
+  Whitelist grant was ever queued, and the only committed final Continue followed the owner's manual role. A second
+  member was at the last stop in the same state.
+- **Offline:** `npm test` 883 passed, including T-ACT-CORE-16 (a quiet retry or refusal is traced with user, request,
+  stop/status/version, phase, cause, retried codes, tries and ms; the host line starts with its UTC time; free text never
+  reaches the line) and the updated T-ACT-CORE-10; `npm run check` passed; storage `--suite=activity` 14 passed,
+  including SA14 (with a 6 s capability check, an observation made before it fails MEMBERSHIP_STALE, and the store's own
+  order queues the grant); `--suite=staging` 25 passed.
+- **Install:** preflight (installed b45d7dd verified; 4 reviewed files; runtime unchanged), pre-start, service
+  boundaries, installed checks and public hosts passed. Core's log lines carry UTC times from 15:12 UTC; after the restart
+  only two ACTIVITY_REQUEST_SIGNIN traces (sessions ended by the restart; the client signs in again) and no Activity fault
+  or PostgreSQL error.
+- **Not covered:** a real final Continue under load on the new order; the next arrivals show it, and if one is refused
+  again the log now says where and why.
+
 ## Production install of b45d7dd — 24 October 2026
 
 - **Cause found in production:** core's log after cba5358 held one ACTIVITY_CHANNELS_UNAVAILABLE, at the end of the
