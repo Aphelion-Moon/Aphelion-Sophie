@@ -2283,3 +2283,17 @@ over `68881eb` at 01:08 UTC on 24 October. It brings:
 The runtime, capability policy version 2 and credentials are unchanged, with no migration and no story change (Shuttle
 version 6 stays published). All checks passed. Folder `.agent_docs/aphelion-sophie/deployment-aff1bc0-production-2026-10-24`;
 `rollback.ps1` restores 68881eb.
+
+### Text size, and a way to it while reading — 24 October 2026
+
+A member (Sobyx) reported after their ride that the reading column's text is too small for some people, that Large in
+Settings made no difference, and that they never found Settings during the ride (the menu button sits in the top right
+corner). The owner directed "Fix both then publish and install."
+
+What changed:
+- **Large now works.** `body` resolved `--text` once, at `body`, so changing `--text` on `main` reached nothing. It had
+  done nothing since the first client build. `main` now reads `--text` again: Large takes the text from 16 to 20 px, and
+  the column, sheets and status bar scale with it. The hangar menu keeps its own size, which follows the art.
+- **Aa in the radio's header** switches between Normal and Large: the same setting as in Settings, saved on the device
+  in the same place, lit while Large, 44 px on touch screens. A pointer click leaves no focus on it, so Space and Enter
+  still turn pages. Settings stays where it is; no prompt interrupts the ride.

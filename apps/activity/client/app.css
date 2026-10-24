@@ -11,6 +11,9 @@
 * { box-sizing: border-box; }
 html, body { margin: 0; height: 100%; background: var(--bay); color: var(--ivory); overflow: hidden; }
 body { font: var(--text)/1.45 Cozette, ui-monospace, Consolas, monospace; -webkit-font-smoothing: none; -webkit-tap-highlight-color: transparent; }
+/* body resolves --text once, at body, so main must read it again for Large to reach anything (Large did nothing until
+   24 October 2026, member feedback). */
+main { font-size: var(--text); }
 main[data-text-size="large"] { --text: 20px; }
 [hidden] { display: none !important; }
 .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
@@ -142,6 +145,9 @@ main[data-speaking="trailing"] .wave i:is(:nth-child(-n + 4), :nth-last-child(-n
   letter-spacing: .1em; text-transform: uppercase; font-size: .8em; }
 .radio-stop { min-width: 0; color: var(--amber); font-size: .85em; letter-spacing: .08em; text-transform: uppercase;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+/* Text size in reach while reading (member feedback, 24 October 2026: nobody found it in Settings). Lit while Large. */
+.radio-size { flex: none; margin-left: auto; font-size: .9em; letter-spacing: 0; text-transform: none; }
+main .radio-size[aria-pressed="true"] { color: var(--bay); background: var(--holo); border-color: var(--holo); }
 .radio-text { padding: 12px 14px; overflow-y: auto; overscroll-behavior: contain; min-height: 6em; cursor: pointer; touch-action: pan-y; }
 .receiving { color: var(--holo-dim); letter-spacing: .12em; text-transform: uppercase; animation: blink 1s steps(2, jump-none) infinite; }
 .radio-text > :first-child { margin-top: 0; }
@@ -333,6 +339,7 @@ h2.md-heading { font-size: 1.3em; }
   /* The title menu keeps its 40 px rows so it fits the hangar window it sits in. */
   .control, .corner, .viewscreen-link, .arrival-card { min-height: 44px; }
   .corner { min-width: 44px; }
+  .radio-size { min-width: 44px; min-height: 44px; }
   .md-channel { min-height: 32px; }
   .setting-choice label { min-height: 44px; display: inline-flex; align-items: center; gap: 6px; }
   .setting input[type="range"] { min-height: 32px; }

@@ -182,7 +182,8 @@ with an ellipsis when long, and `@aphelion` always shows.
 - **Title sections.** Station log (this run's transmissions), Glossary (fixed; its sheet id stays `codex`), Settings and Credits. "?" shows
   the keys; L opens the log.
 - **Settings:** volume, music, ambience, radio and effect levels, sound on/off, motion, typed or instant text, text
-  speed, text size.
+  speed, text size. Text size is also the Aa button in the radio's header, lit while Large (member feedback,
+  24 October 2026: the setting was hard to find, and until then Large changed nothing).
 - **Sheets** (Settings, Glossary, Station log, Keys, Credits) share one shape: a header bar with the title and a close
   button that stays in reach, a body that scrolls on its own and opens at its top, and a backdrop that closes on a tap.
 - **Linking:** each try at linking with Discord and core is bounded (15 s). Failed tries are retried after 2, 5, 10 and

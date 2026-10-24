@@ -404,6 +404,18 @@ test('T-ACT-CLI-22 Resume picks up on the page the member was reading, not the s
   assert.match(client, /saved\.page >= 0 && saved\.page < chunks\.length\) return saved\.page;/);
 });
 
+test('T-ACT-CLI-23 Large text reaches the text, and Aa in the radio header switches it (member feedback, 24 October 2026)', async () => {
+  const page = await readFile(new URL('../apps/activity/client/index.html', import.meta.url), 'utf8');
+  const css = await readFile(new URL('../apps/activity/client/app.css', import.meta.url), 'utf8');
+  const client = await readFile(new URL('../apps/activity/client/shuttle.js', import.meta.url), 'utf8');
+  // body resolves --text at body; without main reading it again, Large changed nothing.
+  assert.match(css, /\nmain \{ font-size: var\(--text\); \}\nmain\[data-text-size="large"\] \{ --text: 20px; \}/);
+  assert.match(page, /<header class="radio-head">[\s\S]*?<button id="radio-size" type="button" class="chip radio-size" aria-pressed="false" aria-label="Large text"[^>]*>Aa<\/button>\s*<\/header>/);
+  assert.match(client, /\$\('radio-size'\)\.setAttribute\('aria-pressed', String\(settings\.size === 'large'\)\);/);
+  assert.match(client, /settings\.size = settings\.size === 'large' \? 'normal' : 'large'; applySettings\(\); saveSettings\(\);/);
+  assert.match(css, /@media \(pointer: coarse\) \{[\s\S]*\.radio-size \{ min-width: 44px; min-height: 44px; \}/);
+});
+
 test('T-ACT-CLI-20 a scene link is a real button over its slot while reading, opening the page through Discord', async () => {
   const page = await readFile(new URL('../apps/activity/client/index.html', import.meta.url), 'utf8');
   const client = await readFile(new URL('../apps/activity/client/shuttle.js', import.meta.url), 'utf8');

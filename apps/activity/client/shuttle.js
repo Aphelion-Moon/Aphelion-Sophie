@@ -51,6 +51,7 @@ export function createShuttle({ document, api, connect, player, loadScene, sound
     sound.setMuted(settings.sound === 'off');
     const motion = motionOn();
     player.setMotion(motion); root.dataset.motion = motion ? 'on' : 'off'; root.dataset.textSize = settings.size;
+    $('radio-size').setAttribute('aria-pressed', String(settings.size === 'large'));
   }
 
   function show(next) {
@@ -704,6 +705,12 @@ export function createShuttle({ document, api, connect, player, loadScene, sound
     $('radio-text').addEventListener('click', event => {
       if (event.target.closest('a, button') || timers.now() - lastSwipe < 400) return;
       if (revealing()) flushCues(); else if (typing) stopTyping();
+    });
+    // Aa, in the radio's header: the Settings sheet's text size, one tap from the text. A click with a pointer leaves no
+    // focus behind, so Space and Enter go on turning pages.
+    $('radio-size').addEventListener('click', event => {
+      settings.size = settings.size === 'large' ? 'normal' : 'large'; applySettings(); saveSettings(); sound.play('UI-05');
+      if (event.detail) event.currentTarget.blur();
     });
     $('transit').addEventListener('click', flushCues);
     $('radio-menu').addEventListener('click', async () => { sound.play('UI-03'); try { described = await api.describe(); } catch { /* Keep the last state. */ } await showTitle(); });
