@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
-import { ANNOUNCEMENTS, CODEX, TEXT, CHUNK_LIMIT, canResetJourney, dialogueControls, momentFor, pageProgress, presence, reachedBeats, revealPoints, sceneStateFor, soundscape, titleMenu, transmissionChunks, windowUser } from '../apps/activity/client/presenter.js';
+import { ANNOUNCEMENTS, CODEX, KEYS, TEXT, CHUNK_LIMIT, canResetJourney, dialogueControls, momentFor, pageProgress, presence, reachedBeats, revealPoints, sceneStateFor, soundscape, titleMenu, transmissionChunks, windowUser } from '../apps/activity/client/presenter.js';
 import { validateStageMoments } from '../modules/onboarding/activity-media.js';
 import { ACTIVITY_STOP_SCENES } from '../modules/onboarding/activity.js';
 import { parseInline, parseMarkdown, plainText, safeLink } from '../apps/activity/client/markdown.js';
@@ -410,10 +410,30 @@ test('T-ACT-CLI-23 Large text reaches the text, and Aa in the radio header switc
   const client = await readFile(new URL('../apps/activity/client/shuttle.js', import.meta.url), 'utf8');
   // body resolves --text at body; without main reading it again, Large changed nothing.
   assert.match(css, /\nmain \{ font-size: var\(--text\); \}\nmain\[data-text-size="large"\] \{ --text: 20px; \}/);
-  assert.match(page, /<header class="radio-head">[\s\S]*?<button id="radio-size" type="button" class="chip radio-size" aria-pressed="false" aria-label="Large text"[^>]*>Aa<\/button>\s*<\/header>/);
+  assert.match(page, /<header class="radio-head">[\s\S]*?<button id="radio-size" type="button" class="chip radio-chip radio-size" aria-pressed="false" aria-label="Large text"[^>]*>Aa<\/button>[\s\S]*?<\/header>/);
   assert.match(client, /\$\('radio-size'\)\.setAttribute\('aria-pressed', String\(settings\.size === 'large'\)\);/);
   assert.match(client, /settings\.size = settings\.size === 'large' \? 'normal' : 'large'; applySettings\(\); saveSettings\(\);/);
-  assert.match(css, /@media \(pointer: coarse\) \{[\s\S]*\.radio-size \{ min-width: 44px; min-height: 44px; \}/);
+  assert.match(css, /@media \(pointer: coarse\) \{[\s\S]*\.radio-chip, \.sound-mute \{ min-width: 44px; min-height: 44px; \}/);
+});
+
+test('T-ACT-CLI-24 ♪ beside Aa opens the master volume and mute; M mutes; a slider drag is no swipe (member feedback, 24 October 2026)', async () => {
+  const page = await readFile(new URL('../apps/activity/client/index.html', import.meta.url), 'utf8');
+  const css = await readFile(new URL('../apps/activity/client/app.css', import.meta.url), 'utf8');
+  const client = await readFile(new URL('../apps/activity/client/shuttle.js', import.meta.url), 'utf8');
+  // In the header, before Aa; the popover holds the same two settings as the Settings sheet.
+  assert.match(page, /<header class="radio-head">[\s\S]*?<button id="radio-sound" type="button" class="chip radio-chip radio-sound" aria-expanded="false" aria-controls="sound-pop" aria-label="Sound"[^>]*>♪<\/button>\s*<button id="radio-size"[\s\S]*?<div id="sound-pop" class="sound-pop" role="group" aria-label="Sound" hidden>[\s\S]*?<input id="sound-master" type="range" min="0" max="100" step="5">[\s\S]*?<button id="sound-mute" type="button" class="chip sound-mute" aria-pressed="false">Mute<\/button>\s*<\/div>\s*<\/header>/);
+  assert.match(client, /settings\.levels\.master = Number\(\$\('sound-master'\)\.value\); if \(settings\.sound === 'off'\) settings\.sound = 'on'; applySettings\(\); saveSettings\(\);/, 'moving the slider unmutes');
+  assert.match(client, /function muteSound\(off\) \{ settings\.sound = off \? 'off' : 'on'; applySettings\(\); saveSettings\(\);/);
+  assert.match(client, /\$\('radio-sound'\)\.toggleAttribute\('data-muted', muted\)/);
+  assert.match(client, /\$\('sound-master'\)\.value = String\(settings\.levels\.master\)/, 'Settings and the popover show one value');
+  // M anywhere outside a sheet; Esc closes the popover first; a tap elsewhere or leaving the radio closes it.
+  assert.match(client, /if \(\['m', 'M'\]\.includes\(event\.key\)\) \{ muteSound\(settings\.sound !== 'off'\); return; \}/);
+  assert.match(client, /if \(!soundPanel\(false, true\) && !closeSheets\(\) && view === 'radio'\)/);
+  assert.match(client, /document\.addEventListener\('pointerdown', event => \{ if \(!event\.target\.closest\?\.\('#sound-pop, #radio-sound'\)\) soundPanel\(false\); \}\)/);
+  assert.match(client, /if \(next !== 'radio'\) \{ setStatus\(null\); soundPanel\(false\); \}/);
+  assert.match(client, /event\.target\.closest\('button, a, input'\)\) return;\s*lastSwipe = timers\.now\(\);/);
+  assert.ok(KEYS.some(([key]) => key === 'M'));
+  assert.match(css, /\.sound-pop \{ position: absolute; z-index: 2; top: calc\(100% \+ 4px\);/);
 });
 
 test('T-ACT-CLI-20 a scene link is a real button over its slot while reading, opening the page through Discord', async () => {

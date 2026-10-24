@@ -84,7 +84,12 @@
         <header class="radio-head">
           <h2 id="radio-speaker" class="sr-only">Sophie · Community Services</h2>
           <span id="radio-stop" class="radio-stop"></span>
-          <button id="radio-size" type="button" class="chip radio-size" aria-pressed="false" aria-label="Large text" title="Large text">Aa</button>
+          <button id="radio-sound" type="button" class="chip radio-chip radio-sound" aria-expanded="false" aria-controls="sound-pop" aria-label="Sound" title="Sound">♪</button>
+          <button id="radio-size" type="button" class="chip radio-chip radio-size" aria-pressed="false" aria-label="Large text" title="Large text">Aa</button>
+          <div id="sound-pop" class="sound-pop" role="group" aria-label="Sound" hidden>
+            <label class="sound-level"><span>Volume</span><input id="sound-master" type="range" min="0" max="100" step="5"></label>
+            <button id="sound-mute" type="button" class="chip sound-mute" aria-pressed="false">Mute</button>
+          </div>
         </header>
         <div id="radio-text" class="radio-text" aria-hidden="true"></div>
         <div id="radio-live" class="sr-only" aria-live="polite"></div>

@@ -2333,3 +2333,17 @@ credentials are unchanged, with no migration and no story change (Shuttle versio
 The first attempt (`1d3c0ff`, folder `deployment-1d3c0ff-production-2026-10-24`) stopped at `NODE_RUNTIME_CHANGED` with
 Sophie down from 10:51:15 to 10:54:41 UTC, when its `rollback.ps1` had restored `aff1bc0`. Folder
 `.agent_docs/aphelion-sophie/deployment-df3856b-production-2026-10-24`; `rollback.ps1` restores `aff1bc0` on Node 24.19.0.
+
+### Sound beside Aa — 24 October 2026
+
+Sobyx followed up: most members ride the Shuttle once, so what they need during it is to read the text and not be
+deafened; volume belongs next to the text, like text size. A launch prompt and a pointer to the menu were considered
+and not taken (the owner dislikes apps that open in settings). The owner directed: "add a sound chip beside Aa that
+opens a small master-volume slider with mute, plus M to mute. Test it, then publish and install."
+
+- **♪** sits before Aa in the radio's header and opens a popover with the master volume and Mute: the same settings
+  as the Settings sheet, saved in the same place. It is lit while open, and rose with a × while muted.
+- Moving the slider while muted unmutes. A tap elsewhere, Esc, or leaving the radio closes the popover. Opened from the
+  keyboard, focus goes to the slider and Esc returns it to ♪; a pointer leaves no focus behind.
+- **M** mutes and unmutes anywhere outside a sheet; the keys card lists it.
+- A slider dragged sideways is not taken for a page swipe.

@@ -122,7 +122,7 @@ export const CODEX = Object.freeze([
 /** Keys and gestures, for the help card. */
 export const KEYS = Object.freeze([
   ['↑  ↓  1–9', 'Main menu: move, or pick a choice by its number'], ['→  Enter  Space', 'Next / Continue'], ['←  Backspace', 'Back'], ['Swipe', 'Next or back, on touch screens'],
-  ['Tap the text', 'Show it all at once'], ['V', 'Switch the status window: radio or extras'], ['L', 'Station log'], ['Esc', 'Close a panel, or the menu'], ['?', 'This card'],
+  ['Tap the text', 'Show it all at once'], ['V', 'Switch the status window: radio or extras'], ['M', 'Sound off or on'], ['L', 'Station log'], ['Esc', 'Close a panel, or the menu'], ['?', 'This card'],
 ]);
 
 // About one idea a page, as visual novels pace their text boxes (owner review, 22 October 2026).

@@ -52,13 +52,26 @@ export function createShuttle({ document, api, connect, player, loadScene, sound
     const motion = motionOn();
     player.setMotion(motion); root.dataset.motion = motion ? 'on' : 'off'; root.dataset.textSize = settings.size;
     $('radio-size').setAttribute('aria-pressed', String(settings.size === 'large'));
+    const muted = settings.sound === 'off';
+    $('radio-sound').toggleAttribute('data-muted', muted); $('radio-sound').setAttribute('aria-label', muted ? 'Sound, muted' : 'Sound');
+    $('sound-mute').setAttribute('aria-pressed', String(muted)); $('sound-master').value = String(settings.levels.master);
+  }
+  function muteSound(off) { settings.sound = off ? 'off' : 'on'; applySettings(); saveSettings(); if (!off) sound.play('UI-05'); }
+  /** Opens or closes the sound popover; true when it was open. Focus inside it goes back to ♪ or, after a pointer, nowhere. */
+  function soundPanel(open, keyboard = false) {
+    const panel = $('sound-pop'), chip = $('radio-sound');
+    if (!open && panel.hidden) return false;
+    if (!open && panel.contains(document.activeElement)) { if (keyboard) chip.focus(); else document.activeElement.blur(); }
+    panel.hidden = !open; chip.setAttribute('aria-expanded', String(open));
+    if (open && keyboard) $('sound-master').focus();
+    return true;
   }
 
   function show(next) {
     view = next; root.dataset.view = next;
     for (const id of ['splash', 'title', 'radio']) $(id).hidden = id !== next;
     $('radio-menu').hidden = next !== 'radio';
-    if (next !== 'radio') setStatus(null);
+    if (next !== 'radio') { setStatus(null); soundPanel(false); }
     if (next === 'radio') { timers.clear(tipTimer); tipTimer = null; }
     placeSlot();
   }
@@ -712,6 +725,18 @@ export function createShuttle({ document, api, connect, player, loadScene, sound
       settings.size = settings.size === 'large' ? 'normal' : 'large'; applySettings(); saveSettings(); sound.play('UI-05');
       if (event.detail) event.currentTarget.blur();
     });
+    // ♪, beside Aa: the master volume and mute from Settings, one tap from the text (member feedback, 24 October 2026).
+    // Opened from the keyboard, focus goes to the slider; a tap anywhere else closes it.
+    $('radio-sound').addEventListener('click', event => {
+      soundPanel($('sound-pop').hidden, !event.detail); sound.play('UI-02');
+      if (event.detail) event.currentTarget.blur();
+    });
+    $('sound-master').addEventListener('input', () => {
+      settings.levels.master = Number($('sound-master').value); if (settings.sound === 'off') settings.sound = 'on'; applySettings(); saveSettings();
+    });
+    $('sound-master').addEventListener('change', () => sound.play('UI-05'));
+    $('sound-mute').addEventListener('click', () => muteSound(settings.sound !== 'off'));
+    document.addEventListener('pointerdown', event => { if (!event.target.closest?.('#sound-pop, #radio-sound')) soundPanel(false); });
     $('transit').addEventListener('click', flushCues);
     $('radio-menu').addEventListener('click', async () => { sound.play('UI-03'); try { described = await api.describe(); } catch { /* Keep the last state. */ } await showTitle(); });
     // Swipe left for the next page, right for the previous one (touch and pen; a mouse uses the buttons).
@@ -719,7 +744,8 @@ export function createShuttle({ document, api, connect, player, loadScene, sound
     $('radio').addEventListener('pointerup', event => {
       if (!swipe) return;
       const dx = event.clientX - swipe.x, dy = event.clientY - swipe.y; swipe = null;
-      if (Math.abs(dx) < SWIPE_PX || Math.abs(dy) > Math.abs(dx) / 2 || event.target.closest('button, a')) return;
+      // A slider dragged sideways (the sound popover's) is not a swipe.
+      if (Math.abs(dx) < SWIPE_PX || Math.abs(dy) > Math.abs(dx) / 2 || event.target.closest('button, a, input')) return;
       lastSwipe = timers.now();
       if (dx < 0) forward(); else back();
     });
@@ -728,9 +754,10 @@ export function createShuttle({ document, api, connect, player, loadScene, sound
       konami(event.key);
       // The key that leaves the splash must not also press the title menu's first item.
       if (view === 'splash') { event.preventDefault(); begin(); return; }
-      if (event.key === 'Escape') { if (!closeSheets() && view === 'radio') $('radio-menu').click(); return; }
+      if (event.key === 'Escape') { if (!soundPanel(false, true) && !closeSheets() && view === 'radio') $('radio-menu').click(); return; }
       if (SHEETS.some(id => !$(id).hidden)) return;
       if (event.key === '?') { sound.play('UI-02'); openSheet('keys'); return; }
+      if (['m', 'M'].includes(event.key)) { muteSound(settings.sound !== 'off'); return; }
       const onControl = event.target.closest?.('button, a, input');
       if (['l', 'L'].includes(event.key) && log.length) { sound.play('UI-02'); openSheet('log'); return; }
       if (view === 'radio' && !onControl) {
