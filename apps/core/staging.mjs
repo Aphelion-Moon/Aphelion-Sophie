@@ -23,7 +23,7 @@ async function main() {
       !Object.hasOwn(options, args[index]), 'STAGING_ARGUMENTS_INVALID'); options[args[index]] = args[index + 1];
   }
   requireCondition(mode === 'start' || (!options['--owner-database'] && !options['--credentials']), 'STAGING_ARGUMENTS_INVALID');
-  requireCondition(process.version === 'v24.19.0', 'REVIEWED_NODE_RUNTIME_REQUIRED');
+  requireCondition(process.version === 'v24.22.1', 'REVIEWED_NODE_RUNTIME_REQUIRED');
   const configuration = await readRuntimeJson(options['--config']); validateStagingRuntime(configuration);
   if (mode === 'check') {
     requireCondition(Object.keys(options).length === 1, 'STAGING_ARGUMENTS_INVALID');

@@ -14,7 +14,7 @@ try {
     requireCondition(['--seed', '--confirm-guild'].includes(args[index]) && !Object.hasOwn(options, args[index]), 'STAGING_ARGUMENTS_INVALID');
     options[args[index]] = args[index + 1];
   }
-  requireCondition(process.version === 'v24.19.0', 'REVIEWED_NODE_RUNTIME_REQUIRED');
+  requireCondition(process.version === 'v24.22.1', 'REVIEWED_NODE_RUNTIME_REQUIRED');
   const seed = await readRuntimeJson(options['--seed']); validateStagingSeed(seed);
   if (mode === 'plan') { requireCondition(Object.keys(options).length === 1, 'STAGING_ARGUMENTS_INVALID'); report(stagingBootstrapPlan(seed)); }
   else {

@@ -18,7 +18,7 @@ try {
     options[args[index]] = args[index + 1];
   }
   requireCondition(['--config', '--database', '--vault', '--confirm-guild', ...(mode === 'verify' ? ['--job'] : [])].every(key => options[key]), 'ATTACHMENT_OPERATIONS_ARGUMENTS_INVALID');
-  requireCondition(process.version === 'v24.19.0', 'REVIEWED_NODE_RUNTIME_REQUIRED');
+  requireCondition(process.version === 'v24.22.1', 'REVIEWED_NODE_RUNTIME_REQUIRED');
   const configuration = await readRuntimeJson(options['--config']); validateStagingRuntime(configuration);
   requireCondition(configuration.mapping.guildId === options['--confirm-guild'], 'ATTACHMENT_INVENTORY_GUILD_REQUIRED');
   const database = await readRuntimeJson(options['--database']); requireStagingDatabase(database);

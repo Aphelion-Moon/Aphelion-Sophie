@@ -2297,3 +2297,24 @@ What changed:
 - **Aa in the radio's header** switches between Normal and Large: the same setting as in Settings, saved on the device
   in the same place, lit while Large, 44 px on touch screens. A pointer click leaves no focus on it, so Space and Enter
   still turn pages. Settings stays where it is; no prompt interrupts the ride.
+
+### Node.js 24.22.1 replaces 24.19.0 — 24 October 2026
+
+The first install of `1d3c0ff` stopped at its runtime check (`NODE_RUNTIME_CHANGED`): the host Node had been updated to
+24.22.1 between installs. The services were stopped by the failed step; `rollback.ps1` returned production to `aff1bc0`.
+The owner explained: "We had to update NODE globally because of CVE's. Update Sophie and redeploy."
+
+This approves Node.js **24.22.1** Windows x64 in place of 24.19.0 under the same scope as the 28 September approval
+(private packaging of the exact binary with its retained notices; not separate adoption of its components, other
+versions, redistribution or containers). Review folder `.agent_docs/aphelion-sophie/node-distribution-24.22.1`:
+- the executable (SHA-256 `d702daa815eabbff763c7d3808e235cf031cf2ca70211b56847bc72f51e240e5`) is the host copy and
+  matches the published `win-x64/node.exe` hash in the release's `SHASUMS256.txt`; Authenticode is valid, signed by the
+  OpenJS Foundation (a renewed certificate, same subject);
+- the static PE imports and the seven supplemental notices are identical to 24.19.0's;
+- the vendor LICENSE (the tag's, with the CRLF line endings the Windows distribution ships, a method checked against the
+  recorded 24.19.0 copy) differs only in the bundled zlib's version line and copyright year;
+- the distribution zip was not downloaded; its published hash is recorded.
+
+Sophie's pins move with it: `legal/node-runtime.json`, `legal/DEPENDENCIES.json`, the engines in `package.json` and the
+lock, `.node-version`, and the five entry points that require the reviewed version. The installed runtime folder
+(`package\runtime`: `node.exe`, `LICENSE`, notices) is replaced in the same install as the code.

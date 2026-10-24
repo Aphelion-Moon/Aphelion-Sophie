@@ -25,7 +25,7 @@ try {
     options[args[index]] = args[index + 1];
   }
   requireCondition(names.every(name => Object.hasOwn(options, name)), 'SHUTTLE_PUBLISHING_ARGUMENTS_INVALID');
-  requireCondition(process.version === 'v24.19.0', 'REVIEWED_NODE_RUNTIME_REQUIRED');
+  requireCondition(process.version === 'v24.22.1', 'REVIEWED_NODE_RUNTIME_REQUIRED');
   requireElevatedSession();
   const configuration = await readRuntimeJson(options['--config']); validateStagingRuntime(configuration);
   requireCondition(configuration.mapping.guildId === options['--confirm-guild'], 'SHUTTLE_PUBLISHING_GUILD_REQUIRED');

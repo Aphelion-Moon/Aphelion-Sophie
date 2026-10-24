@@ -12,7 +12,7 @@ try {
   const [mode, option, path, ...extra] = process.argv.slice(2);
   requireCondition(['backup', 'preserve-staging-032', 'restore'].includes(mode) && option === '--request' && path && extra.length === 0, 'RECOVERY_ARGUMENTS_INVALID');
   const backup = mode !== 'restore';
-  requireCondition(process.version === 'v24.19.0', 'REVIEWED_NODE_RUNTIME_REQUIRED');
+  requireCondition(process.version === 'v24.22.1', 'REVIEWED_NODE_RUNTIME_REQUIRED');
   const request = await readRuntimeJson(path);
   requireKeys(request, ['environment', 'databasePath', 'keyPath', 'binaryRoot', 'parent', 'maxDatabaseBytes', 'confirmGuildId',
     ...(backup ? ['configurationPath', 'buildId', 'vaultRoots'] : ['bundleDirectory', 'manifestSha256'])]);

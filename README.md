@@ -11,7 +11,7 @@ case records do not expire automatically.
 
 See the [setup guide](docs/discord-staging-setup.md),
 [configuration template](config/staging.example.json), [workplan](docs/workplan.md),
-and [verification](docs/verification.md). Use Node.js 24.19.0 and the pinned dependencies:
+and [verification](docs/verification.md). Use Node.js 24.22.1 and the pinned dependencies:
 
     npm ci --ignore-scripts --omit=optional
     npm test

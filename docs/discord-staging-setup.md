@@ -11,7 +11,7 @@ Scope: P07/P09/P26/P27; partial T03–T07/T13–T16/T18/T22/T36/T57 evidence. Se
 
 ## Prepare the isolated resources
 
-Use Node 24.19.0 and the pinned dependencies (`npm ci --ignore-scripts --omit=optional`).
+Use Node 24.22.1 and the pinned dependencies (`npm ci --ignore-scripts --omit=optional`).
 The existing PostgreSQL 17.11 binary review permits isolated synthetic testing;
 production distribution review remains open. Use a separately approved, empty
 local test cluster, its own data directory and unused loopback port. Do not use
