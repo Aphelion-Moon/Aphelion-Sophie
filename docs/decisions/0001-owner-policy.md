@@ -2223,3 +2223,18 @@ Check sign]. We have an emoji which we added to memorialize her too, :mikmoff: â
     Discord.
   - The memorial's slot is the whole plaque, an easier tap than one line, and her name is drawn in the link colour:
     https://meridian.a13.info/players/?ckey=arcanaobscura&tab=art.
+
+### Production install of 68881eb and Shuttle version 6 â€” 24 October 2026
+
+On the owner's "Commit it, install it in production with the checks, and publish story revision 5 as Shuttle version 6"
+(with the alert-context and gallery-link requests made while it was built; quoted in the packet's `approval.json`),
+`68881eb` was installed over `a4f8b71` at 00:33 UTC on 24 October. It brings:
+- the memorial for ArcanaObscura, linking her gallery;
+- clearer links, without the hangar's name line;
+- the no-link wording;
+- alerts that name who was affected;
+- lock timeouts retried.
+
+The runtime, capability policy version 2 and credentials are unchanged, with no migration. All checks passed. Story
+revision 5 was published as **Shuttle version 6**, and 1 ride in progress restarted at the first stop. Folder
+`.agent_docs/aphelion-sophie/deployment-68881eb-production-2026-10-24`; `rollback.ps1` restores a4f8b71.

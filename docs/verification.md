@@ -1,5 +1,22 @@
 # Verification and release limits
 
+## Production install of 68881eb and Shuttle version 6 — 24 October 2026
+
+- **Offline:**
+  - `npm test` 865 passed:
+    - T-ACT-CORE-10: lock timeouts retried, and a persistent one alerts with member and request;
+    - T-ALERT-07: affected members listed, never notified;
+    - the memorial layout, cross and candles, the scene link and its button;
+    - T-ACT-CLI-19: clickable styling and rule links;
+  - `npm run check` passed; storage 1037 passed.
+- **Install:**
+  - preflight: 13 reviewed files, one new; runtime unchanged;
+  - pre-start, service boundaries, installed checks and public hosts passed;
+  - version 6 published (1 run reset);
+  - the public host serves the scene with the gallery link and slot, and the page's link button.
+- **Not covered:** the memorial and the gallery link on real devices, and an alert with context. The next error shows the
+  latter.
+
 ## Production install of a4f8b71 and Shuttle version 5 — 24 October 2026
 
 - **Offline:**
