@@ -23,6 +23,10 @@ const MEMBER_BURST = 8, MEMBER_REFILL_PER_SECOND = 1, MEMBER_IN_FLIGHT = 2, MEMB
 // not a fault to alert on.
 const DISCORD_TRANSIENT = new Set(['DISCORD_BUSY', 'RATE_LIMITED', 'DISCORD_UNAVAILABLE']);
 const discordTransient = error => error instanceof DiscordError && DISCORD_TRANSIENT.has(error.code);
+// What the extras of a reply (channel links, game channels, station board, boarding pass) may meet and still be fine: Discord
+// not now, or a role read overtaken by a change to the member. At the end of the ride Sophie has just granted Whitelist,
+// so the member's own role change regularly overtakes these reads (owner report, 24 October 2026: an alert at the end).
+const passing = error => discordTransient(error) || (error instanceof ContractError && TRANSIENT.has(error.code));
 // The game servers' info channels, offered with their quick-connect buttons once the member has Whitelist (owner, 24 October
 // 2026): before that they cannot see them.
 const GAME_INFO_CHANNELS = Object.freeze(['ss13-info', 'ss14-info']);
@@ -141,13 +145,13 @@ export function createActivityHttpServer({ configuration, applicationId, guildId
     if (!run || channels === null) return withStation(result, userId);
     const confirmed = run.whitelist === 'confirmed';
     try {
-      const found = await channels.resolve({ userId, pages: run.pages, arrival: confirmed ? run.arrivalChannels ?? [] : null });
+      const found = await settled(() => channels.resolve({ userId, pages: run.pages, arrival: confirmed ? run.arrivalChannels ?? [] : null }));
       run.channels = found.mentions;
       if (confirmed) {
         const named = [...new Map(Object.values(found.mentions).map(channel => [channel.id, { id: channel.id, name: channel.name }])).values()];
         run.arrival = found.arrival.length ? found.arrival : named;
       }
-    } catch (error) { if (!discordTransient(error)) fault('ACTIVITY_CHANNELS_UNAVAILABLE', { userId }); run.channels = {}; if (confirmed) run.arrival = []; }
+    } catch (error) { if (!passing(error)) fault('ACTIVITY_CHANNELS_UNAVAILABLE', { userId }); run.channels = {}; if (confirmed) run.arrival = []; }
     return withStation(result, userId);
   }
   /**
@@ -158,8 +162,8 @@ export function createActivityHttpServer({ configuration, applicationId, guildId
     if (!result || typeof result !== 'object' || !seen.whitelisted) return;
     let found = {};
     if (channels !== null) {
-      try { found = await channels.named({ userId: seen.userId, names: GAME_INFO_CHANNELS }); }
-      catch (error) { if (!discordTransient(error)) fault('ACTIVITY_CHANNELS_UNAVAILABLE', { userId: seen.userId }); }
+      try { found = await settled(() => channels.named({ userId: seen.userId, names: GAME_INFO_CHANNELS })); }
+      catch (error) { if (!passing(error)) fault('ACTIVITY_CHANNELS_UNAVAILABLE', { userId: seen.userId }); }
     }
     (result.run ?? result).games = { channels: found };
   }
@@ -170,9 +174,13 @@ export function createActivityHttpServer({ configuration, applicationId, guildId
   async function withStation(result, userId) {
     const run = result?.run;
     if (!run || station === null || (run.status === 'reading' && run.stop < run.stops.length - 1)) return result;
-    try { run.station = await station.station(); } catch (error) { if (!discordTransient(error)) fault('ACTIVITY_STATION_UNAVAILABLE', { userId }); }
-    try { const pass = await station.pass(userId); if (pass) run.pass = pass; } catch (error) { if (!discordTransient(error)) fault('ACTIVITY_PASS_UNAVAILABLE', { userId }); }
+    try { run.station = await settled(() => station.station()); } catch (error) { if (!passing(error)) fault('ACTIVITY_STATION_UNAVAILABLE', { userId }); }
+    try { const pass = await settled(() => station.pass(userId)); if (pass) run.pass = pass; } catch (error) { if (!passing(error)) fault('ACTIVITY_PASS_UNAVAILABLE', { userId }); }
     return result;
+  }
+  /** An extra read that meets a passing failure is tried once more after a short pause; a second failure is left to the caller. */
+  async function settled(read) {
+    try { return await read(); } catch (error) { if (!passing(error)) throw error; await pause(RETRY_DELAYS_MS[0]); return read(); }
   }
   async function attempt(work) {
     for (let tries = 0; ; tries++) {

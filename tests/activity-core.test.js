@@ -392,3 +392,32 @@ test('T-ACT-CORE-14 the game buttons come only with Whitelist as Discord shows i
     assert.deepEqual(run.calls.filter(([name]) => name === 'fault'), []);
   } finally { await run.http.close(); }
 });
+
+test('T-ACT-CORE-15 at the end of the ride the member\'s own role change can overtake the channel reads: tried again, then quiet', async () => {
+  // Sophie has just granted Whitelist; the member update makes a role read in flight OBSERVATION_INVALIDATED.
+  const arrivalRun = { whitelist: 'confirmed', status: 'boarded', pages: ['Head to #general.'], stops: [], stop: 0, arrivalChannels: [] };
+  const describe = { async describe() { return { state: 'run', run: structuredClone(arrivalRun) }; } };
+  let tries = 0;
+  const once = { async resolve() { if (++tries === 1) throw new ContractError('OBSERVATION_INVALIDATED'); return { mentions: { '#general': { id: '100000000000000777', name: 'general' } }, arrival: [] }; },
+    async named() { return {}; } };
+  const retried = await server({ channels: once, store: describe, server: { discord: { observe: async userId => ({ observed: userId, whitelist: true }) } } });
+  try {
+    const body = await (await retried.request('/api/shuttle')).json();
+    assert.equal(tries, 2); assert.deepEqual(body.run.arrival, [{ id: '100000000000000777', name: 'general' }], 'the second read gives the arrival channels');
+    assert.deepEqual(retried.calls.filter(([name]) => name === 'fault'), []);
+  } finally { await retried.http.close(); }
+  for (const code of ['OBSERVATION_INVALIDATED', 'MEMBERSHIP_STALE']) {
+    const always = { async resolve() { throw new ContractError(code); }, async named() { throw new ContractError(code); } };
+    const quiet = await server({ channels: always, store: describe, server: { discord: { observe: async userId => ({ observed: userId, whitelist: true }) } } });
+    try {
+      const response = await quiet.request('/api/shuttle');
+      assert.equal(response.status, 200, code); const body = await response.json();
+      assert.deepEqual([body.run.arrival, body.run.games], [[], { channels: {} }], code);
+      assert.deepEqual(quiet.calls.filter(([name]) => name === 'fault'), [], `${code}: no alert`);
+    } finally { await quiet.http.close(); }
+  }
+  // Anything else still alerts.
+  const broken = await server({ channels: { async resolve() { throw new TypeError('x'); }, async named() { return {}; } }, store: describe });
+  try { await broken.request('/api/shuttle'); assert.deepEqual(broken.calls.filter(([name]) => name === 'fault'), [['fault', 'ACTIVITY_CHANNELS_UNAVAILABLE']]); }
+  finally { await broken.http.close(); }
+});

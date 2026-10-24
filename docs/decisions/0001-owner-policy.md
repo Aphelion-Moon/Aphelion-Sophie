@@ -2457,3 +2457,17 @@ On the owner's "Yes, install cba5358 to production with the checks." (quoted in 
 same runtime (Node 24.22.1), capability policy version 2 and credentials, no migration, no story change. All checks
 passed; the public host serves the client files and the scene byte for byte. Folder
 `.agent_docs/aphelion-sophie/deployment-cba5358-production-2026-10-24`; `rollback.ps1` restores `e6aab6b`.
+
+### An alert at the end of the first real applicant's ride — 24 October 2026
+
+The owner reported: "We accepted one applicant and had them go through the whitelist activity. Seems everything worked
+fine up until the end, where it threw an error." Core's log since the cba5358 install holds one fault:
+ACTIVITY_CHANNELS_UNAVAILABLE (which also alerts). At the end of the ride Sophie grants Whitelist, Discord announces the
+member's role change, and the client is polling for it; the channel links (the arrival channels, and since cba5358 the
+game channels) read the member's roles, and a read the announcement overtakes fails OBSERVATION_INVALIDATED (or, if slow,
+MEMBERSHIP_STALE). Core's main routes treat those as transient and try again; these extras only excused Discord being
+busy, so the failure became a fault and an alert, and the member got "Your new channels appear in Discord's channel list"
+in place of their arrival channels. The ride itself completed.
+
+Fixed (`apps/core/http/activity.js`): the channel links, game channels, station board and boarding pass try a transient
+failure once more after a short pause, and stay quiet if it fails again; anything else still alerts (T-ACT-CORE-15).
