@@ -1,5 +1,19 @@
 # Verification and release limits
 
+## Production install of b45d7dd — 24 October 2026
+
+- **Cause found in production:** core's log after cba5358 held one ACTIVITY_CHANNELS_UNAVAILABLE, at the end of the
+  first real applicant's ride (the role change from the grant overtaking the channel reads).
+- **Offline:** `npm test` 882 passed, including T-ACT-CORE-15 (an overtaken channel read is tried again and gives the
+  arrival channels; overtaken or stale twice, the ride still finishes with no alert; other failures still alert);
+  `npm run check` passed.
+- **Install:** preflight (installed cba5358 verified; 1 reviewed file; runtime unchanged), pre-start, service
+  boundaries, installed checks and public hosts passed; the API still requires sign-in. After the restart: one
+  PostgreSQL lock timeout at 13:32:48 UTC with no core fault (core retries lock timeouts; clients reconnecting together),
+  and one AI_TURN_UNAVAILABLE around the restart (the AI side, not the Activity).
+- **Not covered:** the next real arrival, which is when the fix shows (arrival channels rather than the fallback, and
+  no alert).
+
 ## Production install of cba5358 — 24 October 2026
 
 - **Offline:** `npm test` 881 passed, including T-ACT-CORE-12 (a member's burst of 8 then 429 `slow` before the store or

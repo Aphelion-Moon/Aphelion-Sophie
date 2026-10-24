@@ -2471,3 +2471,8 @@ in place of their arrival channels. The ride itself completed.
 
 Fixed (`apps/core/http/activity.js`): the channel links, game channels, station board and boarding pass try a transient
 failure once more after a short pause, and stay quiet if it fails again; anything else still alerts (T-ACT-CORE-15).
+
+On the owner's "Yes, install b45d7dd to production with the checks." (quoted in the packet's `approval.json`), `b45d7dd`
+was installed over `cba5358` at 13:32 UTC on 24 October: 1 file, same runtime (Node 24.22.1), capability policy version
+2 and credentials, no migration, no story change. All checks passed. Folder
+`.agent_docs/aphelion-sophie/deployment-b45d7dd-production-2026-10-24`; `rollback.ps1` restores `cba5358`.

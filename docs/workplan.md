@@ -1,6 +1,6 @@
 # Current implementation workplan
 
-Revision: 2026-10-24-production-cba5358. Mistral Small 4 (mistral-small-2603) on the official EU API is the selected provider for trial; DeepSeek Flash is withdrawn. Local models are historical, explicitly selected alternatives only; no automatic fallback. Continue the DS workstream with synthetic data; full readiness and activation remain open.
+Revision: 2026-10-24-production-b45d7dd. Mistral Small 4 (mistral-small-2603) on the official EU API is the selected provider for trial; DeepSeek Flash is withdrawn. Local models are historical, explicitly selected alternatives only; no automatic fallback. Continue the DS workstream with synthetic data; full readiness and activation remain open.
 
 All production release gates remain open; pure and isolated database checks are not full application acceptance.
 
@@ -1684,11 +1684,12 @@ Implemented scope:
 - 8ad8324 installed on 24 October 2026: Aa no longer flickers the page (the status line keeps its size; the scene canvas is resized only when its grid changes and redrawn before paint).
 - e6aab6b installed on 24 October 2026: the main menu's deep space backdrop, the Wing (dock and depart), seven easter eggs, blink patterns in the scene engine (owner picks on the Hangar Art Picks page).
 - cba5358 installed on 24 October 2026: a request budget per member before Discord (after one member's mashing made Discord busy for everyone), quiet Discord busy, shared directory and count refreshes, client single-flight and once-per-tap links; Rook and Pip walk in behind the concourse sign; game servers (info channels and quick connect) on the main menu and the last step once Whitelisted.
+- b45d7dd installed on 24 October 2026: at the end of the ride the member's new role overtaking the channel reads is tried again and never alerts (first real applicant's report).
 
 Remaining scope:
 
 - Main menu redesign, next: date and clock eggs (Halloween before 31 October, winter lights, night shift, welcome back), typed and tapped eggs (HONK, the sun, barrel roll), then the Ring Hub rework.
-- Owner: Go live again in each channel on the new release (cba5358) when the AI is next tested; the onboarding Activity is the current focus.
+- Owner: Go live again in each channel on the new release (b45d7dd) when the AI is next tested; the onboarding Activity is the current focus.
 - Owner: Go live in each channel on the dashboard; /sophie Yes.
 - Live checks: a reply in #ask-sophie (code and Guidebook), a saved memory, Get my data, the Activity for a Lead Ops tester, a staff channel turn.
 - Owner: /whitelist post in a private channel, check the images on desktop and a phone, then post it in the rules channel and delete the old one; re-open the Activity on a phone.
