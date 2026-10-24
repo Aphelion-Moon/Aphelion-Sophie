@@ -1,5 +1,17 @@
 # Verification and release limits
 
+## Prepared, not installed: 6ecc800 — 24 October 2026
+
+- **Offline:** `npm test` 887 passed (T-ACT-CORE-17, T-NOTICE-01/02, T-ACT-CLI-27 new); `npm run check` passed; storage
+  (4 shards) 1040 passed, 0 failed, including SA15 (one notice per grant Sophie gives, the same post on resend, none for a
+  role given by hand) and SA16 (a Continue's measured part within 26 round trips and 4 Discord reads; a newer recorded
+  policy still refused).
+- **Packet:** `prepare.mjs` passed against the installed f288aae (15 reviewed files, only migration 078, the runtime adds
+  only `whitelistNotices`). The rollback's revert of 078 was exercised on a local test cluster. Not installed: no owner
+  approval yet.
+- **Not covered:** the notice in the real staff bot channel (Sophie's permissions there are not checked); start-up time with
+  module preloads on a phone.
+
 ## Production install of f288aae — 24 October 2026
 
 - **Found in production (read only):** a member's final Continue was refused on every press with nothing logged; no
