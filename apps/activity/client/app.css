@@ -246,6 +246,11 @@ h2.md-heading { font-size: 1.3em; }
 .wipe { position: absolute; inset: 0; pointer-events: none; opacity: 0;
   background: repeating-linear-gradient(to bottom, rgba(232, 223, 198, .16) 0 1px, transparent 1px 3px), var(--bay); }
 #stage[data-wipe="on"] .wipe { animation: wipe .4s linear 1; }
+/* The curtain: the wipe's static across the whole Shuttle, closing from the top, then opening downwards (CURTAIN_MS). */
+.curtain { position: fixed; inset: 0; z-index: 3; display: flex; align-items: center; justify-content: center; pointer-events: all;
+  background: repeating-linear-gradient(to bottom, rgba(232, 223, 198, .16) 0 1px, transparent 1px 3px), var(--bay); }
+.curtain[data-phase="closing"] { animation: curtain-close .35s ease-in 1 both; }
+.curtain[data-phase="opening"] { animation: curtain-open .35s ease-out 1 both; }
 .transit { position: absolute; inset: 0; z-index: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; cursor: pointer;
   background: var(--bay); overflow: hidden; }
 /* Stars streaking past: thin dashes on tiles of different sizes, so they never line up, moving at different speeds. */
@@ -311,6 +316,8 @@ h2.md-heading { font-size: 1.3em; }
   background: var(--panel); border: 1px solid var(--amber-dim); padding: 8px 12px; color: var(--ivory); }
 
 @keyframes blink { 50% { opacity: .35; } }
+@keyframes curtain-close { from { transform: translateY(-100%); } to { transform: none; } }
+@keyframes curtain-open { from { transform: none; } to { transform: translateY(100%); } }
 @keyframes wipe { 0% { opacity: 0; transform: translateY(-100%); } 45%, 55% { opacity: 1; transform: none; } 100% { opacity: 0; transform: translateY(100%); } }
 @keyframes flicker { 0% { opacity: 0; } 33% { opacity: .8; } 66% { opacity: .4; } 100% { opacity: 1; } }
 @keyframes streak-a { to { background-position: -140px 0, -153px 11px, -139px 23px; } }

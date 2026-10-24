@@ -8,7 +8,7 @@ const DEFAULT_SETTINGS = Object.freeze({ levels: { master: 100, music: 50, ambie
 const POLL_LIMIT_MS = 10 * 60_000, RETRY_AFTER_MS = 120_000;
 // Text ticks, at most this often, sound only while Sophie speaks: briefly at each stage and page (owner feedback,
 // 22 October 2026). The rest of the copy types out quietly.
-const TICK_MS = 110, TRAIL_MS = 1_500, WIPE_MS = 400, BANNER_MS = 4_500, TIP_MS = 12_000, CLOWN_MS = 6_000, LOG_LIMIT = 80, SWIPE_PX = 60;
+const TICK_MS = 110, TRAIL_MS = 1_500, WIPE_MS = 400, CURTAIN_MS = 350, BANNER_MS = 4_500, TIP_MS = 12_000, CLOWN_MS = 6_000, LOG_LIMIT = 80, SWIPE_PX = 60;
 const KONAMI = Object.freeze(['ArrowUp', 'ArrowUp', 'ArrowDown', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'ArrowLeft', 'ArrowRight', 'b', 'a']);
 const SHEETS = Object.freeze(['settings', 'credits', 'codex', 'log', 'keys']);
 /** Block elements the click-to-continue mark may sit inside, so it ends the last line of text. */
@@ -192,10 +192,10 @@ export function createShuttle({ document, api, connect, player, loadScene, sound
     try { player.setScene(await loadScene(id)); currentScene = id; } catch { /* Keep the last scene; the copy still shows. */ }
     player.setState(state);
   }
-  /** A short static wipe between two scenes; the swap happens behind it. None with motion off. */
-  function swapScene(id, loaded, state) {
+  /** A short static wipe between two scenes; the swap happens behind it. None with motion off, or when `instant`. */
+  function swapScene(id, loaded, state, instant = false) {
     const swap = () => { if (loaded) { try { player.setScene(loaded); currentScene = id; } catch { /* Keep the last scene. */ } } player.setState(state()); };
-    if (!loaded || id === currentScene || !motionOn()) { swap(); return; }
+    if (!loaded || id === currentScene || !motionOn() || instant) { swap(); return; }
     const stage = $('stage'); stage.dataset.wipe = 'on';
     timers.after(WIPE_MS / 2, swap); timers.after(WIPE_MS, () => { delete stage.dataset.wipe; });
   }
@@ -237,6 +237,22 @@ export function createShuttle({ document, api, connect, player, loadScene, sound
   }
   function hideTransit() { timers.clear(transitTimer); transitTimer = null; $('transit').hidden = true; }
 
+  /**
+   * The curtain (owner, 24 October 2026): starting the journey and returning to the main menu close it across the whole
+   * Shuttle with a line saying which, make the change behind it (waiting on core included), then open it. None with motion
+   * off. The change's failure still opens it and is the caller's to report.
+   */
+  async function curtain(text, change) {
+    if (!motionOn()) { await change(); return; }
+    const element = $('curtain');
+    $('curtain-text').textContent = text; element.dataset.phase = 'closing'; element.hidden = false;
+    await new Promise(resolve => timers.after(CURTAIN_MS, resolve));
+    try { await change(); } finally {
+      element.dataset.phase = 'opening';
+      timers.after(CURTAIN_MS, () => { if (element.dataset.phase === 'opening') { element.hidden = true; delete element.dataset.phase; } });
+    }
+  }
+
   // Title screen ---------------------------------------------------------------------------------------------------
   async function showTitle() {
     stopPolling(); stopTyping(); cancelCues(); hideTransit(); speaking(false); show('title'); run = null;
@@ -268,10 +284,13 @@ export function createShuttle({ document, api, connect, player, loadScene, sound
     if (id === 'relink') { sound.play('UI-02'); described = null; renderMenu(); await link({ fresh: true }); if (view === 'title') await showTitle(); return; }
     if (id === 'board') {
       sound.play('UI-02');
-      await guarded(async () => { const { run: next } = await api.board(); log = []; await enterRun(next); });
+      await guarded(() => curtain(TEXT.boarding, async () => { const { run: next } = await api.board(); log = []; await enterRun(next, { covered: true }); }));
       return;
     }
-    if ((id === 'resume' || id === 'arrival') && described?.run) { sound.play('UI-02'); await enterRun(described.run); }
+    if ((id === 'resume' || id === 'arrival') && described?.run) {
+      sound.play('UI-02'); const next = described.run;
+      await curtain(TEXT.boarding, () => enterRun(next, { covered: true }));
+    }
   }
 
   // Sophie's radio -------------------------------------------------------------------------------------------------
@@ -305,7 +324,7 @@ export function createShuttle({ document, api, connect, player, loadScene, sound
    * Shows a run from the server. A new stop, clearance or arrival plays its cue sheet: the scene changes behind a wipe
    * (after the ride between stops, when motion is on), the sound beds cross-fade, then Sophie comes in with the text.
    */
-  async function enterRun(next, { atEnd = false } = {}) {
+  async function enterRun(next, { atEnd = false, covered = false } = {}) {
     const previous = run; run = next;
     chunks = transmissionChunks(run.pages, CHUNK_LIMIT, run.moments ?? {}); chunk = atEnd ? chunks.length - 1 : savedPage();
     savePlace();
@@ -316,6 +335,8 @@ export function createShuttle({ document, api, connect, player, loadScene, sound
     if (event === null) { await scene(sceneId, stateNow()); renderTransmission(); return; }
     sectionScreen = null; showRadio = false; holdTransmission();
     const loaded = loadScene(sceneId).catch(() => null);
+    // Behind the curtain the new scene is already in place when it opens, with no wipe of its own.
+    if (covered) swapScene(sceneId, await loaded, stateNow, true);
     const transit = event === 'stop' && previous?.status === 'reading' && run.stop > previous.stop && motionOn();
     runCues(cueSheet(event, run, { transit, speech: speechFor(), scene: sceneId }), {
       transition: async () => { swapScene(sceneId, await loaded, stateNow); if (event === 'stop') banner(ANNOUNCEMENTS[sceneId]); },
@@ -801,8 +822,12 @@ export function createShuttle({ document, api, connect, player, loadScene, sound
     $('radio-menu').addEventListener('click', async () => {
       if (menuOpening) return;
       menuOpening = true; sound.play('UI-03');
-      try { described = await api.describe(); } catch { /* Keep the last state. */ }
-      try { await showTitle(); } finally { menuOpening = false; }
+      try {
+        await curtain(TEXT.returning, async () => {
+          try { described = await api.describe(); } catch { /* Keep the last state. */ }
+          await showTitle();
+        });
+      } finally { menuOpening = false; }
     });
     // Swipe left for the next page, right for the previous one (touch and pen; a mouse uses the buttons).
     $('radio').addEventListener('pointerdown', event => { swipe = event.pointerType === 'mouse' ? null : { x: event.clientX, y: event.clientY }; });

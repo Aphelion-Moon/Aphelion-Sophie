@@ -2627,3 +2627,13 @@ On the owner's "Yes, remove the leftover whitelist.reconcile job from 16:12 UTC 
 and that its grant had completed. A copy of the row and the result are in
 `.agent_docs/aphelion-sophie/production-cleanup-2026-10-24`. Production now holds no reconciliation job; later installed
 checks need tolerate none.
+
+### A curtain when the journey starts and when it returns to the main menu — 24 October 2026
+
+Owner request: "Add a scene transition on starting the journey and returning to the main menu." Boarding (and Resume or
+viewing the arrival) and the Menu button now close a curtain across the whole Shuttle: the scene wipe's static and
+scanlines, sliding down in 0.35 s, with a terminal line ("Boarding the Shuttle", "Returning to the terminal"). The change
+happens behind it, waiting on core included, so the click answers at once; the new scene is in place when it opens
+(0.35 s), with no second wipe. A failure still opens it and shows its toast over it. With motion off there is no curtain.
+CSS and text only, authored here; no new sound or image. Looked at in headless Edge at 1280x720 and phone width
+(T-ACT-CLI-28).

@@ -454,7 +454,7 @@ test('T-ACT-CLI-25 one member cannot flood core or Discord from the client (owne
   const client = await readFile(new URL('../apps/activity/client/shuttle.js', import.meta.url), 'utf8');
   // The menu button opens the menu once at a time; Try the link again signs in once at a time.
   assert.match(client, /if \(menuOpening\) return;\s*menuOpening = true;/);
-  assert.match(client, /try \{ await showTitle\(\); \} finally \{ menuOpening = false; \}/);
+  assert.match(client, /await showTitle\(\);\n {8}\}\);\n {6}\} finally \{ menuOpening = false; \}/);
   assert.match(client, /async function link\(\{ fresh = false \} = \{\}\) \{[\s\S]{0,160}if \(linkingNow\) return;/);
   // Every outside link and channel goes through the 1.5-second guard; nothing calls Discord's openLink directly.
   assert.equal((client.match(/discord\?\.openLink\(/g) ?? []).length, 1, 'only outside() calls openLink');
@@ -503,4 +503,23 @@ test('T-ACT-CLI-27 opening is one round of module fetches, and waiting for White
   assert.match(client, /if \(!document\.hidden\) await check\(false\);/, 'a hidden window is not checked');
   assert.match(client, /if \(poll !== null && run\?\.status === 'pending'\) await check\(false\);/, 'returning checks at once');
   assert.match(client, /heartbeat = timers\.every\(15_000, \(\) => \{ if \(!document\.hidden\)/);
+});
+
+test('T-ACT-CLI-28 starting the journey and returning to the main menu close a curtain across the Shuttle; the change happens behind it', async () => {
+  // Owner, 24 October 2026: a scene transition on starting the journey and on returning to the main menu.
+  const client = await readFile(new URL('../apps/activity/client/shuttle.js', import.meta.url), 'utf8');
+  const page = await readFile(new URL('../apps/activity/client/index.html', import.meta.url), 'utf8');
+  const css = await readFile(new URL('../apps/activity/client/app.css', import.meta.url), 'utf8');
+  assert.match(page, /<div id="curtain" class="curtain" aria-hidden="true" hidden><p id="curtain-text" class="transit-text"><\/p><\/div>/);
+  assert.ok(page.indexOf('id="curtain"') < page.indexOf('id="toast"'), 'a toast shows over the curtain');
+  assert.match(css, /\.curtain\[data-phase="closing"\] \{ animation: curtain-close/); assert.match(css, /\.curtain\[data-phase="opening"\] \{ animation: curtain-open/);
+  // Boarding, resuming and viewing the arrival go behind the curtain; the Menu button returns behind it.
+  assert.match(client, /curtain\(TEXT\.boarding, async \(\) => \{ const \{ run: next \} = await api\.board\(\); log = \[\]; await enterRun\(next, \{ covered: true \}\); \}\)/);
+  assert.match(client, /await curtain\(TEXT\.boarding, \(\) => enterRun\(next, \{ covered: true \}\)\);/);
+  assert.match(client, /await curtain\(TEXT\.returning, async \(\) => \{/);
+  // With motion off there is no curtain; behind it the new scene is in place with no wipe of its own; a failure still opens it.
+  assert.match(client, /if \(!motionOn\(\)\) \{ await change\(\); return; \}/);
+  assert.match(client, /if \(covered\) swapScene\(sceneId, await loaded, stateNow, true\);/);
+  assert.match(client, /try \{ await change\(\); \} finally \{\n {6}element\.dataset\.phase = 'opening';/);
+  assert.equal(TEXT.boarding, 'Boarding the Shuttle'); assert.equal(TEXT.returning, 'Returning to the terminal');
 });

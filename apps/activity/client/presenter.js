@@ -70,6 +70,9 @@ export const TEXT = Object.freeze({
   codex: 'Glossary',
   keys: 'Keys',
   transit: 'In transit',
+  // The curtain's line when the journey starts and when it returns to the main menu.
+  boarding: 'Boarding the Shuttle',
+  returning: 'Returning to the terminal',
   skip: 'Tap to skip',
   receiving: 'Receiving transmission…',
   tip: 'Tip of the Round',
