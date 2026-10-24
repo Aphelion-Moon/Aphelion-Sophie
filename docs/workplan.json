@@ -1798,8 +1798,8 @@
       ],
       "remaining_scope": [
         "Main menu redesign, next: date and clock eggs (Halloween before 31 October, winter lights, night shift, welcome back), typed and tapped eggs (HONK, the sun, barrel roll), then the Ring Hub rework.",
-        "Owner: approve the install of 6ecc800 (prepared, not installed; packet deployment-6ecc800-production-2026-10-24): Whitelist notices to the staff bot channel (migration 078, runtime whitelistNotices; Sophie needs View Channel and Send Messages there), DISCORD_TRANSPORT_DISABLED quiet in the Activity, audit fixes (policy registered once per process, shared gate checks, module preloads, stepped clearance checks).",
-        "Owner decision: may an Activity request use one Discord observation of the member for its actor, capability check and membership (same authority stamp, about a second), against the 12 October 2026 rule that actions read afresh? Saves about 4 of 7 Discord reads per request.",
+        "Owner: approve the install of a36973c (prepared, not installed; packet deployment-a36973c-production-2026-10-24, which supersedes 6ecc800): Whitelist notices to the staff bot channel (migration 078, runtime whitelistNotices; Sophie needs View Channel and Send Messages there), DISCORD_TRANSPORT_DISABLED quiet in the Activity, audit fixes, and each step checked once (owner decision replacing 12 October).",
+        "Staff administration (cases, moderation, forms, publishing, permissions, automation, answers; not in production) to the check-once rule: rework the ~20 storage scenarios that inject a change during a capability check's Discord read.",
         "Owner: Go live again in each channel on the new release (f288aae) when the AI is next tested; the onboarding Activity is the current focus.",
         "Owner: Go live in each channel on the dashboard; /sophie Yes.",
         "Live checks: a reply in #ask-sophie (code and Guidebook), a saved memory, Get my data, the Activity for a Lead Ops tester, a staff channel turn.",

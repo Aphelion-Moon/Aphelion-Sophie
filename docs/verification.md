@@ -1,5 +1,15 @@
 # Verification and release limits
 
+## Prepared, not installed: a36973c (supersedes 6ecc800) — 24 October 2026
+
+- **Offline:** `npm test` 888 passed (DA-REUSE-01 to 04 replace DA-VIEW-01 to 04; T18 and T18b; A11 updated); `npm run
+  check` passed; storage (4 shards) 1040 passed, 0 failed; SA16: a whole Continue from cold within 24 database round trips
+  and 4 Discord reads.
+- **Packet:** `prepare.mjs` passed against the installed f288aae (23 reviewed files, only migration 078, the runtime adds
+  only `whitelistNotices`). Not installed: no owner approval yet.
+- **Not covered:** the notice in the real staff bot channel; Activity timing under real load with one observation per
+  request; Staff administration still reads once per check.
+
 ## Prepared, not installed: 6ecc800 — 24 October 2026
 
 - **Offline:** `npm test` 887 passed (T-ACT-CORE-17, T-NOTICE-01/02, T-ACT-CLI-27 new); `npm run check` passed; storage
