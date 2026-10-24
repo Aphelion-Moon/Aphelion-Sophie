@@ -42,7 +42,7 @@ export async function runCaseNotesSuite(cluster, run) {
   await scenario('CN04 role loss after a read or insert starts suppresses delivery and rolls back an unauthorized append', async f => {
     await f.notes.append(request(f)); let calls = 0;
     const racing = createCaseNotes({ pool: f.pool, clock: () => f.clock.now, authorize: async (...args) => {
-      const allowed = await f.authorization.authorize(...args); if (++calls === 1) f.discord.state.members.set(OTHER, []); return allowed;
+      const allowed = await f.authorization.authorize(...args); if (++calls === 1) { f.discord.state.members.set(OTHER, []); f.discord.announce(); } return allowed;
     } });
     await assert.rejects(racing.read({ actor: f.staff, channelId: f.channelId }), /CAPABILITY_REVOKED|CASE_ACCESS_DENIED/);
     f.discord.state.members.set(OTHER, [f.policy.leadOps]); const staff = await f.actor(OTHER); calls = 0;

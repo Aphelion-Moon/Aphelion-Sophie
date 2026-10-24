@@ -570,11 +570,11 @@ export async function runStorageSuite(cluster, run) {
     assert.equal((await recovered.listCases({ actor: operator, guildId: GUILD })).entries[0].assignmentStatus, 'current');
     assert.equal((await recovered.changeCaseAssignment({ actor: operator, guildId: GUILD, interactionId: request.id,
       id: initial.id, expectedVersion: initial.version, action: 'claim' })).duplicate, true);
-    const replacement = '100000000000000030'; f.discord.state.members.set(replacement, [LEAD]); f.discord.state.members.set(OTHER, []);
+    const replacement = '100000000000000030'; f.discord.state.members.set(replacement, [LEAD]); f.discord.state.members.set(OTHER, []); f.discord.announce();
     const lead = await authorization.resolveActor(f.verified(caseStaffPayload(f, 'queue', null, { userId: replacement })));
     assert.equal((await recovered.listCases({ actor: lead, guildId: GUILD })).entries[0].assignmentStatus, 'needs_review');
     assert.deepEqual((await read('case_reservations'))[0], recorded); assert.equal((await read('case_staff_actions')).length, 1);
-    f.discord.state.members.set(OTHER, [STAFF]);
+    f.discord.state.members.set(OTHER, [STAFF]); f.discord.announce();
     await recovered.changeCaseAssignment({ actor: lead, guildId: GUILD, interactionId: f.nextId(), id: initial.id,
       expectedVersion: recorded.version, action: 'assign', assigneeId: OTHER, reason: 'coverage' });
     assert.equal((await recovered.listCases({ actor: lead, guildId: GUILD })).entries[0].assignmentStatus, 'current');
@@ -762,7 +762,7 @@ export async function runStorageSuite(cluster, run) {
     await assert.rejects(recovered.formEditor.withdrawCaseFormPublication({ ...withdraw, actor }), /CASE_FORM_PUBLICATION_STALE/);
     const view = await recovered.formEditor.readCaseFormDraft({ actor, caseType: 'admin-help' }); assert.equal(view.newRequestVersion, null); assert.equal(view.latest.status, 'withdrawn');
     assert.equal((await read('case_forms')).find(row => row.version === 1).status, 'published'); assert.equal((await read('case_form_editor_actions')).length, 4);
-    f.discord.state.members.set(OTHER, [STAFF]); await assert.rejects(recovered.formEditor.publishCaseFormDraft({ ...publish, actor }), /OPERATION_DENIED/);
+    f.discord.state.members.set(OTHER, [STAFF]); f.discord.announce(); await assert.rejects(recovered.formEditor.publishCaseFormDraft({ ...publish, actor }), /OPERATION_DENIED/);
     assert.equal(f.discord.state.calls.some(call => call.method !== 'GET'), false);
   });
   await run('S33 report subject pins, retained answers and partially delivered messages survive restart behind the delivery barrier', async () => {

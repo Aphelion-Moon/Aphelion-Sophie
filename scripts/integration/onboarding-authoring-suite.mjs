@@ -9,6 +9,8 @@ import { DASHBOARD_COOKIES } from '../../contracts/dashboard-auth.js';
 import { createDashboardAuthHttpServer } from '../../apps/core/http/dashboard-auth.js';
 import { authDigest, sessionCsrf } from '../../apps/core/security/dashboard-auth.js';
 import { createLocalShuttlePublisher } from '../../apps/core/operator/local-shuttle-publisher.js';
+import { createOnboardingAuthoringStore } from '../../apps/core/storage/onboarding-authoring.js';
+import { createOnboardingAuthoringHttp } from '../../apps/core/http/onboarding-authoring.js';
 
 export async function runOnboardingAuthoringSuite(cluster, run) {
   const scenario = (name, work) => run(name, async () => { await work(await authoringWorkflow(cluster)); });
@@ -175,7 +177,7 @@ export async function runOnboardingAuthoringSuite(cluster, run) {
   });
 
   await scenario('E11 editor access requires configured current capability and corrupt draft/publication hashes fail closed', async f => {
-    await f.save(); const actor = await f.editorActor(); f.discord.state.members.set(OTHER, [STAFF]);
+    await f.save(); const actor = await f.editorActor(); f.discord.state.members.set(OTHER, [STAFF]); f.discord.announce();
     await assert.rejects(f.editorStore.readOnboardingDraft({ actor }), /OPERATION_DENIED/);
     await assert.rejects(f.editorStore.listOnboardingHistory({ actor, kind: 'publications' }), /OPERATION_DENIED/);
     f.discord.state.members.set(OTHER, [LEAD]); const latest = await f.editorActor();
@@ -186,14 +188,18 @@ export async function runOnboardingAuthoringSuite(cluster, run) {
   });
 
   await scenario('E12 permission loss or logout after writing a draft rolls back both its revision and audit', async f => {
-    const request = await savedRequest(f); let calls = 0;
-    f.discord.state.before = call => { if (call.path.endsWith(`/members/${OTHER}`) && ++calls === 2) f.discord.state.members.set(OTHER, [STAFF]); };
-    await assert.rejects(f.editorStore.saveOnboardingDraft(request), /OPERATION_DENIED/); f.discord.state.before = null;
+    // The change lands before the save's second check: an announced role loss, then a logout.
+    const request = await savedRequest(f); let calls = 0, change = null;
+    const racing = createOnboardingAuthoringStore({ pool: f.pool, guildId: GUILD, definitionId: publication.id, authorize: async (...args) => {
+      if (++calls === 2) await change(); return f.dashboardAuthorization.authorize(...args);
+    } });
+    change = async () => { f.discord.state.members.set(OTHER, [STAFF]); f.discord.announce(); };
+    await assert.rejects(racing.saveOnboardingDraft(request), /OPERATION_DENIED/);
     assert.equal((await f.rows('shuttle_draft_revisions')).length, 0); assert.equal((await f.rows('shuttle_editor_actions')).length, 0);
     f.discord.state.members.set(OTHER, [LEAD]); const session = await f.login(), identity = await f.auth.authenticate({ token: session.token });
     const actor = await f.dashboardAuthorization.resolveActor(identity.proof); calls = 0;
-    f.discord.state.before = async call => { if (call.path.endsWith(`/members/${OTHER}`) && ++calls === 2) await f.authStore.revokeSession(authDigest(session.token)); };
-    await assert.rejects(f.editorStore.saveOnboardingDraft({ ...request, actor }), /OPERATION_DENIED/); f.discord.state.before = null;
+    change = () => f.authStore.revokeSession(authDigest(session.token));
+    await assert.rejects(racing.saveOnboardingDraft({ ...request, actor }), /OPERATION_DENIED/);
     assert.equal((await f.rows('shuttle_draft_revisions')).length, 0); assert.equal((await f.rows('shuttle_editor_actions')).length, 0);
   });
 
@@ -268,10 +274,16 @@ export async function runOnboardingAuthoringSuite(cluster, run) {
   });
 
   await scenario('E18 permission loss after commit prevents the HTTP result and a resend is stale', async f => {
-    await withServer(f, async ({ post, faults }) => {
-      const request = { requestId: editorRequestId(), expectedRevision: 0, document: draftDocument() }; let count = 0;
-      f.discord.state.before = call => { if (call.path.endsWith(`/members/${OTHER}`) && ++count === 4) f.discord.state.members.set(OTHER, [STAFF]); };
-      assert.equal((await post('/api/shuttle/save', request)).status, 403); f.discord.state.before = null;
+    // The editor loses the capability after the commit, before the route's final check, and Discord announces it.
+    let revoke = true;
+    const authorize = async (...args) => {
+      if (revoke) { revoke = false; f.discord.state.members.set(OTHER, [STAFF]); f.discord.announce(); }
+      return f.dashboardAuthorization.authorize(...args);
+    };
+    const editorHttp = createOnboardingAuthoringHttp({ auth: f.auth, authorization: { ...f.dashboardAuthorization, authorize }, store: f.editorStore });
+    await withServer({ ...f, editorHttp }, async ({ post, faults }) => {
+      const request = { requestId: editorRequestId(), expectedRevision: 0, document: draftDocument() };
+      assert.equal((await post('/api/shuttle/save', request)).status, 403);
       assert.equal((await f.rows('shuttle_editor_actions')).length, 1); f.discord.state.members.set(OTHER, [LEAD]);
       assert.equal((await post('/api/shuttle/save', request)).status, 409);
       assert.equal((await f.rows('shuttle_draft_revisions')).length, 1); assert.deepEqual(faults, []);

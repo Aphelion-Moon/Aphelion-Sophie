@@ -81,7 +81,7 @@ export async function runCaseDeliveryIssueSuite(cluster, run) {
 
   await scenario('Y05 loss of responder authority at the final check rolls back adoption, audit and requeue together', async f => {
     const { issue, message } = await parkIntake(f); let checks = 0;
-    const service = caseIssueServices(f, { authorize: async (...args) => { if (++checks === 2) f.discord.state.members.set(OTHER, [CREW]); return f.authorization.authorize(...args); } });
+    const service = caseIssueServices(f, { authorize: async (...args) => { if (++checks === 2) { f.discord.state.members.set(OTHER, [CREW]); f.discord.announce(); } return f.authorization.authorize(...args); } });
     const actor = await f.actor(OTHER), request = { actor, guildId: GUILD, issueId: issue.id, interactionId: f.nextId(), expectedRevision: issue.revision, action: 'adopt_message', resultId: message.id };
     const source = await f.issueStore.describeCaseDeliveryIssue(request), proof = await f.discord.channels.inspect(source.plan, source.channelId);
     const observed = await f.intakeMessages.inspect({ ...source, messageId: message.id });
@@ -348,7 +348,7 @@ export async function runCaseDeliveryIssueSuite(cluster, run) {
   });
   await scenario('Y27 loss of Staff authority during dashboard evidence inspection rolls back repair intent', async f => {
     const { issue, message } = await parkIntake(f), b = await browser(f, { messages: { async inspect(args) {
-      const proof = await f.intakeMessages.inspect(args); f.discord.state.members.set(OTHER, [CREW]); return proof;
+      const proof = await f.intakeMessages.inspect(args); f.discord.state.members.set(OTHER, [CREW]); f.discord.announce(); return proof;
     } } });
     await assert.rejects(b.change(issue, 'adopt_message', message.id), /OPERATION_DENIED/);
     assert.equal((await f.rows('case_delivery_actions')).length, 0);

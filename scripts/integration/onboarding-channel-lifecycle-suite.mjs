@@ -85,7 +85,7 @@ export async function runOnboardingChannelLifecycleSuite(cluster, run) {
   });
   await scenario('OC09 revoked Staff authority prevents a queued manual deletion', async f => {
     await f.open(); const old = await bound(f); await close(f, old.channel_id);
-    f.discord.state.members.set(OTHER, []);
+    f.discord.state.members.set(OTHER, []); f.discord.announce();
     const result = await f.cases.runOnce('revoked-closer');
     assert.equal(result.status, 'operator_required'); assert.equal(f.discord.state.channels.has(old.channel_id), true);
   });

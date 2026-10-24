@@ -132,7 +132,7 @@ export async function runPermissionEditorSuite(cluster,run,configurationOnly=fal
     const store=f.services({authorize:async(...args)=>++calls<2&&await f.authorization.authorize(...args)});
     await assert.rejects(store.publish(request),/OPERATION_DENIED/); assert.equal((await f.rows('permission_candidates')).length,0);
     assert.equal((await f.rows('permission_editor_actions')).length,1);
-    f.discord.state.members.set(OTHER,[]); await assert.rejects(f.editor.publish(request),/OPERATION_DENIED/);
+    f.discord.state.members.set(OTHER,[]); f.discord.announce(); await assert.rejects(f.editor.publish(request),/OPERATION_DENIED/);
   });
   await scenario('PC07 withdrawal is confirmed retained and does not turn a duplicate approval into activation',async f=>{
     const request=await f.prepare(), candidate=await f.editor.publish(request), withdrawal={actor:request.actor,requestId:f.id(),version:1,expectedHash:candidate.sha256,confirm:true};
@@ -266,7 +266,7 @@ export async function runPermissionEditorSuite(cluster,run,configurationOnly=fal
     const configuration=structuredClone(f.configuration);configuration.capabilityPolicy.version++;
     await assert.rejects(f.services({configuration}).deploymentReview(args),/PERMISSION_BASE_STALE/);
     f.available.categories=[];await assert.rejects(f.editor.deploymentReview(args),/PERMISSION_SELECTION_UNAVAILABLE/);
-    f.discord.state.members.set(OTHER,[]);await assert.rejects(f.editor.deploymentReview(args),/OPERATION_DENIED/);
+    f.discord.state.members.set(OTHER,[]); f.discord.announce();await assert.rejects(f.editor.deploymentReview(args),/OPERATION_DENIED/);
   });
   await scenario('PC17 authority epochs invalidate reviews while harmless observation refresh does not',async f=>{
     await f.retainCase();const request=await f.prepare();await f.editor.publish(request);const args={actor:request.actor,version:1};

@@ -92,7 +92,8 @@ export async function runCaseManagementSuite(cluster, run) {
     assert.equal((await f.get()).status, 200);
   });
   await scenario('MG06 losing authority during fresh member observation prevents a lifecycle write', async f => {
-    f.beforeObserve(() => f.discord.state.members.set(OTHER, []));
+    // Discord has not announced the loss yet; the actor check's 1.5 s window passes after the observation.
+    f.beforeObserve(() => { f.discord.state.members.set(OTHER, []); f.clock.now += 1_501; });
     assert.equal((await f.post(await f.body('close'))).status, 403);
     assert.equal((await f.rows('case_lifecycle_actions')).length, 0); assert.equal((await f.current()).state, 'open');
   });

@@ -18,9 +18,13 @@ export function roleList() {
 }
 
 /** In-process HTTP fixture; only synthetic metadata/static bot screens, no real case data. */
-export function simulatedDiscord({ clock = () => NOW, enabled = () => true, readContinuity = () => 'synthetic-continuity-1', readBoundary = null } = {}) {
+export function simulatedDiscord({ clock = () => NOW, enabled = () => true, readContinuity = null, readBoundary = null } = {}) {
   const state = { roles: roleList(), ownerId: '100000000000000099', members: new Map([[BOT, [BOT_ROLE]], [USER, [CREW, BYOND_ROLE]]]),
-    channels: new Map(), messages: new Map(), emojis: new Map(), threadMembers: new Map(), calls: [], before: null, afterWrite: null };
+    channels: new Map(), messages: new Map(), emojis: new Map(), threadMembers: new Map(), calls: [], before: null, afterWrite: null, announced: 1 };
+  // Changing `state` alone is a change Discord has not announced. `announce()` models its Gateway event (a member, role,
+  // channel or guild change), which moves the default stamp and so ends any observation reused under the old one.
+  readContinuity ??= () => `synthetic-continuity-${state.announced}`;
+  const announce = () => { state.announced++; };
   let channelSequence = 300000000000000000n, messageSequence = 400000000000000000n;
   const json = (body, status = 200, headers = {}) => new Response(JSON.stringify(body), { status, headers });
   const fetch = async (url, options) => {
@@ -131,5 +135,5 @@ export function simulatedDiscord({ clock = () => NOW, enabled = () => true, read
     return new Response(null, { status: 204 });
   };
   const transport = createDiscordTransport({ guildId: GUILD, token: 'synthetic-test-token-not-a-secret', fetch, clock, enabled });
-  return { state, fetch, transport, roles: createDiscordRoles({ transport, mapping, clock, readContinuity, readBoundary }) };
+  return { state, fetch, transport, announce, roles: createDiscordRoles({ transport, mapping, clock, readContinuity, readBoundary }) };
 }

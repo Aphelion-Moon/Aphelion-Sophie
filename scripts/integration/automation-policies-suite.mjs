@@ -51,7 +51,7 @@ export async function runAutomationPoliciesSuite(cluster,run) {
     await assert.rejects(f.automation.change({...request,actor:member}),/OPERATION_DENIED/);
     await assert.rejects(f.automation.preview({actor:member,expectedRevision:0,document:request.document,events:[automationEvent()],synthetic:true}),/OPERATION_DENIED/);
     await assert.rejects(f.automation.current({actor:{...request.actor}}),/OPERATION_DENIED/);
-    f.discord.state.members.delete(OTHER); await assert.rejects(f.automation.change(request),/OPERATION_DENIED/);
+    f.discord.state.members.delete(OTHER); f.discord.announce(); await assert.rejects(f.automation.change(request),/OPERATION_DENIED/);
   });
   await scenario('AP03 source attestation confirmation and canonical review hash bind every mutation',async f=>{
     const request = await f.prepare();
@@ -90,7 +90,7 @@ export async function runAutomationPoliciesSuite(cluster,run) {
   });
   await scenario('AP07 final publisher revocation rolls back configuration and its request receipt',async f=>{
     const request = await f.prepare(); let count = 0;
-    const service = f.services({authorize:async(...args)=>{if (++count === 2) f.discord.state.members.set(OTHER,[]);return f.authorization.authorize(...args);}});
+    const service = f.services({authorize:async(...args)=>{if (++count === 2) { f.discord.state.members.set(OTHER,[]); f.discord.announce(); }return f.authorization.authorize(...args);}});
     await assert.rejects(service.change(request),/OPERATION_DENIED/); assert.equal(count,2);
     assert.equal((await f.rows('automation_policies')).length,0);
   });

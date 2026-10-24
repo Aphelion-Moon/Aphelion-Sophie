@@ -41,7 +41,7 @@ export async function runCuratedAnswersSuite(cluster, run) {
     await assert.rejects(f.answers.history({ actor, name: request.name }), /OPERATION_DENIED/);
     await assert.rejects(f.answers.change({ ...request, actor }), /OPERATION_DENIED/);
     assert.equal((await f.answers.list({ actor })).entries.length, 1);
-    f.discord.state.members.delete(USER); await assert.rejects(f.answers.lookup({ actor, name: request.name }), /OPERATION_DENIED/);
+    f.discord.state.members.delete(USER); f.discord.announce(); await assert.rejects(f.answers.lookup({ actor, name: request.name }), /OPERATION_DENIED/);
     await assert.rejects(f.answers.lookup({ actor: { ...request.actor }, name: request.name }), /OPERATION_DENIED/);
   });
   await scenario('CA03 review digest, public-source attestation and confirmation bind every mutation', async f => {
@@ -72,14 +72,14 @@ export async function runCuratedAnswersSuite(cluster, run) {
   await scenario('CA06 final publisher revocation rolls back the publication and all retained metadata', async f => {
     const request = await f.prepare(); let calls = 0;
     const answers = createCuratedAnswers({ pool: f.pool, guildId: GUILD, authorize: async (...args) => {
-      if (++calls === 2) f.discord.state.members.set(OTHER, []); return f.authorization.authorize(...args);
+      if (++calls === 2) { f.discord.state.members.set(OTHER, []); f.discord.announce(); } return f.authorization.authorize(...args);
     } });
     await assert.rejects(answers.change(request), /OPERATION_DENIED/); assert.equal((await f.rows('curated_answers')).length, 0);
   });
   await scenario('CA07 final reader revocation denies the public result rather than trusting an earlier membership check', async f => {
     const request = await f.prepare(); await f.answers.change(request); const actor = await f.actor(USER); let calls = 0;
     const answers = createCuratedAnswers({ pool: f.pool, guildId: GUILD, authorize: async (...args) => {
-      if (++calls === 2) f.discord.state.members.delete(USER); return f.authorization.authorize(...args);
+      if (++calls === 2) { f.discord.state.members.delete(USER); f.discord.announce(); } return f.authorization.authorize(...args);
     } });
     await assert.rejects(answers.lookup({ actor, name: request.name }), /OPERATION_DENIED/);
   });

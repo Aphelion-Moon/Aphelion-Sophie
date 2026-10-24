@@ -135,7 +135,7 @@ export async function runDashboardAuthSuite(cluster, run) {
     assert.equal(await f.dashboardAuthorization.authorize('case.manage', actor, { ...scope, type: 'staff-report' }), true);
     f.discord.state.members.set(OTHER, [LEAD]); actor = await browserActor(f, session);
     assert.equal(await f.dashboardAuthorization.authorize('case.manage', actor, scope), true);
-    f.discord.state.members.set(OTHER, [CREW]); f.discord.state.roles.find(role => role.id === CREW).permissions = '8';
+    f.discord.state.members.set(OTHER, [CREW]); f.discord.announce(); f.discord.state.roles.find(role => role.id === CREW).permissions = '8';
     assert.equal(await f.dashboardAuthorization.authorize('case.manage', actor, scope), false);
     actor = await browserActor(f, session); assert.equal(await f.dashboardAuthorization.authorize('shuttle.publish', actor, {}), false);
     f.discord.state.members.set(OTHER, [STAFF, MUZZLED]); actor = await browserActor(f, session);
@@ -146,7 +146,8 @@ export async function runDashboardAuthSuite(cluster, run) {
 
   await scenario('O10 logout during a current-role check blocks the protected mutation and its audit', async f => {
     await f.open(); const row = (await f.rows('case_reservations'))[0], session = await f.login(), actor = await browserActor(f, session);
-    const observation = await f.discord.roles.observe(USER);
+    // An announced change first, so the check reads the member again rather than taking the actor's observation.
+    f.discord.announce(); const observation = await f.discord.roles.observe(USER);
     f.discord.state.before = async call => {
       if (call.path.endsWith(`/members/${OTHER}`)) { f.discord.state.before = null; await f.authStore.revokeSession(authDigest(session.token)); }
     };

@@ -83,7 +83,7 @@ export async function runAuthorizationSuite(cluster, run) {
 
   await scenario('A03 current staff role loss cancels authority before the queued Muzzled write', async () => {
     await requestMute();
-    discord.state.members.set(OTHER, []);
+    discord.state.members.set(OTHER, []); discord.announce();
     assert.deepEqual(await dispatcher.runOnce('authorized-worker'), { status: 'operator_required', code: 'OPERATION_DENIED' });
     assert.deepEqual(discord.state.members.get(USER), [BYOND_ROLE]);
     const row = (await admin.query('SELECT capability_epoch FROM sophie_core.actor_authority WHERE user_id = $1', [OTHER])).rows[0];
@@ -191,13 +191,14 @@ export async function runAuthorizationSuite(cluster, run) {
 
   await scenario('A09 an outage or unknown observation never erases the last recorded authority', async () => {
     const { actor } = await principal();
-    discord.state.before = call => call.path.endsWith(`/members/${OTHER}`) ? new Response(null, { status: 503 }) : null;
+    // A change moves the stamp, so the check reads the member again, during an outage.
+    discord.announce(); discord.state.before = call => call.path.endsWith(`/members/${OTHER}`) ? new Response(null, { status: 503 }) : null;
     await assert.rejects(auth.authorize('member.mute', actor, scope), /DISCORD_UNAVAILABLE/);
     const row = (await admin.query('SELECT capability_epoch, observation FROM sophie_core.actor_authority WHERE user_id = $1', [OTHER])).rows[0];
     assert.equal(Number(row.capability_epoch), 1);
     assert.deepEqual(row.observation.roleIds, [STAFF]);
     discord.state.before = null;
-    discord.state.members.delete(OTHER);
+    discord.state.members.delete(OTHER); discord.announce();
     assert.equal(await auth.authorize('member.mute', actor, scope), false);
   });
 

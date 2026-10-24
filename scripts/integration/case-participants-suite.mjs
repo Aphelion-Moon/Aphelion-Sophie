@@ -121,7 +121,7 @@ export async function runCaseParticipantsSuite(cluster, run) {
   });
 
   await scenario('CP09 losing the inviting Staff authority before delivery revokes the pending invitation', async f => {
-    const initial = await f.openTicket(); await change(f, initial); f.discord.state.members.set(OTHER, []); await settle(f);
+    const initial = await f.openTicket(); await change(f, initial); f.discord.state.members.set(OTHER, []); f.discord.announce(); await settle(f);
     assert.equal((await invites(f))[0].status, 'revoked'); assert.equal((await invites(f))[0].settled_reason, 'authority-revoked');
     assert.equal(acl(f, initial).some(value => value.id === PARTICIPANT), false); assert.equal((await row(f, initial.id)).state, 'open');
   });

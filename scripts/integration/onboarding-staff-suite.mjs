@@ -88,7 +88,7 @@ export async function runOnboardingStaffSuite(cluster, run) {
   });
   await scenario('SH06 OAuth recovery loses authority during external proof and leaves all recovery state untouched', async f => {
     const { issue, messageId } = await parkedOnboardingMessage(f), d = await dashboard(f);
-    f.discord.state.before = call => { if (call.path.includes(`/messages/${messageId}`)) { f.discord.state.before = null; f.discord.state.members.set(OTHER, []); } };
+    f.discord.state.before = call => { if (call.path.includes(`/messages/${messageId}`)) { f.discord.state.before = null; f.discord.state.members.set(OTHER, []); f.discord.announce(); } };
     await assert.rejects(d.call('/api/shuttle/delivery/change', repair(issue, 'adopt_message', messageId)), /OPERATION_DENIED/);
     assert.equal((await f.rows('shuttle_delivery_rechecks')).length, 0); assert.equal((await f.current()).message_id, null);
   });

@@ -86,8 +86,8 @@ export async function runCaseStaffSuite(cluster, run) {
   await scenario('K06 lost assignee authority remains visible for review after roles return until explicitly reassigned', async f => {
     await f.open(); f.discord.state.members.set(THIRD, [STAFF]);
     assert.equal(await act(f, 'assign', null, { assigneeId: THIRD }), 'case_staff_recorded');
-    const retained = (await state(f)).assignee_grant; f.discord.state.members.set(THIRD, []);
-    assert.equal((await queue(f)).entries[0].assignmentStatus, 'needs_review'); f.discord.state.members.set(THIRD, [STAFF]);
+    const retained = (await state(f)).assignee_grant; f.discord.state.members.set(THIRD, []); f.discord.announce();
+    assert.equal((await queue(f)).entries[0].assignmentStatus, 'needs_review'); f.discord.state.members.set(THIRD, [STAFF]); f.discord.announce();
     assert.equal((await queue(f)).entries[0].assignmentStatus, 'needs_review'); assert.deepEqual((await state(f)).assignee_grant, retained);
     assert.equal(await act(f, 'claim'), 'case_stale');
     assert.equal(await act(f, 'assign', null, { assigneeId: THIRD, reason: 'coverage' }), 'case_staff_recorded');
@@ -108,14 +108,16 @@ export async function runCaseStaffSuite(cluster, run) {
 
   await scenario('K08 losing target authority during an assignment rejects a stale grant even with supplied Staff roles', async f => {
     await f.open(); f.discord.state.members.set(THIRD, [STAFF]); let seen = 0;
-    f.discord.state.before = call => { if (call.method === 'GET' && call.path.endsWith(`/members/${THIRD}`) && ++seen === 2) f.discord.state.members.set(THIRD, []); };
+    // The assignee's check takes the observation this read makes (owner decision, 24 October 2026).
+    f.discord.state.before = call => { if (call.method === 'GET' && call.path.endsWith(`/members/${THIRD}`) && ++seen === 1) f.discord.state.members.set(THIRD, []); };
     const payload = caseStaffPayload(f, 'assign', await state(f), { assigneeId: THIRD }); payload.data.resolved = { members: { [THIRD]: { roles: [STAFF] } } };
     assert.equal(await f.execute(payload), 'case_assignee_denied'); assert.equal((await state(f)).assignee_grant, null); assert.equal((await audits(f)).length, 0);
   });
 
   await scenario('K09 losing the acting Staff role while checking an assignee rolls back the human action', async f => {
     await f.open(); f.discord.state.members.set(THIRD, [STAFF]); let seen = 0;
-    f.discord.state.before = call => { if (call.method === 'GET' && call.path.endsWith(`/members/${THIRD}`) && ++seen === 2) f.discord.state.members.set(OTHER, []); };
+    // Discord has not announced the loss yet, and the acting check's 1.5 s window passes while the assignee is checked.
+    f.discord.state.before = call => { if (call.method === 'GET' && call.path.endsWith(`/members/${THIRD}`) && ++seen === 1) { f.discord.state.members.set(OTHER, []); f.clock.now += 1_501; } };
     assert.equal(await act(f, 'assign', null, { assigneeId: THIRD }), 'denied'); assert.equal((await audits(f)).length, 0); assert.equal((await state(f)).assignee_grant, null);
   });
 

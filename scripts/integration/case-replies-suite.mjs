@@ -78,7 +78,7 @@ export async function runCaseRepliesSuite(cluster, run) {
   await scenario('CR03 authority loss at the final check rolls back text, audit and outbox together', async f => {
     let calls = 0;
     const service = replyServices(f, { authorize: async (...args) => { const allowed = await f.authorization.authorize(...args);
-      if (++calls === 2) f.discord.state.members.set(OTHER, []); return allowed; } }).replies;
+      if (++calls === 2) { f.discord.state.members.set(OTHER, []); f.discord.announce(); } return allowed; } }).replies;
     await assert.rejects(service.request(f.request()), /CASE_ACCESS_DENIED/);
     assert.equal((await f.rows('case_replies')).length, 0); assert.equal((await f.rows('case_reply_events')).length, 0); assert.equal((await jobs(f)).length, 0);
   });
@@ -101,14 +101,14 @@ export async function runCaseRepliesSuite(cluster, run) {
     assert.equal((await f.rows('case_replies')).length, 6);
   });
   await scenario('CR06 losing Staff authority cancels an unsent request permanently, even after role restoration', async f => {
-    await f.replies.request(f.request()); f.discord.state.members.set(OTHER, []);
+    await f.replies.request(f.request()); f.discord.state.members.set(OTHER, []); f.discord.announce();
     await f.worker.runOnce('reply-worker'); assert.equal((await reply(f)).state, 'cancelled');
-    f.discord.state.members.set(OTHER, [LEAD]); const actor = await f.actor(OTHER);
+    f.discord.state.members.set(OTHER, [LEAD]); f.discord.announce(); const actor = await f.actor(OTHER);
     assert.equal((await f.replies.request(f.request({ actor }))).state, 'cancelled'); assert.equal(posts(f).length, 0);
   });
   await scenario('CR07 a late known send after Staff revocation is withdrawn while authored text and the audit remain retained', async f => {
     await f.replies.request(f.request());
-    f.discord.state.afterWrite = async call => { if (call.method === 'POST' && call.path.endsWith('/messages')) f.discord.state.members.set(OTHER, []); };
+    f.discord.state.afterWrite = async call => { if (call.method === 'POST' && call.path.endsWith('/messages')) { f.discord.state.members.set(OTHER, []); f.discord.announce(); } };
     assert.deepEqual(await f.worker.runOnce('reply-worker'), { status: 'settled', withdrawn: true });
     const retained = await reply(f); assert.equal(retained.state, 'withdrawn'); assert.equal(retained.body, f.request().text);
     assert.equal(f.discord.state.messages.has(retained.message_id), false); assert.equal(deletes(f).length, 1);
@@ -153,7 +153,7 @@ export async function runCaseRepliesSuite(cluster, run) {
     const held = await arm(f), proof = await f.messages.create(held.prepared, held.write);
     await f.admin.query("UPDATE sophie_core.outbox SET lease_until = clock_timestamp() - interval '1 second' WHERE kind = 'case.reply'");
     assert.equal((await f.worker.runOnce('reply-takeover')).code, 'CASE_REPLY_UNCERTAIN');
-    f.discord.state.members.set(OTHER, []);
+    f.discord.state.members.set(OTHER, []); f.discord.announce();
     await f.delivery.note({ claim: held.claim, proof });
     assert.equal((await f.worker.runOnce('reply-late')).withdrawn, true); assert.equal((await reply(f)).state, 'withdrawn'); assert.equal(posts(f).length, 1);
   });
@@ -178,7 +178,7 @@ export async function runCaseRepliesSuite(cluster, run) {
   await scenario('CR16 lost withdrawal response recovers through absence without repeating DELETE or losing retained text', async f => {
     await f.replies.request(f.request());
     f.discord.state.afterWrite = async call => {
-      if (call.method === 'POST' && call.path.endsWith('/messages')) f.discord.state.members.set(OTHER, []);
+      if (call.method === 'POST' && call.path.endsWith('/messages')) { f.discord.state.members.set(OTHER, []); f.discord.announce(); }
       if (call.method === 'DELETE' && call.path.includes('/messages/')) throw new Error('synthetic lost deletion response');
     };
     assert.equal((await f.worker.runOnce('reply-worker')).code, 'DELIVERY_UNCERTAIN'); await f.makeReady(); f.discord.state.afterWrite = null;
@@ -226,7 +226,7 @@ export async function runCaseRepliesSuite(cluster, run) {
     const older = await f.replies.read({ actor: f.request().actor, channelId: f.opened.channel_id, before: page.next });
     assert.equal(older.entries.length, 1); assert.equal(older.entries[0].text, 'Synthetic reply 0'); assert.equal(older.next, null);
     let calls = 0; const service = replyServices(f, { authorize: async (...args) => { const allowed = await f.authorization.authorize(...args);
-      if (++calls === 1) f.discord.state.members.set(OTHER, []); return allowed; } }).replies;
+      if (++calls === 1) { f.discord.state.members.set(OTHER, []); f.discord.announce(); } return allowed; } }).replies;
     await assert.rejects(service.read({ actor: f.request().actor, channelId: f.opened.channel_id }), /CASE_ACCESS_DENIED/);
   });
   await scenario('CR23 HTTP requires CSRF and explicit confirmation, binds attribution to OAuth, and preserves exact retry receipts', async f => {
@@ -386,7 +386,7 @@ export async function runCaseRepliesSuite(cluster, run) {
     assert.equal(await p.issueCommands.execute(f.verified(recheckPayload(f, p.issue))), 'denied');
     await f.admin.query("UPDATE sophie_core.case_reservations SET type = 'quick-help' WHERE id = $1", [f.opened.id]);
     let checks = 0; const guarded = replyRecoveryServices(f, { authorize: async (...args) => {
-      if (++checks === 2) f.discord.state.members.set(OTHER, []); return f.authorization.authorize(...args);
+      if (++checks === 2) { f.discord.state.members.set(OTHER, []); f.discord.announce(); } return f.authorization.authorize(...args);
     } });
     const actor = await f.actor(OTHER), before = (await jobs(f))[0];
     await assert.rejects(guarded.issues.changeCaseDeliveryIssue({ actor, interactionId: f.nextId(), issueId: p.issue.id, expectedRevision: p.issue.revision,
@@ -414,7 +414,7 @@ export async function runCaseRepliesSuite(cluster, run) {
   });
   await scenario('CR36 a current replacement operator can recover a revoked authors possible send only for withdrawal', async f => {
     const p = await parked(f, true), replacement = '100000000000000088';
-    f.discord.state.members.set(OTHER, []); f.discord.state.members.set(replacement, [STAFF]);
+    f.discord.state.members.set(OTHER, []); f.discord.state.members.set(replacement, [STAFF]); f.discord.announce();
     const raw = issuePayload(f, 'recover', p.issue, p.messageId, { member: { user: { id: replacement } } });
     assert.equal(await p.issueCommands.execute(f.verified(raw)), 'case_recovery_recorded');
     assert.equal((await f.worker.runOnce('revoked-author-recovered')).withdrawn, true);
@@ -453,7 +453,7 @@ export async function runCaseRepliesSuite(cluster, run) {
     await assert.rejects(f.replies.request({ ...p.request, actor: member }), /CASE_ACCESS_DENIED/);
     let checks = 0;
     const replies = replyServices(f, { authorize: async (...args) => {
-      if (++checks === 3) f.discord.state.members.set(OTHER, []);
+      if (++checks === 3) { f.discord.state.members.set(OTHER, []); f.discord.announce(); }
       return f.authorization.authorize(...args);
     } }).replies;
     await assert.rejects(replies.request(p.request), /CASE_ACCESS_DENIED/);
@@ -573,7 +573,7 @@ export async function runCaseRepliesSuite(cluster, run) {
   await scenario('CR49 final authorization failure rolls back review consumption, reply, audit and outbox together', async f => {
     await publication(f); const review = await f.replies.prepareAnswerReview(reviewRequest(f)); let checks = 0;
     const service = replyServices(f,{ authorize: async (...args) => {
-      if (++checks === 4) f.discord.state.members.set(OTHER,[]); return f.authorization.authorize(...args);
+      if (++checks === 4) { f.discord.state.members.set(OTHER,[]); f.discord.announce(); } return f.authorization.authorize(...args);
     } }).replies;
     await assert.rejects(service.confirmAnswerReview({ actor:f.request().actor,token:review.token }),/CASE_ACCESS_DENIED/);
     assert.equal((await f.rows('case_answer_reviews'))[0].state,'awaiting');

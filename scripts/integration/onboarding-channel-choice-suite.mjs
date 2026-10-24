@@ -83,7 +83,8 @@ export async function runOnboardingChannelChoiceSuite(cluster, run) {
 
   await scenario('Q06 Staff revocation during channel inspection prevents a selection audit', async f => {
     const { duplicate, issue } = await duplicateOnboardingCase(f);
-    f.discord.state.before = call => { if (call.path === `/api/v10/channels/${duplicate.id}`) f.discord.state.members.set(OTHER, []); };
+    // Discord has not announced the loss; the 1.5 s window passes during the inspection (an announced change would invalidate the inspection itself).
+    f.discord.state.before = call => { if (call.path === `/api/v10/channels/${duplicate.id}`) { f.discord.state.members.set(OTHER, []); f.clock.now += 1_501; } };
     assert.equal(await channelChoice(f, issue, duplicate.id), 'denied'); assert.equal((await audit(f)).length, 0);
   });
 

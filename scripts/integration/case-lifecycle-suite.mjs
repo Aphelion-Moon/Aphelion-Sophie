@@ -100,11 +100,11 @@ export async function runCaseLifecycleSuite(cluster, run) {
   });
 
   await scenario('J06 lost operator authority before or after a reopening write is compensated and never restored from old authority', async f => {
-    await closed(f); assert.equal(await act(f, 'reopen'), 'case_change_recorded'); f.discord.state.members.set(OTHER, []);
+    await closed(f); assert.equal(await act(f, 'reopen'), 'case_change_recorded'); f.discord.state.members.set(OTHER, []); f.discord.announce();
     await f.drain(f.cases); await exact(f, 'closed'); assert.equal((await actions(f)).find(row => row.action === 'reopen').status, 'revoked');
     f.discord.state.members.set(OTHER, [STAFF]); assert.equal((await f.cases.runOnce('no-auto-reopen')).status, 'idle');
     f.clock.now += 1_000; assert.equal(await act(f, 'reopen'), 'case_change_recorded');
-    f.discord.state.afterWrite = call => { if (call.method === 'PATCH' && /channels\/\d+$/.test(call.path)) { f.discord.state.afterWrite = null; f.discord.state.members.set(OTHER, []); } };
+    f.discord.state.afterWrite = call => { if (call.method === 'PATCH' && /channels\/\d+$/.test(call.path)) { f.discord.state.afterWrite = null; f.discord.state.members.set(OTHER, []); f.discord.announce(); } };
     assert.equal((await f.cases.runOnce('revoked-after-write')).status, 'progressed'); await f.drain(f.cases);
     await exact(f, 'closed'); assert.equal((await actions(f)).filter(row => row.action === 'reopen').every(row => row.status === 'revoked'), true);
   });
