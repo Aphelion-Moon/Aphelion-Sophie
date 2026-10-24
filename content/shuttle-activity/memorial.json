@@ -12,10 +12,11 @@
     "sha256": "fdfe8dd97aef5c7fc371200dd88bcf1fac64268ff701878c5868e8e656e8e730",
     "suppliedBy": "The owner, 24 October 2026, who asked for the icon to be pulled and used"
   },
-  "derivation": "Cropped to the drawn 20x18 pixels; box-sampled to 12x12; each pixel the nearest Activity scene palette colour; pairs of pixel rows drawn as half-block characters, one colour a cell (where two pixels differ, the eye and highlights win over the cloak and outline). No model or image tool.",
+  "derivation": "Cropped to the drawn 20x18 pixels; box-sampled to 15x14; each pixel the nearest Activity scene palette colour; made symmetric from its left half like the emoji, her flower kept on the right; pairs of pixel rows drawn as 15 by 7 cells, a half block where one half is empty, otherwise the whole cell in the colour that covers more of that area in the original. No model or image tool.",
   "provenance": {
     "author": "Arranged by the coding agent (Claude) at owner direction",
     "created": "2026-10-24",
     "decision": "docs/decisions/0001-owner-policy.md (Memorial for ArcanaObscura, 24 October 2026)"
-  }
+  },
+  "design": "A brass plaque with her icon over the dedication, a blue medical cross whose foot replaces the middle glyph of the top bezel, and a candle on each side (owner review, 24 October 2026)."
 }

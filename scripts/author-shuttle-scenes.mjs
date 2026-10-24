@@ -527,14 +527,16 @@ function lounge(name) {
 
 // ---------- scene: pressure door and new laboratory ----------
 const DOOR_BEATS = ['watch-step', 'feedback', 'be-safe', 'ready', 'get-whitelisted'];
-// ArcanaObscura's icon, from the server's :mikmoff: emoji (see content/shuttle-activity/memorial.json): 12 cells by 6 rows.
+// ArcanaObscura's icon, from the server's :mikmoff: emoji (see content/shuttle-activity/memorial.json): 15 cells by 7 rows,
+// symmetric like the emoji, her flower on the right.
 const MEMORIAL_ICON = Object.freeze([
-  ['▀▀▀▄████▄▀▀▀', 'cccddddddccc'],
-  ['  ▄█▀█▄▀▀   ', '  ddcccaa   '],
-  ['   ▀▄████   ', '   IIcccd   '],
-  [' ▄█▀▀▄▄█▀█▄ ', ' HHci55icHH '],
-  ['████▀██▀████', 'HHHHIciIHHHH'],
-  ['███▀▀  ▀▀███', 'HHHHd  dHHHH'],
+  ['▄███▄█████▄███▄', 'ccccdddddddcccc'],
+  ['   ▄███████▄   ', '   ddccdcaad   '],
+  ['   ▀███████▀   ', '   ddHcccHdd   '],
+  ['   ▄███████▄   ', '   HHiccciHH   '],
+  [' ▄███████████▄ ', ' HHHHIiiiIHHHH '],
+  ['███████████████', 'HcHHHddcddHHHcH'],
+  ['████▀▀▀ ▀▀▀████', 'HcHHHdd ddHHHcH'],
 ]);
 // Picked designs: the vending machine with lit buttons, and a hydroponics tray for the plants.
 const VENDING = [['┌────────┐', '│SPACE   │', '│  COLA  │', '│[o][o]::│', '│[o][o]::│', '│ [____] │', '└────────┘'],
@@ -546,7 +548,7 @@ const JANITOR = [
   [[' _o', ' /|\\_', ' / \\ \\', '     ~~'], [' pi', ' pppo', ' I I o', '     hh']],
   [[' _o', ' /|\\_', ' / \\ |', '    ~~~'], [' pi', ' pppo', ' I I o', '    hhh']],
 ];
-// Two crew by the door wave arrivals in under a welcome sign that bobs as they wave (picked design).
+// A crew member by the door waves arrivals in under a welcome sign that bobs as they wave (picked design).
 const GREETER = [[['[WELCOME]', '  \\o/', '   |', '  / \\'], ['aaaaaaaaa', '  cic', '   c', '  I I']],
   [[' [WELCOME]', '  \\o/', '   |', '  / \\'], [' aaaaaaaaa', '  cic', '   c', '  I I']]];
 function door(name) {
@@ -622,7 +624,8 @@ function door(name) {
   };
   const PANEL_STATES = [['idle', ['none'], 'A'], ['waiting', ['requested'], 'a'], ['open', ['confirmed'], 'c']];
   // The station board: how many crew this station has and how many are on now (server counts, never anyone's details).
-  const boardW = port ? 16 : 27, boardX = port ? 1 : 2, boardY = dy0 + 1, boardH = port ? 7 : 6;
+  // On wide screens it hangs in the wall space beside the door's top, leaving room for the memorial below (owner, 24 October 2026).
+  const boardW = port ? 16 : 27, boardX = port ? 1 : 2, boardY = port ? dy0 + 1 : 1, boardH = port ? 7 : 6;
   base.box(boardX, boardY, boardX + boardW - 1, boardY + boardH - 1, 'h'); base.text(boardX + 2, boardY, port ? ' STATION ' : ' STATION BOARD ', 'h');
   const count = (id, label, key, y) => {
     if (port) { base.text(boardX + 2, y, label, 'H'); effects.push({ kind: 'text', id, x: boardX + 2, y: y + 1, width: boardW - 4, template: `{${key}}`, colour: 'c', align: 'right' }); }
@@ -652,11 +655,11 @@ function door(name) {
       layers.push(layer(`control-${state}`, art, { when: { whitelist: when } }));
     }
   }
-  // Two crew either side of the door wave arrivals in.
+  // A crew member on the right of the door waves arrivals in. The left one stood in front of the memorial and is gone (owner,
+  // 24 October 2026).
   const greetY = dy1 - 2, greetR = port ? dx1 + 9 : dx1 + 8;
-  // The sign sits a row above each greeter. On the left, sign and greeter stand clear of the door frame even as the
-  // sign bobs; on the right, the greeter stands where they always have.
-  const greeters = GREETER.map(([lines, keys]) => { const art = new Art(w, h); prop(art, dx0 - 12, greetY - 1, lines, keys); prop(art, greetR - 2, greetY - 1, lines, keys); return art; });
+  // The sign sits a row above the greeter.
+  const greeters = GREETER.map(([lines, keys]) => { const art = new Art(w, h); prop(art, greetR - 2, greetY - 1, lines, keys); return art; });
   layers.push(framesLayer('greeters', greeters, 2));
 
   // The arrivals deck: one fixture for each part of Disembarking, on clean rows.
@@ -673,8 +676,8 @@ function door(name) {
   const rowA = port ? floorY + 5 : floorY + 4, rowB = rowA + 8, rowC = rowB + 8;
   // Landscape: the memorial and the game monitor hang on the walls either side of the door; portrait: on the deck.
   const at = port
-    ? { wet: [2, rowA], feedback: [29, rowA], safe: [w - 17, rowA], memorial: [2, rowB - 2], game: [w - 25, rowB], carts: [2, rowC], vending: [w - 12, rowC] }
-    : { wet: [2, rowA], feedback: [29, rowA], safe: [w - 34, rowA], memorial: [1, boardY + boardH], game: [w - 26, dy0 + 10], carts: [2, rowB], vending: [w - 12, rowA] };
+    ? { wet: [2, rowA], feedback: [29, rowA], safe: [w - 17, rowA], memorial: [5, rowB - 5], game: [w - 25, rowB], carts: [2, rowC], vending: [w - 12, rowC] }
+    : { wet: [2, rowA], feedback: [29, rowA], safe: [w - 34, rowA], memorial: [5, boardY + boardH + 2], game: [w - 26, dy0 + 10], carts: [2, rowB], vending: [w - 12, rowA] };
   {
     // Watch your step and do not run: the janitor mops, and puts the wet floor sign out.
     // The floor stays tiled here: the janitor and the sign cover it only while they are out (owner review, sixth pass).
@@ -719,23 +722,33 @@ function door(name) {
     effects.push({ kind: 'blink', id: 'deck-locker-blink', region: [x + 2, y + 3, 12, 1], hz: 1, on: 'c', off: 'H', when: { beat: ['be-safe'] } });
   }
   {
-    // In memory of ArcanaObscura (owner, 24 October 2026; the candle shelf design): her icon, drawn from the server's
-    // :mikmoff: emoji, and the owner's words, on a brass shelf where the boarding checklist hung. Two candles hang beneath;
-    // their flames flicker, and stand still with motion off. Provenance: content/shuttle-activity/memorial.json.
-    const [x, y] = at.memorial, width = 31;
-    clearArea(x, y, width, 8);
-    base.box(x, y, x + width - 1, y + 7, 'A');
+    // In memory of ArcanaObscura (owner, 24 October 2026; the candle shelf, revised): a brass plaque with her icon, drawn from
+    // the server's :mikmoff: emoji, over the owner's words; a blue medical cross above it whose foot replaces the middle
+    // glyph of the plaque's top bezel; a candle on each side, its flame flickering (still with motion off).
+    // Provenance: content/shuttle-activity/memorial.json.
+    const [x, y] = at.memorial, width = 19, height = 13, mid = x + 9;
+    // Props clear only the floor they cover: the plaque; the cross and the candles draw over what is there.
+    clearArea(x, y, width, height);
+    base.box(x, y, x + width - 1, y + height - 1, 'A');
     MEMORIAL_ICON.forEach(([glyphs, keys], r) => prop(base, x + 2, y + 1 + r, [glyphs], [keys]));
-    for (const [text, key, row] of [['In memory of', 'I', 1], ['ArcanaObscura', 'a', 2], ['Fly peacefully', 'i', 4], ['into the night.', 'i', 5]]) base.text(x + 15, y + row, text, key);
-    // The candles hang from the shelf on two hooks.
-    const wicks = [x + 4, x + 17];
-    for (const cx of wicks) { base.put(cx, y + 7, '┬', 'A'); clearArea(cx - 1, y + 8, 3, 2); base.text(cx - 1, y + 9, '[_]', 'i'); }
-    const flames = [[')', 'a'], ['(', 'r']].map(([left, key]) => {
+    [['In memory of', 'I'], ['ArcanaObscura', 'a'], ['Fly peacefully', 'i'], ['into the night.', 'i']]
+      .forEach(([text, key], r) => base.text(x + 1 + Math.floor((width - 2 - text.length) / 2), y + 8 + r, text, key));
+    // The cross: its foot stands on the bezel, in place of the bezel's middle glyph.
+    base.put(mid, y - 2, '█', 'h'); base.text(mid - 2, y - 1, '█████', 'h'); base.put(mid, y, '█', 'h');
+    // The candles: wax with drips on a brass holder, the wick, the flame and a spark above it.
+    const candle = (cx, cy) => prop(base, cx - 1, cy + 2, [' │ ', '▄█▄', '▐█▌', '▐█▌', '▀█▀', '▀▀▀'], [' d ', 'iii', 'iii', 'iii', 'AAA', 'AAA']);
+    // One column of wall between each candle and the plaque.
+    const candles = [[x - 3, y + 2], [x + width + 2, y + 2]];
+    candles.forEach(([cx, cy]) => { clearArea(cx - 1, cy, 3, 8); candle(cx, cy); });
+    // Three flame frames; the two candles flicker out of step.
+    const FLAMES = [['·', 'I', '◆', 'a'], ["'", 'a', '◆', 'r'], [' ', ' ', '•', 'a']];
+    const flames = FLAMES.map((_, f) => {
       const art = new Art(w, h);
-      wicks.forEach((cx, i) => art.put(cx, y + 8, i === 0 ? left : left === ')' ? '(' : ')', i === 0 ? key : key === 'a' ? 'r' : 'a'));
+      candles.forEach(([cx, cy], i) => { const [spark, sparkKey, flame, flameKey] = FLAMES[(f + i) % FLAMES.length];
+        if (spark !== ' ') art.put(cx, cy, spark, sparkKey); art.put(cx, cy + 1, flame, flameKey); });
       return art;
     });
-    deck.push(framesLayer('memorial-flames', flames, 2.5));
+    deck.push(framesLayer('memorial-flames', flames, 3));
   }
   {
     // The last step happens in the game: its [ Get Whitelisted ] button.
@@ -1638,7 +1651,7 @@ const SCENES = [
   { id: 'pressure-door', title: 'Pressure door and concourse', draw: door, beats: DOOR_BEATS, alt: [
     { when: { whitelist: ['confirmed'] }, text: 'The pressure door has slid open. Light floods in from the station concourse, where a directory sign points to Meridian Rift, Wolfgate and #general and people go about their shift. Rook and Pip walk through ahead. The lamp above the door is cyan and the control panel reads: Whitelist confirmed, Discord applied, door open.' },
     { when: { whitelist: ['requested'] }, text: 'A battered pressure door with hazard stripes and a stencilled number. New cyan conduits are bolted to its frame. An amber lamp above it blinks, and a cyan control panel reads: Whitelist requested, Discord waiting, door held.' },
-    { text: 'A battered pressure door with hazard stripes and a stencilled number. New cyan conduits are bolted to its frame. The lamp above it is dim, and a cyan control panel reads: Whitelist not requested, door held. Two crew under welcome signs wave arrivals in, past a luggage cart, a feedback terminal, an emergency locker, a vending machine, and a memorial shelf with her icon and two candles: In memory of ArcanaObscura. Fly peacefully into the night. Now and then a passer-by drops some litter, and a cleanbot trundles along and picks it up.' },
+    { text: 'A battered pressure door with hazard stripes and a stencilled number. New cyan conduits are bolted to its frame. The lamp above it is dim, and a cyan control panel reads: Whitelist not requested, door held. A crew member under a welcome sign waves arrivals in, past a luggage cart, a feedback terminal, an emergency locker, a vending machine, and a memorial shelf with her icon and two candles: In memory of ArcanaObscura. Fly peacefully into the night. Now and then a passer-by drops some litter, and a cleanbot trundles along and picks it up.' },
   ] },
 ];
 

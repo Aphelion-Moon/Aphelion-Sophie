@@ -121,8 +121,13 @@ test('P45 the shipped scenes introduce, use and clean up their people and props'
   // clearance and arrival: her icon, the owner's words, two candles beneath.
   for (const [beat, reached] of [['watch-step', ['watch-step']], ['ready', ['watch-step', 'feedback', 'be-safe', 'ready']], ['none', ['ready', 'get-whitelisted']]]) {
     const frame = at('pressure-door', { beat, reached });
-    assert.match(frame, /▀▀▀▄████▄▀▀▀ In memory of[\s\S]*ArcanaObscura[\s\S]*Fly peacefully[\s\S]*into the night\.[\s\S]*\[_\][\s\S]*\[_\]/, beat);
+    // The blue cross's foot replaces the middle glyph of the top bezel; a candle stands at each side of the plaque.
+    assert.match(frame, /█████[^\n]*\n[^\n]*┌────────█────────┐[^\n]*\n[^\n]*│ ▄███▄█████▄███▄ │/, beat);
+    assert.match(frame, /▄█▄ │  ▄███████████▄  │ ▄█▄/, `${beat}: candles either side`);
+    assert.match(frame, /In memory of[\s\S]*ArcanaObscura[\s\S]*Fly peacefully[\s\S]*into the night\./, beat);
     assert.doesNotMatch(frame, /BOARDING CHECK/, beat);
+    // One greeter now, on the right of the door; the left one stood in front of the memorial.
+    assert.equal(frame.match(/\[WELCOME\]/g)?.length, 1, beat);
   }
   assert.match(clearance, /In memory of/);
   assert.match(at('pressure-door', { beat: 'none', whitelist: 'confirmed', doorOpen: 1, reached: ['ready', 'get-whitelisted'] }), /CONCOURSE/);
