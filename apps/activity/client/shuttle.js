@@ -62,7 +62,17 @@ export function createShuttle({ document, api, connect, player, loadScene, sound
     placeSlot();
   }
   /** Puts the splash prompt and the menu over the hangar's menu slot; without one they keep a corner of the stage. */
+  /** The scene's link over its slot, while reading; hidden otherwise. */
+  function placeLink() {
+    const button = $('scene-link'), link = player.link ?? null, rect = link ? player.slotRect?.('link') ?? null : null, canvas = $('scene');
+    if (!button?.style) return;
+    if (!link || !rect || !canvas || view !== 'radio') { button.hidden = true; return; }
+    button.hidden = false; button.setAttribute('aria-label', link.label); button.title = link.label;
+    button.style.left = `${(canvas.offsetLeft ?? 0) + rect.left}px`; button.style.top = `${(canvas.offsetTop ?? 0) + rect.top}px`;
+    button.style.width = `${rect.width}px`; button.style.height = `${rect.height}px`;
+  }
   function placeSlot() {
+    placeLink();
     const slot = $('slot'), canvas = $('scene'), rect = player.slotRect?.('menu') ?? null;
     if (!slot?.style) return;
     if (!rect || !canvas) {
@@ -630,6 +640,7 @@ export function createShuttle({ document, api, connect, player, loadScene, sound
     }
     $('reset-journey').addEventListener('click', () => { void resetJourney(); });
     for (const button of document.querySelectorAll('[data-close]')) button.addEventListener('click', closeSheets);
+    $('scene-link')?.addEventListener('click', () => { const link = player.link; if (link) { sound.play('UI-02'); discord?.openLink(link.url); } });
     // A tap on the dimmed backdrop around a sheet closes it, as on a phone's own sheets.
     for (const id of SHEETS) $(id).addEventListener('click', event => { if (event.target === event.currentTarget) closeSheets(); });
     for (const link of document.querySelectorAll('a[data-external]')) {

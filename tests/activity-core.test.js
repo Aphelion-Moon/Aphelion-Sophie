@@ -125,7 +125,7 @@ async function server(overrides = {}) {
     async reset(input) { calls.push(['reset', input]); return { duplicate: false, reset: true }; },
     ...overrides.store };
   let woken = 0;
-  const http = createActivityHttpServer({ configuration: activityConfiguration(), applicationId: APP, guildId: GUILD, port: 38125, assets, channels: overrides.channels ?? null, enabled: async () => true, onFault: code => calls.push(['fault', code]),
+  const http = createActivityHttpServer({ configuration: activityConfiguration(), applicationId: APP, guildId: GUILD, port: 38125, assets, channels: overrides.channels ?? null, enabled: async () => true, onFault: (code, context) => { calls.push(['fault', code]); if (context) calls.push(['fault-context', context]); },
     wake: () => { woken++; }, clock: () => NOW, pause: async () => {},
     auth: { signIn: async input => { calls.push(['signIn', input]); return { token: 'a'.repeat(64), accessToken: 'x', scopes: ['identify'], expiresIn: 3600 }; },
       authenticate: async token => { if (token !== 'a'.repeat(64)) throw new ContractError('ACTIVITY_SESSION_INVALID'); return { guildId: GUILD, userId: USER }; },
@@ -190,6 +190,26 @@ test('T-ACT-CORE-08 API routes: bearer sign-in, fresh member context, closed sha
     assert.equal((await request('/api/unknown')).status, 404);
     assert.deepEqual(await (await request('/api/config', { token: null })).json(), { applicationId: APP, guildId: GUILD });
   } finally { await http.close(); }
+});
+
+test('T-ACT-CORE-10 a database lock timeout is retried; one that persists alerts with who was affected and the request', async () => {
+  // PG 55P03 (lock_timeout), 40001 and 40P01 are raised before COMMIT: the work rolled back and is safe to send again.
+  let tries = 0;
+  const lockError = () => Object.assign(new Error('canceling statement due to lock timeout'), { code: '55P03' });
+  const busy = await server({ store: { async act(input) { if (++tries < 3) throw lockError(); return { run: { stop: 1 }, queued: false, input }; } } });
+  try {
+    const response = await busy.request('/api/shuttle/act', { method: 'POST', body: { requestId: 'r'.repeat(32), action: 'advance', expectedVersion: 1 } });
+    assert.equal(response.status, 200); assert.equal(tries, 3);
+    assert.deepEqual(busy.calls.filter(([name]) => name.startsWith('fault')), [], 'a retried lock is not an error');
+  } finally { await busy.http.close(); }
+  const stuck = await server({ store: { async act() { throw lockError(); } } });
+  try {
+    const response = await stuck.request('/api/shuttle/act', { method: 'POST', body: { requestId: 'r'.repeat(32), action: 'advance', expectedVersion: 1 } });
+    assert.equal(response.status, 503);
+    assert.deepEqual(stuck.calls.filter(([name]) => name === 'fault'), [['fault', 'ACTIVITY_REQUEST_UNAVAILABLE_PG_55P03']]);
+    // The alert learns the member and the request; the log line stays the code alone.
+    assert.deepEqual(stuck.calls.filter(([name]) => name === 'fault-context'), [['fault-context', { userId: USER, request: 'POST /api/shuttle/act (advance)' }]]);
+  } finally { await stuck.http.close(); }
 });
 
 test('T-ACT-CORE-09 refusals map to fixed words; transient Discord reads are retried; anything unexpected logs one code', async () => {

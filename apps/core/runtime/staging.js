@@ -101,7 +101,8 @@ export async function createStagingRuntime({ configuration, pool, aiControlPool 
   const active = () => started && !stopping && !maintenanceObserved;
   // Errors also go to the configured alert channel (codes only; apps/core/runtime/error-alerts.js).
   let errorAlerts = null;
-  const fault = code => { try { onFault(code); } catch { /* Never log original dependency errors or payloads. */ } errorAlerts?.report(code); };
+  // The host log gets the code only; the alert also gets who was affected and the request, when the caller knows them.
+  const fault = (code, context) => { try { onFault(code); } catch { /* Never log original dependency errors or payloads. */ } errorAlerts?.report(code, context); };
   // Timing diagnostics (fixed codes: outcome, milliseconds, request counts). Never faults, IDs or content.
   const trace = code => { try { onTrace(code); } catch { /* Diagnostics never affect the runtime. */ } };
   const databaseActive = async () => {

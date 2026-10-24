@@ -71,7 +71,10 @@ test('T-ALERT-05 the transport sends an alert that may ping one role, and refuse
   const ok = { content: `**Sophie error** \`X_UNAVAILABLE\`\n<@&${ROLE}>`, allowed_mentions: { parse: [], users: [], roles: [ROLE], replied_user: false } };
   await transport.createErrorAlert(CHANNEL, 'b'.repeat(24), ok);
   assert.deepEqual(calls[0].slice(0, 2), ['POST', `/api/v10/channels/${CHANNEL}/messages`]);
-  for (const body of [{ ...ok, content: 'ping @everyone' }, { ...ok, content: `<@${ids(12)}>` }, { ...ok, allowed_mentions: { ...ok.allowed_mentions, roles: [ROLE, ids(72)] } },
+  // Members may be named (mentions that notify nobody, since allowed_mentions.users stays empty).
+  await transport.createErrorAlert(CHANNEL, 'b'.repeat(24), { ...ok, content: `${ok.content}\n-# affected: <@${ids(12)}>` });
+  assert.equal(calls.length, 2); calls.pop();
+  for (const body of [{ ...ok, content: 'ping @everyone' }, { ...ok, content: `<@!${ids(12)}>` },{ ...ok, allowed_mentions: { ...ok.allowed_mentions, roles: [ROLE, ids(72)] } },
     { ...ok, allowed_mentions: { ...ok.allowed_mentions, users: [ids(12)] } }, { ...ok, allowed_mentions: { ...ok.allowed_mentions, parse: ['roles'] } },
     { ...ok, allowed_mentions: { ...ok.allowed_mentions, roles: [] } }, { ...ok, embeds: [] }, { ...ok, content: 'x'.repeat(2_001) }, { ...ok, allowed_mentions: { ...ok.allowed_mentions, roles: [ids(1)] } }])
     await assert.rejects(transport.createErrorAlert(CHANNEL, 'b'.repeat(24), body), /INVALID_DISCORD_PAYLOAD/, JSON.stringify(body).slice(0, 80));
@@ -86,4 +89,21 @@ test('T-ALERT-06 the production configuration carries the alert channel and role
   assert.deepEqual(configured.errorAlerts, { channelId: CHANNEL, roleName: 'matriarch' }); validateStagingRuntime(configured);
   for (const errorAlerts of [{ channelId: 'x', roleName: 'matriarch' }, { channelId: CHANNEL, roleName: '<@&1>' }, { channelId: CHANNEL }, { channelId: ids(9), roleName: 'matriarch' }])
     assert.throws(() => validateStagingRuntime({ ...configured, errorAlerts }), JSON.stringify(errorAlerts));
+});
+
+test('T-ALERT-07 an alert says who was affected and what they were doing, naming members without notifying them', async () => {
+  const h = harness(), member = n => `1${String(n).padStart(17, '0')}`;
+  h.alerts.report('ACTIVITY_REQUEST_UNAVAILABLE_PG_55P03', { userId: member(80), request: 'POST /api/shuttle/act (advance)' }); await h.alerts.settled();
+  assert.equal(h.posts[0].body.content, `**Sophie error** \`ACTIVITY_REQUEST_UNAVAILABLE_PG_55P03\`\n-# affected: <@${member(80)}> · during \`POST /api/shuttle/act (advance)\`\n<@&${ROLE}>`);
+  assert.deepEqual(h.posts[0].body.allowed_mentions.users, [], 'members are named, never notified');
+  // Within the cooldown the affected members gather; the next alert lists five and counts the rest.
+  for (let n = 81; n < 88; n++) { h.advance(60_000); h.alerts.report('ACTIVITY_REQUEST_UNAVAILABLE_PG_55P03', { userId: member(n), request: 'GET /api/shuttle' }); }
+  h.advance(25 * 60_000); h.alerts.report('ACTIVITY_REQUEST_UNAVAILABLE_PG_55P03', { userId: member(81) }); await h.alerts.settled();
+  const second = h.posts[1].body.content;
+  assert.match(second, /×8 since <t:\d+:R>\n-# affected: /);
+  assert.ok(second.includes(`affected: <@${member(81)}>, <@${member(82)}>, <@${member(83)}>, <@${member(84)}>, <@${member(85)}> (+2 more) · during \`GET /api/shuttle\``), second);
+  // Anything that is not a member ID or a known request shape is left out.
+  const k = harness();
+  k.alerts.report('DATABASE_UNAVAILABLE', { userId: 'someone', request: 'GET /etc/passwd' }); await k.alerts.settled();
+  assert.equal(k.posts[0].body.content, `**Sophie error** \`DATABASE_UNAVAILABLE\`\n<@&${ROLE}>`);
 });

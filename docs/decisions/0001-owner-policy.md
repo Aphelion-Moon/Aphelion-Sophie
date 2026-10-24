@@ -2202,3 +2202,24 @@ Check sign]. We have an emoji which we added to memorialize her too, :mikmoff: �
 - **Story revision 5** (the owner's two lines in the "telling us" sign, the links), to publish as Shuttle version 6.
 - **The hangar** no longer shows "Aphelion station · waking". The no-link message is the owner's: "Cannot re-establish
   link, try reopening the activity. If that still doesn't work, ping @matriarch in #crew-support."
+
+### Alerts say who was affected; lock timeouts retry; the memorial links her gallery — 24 October 2026
+
+- **The alert.** The owner got "Sophie error ACTIVITY_REQUEST_UNAVAILABLE_PG_55P03" at 02:20 and asked that alerts "give me
+  more context, such as who was affected".
+  - 55P03 is PostgreSQL's lock timeout: every storage transaction sets lock_timeout 3s, and an Activity request waited
+    longer than that for a row another transaction held. The likely holder is another of the same member's requests (a
+    status poll during a step); the Whitelist worker does not hold locks across Discord calls.
+  - The Activity now retries a lock timeout, a serialization failure (40001) and a deadlock (40P01) after 150, 400 and
+    1,000 ms, like its other transient errors. These are raised before COMMIT, and every write carries a request key.
+- **Alert context.** An Activity alert now names the members affected since the last alert for that code. Mentions
+  never notify: allowed_mentions.users stays empty, and the transport refuses any alert that would. It also names the
+  request they were making, as a fixed method and path (and step action), never its content. At most five members are
+  listed, with a count of the rest. The host log keeps the code alone. Showing member IDs in the alert channel is the
+  owner's call, made here.
+- **The memorial links her gallery.** "Hyperlink ArcanaObscura's name with this link to the art gallery of all her work":
+  - A scene may now carry one https link with a label, and every layout must name a 'link' slot for it.
+  - While reading, the page lays a real button over that slot, labelled for screen readers, which opens the page through
+    Discord.
+  - The memorial's slot is the whole plaque, an easier tap than one line, and her name is drawn in the link colour:
+    https://meridian.a13.info/players/?ckey=arcanaobscura&tab=art.

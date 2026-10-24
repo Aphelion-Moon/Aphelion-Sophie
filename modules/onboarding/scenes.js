@@ -22,8 +22,11 @@ const ASCII = Array.from({ length: 95 }, (_, i) => String.fromCharCode(32 + i)).
 export const SCENE_GLYPHS = Object.freeze(new Set([...ASCII, ...'─│┌┐└┘├┤┬┴┼═║╔╗╚╝╟╢╪╱╲╭╮╯╰', ...'░▒▓█▀▄▌▐■□', ...'·•●◆»«≡']));
 export const SCENE_STATE_KEYS = Object.freeze(['stopTitle', 'stopNumber', 'stopCount', 'section', 'sections', 'whitelist', 'doorOpen', 'beat', 'link', 'crew', 'online', 'reached']);
 export const SCENE_WHITELIST_STATES = Object.freeze(['none', 'requested', 'confirmed']);
-/** Regions a layout may name for the page's own controls, drawn into the art: the title menu and its window's title. */
-export const SCENE_SLOTS = Object.freeze(['menu', 'title']);
+/**
+ * Regions a layout may name for the page's own controls, drawn into the art: the title menu and its window's title, and a
+ * link (the memorial's name opens her art gallery, owner request of 24 October 2026).
+ */
+export const SCENE_SLOTS = Object.freeze(['menu', 'title', 'link']);
 /** Whether the member has a run to show: 'some' once both stop number and stop count are known. */
 export const SCENE_STOP_STATES = Object.freeze(['none', 'some']);
 /** What the title screen's link panel may say about the member's Shuttle; 'none' until the server has answered. */
@@ -295,7 +298,14 @@ function effect(value, grid, ids, beats) {
 
 /** Validates a scene document. Throws a stable ContractError code; returns the scene unchanged. */
 export function validateScene(scene) {
-  exactKeys(scene, ['schema', 'id', 'title', 'alt', 'provenance', 'layouts'], ['beats']);
+  exactKeys(scene, ['schema', 'id', 'title', 'alt', 'provenance', 'layouts'], ['beats', 'link']);
+  // A scene's one link: an https page the 'link' slot opens through Discord, with what it is for screen readers.
+  if (scene.link !== undefined) {
+    exactKeys(scene.link, ['url', 'label'], [], 'INVALID_SCENE_LINK');
+    let url = null; try { url = new URL(scene.link.url); } catch { url = null; }
+    requireCondition(url?.protocol === 'https:' && !url.username && !url.password && scene.link.url.length <= 300, 'INVALID_SCENE_LINK');
+    boundedText(scene.link.label, 80, 'INVALID_SCENE_LINK');
+  }
   requireCondition(scene.schema === SCENE_SCHEMA_VERSION, 'UNSUPPORTED_SCENE_SCHEMA');
   requireCondition(ID.test(scene.id), 'INVALID_SCENE_ID');
   boundedText(scene.title, 80, 'INVALID_SCENE_TITLE');
@@ -322,6 +332,8 @@ export function validateScene(scene) {
       exactKeys(layout.slots, [], SCENE_SLOTS, 'INVALID_SCENE_SLOTS');
       for (const slot of Object.values(layout.slots)) region(slot, grid, 'INVALID_SCENE_SLOTS');
     }
+    // Every layout of a scene with a link has its link slot, and only such a scene has one.
+    requireCondition(Object.hasOwn(layout.slots ?? {}, 'link') === (scene.link !== undefined), 'INVALID_SCENE_LINK');
     requireCondition(Array.isArray(layout.layers) && layout.layers.length >= 1 && layout.layers.length <= LIMITS.layers, 'INVALID_SCENE_LAYERS');
     requireCondition(Array.isArray(layout.effects) && layout.effects.length <= LIMITS.effects, 'INVALID_SCENE_EFFECT');
     const ids = new Set();

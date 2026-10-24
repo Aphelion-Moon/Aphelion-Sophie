@@ -552,6 +552,7 @@ const JANITOR = [
 const GREETER = [[['[WELCOME]', '  \\o/', '   |', '  / \\'], ['aaaaaaaaa', '  cic', '   c', '  I I']],
   [[' [WELCOME]', '  \\o/', '   |', '  / \\'], [' aaaaaaaaa', '  cic', '   c', '  I I']]];
 function door(name) {
+  let memorialSlot = null;
   const { cols: w, rows: h } = SCENE_LAYOUTS[name], port = name === 'portrait';
   const base = new Art(w, h), light = new Art(w, h), effects = [], layers = [];
   const dw = port ? 30 : 28, cx = Math.round(w / 2), dx0 = cx - dw / 2, dx1 = cx + dw / 2;
@@ -731,7 +732,8 @@ function door(name) {
     clearArea(x, y, width, height);
     base.box(x, y, x + width - 1, y + height - 1, 'A');
     MEMORIAL_ICON.forEach(([glyphs, keys], r) => prop(base, x + 2, y + 1 + r, [glyphs], [keys]));
-    [['In memory of', 'I'], ['ArcanaObscura', 'a'], ['Fly peacefully', 'i'], ['into the night.', 'i']]
+    // Her name is a link (cyan, as links are): the plaque is the scene's link slot, opening her art gallery.
+    [['In memory of', 'I'], ['ArcanaObscura', 'h'], ['Fly peacefully', 'i'], ['into the night.', 'i']]
       .forEach(([text, key], r) => base.text(x + 1 + Math.floor((width - 2 - text.length) / 2), y + 8 + r, text, key));
     // The cross: its foot stands on the bezel, in place of the bezel's middle glyph.
     base.put(mid, y - 2, '█', 'h'); base.text(mid - 2, y - 1, '█████', 'h'); base.put(mid, y, '█', 'h');
@@ -749,6 +751,7 @@ function door(name) {
       return art;
     });
     deck.push(framesLayer('memorial-flames', flames, 3));
+    memorialSlot = [x, y, width, height];
   }
   {
     // The last step happens in the game: its [ Get Whitelisted ] button.
@@ -818,7 +821,7 @@ function door(name) {
   // Order: frame and fittings, the concourse behind the door, the sliding leaves, then lamp and control text.
   const byId = Object.fromEntries(layers.map(l => [l.id, l]));
   return { layers: [layer('base', base), byId.concourse, byId['leaf-left'], byId['leaf-right'], byId['lamp-idle'], byId['lamp-waiting'], byId['lamp-confirmed'],
-    byId['control-idle'], byId['control-waiting'], byId['control-open'], byId.greeters, ...deck], effects };
+    byId['control-idle'], byId['control-waiting'], byId['control-open'], byId.greeters, ...deck], effects, slots: { link: memorialSlot } };
 }
 
 function strip(base, effects, x, y, width) {
@@ -1648,7 +1651,7 @@ const SCENES = [
     { when: { beat: ['popper'] }, text: `${DECK_ALT} A crew member walks in, pops a confetti popper and cheers; confetti falls over the deck, and they head off again.` },
     { text: DECK_ALT },
   ] },
-  { id: 'pressure-door', title: 'Pressure door and concourse', draw: door, beats: DOOR_BEATS, alt: [
+  { id: 'pressure-door', link: { url: 'https://meridian.a13.info/players/?ckey=arcanaobscura&tab=art', label: "ArcanaObscura's art gallery" }, title: 'Pressure door and concourse', draw: door, beats: DOOR_BEATS, alt: [
     { when: { whitelist: ['confirmed'] }, text: 'The pressure door has slid open. Light floods in from the station concourse, where a directory sign points to Meridian Rift, Wolfgate and #general and people go about their shift. Rook and Pip walk through ahead. The lamp above the door is cyan and the control panel reads: Whitelist confirmed, Discord applied, door open.' },
     { when: { whitelist: ['requested'] }, text: 'A battered pressure door with hazard stripes and a stencilled number. New cyan conduits are bolted to its frame. An amber lamp above it blinks, and a cyan control panel reads: Whitelist requested, Discord waiting, door held.' },
     { text: 'A battered pressure door with hazard stripes and a stencilled number. New cyan conduits are bolted to its frame. The lamp above it is dim, and a cyan control panel reads: Whitelist not requested, door held. A crew member under a welcome sign waves arrivals in, past a luggage cart, a feedback terminal, an emergency locker, a vending machine, and a memorial shelf with her icon and two candles: In memory of ArcanaObscura. Fly peacefully into the night. Now and then a passer-by drops some litter, and a cleanbot trundles along and picks it up.' },
@@ -1657,7 +1660,7 @@ const SCENES = [
 
 await mkdir(outputDir, { recursive: true });
 for (const def of SCENES) {
-  const scene = { schema: 1, id: def.id, title: def.title, ...(def.beats ? { beats: def.beats } : {}), alt: def.alt, provenance: PROVENANCE,
+  const scene = { schema: 1, id: def.id, title: def.title, ...(def.beats ? { beats: def.beats } : {}), ...(def.link ? { link: def.link } : {}), alt: def.alt, provenance: PROVENANCE,
     layouts: Object.fromEntries(Object.keys(SCENE_LAYOUTS).map(name => [name, def.draw(name)])) };
   validateScene(scene);
   const json = `${JSON.stringify(scene)}\n`;

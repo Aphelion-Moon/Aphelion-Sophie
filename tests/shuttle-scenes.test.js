@@ -417,3 +417,24 @@ test('P43 counted effects run only on the scene clock, and a counted bubble may 
   assert.throws(() => validateScene(withEffects(uncounted)), error => error.code === 'INVALID_SCENE_DIALOGUE', 'a long pause needs a count');
   assert.throws(() => validateScene(withEffects({ ...bark, style: 'shout' })), error => error.code === 'INVALID_SCENE_DIALOGUE');
 });
+
+test('P44 the memorial is a link: her name opens her art gallery; a scene link is https only and needs its slot in every layout', () => {
+  const door = scenes.find(([, s]) => s.id === 'pressure-door')[1];
+  assert.deepEqual(door.link, { url: 'https://meridian.a13.info/players/?ckey=arcanaobscura&tab=art', label: "ArcanaObscura's art gallery" });
+  for (const layout of ['landscape', 'portrait']) {
+    const [x, y, w, h] = door.layouts[layout].slots.link;
+    const frame = composeScene(door, layout, { time: 1, state: STATE, motion: false });
+    // The slot is the plaque: its corners are the plaque's, and her name inside it is drawn in the link colour.
+    assert.equal([...frame.glyphs[y]][x], '┌', layout); assert.equal([...frame.glyphs[y + h - 1]][x + w - 1], '┘', layout);
+    const row = frame.glyphs.findIndex(line => line.includes('ArcanaObscura')), col = [...frame.glyphs[row]].join('').indexOf('ArcanaObscura');
+    assert.ok(row > y && row < y + h, layout); assert.equal([...frame.colours[row]][col], 'h', layout);
+  }
+  const withLink = (link, slots = true) => ({ ...door, link, layouts: Object.fromEntries(Object.entries(door.layouts).map(([name, layout]) =>
+    [name, slots ? layout : { ...layout, slots: {} }])) });
+  for (const link of [{ url: 'http://meridian.a13.info/', label: 'x' }, { url: 'javascript:alert(1)', label: 'x' }, { url: 'https://user:pw@example.test/', label: 'x' },
+    { url: 'https://example.test/', label: '' }, { url: 'https://example.test/' }, { url: 'https://example.test/', label: 'x', extra: 1 }])
+    assert.throws(() => validateScene(withLink(link)), error => error.code === 'INVALID_SCENE_LINK', JSON.stringify(link));
+  assert.throws(() => validateScene(withLink(door.link, false)), error => error.code === 'INVALID_SCENE_LINK', 'a link needs its slot');
+  const { link: _link, ...noLink } = door;
+  assert.throws(() => validateScene(noLink), error => error.code === 'INVALID_SCENE_LINK', 'a slot needs its link');
+});

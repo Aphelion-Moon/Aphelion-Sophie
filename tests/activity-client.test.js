@@ -360,3 +360,15 @@ test('T-ACT-CLI-18 linking never hangs: each try is bounded, tries back off, the
   const discord = await readFile(new URL('../apps/activity/client/discord.js', import.meta.url), 'utf8');
   assert.match(discord, /shared \?\?= /, 'one Discord SDK for the page, reused by every try');
 });
+
+test('T-ACT-CLI-20 a scene link is a real button over its slot while reading, opening the page through Discord', async () => {
+  const page = await readFile(new URL('../apps/activity/client/index.html', import.meta.url), 'utf8');
+  const client = await readFile(new URL('../apps/activity/client/shuttle.js', import.meta.url), 'utf8');
+  const player = await readFile(new URL('../apps/activity/scene-player.js', import.meta.url), 'utf8');
+  assert.match(page, /<button id="scene-link" type="button" class="scene-link" hidden><\/button>/);
+  assert.match(player, /get link\(\) \{ return scene\?\.link \?\? null; \}/);
+  // Shown only while reading a scene that has a link; labelled for screen readers; opened through Discord, never in the frame.
+  assert.match(client, /if \(!link \|\| !rect \|\| !canvas \|\| view !== 'radio'\) \{ button\.hidden = true; return; \}/);
+  assert.match(client, /button\.setAttribute\('aria-label', link\.label\)/);
+  assert.match(client, /\$\('scene-link'\)\?\.addEventListener\('click', \(\) => \{ const link = player\.link; if \(link\) \{ sound\.play\('UI-02'\); discord\?\.openLink\(link\.url\); \} \}\)/);
+});

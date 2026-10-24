@@ -8,7 +8,11 @@ const COMMON = Object.freeze({ 'X-Content-Type-Options': 'nosniff', 'Referrer-Po
 const BODY_LIMIT = 4_096, MAX_ACTIVE = 16, SIGN_INS_PER_MINUTE = 60;
 const TRANSIENT = new Set(['OBSERVATION_INVALIDATED', 'OBSERVATION_UNAVAILABLE', 'OBSERVATION_OUT_OF_ORDER', 'MEMBERSHIP_STALE', 'DISCORD_BUSY',
   'RATE_LIMITED', 'DISCORD_UNAVAILABLE', 'AUTHORITY_UNCERTAIN', 'OAUTH_PROVIDER_UNAVAILABLE']);
-const RETRY_DELAYS_MS = Object.freeze([150, 400]);
+// PostgreSQL lock timeout, serialization failure and deadlock: raised before COMMIT, so the transaction rolled back and the
+// request (keyed, or read-only) is safe to try again (owner report, 24 October 2026: ACTIVITY_REQUEST_UNAVAILABLE_PG_55P03).
+const RETRYABLE_SQLSTATES = new Set(['55P03', '40001', '40P01']);
+const RETRY_DELAYS_MS = Object.freeze([150, 400, 1_000]);
+const ACTIONS = new Set(['advance', 'back', 'retry']);
 // What the Activity is told about a refusal: a fixed word per outcome, never an internal code, ID or message.
 const OUTCOMES = [
   [401, 'signin', ['ACTIVITY_SESSION_INVALID', 'UNTRUSTED_PRINCIPAL']],
@@ -37,7 +41,8 @@ export function createActivityHttpServer({ configuration, applicationId, guildId
     typeof discord?.observe === 'function' && typeof store?.describe === 'function' && typeof enabled === 'function' && typeof onFault === 'function' &&
     typeof wake === 'function', 'TRUSTED_ADAPTERS_REQUIRED');
   const hosts = new Set([new URL(configuration.origin).host, `127.0.0.1:${port}`]);
-  const fault = code => { try { onFault(code); } catch { /* Never log request content. */ } };
+  // The log takes the code only; the error alerts also get who was affected and the request (never its content).
+  const fault = (code, context) => { try { onFault(code, context); } catch { /* Never log request content. */ } };
   let active = 0, stopping = false, window = { startedAt: -Infinity, count: 0 };
   /**
    * What an unexpected failure was, in fixed vocabulary only (owner request, 24 October 2026): a contract or library code,
@@ -102,7 +107,7 @@ export function createActivityHttpServer({ configuration, applicationId, guildId
         const named = [...new Map(Object.values(found.mentions).map(channel => [channel.id, { id: channel.id, name: channel.name }])).values()];
         run.arrival = found.arrival.length ? found.arrival : named;
       }
-    } catch { fault('ACTIVITY_CHANNELS_UNAVAILABLE'); run.channels = {}; if (confirmed) run.arrival = []; }
+    } catch { fault('ACTIVITY_CHANNELS_UNAVAILABLE', { userId }); run.channels = {}; if (confirmed) run.arrival = []; }
     return withStation(result, userId);
   }
   /**
@@ -112,19 +117,20 @@ export function createActivityHttpServer({ configuration, applicationId, guildId
   async function withStation(result, userId) {
     const run = result?.run;
     if (!run || station === null || (run.status === 'reading' && run.stop < run.stops.length - 1)) return result;
-    try { run.station = await station.station(); } catch { fault('ACTIVITY_STATION_UNAVAILABLE'); }
-    try { const pass = await station.pass(userId); if (pass) run.pass = pass; } catch { fault('ACTIVITY_PASS_UNAVAILABLE'); }
+    try { run.station = await station.station(); } catch { fault('ACTIVITY_STATION_UNAVAILABLE', { userId }); }
+    try { const pass = await station.pass(userId); if (pass) run.pass = pass; } catch { fault('ACTIVITY_PASS_UNAVAILABLE', { userId }); }
     return result;
   }
   async function attempt(work) {
     for (let tries = 0; ; tries++) {
       try { return await work(); } catch (error) {
-        if (!(error instanceof ContractError) || !TRANSIENT.has(error.code) || tries >= RETRY_DELAYS_MS.length) throw error;
+        const retryable = error instanceof ContractError ? TRANSIENT.has(error.code) : RETRYABLE_SQLSTATES.has(error?.code);
+        if (!retryable || tries >= RETRY_DELAYS_MS.length) throw error;
         await pause(RETRY_DELAYS_MS[tries]);
       }
     }
   }
-  async function api(request, response, path) {
+  async function api(request, response, path, seen) {
     if (path === '/api/session' && request.method === 'POST') {
       const now = clock();
       if (now - window.startedAt >= 60_000) window = { startedAt: now, count: 0 };
@@ -134,17 +140,18 @@ export function createActivityHttpServer({ configuration, applicationId, guildId
     }
     if (path === '/api/session/end' && request.method === 'POST') { auth.signOut(bearer(request)); send(response, 204, null); return; }
     if (path === '/api/shuttle' && request.method === 'GET') {
-      const seen = {}, result = await attempt(async () => store.describe(await member(request, seen)));
+      const result = await attempt(async () => store.describe(await member(request, seen)));
       send(response, 200, await withChannels(result, seen.userId)); return;
     }
     if (path === '/api/shuttle/board' && request.method === 'POST') {
       const body = await readJson(request); only(body, ['requestId']);
-      const seen = {}, result = await attempt(async () => store.board({ ...await member(request, seen), requestId: body.requestId }));
+      const result = await attempt(async () => store.board({ ...await member(request, seen), requestId: body.requestId }));
       send(response, 200, { run: (await withChannels(result, seen.userId)).run }); return;
     }
     if (path === '/api/shuttle/act' && request.method === 'POST') {
       const body = await readJson(request); only(body, ['requestId', 'action', 'expectedVersion']);
-      const seen = {}, result = await attempt(async () => store.act({ ...await member(request, seen), requestId: body.requestId, action: body.action,
+      if (ACTIONS.has(body.action)) seen.action = body.action;
+      const result = await attempt(async () => store.act({ ...await member(request, seen), requestId: body.requestId, action: body.action,
         expectedVersion: body.expectedVersion }));
       await withChannels(result, seen.userId);
       // A recorded grant intent is delivered now rather than at the next interval.
@@ -154,7 +161,7 @@ export function createActivityHttpServer({ configuration, applicationId, guildId
     // Reset journey (Settings): the member's run still being read stops being current; boarding starts over.
     if (path === '/api/shuttle/reset' && request.method === 'POST') {
       const body = await readJson(request); only(body, ['requestId']);
-      const result = await attempt(async () => store.reset({ ...await member(request, {}), requestId: body.requestId }));
+      const result = await attempt(async () => store.reset({ ...await member(request, seen), requestId: body.requestId }));
       send(response, 200, { reset: result.reset === true }); return;
     }
     send(response, 404, { error: 'not_found' });
@@ -173,7 +180,8 @@ export function createActivityHttpServer({ configuration, applicationId, guildId
     if (stopping || await enabled() !== true) { send(response, 503, { error: 'unavailable' }, { 'Retry-After': '30' }); return; }
     if (active >= MAX_ACTIVE) { send(response, 503, { error: 'retry' }, { 'Retry-After': '2' }); return; }
     active++;
-    try { await api(request, response, path); }
+    const seen = {};
+    try { await api(request, response, path, seen); }
     catch (error) {
       const code = error instanceof ContractError ? error.code : null;
       const outcome = OUTCOMES.find(([, , codes]) => codes.includes(code));
@@ -181,7 +189,8 @@ export function createActivityHttpServer({ configuration, applicationId, guildId
       else if (TRANSIENT.has(code) || code === 'OAUTH_DISABLED') send(response, 503, { error: 'retry' }, { 'Retry-After': '3' });
       else {
         const cause = causeOf(error);
-        fault(`ACTIVITY_REQUEST_UNAVAILABLE${cause ? `_${cause}` : ''}`.slice(0, 64).replace(/_+$/u, ''));
+        fault(`ACTIVITY_REQUEST_UNAVAILABLE${cause ? `_${cause}` : ''}`.slice(0, 64).replace(/_+$/u, ''),
+          { userId: seen.userId ?? null, request: `${request.method} ${path}${seen.action ? ` (${seen.action})` : ''}` });
         send(response, 503, { error: 'unavailable' }, { 'Retry-After': '10' });
       }
     } finally { active--; }

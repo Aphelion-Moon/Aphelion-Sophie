@@ -73,6 +73,8 @@ export function createScenePlayer({ host, canvas, altElement, palette, backgroun
       const ratio = pixelRatio(), cellWidth = geometry.cellW / ratio, cellHeight = geometry.cellH / ratio, [x, y, w, h] = slot;
       return { left: x * cellWidth, top: y * cellHeight, width: w * cellWidth, height: h * cellHeight, cellWidth, cellHeight };
     },
+    /** The scene's link ({ url, label }) for its 'link' slot, or null. */
+    get link() { return scene?.link ?? null; },
     /** Where the page's slot positioning goes; null for none. */
     setLayoutHandler(handler) { onLayout = typeof handler === 'function' ? handler : null; },
     /** Updates run state from the server: stop, section and Whitelist status. */

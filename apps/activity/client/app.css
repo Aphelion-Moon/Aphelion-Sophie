@@ -204,6 +204,11 @@ h2.md-heading { font-size: 1.3em; }
 .arrival-note { color: var(--ivory-dim); font-size: .85em; }
 .arrival-none { color: var(--ivory-dim); }
 
+/* A scene's link over its slot: the art shows it, the button makes it tappable (and focusable). */
+.scene-link { position: absolute; z-index: 2; background: transparent; border: 1px solid transparent; padding: 0; cursor: pointer; }
+.scene-link:focus-visible { border-color: var(--holo); outline: none; }
+@media (hover: hover) { .scene-link:hover { border-color: var(--holo-dim); } }
+
 /* Scene effects: the wipe between scenes, the ride between stops and the clown car */
 .wipe { position: absolute; inset: 0; pointer-events: none; opacity: 0;
   background: repeating-linear-gradient(to bottom, rgba(232, 223, 198, .16) 0 1px, transparent 1px 3px), var(--bay); }
