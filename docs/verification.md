@@ -1,12 +1,15 @@
 # Verification and release limits
 
-## Prepared, not installed: a36973c (supersedes 6ecc800) — 24 October 2026
+## Production install of a36973c (supersedes 6ecc800) — 24 October 2026
 
 - **Offline:** `npm test` 888 passed (DA-REUSE-01 to 04 replace DA-VIEW-01 to 04; T18 and T18b; A11 updated); `npm run
   check` passed; storage (4 shards) 1040 passed, 0 failed; SA16: a whole Continue from cold within 24 database round trips
   and 4 Discord reads.
-- **Packet:** `prepare.mjs` passed against the installed f288aae (23 reviewed files, only migration 078, the runtime adds
-  only `whitelistNotices`). Not installed: no owner approval yet.
+- **Install (17:11 UTC):** preflight (installed f288aae verified; 23 reviewed files; migration 078; runtime adds only
+  `whitelistNotices`), pre-start, service boundaries and public hosts passed. The installed check failed only its "no
+  reconciliation job" assertion: one `whitelist.reconcile` left at 16:12 UTC under f288aae by an uncertain grant that
+  then completed (fixed in b959415, prepared). After the restart: one expected re-sign-in, a GitHub rate limit from the
+  knowledge sync, no Activity fault, no PostgreSQL error.
 - **Not covered:** the notice in the real staff bot channel; Activity timing under real load with one observation per
   request; Staff administration still reads once per check.
 

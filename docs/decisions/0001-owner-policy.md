@@ -2591,3 +2591,16 @@ resolving the actor made another full actor read.
 Tests: DA-REUSE-01 to 04 replace DA-VIEW-01 to 04; T18 (an actor check reads; the member observation after it takes its
 read) and T18b (a role change Sophie makes ends shared reads); A11 now states that within one request the check stands
 until Discord announces a change, and the next request is refused; SA16 keeps the budget.
+
+On the owner's "Yes, install a36973c to production with the checks." (quoted in the packet's `approval.json`), `a36973c` was
+installed over `f288aae` at 17:11 UTC on 24 October: 23 files (2 new), migration 078 applied (78 migrations; the outbox
+accepts `whitelist.notice`), the runtime adds only `whitelistNotices` (channel 1528802745136447508); same Node 24.22.1,
+capability policy version 2 and credentials, no story change. Pre-start, service boundaries and public checks passed. The
+installed check failed one assertion: production must hold no reconciliation job, and one `whitelist.reconcile` from
+16:12 UTC (under f288aae) was there. Sophie's Whitelist add for a member was confirmed by a read their own update
+overtook, so the attempt was recorded as uncertain and a reconciliation queued; the grant completed two seconds later on
+its next attempt (the member has Whitelist, the run is complete). Production runs no reconciliation, so the job would wait
+forever. Everything else in that check passed (78 migrations, the new outbox kind, Gateway current). Fixed in `b959415`
+(prepared, not installed): the store queues no Whitelist reconciliation in the activity-ai scope (SA17). The leftover job
+stays until the owner approves removing it. Folder `.agent_docs/aphelion-sophie/deployment-a36973c-production-2026-10-24`;
+`rollback.ps1` restores `f288aae` (reverting 078 first).
