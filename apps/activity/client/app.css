@@ -223,6 +223,19 @@ h2.md-heading { font-size: 1.3em; }
 .arrival-name { color: var(--holo); }
 .arrival-note { color: var(--ivory-dim); font-size: .85em; }
 .arrival-none { color: var(--ivory-dim); }
+/* The game servers, once the member has Whitelist (owner, 24 October 2026): in the main menu's terminal and at the last
+   step, each server's name, its info channel and quick connect. */
+.games { margin-top: .6em; }
+.arrival .games { margin-top: 10px; }
+.games-heading { margin: 0 0 .3em; color: var(--holo); font-size: .85em; letter-spacing: .14em; text-transform: uppercase; }
+.games-list { list-style: none; margin: 0; padding: 0; display: grid; gap: .35em; }
+.game { display: flex; flex-wrap: wrap; align-items: center; gap: .3em .6em; }
+.game-name { color: var(--amber); }
+.game-kind { color: var(--holo-dim); font-size: .85em; letter-spacing: .1em; min-width: 3.2em; }
+.game-button { min-height: 32px; padding: .15em .6em; background: var(--panel); border: 1px solid var(--holo-dim); color: var(--holo); cursor: pointer;
+  font: inherit; letter-spacing: .04em; }
+.game-button.play { border-color: var(--amber-dim); color: var(--amber); }
+.game-button:focus-visible { border-color: var(--holo); color: var(--cold); }
 
 /* A scene's link over its slot: the art shows it, the button makes it tappable (and focusable). */
 .scene-link { position: absolute; z-index: 2; background: transparent; border: 1px solid transparent; padding: 0; cursor: pointer; }
@@ -345,6 +358,8 @@ h2.md-heading { font-size: 1.3em; }
   .md-spoiler:hover { color: var(--ivory); }
   .md-channel:hover { color: var(--cold); border-color: var(--holo); }
   .arrival-card:hover { border-color: var(--holo); }
+  .game-button:hover { border-color: var(--holo); color: var(--cold); }
+  .game-button.play:hover { border-color: var(--amber); color: var(--cold); }
   .control:hover:not(:disabled) { border-color: var(--amber-dim); color: var(--amber); }
   .control.primary:hover:not(:disabled) { background: var(--cold); border-color: var(--cold); color: var(--bay); }
   .sheet-close:hover { color: var(--amber); border-color: var(--amber-dim); }
@@ -355,6 +370,7 @@ h2.md-heading { font-size: 1.3em; }
   .control, .corner, .viewscreen-link, .arrival-card { min-height: 44px; }
   .corner { min-width: 44px; }
   .radio-chip, .sound-mute { min-width: 44px; min-height: 44px; }
+  .game-button { min-height: 44px; }
   .sound-level input { min-height: 32px; }
   .md-channel { min-height: 32px; }
   .setting-choice label { min-height: 44px; display: inline-flex; align-items: center; gap: 6px; }

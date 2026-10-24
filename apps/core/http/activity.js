@@ -1,6 +1,7 @@
 import { createServer } from 'node:http';
 import { ContractError, requireCondition, requireId } from '../../../contracts/validation.js';
 import { validateActivityConfiguration } from '../../../modules/onboarding/activity.js';
+import { DiscordError } from '../discord/transport.js';
 
 // Scripts, styles, fonts, sounds and API calls come from this origin only; no inline code, frames or third parties.
 const PAGE_CSP = "default-src 'none'; script-src 'self'; style-src 'self'; font-src 'self'; img-src 'self'; media-src 'self'; connect-src 'self'; base-uri 'none'; form-action 'none'";
@@ -13,6 +14,18 @@ const TRANSIENT = new Set(['OBSERVATION_INVALIDATED', 'OBSERVATION_UNAVAILABLE',
 const RETRYABLE_SQLSTATES = new Set(['55P03', '40001', '40P01']);
 const RETRY_DELAYS_MS = Object.freeze([150, 400, 1_000]);
 const ACTIONS = new Set(['advance', 'back', 'retry']);
+// Each member's own budget (owner report, 24 October 2026: one member mashing the main menu made Discord busy for
+// everyone, since every request reads Discord afresh). A member gets a burst of requests that refills one a second, and at
+// most two at a time; past that they are asked to slow down before anything reaches Discord. Members idle for a while are
+// forgotten.
+const MEMBER_BURST = 8, MEMBER_REFILL_PER_SECOND = 1, MEMBER_IN_FLIGHT = 2, MEMBER_IDLE_MS = 120_000;
+// Discord's own "not now" (a full read queue, a rate limit, an outage) is transient: the Activity tries again later. It is
+// not a fault to alert on.
+const DISCORD_TRANSIENT = new Set(['DISCORD_BUSY', 'RATE_LIMITED', 'DISCORD_UNAVAILABLE']);
+const discordTransient = error => error instanceof DiscordError && DISCORD_TRANSIENT.has(error.code);
+// The game servers' info channels, offered with their quick-connect buttons once the member has Whitelist (owner, 24 October
+// 2026): before that they cannot see them.
+const GAME_INFO_CHANNELS = Object.freeze(['ss13-info', 'ss14-info']);
 // What the Activity is told about a refusal: a fixed word per outcome, never an internal code, ID or message.
 const OUTCOMES = [
   [401, 'signin', ['ACTIVITY_SESSION_INVALID', 'UNTRUSTED_PRINCIPAL']],
@@ -21,6 +34,7 @@ const OUTCOMES = [
   [403, 'instance', ['ACTIVITY_INSTANCE_INVALID']],
   [403, 'denied', ['OPERATION_DENIED', 'FOREIGN_GUILD', 'OAUTH_IDENTITY_INVALID', 'OAUTH_CODE_INVALID',
     'OAUTH_RESPONSE_INVALID', 'NOT_IN_GUILD', 'MEMBER_MUZZLED', 'CAPABILITY_REVOKED']],
+  [429, 'slow', ['ACTIVITY_RATE_LIMITED']],
   [409, 'elsewhere', ['SHUTTLE_ELSEWHERE']],
   [409, 'paused', ['SHUTTLE_PAUSED']],
   [409, 'unpublished', ['DEFINITION_NOT_FOUND', 'SHUTTLE_CONTENT_REQUIRED']],
@@ -87,19 +101,43 @@ export function createActivityHttpServer({ configuration, applicationId, guildId
     requireCondition(match !== null, 'ACTIVITY_SESSION_INVALID'); return match[1];
   }
   const only = (value, keys) => requireCondition(Object.keys(value).length === keys.length && keys.every(key => Object.hasOwn(value, key)), 'ACTIVITY_BODY_INVALID');
-  /** The member behind a request, resolved and observed afresh. */
-  /** The signed-in member's fresh context; `seen.userId` records who it is for the channel links. */
+  const budgets = new Map();
+  /**
+   * Spends one of the member's requests, or refuses (ACTIVITY_RATE_LIMITED) when their burst is used up or two of theirs
+   * are already running. Once per request: a retried attempt does not spend again. `seen.release` ends it.
+   */
+  function spend(userId, seen) {
+    if (seen.release) return;
+    const now = clock();
+    if (budgets.size >= 1_024) for (const [id, b] of budgets) if (b.inFlight === 0 && now - b.at > MEMBER_IDLE_MS) budgets.delete(id);
+    const budget = budgets.get(userId) ?? { tokens: MEMBER_BURST, at: now, inFlight: 0 };
+    budget.tokens = Math.min(MEMBER_BURST, budget.tokens + (Math.max(0, now - budget.at) / 1_000) * MEMBER_REFILL_PER_SECOND); budget.at = now;
+    budgets.set(userId, budget);
+    if (budget.tokens < 1 || budget.inFlight >= MEMBER_IN_FLIGHT) throw new ContractError('ACTIVITY_RATE_LIMITED');
+    budget.tokens -= 1; budget.inFlight++;
+    let released = false;
+    seen.release = () => { if (!released) { released = true; budget.inFlight--; } };
+  }
+  /**
+   * The signed-in member's fresh context; `seen.userId` records who it is for the channel links. The session check is in
+   * memory; the member's budget is spent before anything reads Discord.
+   */
   async function member(request, seen = {}) {
     const proof = await auth.authenticate(bearer(request));
     seen.userId = proof.userId;
-    return { actor: await authorization.resolveActor(proof), observation: await discord.observe(proof.userId) };
+    spend(proof.userId, seen);
+    const context = { actor: await authorization.resolveActor(proof), observation: await discord.observe(proof.userId) };
+    // Whitelist as Discord shows it in this very request (never a stored snapshot), for the game buttons.
+    seen.whitelisted = context.observation?.whitelist === true;
+    return context;
   }
   /**
    * Channel links for a run: the channels its copy names, and after confirmation the arrival list (curated, or else the
    * channels the final stop names), each only if the member can see it now. Never blocks the Shuttle.
    */
-  async function withChannels(result, userId) {
-    const run = result?.run;
+  async function withChannels(result, seen) {
+    const run = result?.run, userId = seen.userId;
+    await withGames(result, seen);
     if (!run || channels === null) return withStation(result, userId);
     const confirmed = run.whitelist === 'confirmed';
     try {
@@ -109,8 +147,21 @@ export function createActivityHttpServer({ configuration, applicationId, guildId
         const named = [...new Map(Object.values(found.mentions).map(channel => [channel.id, { id: channel.id, name: channel.name }])).values()];
         run.arrival = found.arrival.length ? found.arrival : named;
       }
-    } catch { fault('ACTIVITY_CHANNELS_UNAVAILABLE', { userId }); run.channels = {}; if (confirmed) run.arrival = []; }
+    } catch (error) { if (!discordTransient(error)) fault('ACTIVITY_CHANNELS_UNAVAILABLE', { userId }); run.channels = {}; if (confirmed) run.arrival = []; }
     return withStation(result, userId);
+  }
+  /**
+   * The game servers once the member has Whitelist now: their info channels the member can see, by name. The quick-connect
+   * links are the client's own; this only says whether to offer them. Never blocks the Shuttle.
+   */
+  async function withGames(result, seen) {
+    if (!result || typeof result !== 'object' || !seen.whitelisted) return;
+    let found = {};
+    if (channels !== null) {
+      try { found = await channels.named({ userId: seen.userId, names: GAME_INFO_CHANNELS }); }
+      catch (error) { if (!discordTransient(error)) fault('ACTIVITY_CHANNELS_UNAVAILABLE', { userId: seen.userId }); }
+    }
+    (result.run ?? result).games = { channels: found };
   }
   /**
    * At the last stop and after it: the station board's counts, and the member's own boarding pass (their name and the
@@ -119,8 +170,8 @@ export function createActivityHttpServer({ configuration, applicationId, guildId
   async function withStation(result, userId) {
     const run = result?.run;
     if (!run || station === null || (run.status === 'reading' && run.stop < run.stops.length - 1)) return result;
-    try { run.station = await station.station(); } catch { fault('ACTIVITY_STATION_UNAVAILABLE', { userId }); }
-    try { const pass = await station.pass(userId); if (pass) run.pass = pass; } catch { fault('ACTIVITY_PASS_UNAVAILABLE', { userId }); }
+    try { run.station = await station.station(); } catch (error) { if (!discordTransient(error)) fault('ACTIVITY_STATION_UNAVAILABLE', { userId }); }
+    try { const pass = await station.pass(userId); if (pass) run.pass = pass; } catch (error) { if (!discordTransient(error)) fault('ACTIVITY_PASS_UNAVAILABLE', { userId }); }
     return result;
   }
   async function attempt(work) {
@@ -143,19 +194,19 @@ export function createActivityHttpServer({ configuration, applicationId, guildId
     if (path === '/api/session/end' && request.method === 'POST') { auth.signOut(bearer(request)); send(response, 204, null); return; }
     if (path === '/api/shuttle' && request.method === 'GET') {
       const result = await attempt(async () => store.describe(await member(request, seen)));
-      send(response, 200, await withChannels(result, seen.userId)); return;
+      send(response, 200, await withChannels(result, seen)); return;
     }
     if (path === '/api/shuttle/board' && request.method === 'POST') {
       const body = await readJson(request); only(body, ['requestId']);
       const result = await attempt(async () => store.board({ ...await member(request, seen), requestId: body.requestId }));
-      send(response, 200, { run: (await withChannels(result, seen.userId)).run }); return;
+      send(response, 200, { run: (await withChannels(result, seen)).run }); return;
     }
     if (path === '/api/shuttle/act' && request.method === 'POST') {
       const body = await readJson(request); only(body, ['requestId', 'action', 'expectedVersion']);
       if (ACTIONS.has(body.action)) seen.action = body.action;
       const result = await attempt(async () => store.act({ ...await member(request, seen), requestId: body.requestId, action: body.action,
         expectedVersion: body.expectedVersion }));
-      await withChannels(result, seen.userId);
+      await withChannels(result, seen);
       // A recorded grant intent is delivered now rather than at the next interval.
       if (result.queued) wake();
       send(response, 200, { run: result.run }); return;
@@ -185,9 +236,9 @@ export function createActivityHttpServer({ configuration, applicationId, guildId
     const seen = {};
     try { await api(request, response, path, seen); }
     catch (error) {
-      const code = error instanceof ContractError ? error.code : null;
+      const code = error instanceof ContractError || discordTransient(error) ? error.code : null;
       const outcome = OUTCOMES.find(([, , codes]) => codes.includes(code));
-      if (outcome) send(response, outcome[0], { error: outcome[1] });
+      if (outcome) send(response, outcome[0], { error: outcome[1] }, outcome[1] === 'slow' ? { 'Retry-After': '2' } : {});
       else if (TRANSIENT.has(code) || code === 'OAUTH_DISABLED') send(response, 503, { error: 'retry' }, { 'Retry-After': '3' });
       else {
         const cause = causeOf(error);
@@ -195,7 +246,7 @@ export function createActivityHttpServer({ configuration, applicationId, guildId
           { userId: seen.userId ?? null, request: `${request.method} ${path}${seen.action ? ` (${seen.action})` : ''}` });
         send(response, 503, { error: 'unavailable' }, { 'Retry-After': '10' });
       }
-    } finally { active--; }
+    } finally { active--; seen.release?.(); }
   }
   const server = createServer({ maxHeaderSize: 16_384 }, (request, response) => {
     const task = handle(request, response).catch(() => {

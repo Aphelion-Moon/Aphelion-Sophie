@@ -49,7 +49,8 @@ test('T-STAGE-02 named actors never pass behind a standing prop', () => {
   const named = /^(looc-|rook-|pip-|board-|beepsky|popper)/;
   for (const scene of scenes) for (const layout of LAYOUTS) {
     const { layers, effects } = scene.layouts[layout];
-    for (const fx of effects.filter(item => item.kind === 'sprite' && named.test(item.id))) {
+    // Walking into the concourse, Rook and Pip go behind its sign on purpose (owner, 24 October 2026); T-STAGE-06 checks it.
+    for (const fx of effects.filter(item => item.kind === 'sprite' && named.test(item.id) && !item.id.endsWith('-goes-in'))) {
       const state = { ...STATE, beat: fx.when?.beat?.[0] ?? 'none', whitelist: fx.when?.whitelist?.[0] ?? 'none', reached: scene.beats ?? [] };
       if (state.whitelist === 'confirmed') state.doorOpen = 1;
       const only = { ...scene, layouts: { ...scene.layouts, [layout]: { ...scene.layouts[layout], effects: [fx] } } };
@@ -141,5 +142,23 @@ test('T-STAGE-05 the hangar Wing flies in and home beyond the edge, its legs mee
     // With motion off the craft is docked: the dock leg holds there.
     const still = composeScene(hangar, layout, { state: STATE, motion: false }).glyphs.join('\n');
     assert.match(still, /═\[□□□\]>/, `${layout}: docked in the still frame`);
+  }
+});
+
+test('T-STAGE-06 Rook and Pip walk into the concourse behind its sign, not over it (owner, 24 October 2026)', () => {
+  const door = scenes.find(scene => scene.id === 'pressure-door');
+  for (const layout of LAYOUTS) {
+    const { layers, effects } = door.layouts[layout], sign = layers.find(item => item.id === 'concourse-sign');
+    assert.ok(sign?.front && sign.opaque, `${layout}: the sign stands in front`);
+    const state = { ...STATE, whitelist: 'confirmed', doorOpen: 1, beat: 'get-whitelisted', reached: door.beats ?? [] };
+    const signText = frame => frame.glyphs.slice(sign.y, sign.y + sign.frames[0].text.length).map(row => row.slice(sign.x, sign.x + [...sign.frames[0].text[0]].length));
+    const bare = signText(composeScene({ ...door, layouts: { ...door.layouts, [layout]: { ...door.layouts[layout], effects: [] } } }, layout, { state }));
+    for (const who of ['rook', 'pip']) {
+      const fx = effects.find(item => item.id === `${who}-goes-in`), end = (fx.delay ?? 0) + fx.duration + (fx.hold ?? 0) + fx.exit.duration;
+      for (let t = 0; t <= end; t += 0.25) {
+        const frame = composeScene(door, layout, { time: t, beatTime: t, state });
+        assert.deepEqual(signText(frame), bare, `${layout}: ${who} never draws over the sign (${t}s)`);
+      }
+    }
   }
 });

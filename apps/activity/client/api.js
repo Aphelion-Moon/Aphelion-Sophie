@@ -26,7 +26,10 @@ export function createShuttleApi({ fetch, randomBytes, wait = ms => new Promise(
           headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}), ...(body ? { 'Content-Type': 'application/json' } : {}) },
           ...(body ? { body: JSON.stringify(body) } : {}) });
       } catch { response = null; }
-      if (response && response.status !== 503) {
+      // 503 (core busy) and 429 (this member's own requests too fast) are tried again after a pause; a 429 is not a lost
+      // signal, so the status line is left alone.
+      const later = response === null || response.status === 503 || response.status === 429;
+      if (!later) {
         onSignal(true);
         const value = response.status === 204 ? null : await response.json().catch(() => null);
         if (response.ok) return value;
@@ -34,8 +37,8 @@ export function createShuttleApi({ fetch, randomBytes, wait = ms => new Promise(
         if (word === 'signin' && response.status === 401 && path !== '/api/session' && !renewedOnce) { renewedOnce = true; if (await renewed()) continue; }
         throw new ShuttleApiError(word, response.status);
       }
-      onSignal(false);
-      if (attempt >= RETRY_MS.length) throw new ShuttleApiError(response ? 'retry' : 'offline', response?.status ?? 0);
+      if (response?.status !== 429) onSignal(false);
+      if (attempt >= RETRY_MS.length) throw new ShuttleApiError(response?.status === 429 ? 'slow' : response ? 'retry' : 'offline', response?.status ?? 0);
       await wait(RETRY_MS[attempt]);
     }
   }

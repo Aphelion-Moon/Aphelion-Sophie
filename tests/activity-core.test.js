@@ -7,7 +7,7 @@ import { validateStagingRuntime } from '../apps/core/runtime/configuration.js';
 import { createActivityAuth, ACTIVITY_SESSION_MS } from '../apps/core/security/activity-auth.js';
 import { createCorePrincipals } from '../apps/core/security/principals.js';
 import { createDiscordOAuth } from '../apps/core/discord/oauth.js';
-import { createDiscordTransport } from '../apps/core/discord/transport.js';
+import { DiscordError, createDiscordTransport } from '../apps/core/discord/transport.js';
 import { createActivityHttpServer } from '../apps/core/http/activity.js';
 import { createActivityStation } from '../apps/core/discord/activity-station.js';
 import { stagingConfiguration } from './fixtures/staging.js';
@@ -304,4 +304,91 @@ test('T-ACT-CORE-11 the station board and the member\'s own boarding pass come o
     assert.equal(body.run.station, undefined); assert.equal(body.run.pass, undefined); assert.equal(body.run.stop, 4);
     assert.deepEqual(failing.calls.filter(([name]) => name === 'fault').map(([, code]) => code), ['ACTIVITY_STATION_UNAVAILABLE', 'ACTIVITY_PASS_UNAVAILABLE']);
   } finally { await failing.http.close(); }
+});
+
+test('T-ACT-CORE-12 one member cannot crowd out the rest: a budget per member before Discord, and Discord busy is not a fault', async () => {
+  // A burst of eight, then 'slow' (429) with a pause to wait; the clock here never moves, so nothing refills.
+  const { http, calls, request } = await server();
+  try {
+    for (let i = 0; i < 8; i++) assert.equal((await request('/api/shuttle')).status, 200, `request ${i + 1}`);
+    const refused = await request('/api/shuttle');
+    assert.equal(refused.status, 429); assert.deepEqual(await refused.json(), { error: 'slow' }); assert.equal(refused.headers.get('retry-after'), '2');
+    assert.equal(calls.filter(([name]) => name === 'describe').length, 8, 'the ninth never reached the store or Discord');
+    assert.deepEqual(calls.filter(([name]) => name === 'fault'), []);
+  } finally { await http.close(); }
+  // At most two of one member's requests at a time: a third waits for nothing, it is refused; once one ends, room again.
+  let releaseAll; const gate = new Promise(resolve => { releaseAll = resolve; });
+  const slow = await server({ store: { async describe() { await gate; return { state: 'ready' }; } } });
+  try {
+    const first = slow.request('/api/shuttle'), second = slow.request('/api/shuttle');
+    await new Promise(resolve => setTimeout(resolve, 50));
+    assert.equal((await slow.request('/api/shuttle')).status, 429);
+    releaseAll(); assert.equal((await first).status, 200); assert.equal((await second).status, 200);
+    assert.equal((await slow.request('/api/shuttle')).status, 200, 'finished requests free their place');
+  } finally { await slow.http.close(); }
+  // Discord's own "not now" asks the Activity to try again later, with no alert; so do the channel links when Discord is busy.
+  for (const code of ['DISCORD_BUSY', 'RATE_LIMITED', 'DISCORD_UNAVAILABLE']) {
+    const busy = await server({ server: { discord: { observe: async () => { throw new DiscordError(code, 250); } } } });
+    try {
+      const response = await busy.request('/api/shuttle');
+      assert.equal(response.status, 503, code); assert.deepEqual(await response.json(), { error: 'retry' });
+      assert.deepEqual(busy.calls.filter(([name]) => name === 'fault'), [], code);
+    } finally { await busy.http.close(); }
+  }
+  const channels = { async resolve() { throw new DiscordError('DISCORD_BUSY', 250); } };
+  const quiet = await server({ channels, store: { async describe() { return { state: 'run', run: { whitelist: 'none', pages: [], stops: [], stop: 0, status: 'reading' } }; } } });
+  try {
+    const response = await quiet.request('/api/shuttle');
+    assert.equal(response.status, 200); assert.deepEqual((await response.json()).run.channels, {});
+    assert.deepEqual(quiet.calls.filter(([name]) => name === 'fault'), [], 'a busy channel read is not a fault');
+  } finally { await quiet.http.close(); }
+});
+
+test('T-ACT-CORE-13 members arriving together share one Discord read of the channel directory and the station counts', async () => {
+  const { createActivityChannels } = await import('../apps/core/discord/activity-channels.js');
+  let guildReads = 0, listReads = 0, countReads = 0, release;
+  const held = new Promise(resolve => { release = resolve; });
+  const transport = {
+    async getGuild() { guildReads++; await held; return { id: GUILD, owner_id: OTHER }; },
+    async getGuildChannels() { listReads++; await held; return [{ id: '100000000000000777', type: 0, name: 'general', position: 0, permission_overwrites: [] }]; },
+    async getGuildCounts() { countReads++; await held; return { id: GUILD, approximate_member_count: 10, approximate_presence_count: 3 }; },
+    async getMember() { return null; },
+  };
+  const roles = { async prepare() { return { context: { roles: [{ id: GUILD, permissions: String(1n << 10n) }], memberRoleIds: [] } }; } };
+  const channels = createActivityChannels({ transport, roles, guildId: GUILD, clock: () => NOW });
+  const station = createActivityStation({ transport, guildId: GUILD, clock: () => NOW });
+  const waiting = [...Array(5)].map(() => channels.resolve({ userId: USER, pages: ['See #general.'] }));
+  const counted = [...Array(5)].map(() => station.station());
+  release();
+  for (const found of await Promise.all(waiting)) assert.deepEqual(found.mentions['#general'], { id: '100000000000000777', name: 'general' });
+  for (const value of await Promise.all(counted)) assert.deepEqual(value, { crew: 10, online: 3 });
+  assert.deepEqual([guildReads, listReads, countReads], [1, 1, 1]);
+});
+
+test('T-ACT-CORE-14 the game buttons come only with Whitelist as Discord shows it now, with the info channels the member can see', async () => {
+  const asked = [];
+  const channels = {
+    async resolve() { return { mentions: {}, arrival: [] }; },
+    async named({ userId, names }) { asked.push([userId, names]); return { 'ss13-info': { id: '100000000000000801', name: 'ss13-info' } }; },
+  };
+  const ready = whitelist => ({ store: { async describe() { return { state: 'ready', mode: 'refresh', stops: [], whitelist: whitelist ? 'confirmed' : 'none' }; } },
+    server: { discord: { observe: async userId => ({ observed: userId, whitelist }) } } });
+  const yes = await server({ channels, ...ready(true) });
+  try {
+    const body = await (await yes.request('/api/shuttle')).json();
+    assert.deepEqual(body.games, { channels: { 'ss13-info': { id: '100000000000000801', name: 'ss13-info' } } });
+    assert.deepEqual(asked, [[USER, ['ss13-info', 'ss14-info']]]);
+  } finally { await yes.http.close(); }
+  const no = await server({ channels, ...ready(false) });
+  try { assert.equal((await (await no.request('/api/shuttle')).json()).games, undefined, 'no Whitelist, no buttons'); }
+  finally { await no.http.close(); }
+  // A run carries them on the run; a failed channel read still offers the quick-connect buttons, without channels.
+  const failing = { ...channels, async named() { throw new DiscordError('DISCORD_BUSY', 250); } };
+  const run = await server({ channels: failing, store: { async describe() { return { state: 'run', run: { whitelist: 'confirmed', status: 'boarded', pages: [], stops: [], stop: 0 } }; } },
+    server: { discord: { observe: async userId => ({ observed: userId, whitelist: true }) } } });
+  try {
+    const body = await (await run.request('/api/shuttle')).json();
+    assert.deepEqual(body.run.games, { channels: {} }); assert.equal(body.games, undefined);
+    assert.deepEqual(run.calls.filter(([name]) => name === 'fault'), []);
+  } finally { await run.http.close(); }
 });

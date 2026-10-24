@@ -695,16 +695,18 @@ function door(name) {
     const idx = Math.min(9, Math.floor(I * 10)); light.put(x, y, ramp[idx], idx >= 4 ? 'c' : 'I');
   }
   // Through the open door: the station concourse, its directory sign and people going about their shift.
-  const signW = 20, signX = cx - signW / 2, signY = dy0 + 2;
+  // The sign stands in front: Rook and Pip walk in behind it rather than over it (owner, 24 October 2026).
+  const signW = 20, signX = cx - signW / 2, signY = dy0 + 2, concourseSign = new Art(w, h);
   light.fill(signX, signY, signX + signW - 1, signY + 5, ' ', ' ');
-  light.box(signX, signY, signX + signW - 1, signY + 5, 'h');
-  [['CONCOURSE', 'c'], ['» MERIDIAN RIFT', 'a'], ['» WOLFGATE', 'a'], ['» #general', 'h']].forEach(([text, key], r) => light.text(signX + 2, signY + 1 + r, text, key));
+  concourseSign.box(signX, signY, signX + signW - 1, signY + 5, 'h');
+  [['CONCOURSE', 'c'], ['» MERIDIAN RIFT', 'a'], ['» WOLFGATE', 'a'], ['» #general', 'h']].forEach(([text, key], r) => concourseSign.text(signX + 2, signY + 1 + r, text, key));
   const floor = dy1 - 2;
   light.hline(dx0 + 1, dx1 - 1, floor + 1, '─', 'H');
   for (const [x, look] of [[dx0 + 4, LOOKS[0]], [dx0 + 9, LOOKS[3]], [dx1 - 9, LOOKS[5]], [dx1 - 4, LOOKS[1]]]) {
     light.put(x, floor - 1, look[0], look[1]); light.put(x, floor, '|', look[2]);
   }
   layers.push(layer('concourse', light, { when: { whitelist: ['confirmed'] } }));
+  layers.push(layer('concourse-sign', concourseSign, { front: true, opaque: true, when: { whitelist: ['confirmed'] } }));
 
   const half = dw / 2, hy = dy1 - 6;
   for (const right of [false, true]) {
@@ -929,9 +931,10 @@ function door(name) {
       from: [-9, h - 3], to: [w + 2, h - 3], duration: roll, ...phase(rolls), fps: 2 });
   }
 
-  // Order: frame and fittings, the concourse behind the door, the sliding leaves, then lamp and control text.
+  // Order: frame and fittings, the concourse behind the door and its standing sign, the sliding leaves, then lamp and
+  // control text.
   const byId = Object.fromEntries(layers.map(l => [l.id, l]));
-  return { layers: [layer('base', base), byId.concourse, byId['leaf-left'], byId['leaf-right'], byId['lamp-idle'], byId['lamp-waiting'], byId['lamp-confirmed'],
+  return { layers: [layer('base', base), byId.concourse, byId['concourse-sign'], byId['leaf-left'], byId['leaf-right'], byId['lamp-idle'], byId['lamp-waiting'], byId['lamp-confirmed'],
     byId['control-idle'], byId['control-waiting'], byId['control-open'], byId.greeters, ...deck], effects, slots: { link: memorialSlot } };
 }
 

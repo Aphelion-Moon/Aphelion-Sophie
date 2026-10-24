@@ -16,9 +16,15 @@ export function createActivityChannels({ transport, roles, guildId, clock, cache
   requireId(guildId);
   requireCondition(typeof transport?.getGuild === 'function' && typeof transport.getGuildChannels === 'function' &&
     typeof roles?.prepare === 'function' && typeof clock === 'function', 'TRUSTED_ADAPTERS_REQUIRED');
-  let directory = null;
-  async function channels() {
-    if (directory && clock() - directory.at < cacheMs) return directory;
+  let directory = null, refreshing = null;
+  // One refresh at a time: members arriving while the directory is being read share that read rather than each sending
+  // their own when the cache runs out.
+  function channels() {
+    if (directory && clock() - directory.at < cacheMs) return Promise.resolve(directory);
+    refreshing ??= refresh().finally(() => { refreshing = null; });
+    return refreshing;
+  }
+  async function refresh() {
     const [guild, list] = await Promise.all([transport.getGuild(), transport.getGuildChannels()]);
     requireCondition(guild?.id === guildId && Array.isArray(list), 'DISCORD_RESPONSE_INVALID'); requireId(guild.owner_id);
     const listed = list.filter(channel => channel && LISTED.has(channel.type) && typeof channel.name === 'string')
@@ -40,14 +46,7 @@ export function createActivityChannels({ transport, roles, guildId, clock, cache
         for (const match of page.matchAll(NAMED)) wanted.set(`#${match[2].toLowerCase()}`, { name: match[2].toLowerCase() });
       }
       if (!wanted.size && !arrival?.length) return { mentions: {}, arrival: [] };
-      // Shared role reads, as other member observations use them: a clearance poll every few seconds costs no extra reads.
-      const dir = await channels(), { context } = await roles.prepare(userId, { share: true });
-      const projected = context.roles.map(role => ({ id: role.id, permissions: role.permissions }));
-      const canView = channel => {
-        const bits = channelPermissions({ guildId, userId, ownerId: dir.ownerId, roleIds: context.memberRoleIds, roles: projected,
-          overwrites: channel.permission_overwrites ?? [] });
-        return bits === -1n || (bits & PERMISSIONS.viewChannel) !== 0n;
-      };
+      const dir = await channels(), canView = await viewer(dir, userId);
       const mentions = {};
       for (const [key, ref] of wanted) {
         const channel = ref.id ? dir.byId.get(ref.id) : dir.byName.get(ref.name);
@@ -58,5 +57,27 @@ export function createActivityChannels({ transport, roles, guildId, clock, cache
         .map(({ entry, channel }) => ({ id: channel.id, name: channel.name, ...(entry.note ? { note: entry.note } : {}) }));
       return { mentions, arrival: open };
     },
+    /**
+     * Channels by their exact name ('ss13-info'), each only if the member can see it now: { name: { id, name } }. For the
+     * game buttons once Whitelist is confirmed (owner, 24 October 2026).
+     */
+    async named({ userId, names }) {
+      requireId(userId);
+      requireCondition(Array.isArray(names) && names.length >= 1 && names.length <= 8 && names.every(name => typeof name === 'string' && /^[a-z0-9-]{1,100}$/u.test(name)),
+        'TRUSTED_ADAPTERS_REQUIRED');
+      const dir = await channels(), canView = await viewer(dir, userId), found = {};
+      for (const name of names) { const channel = dir.byName.get(name); if (channel && canView(channel)) found[name] = { id: channel.id, name: channel.name }; }
+      return found;
+    },
   });
+  /** Whether the member can see a channel now. Shared role reads, as other member observations use them: a clearance poll every few seconds costs no extra reads. */
+  async function viewer(dir, userId) {
+    const { context } = await roles.prepare(userId, { share: true });
+    const projected = context.roles.map(role => ({ id: role.id, permissions: role.permissions }));
+    return channel => {
+      const bits = channelPermissions({ guildId, userId, ownerId: dir.ownerId, roleIds: context.memberRoleIds, roles: projected,
+        overwrites: channel.permission_overwrites ?? [] });
+      return bits === -1n || (bits & PERMISSIONS.viewChannel) !== 0n;
+    };
+  }
 }

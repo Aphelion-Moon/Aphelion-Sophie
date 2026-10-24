@@ -447,5 +447,41 @@ test('T-ACT-CLI-20 a scene link is a real button over its slot while reading, op
   // Shown only while reading a scene that has a link; labelled for screen readers; opened through Discord, never in the frame.
   assert.match(client, /if \(!link \|\| !rect \|\| !canvas \|\| view !== 'radio'\) \{ button\.hidden = true; return; \}/);
   assert.match(client, /button\.setAttribute\('aria-label', link\.label\)/);
-  assert.match(client, /\$\('scene-link'\)\?\.addEventListener\('click', \(\) => \{ const link = player\.link; if \(link\) \{ sound\.play\('UI-02'\); discord\?\.openLink\(link\.url\); \} \}\)/);
+  assert.match(client, /\$\('scene-link'\)\?\.addEventListener\('click', \(\) => \{ const link = player\.link; if \(link\) \{ sound\.play\('UI-02'\); outside\(link\.url\); \} \}\)/);
+});
+
+test('T-ACT-CLI-25 one member cannot flood core or Discord from the client (owner report, 24 October 2026)', async () => {
+  const client = await readFile(new URL('../apps/activity/client/shuttle.js', import.meta.url), 'utf8');
+  // The menu button opens the menu once at a time; Try the link again signs in once at a time.
+  assert.match(client, /if \(menuOpening\) return;\s*menuOpening = true;/);
+  assert.match(client, /try \{ await showTitle\(\); \} finally \{ menuOpening = false; \}/);
+  assert.match(client, /async function link\(\{ fresh = false \} = \{\}\) \{[\s\S]{0,160}if \(linkingNow\) return;/);
+  // Every outside link and channel goes through the 1.5-second guard; nothing calls Discord's openLink directly.
+  assert.equal((client.match(/discord\?\.openLink\(/g) ?? []).length, 1, 'only outside() calls openLink');
+  assert.match(client, /if \(now - \(lastOpened\.get\(url\) \?\? -Infinity\) < 1_500\) return Promise\.resolve\(true\);/);
+  // Told to slow down, the client retries quietly and does not read the state again.
+  assert.match(client, /if \(word === 'slow'\) \{ toast\(TEXT\.slow\); return; \}/);
+  const calls = []; let now = 0;
+  const api = createShuttleApi({ fetch: async path => { calls.push(path); return new Response(JSON.stringify({ error: 'slow' }), { status: 429 }); },
+    randomBytes: n => new Uint8Array(n), wait: async ms => { now += ms; }, onSignal: online => calls.push(online ? 'online' : 'offline') });
+  await assert.rejects(api.describe(), error => error.word === 'slow' && error.status === 429);
+  assert.equal(calls.filter(call => call === '/api/shuttle').length, 4, 'tried four times, with pauses');
+  assert.ok(!calls.includes('offline'), 'a 429 is not a lost signal');
+});
+
+test('T-ACT-CLI-26 the game servers appear on the main menu and at the last step only when core says the member has Whitelist', async () => {
+  const { GAMES } = await import('../apps/activity/client/presenter.js');
+  assert.deepEqual(GAMES.map(game => [game.name, game.kind, game.channel, game.play]), [
+    ['Meridian Rift', 'SS13', 'ss13-info', 'https://meridian.a13.info/play/'], ['Wolfgate', 'SS14', 'ss14-info', 'https://panel.a13.info/join/s/wolfgate']]);
+  const page = await readFile(new URL('../apps/activity/client/index.html', import.meta.url), 'utf8');
+  const client = await readFile(new URL('../apps/activity/client/shuttle.js', import.meta.url), 'utf8');
+  assert.match(page, /<ul id="menu" class="menu"><\/ul>\s*<section id="games-menu" class="games" aria-label="Our servers" hidden><\/section>/);
+  assert.match(page, /<ul id="arrival-list" class="arrival-list"><\/ul>\s*<div id="games-arrival" class="games" aria-label="Our servers" hidden><\/div>/);
+  // Driven only by core's games field: hidden and empty without it; the last step only once arrived.
+  assert.match(client, /container\.hidden = !games;\s*if \(!games\) \{ container\.replaceChildren\(\); return; \}/);
+  assert.match(client, /renderGames\(\$\('games-menu'\), described\?\.run\?\.games \?\? described\?\.games \?\? null\);/);
+  assert.match(client, /renderGames\(\$\('games-arrival'\), arrived \? run\.games \?\? null : null\);/);
+  // The info channel only when core found it for this member; quick connect through the one-tap guard.
+  assert.match(client, /const channel = games\.channels\?\.\[game\.channel\];\s*if \(channel && /);
+  assert.match(client, /play\.addEventListener\('click', \(\) => \{ sound\.play\('UI-02'\); outside\(game\.play\); \}\);/);
 });

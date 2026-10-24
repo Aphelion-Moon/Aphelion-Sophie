@@ -2404,3 +2404,50 @@ code; then the Ring Hub rework.
 2 files (the hangar scene and the scene engine), same runtime (Node 24.22.1), capability policy version 2 and
 credentials, no migration, no story change. All checks passed; the public host serves both files byte for byte. Folder
 `.agent_docs/aphelion-sophie/deployment-e6aab6b-production-2026-10-24`; `rollback.ps1` restores `8ad8324`.
+
+### One member must not slow the Activity for everyone; the portal sign; the game servers — 24 October 2026
+
+The owner reported: "user 'delta' somehow ratelimited the bot by mashing the main-menu button repeatedly. perform a
+hostile input and user pass", then: "Review the entire activity for other scenarios which could allow one user to
+degrade the performance of other users, and fix them."
+
+**Cause.** Every Activity request reads Discord afresh (the member's observation, then the channel links and the
+station board). The ≡ Menu button sent a new request per click while one was still pending, and core had no limit per
+member, only 16 requests at a time for everyone. Discord reads of one route queue together, so one member's queue made
+everyone's reads wait out and fail as DISCORD_BUSY, and that error class was neither retried nor recognised as
+transient: each one was logged as an unexpected fault (ACTIVITY_REQUEST_UNAVAILABLE_DISCORD_BUSY, and the channel links
+as ACTIVITY_CHANNELS_UNAVAILABLE).
+
+**Fixed.**
+- Core gives each member a budget, spent after the in-memory session check and before any Discord read: a burst of 8
+  requests refilling one a second, and at most 2 at a time. Past it: 429 `slow` with Retry-After. Keyed by member, so
+  made-up tokens cannot fill it and two sessions of one member share it; idle members are forgotten.
+- Discord's busy, rate-limited and unavailable answers are a 503 `retry`, not a fault; channel-link, station and pass
+  reads that fail that way are quiet too. Alerts were already limited to one per code every 30 minutes.
+- Members arriving together share one read of the channel directory (15-second cache) and of the station counts
+  (5 minutes) instead of each starting their own when the cache runs out.
+- Client: the menu button ignores clicks while it is opening the menu; Try the link again runs one link at a time
+  (overlapping sign-ins before); a 429 is retried after a pause without showing a lost signal, then a "one moment"
+  toast without reading the state again; every link and channel opens once per tap (1.5 s).
+
+**Reviewed and left as they are.** Repeated Continue, Back, Board and Reset presses are already single-flight in the
+client and versioned or keyed in core, so a repeat cannot move a run twice or queue a second grant; the store's only
+exclusive lock is the member's own session row (the published definition is a shared lock that only a publish waits
+for); requests are bounded in size and time; the client's files are served from memory; sounds, settings, Aa, ♪ and the
+Konami car stay on the member's own device. One limit remains: sign-in is capped at 60 a minute for everyone, counted
+before the code is checked, so a scripted client could post junk sign-ins at the public host and hold others off for up
+to a minute at a time. A cap per source is not possible fairly here (the Activity's own traffic reaches core through
+Discord's proxy, so members share source addresses); mashing in the Activity cannot reach it now that linking is single-flight.
+
+**The portal.** "on the last page, where pip and rook enter the portal, it would be nice if they went behind the sign
+instead of over it": the CONCOURSE directory sign is now a standing prop (opaque, in front), so Rook and Pip walk in
+behind it. This makes a deliberate exception to the sixth-pass rule that named figures never pass behind a prop
+(T-STAGE-02 skips the two walk-ins; T-STAGE-06 checks they never draw over the sign).
+
+**The game servers.** "add links to SS13-info, ss14-info, and quick-connect buttons ... for ss14, use:
+https://panel.a13.info/join/s/wolfgate; for ss13, use: https://meridian.a13.info/play/", "Those buttons should show up
+AFTER the whitelist is gained, because you cannot see it before that", "One set on the main menu, one set on the last
+disembarking step please." Core adds `games` to a reply only when that request's Discord observation shows Whitelist,
+with `#ss13-info` and `#ss14-info` found by name and included only if the member can see them; the client shows Our
+servers (Meridian Rift · SS13, Wolfgate · SS14: the info channel and Quick connect) under the main menu and under the
+arrival channels at the last step, and nowhere when `games` is absent.

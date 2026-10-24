@@ -14,6 +14,9 @@ export const TEXT = Object.freeze({
   linkingTry: 'Establishing link… try {n} of {of}',
   linked: 'Signal linked',
   offline: 'Signal lost. Retrying…',
+  slow: 'One moment: the station is catching up.',
+  games: 'Our servers',
+  quickConnect: 'Quick connect',
   // The owner's wording (24 October 2026), on the status line and the title alike.
   nolinkSignal: 'Cannot re-establish link, try reopening the activity. If that still doesn’t work, ping @matriarch in #crew-support.',
   nolink: 'Cannot re-establish link, try reopening the activity. If that still doesn’t work, ping @matriarch in #crew-support.',
@@ -84,6 +87,15 @@ export const ANNOUNCEMENTS = Object.freeze({
   viewport: 'Attention: passengers may now admire the view.',
   'pressure-door': 'Attention: the Arrivals Shuttle has docked. Watch your step.',
 });
+
+/**
+ * The game servers (owner, 24 October 2026): each with its info channel and a quick-connect link, offered on the main menu
+ * and at the last step only once core says the member has Whitelist (they cannot see the servers before that).
+ */
+export const GAMES = Object.freeze([
+  Object.freeze({ id: 'meridian', name: 'Meridian Rift', kind: 'SS13', channel: 'ss13-info', play: 'https://meridian.a13.info/play/' }),
+  Object.freeze({ id: 'wolfgate', name: 'Wolfgate', kind: 'SS14', channel: 'ss14-info', play: 'https://panel.a13.info/join/s/wolfgate' }),
+]);
 
 /** Tip of the Round: shared SS13 culture, no setting lore (owner decision, 22 October 2026). */
 export const TIPS = Object.freeze([

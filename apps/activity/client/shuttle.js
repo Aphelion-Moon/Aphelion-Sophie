@@ -1,4 +1,4 @@
-import { ANNOUNCEMENTS, CHUNK_LIMIT, CODEX, KEYS, READ_CPS, REVEAL_MAX_MS, TEXT, TIPS, TYPE_CPS, canResetJourney, cueEvent, pageProgress, LINK_TIMEOUT_MS, linkRetryDelay, linkingText, cueSheet, dialogueControls, linkState, momentFor,
+import { ANNOUNCEMENTS, CHUNK_LIMIT, CODEX, GAMES, KEYS, READ_CPS, REVEAL_MAX_MS, TEXT, TIPS, TYPE_CPS, canResetJourney, cueEvent, pageProgress, LINK_TIMEOUT_MS, linkRetryDelay, linkingText, cueSheet, dialogueControls, linkState, momentFor,
   presence, revealPoints, sceneStateFor, soundscape, speechMs, titleMenu, transmissionChunks, windowUser } from './presenter.js';
 import { parseMarkdown, plainText, renderMarkdown } from './markdown.js';
 
@@ -134,6 +134,8 @@ export function createShuttle({ document, api, connect, player, loadScene, sound
    * answer, not a failure, and is not retried.
    */
   async function link({ fresh = false } = {}) {
+    // One link at a time: pressing Try the link again while one is under way signs in only once.
+    if (linkingNow) return;
     linkingNow = true;
     // A fresh link signs in through Discord again, as reopening the Shuttle would, rather than reusing a session that may
     // have ended (owner report, 24 October 2026: after leaving the window, only reopening brought the link back).
@@ -255,6 +257,7 @@ export function createShuttle({ document, api, connect, player, loadScene, sound
     }));
     const notice = $('notice'), waiting = !described && started;
     notice.hidden = !(menu.notice || waiting); notice.textContent = menu.notice ?? (waiting ? linkingText(linkAttempt) : '');
+    renderGames($('games-menu'), described?.run?.games ?? described?.games ?? null);
     if (view === 'title') list.querySelector('button')?.focus({ preventScroll: true });
   }
   async function choose(id) {
@@ -377,7 +380,7 @@ export function createShuttle({ document, api, connect, player, loadScene, sound
     // A new page starts with none of its text-synced moments reached.
     if (pageNow() !== revealPage) { revealPage = pageNow(); revealed = new Set(); }
     const moment = momentNow(), text = transmissionText(), tree = parseMarkdown(text), box = $('radio-text'), channels = run.channels ?? {};
-    box.replaceChildren(renderMarkdown(document, tree, { onLink: href => discord?.openLink(href), channels, onChannel: openChannel }));
+    box.replaceChildren(renderMarkdown(document, tree, { onLink: href => outside(href), channels, onChannel: openChannel }));
     box.scrollTop = 0;
     const plain = plainText(tree, channels), page = pageNow();
     $('radio-live').textContent = plain;
@@ -411,6 +414,7 @@ export function createShuttle({ document, api, connect, player, loadScene, sound
   function renderArrival() {
     const section = $('arrival'), arrived = run.status === 'boarded' && run.whitelist === 'confirmed';
     section.hidden = !arrived;
+    renderGames($('games-arrival'), arrived ? run.games ?? null : null);
     if (!arrived) return;
     $('arrival-heading').textContent = TEXT.arrival;
     const list = (run.arrival ?? []).map(channel => {
@@ -423,9 +427,45 @@ export function createShuttle({ document, api, connect, player, loadScene, sound
     if (!list.length) { const none = document.createElement('li'); none.className = 'arrival-none'; none.textContent = TEXT.arrivalNone; list.push(none); }
     $('arrival-list').replaceChildren(...list);
   }
+  // Links and channels open through Discord one tap at a time: the same link again within 1.5 s is the same tap (Discord
+  // asks before opening a link, and repeated asks stacked up).
+  const lastOpened = new Map();
+  function outside(url) {
+    const now = timers.now();
+    if (now - (lastOpened.get(url) ?? -Infinity) < 1_500) return Promise.resolve(true);
+    lastOpened.set(url, now);
+    if (lastOpened.size > 64) lastOpened.delete(lastOpened.keys().next().value);
+    return Promise.resolve(discord?.openLink(url) ?? false);
+  }
+  /**
+   * The game servers (owner, 24 October 2026): shown only when core sends `games`, which it does only for a member Discord
+   * shows with Whitelist now. Each server has its info channel, if the member can see it, and quick connect.
+   */
+  function renderGames(container, games) {
+    container.hidden = !games;
+    if (!games) { container.replaceChildren(); return; }
+    const heading = document.createElement('p'); heading.className = 'games-heading'; heading.textContent = TEXT.games;
+    const list = document.createElement('ul'); list.className = 'games-list';
+    for (const game of GAMES) {
+      const item = document.createElement('li'); item.className = 'game';
+      const name = document.createElement('span'); name.className = 'game-name'; name.textContent = game.name;
+      const kind = document.createElement('span'); kind.className = 'game-kind'; kind.textContent = game.kind;
+      item.append(name, kind);
+      const channel = games.channels?.[game.channel];
+      if (channel && /^[1-9][0-9]{16,19}$/u.test(String(channel.id))) {
+        const info = document.createElement('button'); info.type = 'button'; info.className = 'game-button'; info.textContent = `#${game.channel}`;
+        info.addEventListener('click', () => openChannel({ id: channel.id, name: game.channel })); item.append(info);
+      }
+      const play = document.createElement('button'); play.type = 'button'; play.className = 'game-button play'; play.textContent = TEXT.quickConnect;
+      play.setAttribute('aria-label', `${TEXT.quickConnect}: ${game.name} (${game.kind})`);
+      play.addEventListener('click', () => { sound.play('UI-02'); outside(game.play); });
+      item.append(play); list.append(item);
+    }
+    container.replaceChildren(heading, list);
+  }
   async function openChannel(channel) {
     sound.play('UI-02');
-    const opened = discord?.guildId ? await discord.openLink(`https://discord.com/channels/${discord.guildId}/${channel.id}`) : false;
+    const opened = discord?.guildId ? await outside(`https://discord.com/channels/${discord.guildId}/${channel.id}`) : false;
     if (!opened) toast(TEXT.findChannel.replace('{name}', `#${channel.name}`));
   }
   function renderControls() {
@@ -547,7 +587,7 @@ export function createShuttle({ document, api, connect, player, loadScene, sound
       const button = document.createElement('button'); button.type = 'button'; button.className = 'viewscreen-link';
       const label = document.createElement('span'); label.textContent = link.label;
       const host = document.createElement('span'); host.className = 'viewscreen-host'; host.textContent = new URL(link.url).host;
-      button.append(label, host); button.addEventListener('click', () => { sound.play('UI-02'); discord?.openLink(link.url); });
+      button.append(label, host); button.addEventListener('click', () => { sound.play('UI-02'); outside(link.url); });
       const item = document.createElement('li'); item.append(button); return item;
     }));
     $('status-radio').hidden = true; $('status-pass').hidden = true; $('viewscreen').hidden = false;
@@ -606,6 +646,8 @@ export function createShuttle({ document, api, connect, player, loadScene, sound
     const word = error?.word ?? 'failed';
     sound.play('UI-04');
     if (word === 'offline' || word === 'retry') { toast(TEXT.offline); return; }
+    // Too many requests from this member: nothing to read again, which would only add another.
+    if (word === 'slow') { toast(TEXT.slow); return; }
     if (word === 'signin') { described = { state: 'signin' }; await showTitle(); return; }
     if (word === 'stale') toast(TEXT.stale);
     else if (word === 'failed' || word === 'invalid') toast(TEXT.failed);
@@ -638,7 +680,7 @@ export function createShuttle({ document, api, connect, player, loadScene, sound
     const entries = log.map(entry => {
       const item = document.createElement('li'), title = document.createElement('h3');
       title.className = 'log-title'; title.textContent = entry.title;
-      item.append(title, renderMarkdown(document, parseMarkdown(entry.text), { onLink: href => discord?.openLink(href) }));
+      item.append(title, renderMarkdown(document, parseMarkdown(entry.text), { onLink: href => outside(href) }));
       return item;
     });
     if (!entries.length) { const none = document.createElement('li'); none.textContent = TEXT.logEmpty; entries.push(none); }
@@ -695,11 +737,11 @@ export function createShuttle({ document, api, connect, player, loadScene, sound
     }
     $('reset-journey').addEventListener('click', () => { void resetJourney(); });
     for (const button of document.querySelectorAll('[data-close]')) button.addEventListener('click', closeSheets);
-    $('scene-link')?.addEventListener('click', () => { const link = player.link; if (link) { sound.play('UI-02'); discord?.openLink(link.url); } });
+    $('scene-link')?.addEventListener('click', () => { const link = player.link; if (link) { sound.play('UI-02'); outside(link.url); } });
     // A tap on the dimmed backdrop around a sheet closes it, as on a phone's own sheets.
     for (const id of SHEETS) $(id).addEventListener('click', event => { if (event.target === event.currentTarget) closeSheets(); });
     for (const link of document.querySelectorAll('a[data-external]')) {
-      link.addEventListener('click', event => { event.preventDefault(); discord?.openLink(link.href); });
+      link.addEventListener('click', event => { event.preventDefault(); outside(link.href); });
     }
   }
   async function begin() {
@@ -738,7 +780,15 @@ export function createShuttle({ document, api, connect, player, loadScene, sound
     $('sound-mute').addEventListener('click', () => muteSound(settings.sound !== 'off'));
     document.addEventListener('pointerdown', event => { if (!event.target.closest?.('#sound-pop, #radio-sound')) soundPanel(false); });
     $('transit').addEventListener('click', flushCues);
-    $('radio-menu').addEventListener('click', async () => { sound.play('UI-03'); try { described = await api.describe(); } catch { /* Keep the last state. */ } await showTitle(); });
+    // The menu button (owner report, 24 October 2026: mashing it made Discord busy for everyone): a click while the last
+    // one is still opening the menu does nothing.
+    let menuOpening = false;
+    $('radio-menu').addEventListener('click', async () => {
+      if (menuOpening) return;
+      menuOpening = true; sound.play('UI-03');
+      try { described = await api.describe(); } catch { /* Keep the last state. */ }
+      try { await showTitle(); } finally { menuOpening = false; }
+    });
     // Swipe left for the next page, right for the previous one (touch and pen; a mouse uses the buttons).
     $('radio').addEventListener('pointerdown', event => { swipe = event.pointerType === 'mouse' ? null : { x: event.clientX, y: event.clientY }; });
     $('radio').addEventListener('pointerup', event => {

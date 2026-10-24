@@ -9,17 +9,22 @@ export function createActivityStation({ transport, guildId, clock, countsMs = 30
   requireId(guildId);
   requireCondition(typeof transport?.getGuildCounts === 'function' && typeof transport.getMember === 'function' && typeof clock === 'function',
     'TRUSTED_ADAPTERS_REQUIRED');
-  let counts = null;
+  let counts = null, counting = null;
   const passes = new Map();
+  // One read of the counts at a time: members arriving while it is under way share it.
+  async function readCounts() {
+    const guild = await transport.getGuildCounts();
+    requireCondition(guild?.id === guildId, 'DISCORD_RESPONSE_INVALID');
+    counts = { at: clock(), value: Object.freeze({ crew: tally(guild.approximate_member_count), online: tally(guild.approximate_presence_count) }) };
+    return counts.value;
+  }
   const tally = value => Number.isSafeInteger(value) && value >= 0 ? value : null;
   return Object.freeze({
     /** { crew, online }: approximate member and presence counts, each null when Discord does not say. */
     async station() {
       if (counts && clock() - counts.at < countsMs) return counts.value;
-      const guild = await transport.getGuildCounts();
-      requireCondition(guild?.id === guildId, 'DISCORD_RESPONSE_INVALID');
-      counts = { at: clock(), value: Object.freeze({ crew: tally(guild.approximate_member_count), online: tally(guild.approximate_presence_count) }) };
-      return counts.value;
+      counting ??= readCounts().finally(() => { counting = null; });
+      return counting;
     },
     /** The member's own pass: { name, joined } (joined as YYYY-MM-DD, or null), or null if they are not in the server. */
     async pass(userId) {

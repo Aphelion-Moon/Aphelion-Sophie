@@ -203,7 +203,16 @@ with an ellipsis when long, and `@aphelion` always shows.
   button that stays in reach, a body that scrolls on its own and opens at its top, and a backdrop that closes on a tap.
 - **Linking:** each try at linking with Discord and core is bounded (15 s). Failed tries are retried after 2, 5, 10 and
   20 s; then the title offers "Try the link again" and suggests reopening the Shuttle. A lost signal after linking is
-  checked every 15 s until it is back.
+  checked every 15 s until it is back. One link runs at a time.
+- **Fair use:** core gives each member a burst of 8 requests, refilling one a second, and at most 2 at a time; past
+  that it answers 429 `slow` before anything reads Discord, and the client waits and tries again without showing a
+  lost signal. Discord's own busy, rate-limited and unavailable answers are a quiet `retry`, never an alert. The menu
+  button opens the menu once at a time; links and channels open once per tap (the same one again within 1.5 s is
+  ignored). Members arriving together share one read of the channel directory and the station counts.
+- **Game servers:** once core sees the member with Whitelist (in that request's Discord observation), the main menu and
+  the last step (with the arrival channels) show Our servers: Meridian Rift (SS13) and Wolfgate (SS14), each with its
+  info channel (`#ss13-info`, `#ss14-info`, found by name and shown only if the member can see it) and Quick connect
+  (`https://meridian.a13.info/play/`, `https://panel.a13.info/join/s/wolfgate`, opened through Discord).
 - **Phones:** hover styling only where a pointer hovers; 44 px touch targets; a short portrait phone gives the scene two
   fifths of the height; a phone on its side keeps the side-by-side layout with a compact status window.
 - **Input:** arrows, 1 to 9 on the main menu, Enter/Space, Backspace, Escape, swipe on touch screens; 44 px tap targets
