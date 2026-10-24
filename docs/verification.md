@@ -1,5 +1,23 @@
 # Verification and release limits
 
+## Production install of cba5358 — 24 October 2026
+
+- **Offline:** `npm test` 881 passed, including T-ACT-CORE-12 (a member's burst of 8 then 429 `slow` before the store or
+  Discord; two in flight; Discord busy, rate-limited and unavailable answer `retry` with no fault, and a busy channel
+  read is quiet), T-ACT-CORE-13 (members arriving together share one read of the channel directory and the station
+  counts), T-ACT-CORE-14 (game buttons only with Whitelist in the request's observation, info channels only if
+  visible), T-ACT-CLI-25 (menu and link single-flight, links once per tap, 429 retried without a lost signal),
+  T-ACT-CLI-26 (the game block on the menu and at the last step, driven only by core) and T-STAGE-06 (Rook and Pip
+  never draw over the concourse sign); storage 1037 passed; `npm run check` passed.
+- **Looked at:** the game block in the real client's menu in headless Edge at 1280×720 and 390×844 (filled in by the
+  harness, since core does not answer outside Discord); Rook and Pip walking in behind the sign, composed by the engine.
+- **Install:** preflight (installed e6aab6b verified; 9 reviewed files, none new; runtime unchanged), pre-start, service
+  boundaries, installed checks and public hosts passed; the public host serves the five client files and the door
+  scene byte for byte, and the API still requires sign-in. No PostgreSQL errors or unexpected core faults since the
+  restart.
+- **Not covered:** the budget under real load, and the game buttons inside Discord for a Whitelisted member (they need
+  `#ss13-info` and `#ss14-info` to exist under exactly those names; Quick connect shows either way).
+
 ## Production install of e6aab6b — 24 October 2026
 
 - **Offline:** `npm test` 875 passed, including P50 (blink patterns: the Morse beacon steps, and bad patterns refused),

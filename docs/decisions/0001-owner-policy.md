@@ -2451,3 +2451,9 @@ disembarking step please." Core adds `games` to a reply only when that request's
 with `#ss13-info` and `#ss14-info` found by name and included only if the member can see them; the client shows Our
 servers (Meridian Rift · SS13, Wolfgate · SS14: the info channel and Quick connect) under the main menu and under the
 arrival channels at the last step, and nowhere when `games` is absent.
+
+On the owner's "Yes, install cba5358 to production with the checks." (quoted in the packet's `approval.json`),
+`cba5358` was installed over `e6aab6b` at 13:06 UTC on 24 October: 9 files (5 client, 3 core, the pressure door scene),
+same runtime (Node 24.22.1), capability policy version 2 and credentials, no migration, no story change. All checks
+passed; the public host serves the client files and the scene byte for byte. Folder
+`.agent_docs/aphelion-sophie/deployment-cba5358-production-2026-10-24`; `rollback.ps1` restores `e6aab6b`.
