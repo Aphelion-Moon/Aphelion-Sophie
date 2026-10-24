@@ -37,7 +37,7 @@ export async function runShuttleActivitySuite(cluster, run) {
   async function member(userId = USER) {
     const { token } = await activityAuth.signIn({ code: `code-${userId}`, instanceId: INSTANCE });
     const proof = await activityAuth.authenticate(token);
-    return { actor: await authorization.resolveActor(proof), observation: await discord.roles.observe(userId) };
+    return { actor: await authorization.resolveActor(proof), observe: () => discord.roles.observe(userId) };
   }
   async function drainGrants() {
     for (let i = 0; i < 20; i++) {
@@ -283,4 +283,22 @@ export async function runShuttleActivitySuite(cluster, run) {
     assert.deepEqual(run.moments['another heading'], { beat: 'together', scene: 'landing-bay' });
     assert.equal(run.stops[0].scene, 'departure-lounge', 'the stop keeps its scene; only that section changes');
   });
+
+  await scenario('SA14 the member is observed after the capability checks, so slow checks cannot make the final Continue fail as stale', async () => {
+    // Owner report, 24 October 2026: under load the checks' Discord reads used up the 5 s the observation may be old at
+    // commit, on every try, and Whitelist was never queued. Here the check takes 6 s.
+    const slow = createShuttleActivityStore({ pool, clock: () => now, definitionId: definition.id, status: 'open',
+      authorize: async (...input) => { now += 6_000; return authorization.authorize(...input); } });
+    let { run: shown } = await slow.board({ ...await member(USER), requestId: requestId() });
+    while (shown.stop < shown.stops.length - 1) ({ run: shown } = await slow.act({ ...await member(USER), requestId: requestId(), action: 'advance', expectedVersion: shown.version }));
+    // An observation made before the checks (the order before this fix) is stale by the time the transaction checks it.
+    const early = await discord.roles.observe(USER), before = await member(USER);
+    await assert.rejects(slow.act({ ...before, observe: async () => early, requestId: requestId(), action: 'advance', expectedVersion: shown.version }),
+      error => error.code === 'MEMBERSHIP_STALE');
+    const last = await slow.act({ ...await member(USER), requestId: requestId(), action: 'advance', expectedVersion: shown.version });
+    assert.equal(last.run.status, 'pending'); assert.equal(last.queued, true);
+    assert.deepEqual((await rows('outbox')).map(row => row.kind), ['whitelist.grant']);
+    // The observation must be of the member the actor names.
+    await assert.rejects(slow.describe({ ...await member(USER), observe: () => discord.roles.observe(OTHER) }), error => error.code === 'MEMBER_MISMATCH');
+  }, 'open');
 }

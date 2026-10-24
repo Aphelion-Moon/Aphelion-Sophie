@@ -1,14 +1,28 @@
 import { createInstalledTransport } from './transport.js';
 import { requireCondition } from '../../contracts/validation.js';
 
+const CODE=/^[A-Z][A-Z0-9_]{2,63}$/u;
+// Detail is fixed vocabulary only: up to 12 key=value pairs of IDs, routes, stages, codes and counts, never free text.
+const DETAIL=/^[a-z][a-z0-9]{0,15}=[A-Za-z0-9_.:/>-]{1,96}(?: [a-z][a-z0-9]{0,15}=[A-Za-z0-9_.:/>-]{1,96}){0,11}$/u;
+
+/**
+ * One host log line (owner request, 24 October 2026: timestamps, where the member was and how the error occurred): the UTC
+ * time, the prefix, the code if it is a fixed code, then the detail if it is bounded key=value pairs. Anything else is
+ * dropped, never escaped into the line.
+ */
+export function installedLogLine(prefix,code,detail=null,now=new Date()) {
+  return `${now.toISOString()} ${prefix}${typeof code==='string' && CODE.test(code)?` ${code}`:''}${typeof detail==='string' && DETAIL.test(detail)?` ${detail}`:''}\n`;
+}
+
 /** Foreground service payload. SCM registration/wrapper selection is a separate operational decision. */
 export async function runInstalledRole(role,compose) {
   const lifetime=new AbortController(),abort=()=>lifetime.abort();let pipes,service,failed=false,timer,polling;
   const fatal=()=>{failed=true;abort();};
-  // Fixed contract codes only, as in the catch below: never messages, paths, SQL or credentials.
-  const onFault=code=>process.stderr.write(`AI_INSTALLED_ROLE_FAULT${typeof code==='string' && /^[A-Z][A-Z0-9_]{2,63}$/u.test(code)?` ${code}`:''}\n`);
+  // Fixed contract codes only, as in the catch below: never messages, paths, SQL or credentials. Each line starts with its
+  // UTC time and may end with bounded key=value detail (installedLogLine).
+  const onFault=(code,detail)=>process.stderr.write(installedLogLine('AI_INSTALLED_ROLE_FAULT',code,detail));
   // Timing diagnostics, not faults: the same fixed-code rule, on their own line prefix.
-  const onTrace=code=>{if(typeof code==='string' && /^[A-Z][A-Z0-9_]{2,63}$/u.test(code))process.stderr.write(`AI_INSTALLED_ROLE_TRACE ${code}\n`);};
+  const onTrace=(code,detail)=>{if(typeof code==='string' && CODE.test(code))process.stderr.write(installedLogLine('AI_INSTALLED_ROLE_TRACE',code,detail));};
   process.once('SIGINT',abort);process.once('SIGTERM',abort);
   try {
     requireCondition(process.argv.length===2 || role==='core' && process.argv.length===3 && process.argv[2]==='start-installed','AI_INSTALLATION_ARGUMENTS_INVALID');
@@ -25,8 +39,8 @@ export async function runInstalledRole(role,compose) {
     requireCondition(!failed,'AI_INSTALLATION_UNAVAILABLE');
   } catch(error) {
     // Only a fixed contract code is logged: never messages, paths, SQL or credentials.
-    const code=[error?.code,error?.message].find(value=>typeof value==='string' && /^[A-Z][A-Z0-9_]{2,63}$/u.test(value));
-    process.stderr.write(`AI_INSTALLED_ROLE_UNAVAILABLE${code?` ${code}`:''}\n`);process.exitCode=1;
+    const code=[error?.code,error?.message].find(value=>typeof value==='string' && CODE.test(value));
+    process.stderr.write(installedLogLine('AI_INSTALLED_ROLE_UNAVAILABLE',code));process.exitCode=1;
   }
   finally {
     abort();clearTimeout(timer);await polling;

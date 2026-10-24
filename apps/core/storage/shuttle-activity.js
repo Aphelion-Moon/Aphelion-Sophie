@@ -32,10 +32,23 @@ export function createShuttleActivityStore({ pool, clock, authorize, definitionI
    * link lost after leaving the window). Each still runs on every request; eligibility is read under the lock.
    * null when allowed; otherwise what the member sees instead.
    */
-  async function capability(actor, observation) {
-    if (status === 'testing' && await authorize('shuttle.activity.test', actor, scope(observation)) !== true) return 'closed';
-    if (await authorize('shuttle.self', actor, scope(observation)) !== true) return 'unavailable';
+  async function capability(actor) {
+    if (status === 'testing' && await authorize('shuttle.activity.test', actor, scope(actor)) !== true) return 'closed';
+    if (await authorize('shuttle.self', actor, scope(actor)) !== true) return 'unavailable';
     return null;
+  }
+  /**
+   * The capability checks, then the member's observation: the checks read Discord several times, and made before the
+   * observation they used up the 5 s it may be old when the transaction commits. Under load a final Continue ran out of it on
+   * every try and was refused without a trace (owner report, 24 October 2026: Whitelist never queued). The observation is
+   * for the same member the actor names.
+   */
+  async function admission(actor, observe) {
+    requireCondition(typeof observe === 'function', 'TRUSTED_ADAPTERS_REQUIRED');
+    const allowed = await capability(actor);
+    const observation = await observe();
+    requireCondition(observation?.guildId === actor.guildId && observation?.userId === actor.userId, 'MEMBER_MISMATCH');
+    return { allowed, observation };
   }
   /** The capability outcome, then the locked member's current eligibility. */
   function refusal(refused, member) {
@@ -87,8 +100,8 @@ export function createShuttleActivityStore({ pool, clock, authorize, definitionI
 
   return Object.freeze({
     /** What the Activity shows now. Reads only; it records the fresh membership observation like every member action. */
-    async describe({ actor, observation }) {
-      const allowed = await capability(actor, observation);
+    async describe({ actor, observe }) {
+      const { allowed, observation } = await admission(actor, observe);
       return memberOperation(observation, async (client, member) => {
         const refused = refusal(allowed, member);
         if (refused) return { state: refused };
@@ -110,9 +123,9 @@ export function createShuttleActivityStore({ pool, clock, authorize, definitionI
     },
 
     /** Starts a run, or resumes the current Activity run. */
-    async board({ actor, observation, requestId }) {
+    async board({ actor, observe, requestId }) {
       requireActivityRequestId(requestId);
-      const allowed = await capability(actor, observation);
+      const { allowed, observation } = await admission(actor, observe);
       return memberOperation(observation, async (client, member) => {
         admit(allowed, member);
         const id = receiptId(member.userId, requestId);
@@ -142,10 +155,10 @@ export function createShuttleActivityStore({ pool, clock, authorize, definitionI
     },
 
     /** Continue, Back or Check. The client names the version it showed; anything else is out of date. */
-    async act({ actor, observation, requestId, action, expectedVersion }) {
+    async act({ actor, observe, requestId, action, expectedVersion }) {
       requireActivityRequestId(requestId); requireInteger(expectedVersion);
       requireCondition(ACTIVITY_ACTIONS.includes(action), 'INVALID_SHUTTLE_ACTION');
-      const allowed = await capability(actor, observation);
+      const { allowed, observation } = await admission(actor, observe);
       return memberOperation(observation, async (client, member) => {
         admit(allowed, member);
         const id = receiptId(member.userId, requestId);
@@ -175,9 +188,9 @@ export function createShuttleActivityStore({ pool, clock, authorize, definitionI
      * boarding starts again at the first stop on the latest story. The run's record is kept. A run waiting on its Whitelist
      * grant, or one already finished, is not reset (a finished run offers riding again instead).
      */
-    async reset({ actor, observation, requestId }) {
+    async reset({ actor, observe, requestId }) {
       requireActivityRequestId(requestId);
-      const allowed = await capability(actor, observation);
+      const { allowed, observation } = await admission(actor, observe);
       return memberOperation(observation, async (client, member) => {
         admit(allowed, member);
         const id = receiptId(member.userId, requestId);

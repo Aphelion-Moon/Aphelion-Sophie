@@ -87,6 +87,23 @@ import { createPermissionOptions } from '../discord/permission-options.js';
 import { runtimeDatabaseAvailable } from '../storage/runtime-maintenance.js';
 import { createGuildState } from '../discord/guild-state.js';
 
+// The detail a log line may carry, in this order: who (a Discord user ID), the request, where the member was in the Shuttle,
+// how it failed (phase, cause, the transient codes retried before it, attempts) and how long it took. Each value is a fixed
+// token; anything else is left out of the line.
+const DETAIL_KEYS = Object.freeze([['userId', 'user'], ['request', 'request'], ['stage', 'stage'], ['phase', 'phase'], ['cause', 'cause'],
+  ['retried', 'retried'], ['tries', 'tries'], ['ms', 'ms'], ['code', 'code']]);
+const DETAIL_VALUE = /^[A-Za-z0-9_.:/>-]{1,96}$/u;
+export function logDetail(context) {
+  if (context === null || typeof context !== 'object') return null;
+  const pairs = [];
+  for (const [key, label] of DETAIL_KEYS) {
+    if (context[key] === undefined || context[key] === null) continue;
+    const value = String(context[key]).replace(/ \(([a-z]+)\)$/u, ':$1').replace(/ /gu, ':');
+    if (DETAIL_VALUE.test(value)) pairs.push(`${label}=${value}`);
+  }
+  return pairs.length ? pairs.join(' ') : null;
+}
+
 /** Explicit staging host. Construction starts no listener, connection, registration, migration or service. */
 export async function createStagingRuntime({ configuration, pool, aiControlPool = null, aiPreferenceJournal = null, aiWorker = null, aiKnowledge = null, aiKnowledgeAdmin = null, aiKnowledgeAdminFactory = null, aiApproval = null, aiActivationPool = null, aiRestoreCurrent = async () => false, aiGithubToken = null, token, clientSecret = null, fetch, connect, clock = Date.now, random = Math.random, onFault, onTrace = () => {}, rateLimits = createDiscordRateLimits(), configurationApplyEnabled = false, gatewayLeaseMs = 30_000 }) {
   validateStagingRuntime(configuration); const fixed = structuredClone(configuration);
@@ -101,10 +118,11 @@ export async function createStagingRuntime({ configuration, pool, aiControlPool 
   const active = () => started && !stopping && !maintenanceObserved;
   // Errors also go to the configured alert channel (codes only; apps/core/runtime/error-alerts.js).
   let errorAlerts = null;
-  // The host log gets the code only; the alert also gets who was affected and the request, when the caller knows them.
-  const fault = (code, context) => { try { onFault(code); } catch { /* Never log original dependency errors or payloads. */ } errorAlerts?.report(code, context); };
-  // Timing diagnostics (fixed codes: outcome, milliseconds, request counts). Never faults, IDs or content.
-  const trace = code => { try { onTrace(code); } catch { /* Diagnostics never affect the runtime. */ } };
+  // The host log gets the code and, when the caller knows it, fixed-vocabulary detail (logDetail: who, which request, where
+  // in the Shuttle, how it failed); the alert also gets who was affected and the request.
+  const fault = (code, context) => { try { onFault(code, logDetail(context)); } catch { /* Never log original dependency errors or payloads. */ } errorAlerts?.report(code, context); };
+  // Diagnostics (fixed codes: outcome, milliseconds, request counts), with the same detail. Never content.
+  const trace = (code, context) => { try { onTrace(code, logDetail(context)); } catch { /* Diagnostics never affect the runtime. */ } };
   const databaseActive = async () => {
     if (!active()) return false;
     if (await runtimeDatabaseAvailable(pool)) return true;
@@ -268,7 +286,7 @@ export async function createStagingRuntime({ configuration, pool, aiControlPool 
     const visitor = lane();
     activity = createActivityHttpServer({ configuration: fixed.activity, applicationId: fixed.applicationId, guildId: fixed.mapping.guildId, port: fixed.activity.port,
       assets: await loadActivityClient(fileURLToPath(new URL('../../../', import.meta.url))), auth: activityAuth,
-      authorization: visitor.authorization, discord: visitor.roles, enabled, onFault: fault, wake: () => wake(), clock,
+      authorization: visitor.authorization, discord: visitor.roles, enabled, onFault: fault, onTrace: trace, wake: () => wake(), clock,
       channels: createActivityChannels({ transport: visitor.transport, roles: visitor.roles, guildId: fixed.mapping.guildId, clock }),
       station: createActivityStation({ transport: visitor.transport, guildId: fixed.mapping.guildId, clock }),
       store: createShuttleActivityStore({ pool, clock, authorize: visitor.authorization.authorize, definitionId: fixed.definitionId, status: fixed.activity.status,
@@ -286,7 +304,14 @@ export async function createStagingRuntime({ configuration, pool, aiControlPool 
       }
       // Production (Activity and AI only) runs no case, membership or Shuttle-channel worker; it only delivers the Whitelist
       // grants the Shuttle Activity records (owner decision, 24 October 2026).
-      if (limited) { await delivery.whitelistGrants.runOnce(owner); return; }
+      // Every grant delivery outcome but an empty queue is logged with its time (owner request, 24 October 2026), so a grant
+      // that was cancelled or retried shows how.
+      if (limited) {
+        const startedAt = performance.now(), result = await delivery.whitelistGrants.runOnce(owner);
+        if (!['idle', 'disabled'].includes(result?.status)) trace(`WHITELIST_GRANT_${String(result?.status).toUpperCase().replace(/[^A-Z]/g, '_').slice(0, 24)}`,
+          { code: result?.code ?? null, ms: Math.min(99_999, Math.round(performance.now() - startedAt)) });
+        return;
+      }
       await reconciler.runOnce();
       try { if (await shuttleOutbox.recheckParkedShuttleWork() > 0) trace('SHUTTLE_SELF_HEAL_REQUEUED'); }
       catch { fault('SHUTTLE_SELF_HEAL_UNAVAILABLE'); }

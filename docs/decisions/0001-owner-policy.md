@@ -2476,3 +2476,32 @@ On the owner's "Yes, install b45d7dd to production with the checks." (quoted in 
 was installed over `cba5358` at 13:32 UTC on 24 October: 1 file, same runtime (Node 24.22.1), capability policy version
 2 and credentials, no migration, no story change. All checks passed. Folder
 `.agent_docs/aphelion-sophie/deployment-b45d7dd-production-2026-10-24`; `rollback.ps1` restores `cba5358`.
+
+### A final Continue refused without a trace; the log gets times and context — 24 October 2026
+
+The owner reported a member who, at about 16:28 local time, pressed the last button of the Disembarking stop several
+times without being given Whitelist; the owner gave the role by hand, and the Activity then finished. Production records
+(read only): the run reached the last stop at version 4; its only final Continue that committed is the one after the
+manual role (version 5, complete, no grant), and no Whitelist grant was ever queued for the member. Every earlier press
+was rolled back before commit, so it left no receipt, and nothing was logged or alerted: a transient refusal
+(MEMBERSHIP_STALE, OBSERVATION_*, Discord busy) is tried four times and then answered 503 "retry" in silence. A second
+member was found at the last stop in the same state.
+
+Cause (most likely; the silent path left no record of the code): the member's observation must be at most 5 s old when the
+transaction commits, and it was taken before the capability check, which reads Discord again (bot identity, guild, roles,
+member) and records the actor's authority. Under load those reads, queued behind other members' reads of the same Discord
+bucket, used up the window on every try.
+
+Fixed:
+- `apps/core/storage/shuttle-activity.js`: the store takes `observe` rather than an observation and observes the member only
+  after the capability checks, for the member the actor names; the window now holds one member read and the transaction
+  (SA14: with a 6 s check the old order fails MEMBERSHIP_STALE and the new one queues the grant).
+- Logging (owner request: "include timestamps as well as information about where the user was in the process and how the
+  error occurred"): every host log line starts with its UTC time (`apps/installation/host.js`). Each Activity request that
+  is refused or retried quietly is now logged as a trace (ACTIVITY_REQUEST_RETRY, ACTIVITY_REQUEST_STALE, and so on;
+  still no alert), and faults carry the same detail: the member's Discord user ID, the request, where the member last was
+  (stop, status, run version and the version the request named), how far the request got (session, budget, actor,
+  capability, observe, transaction, extras), the cause, the codes it was retried for, attempts and milliseconds. A queued
+  grant (ACTIVITY_GRANT_QUEUED) and each Whitelist grant delivery outcome (WHITELIST_GRANT_*) are logged too. Detail is
+  fixed tokens only, never content (T-ACT-CORE-16). The user ID in the host log is new: until now the log held codes only
+  and only the alert channel named members.

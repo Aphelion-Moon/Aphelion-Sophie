@@ -118,14 +118,18 @@ test('T-ACT-CORE-06 the instance lookup is a fixed bot route; an ended instance 
 async function server(overrides = {}) {
   const calls = [], assets = new Map([['/', { body: Buffer.from('<!doctype html><title>Shuttle</title>'), type: 'text/html; charset=utf-8', etag: '"page"' }],
     ['/apps/activity/client/app.js', { body: Buffer.from('export {};'), type: 'text/javascript; charset=utf-8', etag: '"app"' }]]);
-  const store = {
+  const fakes = {
     async describe(input) { calls.push(['describe', input]); return { state: 'ready', mode: 'qualification', stops: [], whitelist: 'none' }; },
     async board(input) { calls.push(['board', input]); return { run: { stop: 0 } }; },
     async act(input) { calls.push(['act', input]); return { run: { stop: 1 }, queued: input.action === 'advance' }; },
     async reset(input) { calls.push(['reset', input]); return { duplicate: false, reset: true }; },
     ...overrides.store };
+  // As the real store does: the capability checks (none here), then the member's observation, then the use case.
+  const store = Object.fromEntries(Object.entries(fakes).map(([name, use]) =>
+    [name, async ({ observe, ...input }) => use({ ...input, ...(observe ? { observation: await observe() } : {}) })]));
   let woken = 0;
   const http = createActivityHttpServer({ configuration: activityConfiguration(), applicationId: APP, guildId: GUILD, port: 38125, assets, channels: overrides.channels ?? null, enabled: async () => true, onFault: (code, context) => { calls.push(['fault', code]); if (context) calls.push(['fault-context', context]); },
+    onTrace: (code, context) => calls.push(['trace', code, context]),
     wake: () => { woken++; }, clock: () => NOW, pause: async () => {},
     auth: { signIn: async input => { calls.push(['signIn', input]); return { token: 'a'.repeat(64), accessToken: 'x', scopes: ['identify'], expiresIn: 3600 }; },
       authenticate: async token => { if (token !== 'a'.repeat(64)) throw new ContractError('ACTIVITY_SESSION_INVALID'); return { guildId: GUILD, userId: USER }; },
@@ -207,8 +211,9 @@ test('T-ACT-CORE-10 a database lock timeout is retried; one that persists alerts
     const response = await stuck.request('/api/shuttle/act', { method: 'POST', body: { requestId: 'r'.repeat(32), action: 'advance', expectedVersion: 1 } });
     assert.equal(response.status, 503);
     assert.deepEqual(stuck.calls.filter(([name]) => name === 'fault'), [['fault', 'ACTIVITY_REQUEST_UNAVAILABLE_PG_55P03']]);
-    // The alert learns the member and the request; the log line stays the code alone.
-    assert.deepEqual(stuck.calls.filter(([name]) => name === 'fault-context'), [['fault-context', { userId: USER, request: 'POST /api/shuttle/act (advance)' }]]);
+    // The alert learns the member and the request; the log line also where the request was and how it failed.
+    assert.deepEqual(stuck.calls.filter(([name]) => name === 'fault-context'), [['fault-context', { userId: USER, request: 'POST /api/shuttle/act (advance)',
+      stage: 'asked:v1', phase: 'transaction', cause: 'PG_55P03', retried: 'transaction>PG_55P03/transaction>PG_55P03/transaction>PG_55P03', tries: 4, ms: 0 }]]);
   } finally { await stuck.http.close(); }
 });
 
@@ -420,4 +425,45 @@ test('T-ACT-CORE-15 at the end of the ride the member\'s own role change can ove
   const broken = await server({ channels: { async resolve() { throw new TypeError('x'); }, async named() { return {}; } }, store: describe });
   try { await broken.request('/api/shuttle'); assert.deepEqual(broken.calls.filter(([name]) => name === 'fault'), [['fault', 'ACTIVITY_CHANNELS_UNAVAILABLE']]); }
   finally { await broken.http.close(); }
+});
+
+test('T-ACT-CORE-16 a refused or quietly retried request is logged with who, where in the Shuttle and how it failed; the log line has its time', async () => {
+  // Owner report, 24 October 2026: a member's final Continue was refused on every press and nothing recorded where or why.
+  const finalStop = { run: { stop: 4, stops: [{}, {}, {}, {}, {}], status: 'reading', version: 4, whitelist: 'none' } };
+  const stale = await server({ store: { async describe() { return structuredClone(finalStop); }, async act() { throw new ContractError('MEMBERSHIP_STALE'); } } });
+  try {
+    await stale.request('/api/shuttle');
+    const response = await stale.request('/api/shuttle/act', { method: 'POST', body: { requestId: 'r'.repeat(32), action: 'advance', expectedVersion: 4 } });
+    assert.equal(response.status, 503); assert.deepEqual(await response.json(), { error: 'retry' });
+    assert.deepEqual(stale.calls.filter(([name]) => name === 'fault'), [], 'a transient refusal is not an alert');
+    assert.deepEqual(stale.calls.filter(([name]) => name === 'trace'), [['trace', 'ACTIVITY_REQUEST_RETRY', { userId: USER, request: 'POST /api/shuttle/act (advance)',
+      stage: 'stop5/5:reading:v4:asked:v4', phase: 'transaction', cause: 'MEMBERSHIP_STALE',
+      retried: 'transaction>MEMBERSHIP_STALE/transaction>MEMBERSHIP_STALE/transaction>MEMBERSHIP_STALE', tries: 4, ms: 0 }]]);
+  } finally { await stale.http.close(); }
+  // A refusal with an outcome word says so; a request that never got past the session check says that too.
+  const stale409 = await server({ store: { async act() { throw new ContractError('STALE_SHUTTLE_CONTROL'); } } });
+  try {
+    await stale409.request('/api/shuttle/act', { method: 'POST', body: { requestId: 'r'.repeat(32), action: 'back', expectedVersion: 2 } });
+    await stale409.request('/api/shuttle', { token: 'b'.repeat(64) });
+    assert.deepEqual(stale409.calls.filter(([name]) => name === 'trace').map(([, code, context]) => [code, context.phase, context.cause]),
+      [['ACTIVITY_REQUEST_STALE', 'transaction', 'STALE_SHUTTLE_CONTROL'], ['ACTIVITY_REQUEST_SIGNIN', 'session', 'ACTIVITY_SESSION_INVALID']]);
+  } finally { await stale409.http.close(); }
+  // A queued grant is noted with where the run now is.
+  const queued = await server({ store: { async act() { return { run: { stop: 4, stops: [{}, {}, {}, {}, {}], status: 'pending', version: 5 }, queued: true }; } } });
+  try {
+    await queued.request('/api/shuttle/act', { method: 'POST', body: { requestId: 'r'.repeat(32), action: 'advance', expectedVersion: 4 } });
+    assert.deepEqual(queued.calls.filter(([name]) => name === 'trace').map(([, code, context]) => [code, context.stage]), [['ACTIVITY_GRANT_QUEUED', 'stop5/5:pending:v5:asked:v4']]);
+  } finally { await queued.http.close(); }
+
+  // The host line: UTC time, prefix, code, then the bounded detail the runtime formats.
+  const { installedLogLine } = await import('../apps/installation/host.js');
+  const { logDetail } = await import('../apps/core/runtime/staging.js');
+  const detail = logDetail({ userId: USER, request: 'POST /api/shuttle/act (advance)', stage: 'stop5/5:reading:v4', phase: 'transaction', cause: 'MEMBERSHIP_STALE', tries: 4, ms: 5321 });
+  assert.equal(detail, `user=${USER} request=POST:/api/shuttle/act:advance stage=stop5/5:reading:v4 phase=transaction cause=MEMBERSHIP_STALE tries=4 ms=5321`);
+  assert.equal(installedLogLine('AI_INSTALLED_ROLE_TRACE', 'ACTIVITY_REQUEST_RETRY', detail, new Date(Date.UTC(2026, 9, 24, 14, 28, 3, 512))),
+    `2026-10-24T14:28:03.512Z AI_INSTALLED_ROLE_TRACE ACTIVITY_REQUEST_RETRY ${detail}\n`);
+  // Free text never reaches the line: a value outside the vocabulary is left out, and a detail that is not key=value pairs is dropped.
+  assert.equal(logDetail({ userId: USER, cause: 'secret detail\nnext line' }), `user=${USER}`);
+  assert.equal(installedLogLine('P', 'CODE_X', 'not pairs; DROP TABLE', new Date(0)), '1970-01-01T00:00:00.000Z P CODE_X\n');
+  assert.equal(installedLogLine('P', 'lower case', null, new Date(0)), '1970-01-01T00:00:00.000Z P\n');
 });

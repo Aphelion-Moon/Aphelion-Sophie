@@ -54,15 +54,30 @@ const OUTCOMES = [
  * in-memory bearer token, not cookies; each Shuttle request resolves the member through core principals, reads Discord
  * afresh and authorizes again in the store. Logs are fixed codes only. No AI, no ticket data, no case routes.
  */
-export function createActivityHttpServer({ configuration, applicationId, guildId, port, assets, auth, authorization, discord, store, channels = null, station = null, enabled, onFault, wake = () => {}, clock = Date.now,
+export function createActivityHttpServer({ configuration, applicationId, guildId, port, assets, auth, authorization, discord, store, channels = null, station = null, enabled, onFault, onTrace = () => {}, wake = () => {}, clock = Date.now,
   pause = ms => new Promise(resolve => setTimeout(resolve, ms)) }) {
   validateActivityConfiguration(configuration); requireId(applicationId); requireId(guildId);
   requireCondition(assets instanceof Map && assets.has('/') && typeof auth?.signIn === 'function' && typeof authorization?.resolveActor === 'function' &&
     typeof discord?.observe === 'function' && typeof store?.describe === 'function' && typeof enabled === 'function' && typeof onFault === 'function' &&
-    typeof wake === 'function', 'TRUSTED_ADAPTERS_REQUIRED');
+    typeof onTrace === 'function' && typeof wake === 'function', 'TRUSTED_ADAPTERS_REQUIRED');
   const hosts = new Set([new URL(configuration.origin).host, `127.0.0.1:${port}`]);
-  // The log takes the code only; the error alerts also get who was affected and the request (never its content).
+  // The log and the error alerts get who was affected, the request, where the member was and how it failed (never content).
   const fault = (code, context) => { try { onFault(code, context); } catch { /* Never log request content. */ } };
+  const note = (code, context) => { try { onTrace(code, context); } catch { /* Diagnostics never affect a request. */ } };
+  // Where each member last was in the Shuttle, from the replies sent to them, so a refused request says where it was made
+  // (owner report, 24 October 2026: a final Continue refused silently, with nothing to say where or why). Members idle for
+  // a while are forgotten, as with the budgets below.
+  const places = new Map();
+  const placeOf = run => run && Number.isSafeInteger(run.stop) && Array.isArray(run.stops) && Number.isSafeInteger(run.version) && /^[a-z]{1,16}$/u.test(String(run.status))
+    ? `stop${run.stop + 1}/${run.stops.length}:${run.status}:v${run.version}` : null;
+  /** An extra's fault: who, where they last were and the cause. */
+  const extra = (userId, error) => ({ userId, stage: userId ? places.get(userId) ?? null : null, phase: 'extras', cause: causeOf(error) });
+  function remember(userId, result) {
+    const place = placeOf(result?.run);
+    if (!userId || !place) return;
+    if (places.size >= 1_024) places.delete(places.keys().next().value);
+    places.delete(userId); places.set(userId, place);
+  }
   let active = 0, stopping = false, window = { startedAt: -Infinity, count: 0 };
   /**
    * What an unexpected failure was, in fixed vocabulary only (owner request, 24 October 2026): a contract or library code,
@@ -123,17 +138,29 @@ export function createActivityHttpServer({ configuration, applicationId, guildId
     seen.release = () => { if (!released) { released = true; budget.inFlight--; } };
   }
   /**
-   * The signed-in member's fresh context; `seen.userId` records who it is for the channel links. The session check is in
-   * memory; the member's budget is spent before anything reads Discord.
+   * The signed-in member's actor and a way to observe them; `seen.userId` records who it is for the channel links. The
+   * session check is in memory; the member's budget is spent before anything reads Discord. The store observes the member
+   * only after its capability checks, so those reads no longer age the observation its transaction needs fresh (at most
+   * 5 s old). They did: a final Continue under load ran out of that window on every try (owner report, 24 October 2026).
+   * `seen.phase` records how far the request got, for the log.
    */
   async function member(request, seen = {}) {
+    seen.phase = 'session';
     const proof = await auth.authenticate(bearer(request));
     seen.userId = proof.userId;
-    spend(proof.userId, seen);
-    const context = { actor: await authorization.resolveActor(proof), observation: await discord.observe(proof.userId) };
-    // Whitelist as Discord shows it in this very request (never a stored snapshot), for the game buttons.
-    seen.whitelisted = context.observation?.whitelist === true;
-    return context;
+    seen.phase = 'budget'; spend(proof.userId, seen);
+    seen.phase = 'actor';
+    const actor = await authorization.resolveActor(proof);
+    seen.phase = 'capability';
+    const observe = async () => {
+      seen.phase = 'observe';
+      const observation = await discord.observe(proof.userId);
+      // Whitelist as Discord shows it in this very request (never a stored snapshot), for the game buttons.
+      seen.whitelisted = observation?.whitelist === true;
+      seen.phase = 'transaction';
+      return observation;
+    };
+    return { actor, observe };
   }
   /**
    * Channel links for a run: the channels its copy names, and after confirmation the arrival list (curated, or else the
@@ -151,7 +178,7 @@ export function createActivityHttpServer({ configuration, applicationId, guildId
         const named = [...new Map(Object.values(found.mentions).map(channel => [channel.id, { id: channel.id, name: channel.name }])).values()];
         run.arrival = found.arrival.length ? found.arrival : named;
       }
-    } catch (error) { if (!passing(error)) fault('ACTIVITY_CHANNELS_UNAVAILABLE', { userId }); run.channels = {}; if (confirmed) run.arrival = []; }
+    } catch (error) { if (!passing(error)) fault('ACTIVITY_CHANNELS_UNAVAILABLE', extra(userId, error)); run.channels = {}; if (confirmed) run.arrival = []; }
     return withStation(result, userId);
   }
   /**
@@ -163,7 +190,7 @@ export function createActivityHttpServer({ configuration, applicationId, guildId
     let found = {};
     if (channels !== null) {
       try { found = await settled(() => channels.named({ userId: seen.userId, names: GAME_INFO_CHANNELS })); }
-      catch (error) { if (!passing(error)) fault('ACTIVITY_CHANNELS_UNAVAILABLE', { userId: seen.userId }); }
+      catch (error) { if (!passing(error)) fault('ACTIVITY_CHANNELS_UNAVAILABLE', extra(seen.userId, error)); }
     }
     (result.run ?? result).games = { channels: found };
   }
@@ -174,22 +201,38 @@ export function createActivityHttpServer({ configuration, applicationId, guildId
   async function withStation(result, userId) {
     const run = result?.run;
     if (!run || station === null || (run.status === 'reading' && run.stop < run.stops.length - 1)) return result;
-    try { run.station = await settled(() => station.station()); } catch (error) { if (!passing(error)) fault('ACTIVITY_STATION_UNAVAILABLE', { userId }); }
-    try { const pass = await settled(() => station.pass(userId)); if (pass) run.pass = pass; } catch (error) { if (!passing(error)) fault('ACTIVITY_PASS_UNAVAILABLE', { userId }); }
+    try { run.station = await settled(() => station.station()); } catch (error) { if (!passing(error)) fault('ACTIVITY_STATION_UNAVAILABLE', extra(userId, error)); }
+    try { const pass = await settled(() => station.pass(userId)); if (pass) run.pass = pass; } catch (error) { if (!passing(error)) fault('ACTIVITY_PASS_UNAVAILABLE', extra(userId, error)); }
     return result;
   }
   /** An extra read that meets a passing failure is tried once more after a short pause; a second failure is left to the caller. */
   async function settled(read) {
     try { return await read(); } catch (error) { if (!passing(error)) throw error; await pause(RETRY_DELAYS_MS[0]); return read(); }
   }
-  async function attempt(work) {
+  /** The work, tried again after a transient failure; `seen.retried` keeps each code it was tried again for, for the log. */
+  async function attempt(work, seen = {}) {
     for (let tries = 0; ; tries++) {
+      seen.tries = tries + 1;
       try { return await work(); } catch (error) {
         const retryable = error instanceof ContractError ? TRANSIENT.has(error.code) : RETRYABLE_SQLSTATES.has(error?.code);
         if (!retryable || tries >= RETRY_DELAYS_MS.length) throw error;
+        (seen.retried ??= []).push(`${seen.phase ?? 'request'}>${causeOf(error) ?? 'ERROR'}`);
         await pause(RETRY_DELAYS_MS[tries]);
       }
     }
+  }
+  /**
+   * What the log says about a request that did not succeed: who, the request, where the member last was (and the version
+   * the request named), how far it got, the cause, the codes it was retried for, attempts and time taken. IDs and fixed
+   * codes only.
+   */
+  function context(request, path, seen, cause) {
+    const place = seen.userId ? places.get(seen.userId) ?? null : null;
+    const named = Number.isSafeInteger(seen.expectedVersion) ? `asked:v${seen.expectedVersion}` : null;
+    return { userId: seen.userId ?? null, request: `${request.method} ${path}${seen.action ? ` (${seen.action})` : ''}`,
+      stage: [place, named].filter(Boolean).join(':') || null, phase: seen.phase ?? null, cause,
+      retried: seen.retried?.length ? seen.retried.slice(-4).join('/').slice(0, 96) : null, tries: seen.tries ?? null,
+      ms: Number.isFinite(seen.startedAt) ? Math.min(99_999, Math.max(0, Math.round(clock() - seen.startedAt))) : null };
   }
   async function api(request, response, path, seen) {
     if (path === '/api/session' && request.method === 'POST') {
@@ -201,28 +244,32 @@ export function createActivityHttpServer({ configuration, applicationId, guildId
     }
     if (path === '/api/session/end' && request.method === 'POST') { auth.signOut(bearer(request)); send(response, 204, null); return; }
     if (path === '/api/shuttle' && request.method === 'GET') {
-      const result = await attempt(async () => store.describe(await member(request, seen)));
+      const result = await attempt(async () => store.describe(await member(request, seen)), seen);
+      remember(seen.userId, result); seen.phase = 'extras';
       send(response, 200, await withChannels(result, seen)); return;
     }
     if (path === '/api/shuttle/board' && request.method === 'POST') {
       const body = await readJson(request); only(body, ['requestId']);
-      const result = await attempt(async () => store.board({ ...await member(request, seen), requestId: body.requestId }));
+      const result = await attempt(async () => store.board({ ...await member(request, seen), requestId: body.requestId }), seen);
+      remember(seen.userId, result); seen.phase = 'extras';
       send(response, 200, { run: (await withChannels(result, seen)).run }); return;
     }
     if (path === '/api/shuttle/act' && request.method === 'POST') {
       const body = await readJson(request); only(body, ['requestId', 'action', 'expectedVersion']);
       if (ACTIONS.has(body.action)) seen.action = body.action;
+      if (Number.isSafeInteger(body.expectedVersion)) seen.expectedVersion = body.expectedVersion;
       const result = await attempt(async () => store.act({ ...await member(request, seen), requestId: body.requestId, action: body.action,
-        expectedVersion: body.expectedVersion }));
+        expectedVersion: body.expectedVersion }), seen);
+      remember(seen.userId, result); seen.phase = 'extras';
       await withChannels(result, seen);
       // A recorded grant intent is delivered now rather than at the next interval.
-      if (result.queued) wake();
+      if (result.queued) { note('ACTIVITY_GRANT_QUEUED', context(request, path, seen, null)); wake(); }
       send(response, 200, { run: result.run }); return;
     }
     // Reset journey (Settings): the member's run still being read stops being current; boarding starts over.
     if (path === '/api/shuttle/reset' && request.method === 'POST') {
       const body = await readJson(request); only(body, ['requestId']);
-      const result = await attempt(async () => store.reset({ ...await member(request, seen), requestId: body.requestId }));
+      const result = await attempt(async () => store.reset({ ...await member(request, seen), requestId: body.requestId }), seen);
       send(response, 200, { reset: result.reset === true }); return;
     }
     send(response, 404, { error: 'not_found' });
@@ -241,17 +288,22 @@ export function createActivityHttpServer({ configuration, applicationId, guildId
     if (stopping || await enabled() !== true) { send(response, 503, { error: 'unavailable' }, { 'Retry-After': '30' }); return; }
     if (active >= MAX_ACTIVE) { send(response, 503, { error: 'retry' }, { 'Retry-After': '2' }); return; }
     active++;
-    const seen = {};
+    const seen = { startedAt: clock() };
     try { await api(request, response, path, seen); }
     catch (error) {
       const code = error instanceof ContractError || discordTransient(error) ? error.code : null;
       const outcome = OUTCOMES.find(([, , codes]) => codes.includes(code));
-      if (outcome) send(response, outcome[0], { error: outcome[1] }, outcome[1] === 'slow' ? { 'Retry-After': '2' } : {});
-      else if (TRANSIENT.has(code) || code === 'OAUTH_DISABLED') send(response, 503, { error: 'retry' }, { 'Retry-After': '3' });
-      else {
-        const cause = causeOf(error);
-        fault(`ACTIVITY_REQUEST_UNAVAILABLE${cause ? `_${cause}` : ''}`.slice(0, 64).replace(/_+$/u, ''),
-          { userId: seen.userId ?? null, request: `${request.method} ${path}${seen.action ? ` (${seen.action})` : ''}` });
+      const cause = causeOf(error);
+      // Refusals and quiet retries are not faults and raise no alert, but each is logged with its context, so a member who
+      // could not go on can be traced (owner request, 24 October 2026).
+      if (outcome) {
+        note(`ACTIVITY_REQUEST_${outcome[1].toUpperCase()}`, context(request, path, seen, cause));
+        send(response, outcome[0], { error: outcome[1] }, outcome[1] === 'slow' ? { 'Retry-After': '2' } : {});
+      } else if (TRANSIENT.has(code) || code === 'OAUTH_DISABLED') {
+        note('ACTIVITY_REQUEST_RETRY', context(request, path, seen, cause));
+        send(response, 503, { error: 'retry' }, { 'Retry-After': '3' });
+      } else {
+        fault(`ACTIVITY_REQUEST_UNAVAILABLE${cause ? `_${cause}` : ''}`.slice(0, 64).replace(/_+$/u, ''), context(request, path, seen, cause));
         send(response, 503, { error: 'unavailable' }, { 'Retry-After': '10' });
       }
     } finally { active--; seen.release?.(); }
