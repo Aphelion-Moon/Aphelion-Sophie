@@ -66,8 +66,8 @@ export function createDiscordRoles({ transport, mapping, clock, readContinuity, 
     const now = clock();
     for (const [key, value] of shared) if (shared.size >= 256 || now < value.observedAt || now - value.observedAt > PREPARATION_SHARE_MS) shared.delete(key);
   }
-  async function prepare(userId, { share = false } = {}) {
-    requireId(userId); requireCondition(typeof share === 'boolean', 'INVALID_ROLE_CONTEXT');
+  async function prepare(userId, { share = false, reuse = false } = {}) {
+    requireId(userId); requireCondition(typeof share === 'boolean' && typeof reuse === 'boolean' && (share || !reuse), 'INVALID_ROLE_CONTEXT');
     const version = await authority();
     let observedAt = clock(); requireInteger(observedAt);
     const now = observedAt, before = share ? await boundary() : null, kept = shared.get(userId);
@@ -77,10 +77,15 @@ export function createDiscordRoles({ transport, mapping, clock, readContinuity, 
       // The identity check is shared like actor observations: it ends on any gateway dispatch and never outlives
       // IDENTITY_SHARE_MS.
       // Independent reads, all after the authority stamp and all checked against it below; they overlap rather than queue.
-      const [, rawRoles, bot, rawMember] = await Promise.all([confirmIdentity(version), transport.getRoles(),
-        transport.getMember(fixed.botUserId), transport.getMember(userId)]);
+      // `reuse` (read-only, the Activity's channel links) also takes the reads its request just made under this stamp
+      // (sharedRead); any other preparation, and every one for a role change, reads afresh.
+      const read = (key, fetch) => reuse ? sharedRead(key, version, fetch) : fetch().then(value => ({ value, at: observedAt }));
+      const [, rolesRead, botRead, memberRead] = await Promise.all([confirmIdentity(version), read('roles', () => transport.getRoles()),
+        read(`member:${fixed.botUserId}`, () => transport.getMember(fixed.botUserId)), read(`member:${userId}`, () => transport.getMember(userId))]);
+      const rawRoles = rolesRead.value;
       requireCondition(Array.isArray(rawRoles) && rawRoles.length <= 500, 'DISCORD_RESPONSE_INVALID');
-      reads = { rawRoles, bot, rawMember, observedAt };
+      observedAt = Math.min(observedAt, rolesRead.at, botRead.at, memberRead.at);
+      reads = { rawRoles, bot: botRead.value, rawMember: memberRead.value, observedAt };
     }
     const { rawRoles, bot, rawMember } = reads;
     const roles = rawRoles.map(role => ({ id: role.id, position: role.position, managed: role.managed, permissions: role.permissions }));
@@ -114,15 +119,32 @@ export function createDiscordRoles({ transport, mapping, clock, readContinuity, 
     requireFreshObservation(context, clock());
     return { context, observation };
   }
-  async function observe(userId) {
+  // Owner decision, 24 October 2026 (check steps intelligently, not over and over): the guild, its role list and a member,
+  // read under one authority stamp, stay true until the stamp moves (a member, role, channel or guild event, or a
+  // reconnect). An actor check (observeActor) reads them itself and keeps them for READ_SHARE_MS; the read-only
+  // observations that follow it in the same request and ask to (`reuse`: the Activity's membership observation and channel
+  // links) take them rather than asking Discord again, so a request reads the member once. An observation keeps the time its oldest read began, so sharing
+  // only ages it. A role change made here clears them: Discord's event for it may arrive after the next read.
+  const READ_SHARE_MS = 1_500, reads = new Map();
+  /** A read under `version`: a kept one if still in its window (unless `fresh`), else made now and kept for the next caller. */
+  function sharedRead(key, version, read, { fresh = false } = {}) {
+    const kept = reads.get(key), now = clock();
+    if (!fresh && kept && kept.version === version && now >= kept.at && now - kept.at <= READ_SHARE_MS) return kept.promise;
+    const at = clock(); requireInteger(at);
+    const entry = { version, at, promise: read().then(value => ({ value, at })) };
+    reads.set(key, entry); if (reads.size > 256) reads.delete(reads.keys().next().value);
+    entry.promise.catch(() => { if (reads.get(key) === entry) reads.delete(key); });
+    return entry.promise;
+  }
+  /** The member's Shuttle roles. `reuse`: take the member read an actor check just made under this stamp (see sharedRead). */
+  async function observe(userId, { reuse = false } = {}) {
     requireId(userId);
     const version = await authority();
-    const startedAt = clock(); requireInteger(startedAt);
-    const member = await transport.getMember(userId);
+    requireCondition(typeof reuse === 'boolean', 'INVALID_ROLE_CONTEXT');
+    const { value: member, at: observedAt } = await sharedRead(`member:${userId}`, version, () => transport.getMember(userId), { fresh: !reuse });
     const roles = member === null ? [] : memberRoles(member, userId);
-    const observation = { guildId: fixed.guildId, userId, known: true, observedAt: startedAt, present: member !== null,
+    const observation = { guildId: fixed.guildId, userId, known: true, observedAt, present: member !== null,
       crew: roles.includes(fixed.crew), muzzled: roles.includes(fixed.muzzled), whitelist: roles.includes(fixed.whitelist) };
-    requireFreshObservation(observation, clock());
     await same(version);
     requireFreshObservation(observation, clock());
     return observation;
@@ -152,10 +174,13 @@ export function createDiscordRoles({ transport, mapping, clock, readContinuity, 
     async observeActor(userId) {
       requireId(userId);
       const version = await authority();
-      const observedAt = clock(); requireInteger(observedAt);
-      // Independent reads after the authority stamp, overlapping rather than queueing; validated below as before.
-      const [, guild, roles, member] = await Promise.all([confirmIdentity(version), patient(() => transport.getGuild()),
-        patient(() => transport.getRoles()), patient(() => transport.getMember(userId))]);
+      // Independent reads after the authority stamp, overlapping rather than queueing; made afresh and kept for the read-only
+      // observations that follow (see sharedRead); validated below as before.
+      const fresh = { fresh: true };
+      const [, guildRead, rolesRead, memberRead] = await Promise.all([confirmIdentity(version), sharedRead('guild', version, () => patient(() => transport.getGuild()), fresh),
+        sharedRead('roles', version, () => patient(() => transport.getRoles()), fresh), sharedRead(`member:${userId}`, version, () => patient(() => transport.getMember(userId)), fresh)]);
+      const guild = guildRead.value, roles = rolesRead.value, member = memberRead.value;
+      const observedAt = Math.min(guildRead.at, rolesRead.at, memberRead.at);
       requireCondition(guild?.id === fixed.guildId, 'FOREIGN_GUILD'); requireId(guild.owner_id);
       requireCondition(Array.isArray(roles) && roles.length >= 1 && roles.length <= 500, 'DISCORD_RESPONSE_INVALID');
       for (const role of roles) {
@@ -190,7 +215,9 @@ export function createDiscordRoles({ transport, mapping, clock, readContinuity, 
       await same(contexts.get(context));
       const { roleId, add } = requireOwnedRoleChange(context, fixed, change, clock());
       contexts.delete(context); // One fresh context authorises at most one attempted role mutation.
-      await transport.changeMemberRole(context.userId, roleId, add);
+      // The change's Gateway event may come after the next read: shared reads end here, before and after the attempt.
+      reads.clear();
+      try { await transport.changeMemberRole(context.userId, roleId, add); } finally { reads.clear(); }
     },
   });
 }

@@ -157,7 +157,7 @@ export function createActivityHttpServer({ configuration, applicationId, guildId
     seen.phase = 'capability';
     const observe = async () => {
       seen.phase = 'observe';
-      const observation = await discord.observe(proof.userId);
+      const observation = await discord.observe(proof.userId, { reuse: true });
       // Whitelist as Discord shows it in this very request (never a stored snapshot), for the game buttons.
       seen.whitelisted = observation?.whitelist === true;
       seen.phase = 'transaction';

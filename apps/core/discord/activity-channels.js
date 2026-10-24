@@ -72,7 +72,7 @@ export function createActivityChannels({ transport, roles, guildId, clock, cache
   });
   /** Whether the member can see a channel now. Shared role reads, as other member observations use them: a clearance poll every few seconds costs no extra reads. */
   async function viewer(dir, userId) {
-    const { context } = await roles.prepare(userId, { share: true });
+    const { context } = await roles.prepare(userId, { share: true, reuse: true });
     const projected = context.roles.map(role => ({ id: role.id, permissions: role.permissions }));
     return channel => {
       const bits = channelPermissions({ guildId, userId, ownerId: dir.ownerId, roleIds: context.memberRoleIds, roles: projected,

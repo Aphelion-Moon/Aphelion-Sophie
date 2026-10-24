@@ -10,8 +10,15 @@ export async function lockMember(client, guildId, userId) {
   return (await client.query('SELECT state FROM sophie_core.members WHERE guild_id = $1 AND user_id = $2 FOR UPDATE', [guildId, userId])).rows[0].state;
 }
 
-export async function saveMember(client, member) {
+/**
+ * Saves the member and retires sessions and screens bound to an older eligibility or access epoch. `previous` (the stored
+ * member this one came from) lets a save whose epochs did not move skip that sweep: every epoch change is saved here in
+ * its own transaction, so nothing can be left bound to an old epoch (Activity review, 24 October 2026: two writes on
+ * every request for nothing).
+ */
+export async function saveMember(client, member, previous = null) {
   await client.query('UPDATE sophie_core.members SET state = $3 WHERE guild_id = $1 AND user_id = $2', [member.guildId, member.userId, member]);
+  if (previous && previous.eligibilityEpoch === member.eligibilityEpoch && previous.accessEpoch === member.accessEpoch) return;
   await client.query(`UPDATE sophie_core.sessions SET current = false WHERE guild_id = $1 AND user_id = $2
     AND current AND (state->>'eligibilityEpoch')::bigint <> $3`, [member.guildId, member.userId, member.eligibilityEpoch]);
   const screens = await client.query(`UPDATE sophie_core.shuttle_screens SET current = false, ready = false
@@ -28,7 +35,7 @@ export function createMemberOperation({ pool, clock }) {
     const outcome = await inTransaction(pool, async client => {
       const previous = await lockMember(client, observation.guildId, observation.userId);
       const member = observeMembership(previous, observation, clock());
-      await saveMember(client, member);
+      await saveMember(client, member, previous);
       if (previous.observation?.present && !observation.present) await recordAiDeparture(client,observation.guildId,observation.userId);
       await client.query('SAVEPOINT domain_action');
       try { return { value: await action(client, member, previous) }; }

@@ -964,6 +964,8 @@ rules are unchanged. Commit on `codex/sophie-social-ai` with the AI observation 
 
 ### Dashboard views may reuse a role check for 1.5 seconds — 12 October 2026
 
+**Superseded on 24 October 2026** by "Check each step once, not over and over" below.
+
 The owner asked why every dashboard button took so long. Each API request observed the actor's Discord roles twice
 (principal and capability, about four sequential Discord reads each), and a page load makes seven to eight requests.
 Offered (A) a server-side queue instead of the busy refusal, (B) one request per page load, and (C) reuse of the
@@ -2548,3 +2550,44 @@ database round trips and 4 Discord reads after its actor was resolved; in produc
   about a second. The 12 October 2026 decision lets only dashboard views reuse an observation; every action reads afresh.
   One observation per Activity request, bound to the same authority stamp, would save about 4 of 7 Discord reads and 13
   database round trips per request.
+
+### Check each step once, not over and over — 24 October 2026
+
+Owner decision, replacing that of 12 October: "Whoa, that's not a good rule to have, oh no. Remove the October 12 rule
+about that, we should be checking steps intelligently, not grossly over-doing the process with constant validation. It is
+not that serious. Review the Activity code to make sure we havent done anything else like that."
+
+The rule now (`apps/core/security/authorization.js`, `apps/core/discord/roles.js`): each request observes its actor in
+Discord once, afresh. That recorded observation serves the request's own checks for up to 1.5 s while the authority stamp is
+unchanged; the stamp moves on any member, role, channel or guild change and on a reconnect, so a reused observation is as
+current as a new one. On reuse one query confirms that the member's recorded capability epoch has not moved (a revocation
+the Gateway journal or a policy application recorded) and that no newer capability policy was recorded. The read-only
+observations that follow in the same request (the member's Shuttle roles, the Activity's channel links) take the member,
+role list and guild reads the actor check just made. A role change Sophie makes ends shared reads, since Discord's event for
+it may arrive after the next read. Presence-bound checks (case reads, invitations, AI consent) record afresh.
+
+Scope of this change: the Activity's checks (`shuttle.self`, the tester gate) and Sophie's AI checks. Staff
+administration (cases, moderation, forms, publishing, permissions, automation, answers), which production does not run,
+still observes once per check: about twenty of its storage scenarios inject a change during that read, and they are to be
+reworked before it moves to the same rule.
+
+The review of the Activity path for other repeated checks found and removed:
+- the actor observed twice per request (resolving it, then the capability check: bot identity, guild, roles and member
+  each time, and the actor's authority recorded twice), and the member read a third time for the membership observation;
+- the runtime gate (two database reads) asked again in the Activity session check and in each principal resolution, after
+  the request's listener had asked it;
+- in the actor check, the gate and the stamp each asked twice and the observation's age three times; after the capability
+  decision, the gate asked again;
+- the channel links reading roles, the bot and the member again;
+- `act` reading the run's definition twice;
+- every member observation retiring sessions and screens of older epochs (two UPDATEs) when no epoch had moved.
+Kept, as cheap and meaningful: the principal checked before and after the decision (a logout during it denies it; an
+in-memory lookup for the Activity), the one stamp check at the end of a decision, and the transaction's own checks.
+
+Measured on the real store (SA16): a whole Continue, from cold, makes 24 database round trips and 4 Discord reads (bot
+identity, guild, roles, member). Before, the part after resolving the actor alone made 33 round trips and 4 reads, and
+resolving the actor made another full actor read.
+
+Tests: DA-REUSE-01 to 04 replace DA-VIEW-01 to 04; T18 (an actor check reads; the member observation after it takes its
+read) and T18b (a role change Sophie makes ends shared reads); A11 now states that within one request the check stands
+until Discord announces a change, and the next request is refused; SA16 keeps the budget.

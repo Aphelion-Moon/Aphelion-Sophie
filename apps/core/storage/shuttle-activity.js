@@ -72,10 +72,12 @@ export function createShuttleActivityStore({ pool, clock, authorize, definitionI
    * outdated story). A run waiting on its Whitelist grant or already finished keeps its version. Otherwise a new run
    * replaces it.
    */
+  /** The run's definition when the run carries on, else null; the caller uses it rather than reading it again. */
   async function carriesOn(client, session, member) {
-    if (session.eligibilityEpoch !== member.eligibilityEpoch) return false;
-    if ((await getDefinition(client, session.definitionId, session.definitionVersion)).status !== 'published') return false;
-    return session.status !== 'active' || session.definitionVersion === (await latestDefinition(client))?.version;
+    if (session.eligibilityEpoch !== member.eligibilityEpoch) return null;
+    const definition = await getDefinition(client, session.definitionId, session.definitionVersion);
+    if (definition.status !== 'published') return null;
+    return session.status !== 'active' || session.definitionVersion === (await latestDefinition(client))?.version ? definition : null;
   }
   async function latestDefinition(client) {
     return (await client.query(`SELECT definition FROM sophie_core.definitions WHERE id = $1
@@ -167,9 +169,9 @@ export function createShuttleActivityStore({ pool, clock, authorize, definitionI
         const found = await currentRun(client, member);
         requireCondition(found?.activity === true, 'SHUTTLE_NOT_ACTIVE');
         const session = found.state;
-        requireCondition(await carriesOn(client, session, member), 'SHUTTLE_RESTART_REQUIRED');
+        const definition = await carriesOn(client, session, member);
+        requireCondition(definition !== null, 'SHUTTLE_RESTART_REQUIRED');
         requireCondition(session.version === expectedVersion, 'STALE_SHUTTLE_CONTROL');
-        const definition = await getDefinition(client, session.definitionId, session.definitionVersion);
         const command = { guildId: member.guildId, userId: member.userId, expectedVersion, nonce: session.nonce, nextNonce: randomBytes(16).toString('hex') };
         const change = ACTIONS[action](session, member, definition, command, clock());
         await saveSession(client, change.session, member);

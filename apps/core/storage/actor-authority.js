@@ -58,6 +58,13 @@ export function createActorAuthorityStore({ pool, clock }) {
       if (registered.size >= 16) registered.clear();
       registered.add(key);
     },
+    /** The member's recorded capability epoch and policy version, and the newest policy version recorded; null if none. */
+    async recordedAuthority(guildId, userId) {
+      const row = (await pool.query(`SELECT a.capability_epoch, a.policy_version,
+        (SELECT max(version) FROM sophie_core.capability_policies p WHERE p.guild_id = a.guild_id) AS latest
+        FROM sophie_core.actor_authority a WHERE a.guild_id = $1 AND a.user_id = $2`, [guildId, userId])).rows[0];
+      return row ? { capabilityEpoch: Number(row.capability_epoch), policyVersion: Number(row.policy_version), latestPolicyVersion: Number(row.latest) } : null;
+    },
     async observe(observation, policyVersion) { return (await observe(observation, policyVersion)).grant; },
     observeWithPresence: observe,
   });

@@ -214,7 +214,9 @@ export async function runAuthorizationSuite(cluster, run) {
     assert.equal(await auth.authorize('shuttle.self', actor, scope), true);
     assert.equal(await auth.authorize('case.create', actor, { ...scope, userId: OTHER }), false);
     discord.state.members.get(USER).push(MUZZLED);
-    assert.equal(await auth.authorize('shuttle.self', actor, scope), false);
+    // Owner decision, 24 October 2026: within one request its checks reuse the request's observation until Discord
+    // announces a change (this simulation sends no Gateway event); the next request observes afresh and is refused.
+    assert.equal(await auth.authorize('shuttle.self', actor, scope), true);
     const refreshed = (await principal({ member: { user: { id: USER } } })).actor;
     assert.equal(await auth.authorize('shuttle.self', refreshed, scope), false);
   });

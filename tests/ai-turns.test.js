@@ -439,7 +439,7 @@ test('DASH-B01 the AI overview resolves the actor once, withholds denied parts a
     budgetStatus: async () => { if (broken) throw Object.assign(Error('AI_CONTROL_UNAVAILABLE'), { code: 'AI_CONTROL_UNAVAILABLE' }); return { balances: [] }; },
     workerStatus: async () => ({ phase: 'ready' }) };
   const http = createAiControlsHttp({ auth: { authenticate: async () => ({ proof }), resolvePrincipal: async () => ({}) },
-    authorization: { resolveActor: async (received, options) => { assert.equal(received, proof); assert.deepEqual(options, { reuse: true }); resolved++; return actor; } }, controls });
+    authorization: { resolveActor: async received => { assert.equal(received, proof); resolved++; return actor; } }, controls });
   const request = { path: '/api/ai/overview', method: 'GET', query: new URLSearchParams(), body: null, credentials: {} };
   const overview = await http.execute(request);
   assert.equal(resolved, 1); assert.equal(overview.configuration.publication.kind, 'configuration'); assert.equal(overview.budgetPublication.publication.kind, 'budget');

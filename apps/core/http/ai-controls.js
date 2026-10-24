@@ -25,7 +25,7 @@ export function createAiControlsHttp({ auth, authorization, controls, member = n
       (body.noticeBinding === null || typeof body.noticeBinding === 'string' && /^[a-f0-9]{64}$/u.test(body.noticeBinding)), 'AI_INPUT_INVALID');
     if (operation === 'saveNotes') requireCondition(Array.isArray(body.notes), 'AI_PREFERENCE_INVALID');
     const { proof } = await auth.authenticate({ ...credentials, method });
-    const actor = await authorization.resolveActor(proof, { reuse: true });
+    const actor = await authorization.resolveActor(proof);
     const { confirmed: _confirmed, ...fields } = body ?? {};
     const result = await member[operation]({ ...fields, actor });
     await auth.resolvePrincipal(proof);
@@ -67,7 +67,7 @@ export function createAiControlsHttp({ auth, authorization, controls, member = n
       operation = { 'forget-memory': 'forgetMemory', 'edit-memory': 'editMemory', 'remove-memory': 'removeMemory' }[operation] ?? operation;
     }
     const { proof } = await auth.authenticate({ ...credentials, method });
-    const actor = await authorization.resolveActor(proof, { reuse: true });
+    const actor = await authorization.resolveActor(proof);
     // The AI page's whole saved state in one request. Each part still authorizes its own capability; a part the
     // actor may not read is null rather than failing the page, and any other error fails the request.
     const permitted = async (part, work) => { try { return await work(); } catch (error) {

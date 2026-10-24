@@ -207,30 +207,32 @@ test('T18 metadata read expiry cannot be hidden by stamping the response complet
   await assert.rejects(roles.observe(USER), /MEMBERSHIP_STALE/);
 });
 
-test('T18 actor observations share only the bot identity check and always read member roles afresh', async () => {
+test('T18 an actor check reads Discord; the member observation after it, under the same stamp and within 1.5 s, takes its read', async () => {
+  // Owner decision, 24 October 2026 (replacing 12 October): check steps intelligently, not over and over.
   let now = NOW, continuity = 'synthetic-continuity-1';
   const { state, roles } = simulatedDiscord({ clock: () => now, readContinuity: () => continuity });
   const identity = () => state.calls.filter(call => call.path === '/api/v10/users/@me').length;
   const member = () => state.calls.filter(call => call.path === `/api/v10/guilds/${GUILD}/members/${USER}`).length;
-  await roles.observeActor(USER);
-  now += 1_000;
-  state.members.set(USER, []);
-  assert.deepEqual((await roles.observeActor(USER)).roleIds, [], 'a role removal is seen without a gateway event');
-  assert.equal(identity(), 1, 'the identity check is shared inside its window'); assert.equal(member(), 2);
-  await roles.observeActor(USER); await roles.observeActor(USER);
-  assert.equal(identity(), 1); assert.equal(member(), 4);
-  now += 1_000;
-  await roles.observeActor(USER);
+  const first = await roles.observeActor(USER);
+  const membership = await roles.observe(USER, { reuse: true });
+  assert.equal(member(), 1, 'one member read for both'); assert.equal(membership.observedAt, first.observedAt);
+  assert.equal(membership.crew, first.roleIds.includes(CREW));
+  // A later actor check reads again (and keeps its read); the identity check is shared inside its window.
+  now += 1_000; await roles.observeActor(USER); await roles.observe(USER, { reuse: true });
+  assert.equal(member(), 2); assert.equal(identity(), 1);
+  // A change to the member moves the stamp (its Gateway event): a member observation reads again and sees it.
+  state.members.set(USER, []); continuity = 'synthetic-continuity-2';
+  assert.equal((await roles.observe(USER, { reuse: true })).crew, false); assert.equal(member(), 3);
+  // Past the window, too.
+  now += 1_501; await roles.observe(USER, { reuse: true }); assert.equal(member(), 4);
+  now += 1_000; await roles.observeActor(USER);
   assert.equal(identity(), 2, 'an expired identity check is repeated');
-  continuity = 'synthetic-continuity-2';
-  await roles.observeActor(USER);
-  assert.equal(identity(), 3, 'a gateway dispatch ends sharing');
   let failing = true;
   state.before = call => failing && call.path === '/api/v10/users/@me' ? (failing = false, response({ code: 0 }, 500)) : null;
   continuity = 'synthetic-continuity-3';
   await assert.rejects(roles.observeActor(USER), /DISCORD_UNAVAILABLE/);
   await roles.observeActor(USER);
-  assert.equal(identity(), 5, 'a failed identity check is never shared');
+  assert.equal(identity(), 4, 'a failed identity check is never shared');
 });
 
 test('role observations follow the authority boundary when given one: message traffic no longer overtakes them, authority changes still do', async () => {
@@ -250,4 +252,16 @@ test('role observations follow the authority boundary when given one: message tr
   // Without the adapter, the full continuity applies as before.
   const legacy = createDiscordRoles({ transport: rest, mapping, clock: () => NOW, readContinuity: () => `continuity-${continuity}` });
   await assert.rejects(legacy.observe(USER), /OBSERVATION_INVALIDATED/);
+});
+
+test('T18b a role change Sophie makes ends shared reads, so the next observation sees it before Discord announces it', async () => {
+  const { state, roles } = simulatedDiscord();
+  const member = () => state.calls.filter(call => call.path === `/api/v10/guilds/${GUILD}/members/${USER}`).length;
+  state.members.set(USER, [CREW, BYOND_ROLE]);
+  assert.equal((await roles.observe(USER)).whitelist, false);
+  const prepared = await roles.prepare(USER);
+  await roles.change(prepared.context, 'add_whitelist');
+  // The continuity stamp has not moved (no Gateway event yet), but the read after the change is new.
+  const before = member();
+  assert.equal((await roles.observe(USER)).whitelist, true); assert.equal(member(), before + 1);
 });

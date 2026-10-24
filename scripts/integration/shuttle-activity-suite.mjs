@@ -38,7 +38,7 @@ export async function runShuttleActivitySuite(cluster, run) {
   async function member(userId = USER) {
     const { token } = await activityAuth.signIn({ code: `code-${userId}`, instanceId: INSTANCE });
     const proof = await activityAuth.authenticate(token);
-    return { actor: await authorization.resolveActor(proof), observe: () => discord.roles.observe(userId) };
+    return { actor: await authorization.resolveActor(proof), observe: () => discord.roles.observe(userId, { reuse: true }) };
   }
   async function drainGrants() {
     for (let i = 0; i < 20; i++) {
@@ -318,20 +318,24 @@ export async function runShuttleActivitySuite(cluster, run) {
     const request = async () => {
       const { token } = await activityAuth.signIn({ code: `code-${USER}`, instanceId: INSTANCE });
       const proof = await activityAuth.authenticate(token);
-      return { actor: await measured.resolveActor(proof), observe: () => discord.roles.observe(USER) };
+      return { actor: await measured.resolveActor(proof), observe: () => discord.roles.observe(USER, { reuse: true }) };
     };
     let { run: shown } = await store.board({ ...await request(), requestId: requestId() });
     // Warm: the first check of a process registers the policy.
     ({ run: shown } = await store.act({ ...await request(), requestId: requestId(), action: 'advance', expectedVersion: shown.version }));
-    const input = await request();
-    queries = 0; const reads = discord.state.calls.length;
-    await store.act({ ...input, requestId: requestId(), action: 'advance', expectedVersion: shown.version });
-    // Measured 24 October 2026: 33 round trips before the policy was registered once per process, 26 after; the capability
-    // check's actor reads (bot identity shared), then the member read.
-    assert.ok(queries <= 26, `database round trips: ${queries}`);
+    // A whole request from cold (nothing to reuse): sign-in proof, actor, capability check, member observation, transaction.
+    const { token } = await activityAuth.signIn({ code: `code-${USER}`, instanceId: INSTANCE });
+    now += 1_501; queries = 0; const reads = discord.state.calls.length;
+    const proof = await activityAuth.authenticate(token);
+    await store.act({ actor: await measured.resolveActor(proof), observe: () => discord.roles.observe(USER, { reuse: true }), requestId: requestId(), action: 'advance', expectedVersion: shown.version });
+    // Measured 24 October 2026: the actor, then its capability check and member observation reusing that one observation
+    // (owner decision replacing 12 October) and the policy registered once per process: 24 round trips and 4 Discord reads
+    // (bot identity, guild, roles, member) for the whole request, where each step had read Discord and recorded again.
+    assert.ok(queries <= 24, `database round trips: ${queries}`);
     assert.ok(discord.state.calls.length - reads <= 4, `Discord reads: ${discord.state.calls.length - reads}`);
-    // The policy is still checked: a newer recorded version refuses this process's checks.
+    // The policy is still checked: once the observation is made again, a newer recorded version refuses this process.
     await admin.query(`INSERT INTO sophie_core.capability_policies (guild_id, version, policy) VALUES ($1, $2, $3)`, [GUILD, policy.version + 1, { ...policy, version: policy.version + 1 }]);
+    now += 1_501;
     await assert.rejects((async () => store.act({ ...await request(), requestId: requestId(), action: 'back', expectedVersion: shown.version + 1 }))(), error => error.code === 'CAPABILITY_POLICY_ROLLBACK');
   }, 'open');
 

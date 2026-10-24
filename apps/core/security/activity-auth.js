@@ -49,9 +49,13 @@ export function createActivityAuth({ applicationId, guildId, oauth, instances, d
       remember(digest(token), { userId: identity.userId, instanceId, issuedAt, expiresAt: issuedAt + ACTIVITY_SESSION_MS });
       return { token, accessToken: exchanged.accessToken, scopes: exchanged.scopes, expiresIn: ACTIVITY_SESSION_MS / 1_000 };
     },
-    /** A proof for one request, resolved through core principals like an interaction or dashboard proof. */
+    /**
+     * A proof for one request, resolved through core principals like an interaction or dashboard proof. In memory: the
+     * request's listener has already checked the runtime gate, and the actor check checks it again (Activity review,
+     * 24 October 2026: it was asked here and at each principal resolution too, two database reads each).
+     */
     async authenticate(token) {
-      requireActivityToken(token); await active();
+      requireActivityToken(token);
       const held = live(digest(token));
       requireCondition(held !== null, 'ACTIVITY_SESSION_INVALID');
       const proof = Object.freeze({ guildId, userId: held.userId });
@@ -61,7 +65,6 @@ export function createActivityAuth({ applicationId, guildId, oauth, instances, d
     async resolvePrincipal(proof) {
       const held = principals.get(proof), now = clock();
       requireCondition(held !== undefined && now >= held.issuedAt && now - held.issuedAt <= 300_000, 'UNTRUSTED_PRINCIPAL');
-      await active();
       const session = live(held.hash);
       requireCondition(session !== null && session.userId === proof.userId, 'UNTRUSTED_PRINCIPAL');
       return { guildId, userId: session.userId };
