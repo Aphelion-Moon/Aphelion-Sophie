@@ -1,6 +1,6 @@
 # Current implementation workplan
 
-Revision: 2026-10-24-production-2301f3a. Mistral Small 4 (mistral-small-2603) on the official EU API is the selected provider for trial; DeepSeek Flash is withdrawn. Local models are historical, explicitly selected alternatives only; no automatic fallback. Continue the DS workstream with synthetic data; full readiness and activation remain open.
+Revision: 2026-10-24-production-8ad8324. Mistral Small 4 (mistral-small-2603) on the official EU API is the selected provider for trial; DeepSeek Flash is withdrawn. Local models are historical, explicitly selected alternatives only; no automatic fallback. Continue the DS workstream with synthetic data; full readiness and activation remain open.
 
 All production release gates remain open; pure and isolated database checks are not full application acceptance.
 
@@ -1681,10 +1681,11 @@ Implemented scope:
 - aff1bc0 installed on 24 October 2026: Activity capability checks before the member lock (PG_55P03), the link recovering on return to the window, Resume keeping the page, link arrows typed last, Recommended Reading redrawn as an open book (owner pick C).
 - df3856b installed on 24 October 2026 on Node.js 24.22.1 (host CVE update; reviewed and pinned): Large text working and Aa in the radio header (member feedback). The first attempt, 1d3c0ff, stopped at the runtime check and was rolled back to aff1bc0.
 - 2301f3a installed on 24 October 2026: ♪ beside Aa in the radio header (master volume and mute), M to mute (member feedback).
+- 8ad8324 installed on 24 October 2026: Aa no longer flickers the page (the status line keeps its size; the scene canvas is resized only when its grid changes and redrawn before paint).
 
 Remaining scope:
 
-- Owner: Go live again in each channel on the new release (2301f3a) when the AI is next tested; the onboarding Activity is the current focus.
+- Owner: Go live again in each channel on the new release (8ad8324) when the AI is next tested; the onboarding Activity is the current focus.
 - Owner: Go live in each channel on the dashboard; /sophie Yes.
 - Live checks: a reply in #ask-sophie (code and Guidebook), a saved memory, Get my data, the Activity for a Lead Ops tester, a staff channel turn.
 - Owner: /whitelist post in a private channel, check the images on desktop and a phone, then post it in the rules channel and delete the old one; re-open the Activity on a phone.

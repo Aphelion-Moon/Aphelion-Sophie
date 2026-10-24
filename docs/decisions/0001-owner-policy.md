@@ -2365,3 +2365,8 @@ redraw waited for the next animation frame, so one empty scene was painted. Thre
   so a window resize or a phone's rotation never shows an empty scene either.
 
 After the change, the same measurement shows no stage resize and no canvas wipe on Aa, at desktop and phone sizes.
+
+`8ad8324` was installed over `2301f3a` at 11:42 UTC on 24 October (approval quoted in the packet's `approval.json`):
+3 files, same runtime (Node 24.22.1), capability policy version 2 and credentials, no migration, no story change. All
+checks passed. Folder `.agent_docs/aphelion-sophie/deployment-8ad8324-production-2026-10-24`; `rollback.ps1` restores
+`2301f3a`.

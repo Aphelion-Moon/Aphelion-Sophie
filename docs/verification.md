@@ -1,5 +1,18 @@
 # Verification and release limits
 
+## Production install of 8ad8324 — 24 October 2026
+
+- **Offline:** `npm test` 872 passed, including the new P42 resize test (a resize draws its frame at once; a size within
+  the same cell grid neither resizes nor wipes the canvas), P44 reading the resize's own frame, and T-ACT-CLI-23 (the
+  status line's fixed size); `npm run check` passed.
+- **Measured in headless Edge** (throwaway profile, working tree served locally) at 1280×720 and 390×844, one Aa click:
+  before, the status line grew 26.4 → 30.75 px, the stage shrank 694 → 689 px and the canvas was wiped once at its
+  unchanged 768×680; after, the status line, the stage and the canvas keep their size and the canvas is not wiped.
+- **Install:** preflight (installed 2301f3a verified; 3 reviewed files, none new; runtime unchanged), pre-start, service
+  boundaries, installed checks and public hosts passed; the public host serves the three files byte for byte. No
+  PostgreSQL errors and no unexpected core faults since the restart.
+- **Not covered:** Aa inside Discord's frame on a real device.
+
 ## Production install of 2301f3a — 24 October 2026
 
 - **Offline:**
