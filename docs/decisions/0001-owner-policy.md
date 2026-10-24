@@ -2637,3 +2637,9 @@ happens behind it, waiting on core included, so the click answers at once; the n
 (0.35 s), with no second wipe. A failure still opens it and shows its toast over it. With motion off there is no curtain.
 CSS and text only, authored here; no new sound or image. Looked at in headless Edge at 1280x720 and phone width
 (T-ACT-CLI-28).
+
+On the owner's "Add a scene transition on starting the journey and returning to the main menu. Install it." (quoted in the
+packet's `approval.json`), `bf4ddca` was installed over `33e7a5d` at 17:57 UTC on 24 October: 4 client files, same
+runtime (Node 24.22.1), capability policy version 2 and credentials, no migration, no story change. All checks passed; the
+installed check again allows no reconciliation job, and the public host serves the new page, script and stylesheet exactly
+as built. Folder `.agent_docs/aphelion-sophie/deployment-bf4ddca-production-2026-10-24`; `rollback.ps1` restores `33e7a5d`.

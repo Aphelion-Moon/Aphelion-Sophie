@@ -1,5 +1,14 @@
 # Verification and release limits
 
+## Production install of bf4ddca — 24 October 2026
+
+- **Offline:** `npm test` 889 passed (T-ACT-CLI-28 new, T-ACT-CLI-25 updated); `npm run check` passed; client-only change,
+  so the storage suites were not rerun. The curtain was looked at in headless Edge at 1280x720 and at phone width.
+- **Install (17:57 UTC):** preflight (installed 33e7a5d verified; 4 reviewed client files; runtime unchanged), pre-start,
+  service boundaries, installed checks (no reconciliation job) and public hosts passed. After the restart: expected
+  re-sign-ins and a GitHub rate limit from the knowledge sync; no Activity fault, no PostgreSQL error.
+- **Not covered:** the curtain's timing on a real phone inside Discord.
+
 ## Production install of 33e7a5d — 24 October 2026
 
 - **Offline (merged main):** `npm test` 888 passed; `npm run check` passed; storage (4 shards) 1041 passed, 0 failed,
