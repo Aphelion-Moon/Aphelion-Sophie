@@ -2612,3 +2612,12 @@ forever. Everything else in that check passed (78 migrations, the new outbox kin
 (prepared, not installed): the store queues no Whitelist reconciliation in the activity-ai scope (SA17). The leftover job
 stays until the owner approves removing it. Folder `.agent_docs/aphelion-sophie/deployment-a36973c-production-2026-10-24`;
 `rollback.ps1` restores `f288aae` (reverting 078 first).
+
+On the owner's "Wait for the sub card / branch to finish, then ingest and install its results and publish." (quoted in the
+packet's `approval.json`), the branch `claude/musing-haslett-670de0` (f922133: Staff administration takes the request's one
+observation too; 49 storage scenarios reworked with `announce()`, the Gateway event the simulation now models, and no
+assertion dropped) was merged into main as `33e7a5d` with `b959415`, and installed over `a36973c` at 17:32 UTC on
+24 October: 3 files, same runtime (Node 24.22.1, `whitelistNotices`), capability policy version 2 and credentials, no
+migration, no story change. All checks passed; the installed check tolerates exactly the one `whitelist.reconcile` left at
+16:12 UTC under f288aae, whose removal awaits the owner. Folder
+`.agent_docs/aphelion-sophie/deployment-33e7a5d-production-2026-10-24`; `rollback.ps1` restores `a36973c`.

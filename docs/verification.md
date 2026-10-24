@@ -1,5 +1,15 @@
 # Verification and release limits
 
+## Production install of 33e7a5d — 24 October 2026
+
+- **Offline (merged main):** `npm test` 888 passed; `npm run check` passed; storage (4 shards) 1041 passed, 0 failed,
+  including SA17 (no reconciliation queued in production) and the 49 reworked Staff administration scenarios.
+- **Install (17:32 UTC):** preflight (installed a36973c verified; 3 reviewed files; runtime unchanged; no migration),
+  pre-start, service boundaries, installed checks and public hosts passed. After the restart: expected re-sign-ins and a
+  GitHub rate limit from the knowledge sync; no Activity fault, no PostgreSQL error.
+- **Not covered:** Staff administration flows live (production does not run them); the leftover reconciliation job stays
+  until the owner approves removing it.
+
 ## Production install of a36973c (supersedes 6ecc800) — 24 October 2026
 
 - **Offline:** `npm test` 888 passed (DA-REUSE-01 to 04 replace DA-VIEW-01 to 04; T18 and T18b; A11 updated); `npm run
