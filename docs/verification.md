@@ -1,5 +1,21 @@
 # Verification and release limits
 
+## Production install of 2301f3a — 24 October 2026
+
+- **Offline:**
+  - activity client, moments and story suites passed (46 tests), including T-ACT-CLI-24 (♪, the popover, M, Esc, no
+    swipe from a slider) and T-ACT-CLI-23 (updated for the shared chip class); `npm run check` passed;
+  - the real client driven in headless Edge (a throwaway profile, served from the working tree) at 1280×720 and 390×844:
+    ♪ opens and lights; the slider saves the master volume; Mute saves `off`, turns ♪ rose with ×; moving the slider
+    unmutes; a tap elsewhere closes; opened from the keyboard, focus is on the slider and Esc closes it and returns
+    focus to ♪ without leaving the radio; M mutes then unmutes; Aa still gives 20 px; the popover stays inside a phone's
+    width with no sideways scroll; no console errors.
+- **Install:** preflight (installed df3856b verified; 4 reviewed files, none new; runtime unchanged), pre-start, service
+  boundaries, installed checks and public hosts passed; the public host serves the four client files byte for byte. No
+  PostgreSQL errors and no unexpected core faults since the restart.
+- **Not covered:** a real phone's touch sizes (the headless run did not emulate a coarse pointer) and the popover inside
+  Discord's frame.
+
 ## Production install of df3856b on Node.js 24.22.1 — 24 October 2026
 
 - **Offline, on Node 24.22.1:**

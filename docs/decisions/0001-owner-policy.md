@@ -2347,3 +2347,8 @@ opens a small master-volume slider with mute, plus M to mute. Test it, then publ
   keyboard, focus goes to the slider and Esc returns it to ♪; a pointer leaves no focus behind.
 - **M** mutes and unmutes anywhere outside a sheet; the keys card lists it.
 - A slider dragged sideways is not taken for a page swipe.
+
+`2301f3a` was installed over `df3856b` at 11:17 UTC on 24 October (approval quoted in the packet's `approval.json`):
+4 client files, same runtime (Node 24.22.1), capability policy version 2 and credentials, no migration, no story change.
+All checks passed. Folder `.agent_docs/aphelion-sophie/deployment-2301f3a-production-2026-10-24`; `rollback.ps1`
+restores `df3856b`.
