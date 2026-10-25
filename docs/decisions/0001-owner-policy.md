@@ -2697,3 +2697,18 @@ average and per-stop time. Reads only; one actor observation and one read of the
   will say which it was (for example a fine-grained token without access to the organisation or to VanguardControl/Wolfgate).
 - *Checked and fine:* the three grants without a notice (24 October, 15:52-16:12 UTC) came before notices were installed;
   no Gateway halt since 7ecf473; the final Continue takes 0.9-3 s; sign-ins after each deploy are expected renewals.
+
+On the owner's "Yes, install bbe844c to production with the checks, then register /whitelist progress." (quoted in the
+packet's `approval.json`), `bbe844c` was installed over `7ecf473` at 22:46 UTC on 25 October: 26 source files (6 new),
+migration 079, same runtime (Node 24.22.1), capability policy version 2 and credentials, no story change. The migration
+applied, but core then refused to start (`RUNTIME_DATABASE_PRIVILEGES_INVALID`): production gives each runtime role
+explicit table grants, copied from staging when `sophie_prod_main` was created, and the packet gave the new
+`shuttle_activity_attention` table none. Windows' three automatic restarts ran out. To complete the approved install,
+`grant-attention.mjs` gave the table exactly the grants `shuttle_activity_runs` holds (SELECT, INSERT and UPDATE to
+`sophie_prod_core`) at 22:49 UTC, and core was started by hand at 22:50 UTC: Sophie was down for about three and a half
+minutes. The service boundary, installed and public checks then passed (79 migrations, Gateway current), and
+`register-commands.mjs` added `progress` to `/whitelist` in the main server. The first sync after the restart logged
+`KNOWLEDGE_SOURCE_GITHUB_FORBIDDEN`: GitHub refuses the configured token for part of the sync rather than rate limiting it.
+Rule for later packets: a migration that adds a table also grants it to the runtime roles, as its staging counterpart
+would hold. Folder `.agent_docs/aphelion-sophie/deployment-bbe844c-production-2026-10-25`; `rollback.ps1` restores `7ecf473`
+(and `register-commands.mjs --rollback` puts `/whitelist` back to `post` only).

@@ -1,6 +1,6 @@
 {
   "schema_version": 2,
-  "revision": "2026-10-25-production-7ecf473",
+  "revision": "2026-10-25-production-bbe844c",
   "reference_plan_version": "1.1",
   "source": "Sophie-Implementation-Plans-v1.1/backlog.json",
   "owner_decisions": "docs/decisions/0001-owner-policy.md",
@@ -1799,14 +1799,15 @@
         "33e7a5d installed on 24 October 2026: Staff administration checks each step once too (merged branch, 49 scenarios reworked); production queues no Whitelist reconciliation that nothing would run.",
         "bf4ddca installed on 24 October 2026: a curtain across the Shuttle when the journey starts and when it returns to the main menu (owner request).",
         "7ecf473 installed on 25 October 2026: a Gateway event that cannot be recorded replaces the connection (Resume, then a fresh Identify if it fails again) instead of stopping Sophie, with GATEWAY_RECONNECTING / GATEWAY_HALTED traces naming the event type and cause code; Windows restarts core (60 s), the Activity closed screen, the tunnel and PostgreSQL (10 s) after an unexpected exit (owner report: Sophie stopped at 00:53 UTC after about thirty applicants).",
-        "bbe844c prepared on 25 October 2026, not installed (owner: \"Prepare the updates, do not yet install them\"): focused reading time in the Shuttle Activity (visible, focused, not picture-in-picture, input within 2 minutes; core credits at most the time that passed, migration 079), the Whitelist notice adds time to completion and the average time a page (numbers only, owner choice), Staff /whitelist progress member: (case.manage for Shuttle assistance, no policy change), and from the log review: sign-in no longer resends a spent Discord code (5 failed sign-ins), AI_ADMISSION_SKIPPED_AI_DISABLED is said once instead of per message (4,618 lines), and a GitHub 403 that is not a rate limit is reported as FORBIDDEN and skips only that part. Evidence in docs/verification.md."
+        "bbe844c prepared on 25 October 2026, not installed (owner: \"Prepare the updates, do not yet install them\"): focused reading time in the Shuttle Activity (visible, focused, not picture-in-picture, input within 2 minutes; core credits at most the time that passed, migration 079), the Whitelist notice adds time to completion and the average time a page (numbers only, owner choice), Staff /whitelist progress member: (case.manage for Shuttle assistance, no policy change), and from the log review: sign-in no longer resends a spent Discord code (5 failed sign-ins), AI_ADMISSION_SKIPPED_AI_DISABLED is said once instead of per message (4,618 lines), and a GitHub 403 that is not a rate limit is reported as FORBIDDEN and skips only that part. Evidence in docs/verification.md.",
+        "bbe844c installed on 25 October 2026 at 22:46 UTC with the owner's approval: migration 079, reading time in the Activity and the Whitelist notice, /whitelist progress registered in the main server, the log review fixes. Core first refused to start because the new table had no runtime grant; mirrored from shuttle_activity_runs at 22:49 UTC, about 3.5 minutes down; all checks then passed."
       ],
       "remaining_scope": [
-        "Owner: approve installing bbe844c (migration 079, Activity client and core) and, separately, registering /whitelist progress in the main server.",
-        "After the next install: read whether the hourly GitHub fault is now KNOWLEDGE_SOURCE_GITHUB_FORBIDDEN (token access) or still RATE_LIMITED, and adjust the token or sync accordingly.",
+        "GitHub refuses the knowledge sync token for part of the sync (KNOWLEDGE_SOURCE_GITHUB_FORBIDDEN since bbe844c): check the fine-grained token's repository access (organisation Aphelion-Moon, VanguardControl/Wolfgate) or replace it.",
+        "Watch the first timed Whitelist notices and a Staff /whitelist progress run.",
         "Main menu redesign, next: date and clock eggs (Halloween before 31 October, winter lights, night shift, welcome back), typed and tapped eggs (HONK, the sun, barrel roll), then the Ring Hub rework.",
         "Owner: confirm Sophie can post in the staff bot channel for Whitelist notices (the leftover reconciliation job was removed 24 October 2026 at 17:49 UTC).",
-        "Owner: Go live again in each channel on the new release (7ecf473) when the AI is next tested; the onboarding Activity is the current focus.",
+        "Owner: Go live again in each channel on the new release (bbe844c) when the AI is next tested; the onboarding Activity is the current focus.",
         "Owner: Go live in each channel on the dashboard; /sophie Yes.",
         "Live checks: a reply in #ask-sophie (code and Guidebook), a saved memory, Get my data, the Activity for a Lead Ops tester, a staff channel turn.",
         "Owner: /whitelist post in a private channel, check the images on desktop and a phone, then post it in the rules channel and delete the old one; re-open the Activity on a phone.",
@@ -3577,8 +3578,8 @@
         "P50"
       ],
       "implemented": "Owner request of 25 October 2026. The Activity measures focused reading time per stop and sends it with Continue, Back and Check; core credits it once per request, capped by the time that passed (migration 079: shuttle_activity_runs.attention_at_ms/completed_at_ms, shuttle_activity_attention). The staff-bot-channel notice adds \"Time to completion: … focused (… from boarding) · N pages, average … a page\". Staff and Lead Ops run /whitelist progress member: for a private view of a member's Discord state, run position, grant state and timing. Log review fixes: a sign-in never resends a spent Discord code and retries its post-exchange reads; AI disabled is traced once.",
-      "evidence": "See docs/verification.md (Prepared, not installed: bbe844c).",
-      "remaining": "Not installed. Owner approval for the install and for registering the command; after the install, read whether the hourly GitHub fault is FORBIDDEN (token access) or a real rate limit."
+      "evidence": "See docs/verification.md (Production install of bbe844c).",
+      "remaining": "Installed 25 October 2026. Watch the first timed notices and a Staff progress check; fix the GitHub token's access (FORBIDDEN)."
     }
   ],
   "next_steps": [

@@ -1,6 +1,18 @@
 # Verification and release limits
 
-## Prepared, not installed: bbe844c — 25 October 2026
+## Production install of bbe844c — 25 October 2026
+
+- **Install (22:46 UTC, owner approval quoted in `approval.json`):** preflight passed; files written and migration 079
+  applied (79 migrations); pre-start check passed. Core then refused to start with `RUNTIME_DATABASE_PRIVILEGES_INVALID`
+  because the new table had no grant for `sophie_prod_core`; the first boundary, installed and public checks failed for
+  that reason. `grant-attention.mjs` mirrored `shuttle_activity_runs`' grants (SELECT, INSERT, UPDATE) at 22:49 UTC and
+  core was started by hand at 22:50 UTC (about 3.5 minutes down). Rerun: service boundaries, installed checks (79
+  migrations, Gateway current, no role jobs) and public hosts all passed. `/whitelist` now has `post` and `progress` in
+  the main server. First log lines: `AI_ADMISSION_SKIPPED_AI_DISABLED` once, `KNOWLEDGE_SOURCE_GITHUB_FORBIDDEN`.
+- **Not covered:** a real member's timed run and its notice; `/whitelist progress` run by Staff; the attention meter on
+  phones inside Discord.
+
+### Before the install
 
 - **Scope:** focused reading time per stop and migration 079; time to completion and the average time a page in the
   Whitelist notice; Staff `/whitelist progress member:`; sign-in never resends a spent Discord code; AI switched off is
@@ -15,7 +27,7 @@
 - **Packet:** `.agent_docs/aphelion-sophie/deployment-bbe844c-production-2026-10-25`; `prepare.mjs` passed against the
   installed 7ecf473 (26 reviewed files, 6 new; only migration 079; runtime unchanged; recorded policy matches). On a
   synthetic local cluster 079 applied, the packet's revert returned the database to the 78 migrations 7ecf473 verifies,
-  and 079 applied again. No `approval.json`: not installed.
+  and 079 applied again.
 - **Not covered:** the attention meter inside Discord's frames on desktop and phones (focus and visibility events there);
   the reply and notice in the real channels; command registration in the main server; migration 079 on production data.
   No owner approval to install yet.
