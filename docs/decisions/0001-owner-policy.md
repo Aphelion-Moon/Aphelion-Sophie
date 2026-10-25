@@ -2689,8 +2689,11 @@ average and per-stop time. Reads only; one actor observation and one read of the
   exchange, and the client never resends a sign-in with the same code (the link, or a renewal, asks Discord for a new one).
 - *Noise:* 4,618 `AI_ADMISSION_SKIPPED_AI_DISABLED` lines, one per server message while AI is off. Now said once while it
   stays off.
-- *`KNOWLEDGE_SOURCE_GITHUB_RATE_LIMITED` hourly:* anonymous GitHub allows 60 requests an hour and a sync needs about 240,
-  so the GitHub part of the `/lookup` mirror never completes. Owner action: a fine-grained, read-only GitHub token in the
-  production secrets (the collector already accepts one). No code change.
+- *`KNOWLEDGE_SOURCE_GITHUB_RATE_LIMITED` hourly (27 times):* production has had a read-only token since 23 October, and a
+  sync needs about 240 requests against an authenticated limit of 5,000 an hour, so this is unlikely to be a real rate
+  limit. The source reader reported every 403 as a rate limit. Now only a 429, or a 403 with no requests remaining or a
+  `retry-after`, is `RATE_LIMITED`; any other 403 is `FORBIDDEN` (logged, not alerted). A refused repository part is
+  skipped and the sync goes on; a refused organisation listing ends it with that code. The first sync after the install
+  will say which it was (for example a fine-grained token without access to the organisation or to VanguardControl/Wolfgate).
 - *Checked and fine:* the three grants without a notice (24 October, 15:52-16:12 UTC) came before notices were installed;
   no Gateway halt since 7ecf473; the final Continue takes 0.9-3 s; sign-ins after each deploy are expected renewals.
