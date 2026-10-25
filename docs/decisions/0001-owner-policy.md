@@ -2643,3 +2643,12 @@ packet's `approval.json`), `bf4ddca` was installed over `33e7a5d` at 17:57 UTC o
 runtime (Node 24.22.1), capability policy version 2 and credentials, no migration, no story change. All checks passed; the
 installed check again allows no reconciliation job, and the public host serves the new page, script and stylesheet exactly
 as built. Folder `.agent_docs/aphelion-sophie/deployment-bf4ddca-production-2026-10-24`; `rollback.ps1` restores `33e7a5d`.
+
+On the owner's report that Sophie "crashed and died" after about thirty applicants, with "commit and install the repair"
+and "Make sure Sophie is setup to recover from crashes like this" (both quoted in the packet's `approval.json`), `7ecf473`
+was installed over `bf4ddca` at 01:28 UTC on 25 October: 3 core files, same runtime (Node 24.22.1), capability policy
+version 2 and credentials, no migration, no story change. A Gateway event that cannot be recorded now replaces the
+connection instead of halting core; protocol violations, rejected close codes, lease loss and the ten-retry limit still
+halt. Windows now restarts core after 60 seconds and the Activity closed screen, the tunnel and PostgreSQL after 10 seconds
+(three times, reset daily). Folder `.agent_docs/aphelion-sophie/deployment-7ecf473-production-2026-10-25`; `rollback.ps1`
+restores `bf4ddca` (the service recovery settings are separate; `service-xml-before` holds the old service files).

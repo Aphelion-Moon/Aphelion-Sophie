@@ -1,5 +1,18 @@
 # Verification and release limits
 
+## Production install of 7ecf473 — 25 October 2026
+
+- **Incident:** at 00:53:35 UTC the Gateway halted (journal `last_error_code` PROCESSING_FAILED; no PostgreSQL error, no
+  clock change), core exited and the service had `onfailure none`, so Sophie stayed down until the repair was installed (Gateway current again at 01:29 UTC). The failed
+  event's type and cause were not logged, so the exact event is not known.
+- **Offline:** gateway-supervisor (2 new scenarios: replay by Resume, fresh Identify on a repeat, codes-only traces),
+  gateway, staging-runtime, activity-core, architecture, automation-ingress and permission-editor: 61 passed, 0 failed.
+  The full `npm test`, `npm run check` and the storage suites were not run.
+- **Install (01:28 UTC):** service recovery set first (core 60 s, Activity closed screen, tunnel, PostgreSQL 10 s; the AI
+  worker already restarted); preflight (installed bf4ddca verified; 3 reviewed core files; runtime unchanged), pre-start,
+  service boundaries, installed checks and public hosts all passed; the Gateway identified afresh (the old session had expired) and was current at 01:29 UTC.
+- **Not covered:** a real reconnect in production; a real crash restart by Windows.
+
 ## Production install of bf4ddca — 24 October 2026
 
 - **Offline:** `npm test` 889 passed (T-ACT-CLI-28 new, T-ACT-CLI-25 updated); `npm run check` passed; client-only change,

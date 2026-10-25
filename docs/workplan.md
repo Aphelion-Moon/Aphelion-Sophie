@@ -1,6 +1,6 @@
 # Current implementation workplan
 
-Revision: 2026-10-24-production-bf4ddca. Mistral Small 4 (mistral-small-2603) on the official EU API is the selected provider for trial; DeepSeek Flash is withdrawn. Local models are historical, explicitly selected alternatives only; no automatic fallback. Continue the DS workstream with synthetic data; full readiness and activation remain open.
+Revision: 2026-10-25-production-7ecf473. Mistral Small 4 (mistral-small-2603) on the official EU API is the selected provider for trial; DeepSeek Flash is withdrawn. Local models are historical, explicitly selected alternatives only; no automatic fallback. Continue the DS workstream with synthetic data; full readiness and activation remain open.
 
 All production release gates remain open; pure and isolated database checks are not full application acceptance.
 
@@ -1689,12 +1689,13 @@ Implemented scope:
 - a36973c installed on 24 October 2026: Whitelist notices to the staff bot channel (migration 078), DISCORD_TRANSPORT_DISABLED quiet in the Activity, audit fixes (policy registered once, shared gate checks, module preloads, stepped clearance checks), and each request checks its member once (owner decision replacing 12 October).
 - 33e7a5d installed on 24 October 2026: Staff administration checks each step once too (merged branch, 49 scenarios reworked); production queues no Whitelist reconciliation that nothing would run.
 - bf4ddca installed on 24 October 2026: a curtain across the Shuttle when the journey starts and when it returns to the main menu (owner request).
+- 7ecf473 installed on 25 October 2026: a Gateway event that cannot be recorded replaces the connection (Resume, then a fresh Identify if it fails again) instead of stopping Sophie, with GATEWAY_RECONNECTING / GATEWAY_HALTED traces naming the event type and cause code; Windows restarts core (60 s), the Activity closed screen, the tunnel and PostgreSQL (10 s) after an unexpected exit (owner report: Sophie stopped at 00:53 UTC after about thirty applicants).
 
 Remaining scope:
 
 - Main menu redesign, next: date and clock eggs (Halloween before 31 October, winter lights, night shift, welcome back), typed and tapped eggs (HONK, the sun, barrel roll), then the Ring Hub rework.
 - Owner: confirm Sophie can post in the staff bot channel for Whitelist notices (the leftover reconciliation job was removed 24 October 2026 at 17:49 UTC).
-- Owner: Go live again in each channel on the new release (bf4ddca) when the AI is next tested; the onboarding Activity is the current focus.
+- Owner: Go live again in each channel on the new release (7ecf473) when the AI is next tested; the onboarding Activity is the current focus.
 - Owner: Go live in each channel on the dashboard; /sophie Yes.
 - Live checks: a reply in #ask-sophie (code and Guidebook), a saved memory, Get my data, the Activity for a Lead Ops tester, a staff channel turn.
 - Owner: /whitelist post in a private channel, check the images on desktop and a phone, then post it in the rules channel and delete the old one; re-open the Activity on a phone.
