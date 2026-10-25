@@ -12,6 +12,10 @@
   time, nothing on a replay, Back, completion time), SA19 (progress read, read-only), AI12b, and SA16 with its budget
   raised from 24 to 25 round trips (the reading-time write, one statement). The GitHub reader change came after these
   runs: KS-06 extended, and the knowledge source and error alert tests rerun (17 passed).
+- **Packet:** `.agent_docs/aphelion-sophie/deployment-bbe844c-production-2026-10-25`; `prepare.mjs` passed against the
+  installed 7ecf473 (26 reviewed files, 6 new; only migration 079; runtime unchanged; recorded policy matches). On a
+  synthetic local cluster 079 applied, the packet's revert returned the database to the 78 migrations 7ecf473 verifies,
+  and 079 applied again. No `approval.json`: not installed.
 - **Not covered:** the attention meter inside Discord's frames on desktop and phones (focus and visibility events there);
   the reply and notice in the real channels; command registration in the main server; migration 079 on production data.
   No owner approval to install yet.
