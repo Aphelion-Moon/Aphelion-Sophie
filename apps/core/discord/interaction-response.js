@@ -2,6 +2,7 @@ import { defaultSystemText } from '../../../contracts/system-messages.js';
 import { ContractError, requireCondition, requireId } from '../../../contracts/validation.js';
 import { onboardingNavigationReply } from '../../../modules/onboarding/navigation.js';
 import { onboardingHelpQueueReply } from '../../../modules/onboarding/assistance.js';
+import { shuttleProgressReply } from '../../../modules/onboarding/progress.js';
 import { onboardingIssueQueueReply } from '../../../modules/onboarding/delivery-issues.js';
 import { caseStatusReply } from '../../../modules/tickets/lifecycle.js';
 import { caseQueueReply } from '../../../modules/tickets/staff.js';
@@ -14,6 +15,7 @@ import { knowledgeLookupReply } from '../../../modules/assistant/lookup.js';
 
 const messages = Object.freeze({
   "shuttle_closed": "reply.shuttle_closed",
+  "shuttle_progress": "reply.shuttle_progress",
   "public_answer": "reply.public_answer",
   "knowledge_lookup": "reply.public_answer",
   "case_answer_review": "reply.case_answer_review",
@@ -101,7 +103,7 @@ function replyBody({ files = null, ...payload }) {
 }
 
 /** Only edits a verified interaction's own ephemeral response with bounded static presentation. */
-export function createInteractionResponder({ verifier, applicationId, fetch, clock, enabled, onboardingNavigation = null, onboardingAssistance = null, onboardingDeliveryIssues = null, caseLifecycle = null, caseStaff = null, caseIntake = null, caseDeliveryIssues = null, caseContacts = null, publicAnswers = null, caseAnswers = null, sophieMember = null, knowledgeLookup = null, readSystemText = async () => defaultSystemText, wait = ms => new Promise(resolve => setTimeout(resolve, ms)) }) {
+export function createInteractionResponder({ verifier, applicationId, fetch, clock, enabled, onboardingNavigation = null, onboardingAssistance = null, onboardingDeliveryIssues = null, caseLifecycle = null, caseStaff = null, caseIntake = null, caseDeliveryIssues = null, caseContacts = null, publicAnswers = null, caseAnswers = null, sophieMember = null, knowledgeLookup = null, shuttleProgress = null, readSystemText = async () => defaultSystemText, wait = ms => new Promise(resolve => setTimeout(resolve, ms)) }) {
   requireId(applicationId);
   requireCondition(typeof fetch === 'function' && typeof clock === 'function' && typeof enabled === 'function', 'TRUSTED_ADAPTERS_REQUIRED');
   requireCondition(onboardingNavigation === null || typeof onboardingNavigation.resolve === 'function', 'TRUSTED_ADAPTERS_REQUIRED');
@@ -116,6 +118,7 @@ export function createInteractionResponder({ verifier, applicationId, fetch, clo
   requireCondition(knowledgeLookup===null || ['view','current'].every(key=>typeof knowledgeLookup[key]==='function'),'TRUSTED_ADAPTERS_REQUIRED');
   requireCondition(caseAnswers === null || typeof caseAnswers.view === 'function', 'TRUSTED_ADAPTERS_REQUIRED');
   requireCondition(sophieMember === null || typeof sophieMember.view === 'function', 'TRUSTED_ADAPTERS_REQUIRED');
+  requireCondition(shuttleProgress === null || typeof shuttleProgress.view === 'function', 'TRUSTED_ADAPTERS_REQUIRED');
   let cooldownUntil = 0, paused = false;
   return Object.freeze({
     async respond(envelope, status) {
@@ -148,6 +151,7 @@ export function createInteractionResponder({ verifier, applicationId, fetch, clo
         }
         body = { embeds: [], ...onboardingNavigationReply(destination.state === 'preparing' ? { state: 'unavailable' } : destination, text) };
       }
+      if (status === 'shuttle_progress' && shuttleProgress !== null) body = shuttleProgressReply(await shuttleProgress.view(envelope), text);
       if (status === 'shuttle_help_queue' && onboardingAssistance !== null) body = onboardingHelpQueueReply(await onboardingAssistance.queue(envelope), text);
       if (status === 'shuttle_issue_queue' && onboardingDeliveryIssues !== null) body = onboardingIssueQueueReply(await onboardingDeliveryIssues.queue(envelope), text);
       if (['case_status', 'case_change_recorded'].includes(status) && caseLifecycle !== null) body = caseStatusReply(await caseLifecycle.status(envelope), text);

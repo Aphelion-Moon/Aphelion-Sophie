@@ -31,3 +31,33 @@ export async function readRunTiming(client, sessionId) {
     stops, timed: stops.length > 0, fromStop: stops[0]?.stop ?? null,
   };
 }
+
+/**
+ * A member's Shuttle progress for Staff's `/whitelist progress` (owner request, 25 October 2026). Reads only, in one
+ * read-only transaction: the current run (or, without one, the last Activity run), where it is, its timing, and the latest
+ * Whitelist grant job's state. Metadata only: no story copy, no ticket data.
+ */
+export async function readShuttleProgress(pool, guildId, userId) {
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN READ ONLY');
+    const current = (await client.query(`SELECT s.id, s.state, a.session_id IS NOT NULL AS activity FROM sophie_core.sessions s
+      LEFT JOIN sophie_core.shuttle_activity_runs a ON a.session_id = s.id WHERE s.guild_id = $1 AND s.user_id = $2 AND s.current`, [guildId, userId])).rows[0] ?? null;
+    const found = current ?? (await client.query(`SELECT s.id, s.state, true AS activity FROM sophie_core.shuttle_activity_runs a
+      JOIN sophie_core.sessions s ON s.id = a.session_id WHERE a.guild_id = $1 AND a.user_id = $2 ORDER BY a.started_at_ms DESC, a.session_id DESC LIMIT 1`,
+    [guildId, userId])).rows[0] ?? null;
+    const grant = (await client.query(`SELECT status, last_error_code FROM sophie_core.outbox WHERE guild_id = $1 AND user_id = $2
+      AND kind = 'whitelist.grant' ORDER BY created_at DESC, operation_id DESC LIMIT 1`, [guildId, userId])).rows[0] ?? null;
+    let run = null;
+    if (found) {
+      const session = found.state;
+      const titles = (await client.query(`SELECT publication->'stages' AS stages FROM sophie_core.shuttle_publications
+        WHERE definition_id = $1 AND definition_version = $2`, [session.definitionId, session.definitionVersion])).rows[0]?.stages ?? [];
+      run = { current: current !== null, activity: found.activity === true, status: session.status, helpPaused: session.helpPaused === true,
+        stop: session.stepIndex, stops: Array.isArray(titles) ? titles.length : 0, title: typeof titles[session.stepIndex]?.title === 'string' ? titles[session.stepIndex].title : null,
+        definitionVersion: session.definitionVersion, timing: found.activity ? await readRunTiming(client, found.id) : null };
+    }
+    await client.query('COMMIT');
+    return { run, grant: grant ? { status: grant.status, code: grant.last_error_code ?? null } : null };
+  } catch (error) { await client.query('ROLLBACK').catch(() => {}); throw error; } finally { client.release(); }
+}

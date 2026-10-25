@@ -23,5 +23,8 @@ export function onboardingCommandDefinition() {
         { type: 7, name: 'channel', description: 'Onboarding channel to close (defaults to this channel).', channel_types: [0] },
       ] },
       { type: 1, name: 'queue', description: 'Staff: list outstanding Shuttle assistance requests.' },
+      { type: 1, name: 'progress', description: 'Staff: check where a member is in the Shuttle.', options: [
+        { type: 6, name: 'member', description: 'Member to check.', required: true },
+      ] },
     ] };
 }

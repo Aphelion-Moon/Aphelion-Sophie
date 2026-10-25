@@ -109,8 +109,9 @@ export function createOnboardingCommands({ authorization, discord, channels, sto
 }
 
 /** Explicit command union. No arbitrary operation name or dynamic plugin dispatch. */
-export function createAdministrationCommands({ sophieMember = null, moderation, onboarding, onboardingClosure = null, assistance = null, deliveryIssues = null, caseLifecycle = null, caseStaff = null, caseIntake = null, caseDeliveryIssues = null, caseParticipants = null, caseContacts = null, caseReplies = null, publicAnswers = null, caseAnswers = null, knowledgeLookup = null }) {
+export function createAdministrationCommands({ sophieMember = null, moderation, onboarding, onboardingClosure = null, assistance = null, deliveryIssues = null, caseLifecycle = null, caseStaff = null, caseIntake = null, caseDeliveryIssues = null, caseParticipants = null, caseContacts = null, caseReplies = null, publicAnswers = null, caseAnswers = null, knowledgeLookup = null, shuttleProgress = null }) {
   return Object.freeze({ async execute(envelope) {
+    if (envelope.command === 'shuttle.progress') return shuttleProgress === null ? 'denied' : shuttleProgress.execute(envelope);
     if (typeof envelope.command === 'string' && envelope.command.startsWith('sophie.')) return sophieMember === null ? 'denied' : sophieMember.execute(envelope);
     if(envelope.command==='knowledge.lookup')return knowledgeLookup===null ? 'denied':knowledgeLookup.execute(envelope);
     if (['ticket.answer','ticket.answer.confirm','ticket.answer.cancel'].includes(envelope.command)) return caseAnswers === null ? 'denied' : caseAnswers.execute(envelope);

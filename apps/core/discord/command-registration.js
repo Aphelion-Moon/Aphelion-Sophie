@@ -42,15 +42,16 @@ async function upsertWithCooldown(transport, applicationId, definition, sleep) {
 
 /**
  * Production, Activity and AI only: the member's own panel, the reviewed-source lookup and, for Lead Ops, /whitelist post
- * (the Activity launch post; owner decision, 24 October 2026). Nothing that touches roles or cases.
+ * (the Activity launch post; owner decision, 24 October 2026), and for Staff /whitelist progress (a member's Shuttle
+ * progress; owner request, 25 October 2026). Nothing that touches roles or cases.
  */
 export const ACTIVITY_AI_COMMANDS = Object.freeze(['sophie', 'lookup', 'whitelist']);
-const ACTIVITY_AI_SUBCOMMANDS = Object.freeze({ whitelist: ['post'] });
+const ACTIVITY_AI_SUBCOMMANDS = Object.freeze({ whitelist: ['post', 'progress'] });
 
-/** The production command set: /whitelist keeps only its post subcommand. */
+/** The production command set: /whitelist keeps only its post and progress subcommands. */
 export function activityAiCommandDefinitions() {
   return administrationCommandDefinitions().filter(item => ACTIVITY_AI_COMMANDS.includes(item.name)).map(item => ACTIVITY_AI_SUBCOMMANDS[item.name]
-    ? { ...item, description: 'Lead Ops: post the Shuttle Activity launch post here.', options: item.options.filter(option => ACTIVITY_AI_SUBCOMMANDS[item.name].includes(option.name)) }
+    ? { ...item, description: 'Shuttle Activity: the launch post, and Staff progress checks.', options: item.options.filter(option => ACTIVITY_AI_SUBCOMMANDS[item.name].includes(option.name)) }
     : item);
 }
 

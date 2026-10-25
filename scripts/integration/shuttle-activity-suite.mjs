@@ -13,7 +13,7 @@ import { createActivityAuth } from '../../apps/core/security/activity-auth.js';
 import { createOnboardingCommands } from '../../apps/core/discord/onboarding-commands.js';
 import { createRoleDispatcher, createWhitelistGrantDispatcher } from '../../apps/core/discord/dispatcher.js';
 import { createWhitelistNoticeDispatcher } from '../../apps/core/discord/whitelist-notices.js';
-import { readRunTiming } from '../../apps/core/storage/shuttle-timing.js';
+import { readRunTiming, readShuttleProgress } from '../../apps/core/storage/shuttle-timing.js';
 import { formatDuration } from '../../modules/onboarding/timing.js';
 import { simulatedCases, casePolicy } from '../../tests/fixtures/cases.js';
 import { CREW, BYOND_ROLE, WHITELIST, MUZZLED } from '../../tests/fixtures/discord.js';
@@ -443,5 +443,25 @@ export async function runShuttleActivitySuite(cluster, run) {
     // Check while waiting for Whitelist credits no stop and keeps the completion time.
     now += 200_000; await drainGrants();
     assert.equal((await timing()).completedAtMs, finished.completedAtMs);
+  }, 'open');
+
+  await scenario('SA19 Staff progress reads where a member is, their timing and their grant, without changing anything', async () => {
+    // Owner request, 25 October 2026: a command Staff can run to check a member's current Shuttle progress.
+    assert.deepEqual(await readShuttleProgress(pool, GUILD, OTHER), { run: null, grant: null });
+    let { run: shown } = await activity.board({ ...await member(OTHER), requestId: requestId() });
+    now += 20_000;
+    ({ run: shown } = await activity.act({ ...await member(OTHER), requestId: requestId(), action: 'advance', expectedVersion: shown.version, attention: { ms: 15_000, pages: 2 } }));
+    const before = JSON.stringify(await rows('sessions'));
+    const reading = await readShuttleProgress(pool, GUILD, OTHER);
+    assert.equal(JSON.stringify(await rows('sessions')), before, 'reads only');
+    assert.deepEqual({ ...reading.run, timing: null }, { current: true, activity: true, status: 'active', helpPaused: false, stop: 1,
+      stops: publication.stages.length, title: publication.stages[1].title, definitionVersion: publication.version, timing: null });
+    assert.equal(reading.run.timing.focusedMs, 15_000); assert.equal(reading.grant, null);
+    while (shown.status === 'reading') ({ run: shown } = await activity.act({ ...await member(OTHER), requestId: requestId(), action: 'advance', expectedVersion: shown.version }));
+    const pending = await readShuttleProgress(pool, GUILD, OTHER);
+    assert.equal(pending.run.status, 'role_pending'); assert.deepEqual(pending.grant, { status: 'ready', code: null });
+    await drainGrants();
+    const done = await readShuttleProgress(pool, GUILD, OTHER);
+    assert.equal(done.run.status, 'complete'); assert.equal(done.grant.status, 'done'); assert.notEqual(done.run.timing.completedAtMs, null);
   }, 'open');
 }

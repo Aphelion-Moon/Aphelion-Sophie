@@ -324,6 +324,108 @@
     "max": 1800
   },
   {
+    "id": "reply.shuttle_progress",
+    "group": "Onboarding",
+    "source": "Shuttle progress is currently unavailable.",
+    "max": 1800
+  },
+  {
+    "id": "onboarding.progress.denied",
+    "group": "Onboarding",
+    "source": "Checking Shuttle progress requires current Staff or Lead Ops access.",
+    "max": 300
+  },
+  {
+    "id": "onboarding.progress.unavailable",
+    "group": "Onboarding",
+    "source": "Shuttle progress could not be read. Try again shortly.",
+    "max": 300
+  },
+  {
+    "id": "onboarding.progress.title",
+    "group": "Onboarding",
+    "source": "Shuttle progress",
+    "max": 80
+  },
+  {
+    "id": "onboarding.progress.member",
+    "group": "Onboarding",
+    "source": "<@{userId}> · in the server: {present} · Crew: {crew} · Muzzled: {muzzled} · Whitelist: {whitelist}",
+    "max": 300
+  },
+  {
+    "id": "onboarding.progress.none",
+    "group": "Onboarding",
+    "source": "No Shuttle run is recorded for this member.",
+    "max": 300
+  },
+  {
+    "id": "onboarding.progress.reading",
+    "group": "Onboarding",
+    "source": "Reading stop {step} of {total}: {title}",
+    "max": 300
+  },
+  {
+    "id": "onboarding.progress.paused",
+    "group": "Onboarding",
+    "source": "Paused for assistance at stop {step} of {total}: {title}",
+    "max": 300
+  },
+  {
+    "id": "onboarding.progress.pending",
+    "group": "Onboarding",
+    "source": "Finished the Shuttle and waiting for Whitelist. Grant: {state}",
+    "max": 300
+  },
+  {
+    "id": "onboarding.progress.complete",
+    "group": "Onboarding",
+    "source": "Finished the Shuttle and received Whitelist.",
+    "max": 300
+  },
+  {
+    "id": "onboarding.progress.previous",
+    "group": "Onboarding",
+    "source": "No current run. Their last Shuttle Activity run:",
+    "max": 300
+  },
+  {
+    "id": "onboarding.progress.channel",
+    "group": "Onboarding",
+    "source": "This run is in an Onboarding channel; reading time is recorded only in the Shuttle Activity.",
+    "max": 300
+  },
+  {
+    "id": "onboarding.progress.moved",
+    "group": "Onboarding",
+    "source": "Boarded {boarded} · last moved {moved}",
+    "max": 300
+  },
+  {
+    "id": "onboarding.progress.so_far",
+    "group": "Onboarding",
+    "source": "So far",
+    "max": 40
+  },
+  {
+    "id": "onboarding.progress.to_completion",
+    "group": "Onboarding",
+    "source": "Time to completion",
+    "max": 40
+  },
+  {
+    "id": "onboarding.progress.untimed",
+    "group": "Onboarding",
+    "source": "Reading time not recorded for this run.",
+    "max": 300
+  },
+  {
+    "id": "onboarding.progress.stops",
+    "group": "Onboarding",
+    "source": "Focused time by stop: {value}",
+    "max": 1000
+  },
+  {
     "id": "reply.onboarding_help_resolved",
     "group": "Onboarding",
     "source": "Assistance marked as resolved. Use /whitelist queue to view outstanding requests.",

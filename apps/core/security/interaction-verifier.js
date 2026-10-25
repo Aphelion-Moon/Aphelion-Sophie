@@ -184,7 +184,7 @@ export function createInteractionVerifier({ publicKeyHex, applicationId, guildId
         }
       } else if (payload.data.name === 'whitelist') {
         const options = payload.data.options;
-        requireCondition(Array.isArray(options) && options.length === 1 && ['start', 'panel', 'post', 'close', 'queue', 'issues', 'recover', 'choose'].includes(options[0]?.name) && options[0]?.type === 1 &&
+        requireCondition(Array.isArray(options) && options.length === 1 && ['start', 'panel', 'post', 'close', 'queue', 'progress', 'issues', 'recover', 'choose'].includes(options[0]?.name) && options[0]?.type === 1 &&
           options[0].value === undefined, 'INTERACTION_OPTIONS_INVALID');
         command = `shuttle.${options[0].name}`; targetId = payload.member.user.id;
         if (command === 'shuttle.close') {
@@ -195,6 +195,12 @@ export function createInteractionVerifier({ publicKeyHex, applicationId, guildId
             fields.some(field => field.name === 'confirm'), 'INTERACTION_OPTIONS_INVALID');
           const channel = fields.find(field => field.name === 'channel'); if (channel) requireId(channel.value);
           control = { confirmed: fields.find(field => field.name === 'confirm').value, selectedChannelId: channel?.value ?? payload.channel_id };
+        } else if (command === 'shuttle.progress') {
+          // The member to check: their ID only, never the resolved member data Discord sends with it.
+          const fields = options[0].options;
+          requireCondition(Array.isArray(fields) && fields.length === 1 && fields[0]?.name === 'member' && fields[0].type === 6 && fields[0].options === undefined,
+            'INTERACTION_OPTIONS_INVALID');
+          requireId(fields[0].value); control = { subjectId: fields[0].value };
         } else if (['shuttle.recover', 'shuttle.choose'].includes(command)) {
           const fields = options[0].options;
           const selectedField = command === 'shuttle.choose' ? 'channel' : 'message';

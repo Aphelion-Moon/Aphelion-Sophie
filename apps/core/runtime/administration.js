@@ -22,6 +22,8 @@ import { createCaseIntakeDispatcher } from '../discord/case-intake-dispatcher.js
 import { createModerationCommands } from '../discord/moderation-commands.js';
 import { createAdministrationCommands, createOnboardingCommands } from '../discord/onboarding-commands.js';
 import { createOnboardingAssistance } from '../discord/onboarding-assistance.js';
+import { createShuttleProgress } from '../discord/shuttle-progress.js';
+import { readShuttleProgress } from '../storage/shuttle-timing.js';
 import { createOnboardingDeliveryIssues } from '../discord/onboarding-delivery-issues.js';
 import { createOnboardingNavigation } from '../discord/onboarding-navigation.js';
 import { createCaseLifecycle } from '../discord/case-lifecycle.js';
@@ -77,6 +79,8 @@ export function createAdministrationLane({ configuration, pool, token, fetch, cl
     messageVerification: answers.verification, replyVerification: replyMessages.verification });
   const common = { authorization, discord: roles, store, enabled };
   const assistance = createOnboardingAssistance(common);
+  const shuttleProgress = createShuttleProgress({ authorization, discord: roles, enabled, clock,
+    read: (guildId, userId) => readShuttleProgress(pool, guildId, userId) });
   const deliveryIssues = createOnboardingDeliveryIssues({ ...common, channels, screenMessages: screens, alertMessages: alerts });
   const caseLifecycle = createCaseLifecycle({ ...common, limits });
   const caseStaff = createCaseStaff({ ...common, guildId: mapping.guildId });
@@ -95,7 +99,7 @@ export function createAdministrationLane({ configuration, pool, token, fetch, cl
   const sophieMember = sophieMemberFactory === null ? null : sophieMemberFactory({ authorization, transport, verifier, enabled, readSystemText });
   const commands = createAdministrationCommands({ sophieMember, onboardingClosure: createOnboardingChannelClosure({ authorization, roles, channels, store, enabled }), moderation: createModerationCommands(common),
     onboarding: createOnboardingCommands({ ...common, channels, definitionId, limits, trace: onTrace }), assistance, deliveryIssues, caseLifecycle, caseStaff,
-    caseIntake, caseContacts, caseDeliveryIssues, publicAnswers, caseAnswers, knowledgeLookup, caseParticipants: createCaseParticipants(common),
+    caseIntake, caseContacts, caseDeliveryIssues, publicAnswers, caseAnswers, knowledgeLookup, shuttleProgress, caseParticipants: createCaseParticipants(common),
     caseReplies: createCaseReplyCommands({ ...common, verifier, replies: replyStore, guildId: mapping.guildId }) });
   const outbox = createOutbox({ pool });
   const directMessages = createCaseDirectNotices({ readSystemText, transport, roles, channels, botUserId: mapping.botUserId, clock });
@@ -124,5 +128,5 @@ export function createAdministrationLane({ configuration, pool, token, fetch, cl
     screenMessages: screens, alertMessages: alerts, commands, workers, caseIntake, automationRecovery, sophieMember,
     whitelistGrants: createWhitelistGrantDispatcher({ outbox, store, discord: roles, enabled }), whitelistNotices,
     responseAdapters: { onboardingNavigation: createOnboardingNavigation({ ...common, channels }), onboardingAssistance: assistance,
-      onboardingDeliveryIssues: deliveryIssues, caseLifecycle, caseStaff, caseIntake, caseContacts, caseDeliveryIssues, publicAnswers, caseAnswers, knowledgeLookup, sophieMember } };
+      onboardingDeliveryIssues: deliveryIssues, caseLifecycle, caseStaff, caseIntake, caseContacts, caseDeliveryIssues, publicAnswers, caseAnswers, knowledgeLookup, sophieMember, shuttleProgress } };
 }
