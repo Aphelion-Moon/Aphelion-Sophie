@@ -23,8 +23,14 @@ export async function connectDiscord({ applicationId, guildId, api, onLayout = (
   const authorize = async () => (await sdk.commands.authorize({ client_id: applicationId, response_type: 'code', state: '', prompt: 'none',
     scope: ['identify', 'rpc.activities.write'] })).code;
   const signed = await api.signIn({ code: await authorize(), instanceId: sdk.instanceId });
-  // An ended session (an hour away, a core restart) is renewed the same way, without a prompt.
-  api.setRenewal?.(async () => { await api.signIn({ code: await authorize(), instanceId: sdk.instanceId }); });
+  // An ended session (an hour away, a core restart) is renewed the same way, without a prompt; a busy core is asked once more
+  // with a fresh code, since a sign-in is never resent with a spent one.
+  api.setRenewal?.(async () => {
+    for (let tries = 1; ; tries++) {
+      try { await api.signIn({ code: await authorize(), instanceId: sdk.instanceId }); return; }
+      catch (error) { if (tries >= 2 || !['retry', 'offline'].includes(error?.word)) throw error; }
+    }
+  });
   let presence = false, name = null;
   try {
     const auth = await sdk.commands.authenticate({ access_token: signed.accessToken });

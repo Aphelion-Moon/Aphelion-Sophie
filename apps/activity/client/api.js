@@ -38,7 +38,9 @@ export function createShuttleApi({ fetch, randomBytes, wait = ms => new Promise(
         throw new ShuttleApiError(word, response.status);
       }
       if (response?.status !== 429) onSignal(false);
-      if (attempt >= RETRY_MS.length) throw new ShuttleApiError(response?.status === 429 ? 'slow' : response ? 'retry' : 'offline', response?.status ?? 0);
+      // A sign-in is never sent again with the same Discord code: the first try may have spent it, and every resend was
+      // refused (owner log review, 25 October 2026). The caller asks Discord for a fresh code instead.
+      if (attempt >= RETRY_MS.length || path === '/api/session') throw new ShuttleApiError(response?.status === 429 ? 'slow' : response ? 'retry' : 'offline', response?.status ?? 0);
       await wait(RETRY_MS[attempt]);
     }
   }
@@ -64,7 +66,9 @@ export function createShuttleApi({ fetch, randomBytes, wait = ms => new Promise(
     },
     describe: () => call('/api/shuttle'),
     board: () => call('/api/shuttle/board', { method: 'POST', body: { requestId: requestId() } }),
-    act: (action, expectedVersion) => call('/api/shuttle/act', { method: 'POST', body: { requestId: requestId(), action, expectedVersion } }),
+    // `attention` is the focused time on the stop being left and its page count; the retried body carries the same one.
+    act: (action, expectedVersion, attention) => call('/api/shuttle/act', { method: 'POST',
+      body: { requestId: requestId(), action, expectedVersion, ...(attention ? { attention: { ms: attention.ms, pages: attention.pages } } : {}) } }),
     reset: () => call('/api/shuttle/reset', { method: 'POST', body: { requestId: requestId() } }),
     /** How to sign in again without a prompt (Discord's authorize, then signIn); set once the first sign-in worked. */
     setRenewal(renew) { renewal = typeof renew === 'function' ? renew : null; },

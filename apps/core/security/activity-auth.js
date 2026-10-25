@@ -5,6 +5,12 @@ import { validateActorObservation } from '../../../platform/authorization/actor-
 export const ACTIVITY_SESSION_MS = 60 * 60 * 1_000;
 const MAX_SESSIONS = 5_000;
 const digest = token => createHash('sha256').update(token).digest('hex');
+// After the code is exchanged: Discord not listing the member in the instance yet, or the member's read overtaken by a
+// change to them (a new joiner's Crew role arriving), passes in moments. These reads are tried again with the identity
+// already exchanged, since Discord's code is spent (owner log review, 25 October 2026: four failed tries a sign-in).
+const SETTLING = new Set(['ACTIVITY_INSTANCE_INVALID', 'OBSERVATION_INVALIDATED', 'OBSERVATION_UNAVAILABLE', 'OBSERVATION_OUT_OF_ORDER',
+  'MEMBERSHIP_STALE', 'DISCORD_BUSY', 'RATE_LIMITED', 'DISCORD_UNAVAILABLE', 'AUTHORITY_UNCERTAIN']);
+const SETTLE_DELAYS_MS = Object.freeze([150, 400, 1_000]);
 
 export function requireActivityToken(value) {
   requireCondition(typeof value === 'string' && /^[a-f0-9]{64}$/.test(value), 'ACTIVITY_SESSION_INVALID');
@@ -16,7 +22,7 @@ export function requireActivityToken(value) {
  * Tokens live only in memory for an hour (Discord's frame blocks ordinary cookies); a restart signs everyone out and
  * the Activity signs in again. A token identifies a member and nothing more: every request still authorizes afresh.
  */
-export function createActivityAuth({ applicationId, guildId, oauth, instances, discord, clock, enabled }) {
+export function createActivityAuth({ applicationId, guildId, oauth, instances, discord, clock, enabled, pause = ms => new Promise(resolve => setTimeout(resolve, ms)) }) {
   requireId(applicationId); requireId(guildId);
   requireCondition(typeof oauth?.exchangeActivity === 'function' && typeof oauth.resolveIdentity === 'function' && typeof instances === 'function' &&
     typeof discord?.observeActor === 'function' && typeof clock === 'function' && typeof enabled === 'function', 'TRUSTED_ADAPTERS_REQUIRED');
@@ -33,16 +39,27 @@ export function createActivityAuth({ applicationId, guildId, oauth, instances, d
     if (sessions.size >= MAX_SESSIONS) sessions.delete(sessions.keys().next().value);
     sessions.set(hash, value);
   }
+  async function settle(read) {
+    for (let tries = 0; ; tries++) {
+      try { return await read(); } catch (error) {
+        if (!SETTLING.has(error?.code) || tries >= SETTLE_DELAYS_MS.length) throw error;
+        await pause(SETTLE_DELAYS_MS[tries]);
+      }
+    }
+  }
   return Object.freeze({
     async signIn({ code, instanceId }) {
       await active();
       requireCondition(typeof instanceId === 'string' && /^[A-Za-z0-9_-]{1,128}$/.test(instanceId), 'ACTIVITY_INSTANCE_INVALID');
       const exchanged = await oauth.exchangeActivity(code), identity = oauth.resolveIdentity(exchanged.proof);
       requireCondition(identity.guildId === guildId, 'FOREIGN_GUILD');
-      const instance = await instances(instanceId);
-      requireCondition(instance !== null && typeof instance === 'object' && instance.application_id === applicationId && instance.instance_id === instanceId &&
-        instance.location?.guild_id === guildId && Array.isArray(instance.users) && instance.users.includes(identity.userId), 'ACTIVITY_INSTANCE_INVALID');
-      const observation = await discord.observeActor(identity.userId); validateActorObservation(observation, clock());
+      const observation = await settle(async () => {
+        const instance = await instances(instanceId);
+        requireCondition(instance !== null && typeof instance === 'object' && instance.application_id === applicationId && instance.instance_id === instanceId &&
+          instance.location?.guild_id === guildId && Array.isArray(instance.users) && instance.users.includes(identity.userId), 'ACTIVITY_INSTANCE_INVALID');
+        const observed = await discord.observeActor(identity.userId); validateActorObservation(observed, clock());
+        return observed;
+      });
       requireCondition(observation.guildId === guildId && observation.userId === identity.userId && observation.present && !observation.bot, 'OPERATION_DENIED');
       await active(); requireFreshObservation(observation, clock());
       const token = randomBytes(32).toString('hex'), issuedAt = clock();

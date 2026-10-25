@@ -85,6 +85,7 @@ export function createOutbox({ pool }) {
           fence = o.fence + 1, attempts = o.attempts + 1
         FROM candidate c WHERE o.guild_id = c.guild_id AND o.operation_id = c.operation_id
         RETURNING o.guild_id, o.operation_id, o.user_id, o.fence, o.kind, o.attempts,
+          CASE WHEN o.kind = 'whitelist.notice' THEN o.effect->'timing' END AS timing,
           CASE WHEN isfinite(c.available_at) THEN LEAST(86400000, GREATEST(0, floor(extract(epoch FROM clock_timestamp() - c.available_at) * 1000)))
             ELSE 0 END::bigint AS waited_ms`, [owner, leaseMs, kinds]);
         if (!result.rowCount) return null;
@@ -95,8 +96,10 @@ export function createOutbox({ pool }) {
           await recordDeliveryFailure(client, claim);
           return { claim, userId: row.user_id, kind: row.kind, parked: true };
         }
-        // waitedMs (time since the job became claimable) is for timing diagnostics only.
-        return { claim, userId: row.user_id, kind: row.kind, parked: false, waitedMs: Number(row.waited_ms) };
+        // waitedMs (time since the job became claimable) is for timing diagnostics only. A Whitelist notice also carries
+        // the run's reading time (null when none was recorded).
+        return { claim, userId: row.user_id, kind: row.kind, parked: false, waitedMs: Number(row.waited_ms),
+          ...(row.kind === 'whitelist.notice' ? { timing: row.timing ?? null } : {}) };
       });
     },
     async renew(claim, leaseMs = 30_000) {

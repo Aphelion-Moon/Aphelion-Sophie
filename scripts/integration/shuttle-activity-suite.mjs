@@ -13,6 +13,8 @@ import { createActivityAuth } from '../../apps/core/security/activity-auth.js';
 import { createOnboardingCommands } from '../../apps/core/discord/onboarding-commands.js';
 import { createRoleDispatcher, createWhitelistGrantDispatcher } from '../../apps/core/discord/dispatcher.js';
 import { createWhitelistNoticeDispatcher } from '../../apps/core/discord/whitelist-notices.js';
+import { readRunTiming } from '../../apps/core/storage/shuttle-timing.js';
+import { formatDuration } from '../../modules/onboarding/timing.js';
 import { simulatedCases, casePolicy } from '../../tests/fixtures/cases.js';
 import { CREW, BYOND_ROLE, WHITELIST, MUZZLED } from '../../tests/fixtures/discord.js';
 import { syntheticInteractions, APPLICATION } from '../../tests/fixtures/interactions.js';
@@ -330,8 +332,9 @@ export async function runShuttleActivitySuite(cluster, run) {
     await store.act({ actor: await measured.resolveActor(proof), observe: () => discord.roles.observe(USER, { reuse: true }), requestId: requestId(), action: 'advance', expectedVersion: shown.version });
     // Measured 24 October 2026: the actor, then its capability check and member observation reusing that one observation
     // (owner decision replacing 12 October) and the policy registered once per process: 24 round trips and 4 Discord reads
-    // (bot identity, guild, roles, member) for the whole request, where each step had read Discord and recorded again.
-    assert.ok(queries <= 24, `database round trips: ${queries}`);
+    // (bot identity, guild, roles, member) for the whole request, where each step had read Discord and recorded again. One
+    // more since 25 October 2026: the focused reading time, recorded with the move in a single statement.
+    assert.ok(queries <= 25, `database round trips: ${queries}`);
     assert.ok(discord.state.calls.length - reads <= 4, `Discord reads: ${discord.state.calls.length - reads}`);
     // The policy is still checked: once the observation is made again, a newer recorded version refuses this process.
     await admin.query(`INSERT INTO sophie_core.capability_policies (guild_id, version, policy) VALUES ($1, $2, $3)`, [GUILD, policy.version + 1, { ...policy, version: policy.version + 1 }]);
@@ -373,9 +376,13 @@ export async function runShuttleActivitySuite(cluster, run) {
     let failNext = false;
     const notices = createWhitelistNoticeDispatcher({ outbox, channelId: CHANNEL, enabled: () => healthy, transport: { guildId: GUILD,
       async createWhitelistNotice(...input) { posts.push(input); if (failNext) { failNext = false; throw Object.assign(new Error('timeout'), { code: 'DISCORD_UNAVAILABLE' }); } } } });
+    // Each stop read for 40 s, 30 s of it focused, over two pages (owner request, 25 October 2026).
     const ride = async userId => {
       let { run: shown } = await activity.board({ ...await member(userId), requestId: requestId() });
-      while (shown.status === 'reading') ({ run: shown } = await activity.act({ ...await member(userId), requestId: requestId(), action: 'advance', expectedVersion: shown.version }));
+      while (shown.status === 'reading') {
+        now += 40_000;
+        ({ run: shown } = await activity.act({ ...await member(userId), requestId: requestId(), action: 'advance', expectedVersion: shown.version, attention: { ms: 30_000, pages: 2 } }));
+      }
     };
     const drain = async dispatcher => { for (let i = 0; i < 20; i++) if ((await dispatcher.runOnce('activity-notices')).status === 'idle') return; assert.fail('queue did not drain'); };
     await ride(USER); await drain(granting);
@@ -390,7 +397,10 @@ export async function runShuttleActivitySuite(cluster, run) {
     assert.equal(posts.length, 2); assert.deepEqual(posts[0], posts[1]);
     const [channelId, nonce, body] = posts[0];
     assert.equal(channelId, CHANNEL); assert.match(nonce, /^[a-f0-9]{24}$/u);
-    assert.equal(body.content, `**Whitelist granted** · <@${USER}> finished the Arrivals Shuttle and Sophie gave them Whitelist.`);
+    const stops = publication.stages.length;
+    assert.equal(body.content, `**Whitelist granted** · <@${USER}> finished the Arrivals Shuttle and Sophie gave them Whitelist.
+` +
+      `Time to completion: ${formatDuration(stops * 30_000)} focused (${formatDuration(stops * 40_000)} from boarding) · ${stops * 2} pages, average 15s a page`);
     assert.deepEqual(body.allowed_mentions, { parse: [], users: [], roles: [], replied_user: false }, 'nobody is notified');
     assert.deepEqual((await rows('outbox')).filter(row => row.kind === 'whitelist.notice').map(row => row.status), ['done']);
     // A member given the role by hand before Sophie's grant ran: the run completes, and no notice is queued.
@@ -399,5 +409,39 @@ export async function runShuttleActivitySuite(cluster, run) {
     await drain(granting);
     assert.equal((await activity.describe(await member(OWNER))).run.whitelist, 'confirmed');
     assert.equal((await rows('outbox')).filter(row => row.kind === 'whitelist.notice').length, 1);
+  }, 'open');
+
+  await scenario('SA18 focused time is credited to the stop left, never more than the time that passed, and once per request', async () => {
+    // Owner request, 25 October 2026: time to completion and the average time a page, counting only focused time.
+    let { run: shown } = await activity.board({ ...await member(OTHER), requestId: requestId() });
+    const session = (await rows('shuttle_activity_runs'))[0].session_id, started = now;
+    const timing = () => readRunTiming(pool, session);
+    assert.deepEqual(await timing(), { startedAtMs: started, lastActiveAtMs: started, completedAtMs: null, focusedMs: 0, pages: 0, stops: [], timed: false, fromStop: null });
+    // A claim of more than really passed is cut to what passed.
+    now += 10_000; const id = requestId();
+    ({ run: shown } = await activity.act({ ...await member(OTHER), requestId: id, action: 'advance', expectedVersion: shown.version, attention: { ms: 999_999, pages: 3 } }));
+    assert.deepEqual((await timing()).stops, [{ stop: 0, focusedMs: 10_000, pages: 3 }]);
+    // A replayed request credits nothing.
+    now += 5_000;
+    assert.equal((await activity.act({ ...await member(OTHER), requestId: id, action: 'advance', expectedVersion: 0, attention: { ms: 4_000, pages: 3 } })).duplicate, true);
+    assert.equal((await timing()).focusedMs, 10_000);
+    // Back credits the stop it leaves; a page count keeps its largest report.
+    ({ run: shown } = await activity.act({ ...await member(OTHER), requestId: requestId(), action: 'back', expectedVersion: shown.version, attention: { ms: 3_000, pages: 2 } }));
+    now += 2_000;
+    ({ run: shown } = await activity.act({ ...await member(OTHER), requestId: requestId(), action: 'advance', expectedVersion: shown.version, attention: { ms: 1_500, pages: 1 } }));
+    assert.deepEqual((await timing()).stops, [{ stop: 0, focusedMs: 11_500, pages: 3 }, { stop: 1, focusedMs: 3_000, pages: 2 }]);
+    // A client from before timing sends none: nothing is credited, and the run's clock still moves on.
+    now += 1_000;
+    ({ run: shown } = await activity.act({ ...await member(OTHER), requestId: requestId(), action: 'advance', expectedVersion: shown.version }));
+    assert.equal((await timing()).focusedMs, 14_500); assert.equal((await timing()).lastActiveAtMs, now);
+    while (shown.status === 'reading') {
+      now += 1_000;
+      ({ run: shown } = await activity.act({ ...await member(OTHER), requestId: requestId(), action: 'advance', expectedVersion: shown.version, attention: { ms: 1_000, pages: 1 } }));
+    }
+    const finished = await timing();
+    assert.equal(finished.completedAtMs, now); assert.equal(finished.timed, true); assert.equal(finished.fromStop, 0);
+    // Check while waiting for Whitelist credits no stop and keeps the completion time.
+    now += 200_000; await drainGrants();
+    assert.equal((await timing()).completedAtMs, finished.completedAtMs);
   }, 'open');
 }

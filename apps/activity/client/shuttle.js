@@ -1,6 +1,7 @@
 import { ANNOUNCEMENTS, CHUNK_LIMIT, CODEX, GAMES, KEYS, READ_CPS, REVEAL_MAX_MS, TEXT, TIPS, TYPE_CPS, canResetJourney, cueEvent, pageProgress, LINK_TIMEOUT_MS, linkRetryDelay, linkingText, clearanceDelay, cueSheet, dialogueControls, linkState, momentFor,
   presence, revealPoints, sceneStateFor, soundscape, speechMs, titleMenu, transmissionChunks, windowUser } from './presenter.js';
 import { parseMarkdown, plainText, renderMarkdown } from './markdown.js';
+import { createAttention } from './attention.js';
 
 const SETTINGS_KEY = 'shuttle.settings.v1', PLACE_KEY = 'shuttle.place.v1';
 const DEFAULT_SETTINGS = Object.freeze({ levels: { master: 100, music: 50, ambience: 70, radio: 80, effects: 80 }, sound: 'on', motion: 'system',
@@ -33,6 +34,9 @@ export function createShuttle({ document, api, connect, player, loadScene, sound
   // Text-synced moments reached on the page being read, and which page that is.
   let revealed = new Set(), revealPage = null;
   let settings = loadSettings();
+  // Focused reading time for the stop on screen, sent with the member's own Continue or Back (owner request, 25 October 2026).
+  const attention = createAttention({ now: () => timers.now(), focused: document.hasFocus?.() ?? true });
+  const syncReading = () => attention.set('reading', view === 'radio' && run?.status === 'reading');
 
   function loadSettings() {
     try {
@@ -73,7 +77,7 @@ export function createShuttle({ document, api, connect, player, loadScene, sound
     $('radio-menu').hidden = next !== 'radio';
     if (next !== 'radio') { setStatus(null); soundPanel(false); }
     if (next === 'radio') { timers.clear(tipTimer); tipTimer = null; }
-    placeSlot();
+    syncReading(); placeSlot();
   }
   /** Puts the splash prompt and the menu over the hangar's menu slot; without one they keep a corner of the stage. */
   /** The scene's link over its slot, while reading; hidden otherwise. */
@@ -123,7 +127,7 @@ export function createShuttle({ document, api, connect, player, loadScene, sound
     return new Promise((resolve, reject) => {
       const timer = timers.after(LINK_TIMEOUT_MS, () => reject(Object.assign(new Error('LINK_TIMEOUT'), { word: 'timeout' })));
       (async () => {
-        const connected = discord ?? await connect({ onLayout: mode => player.setPaused('pip', mode === 1), onThermal: state => player.setPaused('heat', state >= 2) });
+        const connected = discord ?? await connect({ onLayout: mode => { player.setPaused('pip', mode === 1); attention.set('pip', mode === 1); }, onThermal: state => player.setPaused('heat', state >= 2) });
         return { connected, next: connected === null ? { state: 'outside' } : await api.describe() };
       })().then(value => { timers.clear(timer); resolve(value); }, error => { timers.clear(timer); reject(error); });
     });
@@ -575,9 +579,12 @@ export function createShuttle({ document, api, connect, player, loadScene, sound
     sound.play('UI-03');
     await act('back');
   }
+  /** Continue, Back or Check with core, carrying the focused time on this stop and how many pages it has. */
   async function act(action) {
     await guarded(async () => {
-      const before = run, { run: next } = await api.act(action, run.version);
+      const before = run, pages = run.status === 'reading' ? chunks.length : 0, ms = attention.take();
+      let next;
+      try { ({ run: next } = await api.act(action, run.version, { ms, pages })); } catch (error) { attention.restore(ms); throw error; }
       if (next.status === 'pending' && before.status !== 'pending') pendingSince = timers.now();
       await enterRun(next, { atEnd: action === 'back' });
     });
@@ -867,6 +874,12 @@ export function createShuttle({ document, api, connect, player, loadScene, sound
     });
     document.addEventListener('visibilitychange', () => { sound.setHidden(document.hidden); returned(); });
     globalThis.addEventListener?.('focus', () => { returned(); });
+    // Focused reading time: what the member does, whether the page is seen, and whether its window has focus.
+    for (const type of ['keydown', 'pointerdown', 'pointermove', 'wheel', 'touchstart']) document.addEventListener(type, () => attention.input(), { passive: true });
+    document.addEventListener('scroll', () => attention.input(), { capture: true, passive: true });
+    document.addEventListener('visibilitychange', () => attention.set('visible', !document.hidden));
+    globalThis.addEventListener?.('focus', () => attention.set('focused', true));
+    globalThis.addEventListener?.('blur', () => attention.set('focused', false));
     // A resized or rotated window repaints the status window's art to its new room.
     let resizing = null;
     globalThis.addEventListener?.('resize', () => {

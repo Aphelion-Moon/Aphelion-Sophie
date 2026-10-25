@@ -48,10 +48,10 @@ test('T-ACT-CORE-02 run view: published pages, stop scenes, and Whitelist confir
   assert.throws(() => activityRunView({ session: session({ definitionVersion: 2 }), publication, whitelist: false }), error => error.code === 'DEFINITION_MISMATCH');
 });
 
-function fakeAuth({ now = () => NOW, instance = id => ({ application_id: APP, instance_id: id, location: { guild_id: GUILD }, users: [USER] }), observe = actorObservation } = {}) {
+function fakeAuth({ now = () => NOW, instance = id => ({ application_id: APP, instance_id: id, location: { guild_id: GUILD }, users: [USER] }), observe = actorObservation, exchanged = [] } = {}) {
   const identities = new WeakMap();
-  return createActivityAuth({ applicationId: APP, guildId: GUILD, clock: now, enabled: () => true,
-    oauth: { async exchangeActivity(code) { const proof = Object.freeze({}); identities.set(proof, code); return { proof, accessToken: 'access-token-synthetic', expiresIn: 600, scopes: ['identify'] }; },
+  return createActivityAuth({ applicationId: APP, guildId: GUILD, clock: now, enabled: () => true, pause: async () => {},
+    oauth: { async exchangeActivity(code) { exchanged.push(code); const proof = Object.freeze({}); identities.set(proof, code); return { proof, accessToken: 'access-token-synthetic', expiresIn: 600, scopes: ['identify'] }; },
       resolveIdentity: proof => ({ guildId: GUILD, userId: identities.get(proof) }) },
     instances: async id => instance(id), discord: { observeActor: async userId => observe(userId) } });
 }
@@ -79,6 +79,20 @@ test('T-ACT-CORE-03 sign-in needs a running instance in this server with the mem
   auth.signOut(other.token);
   await assert.rejects(auth.authenticate(other.token), error => error.code === 'ACTIVITY_SESSION_INVALID');
   await assert.rejects(auth.resolvePrincipal(Object.freeze({ guildId: GUILD, userId: USER })), error => error.code === 'UNTRUSTED_PRINCIPAL');
+});
+
+test('T-ACT-CORE-03b a sign-in whose member read is overtaken tries the read again and never spends the code twice', async () => {
+  // Owner log review, 25 October 2026: OBSERVATION_INVALIDATED, then three OAUTH_PROVIDER_UNAVAILABLE resends of a spent code.
+  const exchanged = []; let reads = 0, lists = 0;
+  const auth = fakeAuth({ exchanged, observe: userId => { if (++reads < 3) throw new ContractError('OBSERVATION_INVALIDATED'); return actorObservation(userId); },
+    instance: id => ({ application_id: APP, instance_id: id, location: { guild_id: GUILD }, users: ++lists < 2 ? [] : [USER] }) });
+  assert.match((await auth.signIn({ code: USER, instanceId: INSTANCE })).token, /^[a-f0-9]{64}$/);
+  assert.deepEqual(exchanged, [USER]); assert.equal(reads, 3);
+  // A refusal is not retried; a read that keeps failing gives up after three more tries.
+  reads = 0;
+  await assert.rejects(fakeAuth({ observe: () => { reads++; throw new ContractError('OBSERVATION_INVALIDATED'); } }).signIn({ code: USER, instanceId: INSTANCE }),
+    error => error.code === 'OBSERVATION_INVALIDATED');
+  assert.equal(reads, 4);
 });
 
 test('T-ACT-CORE-04 core principals try interactions, then the dashboard, then the Activity', async () => {
@@ -184,6 +198,13 @@ test('T-ACT-CORE-08 API routes: bearer sign-in, fresh member context, closed sha
     await request('/api/shuttle/act', { method: 'POST', body: { requestId: 'd'.repeat(32), action: 'back', expectedVersion: 4 } });
     assert.equal(woken(), 1);
     assert.equal((await request('/api/shuttle/act', { method: 'POST', body: 'not an object' })).status, 400);
+    // Focused reading time (owner request, 25 October 2026): optional, closed, bounded, and passed beside the request.
+    const timed = { requestId: 'b'.repeat(32), action: 'back', expectedVersion: 5 };
+    assert.equal(calls.filter(([name]) => name === 'act')[1][1].attention, null, 'a client from before it sends none');
+    assert.equal((await request('/api/shuttle/act', { method: 'POST', body: { ...timed, attention: { ms: 61_000, pages: 4 } } })).status, 200);
+    assert.deepEqual(calls.filter(([name]) => name === 'act').at(-1)[1].attention, { ms: 61_000, pages: 4 });
+    for (const attention of [{ ms: -1, pages: 1 }, { ms: 3_600_001, pages: 1 }, { ms: 1, pages: 65 }, { ms: 1.5, pages: 1 }, { ms: 1 }, { ms: 1, pages: 1, at: 2 }, null, [1, 2]])
+      assert.equal((await request('/api/shuttle/act', { method: 'POST', body: { ...timed, attention } })).status, 400, JSON.stringify(attention));
     assert.equal((await request('/api/shuttle/act', { method: 'POST', body: { requestId: 'd'.repeat(32) }, headers: { 'content-type': 'text/plain' } })).status, 400);
     // Reset journey: the member's own fresh context, a closed body, and only whether something was reset.
     const reset = await request('/api/shuttle/reset', { method: 'POST', body: { requestId: 'c'.repeat(32) } });

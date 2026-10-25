@@ -194,6 +194,15 @@ test('T-ACT-CLI-07 API client: one request key per click across retries; refusal
   assert.equal(insideDiscord('?instance_id=i-1'), false);
 });
 
+test('T-ACT-CLI-07b a sign-in is never resent with the same Discord code; the caller gets a fresh one', async () => {
+  // Owner log review, 25 October 2026: a busy first try spent the code, and each resend of it was refused.
+  const codes = [];
+  const api = createShuttleApi({ randomBytes: count => new Uint8Array(count).fill(171), wait: async () => {},
+    fetch: async (path, options) => { codes.push(JSON.parse(options.body).code); return new Response('{}', { status: 503 }); } });
+  await assert.rejects(api.signIn({ code: 'c1', instanceId: 'i-1' }), error => error.word === 'retry');
+  assert.deepEqual(codes, ['c1']);
+});
+
 test('T-ACT-CLI-08 the listener serves the page, its module graph, the pinned SDK, font, scenes and sounds, and nothing else', async () => {
   const assets = await loadActivityClient(root);
   for (const path of ['/', '/apps/activity/client/app.js', '/apps/activity/client/shuttle.js', '/apps/activity/scene-player.js', '/modules/onboarding/scenes.js',

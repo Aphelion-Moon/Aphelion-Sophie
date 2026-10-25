@@ -2,6 +2,7 @@ import { createServer } from 'node:http';
 import { ContractError, requireCondition, requireId } from '../../../contracts/validation.js';
 import { validateActivityConfiguration } from '../../../modules/onboarding/activity.js';
 import { DiscordError } from '../discord/transport.js';
+import { requireActivityAttention } from '../storage/shuttle-timing.js';
 
 // Scripts, styles, fonts, sounds and API calls come from this origin only; no inline code, frames or third parties.
 const PAGE_CSP = "default-src 'none'; script-src 'self'; style-src 'self'; font-src 'self'; img-src 'self'; media-src 'self'; connect-src 'self'; base-uri 'none'; form-action 'none'";
@@ -258,11 +259,13 @@ export function createActivityHttpServer({ configuration, applicationId, guildId
       send(response, 200, { run: (await withChannels(result, seen)).run }); return;
     }
     if (path === '/api/shuttle/act' && request.method === 'POST') {
-      const body = await readJson(request); only(body, ['requestId', 'action', 'expectedVersion']);
+      // The focused time on the stop being left (owner request, 25 October 2026); a client from before it sends none.
+      const body = await readJson(request); only(body, Object.hasOwn(body, 'attention') ? ['requestId', 'action', 'expectedVersion', 'attention'] : ['requestId', 'action', 'expectedVersion']);
+      const attention = Object.hasOwn(body, 'attention') ? requireActivityAttention(body.attention) : null;
       if (ACTIONS.has(body.action)) seen.action = body.action;
       if (Number.isSafeInteger(body.expectedVersion)) seen.expectedVersion = body.expectedVersion;
       const result = await attempt(async () => store.act({ ...await member(request, seen), requestId: body.requestId, action: body.action,
-        expectedVersion: body.expectedVersion }), seen);
+        expectedVersion: body.expectedVersion, attention }), seen);
       remember(seen.userId, result); seen.phase = 'extras';
       await withChannels(result, seen);
       // A recorded grant intent is delivered now rather than at the next interval.

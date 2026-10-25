@@ -9,6 +9,7 @@ import { createMemberOperation } from './members.js';
 import { getDefinition, getPublication, getSession, saveSession } from './onboarding-records.js';
 import { receipt, saveReceipt } from './receipts.js';
 import { enqueue } from './outbox.js';
+import { requireActivityAttention } from './shuttle-timing.js';
 
 // Receipts are keyed per member, so one member's request key can never replay another's.
 const receiptId = (userId, requestId) => `activity.${createHash('sha256').update(`${userId}:${requestId}`).digest('hex')}`;
@@ -95,6 +96,25 @@ export function createShuttleActivityStore({ pool, clock, authorize, definitionI
     return Object.defineProperty(activityRunView({ session, publication, whitelist: member.observation.whitelist === true, layout }),
       'arrivalChannels', { value: layout.arrival, enumerable: false });
   }
+  /**
+   * Credits the focused time a Continue, Back or Check reports to the stop it leaves (owner request, 25 October 2026), at
+   * most the time that really passed since the run's last report or its boarding, so no client can claim more. A finished
+   * run keeps its first completion time.
+   */
+  async function recordAttention(client, before, after, attention) {
+    const now = clock(), credited = before.status === 'active' && attention !== null && (attention.ms > 0 || attention.pages > 0);
+    // One round trip: the run's last report is read before it moves on, and the credit is capped by the time since.
+    await client.query(`WITH previous AS (
+        SELECT session_id, coalesce(attention_at_ms, started_at_ms) AS since FROM sophie_core.shuttle_activity_runs WHERE session_id = $1 FOR UPDATE),
+      moved AS (UPDATE sophie_core.shuttle_activity_runs r SET attention_at_ms = $2,
+          completed_at_ms = CASE WHEN $3 THEN coalesce(r.completed_at_ms, $2) ELSE r.completed_at_ms END
+        FROM previous p WHERE r.session_id = p.session_id RETURNING p.since)
+      INSERT INTO sophie_core.shuttle_activity_attention (session_id, stop, active_ms, pages)
+        SELECT $1, $4, LEAST($5::bigint, GREATEST(0, $2::bigint - since)), $6 FROM moved WHERE $7
+      ON CONFLICT (session_id, stop) DO UPDATE SET active_ms = shuttle_activity_attention.active_ms + EXCLUDED.active_ms,
+        pages = GREATEST(shuttle_activity_attention.pages, EXCLUDED.pages)`,
+    [before.id, now, before.status === 'active' && after.status !== 'active', before.stepIndex, attention?.ms ?? 0, attention?.pages ?? 0, credited]);
+  }
   async function replay(client, member, previous) {
     const session = await getSession(client, previous.sessionId, member.guildId, member.userId);
     return { duplicate: true, run: await view(client, session, member) };
@@ -156,10 +176,14 @@ export function createShuttleActivityStore({ pool, clock, authorize, definitionI
       });
     },
 
-    /** Continue, Back or Check. The client names the version it showed; anything else is out of date. */
-    async act({ actor, observe, requestId, action, expectedVersion }) {
+    /**
+     * Continue, Back or Check. The client names the version it showed; anything else is out of date. `attention` is the
+     * focused time on the stop being left and its page count, recorded with the change (never on a replay).
+     */
+    async act({ actor, observe, requestId, action, expectedVersion, attention = null }) {
       requireActivityRequestId(requestId); requireInteger(expectedVersion);
       requireCondition(ACTIVITY_ACTIONS.includes(action), 'INVALID_SHUTTLE_ACTION');
+      if (attention !== null) requireActivityAttention(attention);
       const { allowed, observation } = await admission(actor, observe);
       return memberOperation(observation, async (client, member) => {
         admit(allowed, member);
@@ -175,6 +199,7 @@ export function createShuttleActivityStore({ pool, clock, authorize, definitionI
         const command = { guildId: member.guildId, userId: member.userId, expectedVersion, nonce: session.nonce, nextNonce: randomBytes(16).toString('hex') };
         const change = ACTIONS[action](session, member, definition, command, clock());
         await saveSession(client, change.session, member);
+        await recordAttention(client, session, change.session, attention);
         // deliverWhitelist false queues no grant (the run waits at the door until the role appears). Production grants since
         // 24 October 2026 (owner decision); the option stays for runtimes where another bot grants it.
         const effects = deliverWhitelist ? change.effects : change.effects.filter(effect => !String(effect.kind).startsWith('whitelist.'));

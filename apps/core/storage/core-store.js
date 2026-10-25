@@ -20,6 +20,8 @@ import { createOnboardingDeliveryIssueStore } from './onboarding-delivery-issues
 import { getDefinition, getSession, saveSession } from './onboarding-records.js';
 import { inTransaction } from './transaction.js';
 import { enqueue, finishClaim, lockClaim, validateClaim } from './outbox.js';
+import { readRunTiming } from './shuttle-timing.js';
+import { runTimingSummary } from '../../../modules/onboarding/timing.js';
 
 async function queueReconciliation(client, member, sourceOperation, suffix = 'reconcile') {
   await enqueue(client, { kind: 'whitelist.reconcile', guildId: member.guildId, userId: member.userId,
@@ -282,8 +284,11 @@ export function createCoreStore({ pool, clock, authorize, authorizeRecorded = as
           // Sophie's own grant (confirmed after her add, or found in place after an add she may already have made) is
           // announced to Staff, with the confirmation and at most once (owner request, 24 October 2026). A role someone
           // else gave is not hers to announce.
+          // It carries the Activity run's focused reading time (owner request, 25 October 2026); null for a channel Shuttle
+          // or a run from before timing.
           if (whitelistNotices && (confirm || job.dispatch_started)) await enqueue(client, { kind: 'whitelist.notice',
-            operationId: `${claim.operationId}.notice`, guildId: member.guildId, userId: member.userId, sessionId: session.id });
+            operationId: `${claim.operationId}.notice`, guildId: member.guildId, userId: member.userId, sessionId: session.id,
+            timing: runTimingSummary(await readRunTiming(client, session.id), clock()) });
           return { deliver: false, confirmed: true, session: complete };
         }
         // Revalidate the fence after lock waits and mark the possible external effect durably.

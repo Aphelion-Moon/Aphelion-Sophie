@@ -2,13 +2,20 @@ import { createHash } from 'node:crypto';
 import { requireCondition, requireId, requireName } from '../../../contracts/validation.js';
 import { commonParkedCodes } from '../../../contracts/delivery-errors.js';
 import { settleDeliveryFailure } from './delivery-failure.js';
+import { timingLine } from '../../../modules/onboarding/timing.js';
 
 const QUIET = Object.freeze({ parse: [], users: [], roles: [], replied_user: false });
 
-/** The notice for Staff: who was given Whitelist, by mention (shown as their name, never notified). Fixed wording. */
-export function whitelistNotice(userId) {
+/**
+ * The notice for Staff: who was given Whitelist, by mention (shown as their name, never notified), then how long their
+ * Activity run took: focused time, time from boarding, pages and the average a page (owner request, 25 October 2026),
+ * or that it was not recorded (a channel Shuttle, or a run from before timing). Fixed wording.
+ */
+export function whitelistNotice(userId, timing = null) {
   requireId(userId);
-  return { content: `**Whitelist granted** · <@${userId}> finished the Arrivals Shuttle and Sophie gave them Whitelist.`, allowed_mentions: { ...QUIET } };
+  const time = timing === null ? 'Reading time not recorded for this run.' : timingLine('Time to completion', timing);
+  return { content: `**Whitelist granted** · <@${userId}> finished the Arrivals Shuttle and Sophie gave them Whitelist.
+${time}`, allowed_mentions: { ...QUIET } };
 }
 
 /**
@@ -33,7 +40,7 @@ export function createWhitelistNoticeDispatcher({ outbox, transport, channelId, 
         requireCondition(claim.guildId === transport.guildId, 'ROLE_CONFIGURATION_INVALID');
         await outbox.requireDeliveryReady(claim);
         possiblyAttempted = true;
-        await transport.createWhitelistNotice(channelId, createHash('sha256').update(claim.operationId).digest('hex').slice(0, 24), whitelistNotice(job.userId));
+        await transport.createWhitelistNotice(channelId, createHash('sha256').update(claim.operationId).digest('hex').slice(0, 24), whitelistNotice(job.userId, job.timing ?? null));
         await outbox.finish(claim);
         return { status: 'settled' };
       } catch (error) {
