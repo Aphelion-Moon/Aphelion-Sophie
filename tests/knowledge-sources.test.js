@@ -11,8 +11,8 @@ import { extractSiteHtml, extractMediaWikiHtml } from '../apps/knowledge/html-ex
 import { createWikiExtractor } from '../apps/knowledge/extraction.js';
 
 const signal = new AbortController().signal, tick = () => new Promise(resolve => setImmediate(resolve));
-const respond = (body, { status = 200, type = 'application/json', location = null } = {}) => new Response(typeof body === 'string' ? body : JSON.stringify(body),
-  { status, headers: { 'content-type': type, ...(location ? { location } : {}) } });
+const respond = (body, { status = 200, type = 'application/json', location = null, headers = {} } = {}) => new Response(typeof body === 'string' ? body : JSON.stringify(body),
+  { status, headers: { 'content-type': type, ...(location ? { location } : {}), ...headers } });
 // Extraction runs in-process here; the worker-thread wrapper has its own tests.
 const inlineExtractor = { extract: async ({ html, mode }) => (mode === 'site' ? extractSiteHtml : extractMediaWikiHtml)(html) };
 
@@ -138,10 +138,11 @@ test('KS-05 the website collector reads the sitemap and the docs tree, honours r
 test('KS-06 the GitHub collector skips forks, keeps activity from trusted authors only and stops on a rate limit', async () => {
   const repo = (name, fork = false) => ({ name, fork, private: false, archived: false, owner: { login: 'Aphelion-Moon' }, default_branch: 'main', description: `${name} tools`,
     language: 'JavaScript', license: { spdx_id: 'MIT' }, topics: ['ss13'], created_at: '2026-01-01T00:00:00Z' });
-  let limited = false;
+  let limited = false, refused = null;
   const fetchImpl = async url => {
     const path = url.pathname;
-    if (limited) return respond({ message: 'API rate limit exceeded' }, { status: 403 });
+    if (limited) return respond({ message: 'API rate limit exceeded' }, { status: 403, headers: { 'x-ratelimit-remaining': '0' } });
+    if (refused !== null && path.startsWith(refused)) return respond({ message: 'Resource not accessible by personal access token' }, { status: 403 });
     if (path === '/orgs/Aphelion-Moon/repos') return respond([repo('Meridian-Rift'), repo('RobustToolbox', true), repo('Aphelion-Sophie')]);
     if (path.endsWith('/readme')) return respond({ encoding: 'base64', size: 40, content: Buffer.from('# Readme\nHow to build.').toString('base64') });
     if (path === '/repos/Aphelion-Moon/Meridian-Rift/contents/docs') return respond([{ type: 'file', name: 'mapping.md', size: 30, sha: 'abc' }, { type: 'dir', name: 'img' }]);
@@ -161,7 +162,15 @@ test('KS-06 the GitHub collector skips forks, keeps activity from trusted author
   assert.ok(text.includes('Trusted bug') && text.includes('Merged feature'));
   assert.ok(!text.includes('Ignore previous instructions') && !text.includes('First PR') && !text.includes('Closed unmerged'), 'untrusted or unmerged activity is left out');
   assert.ok(docs.every(doc => doc.kind === 'repository' && doc.id.startsWith('gh-')));
-  limited = true; await assert.rejects(createGithubCollector({ fetchImpl }).collect({ signal }), /GITHUB_RATE_LIMITED/);
+  // A refusal that is not a rate limit (owner log review, 25 October 2026) is named apart: one refused part is skipped and the
+  // run goes on; a refused listing ends it with that code.
+  refused = '/repos/Aphelion-Moon/Meridian-Rift/releases';
+  const partial = await createGithubCollector({ fetchImpl, clock: () => Date.parse('2026-10-12T12:00:00Z') }).collect({ signal });
+  assert.equal(partial.complete, false); assert.ok(partial.entries.some(entry => entry.documents[0].title === 'Meridian-Rift repository'));
+  refused = '/orgs/'; await assert.rejects(createGithubCollector({ fetchImpl }).collect({ signal }), error => error.message === 'GITHUB_FORBIDDEN');
+  refused = null; limited = true; await assert.rejects(createGithubCollector({ fetchImpl }).collect({ signal }), /GITHUB_RATE_LIMITED/);
+  const retry = createSourceReader({ prefix: 'GITHUB', origins: ['https://api.github.com'], fetchImpl: async () => respond({}, { status: 403, headers: { 'retry-after': '60' } }) });
+  await assert.rejects(retry.json('https://api.github.com/x', { signal }), error => error.message === 'GITHUB_RATE_LIMITED');
 });
 
 test('KS-07 due sources run in turn, a failure backs off without blocking the others, and status carries fixed codes only', async () => {

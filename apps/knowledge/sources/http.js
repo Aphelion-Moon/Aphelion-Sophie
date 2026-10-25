@@ -23,7 +23,13 @@ export function createSourceReader({ fetchImpl = fetch, origins, prefix }) {
         url = new URL(location, url); continue;
       }
       if (allowMissing && response.status === 404) { await response.body?.cancel().catch(() => {}); return null; }
-      if (response.status === 403 || response.status === 429) { await response.body?.cancel().catch(() => {}); throw new Error(`${prefix}_RATE_LIMITED`); }
+      // A rate limit is a 429, or a 403 that says so (GitHub: no requests remaining, or a retry-after). Any other 403 is a
+      // refusal of that resource, named apart so the log says which (owner log review, 25 October 2026: an hourly
+      // GITHUB_RATE_LIMITED with a token configured).
+      if (response.status === 429 || (response.status === 403 && (response.headers.get('x-ratelimit-remaining') === '0' || response.headers.has('retry-after')))) {
+        await response.body?.cancel().catch(() => {}); throw new Error(`${prefix}_RATE_LIMITED`);
+      }
+      if (response.status === 403) { await response.body?.cancel().catch(() => {}); throw new Error(`${prefix}_FORBIDDEN`); }
       if (!response.ok) { await response.body?.cancel().catch(() => {}); throw new Error(`${prefix}_RESPONSE_INVALID`); }
       const declared = response.headers.get('content-length');
       if (declared !== null && (!/^\d+$/u.test(declared) || Number(declared) > maxBytes)) { await response.body?.cancel().catch(() => {}); throw new Error(`${prefix}_RESPONSE_LIMIT`); }
