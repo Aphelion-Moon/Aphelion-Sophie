@@ -239,6 +239,24 @@ export async function runAiControlsSuite(cluster, run) {
     await admin.query('UPDATE sophie_ai.qualifications SET active=false WHERE guild_id=$1', [actor.guildId]);
     bodyReads = 0; assert.equal(await admission.admit(event('607')), null); assert.equal(bodyReads, 0);
   });
+  await run('AI12b AI switched off is traced once while it stays off, and again after it was on in between', async () => {
+    // Owner log review, 25 October 2026: AI_ADMISSION_SKIPPED_AI_DISABLED was written for every message in the server.
+    const reasons = [], lane = createAiIngress({ guildId: actor.guildId, botUserId: '505', clock: Date.now });
+    const quiet = createAiAdmission({ pool, guildId: actor.guildId, ingress: lane, clock: Date.now, trace: reason => reasons.push(reason),
+      inspectContext: async () => ({ eligible: false }), inspectMember: async () => ({ eligible: false }) });
+    const send = id => quiet.admit(lane.prepare({ t: 'MESSAGE_CREATE', d: { guild_id: actor.guildId, channel_id: '303', id, author: { id: actor.userId, bot: false }, type: 0, mentions: [], content: 'Synthetic hello' } }));
+    const was = (await admin.query('SELECT disabled FROM sophie_ai.state WHERE guild_id=$1', [actor.guildId])).rows[0].disabled;
+    try {
+      await admin.query('UPDATE sophie_ai.state SET disabled=true WHERE guild_id=$1', [actor.guildId]);
+      for (const id of ['6071', '6072', '6073']) assert.equal(await send(id), null);
+      assert.deepEqual(reasons.filter(reason => reason === 'AI_DISABLED'), ['AI_DISABLED']);
+      await admin.query('UPDATE sophie_ai.state SET disabled=false WHERE guild_id=$1', [actor.guildId]);
+      await send('6074').catch(() => null);
+      await admin.query('UPDATE sophie_ai.state SET disabled=true WHERE guild_id=$1', [actor.guildId]);
+      assert.equal(await send('6075'), null);
+      assert.equal(reasons.filter(reason => reason === 'AI_DISABLED').length, 2, reasons.join(','));
+    } finally { await admin.query('UPDATE sophie_ai.state SET disabled=$2 WHERE guild_id=$1', [actor.guildId, was]); }
+  });
   const accounting = createAiAccounting({ pool, guildId: actor.guildId });
   let budgetRevision = 0, nextId = 800;
   const budget = { ...DEFAULT_AI_BUDGET, priceValidUntil: Date.now() + 3600000 };

@@ -15,6 +15,9 @@ export function createAiAdmission({ pool, guildId, ingress, inspectContext, insp
   let generation = 0;
   // Fixed reason codes only (never message text, IDs or names) so an operator can see why a message was not admitted.
   const skip = reason => { try { trace(reason); } catch { /* Tracing never affects admission. */ } return null; };
+  // AI switched off is said once, not for every message the server sees while it stays off (owner log review, 25 October
+  // 2026: 4,618 lines in two days). It is said again after AI has been on in between.
+  let disabledSaid = false;
   async function noticeMatches(consent) {
     const notice = await readNotice();
     if (notice?.approved !== true || !Number.isSafeInteger(notice.revision) || notice.revision < noticeRevision || notice.revision !== consent.notice_revision) return false;
@@ -25,7 +28,8 @@ export function createAiAdmission({ pool, guildId, ingress, inspectContext, insp
     const version = generation;
     if (!await privacyCurrent(event.userId,client===pool?null:client)) return skip('PRIVACY_NOT_CURRENT');
     const state = (await client.query('SELECT * FROM sophie_ai.state WHERE guild_id=$1', [guildId])).rows[0];
-    if (!state || state.disabled) return skip('AI_DISABLED');
+    if (!state || state.disabled) { if (disabledSaid) return null; disabledSaid = true; return skip('AI_DISABLED'); }
+    disabledSaid = false;
     const rows = (await client.query(`SELECT kind,revision,document,sha256 FROM sophie_ai.publications WHERE guild_id=$1 AND
       ((kind='configuration' AND revision=$2) OR (kind='personality' AND revision=$3))`, [guildId, state.configuration_revision, state.personality_revision])).rows;
     const configuration = rows.find(row => row.kind === 'configuration'), personality = rows.find(row => row.kind === 'personality');
