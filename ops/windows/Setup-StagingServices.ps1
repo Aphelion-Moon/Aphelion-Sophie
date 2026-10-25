@@ -99,7 +99,7 @@ if (-not (Get-CimInstance Win32_Service -Filter "Name='aphelion-bot-tunnel'")) {
  <executable>$Connector</executable>
  <arguments>tunnel --no-autoupdate --loglevel fatal --transport-loglevel fatal --metrics 127.0.0.1:38123 run --token-file "$TunnelToken"</arguments>
  <serviceaccount><domain>NT SERVICE</domain><user>aphelion-bot-tunnel</user></serviceaccount>
- <startmode>Manual</startmode><stoptimeout>10 sec</stoptimeout><onfailure action="none"/>
+ <startmode>Manual</startmode><stoptimeout>10 sec</stoptimeout><onfailure action="restart" delay="10 sec"/><onfailure action="restart" delay="10 sec"/><onfailure action="restart" delay="10 sec"/><resetfailure>1 day</resetfailure>
  <logpath>$(Join-Path $InstallRoot 'logs\tunnel')</logpath><log mode="roll-by-size"><sizeThreshold>1024</sizeThreshold><keepFiles>2</keepFiles></log>
 </service>
 "@ | Set-Content -LiteralPath (Join-Path $TunnelDirectory 'aphelion-bot-tunnel.xml') -Encoding utf8NoBOM

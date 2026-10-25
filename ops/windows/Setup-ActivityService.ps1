@@ -91,7 +91,7 @@ if (-not (Get-CimInstance Win32_Service -Filter "Name='$Id'")) {
  <workingdirectory>$Destination</workingdirectory>
  <serviceaccount><domain>NT SERVICE</domain><user>$Id</user></serviceaccount>
  <startmode>Manual</startmode><stoptimeout>10 sec</stoptimeout><stopparentprocessfirst>true</stopparentprocessfirst>
- <onfailure action="none"/>
+ <onfailure action="restart" delay="10 sec"/><onfailure action="restart" delay="10 sec"/><onfailure action="restart" delay="10 sec"/><resetfailure>1 day</resetfailure>
  <env name="NODE_OPTIONS" value=""/><env name="NODE_PATH" value=""/>
  <env name="HTTP_PROXY" value=""/><env name="HTTPS_PROXY" value=""/><env name="ALL_PROXY" value=""/>
  <logpath>$Logs</logpath><log mode="roll-by-size"><sizeThreshold>1024</sizeThreshold><keepFiles>2</keepFiles></log>
