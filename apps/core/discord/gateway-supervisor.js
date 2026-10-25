@@ -6,8 +6,9 @@ import { gatewayClosePolicy, gatewayDiscovery, gatewayWireUrl, parseGatewayFrame
  * enabled is a synchronous operator/recovery gate, independent of Gateway health.
  */
 // renewMs: how often the Gateway ownership lease is renewed; a third of the journal's lease (10 s of 30 s by default).
+// onTrace(code, context) receives codes and counts only, never payloads or credentials.
 export function createGatewaySupervisor({ observer, transport, connect, token, clock, random, enabled,
-  timers = { setTimeout, clearTimeout }, renewMs = 10_000 }) {
+  timers = { setTimeout, clearTimeout }, renewMs = 10_000, onTrace = () => {} }) {
   requireCondition(typeof token === 'string' && token.length >= 20 && token.length <= 2_000 && !/\s/.test(token), 'DISCORD_TOKEN_REQUIRED');
   const intents = observer.intents ?? 3;
   requireCondition([3, 33283].includes(intents), 'GATEWAY_INTENTS_INVALID');
@@ -22,6 +23,7 @@ export function createGatewaySupervisor({ observer, transport, connect, token, c
   requireInteger(renewMs, 1_000, 100_000);
   function now() { const value = clock(); requireInteger(value); return value; }
   const snapshot = () => ({ phase, code, failures });
+  const trace = (event, context) => { try { onTrace(event, context); } catch { /* Diagnostics never affect the Gateway. */ } };
   const pauseReason = reason => reason === 'GATEWAY_HEARTBEAT_MISSED' ? 'HEARTBEAT_MISSED' :
     reason === 'GATEWAY_STOPPED' ? 'STOPPED' : ['GATEWAY_PROCESSING_FAILED', 'GATEWAY_PAYLOAD_INVALID',
       'GATEWAY_SUPERVISOR_FAILED', 'GATEWAY_AUTHENTICATION_FAILED'].includes(reason) ? 'PROCESSING_FAILED' : 'DISCONNECTED';
@@ -148,7 +150,9 @@ export function createGatewaySupervisor({ observer, transport, connect, token, c
           work.then(() => {
             if (closed) return;
             if (established) { timers.clearTimeout(deadlineTimer); phase = 'observing'; }
-          }, () => finish({ code: 'GATEWAY_PROCESSING_FAILED', fatal: true }));
+          // Nothing past the recorded cursor was committed, so the connection is replaced rather than the Gateway halted
+          // (production, 25 October 2026: one unrecorded dispatch stopped Sophie until an operator restarted her).
+          }, () => finish({ code: 'GATEWAY_PROCESSING_FAILED' }));
         } catch { finish({ code: 'GATEWAY_PAYLOAD_INVALID', fatal: true }); }
       }
       try {
@@ -193,10 +197,15 @@ export function createGatewaySupervisor({ observer, transport, connect, token, c
         handle = next.connection;
         if (!running) break;
         const result = await session({ ...next, url: next.resume?.resumeUrl ?? discovered.url, discoveredAt });
-        resumable = result.resume;
+        const processing = result.code === 'GATEWAY_PROCESSING_FAILED';
+        // A dispatch that could not be recorded is first replayed by Resume. If the connection after it fails the same way
+        // before a healthy minute resets the count, a fresh Identify rebuilds the state without that event.
+        resumable = result.resume && !(processing && failures > 0 && code === 'GATEWAY_PROCESSING_FAILED');
         if (running) code = result.code;
         if (result.fatal) { running = false; break; }
         if (!running) break;
+        if (processing) { const failure = observer.readFailure?.() ?? null; trace('GATEWAY_RECONNECTING', { cause: result.code,
+          code: failure?.cause, stage: failure?.event, phase: resumable ? 'resume' : 'identify', tries: failures + 1 }); }
         if (result.code !== 'GATEWAY_IDENTIFY_LIMIT') requireCondition(++failures < 10, 'GATEWAY_RETRY_LIMIT');
         phase = 'waiting';
         await delay(Math.max(result.waitMs, Math.min(60_000, 1_000 * 2 ** Math.max(0, failures - 1)) + Math.floor(jitter() * 1_000)));
@@ -209,6 +218,8 @@ export function createGatewaySupervisor({ observer, transport, connect, token, c
       await renewalWork;
       if (handle) { try { await observer.pause(handle, pauseReason(code)); } catch { code = 'GATEWAY_STORAGE_UNAVAILABLE'; } }
       phase = code === 'GATEWAY_STOPPED' ? 'stopped' : 'halted';
+      if (phase === 'halted') { const failure = observer.readFailure?.() ?? null;
+        trace('GATEWAY_HALTED', { cause: code, code: failure?.cause, stage: failure?.event, tries: failures }); }
     }
     return snapshot();
   }

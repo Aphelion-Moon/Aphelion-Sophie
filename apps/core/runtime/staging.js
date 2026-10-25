@@ -161,7 +161,7 @@ export async function createStagingRuntime({ configuration, pool, aiControlPool 
   // 24 October 2026). Nothing is kept once it settles, so a later caller always checks afresh.
   let gating = null;
   const enabled = () => gating ??= (async () => await databaseActive() && await observer.isCurrent())().finally(() => { gating = null; });
-  const gateway = createGatewaySupervisor({ observer, transport, connect, token, clock, random, enabled: active, renewMs: Math.floor(gatewayLeaseMs / 3) });
+  const gateway = createGatewaySupervisor({ observer, transport, connect, token, clock, random, enabled: active, renewMs: Math.floor(gatewayLeaseMs / 3), onTrace: trace });
   const verifier = createInteractionVerifier({ publicKeyHex: fixed.publicKeyHex, applicationId: fixed.applicationId, guildId: fixed.mapping.guildId, clock });
   const authRoles = createDiscordRoles({ transport: createDiscordTransport({ guildId: fixed.mapping.guildId, token, fetch, clock, enabled, scope: runtimeScope(fixed), limits: rateLimits }),
     mapping: fixed.mapping, clock, readContinuity: observer.readContinuity });

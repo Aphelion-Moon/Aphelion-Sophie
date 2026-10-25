@@ -5,6 +5,12 @@ import { projectGatewayDispatch } from './gateway-projection.js';
 // The longest a boundary read waits for dispatches already received to be recorded.
 const SETTLE_MS = 750;
 
+// Codes only: a contract or SQLSTATE code, or a fixed word. Never an error message, payload or query.
+function failureCause(error) {
+  if (typeof error?.code === 'string' && /^[A-Z0-9_]{1,64}$/u.test(error.code)) return error.code;
+  return /timeout exceeded when trying to connect/u.test(String(error?.message)) ? 'DATABASE_POOL_TIMEOUT' : 'UNEXPECTED_ERROR';
+}
+
 /** Core socket supervisor owns this interface. It is never an HTTP/component handler. */
 export function createGatewayObserver({ journal, mapping, applicationId, clock, capacity = 64, ai = null }) {
   validateRoleMapping(mapping); requireId(applicationId); requireInteger(capacity, 1, 256);
@@ -15,6 +21,8 @@ export function createGatewayObserver({ journal, mapping, applicationId, clock, 
   // revision advances on every dispatch; connections only when a connection stops or starts.
   let lease = null, connection = null, sessionId = null, revision = 0, connections = 0;
   let pending = 0, failed = true, acknowledgedAt = null, healthyUntil = 0;
+  // The first dispatch on the current connection that could not be recorded: its event type and cause, for the log.
+  let failure = null;
   let tail = Promise.resolve();
   const own = value => requireCondition(value === connection && connection !== null, 'GATEWAY_CONNECTION_STALE');
   const healthy = () => !failed && pending === 0 && acknowledgedAt !== null && clock() >= acknowledgedAt && clock() < healthyUntil;
@@ -30,7 +38,7 @@ export function createGatewayObserver({ journal, mapping, applicationId, clock, 
     await stop('DISCONNECTED');
     const previous = resume ? await journal.resume(lease) : (await journal.identify(lease), null);
     connection = Object.freeze({}); sessionId = previous?.sessionId ?? null;
-    failed = false; revision++;
+    failed = false; failure = null; revision++;
     return { connection, resume: previous };
   }
   async function readContinuity() {
@@ -71,15 +79,19 @@ export function createGatewayObserver({ journal, mapping, applicationId, clock, 
     async isCurrent() { return await readContinuity() !== null; },
     async renew() { requireCondition(lease !== null, 'GATEWAY_NOT_ACQUIRED'); await journal.renew(lease); },
     async reserveIdentify() { requireCondition(lease !== null, 'GATEWAY_NOT_ACQUIRED'); return journal.reserveIdentify(lease); },
+    /** The failed dispatch's event type and cause on the current connection, or null. */
+    readFailure: () => failure === null ? null : { ...failure },
     heartbeatAcknowledged(handle, validForMs) {
       own(handle); requireInteger(validForMs, 1_000, 120_000);
-      requireCondition(!failed, 'GATEWAY_PROCESSING_FAILED');
+      // After a failed dispatch the connection stays unhealthy until it is replaced; an ACK is no protocol fault.
+      if (failed) return;
       acknowledgedAt = clock(); requireInteger(acknowledgedAt); healthyUntil = acknowledgedAt + validForMs;
     },
     async pause(handle, code = 'DISCONNECTED') { own(handle); await stop(code); return { resumable: sessionId !== null }; },
     accept(handle, payload) {
       own(handle);
-      requireCondition(!failed, 'GATEWAY_PROCESSING_FAILED');
+      // Dispatches that follow a failed one are refused the same way, so the connection ends as a processing failure.
+      if (failed) return Promise.reject(new ContractError('GATEWAY_PROCESSING_FAILED'));
       revision++;
       let projected, caseMessage = null, automationMessage = null;
       let aiMessage = null;
@@ -89,6 +101,7 @@ export function createGatewayObserver({ journal, mapping, applicationId, clock, 
         caseMessage = journal.prepareCaseMessage?.(payload) ?? null;
         automationMessage = journal.prepareAutomationMessage?.(payload) ?? null;
       } catch (error) {
+        failure ??= { event: payload.t, cause: failureCause(error) };
         const paused = stop(error.code === 'GATEWAY_QUEUE_LIMIT' ? 'QUEUE_LIMIT' : 'PROCESSING_FAILED');
         return paused.then(() => { throw new ContractError('GATEWAY_PROCESSING_FAILED'); }, () => { throw new ContractError('GATEWAY_PROCESSING_FAILED'); });
       }
@@ -105,7 +118,8 @@ export function createGatewayObserver({ journal, mapping, applicationId, clock, 
         }
         requireCondition(sessionId !== null, 'GATEWAY_STATE_CONFLICT');
         return journal.dispatch(lease, { sessionId, ...projected, caseMessage, automationMessage });
-      }).catch(async () => {
+      }).catch(async error => {
+        if (!failed) failure ??= { event: payload.t, cause: failureCause(error) };
         failed = true; revision++; acknowledgedAt = null;
         try { await journal.pause(lease, 'PROCESSING_FAILED'); } catch { /* Local delivery remains disabled if storage is unavailable. */ }
         throw new ContractError('GATEWAY_PROCESSING_FAILED');

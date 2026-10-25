@@ -44,7 +44,7 @@ export class SimulatedGatewaySocket extends EventTarget {
 
 export function supervisorFixture({ journalOverrides = {}, discovery = discoveryResponse(), resume = null } = {}) {
   const time = manualGatewayClock();
-  const calls = [], sockets = [], urls = [];
+  const calls = [], sockets = [], urls = [], traces = [];
   let checkpoint = resume, status = 'offline', epoch = 0, cursor = resume?.sequence ?? 0, renews = 0;
   let available = true, enabled = true, discoveryCalls = 0;
   const journal = {
@@ -66,11 +66,11 @@ export function supervisorFixture({ journalOverrides = {}, discovery = discovery
   };
   const observer = createGatewayObserver({ journal, mapping, applicationId: APPLICATION, clock: time.clock });
   const supervisor = createGatewaySupervisor({ observer, token: SYNTHETIC_GATEWAY_TOKEN, clock: time.clock,
-    random: () => 0.25, enabled: () => enabled, timers: time.timers,
+    random: () => 0.25, enabled: () => enabled, timers: time.timers, onTrace: (event, context) => traces.push({ event, ...context }),
     transport: { async getGatewayBot() { discoveryCalls++; return structuredClone(discovery); } },
     connect(url) { urls.push(url); const socket = new SimulatedGatewaySocket(); sockets.push(socket); return socket; },
   });
-  return { ...time, journal, observer, supervisor, calls, sockets, urls,
+  return { ...time, journal, observer, supervisor, calls, sockets, urls, traces,
     disable() { enabled = false; }, stats: () => ({ renews, discoveryCalls }),
     async start() { const done = supervisor.start('synthetic-worker'); await settle(); return { done }; },
     async hello(index = sockets.length - 1) {

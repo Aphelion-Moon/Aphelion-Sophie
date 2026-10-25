@@ -91,6 +91,57 @@ test('fatal close codes and unexpected ACKs halt without leaking raw socket data
   }
 });
 
+test('a dispatch that cannot be recorded replaces the connection and Resume replays it; the trace carries codes only', async t => {
+  const f = supervisorFixture(); t.after(() => f.supervisor.stop());
+  const { done } = await f.start(); const socket = await f.hello();
+  socket.receive(readyEvent()); socket.receive(guildEvent()); await settle();
+  await f.advance(1_000); socket.receive({ op: 11 }); assert.equal(await f.observer.isCurrent(), true);
+  const dispatch = f.journal.dispatch; let refused = 0;
+  f.journal.dispatch = async (...args) => {
+    if (args[1].sequence === 3 && refused++ === 0) throw new Error('timeout exceeded when trying to connect');
+    return dispatch(...args);
+  };
+  // A heartbeat is outstanding, and the failure's durable pause is slow: a message and the ACK arrive meanwhile.
+  await f.advance(4_000);
+  let release; const blocked = new Promise(resolve => { release = resolve; });
+  const pause = f.journal.pause; f.journal.pause = async (...args) => { await blocked; return pause(...args); };
+  socket.receive(gatewayEvent(3, 'IGNORED_EVENT')); await settle();
+  socket.receive({ op: 11 }); socket.receive(gatewayEvent(4, 'IGNORED_EVENT')); await settle();
+  assert.deepEqual(socket.closeCodes, [3000]); assert.equal(await f.observer.isCurrent(), false);
+  assert.equal(f.sockets.length, 1);
+  f.journal.pause = pause; release(); await settle(); await settle();
+  assert.equal((await f.supervisor.readStatus()).code, 'GATEWAY_PROCESSING_FAILED');
+  assert.deepEqual(f.traces, [{ event: 'GATEWAY_RECONNECTING', cause: 'GATEWAY_PROCESSING_FAILED', code: 'DATABASE_POOL_TIMEOUT',
+    stage: 'IGNORED_EVENT', phase: 'resume', tries: 1 }]);
+  await f.advance(1_250); const resumed = await f.hello();
+  assert.deepEqual(resumed.sent[0], { op: 6, d: { token: SYNTHETIC_GATEWAY_TOKEN, session_id: 'synthetic-gateway-session', seq: 2 } });
+  resumed.receive(gatewayEvent(3, 'IGNORED_EVENT')); resumed.receive(gatewayEvent(4, 'IGNORED_EVENT')); resumed.receive(gatewayEvent(5, 'RESUMED'));
+  await settle(); await f.advance(1_000); resumed.receive({ op: 11 });
+  assert.equal(await f.observer.isCurrent(), true);
+  assert.deepEqual(f.calls.filter(call => call.sequence >= 3).map(call => call.sequence), [3, 4, 5]);
+  await f.supervisor.stop(); assert.equal((await done).phase, 'stopped');
+  assert.equal(JSON.stringify(f.traces).includes('timeout exceeded'), false);
+});
+
+test('a dispatch that fails again on the replaying connection is left behind by a fresh Identify', async t => {
+  const f = supervisorFixture(); t.after(() => f.supervisor.stop());
+  await f.start(); const socket = await f.hello();
+  socket.receive(readyEvent()); socket.receive(guildEvent()); await settle();
+  const dispatch = f.journal.dispatch;
+  f.journal.dispatch = async (...args) => {
+    if (args[1].sequence === 3) throw Object.assign(new Error('synthetic unrecordable event'), { code: 'INVALID_DISCORD_ID' });
+    return dispatch(...args);
+  };
+  socket.receive(gatewayEvent(3, 'GUILD_MEMBER_UPDATE', [])); await settle(); await settle();
+  await f.advance(1_250); const resumed = await f.hello(); assert.equal(resumed.sent[0].op, 6);
+  resumed.receive(gatewayEvent(3, 'IGNORED_EVENT')); await settle(); await settle();
+  assert.deepEqual(f.traces.map(trace => [trace.code, trace.phase, trace.tries]), [['INVALID_GATEWAY_DISPATCH', 'resume', 1], ['INVALID_DISCORD_ID', 'identify', 2]]);
+  await f.advance(2_250); const identified = await f.hello();
+  assert.equal(identified.sent[0].op, 2); assert.equal(f.calls.filter(x => x.kind === 'identify').length, 2);
+  assert.equal(f.stats().discoveryCalls, 2);
+  assert.equal(JSON.stringify(f.traces).includes('synthetic'), false);
+});
+
 test('remote and durable Identify budgets defer connections or authentication without burning further attempts', async t => {
   const discovery = discoveryResponse(); discovery.session_start_limit.remaining = 0; discovery.session_start_limit.reset_after = 20_000;
   const remote = supervisorFixture({ discovery }); t.after(() => remote.supervisor.stop());
