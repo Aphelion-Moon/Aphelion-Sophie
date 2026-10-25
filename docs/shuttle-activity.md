@@ -114,6 +114,16 @@ sessions the Activity drives.
 - The last Continue requests Whitelist; the client polls and shows "requested" until Discord confirms the role, then
   the door opens. A finished run is shown as arrived only while Discord still shows Whitelist.
 
+### Reading time (owner request, 25 October 2026)
+
+- The client's attention meter (`apps/activity/client/attention.js`) counts time on a stop while it is read, visible,
+  focused, not picture-in-picture, and within 2 minutes of the member's last input. Continue, Back and Check send
+  `attention: { ms, pages }` for the stop being left; a client from before it sends none.
+- Core (`shuttle-activity.js`, migration 079) credits at most the time since the run's last report or boarding, once per
+  request key, to `shuttle_activity_attention` (run, stop, focused ms, pages), and records the run's completion time.
+- The Whitelist notice carries the run's focused time, time from boarding, pages and average a page; Staff's
+  `/whitelist progress member:` shows the same for a run in progress (`apps/core/discord/shuttle-progress.js`).
+
 ## The client
 
 Splash ("press any key"), then the menu, both inside a terminal window drawn in the animated hangar's console, which

@@ -34,6 +34,11 @@ The closed command union also includes `/shuttle issues`, its specific delivery 
 
 `/ticket status`, `/ticket close` and `/ticket reopen` share the [versioned case lifecycle](case-lifecycle.md). Signed mutations carry a case ID/version and bounded reason code; every operation and rendered reply checks current permissions for the actual case type. Pending reopening rechecks the recorded `case.manage` grant before and after delivery, using the same retained authority epochs as moderation. A closed/reopened channel remains excluded from AI. Static registration data does not register commands or approve production permissions.
 
+`/whitelist progress member:` (owner request, 25 October 2026) is registered in production beside `/whitelist post`. It
+authorizes `case.manage` with the Shuttle assistance scope, as `/whitelist queue` does (Staff and Lead Ops; Muzzled or
+timed-out actors refused), keeps only the member option's ID (never `resolved` data), reads that member once and the run,
+its reading time and the latest Whitelist grant job in a read-only transaction, and replies privately. It changes nothing.
+
 `/ticket queue`, `/ticket claim`, `/ticket unclaim` and `/ticket assign` provide [Staff ownership operations](case-staff.md). Queue rows are permission-filtered and private; assignment checks the current recipient independently and records responsibility without granting access. Bounded queue controls resolve retained tokens and expected versions, with no authority derived from a component or old role snapshot. Replies reauthorize before returning metadata, and a revoked recorded assignee remains flagged for review.
 
 `apps/core/discord/interaction-http.js` binds IPv4 loopback only. It has bounded headers/body/read time, rejects duplicate signature headers and compressed inputs, and admits one active command without a waiting backlog. It sends the ephemeral deferred acknowledgement before Discord/database work. This follows the [interaction response deadline and callback contract](https://docs.discord.com/developers/interactions/receiving-and-responding). Signed PINGs work without enabling command delivery.

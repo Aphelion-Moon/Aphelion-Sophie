@@ -1,5 +1,19 @@
 # Verification and release limits
 
+## Prepared, not installed: 657f9fc — 25 October 2026
+
+- **Scope:** focused reading time per stop and migration 079; time to completion and the average time a page in the
+  Whitelist notice; Staff `/whitelist progress member:`; sign-in never resends a spent Discord code; AI switched off is
+  traced once (from the log review of the core log since 23 October).
+- **Offline:** `npm test` 899 passed (new: T-ACT-ATT-01/02, T-NOTICE-03, T-PROGRESS-01 to 03, T-ACT-CORE-03b,
+  T-ACT-CLI-07b; updated: T-NOTICE-01, T-ACT-CORE-08, the production command set); `npm run check` passed; storage
+  (`test:storage:fast`) 1044 passed, 0 failed, including SA15 (timing in the notice), SA18 (credit capped by elapsed
+  time, nothing on a replay, Back, completion time), SA19 (progress read, read-only), AI12b, and SA16 with its budget
+  raised from 24 to 25 round trips (the reading-time write, one statement).
+- **Not covered:** the attention meter inside Discord's frames on desktop and phones (focus and visibility events there);
+  the reply and notice in the real channels; command registration in the main server; migration 079 on production data.
+  No owner approval to install yet.
+
 ## Production install of 7ecf473 — 25 October 2026
 
 - **Incident:** at 00:53:35 UTC the Gateway halted (journal `last_error_code` PROCESSING_FAILED; no PostgreSQL error, no

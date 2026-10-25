@@ -2652,3 +2652,45 @@ connection instead of halting core; protocol violations, rejected close codes, l
 halt. Windows now restarts core after 60 seconds and the Activity closed screen, the tunnel and PostgreSQL after 10 seconds
 (three times, reset daily). Folder `.agent_docs/aphelion-sophie/deployment-7ecf473-production-2026-10-25`; `rollback.ps1`
 restores `bf4ddca` (the service recovery settings are separate; `service-xml-before` holds the old service files).
+
+### Reading time in Whitelist notices, /whitelist progress, and the log review — 25 October 2026
+
+**Owner request.** "Add a 'time to completion' and 'average time per page' for people getting the whitelist to the
+notification sent to staff-bot-channel. Make sure to only count time when people are actually interacting with / focused
+on the activity if you can. I want to keep an eye on people who might be skipping through the process." Also: "a command
+that Staff can run which lets us check the current shuttle progress of someone in the discord", and "Review the logs we've
+picked up so far, see if there are any improvements to be made." Asked about a flag for fast runs, the owner chose
+**numbers only, no flag**; asked about the command, the owner chose **`/whitelist progress`**. Then: "Prepare the updates,
+do not yet install them."
+
+**Focused time.** The Activity counts time on a stop only while the stop is being read, the page is visible, its window
+has focus, Discord is not showing it picture-in-picture, and the member's last input (key, tap, click, pointer, wheel,
+scroll) was within 2 minutes; idle time stops counting when that window runs out. Input also counts as focus, since some
+of Discord's frames never report it. Continue, Back and Check send `{ ms, pages }` for the stop being left (pages: the
+screens that stop has). Core credits at most the time that really passed since the run's last report (or boarding), once
+per request key, so a client cannot claim more time than passed. Migration 079 adds `attention_at_ms` and
+`completed_at_ms` to `shuttle_activity_runs` and `shuttle_activity_attention` (per run and stop: focused ms, pages).
+
+**The notice** keeps its first line and adds: "Time to completion: 14m 05s focused (52m 10s from boarding) · 23 pages,
+average 37s a page" (" · timed from stop N" when timing began partway through a run), or "Reading time not recorded for
+this run." for a channel Shuttle or a run from before the release.
+
+**`/whitelist progress member:`** is registered in production beside `/whitelist post`. It uses the `/whitelist queue`
+check (`case.manage` for Shuttle assistance: Staff and Lead Ops, Muzzled or timed-out refused), so the capability policy
+and its version do not change. The private reply shows the member's Discord state now (in the server, Crew, Muzzled,
+Whitelist), where their current run is (reading stop n of N with its title, paused for assistance, waiting for Whitelist
+with the grant job's state, finished, or a channel run), when they boarded and last moved, and the focused time, pages,
+average and per-stop time. Reads only; one actor observation and one read of the member.
+
+**Log review (core log since 23 October, 4,807 timestamped lines).**
+- *Sign-in failed for new joiners (5 times):* a sign-in's member read was overtaken (OBSERVATION_INVALIDATED, likely the
+  Crew role arriving just after joining) after Discord's one-time code was spent; the client resent the same code three
+  times, each refused (logged OAUTH_PROVIDER_UNAVAILABLE). Core now retries the instance and member reads after the
+  exchange, and the client never resends a sign-in with the same code (the link, or a renewal, asks Discord for a new one).
+- *Noise:* 4,618 `AI_ADMISSION_SKIPPED_AI_DISABLED` lines, one per server message while AI is off. Now said once while it
+  stays off.
+- *`KNOWLEDGE_SOURCE_GITHUB_RATE_LIMITED` hourly:* anonymous GitHub allows 60 requests an hour and a sync needs about 240,
+  so the GitHub part of the `/lookup` mirror never completes. Owner action: a fine-grained, read-only GitHub token in the
+  production secrets (the collector already accepts one). No code change.
+- *Checked and fine:* the three grants without a notice (24 October, 15:52-16:12 UTC) came before notices were installed;
+  no Gateway halt since 7ecf473; the final Continue takes 0.9-3 s; sign-ins after each deploy are expected renewals.
