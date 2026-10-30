@@ -54,3 +54,24 @@ Log of agent mistakes: what happened, the root cause, and prevention.
   of a long function without confirming where the variable was declared.
 - **Prevention:** Before using a name inside a callback, find its declaration and confirm the enclosing scope. Run the
   focused HTTP tests for the edited server, with a timeout, before starting the long suites.
+
+## 2026-10-30 — A new module imported another module
+
+- **What happened:** The first version of `modules/member-records/index.js` imported `formatDuration` from
+  `modules/onboarding/timing.js`. The focused tests passed, but `npm run check` failed with "forbidden module
+  dependency". Nothing was committed or installed with the import.
+- **Root cause:** The module boundary rule lives in `scripts/lib/repository-checks.mjs`, and AGENTS.md describes it only
+  in general terms ("explicit module ownership"). The new module was written without checking the rule, and the check
+  ran only after the focused tests.
+- **Prevention:** A module under `modules/` imports only `contracts/` and its own files. Run `npm run check` together
+  with the focused tests for any new module, not after them.
+
+## 2026-10-30 — "Not finished" nearly shown for finished Shuttle runs
+
+- **What happened:** The Staff test run first read a member's latest Activity run as finished only when
+  `shuttle_activity_runs.completed_at_ms` was set. The `--plan` pass showed 11 unfinished runs and none finished, which
+  was implausible for Staff testers, so it was caught before any post was made.
+- **Root cause:** `completed_at_ms` arrived with migration 079 on 25 October. Runs that finished earlier have no
+  completion time, and the session's own `state.status = 'complete'` is the authority.
+- **Prevention:** For a column added by a later migration, treat NULL as "not recorded", not "did not happen", and read
+  the state the older rows carry. Check a dry run's totals for plausibility before sending anything.
