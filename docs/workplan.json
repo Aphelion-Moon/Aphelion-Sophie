@@ -1980,6 +1980,7 @@
         "MR-26, MRS-08 to MRS-10 (leave time and message links, replaced application, regular check)",
         "MR-16b, MR-27, MRS-11 (key-order comparison; deleted and edited messages with audit-log attribution, 30-day text expiry)",
         "MR-16c, MRS-12 (role change entries with audit-log attribution; roles in the header)",
+        "MRS-13 (quick role changes as one entry; the regular check behind live work)",
         "MRS-01 to MRS-06 (storage: post convergence, entries, Sophie's Whitelist, uncertain delivery, discussion copy and Gateway isolation, backfill and adoption)",
         "SA15 (the grant confirmation writes the entry)",
         "One post per member across leave and rejoin; the ledger links only to posted entries; no AI path reads the forum"
@@ -2006,6 +2007,7 @@
         "a6fa5b3 installed 17:49 UTC (migration 084): role change entries with audit-log attribution, roles in each header; the first check filled role IDs for all 478 present members with no entries; pinned post text updated 17:51 UTC; first real message.edited entries recorded"
       ],
       "remaining_scope": [
+        "Install a137906 (prepared, deployment-a137906-production-2026-10-30): quick role changes as one entry, the regular check's work behind live work; needs the owner's approval",
         "Live checks: a real deletion and edit entry, a moderator deletion attributed from the audit log, /member watch by Staff, a real leave with message links",
         "Privacy notice line: message text kept 30 days, authors a year, deleted and edited messages kept in the record",
         "Later: Discord moderation (bans, kicks via the audit log) and SSymphony game records"

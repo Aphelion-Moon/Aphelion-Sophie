@@ -1828,7 +1828,7 @@ Boundary: A model or profile change alters mistralProfileHash and needs policy r
 
 Status: **in_progress**. Phase: Community administration. Priority: P1.
 
-Depends on: None. Acceptance: MR-01 to MR-15, MR-07b (rendering), MR-16 to MR-23 (observation, changelog, transport allowance, ingress, configuration, backfill planner, AI exclusion), MR-24 (/member watch: parsing, Staff check, production command set), MR-25 (records for people who have left), MRS-07 (Watch entry and tag; a Left post; a rejoin continues it), MR-26, MRS-08 to MRS-10 (leave time and message links, replaced application, regular check), MR-16b, MR-27, MRS-11 (key-order comparison; deleted and edited messages with audit-log attribution, 30-day text expiry), MR-16c, MRS-12 (role change entries with audit-log attribution; roles in the header), MRS-01 to MRS-06 (storage: post convergence, entries, Sophie's Whitelist, uncertain delivery, discussion copy and Gateway isolation, backfill and adoption), SA15 (the grant confirmation writes the entry), One post per member across leave and rejoin; the ledger links only to posted entries; no AI path reads the forum.
+Depends on: None. Acceptance: MR-01 to MR-15, MR-07b (rendering), MR-16 to MR-23 (observation, changelog, transport allowance, ingress, configuration, backfill planner, AI exclusion), MR-24 (/member watch: parsing, Staff check, production command set), MR-25 (records for people who have left), MRS-07 (Watch entry and tag; a Left post; a rejoin continues it), MR-26, MRS-08 to MRS-10 (leave time and message links, replaced application, regular check), MR-16b, MR-27, MRS-11 (key-order comparison; deleted and edited messages with audit-log attribution, 30-day text expiry), MR-16c, MRS-12 (role change entries with audit-log attribution; roles in the header), MRS-13 (quick role changes as one entry; the regular check behind live work), MRS-01 to MRS-06 (storage: post convergence, entries, Sophie's Whitelist, uncertain delivery, discussion copy and Gateway isolation, backfill and adoption), SA15 (the grant confirmation writes the entry), One post per member across leave and rejoin; the ledger links only to posted entries; no AI path reads the forum.
 
 Owner decisions of 30 October 2026 in the decision log; proposal, probes, Staff test run, changelog, backfill and read-back scripts in .agent_docs/aphelion-sophie/member-records-forum-2026-10-30; install packet deployment-d8efd40-production-2026-10-30.
 
@@ -1852,6 +1852,7 @@ Implemented scope:
 
 Remaining scope:
 
+- Install a137906 (prepared, deployment-a137906-production-2026-10-30): quick role changes as one entry, the regular check's work behind live work; needs the owner's approval
 - Live checks: a real deletion and edit entry, a moderator deletion attributed from the audit log, /member watch by Staff, a real leave with message links
 - Privacy notice line: message text kept 30 days, authors a year, deleted and edited messages kept in the record
 - Later: Discord moderation (bans, kicks via the audit log) and SSymphony game records
