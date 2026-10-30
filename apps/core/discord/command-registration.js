@@ -18,9 +18,16 @@ export function administrationCommandDefinitions() {
   const onboarding = onboardingCommandDefinition(), ticket = ticketCommandDefinition();
   // integration_types/contexts are global-command fields; guild scope is fixed by the HTTP path.
   for (const command of [onboarding, ticket]) { delete command.integration_types; delete command.contexts; command.options.push(...recoveryOptions()); }
-  return [onboarding, ticket, answerCommandDefinition(), lookupCommandDefinition(), sophieCommandDefinition(), ...['mute', 'unmute'].map(name => ({ type: 1, name,
+  return [onboarding, ticket, answerCommandDefinition(), lookupCommandDefinition(), sophieCommandDefinition(), memberCommandDefinition(), ...['mute', 'unmute'].map(name => ({ type: 1, name,
     description: name === 'mute' ? 'Staff: apply Muzzled and remove Crew.' : 'Staff: remove Muzzled and reconcile Crew.',
     options: [{ type: 6, name: 'member', description: 'Current guild member.', required: true }] }))];
+}
+
+/** /member watch (owner direction, 30 October 2026): Staff turn Watch on or off for a member's record post. */
+function memberCommandDefinition() {
+  return { type: 1, name: 'member', description: 'Staff: member records.', options: [{ type: 1, name: 'watch', description: 'Staff: turn Watch on or off for a member record.',
+    options: [{ type: 6, name: 'member', description: 'The member, in the server or not.', required: true },
+      { type: 5, name: 'on', description: 'On to watch them, off to stop.', required: true }] }] };
 }
 
 const wait = ms => new Promise(resolve => setTimeout(resolve, ms));
@@ -43,9 +50,10 @@ async function upsertWithCooldown(transport, applicationId, definition, sleep) {
 /**
  * Production, Activity and AI only: the member's own panel, the reviewed-source lookup and, for Lead Ops, /whitelist post
  * (the Activity launch post; owner decision, 24 October 2026), and for Staff /whitelist progress (a member's Shuttle
- * progress; owner request, 25 October 2026). Nothing that touches roles or cases.
+ * progress; owner request, 25 October 2026), and for Staff /member watch (owner direction, 30 October 2026). Nothing that touches
+ * roles or cases.
  */
-export const ACTIVITY_AI_COMMANDS = Object.freeze(['sophie', 'lookup', 'whitelist']);
+export const ACTIVITY_AI_COMMANDS = Object.freeze(['sophie', 'lookup', 'whitelist', 'member']);
 const ACTIVITY_AI_SUBCOMMANDS = Object.freeze({ whitelist: ['post', 'progress'] });
 
 /** The production command set: /whitelist keeps only its post and progress subcommands. */

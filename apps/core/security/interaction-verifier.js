@@ -214,6 +214,16 @@ export function createInteractionVerifier({ publicKeyHex, applicationId, guildId
           requireCondition(options[0].options === undefined || (Array.isArray(options[0].options) && options[0].options.length === 0), 'INTERACTION_OPTIONS_INVALID');
           if (['shuttle.queue', 'shuttle.issues'].includes(command)) control = { after: null };
         }
+      } else if (payload.data.name === 'member') {
+        // /member watch member: on: (owner direction, 30 October 2026): the member's ID and on or off, nothing else.
+        const options = payload.data.options;
+        requireCondition(Array.isArray(options) && options.length === 1 && options[0]?.name === 'watch' && options[0].type === 1 && options[0].value === undefined,
+          'INTERACTION_OPTIONS_INVALID');
+        const fields = options[0].options;
+        requireCondition(Array.isArray(fields) && fields.length === 2 && new Set(fields.map(field => field?.name)).size === 2 && fields.every(field => field.options === undefined &&
+          ((field.name === 'member' && field.type === 6) || (field.name === 'on' && field.type === 5 && typeof field.value === 'boolean'))), 'INTERACTION_OPTIONS_INVALID');
+        const subject = fields.find(field => field.name === 'member').value; requireId(subject);
+        command = 'member.watch'; targetId = payload.member.user.id; control = { subjectId: subject, watch: fields.find(field => field.name === 'on').value };
       } else {
         command = payload.data.name;
         requireCondition(['mute', 'unmute'].includes(command), 'INTERACTION_COMMAND_UNSUPPORTED');

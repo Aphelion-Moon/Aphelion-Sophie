@@ -82,15 +82,15 @@ test('in production the administration lane may add the Whitelist role and nothi
     scope: 'activity-ai', grantRoleIds: [ids(6), ids(4)], fetch }), /TRUSTED_ADAPTERS_REQUIRED/, 'one grantable role at most');
 });
 
-test('production registers only /sophie, /lookup and /whitelist post and progress', async () => {
+test('production registers only /sophie, /lookup, /whitelist post and progress, and /member watch', async () => {
   const names = [], definitions = [];
   const transport = { guildId: ids(1), getCurrentUser: async () => ({ id: ids(3), bot: true }), getCurrentApplication: async () => ({ id: ids(2) }),
     upsertGuildCommand: async (_application, definition) => { names.push(definition.name); definitions.push(definition); return { id: ids(20), name: definition.name, type: 1, application_id: ids(2), guild_id: ids(1) }; } };
   await registerStagingCommands({ transport, applicationId: ids(2), botUserId: ids(3), confirmGuildId: ids(1), scope: 'activity-ai' });
-  assert.deepEqual([...names].sort(), ['lookup', 'sophie', 'whitelist']);
+  assert.deepEqual([...names].sort(), ['lookup', 'member', 'sophie', 'whitelist']);
   // The launch post and Staff's progress check (owner request, 25 October 2026): no start, panel, close or queue in production.
   assert.deepEqual(definitions.find(item => item.name === 'whitelist').options.map(option => option.name), ['post', 'progress']);
-  assert.deepEqual(activityAiCommandDefinitions().map(item => item.name).sort(), ['lookup', 'sophie', 'whitelist']);
+  assert.deepEqual(activityAiCommandDefinitions().map(item => item.name).sort(), ['lookup', 'member', 'sophie', 'whitelist']);
   await assert.rejects(registerStagingCommands({ transport, applicationId: ids(2), botUserId: ids(3), confirmGuildId: ids(1), scope: 'everything' }), /COMMAND_REGISTRATION_SCOPE_INVALID/);
 });
 

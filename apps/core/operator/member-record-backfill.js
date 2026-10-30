@@ -54,3 +54,36 @@ export function planMemberRecordBackfill({ members, approved, recorded, staffRun
   }
   return plan;
 }
+
+const DEPARTED_NOTE = 'Not in the server when records began: known from an approved application or Sophie\'s earlier records; join and leave dates not recorded.';
+
+/**
+ * Records for people who have left (owner direction, 30 October 2026: "Logs should be kept on all members, including those
+ * who have left."). Discord lists no former members, so these are the people Sophie can name: everyone with an approved
+ * application, and everyone her own records saw, who is not in the server now. Each opens as Left, with no join or leave
+ * date. Discord's account lookup supplies the names; a deleted account has none.
+ * @param {object} input
+ * @param {{ userId: string, source: 'application'|'records', user: { username: string|null, globalName: string|null, bot: boolean }|null }[]} input.people
+ * @param {Set<string>} input.current members in the server now
+ * @param {Set<string>} input.recorded members who already have a record
+ * @param {Map<string, object>} input.approved each person's newest approved join request
+ */
+export function planDepartedMemberRecords({ people, current, recorded, approved, mapping, now }) {
+  requireCondition(Array.isArray(people) && current instanceof Set && recorded instanceof Set && approved instanceof Map, 'MEMBER_RECORD_BACKFILL_INVALID');
+  requireInteger(now, 1);
+  const plan = [], seen = new Set();
+  for (const person of people) {
+    requireId(person.userId);
+    if (seen.has(person.userId) || current.has(person.userId) || recorded.has(person.userId) || person.userId === mapping.botUserId || person.user?.bot) continue;
+    seen.add(person.userId);
+    const application = applicationOf(approved.get(person.userId));
+    const profile = { ...profileOf({ username: person.user?.username ?? null, globalName: person.user?.globalName ?? null, present: false, roles: {},
+      joinedAtMs: null, joinCount: null, note: DEPARTED_NOTE }) };
+    const source = application.status === 'found' ? 'application' : 'records';
+    plan.push({ userId: person.userId, profile, application, thread: null, background: true, events: [
+      { eventId: `opened.${person.userId}`, kind: 'record.opened', atMs: now, detail: { present: false, source } },
+      ...(application.status === 'found' ? [{ eventId: `application.${application.requestId}`, kind: 'application', atMs: application.approvedAtMs,
+        detail: { approvedAtMs: application.approvedAtMs } }] : [])] });
+  }
+  return plan;
+}

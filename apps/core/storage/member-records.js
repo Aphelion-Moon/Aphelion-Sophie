@@ -10,7 +10,7 @@ import { inTransaction } from './transaction.js';
  * dispatcher (apps/core/discord/member-records.js) converges one record at a time under a lease. No AI reads any of it.
  */
 
-const EVENT_KINDS = Object.freeze(['record.opened', 'joined', 'left', 'whitelist.granted', 'whitelist.lost', 'muzzled', 'unmuzzled', 'name.changed', 'application']);
+const EVENT_KINDS = Object.freeze(['record.opened', 'joined', 'left', 'whitelist.granted', 'whitelist.lost', 'muzzled', 'unmuzzled', 'name.changed', 'application', 'watched', 'unwatched']);
 const SLOT = /^(?:header|ledger|application|application[2-9]|games|spare)$/u;
 const EVENT_ID = /^[A-Za-z0-9._-]{1,160}$/u;
 const NO_ROLES = Object.freeze({ crew: false, whitelist: false, muzzled: false, staff: false, leadOps: false });
@@ -154,6 +154,24 @@ export function createMemberRecordStore({ pool, clock, guildId, forumId, changel
         if (!inserted.rowCount) return { opened: false };
         await insertEvents(client, guildId, userId, events);
         return { opened: true };
+      });
+    },
+    /**
+     * Staff turn Watch on or off for a member's record (owner direction, 30 October 2026: "All staff can use the member
+     * watch command"). The change is an entry naming who made it; asking for the state the record already has adds nothing.
+     * Authorization is the caller's (apps/core/discord/member-watch.js).
+     * @returns {Promise<'missing'|'unchanged'|'recorded'>}
+     */
+    async setWatch({ userId, watch, by, interactionId }) {
+      requireId(userId); requireId(by); requireId(interactionId); requireCondition(typeof watch === 'boolean', 'MEMBER_RECORD_WATCH_INVALID');
+      const at = clock(); requireInteger(at, 1);
+      return inTransaction(pool, async client => {
+        const row = (await client.query('SELECT profile FROM sophie_core.member_records WHERE guild_id = $1 AND user_id = $2 FOR UPDATE', [guildId, userId])).rows[0];
+        if (!row) return 'missing';
+        if ((row.profile.watch === true) === watch) return 'unchanged';
+        await insertEvents(client, guildId, userId, [{ eventId: `watch.${interactionId}`, kind: watch ? 'watched' : 'unwatched', atMs: at, detail: { by } }]);
+        await touch(client, guildId, userId, { ...row.profile, watch }, at);
+        return 'recorded';
       });
     },
     /** The member IDs that already have a record, for the backfill. */

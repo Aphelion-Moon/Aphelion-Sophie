@@ -507,7 +507,10 @@ export function entryText(event) {
   const at = utcText(event.atMs);
   switch (event.kind) {
     case 'record.opened':
+      if (event.present === false) return `**Record opened** · ${at} · not in the server; known from ${event.source === 'application' ? 'an approved application' : 'Sophie\'s earlier records'}. Join and leave dates before this are not recorded.`;
       return `**Record opened** · ${at} · already in the server${event.joinedAtMs ? `, joined ${stamp(event.joinedAtMs)}` : ''}. Events before this are not recorded.`;
+    case 'watched': return `**Watch on**${event.by ? ` by <@${event.by}>` : ''} · ${at}`;
+    case 'unwatched': return `**Watch off**${event.by ? ` by <@${event.by}>` : ''} · ${at}`;
     case 'joined': return `**Joined** · ${at} · ${joinWords(event.joinCount)}`;
     case 'left': return `**Left or removed** · ${at}${event.hadWhitelist ? ' · Whitelist ends; a fresh Shuttle run is needed to regain it' : ''}`;
     case 'whitelist.granted': return event.bySophie
@@ -524,7 +527,9 @@ export function entryText(event) {
 /** The ledger's label for an entry (plain words; the ledger escapes them). */
 export function entryLabel(event) {
   switch (event.kind) {
-    case 'record.opened': return 'Record opened · already in the server';
+    case 'record.opened': return event.present === false ? 'Record opened · not in the server' : 'Record opened · already in the server';
+    case 'watched': return 'Watch on';
+    case 'unwatched': return 'Watch off';
     case 'joined': return `Joined · ${joinWords(event.joinCount)}`;
     case 'left': return 'Left or removed';
     case 'whitelist.granted': return event.bySophie ? 'Whitelist granted by Sophie' : 'Whitelist given, not by Sophie';

@@ -121,10 +121,13 @@ export function createMemberRecordDispatcher({ store, transport: discord, botUse
         .map(messageId => ({ atMs: application.approvedAtMs, label: 'Access application, continued', messageId })),
     ], { guildId, channelId: threadId });
     const desiredTags = watch => records.recordTags({ present: profile.present, roles: profile.roles, watch }).map(name => tagIds[name]);
+    // Watch as Staff set it with /member watch; a record never set keeps whatever the post has.
+    const wantWatch = typeof profile.watch === 'boolean' ? profile.watch : null;
+    const tagKey = [...desiredTags(wantWatch === true)].sort().join(',');
     const appHashes = appMessages.map(sha);
     const threadWork = RESERVED_SLOTS.some(slot => !messages[slot]) || appMessages.slice(1).some((_, index) => !messages[`application${index + 2}`]) ||
       pendingEntries.length > 0 || appHashes.some((hash, index) => delivered.application?.[index] !== hash) || delivered.header !== sha(header) ||
-      delivered.title !== title || delivered.tags !== [...desiredTags(false)].sort().join(',') ||
+      delivered.title !== title || delivered.tags !== tagKey ||
       (application?.status === 'found' && events.some(event => event.kind === 'application' && !event.messageId));
 
     if (threadWork && !rearchive) {
@@ -179,9 +182,8 @@ export function createMemberRecordDispatcher({ store, transport: discord, botUse
         if (edited === null) trace('MEMBER_RECORD_HEADER_MISSING');
         delivered.header = sha(header);
       }
-      // A Watch tag a person set stays.
-      const watch = (current?.applied_tags ?? []).includes(tagIds.Watch);
-      const tags = desiredTags(watch), tagKey = [...desiredTags(false)].sort().join(',');
+      // Watch follows /member watch; before anyone used it, a Watch tag already on the post stays.
+      const tags = desiredTags(wantWatch ?? (current?.applied_tags ?? []).includes(tagIds.Watch));
       if (delivered.title !== title || delivered.tags !== tagKey) {
         await transport.editMemberRecordThread(threadId, { ...(delivered.title !== title ? { name: title } : {}), applied_tags: tags });
         delivered.title = title; delivered.tags = tagKey;

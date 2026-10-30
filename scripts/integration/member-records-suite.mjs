@@ -4,7 +4,7 @@ import { createGatewayObserver } from '../../apps/core/discord/gateway-observer.
 import { createMemberRecordIngress } from '../../apps/core/discord/member-record-ingress.js';
 import { createMemberRecordDispatcher } from '../../apps/core/discord/member-records.js';
 import { createMemberRecordStore, recordSophieWhitelist } from '../../apps/core/storage/member-records.js';
-import { planMemberRecordBackfill } from '../../apps/core/operator/member-record-backfill.js';
+import { planMemberRecordBackfill, planDepartedMemberRecords } from '../../apps/core/operator/member-record-backfill.js';
 import { inTransaction } from '../../apps/core/storage/transaction.js';
 import { mapping, CREW, WHITELIST, MUZZLED, BOT } from '../../tests/fixtures/discord.js';
 import { GUILD, USER, OTHER, STAFF, NOW } from '../../tests/fixtures/domain.js';
@@ -279,5 +279,30 @@ export async function runMemberRecordsSuite(cluster, run) {
     assert.match(quiet.messages[0].content, /earlier joins not recorded/);
     assert.equal(forum.changelog().length, 3, 'one line per entry: the newcomer, the adopted post, the backfilled one');
     assert.equal((await rows('member_records')).length, 3);
+  });
+
+  await scenario('MRS-07 Staff Watch is an entry and the tag; a person who has left gets a Left post', async () => {
+    await join(USER, 'vexthecat'); await drain();
+    const post = forum.posts()[0][1];
+    assert.equal(await store.setWatch({ userId: USER, watch: true, by: STAFF, interactionId: '100000000000000901' }), 'recorded');
+    assert.equal(await store.setWatch({ userId: USER, watch: true, by: STAFF, interactionId: '100000000000000902' }), 'unchanged');
+    assert.equal(await store.setWatch({ userId: OTHER, watch: true, by: STAFF, interactionId: '100000000000000903' }), 'missing');
+    await drain();
+    assert.deepEqual(post.tags, [TAG_IDS['In server'], TAG_IDS.Watch]);
+    assert.ok(post.messages.at(-1).content.startsWith('**Watch on** by <@100000000000000004> · '));
+    assert.ok(forum.changelog().at(-1).includes('**Watch on** · <@100000000000000002>'));
+    assert.equal(await store.setWatch({ userId: USER, watch: false, by: STAFF, interactionId: '100000000000000904' }), 'recorded');
+    await drain();
+    assert.deepEqual(post.tags, [TAG_IDS['In server']]); assert.ok(post.messages.at(-1).content.startsWith('**Watch off**'));
+    const plan = planDepartedMemberRecords({ people: [{ userId: THIRD, source: 'records', user: { username: 'gone', globalName: null, bot: false } }],
+      current: new Set([USER]), recorded: new Set(await store.recordedMembers()), approved: new Map(), mapping, now });
+    for (const item of plan) await store.open(item);
+    await drain();
+    const gone = forum.posts().find(([, item]) => item.name.startsWith('gone'))[1];
+    assert.deepEqual(gone.tags, [TAG_IDS.Left]); assert.equal(gone.archived, true);
+    assert.ok(gone.messages[0].content.includes('**Status:** Left or removed')); assert.match(gone.messages[5].content, /not in the server; known from Sophie's earlier records/);
+    // If they come back, the record continues.
+    now += 1_000; await join(THIRD, 'gone'); await drain();
+    assert.ok(gone.messages.at(-1).content.startsWith('**Joined** · ') && gone.messages.at(-1).content.endsWith(' · rejoined (earlier joins not recorded)')); assert.deepEqual(gone.tags, [TAG_IDS['In server']]);
   });
 }

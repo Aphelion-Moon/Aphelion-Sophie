@@ -170,3 +170,49 @@ test('MR-23 no AI context can be a record post: the forum is excluded with every
   assert.equal(reads, 0, 'refused before any Discord read');
   assert.throws(() => createAiObservations({ ...options, excludedParentIds: ['x'] }), /TRUSTED_ADAPTERS_REQUIRED/);
 });
+
+test('MR-24 /member watch carries only the member and on or off; Staff and Lead Ops only (case.manage), one change per state', async () => {
+  // Owner direction, 30 October 2026: "All staff can use the member watch command."
+  const { syntheticInteractions } = await import('./fixtures/interactions.js');
+  const { createMemberWatch } = await import('../apps/core/discord/member-watch.js');
+  const { activityAiCommandDefinitions } = await import('../apps/core/discord/command-registration.js');
+  const domain = await import('./fixtures/domain.js');
+  const identities = syntheticInteractions();
+  const watchCommand = options => ({ data: { type: 1, name: 'member', options: [{ type: 1, name: 'watch', options }] } });
+  const envelope = identities.mint(watchCommand([{ type: 6, name: 'member', value: domain.OTHER }, { type: 5, name: 'on', value: true }]));
+  assert.deepEqual([envelope.command, envelope.subjectId, envelope.watch, envelope.targetId === envelope.userId], ['member.watch', domain.OTHER, true, true]);
+  for (const options of [[{ type: 6, name: 'member', value: domain.OTHER }], [{ type: 6, name: 'member', value: domain.OTHER }, { type: 3, name: 'on', value: 'yes' }],
+    [{ type: 6, name: 'member', value: '@everyone' }, { type: 5, name: 'on', value: true }], [{ type: 5, name: 'on', value: true }, { type: 5, name: 'on', value: false }]])
+    assert.throws(() => identities.mint(watchCommand(options)));
+  let allowed = false; const calls = [];
+  const watch = createMemberWatch({ guildId: domain.GUILD, enabled: async () => true,
+    authorization: { resolveActor: async () => ({ userId: envelope.userId }), authorize: async (capability, actor, scope) => {
+      assert.equal(capability, 'case.manage'); assert.deepEqual(scope, { guildId: domain.GUILD, type: 'shuttle', openerId: envelope.userId }); return allowed; } },
+    store: { setWatch: async input => { calls.push(input); return input.userId === domain.OTHER ? 'recorded' : 'missing'; } } });
+  assert.equal(await watch.execute(envelope), 'denied'); assert.equal(calls.length, 0, 'nothing changes for a refused actor');
+  allowed = true;
+  assert.equal(await watch.execute(envelope), 'member_watch_on');
+  assert.deepEqual(calls[0], { userId: domain.OTHER, watch: true, by: envelope.userId, interactionId: envelope.interactionId });
+  const off = identities.mint(watchCommand([{ type: 6, name: 'member', value: domain.USER }, { type: 5, name: 'on', value: false }]));
+  assert.equal(await watch.execute(off), 'member_watch_missing');
+  assert.ok(activityAiCommandDefinitions().some(command => command.name === 'member' && command.options[0].name === 'watch'), 'registered in production');
+  assert.equal(entryText({ kind: 'watched', atMs: AT, by: MEMBER }), `**Watch on** by <@${MEMBER}> · 30 Oct 2026, 15:00 UTC`);
+  assert.equal(entryLabel({ kind: 'unwatched' }), 'Watch off');
+});
+
+test('MR-25 people who have left get a record too: approved applicants and members Sophie saw, opened as Left', async () => {
+  const { planDepartedMemberRecords } = await import('../apps/core/operator/member-record-backfill.js');
+  const mapping = { guildId: GUILD, botUserId: ids(3) };
+  const approved = new Map([[ids(30), { id: ids(70), userId: ids(30), status: 'APPROVED', reviewedAtMs: AT - 5e9, approvedBy: null, formResponses: [] }]]);
+  const people = [{ userId: ids(30), source: 'application', user: { username: 'gone', globalName: 'Gone', bot: false } },
+    { userId: ids(31), source: 'records', user: null }, { userId: ids(32), source: 'records', user: { username: 'here', globalName: null, bot: false } },
+    { userId: ids(33), source: 'records', user: { username: 'abot', globalName: null, bot: true } }, { userId: ids(30), source: 'records', user: null }];
+  const plan = planDepartedMemberRecords({ people, current: new Set([ids(32)]), recorded: new Set(), approved, mapping, now: AT });
+  assert.deepEqual(plan.map(item => item.userId), [ids(30), ids(31)], 'present members, bots and repeats skipped');
+  const [applicant, seen] = plan;
+  assert.deepEqual([applicant.profile.present, applicant.profile.joinedAtMs, applicant.profile.displayName, applicant.application.status], [false, null, 'Gone', 'found']);
+  assert.deepEqual(applicant.events.map(event => event.kind), ['record.opened', 'application']);
+  assert.equal(entryText({ kind: 'record.opened', atMs: AT, ...applicant.events[0].detail }),
+    '**Record opened** · 30 Oct 2026, 15:00 UTC · not in the server; known from an approved application. Join and leave dates before this are not recorded.');
+  assert.deepEqual([seen.profile.username, seen.application.status, seen.events[0].detail.source], [null, 'none', 'records']);
+});

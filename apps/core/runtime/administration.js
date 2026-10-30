@@ -17,6 +17,7 @@ import { createRoleDispatcher, createWhitelistGrantDispatcher, createMembershipD
 import { createWhitelistNoticeDispatcher } from '../discord/whitelist-notices.js';
 import { createMemberRecordDispatcher } from '../discord/member-records.js';
 import { createMemberRecordStore } from '../storage/member-records.js';
+import { createMemberWatch } from '../discord/member-watch.js';
 import { createCaseDispatcher } from '../discord/case-dispatcher.js';
 import { createOnboardingDispatcher } from '../discord/onboarding-dispatcher.js';
 import { createOnboardingAlertDispatcher } from '../discord/onboarding-alert-dispatcher.js';
@@ -84,6 +85,9 @@ export function createAdministrationLane({ configuration, pool, token, fetch, cl
     messageVerification: answers.verification, replyVerification: replyMessages.verification });
   const common = { authorization, discord: roles, store, enabled };
   const assistance = createOnboardingAssistance(common);
+  // Staff set Watch on a member's record post (owner direction, 30 October 2026), where member records are configured.
+  const memberWatch = configuration.memberRecords === undefined ? null : createMemberWatch({ authorization, enabled, guildId: mapping.guildId,
+    store: createMemberRecordStore({ pool, clock, guildId: mapping.guildId, forumId: configuration.memberRecords.forumId, changelogThreadId: configuration.memberRecords.changelogThreadId }) });
   const shuttleProgress = createShuttleProgress({ authorization, discord: roles, enabled, clock,
     read: (guildId, userId) => readShuttleProgress(pool, guildId, userId) });
   const deliveryIssues = createOnboardingDeliveryIssues({ ...common, channels, screenMessages: screens, alertMessages: alerts });
@@ -104,7 +108,7 @@ export function createAdministrationLane({ configuration, pool, token, fetch, cl
   const sophieMember = sophieMemberFactory === null ? null : sophieMemberFactory({ authorization, transport, verifier, enabled, readSystemText });
   const commands = createAdministrationCommands({ sophieMember, onboardingClosure: createOnboardingChannelClosure({ authorization, roles, channels, store, enabled }), moderation: createModerationCommands(common),
     onboarding: createOnboardingCommands({ ...common, channels, definitionId, limits, trace: onTrace }), assistance, deliveryIssues, caseLifecycle, caseStaff,
-    caseIntake, caseContacts, caseDeliveryIssues, publicAnswers, caseAnswers, knowledgeLookup, shuttleProgress, caseParticipants: createCaseParticipants(common),
+    caseIntake, caseContacts, caseDeliveryIssues, publicAnswers, caseAnswers, knowledgeLookup, shuttleProgress, memberWatch, caseParticipants: createCaseParticipants(common),
     caseReplies: createCaseReplyCommands({ ...common, verifier, replies: replyStore, guildId: mapping.guildId }) });
   const outbox = createOutbox({ pool });
   const directMessages = createCaseDirectNotices({ readSystemText, transport, roles, channels, botUserId: mapping.botUserId, clock });

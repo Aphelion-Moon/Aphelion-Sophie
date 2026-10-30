@@ -330,6 +330,24 @@
     "max": 1800
   },
   {
+    "id": "reply.member_watch_on",
+    "group": "Member records",
+    "source": "Watch is on for that member's record. Sophie tags their post and adds the entry shortly.",
+    "max": 300
+  },
+  {
+    "id": "reply.member_watch_off",
+    "group": "Member records",
+    "source": "Watch is off for that member's record. Sophie removes the tag and adds the entry shortly.",
+    "max": 300
+  },
+  {
+    "id": "reply.member_watch_missing",
+    "group": "Member records",
+    "source": "That member has no record yet, so there is nothing to watch.",
+    "max": 300
+  },
+  {
     "id": "onboarding.progress.denied",
     "group": "Onboarding",
     "source": "Checking Shuttle progress requires current Staff or Lead Ops access.",

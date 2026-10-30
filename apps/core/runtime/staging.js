@@ -202,7 +202,7 @@ export async function createStagingRuntime({ configuration, pool, aiControlPool 
   // A recorded Shuttle change has already committed its render intent, so delivery starts now instead of at the next
   // interval. The diagnostic is a fixed code: the command result and whole milliseconds, never IDs or content.
   const interactionCommands = Object.freeze({ async execute(envelope) {
-    if (limited && !(String(envelope.command).startsWith('sophie.') || ['knowledge.lookup', 'shuttle.progress'].includes(envelope.command))) return 'denied';
+    if (limited && !(String(envelope.command).startsWith('sophie.') || ['knowledge.lookup', 'shuttle.progress', 'member.watch'].includes(envelope.command))) return 'denied';
     const startedAt = performance.now();
     const result = await requests.commands.execute(envelope);
     if (['shuttle.start', 'shuttle.control'].includes(envelope.command)) {

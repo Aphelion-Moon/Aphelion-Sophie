@@ -16,6 +16,9 @@ import { knowledgeLookupReply } from '../../../modules/assistant/lookup.js';
 const messages = Object.freeze({
   "shuttle_closed": "reply.shuttle_closed",
   "shuttle_progress": "reply.shuttle_progress",
+  "member_watch_on": "reply.member_watch_on",
+  "member_watch_off": "reply.member_watch_off",
+  "member_watch_missing": "reply.member_watch_missing",
   "public_answer": "reply.public_answer",
   "knowledge_lookup": "reply.public_answer",
   "case_answer_review": "reply.case_answer_review",
