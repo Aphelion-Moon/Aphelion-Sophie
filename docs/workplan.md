@@ -1828,7 +1828,7 @@ Boundary: A model or profile change alters mistralProfileHash and needs policy r
 
 Status: **in_progress**. Phase: Community administration. Priority: P1.
 
-Depends on: None. Acceptance: MR-01 to MR-15, MR-07b (rendering), MR-16 to MR-23 (observation, changelog, transport allowance, ingress, configuration, backfill planner, AI exclusion), MR-24 (/member watch: parsing, Staff check, production command set), MR-25 (records for people who have left), MRS-07 (Watch entry and tag; a Left post; a rejoin continues it), MRS-01 to MRS-06 (storage: post convergence, entries, Sophie's Whitelist, uncertain delivery, discussion copy and Gateway isolation, backfill and adoption), SA15 (the grant confirmation writes the entry), One post per member across leave and rejoin; the ledger links only to posted entries; no AI path reads the forum.
+Depends on: None. Acceptance: MR-01 to MR-15, MR-07b (rendering), MR-16 to MR-23 (observation, changelog, transport allowance, ingress, configuration, backfill planner, AI exclusion), MR-24 (/member watch: parsing, Staff check, production command set), MR-25 (records for people who have left), MRS-07 (Watch entry and tag; a Left post; a rejoin continues it), MR-26, MRS-08 to MRS-10 (leave time and message links, replaced application, regular check), MRS-01 to MRS-06 (storage: post convergence, entries, Sophie's Whitelist, uncertain delivery, discussion copy and Gateway isolation, backfill and adoption), SA15 (the grant confirmation writes the entry), One post per member across leave and rejoin; the ledger links only to posted entries; no AI path reads the forum.
 
 Owner decisions of 30 October 2026 in the decision log; proposal, probes, Staff test run, changelog, backfill and read-back scripts in .agent_docs/aphelion-sophie/member-records-forum-2026-10-30; install packet deployment-d8efd40-production-2026-10-30.
 
@@ -1843,11 +1843,11 @@ Implemented scope:
 - Changelog post pinned (30 October 2026, after the owner gave Sophie Manage Threads on the forum)
 - e881f29 installed 15:37 UTC: gate refusals retried, rate limits as waits, /member watch for Staff and Lead Ops (migration 081; registered in the main server), records for people who have left; every packet check passed; commits pushed to origin main
 - Departed backfill 15:40 UTC: 10 records (8 approved applicants, 2 from Sophie's records), opened as Left
+- Backfill delivered: 483 of 488 records posted by 15:57 UTC, none failing
 
 Remaining scope:
 
-- A rejoin's older application kept as its own entry (today message 3 shows the newest)
-- Reconciliation of joins and leaves missed while core was down (re-running backfill.mjs adds missing members only; --departed adds people who have left)
+- Install 0b9298a (prepared, packet deployment-0b9298a-production-2026-10-30): leave times and five message links, replaced applications kept as an entry, the regular records check at start and every six hours; needs the owner's approval
 - Live checks: /member watch run by Staff, a real join, leave and Staff discussion copy
 - Later: Discord moderation (Guild Moderation intent, View Audit Log) and SSymphony game records
 

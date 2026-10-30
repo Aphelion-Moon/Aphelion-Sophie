@@ -2810,3 +2810,13 @@ Left with no join or leave date. Asked to install the fixes and push: "Commit an
 15:37 UTC (migration 081) and pushed to origin main; 10 departed records opened at 15:40 UTC. The owner also gave Sophie
 Manage Threads on the forum, and the changelog post is now pinned. Untracked story and rules scripts were deleted on the
 owner's word ("You can dispose of those scripts").
+
+**Leavers, replaced applications and an automatic check (30 October 2026, later).** The owner: "Leavers should have their
+date and time of leaving documented, and have links to their 5 most recent messages. New applications should replace the
+old one in the post, and sophie should document the old application and new application change as a post in that users
+thread." and "Backfill script should probably have an automatic run? You decide." Decided: core keeps, per member, only
+the IDs and times of their last ten messages (never content), outside record posts and case-excluded channels, and a leave
+links up to five, leaving out the protected ticket category and threads under it. A rejoin's new application replaces
+message 3 and an entry keeps the earlier one. The backfill becomes a regular check in core (at start and every six hours,
+reads only), which also catches changes made while Sophie was offline and refuses a member list that would mean more than
+a few leaves at once. Built as 0b9298a; prepared, awaiting install approval. "I will process additional users later."

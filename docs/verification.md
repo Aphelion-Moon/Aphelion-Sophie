@@ -1,5 +1,15 @@
 # Verification and release limits
 
+## Prepared: 0b9298a (member records: leave links, replaced applications, regular check) — 30 October 2026
+
+- **Offline:** `npm test` 926 passed (new MR-26; MR-14 updated for the leave time); `npm run check` passed;
+  `test:storage:fast` 1054 passed, 0 failed (new MRS-08 to MRS-10; MRS-02 updated). On a synthetic cluster 082 applied,
+  the packet's revert returned to the 81 migrations e881f29 verifies (Watch entries kept), and 082 applied again.
+- **Packet:** `deployment-0b9298a-production-2026-10-30`; `prepare.mjs` passed against the installed e881f29 (9 files, 2
+  new; only migration 082; runtime unchanged). Not installed: no owner approval yet.
+- **Not covered:** the regular check against the real member list; a real leave with message links; a real rejoin with a
+  new application.
+
 ## Production install of e881f29 (member records: fixes, /member watch, people who have left) — 30 October 2026
 
 - **Install (15:37 UTC; owner: "Commit and install, yes."):** `prepare.mjs` passed against the installed d8efd40 (15
