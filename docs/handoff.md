@@ -7,7 +7,29 @@ policy is in [the owner decisions](decisions/0001-owner-policy.md), remaining wo
 for the next session: where the Shuttle Activity work stands, what is left before it opens, and how to work on it.
 Where it disagrees with those records, they win.
 
-## Newest: e881f29 (30 October 2026, 15:37 UTC)
+## Newest: a6fa5b3 in production, a45ca0f prepared (30 October 2026, evening)
+
+Production runs **a6fa5b3** (schema 084, pushed). Since e881f29 it added the following (decision log, verification):
+- **8372861:** leave times and five message links, replaced applications kept as an entry, the regular check in core (at
+  start and every 6 h), and deleted and edited messages (text kept 30 days, authors a year, attribution from the audit log).
+- **35ec844:** profiles compared regardless of jsonb key order.
+- **a6fa5b3:** role change entries and a Roles line in each header.
+
+The pinned changelog post's opening lists every feature. Its text is `CHANGELOG_OPENING` in `modules/member-records`;
+re-post it with `member-records-forum-2026-10-30/edit-changelog-opening.mjs --run`.
+
+**Prepared, not installed:** `deployment-a45ca0f-production-2026-10-30` holds quick role changes as one entry (from
+a137906) and the evening audit's fixes. Install it when no Shuttle run is in progress, then re-post the opening.
+
+**Tools in `member-records-forum-2026-10-30`:**
+- `verify-records.mjs [n]`: read-back of delivered posts;
+- `inspect-post.mjs <thread>`: first lines and the event timeline of one post;
+- `backfill.mjs [--departed]`: manual backfill, now also done by the regular check.
+
+**Gotcha:** a Bash heredoc on this host collapses backslashes, quoted or not. Write code containing backslashes with
+the Write or Edit tool only.
+
+## e881f29 (30 October 2026, 15:37 UTC)
 
 Production runs **`e881f29` (schema 081)**, pushed to `origin/main`. On top of the d8efd40 notes below: the two fixes are
 installed; Staff and Lead Ops have **`/member watch member: on:`** (registered in the main server), which records an entry

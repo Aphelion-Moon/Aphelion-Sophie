@@ -1,5 +1,25 @@
 # Verification and release limits
 
+## Audit of the member records work, and a45ca0f prepared — 30 October 2026, evening
+
+- **Production (read-only, about 21:00 UTC):**
+  - All 489 records are delivered, with no errors, no duplicate posts, no stuck creations and no entry waiting.
+  - None of the 634 kept messages is from the ticket category. The forum and changelog are case exclusions. No role jobs
+    were queued.
+  - Real entries seen: 12 edits, 1 deletion ("most likely by the author"), 11 role changes and 2 name changes.
+- **Independent review, findings reproduced, then fixed in a45ca0f:**
+  - escaped mentions refused by the transport (any username starting "here", any deleted "@everyone");
+  - quoted parts over 2,000 characters, and multi-part entries re-posting their first part on retry;
+  - opposite lock order between the Gateway and the Whitelist confirmation;
+  - thread edits not limited to the forum;
+  - the regular check inline with Whitelist grants;
+  - smaller items.
+- **Offline:** `npm test` 931 passed (MR-28 and MR-29 run rendered text through the real transport check);
+  `npm run check` passed; `test:storage:fast` 1058 passed, 0 failed (MRS-14 new).
+- **Packet:** `deployment-a45ca0f-production-2026-10-30`; `prepare.mjs` passed against a6fa5b3. Not installed.
+- **Not covered:** a concurrency test of the lock order (fixed by reading the code); the expiry index (not needed at
+  today's size).
+
 ## Production install of a6fa5b3 (role change entries) — 30 October 2026
 
 - **Install (17:49 UTC; owner: "Install and push"):** `prepare.mjs` passed against 35ec844 (7 files, 1 new; only
