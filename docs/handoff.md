@@ -1,4 +1,4 @@
-# Sophie development handoff — 23 October 2026
+# Sophie development handoff — 30 October 2026 (member records), with the 23 October snapshot below
 
 Sophie provides deterministic community administration, Whitelist onboarding, private cases and website
 configuration. No AI may receive ticket or onboarding session content. Read [AGENTS.md](../AGENTS.md) first; current
@@ -12,20 +12,114 @@ Where it disagrees with those records, they win.
 Production runs `bbe844c` (schema 079) in the main Aphelion server; the Shuttle Activity is open. The sections below this one
 are the 23 October snapshot and are partly out of date; the decision log and workplan win.
 
-- **What:** a Staff forum (`1562315014998728727`, "staff-evidence-logs", Staff category) with one post per member, kept
-  indefinitely. Each post opens with Sophie's header, ledger and three reserved messages; Staff discuss freely below; Sophie's
-  automatic entries are linked from the ledger. Decisions, including the amendment to the admission rule (approved
-  applications are transcribed; interviews never touched), are in the decision log entry of 30 October; task P56.
-- **Done:** `modules/member-records` (rendering, MR-01 to MR-14) and a Staff test run: 22 posts for current Staff and Lead
-  Ops, verified, archived. They were made by a host-only script, not by core, so **they do not update yet**.
-- **Folder:** `GitHub/.agent_docs/aphelion-sophie/member-records-forum-2026-10-30`: `proposal.md` (the design and the
-  loose-ends review), the probes, `staff-test-run.mjs` (`--plan`, `--run [--limit N]`, `--verify`), `staff-test-state.json`
-  (every post and message ID, for core to adopt), `show-post.mjs`.
-- **Blocked:** reading approved applications returns `403 Missing Permissions`. The owner needs to give Sophie the
-  permission Discord wants (try Kick Members in a separate role, then Manage Server), then rerun `probe-join-requests.mjs`.
-- **Next:** core integration (migration 080 with runtime grants, outbox kinds, producers, adoption of the test posts),
-  the backfill of everyone else (about 470 posts), application transcription, the copy of the discussion. Each install,
-  the backfill and any permission change need the owner's recorded approval.
+### What it is
+
+A Staff forum with one post per member, kept indefinitely. The forum is `1562315014998728727`, named
+"staff-evidence-logs", in the Staff category. It already held one post that is not Sophie's.
+
+Each post opens with five of Sophie's messages:
+1. **Header**, which she edits: a summary of the member.
+2. **Ledger**, which she edits: jump links to her automatic entries further down.
+3. **Access application**, reserved: the transcribed approved application.
+4. **Game records**, reserved for Meridian Rift and Wolfgate: a placeholder until SSymphony.
+5. **Spare**, reserved and deliberately unassigned.
+
+Below these, Staff discuss freely and Sophie posts her automatic entries.
+
+Owner decisions are in the decision log entry of 30 October ("Member records: ..."), task **P56** in the workplan:
+- Everyone gets a post (about 495 members, bots excluded), and records stay forever. Staff can see the forum.
+- Sophie transcribes approved applications (this amends the 18 September admission rule) and reads the date of birth as a
+  month and year. Interviews, and rejected or pending applications, are never read.
+- Staff discussion is copied into Sophie's database. No AI ever reads member records or the forum.
+- There are no age alerts, because the owner age-checks every member personally.
+- Names are stored, for search. Blacklisting is unchanged for now: departures say "Left or removed".
+
+### State at 15:25 local, 30 October
+
+- **Commits on `main`:** `dbcfee3`, `ff80cc4` and `50f88db`. They are **not pushed**. Production still runs `bbe844c`;
+  core and the database are unchanged.
+- **`modules/member-records/index.js`:** pure rendering and interpretation, with tests MR-01 to MR-15 and MR-07b in
+  `tests/member-records.test.js`. `npm test` passed 915 and `npm run check` passed.
+- **Staff test run:**
+  - 22 posts exist, one per current Staff or Lead Ops holder.
+  - 14 have their application transcribed. The other 8 say none is on record, the owner's post among them.
+  - All are archived, and the read-back check passed.
+  - A **host-only script** made them, so **they do not update yet**.
+  - The forum's tags are In server, Left, Whitelisted, Muzzled and Staff, plus Watch (moderated). Their IDs are in the
+    state file.
+- **Discord permissions:**
+  - Sophie now holds **Kick Members**. The owner adjusted her role at about 15:14, and listing approved join requests
+    needs that permission.
+  - She also holds a role named "ssymphony", which gives her Manage Channels in the forum.
+  - She has no Manage Threads, View Audit Log or Ban Members. Unarchiving and archiving her own posts works without
+    Manage Threads.
+- **Discord applications:** 436 approved, from 20 July 2026, covering 434 members.
+  - The interface is undocumented: `GET /guilds/{id}/requests?status=APPROVED&limit=100&before=<id>` returns
+    `{ guild_join_requests }`.
+  - Each request has `form_responses` (multiple choice gives a `response` index into `choices`), `reviewed_at`,
+    `actioned_by_user`, `user_id` and `interview_channel_id`. **Never touch `interview_channel_id`.**
+  - Older forms combine the ckey and date of birth in one question, and most game answers are a bare name. Measured over
+    all 436:
+    - date of birth: read for 409, month unclear for 14, unreadable for 13;
+    - game name: found for 430.
+
+### Working folder
+
+`GitHub/.agent_docs/aphelion-sophie/member-records-forum-2026-10-30`. Run its scripts with
+`C:\Aphelion\Sophie\package\runtime\node.exe`, as an administrator. They read the token through
+`staging/renewal/secret-field.mjs` and never print it.
+
+| File | What it is |
+|---|---|
+| `proposal.md` | The design, the loose-ends review, and **"Core integration plan"** at the end: the build list for the next session |
+| `staff-test-run.mjs` | `--plan`, `--run [--limit N]`, `--applications [--refresh]`, `--stats`, `--verify`. Read-only use of the production database (latest Activity run, mutes). |
+| `staff-test-state.json` | Every post, message and tag ID, and the per-member application status. Core must **adopt** these posts, never create second ones. No application text is stored. |
+| `show-post.mjs` | `<n>` shows a post as stored; `--masked <n>` shows a transcribed post with every value masked |
+| `probe-*.mjs`, `inspect-*.mjs`, `*.json` | Read-only probes and their outputs |
+
+### Next: core integration (needs the owner's approval to install; the backfill needs its own)
+
+Follow "Core integration plan" in `proposal.md`, step by step. The model for the wiring is the Whitelist notice
+(`apps/core/discord/whitelist-notices.js`, `outbox.js`, `core-store.js`, and `runtime/administration.js`,
+`configuration.js`, `production-configuration.js`, `staging.js`).
+1. **Migration `080-member-records.sql`:**
+   - The tables `member_records`, `member_record_events` and `member_record_messages`.
+   - The outbox kinds `member.record.open`, `member.record.entry` and `member.record.header`.
+   - **Explicit grants to the runtime roles** (production copies grants; see the `bbe844c` install).
+2. **Store and dispatcher:**
+   - Write the ledger only after the entry's message ID is recorded.
+   - Unarchive before editing, and archive again after.
+   - Take nonces from the operation ID.
+   - Use `allowed_mentions` with nothing allowed, and the suppress-embeds flag.
+3. **Producers:**
+   - Gateway member add, update and remove. The projection must start carrying `username`, `global_name`, `nick` and
+     `joined_at`.
+   - The Whitelist grant confirmation, member actions (mute and unmute), and Whitelist loss.
+   - On a join, fetch that member's approved application and transcribe it into message 3.
+4. **Adoption and backfill:** a host-only command imports `staff-test-state.json`, then runs a paced backfill of the
+   other members of about 470 posts, through the store. Archive each post straight away: the server already had 489
+   active threads.
+5. **Discussion copy:** capture forum threads into `member_record_messages`, in the style of `case-message-capture.js`.
+   Add a hard exclusion of the forum and its threads from AI ingress, with a test.
+6. **Packet:**
+   - Tests: unit, plus `scripts/test-storage.mjs --suite=...`.
+   - A deployment folder copied from `deployment-bbe844c-production-2026-10-25`, with `approval.json` quoting the owner.
+   - Record the work in `docs/workplan.json` (P56), `docs/verification.md` and the decision log.
+
+### Gotchas from this session
+
+- **No Linux shell on the host.** The remote Linux shell (device bash) did not start ("hypervisor is not running").
+  Desktop Commander PowerShell works. For runs longer than about 2 minutes, use `Start-Process cmd.exe` with an
+  output file and an `.exit` sentinel.
+- **Escapes in written files.** Desktop Commander's write and edit can turn `\uXXXX` escapes into the real characters.
+  After writing a file with such escapes, check it for stray invisible characters (see the PowerShell scan in this
+  session's history), or build the characters with `String.fromCharCode`.
+- **Module boundary.** Code under `modules/` may import only `contracts/` and its own files (`npm run check`). For that
+  reason `formatDuration` is a local copy of `modules/onboarding/timing.js`.
+- **NULL completion times.** `shuttle_activity_runs.completed_at_ms` is NULL for runs finished before 25 October. Read
+  `sessions.state->>'status' = 'complete'` instead (logged in MISTAKES.md).
+- **No test install.** The test Discord no longer has an install. Test in production behind owner approval, as the
+  Staff run did.
 
 ## Where things stand
 
