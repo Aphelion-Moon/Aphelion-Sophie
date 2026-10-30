@@ -16,7 +16,10 @@
   - smaller items.
 - **Offline:** `npm test` 931 passed (MR-28 and MR-29 run rendered text through the real transport check);
   `npm run check` passed; `test:storage:fast` 1058 passed, 0 failed (MRS-14 new).
-- **Packet:** `deployment-a45ca0f-production-2026-10-30`; `prepare.mjs` passed against a6fa5b3. Not installed.
+- **Packet:** `deployment-a45ca0f-production-2026-10-30`; `prepare.mjs` passed against a6fa5b3.
+- **Installed 22:27 UTC (owner: "Install and push"):** pre-start, boundary, installed and public checks passed. The regular
+  check at 22:28 UTC (now beside the worker loop) opened, changed and left nothing. All 489 records are delivered, none
+  erroring. The pinned opening was re-posted at 22:29 UTC.
 - **Not covered:** a concurrency test of the lock order (fixed by reading the code); the expiry index (not needed at
   today's size).
 

@@ -2836,3 +2836,7 @@ comparison that made the first regular check mark 451 unchanged records.
 roles and who changed them from the audit log; each header lists the member's roles. Installed as a6fa5b3 at 17:49 UTC
 (migration 084); the pinned changelog post's opening text lists the new entry (owner, earlier: "Update the OP in the pinned
 thread to include a list of all features and types of tracked information for this forum feature.").
+
+**Audit fixes installed (30 October 2026, night).** Asked to audit the day's work while a member finished their Shuttle run,
+then "Fix them now" and "Install and push": a45ca0f (quick role changes as one entry, and the audit's fixes) installed at
+22:27 UTC; the pinned opening now says deleted or edited messages entered in a post stay with the record.

@@ -1,6 +1,6 @@
 # Current implementation workplan
 
-Revision: 2026-10-30-production-a6fa5b3. Mistral Small 4 (mistral-small-2603) on the official EU API is the selected provider for trial; DeepSeek Flash is withdrawn. Local models are historical, explicitly selected alternatives only; no automatic fallback. Continue the DS workstream with synthetic data; full readiness and activation remain open.
+Revision: 2026-10-30-production-a45ca0f. Mistral Small 4 (mistral-small-2603) on the official EU API is the selected provider for trial; DeepSeek Flash is withdrawn. Local models are historical, explicitly selected alternatives only; no automatic fallback. Continue the DS workstream with synthetic data; full readiness and activation remain open.
 
 All production release gates remain open; pure and isolated database checks are not full application acceptance.
 
@@ -1849,10 +1849,10 @@ Implemented scope:
 - Changelog post opening lists every feature and tracked type (edited 17:05 UTC)
 - The one-time header refresh after 8372861 finished: all 488 records delivered by 17:15 UTC
 - a6fa5b3 installed 17:49 UTC (migration 084): role change entries with audit-log attribution, roles in each header; the first check filled role IDs for all 478 present members with no entries; pinned post text updated 17:51 UTC; first real message.edited entries recorded
+- a45ca0f installed 22:27 UTC: quick role changes as one entry, the audit fixes; the regular check (22:28 UTC, beside the worker loop) changed nothing; pinned opening re-posted 22:29 UTC (1,966 characters)
 
 Remaining scope:
 
-- Install a45ca0f (prepared, deployment-a45ca0f-production-2026-10-30): quick role changes as one entry and the audit fixes; then re-post the pinned opening; needs the owner's approval and no Shuttle run in progress
 - Live checks: a real deletion and edit entry, a moderator deletion attributed from the audit log, /member watch by Staff, a real leave with message links
 - Privacy notice line: message text kept 30 days, authors a year, deleted and edited messages kept in the record
 - Later: Discord moderation (bans, kicks via the audit log) and SSymphony game records

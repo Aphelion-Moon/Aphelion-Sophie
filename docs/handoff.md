@@ -7,9 +7,9 @@ policy is in [the owner decisions](decisions/0001-owner-policy.md), remaining wo
 for the next session: where the Shuttle Activity work stands, what is left before it opens, and how to work on it.
 Where it disagrees with those records, they win.
 
-## Newest: a6fa5b3 in production, a45ca0f prepared (30 October 2026, evening)
+## Newest: a45ca0f in production (30 October 2026, 22:27 UTC)
 
-Production runs **a6fa5b3** (schema 084, pushed). Since e881f29 it added the following (decision log, verification):
+Production runs **a45ca0f** (schema 084, pushed): a6fa5b3 plus quick role changes as one entry and the evening audit fixes. Since e881f29 it added the following (decision log, verification):
 - **8372861:** leave times and five message links, replaced applications kept as an entry, the regular check in core (at
   start and every 6 h), and deleted and edited messages (text kept 30 days, authors a year, attribution from the audit log).
 - **35ec844:** profiles compared regardless of jsonb key order.
@@ -18,8 +18,7 @@ Production runs **a6fa5b3** (schema 084, pushed). Since e881f29 it added the fol
 The pinned changelog post's opening lists every feature. Its text is `CHANGELOG_OPENING` in `modules/member-records`;
 re-post it with `member-records-forum-2026-10-30/edit-changelog-opening.mjs --run`.
 
-**Prepared, not installed:** `deployment-a45ca0f-production-2026-10-30` holds quick role changes as one entry (from
-a137906) and the evening audit's fixes. Install it when no Shuttle run is in progress, then re-post the opening.
+**Installed last:** `deployment-a45ca0f-production-2026-10-30` (the template for the next packet).
 
 **Tools in `member-records-forum-2026-10-30`:**
 - `verify-records.mjs [n]`: read-back of delivered posts;
