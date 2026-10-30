@@ -1,6 +1,6 @@
 # Current implementation workplan
 
-Revision: 2026-10-25-production-bbe844c. Mistral Small 4 (mistral-small-2603) on the official EU API is the selected provider for trial; DeepSeek Flash is withdrawn. Local models are historical, explicitly selected alternatives only; no automatic fallback. Continue the DS workstream with synthetic data; full readiness and activation remain open.
+Revision: 2026-10-30-production-d8efd40. Mistral Small 4 (mistral-small-2603) on the official EU API is the selected provider for trial; DeepSeek Flash is withdrawn. Local models are historical, explicitly selected alternatives only; no automatic fallback. Continue the DS workstream with synthetic data; full readiness and activation remain open.
 
 All production release gates remain open; pure and isolated database checks are not full application acceptance.
 
@@ -1828,26 +1828,33 @@ Boundary: A model or profile change alters mistralProfileHash and needs policy r
 
 Status: **in_progress**. Phase: Community administration. Priority: P1.
 
-Depends on: None. Acceptance: MR-01 to MR-14 (rendering), One post per member across leave and rejoin; the ledger links only to posted entries; no AI path reads the forum.
+Depends on: None. Acceptance: MR-01 to MR-15, MR-07b (rendering), MR-16 to MR-23 (observation, changelog, transport allowance, ingress, configuration, backfill planner, AI exclusion), MRS-01 to MRS-06 (storage: post convergence, entries, Sophie's Whitelist, uncertain delivery, discussion copy and Gateway isolation, backfill and adoption), SA15 (the grant confirmation writes the entry), One post per member across leave and rejoin; the ledger links only to posted entries; no AI path reads the forum.
 
-Owner decisions of 30 October 2026 in the decision log; proposal, probes and the Staff test run in .agent_docs/aphelion-sophie/member-records-forum-2026-10-30.
+Owner decisions of 30 October 2026 in the decision log; proposal, probes, Staff test run, changelog, backfill and read-back scripts in .agent_docs/aphelion-sophie/member-records-forum-2026-10-30; install packet deployment-d8efd40-production-2026-10-30.
 
 Implemented scope:
 
-- Rendering module and tests (MR-01 to MR-14)
-- Staff test run: 22 posts for current Staff and Lead Ops in forum 1562315014998728727, verified read-back
+- Rendering module and tests (MR-01 to MR-15, MR-07b)
+- Staff test run: 22 posts for current Staff and Lead Ops in forum 1562315014998728727, verified read-back; applications transcribed into them (14 found, 8 none)
+- Changelog post opened in the forum (ID ending 7086); pinning refused (Sophie lacks Manage Threads)
+- Core integration d8efd40 installed in production 30 October 2026 15:02 UTC (migration 080 with grants; runtime adds memberRecords); every packet check passed
+- Backfill run 15:05 UTC: 478 records opened (22 Staff posts adopted, 456 new; 427 with an approved application); core delivering them one at a time; a 10-post read-back passed
+- Discussion copy into member_record_messages and the AI exclusion of the forum (code check and case exclusions)
 
 Remaining scope:
 
-- Core integration and its install
-- Backfill of the other members
-- Application transcription after the permission is granted
-- Discussion copy
+- Install 207a1d1: retry requests the delivery gate refused for a moment (seen as DISCORD_TRANSPORT_DISABLED retries during the backfill); needs the owner's approval
+- Pin the changelog post (owner by hand, or Manage Threads for Sophie on the forum)
+- Watch tag: Lead Ops only, or a later /member watch command (open question)
+- A rejoin's older application kept as its own entry (today message 3 shows the newest)
+- Reconciliation of joins and leaves missed while core was down (re-running backfill.mjs adds missing members only)
+- Later: Discord moderation (Guild Moderation intent, View Audit Log) and SSymphony game records
 
 Full task deliverables:
 
 - modules/member-records: title, tags, header, ledger, three reserved messages, entries, application transcription, date-of-birth and game-name interpretation
-- Core integration: migration 080 (member_records, member_record_events, runtime grants), outbox kinds member.record.open/entry/header, producers in the gateway projection, Shuttle grant, member actions and Whitelist loss
+- Core integration: migration 080 (member_records, member_record_events, member_record_messages, runtime grants), record-level convergence by core (no outbox kinds), producers in the Gateway (joins, leaves, Whitelist and Muzzled changes, names) and at Sophie's Whitelist confirmation
+- Changelog post in the forum: one line per automatic entry, with a link (owner request, 30 October 2026)
 - Adoption of the Staff test run posts from staff-test-state.json; host-only paced backfill of every current member
 - Approved-application transcription (needs the permission Discord asks for; undocumented join-request interface)
 - Copy of the forum discussion into Sophie's database (owner: "She can copy into her DB"; never AI)

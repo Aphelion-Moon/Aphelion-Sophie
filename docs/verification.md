@@ -1,5 +1,27 @@
 # Verification and release limits
 
+## Production install of d8efd40 (member records, P56) — 30 October 2026
+
+- **Install (15:02 UTC; owner approval quoted in `approval.json`: "deal with P56, then install and publish"):**
+  `prepare.mjs` passed against the installed bbe844c (17 reviewed files, 6 new; only migration 080; the runtime adds only
+  `memberRecords`; recorded policy matches). Migration 080 applied (80 migrations) and its three tables given exactly the
+  runtime grants of `shuttle_activity_runs` in the same step; pre-start, service boundary, installed and public checks all
+  passed. Core started and marked the forum and the changelog post as case exclusions on its first run.
+- **Publish (backfill, 15:05 UTC):** `backfill.mjs --plan` then `--run` with the installed code: 495 members, 17 bots,
+  478 records opened (22 Staff test-run posts adopted, 456 new posts; 427 with an approved application; 435 approved
+  applications listed). Core delivers them one record at a time behind live work. Read-back at 15:08 UTC of 10 random
+  delivered posts (`verify-records.mjs`, GET only): no problems (in the forum, archived, Sophie's five messages in order,
+  every entry posted, linked from the ledger and listed in the changelog).
+- **Seen in production:** a few `MEMBER_RECORD_RETRY code=DISCORD_TRANSPORT_DISABLED`: the delivery gate refuses the
+  request after Sophie's own post while its Gateway event is recorded. Nothing is sent twice; the record continues on its
+  next attempt. Fixed in 207a1d1 (not installed).
+- **Offline:** `npm test` 923 passed (new MR-16 to MR-23); `npm run check` passed; `test:storage:fast` 1050 passed, 0
+  failed (new MRS-01 to MRS-06; SA15 extended). On a synthetic cluster 080 applied, the packet's revert returned the
+  database to the 79 migrations bbe844c verifies, and 080 applied again. After the install: 207a1d1's MRS suite 6 passed.
+- **Not covered:** a live join, leave, role or name change in production (no such event yet); a new member's application
+  read live; Staff discussion copied from a real post; the changelog pin (refused, `50001`); the full backfill's end (in
+  progress at the time of writing).
+
 ## Production install of bbe844c — 25 October 2026
 
 - **Install (22:46 UTC, owner approval quoted in `approval.json`):** preflight passed; files written and migration 079

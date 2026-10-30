@@ -2795,3 +2795,8 @@ posts and the changelog are permanent case exclusions and are refused by the AI 
 AI path can reach them. Production's Discord allowance grows by exactly this: opening a post in that one forum and changing
 a post's name, tags or archived state. "Publish" is read as the backfill of every current member, which the owner asked for
 on 30 October ("New post for everyone"); the 22 Staff test-run posts are adopted, not opened again.
+
+**Installed (30 October 2026, 15:02 UTC):** `d8efd40` on the bbe844c production installation, with the owner's approval
+above quoted in the packet's `approval.json`; every packet check passed. The backfill ran at 15:05 UTC (478 records, the 22
+Staff posts adopted). The fix `207a1d1` (retrying a request the delivery gate refused for a moment) is committed, not
+installed.

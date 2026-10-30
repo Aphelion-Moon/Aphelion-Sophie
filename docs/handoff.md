@@ -7,9 +7,31 @@ policy is in [the owner decisions](decisions/0001-owner-policy.md), remaining wo
 for the next session: where the Shuttle Activity work stands, what is left before it opens, and how to work on it.
 Where it disagrees with those records, they win.
 
-## Newest: member records (30 October 2026)
+## Newest: member records installed (30 October 2026, 15:02 UTC)
 
-Production runs `bbe844c` (schema 079) in the main Aphelion server; the Shuttle Activity is open. The sections below this one
+Production runs **`d8efd40` (schema 080)**. Core keeps the member records itself; the section after this one describes
+the state before the install and its "Next" list is done.
+
+- **What core does:** each record (`sophie_core.member_records`) holds what the post should show and what is delivered;
+  the dispatcher (`apps/core/discord/member-records.js`) brings one post up to date per worker tick, after Whitelist
+  grants and notices, live work before backfill. Entries come from the Gateway (join, leave, Whitelist and Muzzled roles,
+  names) and from Sophie's Whitelist confirmation. Every entry gets a line in the **changelog post** (thread ID ending
+  7086 in the forum). Staff messages in record posts are copied to `member_record_messages`. The forum and its posts are
+  case exclusions and refused by the AI context check.
+- **Backfill:** run at 15:05 UTC (478 records; 22 Staff posts adopted). Core was still posting them at the time of
+  writing, about 6 a minute. Watch it with `$env:TEMP\mr-progress.mjs`-style read-only queries, or
+  `member-records-forum-2026-10-30/verify-records.mjs [n]` (GET-only read-back of n delivered posts).
+- **Not installed:** `207a1d1` retries a request the delivery gate refused for a moment (`DISCORD_TRANSPORT_DISABLED`
+  after Sophie's own post). Harmless meanwhile: the record continues on its next attempt.
+- **Owner actions:** pin the changelog post (Sophie's pin was refused: no Manage Threads); decide who may set the Watch tag.
+- **Packet:** `.agent_docs/aphelion-sophie/deployment-d8efd40-production-2026-10-30` (template for the next one;
+  `rollback.ps1` drops the records tables and restores bbe844c; posts already made stay in Discord).
+- **Gotcha:** never write a JavaScript replacement string with backslashes through a Bash heredoc into `node -e` or
+  `node -`; the string escapes collapse them. Use the Edit tool.
+
+## Member records before the install (30 October 2026)
+
+Production ran `bbe844c` (schema 079) in the main Aphelion server; the Shuttle Activity is open. The sections below this one
 are the 23 October snapshot and are partly out of date; the decision log and workplan win.
 
 ### What it is
