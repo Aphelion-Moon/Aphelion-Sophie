@@ -2830,3 +2830,9 @@ record posts. A deletion or edit is entered in the author's post, with the moder
 these entries stay out of the ledger and changelog. Deleted text entered in a record stays with the record. Installed as
 8372861 at 16:37 UTC with 0b9298a, then 35ec844 at 16:43 UTC ("Go ahead and install when you're done.") fixing a key-order
 comparison that made the first regular check mark 451 unchanged records.
+
+**Role changes (30 October 2026, evening).** The owner: "Add role changes to the automatic entries." and, asked to install,
+"Install and push". Every role change other than Whitelist and Muzzled (which keep their own entries) is an entry naming the
+roles and who changed them from the audit log; each header lists the member's roles. Installed as a6fa5b3 at 17:49 UTC
+(migration 084); the pinned changelog post's opening text lists the new entry (owner, earlier: "Update the OP in the pinned
+thread to include a list of all features and types of tracked information for this forum feature.").

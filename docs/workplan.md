@@ -1,6 +1,6 @@
 # Current implementation workplan
 
-Revision: 2026-10-30-production-35ec844. Mistral Small 4 (mistral-small-2603) on the official EU API is the selected provider for trial; DeepSeek Flash is withdrawn. Local models are historical, explicitly selected alternatives only; no automatic fallback. Continue the DS workstream with synthetic data; full readiness and activation remain open.
+Revision: 2026-10-30-production-a6fa5b3. Mistral Small 4 (mistral-small-2603) on the official EU API is the selected provider for trial; DeepSeek Flash is withdrawn. Local models are historical, explicitly selected alternatives only; no automatic fallback. Continue the DS workstream with synthetic data; full readiness and activation remain open.
 
 All production release gates remain open; pure and isolated database checks are not full application acceptance.
 
@@ -1848,10 +1848,10 @@ Implemented scope:
 - 35ec844 installed 16:43 UTC: profiles compared regardless of key order (the first check had marked 451 unchanged records; the one-time header refresh then converged)
 - Changelog post opening lists every feature and tracked type (edited 17:05 UTC)
 - The one-time header refresh after 8372861 finished: all 488 records delivered by 17:15 UTC
+- a6fa5b3 installed 17:49 UTC (migration 084): role change entries with audit-log attribution, roles in each header; the first check filled role IDs for all 478 present members with no entries; pinned post text updated 17:51 UTC; first real message.edited entries recorded
 
 Remaining scope:
 
-- Install a6fa5b3 (prepared, deployment-a6fa5b3-production-2026-10-30): role changes as entries, roles in each header (migration 084); then update the pinned post text; needs the owner's approval
 - Live checks: a real deletion and edit entry, a moderator deletion attributed from the audit log, /member watch by Staff, a real leave with message links
 - Privacy notice line: message text kept 30 days, authors a year, deleted and edited messages kept in the record
 - Later: Discord moderation (bans, kicks via the audit log) and SSymphony game records

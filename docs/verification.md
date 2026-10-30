@@ -1,5 +1,17 @@
 # Verification and release limits
 
+## Production install of a6fa5b3 (role change entries) — 30 October 2026
+
+- **Install (17:49 UTC; owner: "Install and push"):** `prepare.mjs` passed against 35ec844 (7 files, 1 new; only
+  migration 084, a check constraint); 084 applied (84 migrations); pre-start, boundary, installed and public checks
+  passed. The regular check at 17:50 UTC opened, changed and left nothing, and gave all 478 present records their role
+  IDs without a single role entry; headers then refreshed once in the background. The pinned post's opening text was
+  updated at 17:51 UTC (1,936 characters).
+- **Offline:** `npm test` 929 passed (MR-16c new); `npm run check` passed; `test:storage:fast` 1056 passed, 0 failed
+  (MRS-12 new). On a synthetic cluster 084 applied, the revert returned to 83 migrations, and 084 applied again.
+- **Seen live since 8372861:** three real "Message edited" entries recorded.
+- **Not covered:** a real role change entry with audit-log attribution (none yet).
+
 ## Production installs of 8372861 and 35ec844 (member records) — 30 October 2026
 
 - **8372861 (16:37 UTC; owner: "go ahead and install the full bundle of updates"):** the 0b9298a work below plus deleted
