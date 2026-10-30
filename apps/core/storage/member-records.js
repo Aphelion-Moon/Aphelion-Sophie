@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { requireCondition, requireId, requireInteger, requireName, requireRecord } from '../../../contracts/validation.js';
-import { observeMember } from '../../../modules/member-records/index.js';
+import { applicationAnswers, observeMember } from '../../../modules/member-records/index.js';
 import { inTransaction } from './transaction.js';
 
 /**
@@ -10,7 +10,7 @@ import { inTransaction } from './transaction.js';
  * dispatcher (apps/core/discord/member-records.js) converges one record at a time under a lease. No AI reads any of it.
  */
 
-const EVENT_KINDS = Object.freeze(['record.opened', 'joined', 'left', 'whitelist.granted', 'whitelist.lost', 'muzzled', 'unmuzzled', 'name.changed', 'application', 'watched', 'unwatched']);
+const EVENT_KINDS = Object.freeze(['record.opened', 'joined', 'left', 'whitelist.granted', 'whitelist.lost', 'muzzled', 'unmuzzled', 'name.changed', 'application', 'watched', 'unwatched', 'application.replaced']);
 const SLOT = /^(?:header|ledger|application|application[2-9]|games|spare)$/u;
 const EVENT_ID = /^[A-Za-z0-9._-]{1,160}$/u;
 const NO_ROLES = Object.freeze({ crew: false, whitelist: false, muzzled: false, staff: false, leadOps: false });
@@ -53,6 +53,31 @@ export function requireMemberRecordEvent(event) {
   requireCondition(event !== null && typeof event === 'object' && Object.isFrozen(event) && ['member', 'message', 'delete'].includes(event.kind), 'MEMBER_RECORD_OBSERVATION_INVALID');
 }
 
+/** Whether Sophie's own Whitelist grant for the member is under way or just done (its confirmation enters it). */
+async function sophieGrantRecent(client, guildId, userId) {
+  return (await client.query(`SELECT 1 FROM sophie_core.outbox WHERE guild_id = $1 AND user_id = $2 AND kind = 'whitelist.grant'
+    AND status IN ('leased', 'done') AND created_at > clock_timestamp() - interval '6 hours' LIMIT 1`, [guildId, userId])).rowCount > 0;
+}
+
+/**
+ * Applies what Discord says about a recorded member: the entries it means, the profile, and a new look at the application
+ * after a rejoin. A leave keeps the member's latest message IDs for its entry. `noticed` marks a change Sophie's regular
+ * check found rather than saw happen (owner direction, 30 October 2026).
+ */
+async function applyObservation(client, { guildId, userId, row, observation, atMs, eventId, noticed = false }) {
+  // Sophie's own grant is recorded by its confirmation (recordSophieWhitelist), with the reading time; the role it adds
+  // is not a second entry.
+  const bySophie = !row.profile.roles?.whitelist && observation.roles.whitelist && await sophieGrantRecent(client, guildId, userId);
+  const next = observeMember(row.profile, observation, atMs, { whitelistBySophie: bySophie });
+  // A rejoin may come with a new application: look again.
+  if (next.events.some(item => item.kind === 'joined')) await client.query(`UPDATE sophie_core.member_records
+    SET application = CASE WHEN application IS NULL THEN NULL ELSE application || '{"recheck": true}'::jsonb END WHERE guild_id = $1 AND user_id = $2`, [guildId, userId]);
+  await insertEvents(client, guildId, userId, next.events.map(({ kind, ...detail }, index) => ({ eventId: eventId(`${index}`), kind, atMs,
+    detail: { ...detail, ...(noticed ? { noticed: true } : {}), ...(kind === 'left' ? { recent: row.recent_messages ?? [] } : {}) } })));
+  if (next.changed || next.events.length) await touch(client, guildId, userId, next.profile, atMs);
+  return next.events.length;
+}
+
 /**
  * Called only inside the Gateway cursor transaction (apps/core/storage/gateway-journal.js). Member changes update the
  * member's record (a join with no record opens one); a message in one of the record posts is copied as an observation. A
@@ -62,7 +87,7 @@ export async function recordMemberRecordObservation(client, { guildId, mapping, 
   requireRecord(event); requireInteger(epoch, 0); requireInteger(sequence, 0); requireInteger(observedAt, 1);
   if (event.kind === 'member') {
     if (event.bot || event.userId === mapping.botUserId) return;
-    const row = (await client.query('SELECT profile FROM sophie_core.member_records WHERE guild_id = $1 AND user_id = $2 FOR UPDATE',
+    const row = (await client.query('SELECT profile, recent_messages FROM sophie_core.member_records WHERE guild_id = $1 AND user_id = $2 FOR UPDATE',
       [guildId, event.userId])).rows[0];
     const roles = event.present ? memberRoleFlags(event.roleIds, mapping) : { ...NO_ROLES };
     const observation = { present: event.present, roles, username: event.username, globalName: event.globalName, nick: event.nick, joinedAtMs: event.joinedAtMs };
@@ -75,21 +100,19 @@ export async function recordMemberRecordObservation(client, { guildId, mapping, 
       await insertEvents(client, guildId, event.userId, [{ eventId: id('joined'), kind: 'joined', atMs: observedAt, detail: { joinCount: 1 } }]);
       return;
     }
-    // Sophie's own grant is recorded by its confirmation (recordSophieWhitelist), with the reading time; the role it adds
-    // is not a second entry.
-    const bySophie = !row.profile.roles?.whitelist && roles.whitelist && (await client.query(`SELECT 1 FROM sophie_core.outbox
-      WHERE guild_id = $1 AND user_id = $2 AND kind = 'whitelist.grant' AND status IN ('leased', 'done')
-        AND created_at > clock_timestamp() - interval '6 hours' LIMIT 1`, [guildId, event.userId])).rowCount > 0;
-    const next = observeMember(row.profile, observation, observedAt, { whitelistBySophie: bySophie });
-    // A rejoin may come with a new application: look again.
-    if (next.events.some(item => item.kind === 'joined')) await client.query(`UPDATE sophie_core.member_records
-      SET application = CASE WHEN application IS NULL THEN NULL ELSE application || '{"recheck": true}'::jsonb END WHERE guild_id = $1 AND user_id = $2`, [guildId, event.userId]);
-    await insertEvents(client, guildId, event.userId, next.events.map(({ kind, ...detail }, index) => ({ eventId: id(`${index}`), kind, atMs: observedAt, detail })));
-    if (next.changed || next.events.length) await touch(client, guildId, event.userId, next.profile, observedAt);
+    await applyObservation(client, { guildId, userId: event.userId, row, observation, atMs: observedAt, eventId: id });
     return;
   }
   requireCondition(['message', 'delete'].includes(event.kind), 'MEMBER_RECORD_OBSERVATION_INVALID');
   const record = (await client.query('SELECT user_id FROM sophie_core.member_records WHERE guild_id = $1 AND thread_id = $2', [guildId, event.channelId])).rows[0];
+  // A member's latest messages, as IDs and times only, so a leave can link to them (owner direction, 30 October 2026). Not
+  // record posts, nor channels Sophie's case records exclude (her case channels, the forum and its changelog).
+  if (event.kind === 'message' && event.type === 'MESSAGE_CREATE' && event.authorId && event.authorId !== mapping.botUserId && !record &&
+    !(await client.query('SELECT 1 FROM sophie_core.case_exclusions WHERE guild_id = $1 AND channel_id = $2', [guildId, event.channelId])).rowCount) {
+    await client.query(`UPDATE sophie_core.member_records SET recent_messages = (SELECT COALESCE(jsonb_agg(item ORDER BY position), '[]'::jsonb)
+        FROM jsonb_array_elements(jsonb_build_array($3::jsonb) || recent_messages) WITH ORDINALITY AS listed(item, position) WHERE position <= 10)
+      WHERE guild_id = $1 AND user_id = $2`, [guildId, event.authorId, { channelId: event.channelId, messageId: event.messageId, atMs: event.messageAtMs ?? observedAt }]);
+  }
   if (!record) return;
   if (event.kind === 'message' && event.authorId === mapping.botUserId) return;
   for (const messageId of event.kind === 'delete' ? event.messageIds : [event.messageId]) {
@@ -174,6 +197,61 @@ export function createMemberRecordStore({ pool, clock, guildId, forumId, changel
         return 'recorded';
       });
     },
+    /**
+     * Sophie's regular check (owner, 30 October 2026: the backfill should run by itself): brings the records in line with
+     * Discord's member list read at `startedAtMs`. A current member without a record gets one (behind live work, with the
+     * application from `approved`); a recorded member's roles and names are compared as the Gateway would; a recorded member
+     * missing from the list has left, and one listed again has rejoined, both marked as noticed. A record the Gateway changed
+     * after the read began is left alone. More than a few leaves from one read means the read was wrong, and nothing is done.
+     * @returns {Promise<{ opened: number, changed: number, left: number }>}
+     */
+    async reconcile({ members, approved, startedAtMs, mapping, note }) {
+      requireCondition(Array.isArray(members) && approved instanceof Map && typeof note === 'string', 'MEMBER_RECORD_RECONCILE_INVALID'); requireInteger(startedAtMs, 1);
+      const at = clock(); requireInteger(at, 1);
+      const listed = new Map(members.filter(member => !member.bot && member.userId !== mapping.botUserId).map(member => [member.userId, member]));
+      const recordedPresent = (await pool.query(`SELECT user_id FROM sophie_core.member_records WHERE guild_id = $1 AND (profile->>'present')::boolean`,
+        [guildId])).rows.map(row => row.user_id);
+      const missing = recordedPresent.filter(userId => !listed.has(userId));
+      requireCondition(missing.length <= Math.max(5, Math.floor(recordedPresent.length / 20)), 'MEMBER_RECORD_RECONCILE_SUSPICIOUS');
+      const counts = { opened: 0, changed: 0, left: 0 };
+      const eventId = userId => suffix => `r.${startedAtMs}.${userId}.${suffix}`;
+      for (const [userId, member] of listed) await inTransaction(pool, async client => {
+        const row = (await client.query('SELECT profile, recent_messages, updated_at_ms FROM sophie_core.member_records WHERE guild_id = $1 AND user_id = $2 FOR UPDATE',
+          [guildId, userId])).rows[0];
+        const observation = { present: true, roles: memberRoleFlags(member.roleIds, mapping), username: member.username, globalName: member.globalName,
+          nick: member.nick, joinedAtMs: member.joinedAtMs };
+        if (!row) {
+          const request = approved.get(userId);
+          const application = request ? { status: 'found', requestId: request.id, approvedAtMs: request.reviewedAtMs, approvedBy: request.approvedBy ?? null,
+            answers: applicationAnswers(request.formResponses) } : { status: 'none' };
+          await client.query(`INSERT INTO sophie_core.member_records (guild_id, user_id, profile, application, background, opened_at_ms, updated_at_ms)
+            VALUES ($1, $2, $3, $4, true, $5, $5)`, [guildId, userId, profileOf({ ...observation, joinCount: null, note }), application, at]);
+          await insertEvents(client, guildId, userId, [{ eventId: `opened.${userId}`, kind: 'record.opened', atMs: at, detail: { joinedAtMs: member.joinedAtMs } },
+            ...(request ? [{ eventId: `application.${request.id}`, kind: 'application', atMs: request.reviewedAtMs, detail: { approvedAtMs: request.reviewedAtMs } }] : [])]);
+          counts.opened += 1; return;
+        }
+        if (Number(row.updated_at_ms) >= startedAtMs) return;
+        if (await applyObservation(client, { guildId, userId, row, observation, atMs: at, eventId: eventId(userId), noticed: true })) counts.changed += 1;
+      });
+      for (const userId of missing) await inTransaction(pool, async client => {
+        const row = (await client.query('SELECT profile, recent_messages, updated_at_ms FROM sophie_core.member_records WHERE guild_id = $1 AND user_id = $2 FOR UPDATE',
+          [guildId, userId])).rows[0];
+        if (!row || Number(row.updated_at_ms) >= startedAtMs || row.profile.present !== true) return;
+        if (await applyObservation(client, { guildId, userId, row, observation: { present: false, roles: {} }, atMs: at, eventId: eventId(userId), noticed: true })) counts.left += 1;
+      });
+      return counts;
+    },
+    /** Everyone Sophie's own records have seen in the server (members she observed, Shuttle Activity runs), for people who have left. */
+    async seenUserIds() {
+      return (await pool.query(`SELECT user_id FROM sophie_core.members WHERE guild_id = $1
+        UNION SELECT user_id FROM sophie_core.shuttle_activity_runs WHERE guild_id = $1`, [guildId])).rows.map(row => row.user_id);
+    },
+    /** Which of these channels Sophie's case records exclude (her case channels, the records forum and its changelog). */
+    async excludedChannels(channelIds) {
+      requireCondition(Array.isArray(channelIds) && channelIds.length <= 50, 'MEMBER_RECORD_PROGRESS_INVALID'); channelIds.forEach(requireId);
+      return new Set((await pool.query('SELECT channel_id FROM sophie_core.case_exclusions WHERE guild_id = $1 AND channel_id = ANY($2::text[])',
+        [guildId, channelIds])).rows.map(row => row.channel_id));
+    },
     /** The member IDs that already have a record, for the backfill. */
     async recordedMembers() {
       return (await pool.query('SELECT user_id FROM sophie_core.member_records WHERE guild_id = $1', [guildId])).rows.map(row => row.user_id);
@@ -257,7 +335,7 @@ export function createMemberRecordStore({ pool, clock, guildId, forumId, changel
           requireCondition(['found', 'none', 'unavailable'].includes(application?.status), 'MEMBER_RECORD_APPLICATION_INVALID');
           await client.query('UPDATE sophie_core.member_records SET application = $3 WHERE guild_id = $1 AND user_id = $2', [guildId, lease.userId, application]);
         }
-        if (applicationEvent !== undefined) await insertEvents(client, guildId, lease.userId, [applicationEvent]);
+        if (applicationEvent !== undefined) await insertEvents(client, guildId, lease.userId, Array.isArray(applicationEvent) ? applicationEvent : [applicationEvent]);
         for (const [column, updates] of [['message_id', entries], ['changelog_message_id', changelog]]) {
           if (updates === undefined) continue;
           requireRecord(updates);

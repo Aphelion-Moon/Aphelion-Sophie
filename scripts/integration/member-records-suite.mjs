@@ -6,6 +6,7 @@ import { createMemberRecordDispatcher } from '../../apps/core/discord/member-rec
 import { createMemberRecordStore, recordSophieWhitelist } from '../../apps/core/storage/member-records.js';
 import { planMemberRecordBackfill, planDepartedMemberRecords } from '../../apps/core/operator/member-record-backfill.js';
 import { inTransaction } from '../../apps/core/storage/transaction.js';
+import { createMemberRecordReconciler } from '../../apps/core/discord/member-record-reconciler.js';
 import { mapping, CREW, WHITELIST, MUZZLED, BOT } from '../../tests/fixtures/discord.js';
 import { GUILD, USER, OTHER, STAFF, NOW } from '../../tests/fixtures/domain.js';
 import { APPLICATION } from '../../tests/fixtures/interactions.js';
@@ -17,6 +18,10 @@ const FORUM = '100000000000000601', CHANGELOG = '100000000000000602', THIRD = '1
 const TAG_IDS = { 'In server': '100000000000000611', Left: '100000000000000612', Whitelisted: '100000000000000613', Muzzled: '100000000000000614',
   Staff: '100000000000000615', Watch: '100000000000000616' };
 const REQUEST = '100000000000000621', APPROVER = '100000000000000622';
+// Ordinary channels for a leaver's message links: a public one, a ticket channel in the protected category, a thread in a
+// ticket channel, and one of Sophie's excluded case channels.
+const PROTECTED = '100000000000000631', GENERAL = '100000000000000632', TICKET = '100000000000000633', TICKET_THREAD = '100000000000000634', CASE = '100000000000000635';
+const CHANNELS = new Map([[GENERAL, '100000000000000630'], [TICKET, PROTECTED], [TICKET_THREAD, TICKET], [CASE, ''], ['100000000000000630', ''], [PROTECTED, '']]);
 
 /** A small stand-in for Discord's forum: posts, Sophie's messages (deduplicated by nonce, as Discord does), tags, archiving. */
 function simulatedForum() {
@@ -65,8 +70,12 @@ function simulatedForum() {
     },
     async getChannel(channelId) {
       const thread = threads.get(channelId);
+      if (!thread && CHANNELS.has(channelId)) return { id: channelId, parent_id: CHANNELS.get(channelId) || null };
       return thread ? { id: channelId, parent_id: FORUM, applied_tags: [...thread.tags], thread_metadata: { archived: thread.archived } } : null;
     },
+    members: [],
+    async getMemberRecordMembers({ after }) { calls.push(['members']); return structuredClone(transport.members.filter(member => BigInt(member.userId) > BigInt(after))); },
+    async getRecordUser(userId) { calls.push(['user', userId]); return { username: `user${userId.slice(-3)}`, globalName: null, bot: false }; },
     async getMemberRecordThreads() { calls.push(['search']); return [...threads].filter(([key]) => key !== CHANGELOG).map(([key, thread]) => ({ id: key, name: thread.name, ownerId: thread.ownerId })); },
     async getApprovedJoinRequests() { calls.push(['requests']); return structuredClone(approved); },
   };
@@ -116,7 +125,7 @@ export async function runMemberRecordsSuite(cluster, run) {
     await observer.accept(connection, guildEvent()); sequence = 2;
     forum = simulatedForum(); forum.approve([application()]);
     store = createMemberRecordStore({ pool, clock: () => now, guildId: GUILD, forumId: FORUM, changelogThreadId: CHANGELOG });
-    dispatcher = createMemberRecordDispatcher({ store, transport: forum.transport, botUserId: BOT, tagIds: TAG_IDS, enabled: async () => true });
+    dispatcher = createMemberRecordDispatcher({ store, transport: forum.transport, botUserId: BOT, tagIds: TAG_IDS, protectedCategoryId: PROTECTED, enabled: async () => true });
     await work();
   });
 
@@ -165,7 +174,7 @@ export async function runMemberRecordsSuite(cluster, run) {
     post.tags.push(TAG_IDS.Watch);
     now += 60_000; await leave(USER, 'vexy'); await drain();
     assert.deepEqual(post.tags, [TAG_IDS.Left, TAG_IDS.Watch]);
-    assert.match(post.messages.at(-1).content, /^\*\*Left or removed\*\* · .* · Whitelist ends; a fresh Shuttle run is needed to regain it$/);
+    assert.match(post.messages.at(-1).content, /^\*\*Left or removed\*\* · .* · Whitelist ends; a fresh Shuttle run is needed to regain it\n-# No recent messages on record\.$/);
     assert.match(post.messages[0].content, /\*\*Status:\*\* Left or removed/);
     now += 60_000; await join(USER, 'vexy', [CREW], 'Vex'); await drain();
     // A rejoin drops the server nickname, which is a name change too.
@@ -304,5 +313,62 @@ export async function runMemberRecordsSuite(cluster, run) {
     // If they come back, the record continues.
     now += 1_000; await join(THIRD, 'gone'); await drain();
     assert.ok(gone.messages.at(-1).content.startsWith('**Joined** · ') && gone.messages.at(-1).content.endsWith(' · rejoined (earlier joins not recorded)')); assert.deepEqual(gone.tags, [TAG_IDS['In server']]);
+  });
+
+  await scenario('MRS-08 a leave carries its exact time and links to the five latest messages Staff may open', async () => {
+    await join(USER, 'vexthecat'); await drain();
+    const [threadId, post] = forum.posts()[0];
+    await admin.query('INSERT INTO sophie_core.case_exclusions (guild_id, channel_id) VALUES ($1, $2)', [GUILD, CASE]);
+    const say = (channel, tail, author = USER) => { now += 1_000; return send('MESSAGE_CREATE', { guild_id: GUILD, channel_id: channel, id: `1000000000000007${tail}`,
+      content: 'hello', author: { id: author, username: 'someone' }, attachments: [], timestamp: new Date(now).toISOString() }); };
+    for (const [channel, tail] of [[GENERAL, 11], [TICKET, 12], [GENERAL, 13], [CASE, 14], [TICKET_THREAD, 15], [GENERAL, 16], [GENERAL, 17], [GENERAL, 18], [GENERAL, 19]]) await say(channel, tail);
+    await say(threadId, 20); await say(GENERAL, 21, OTHER);
+    const [kept] = await rows('member_records');
+    assert.deepEqual(kept.recent_messages.map(item => item.messageId.slice(-2)), ['19', '18', '17', '16', '15', '13', '12', '11'], 'IDs only, newest first; not record posts or excluded case channels');
+    assert.ok(kept.recent_messages.every(item => Object.keys(item).sort().join() === 'atMs,channelId,messageId'), 'no content kept');
+    now += 60_000; const leftAt = now; await leave(USER, 'vexthecat'); await drain();
+    const entry = post.messages.at(-1).content;
+    assert.ok(entry.startsWith('**Left or removed** · ') && entry.includes(`(<t:${Math.floor(leftAt / 1000)}:f>)`), entry);
+    const linked = [...entry.matchAll(/discord\.com\/channels\/\d+\/(\d+)\/(\d+)\)/g)].map(match => match[2].slice(-2));
+    assert.deepEqual(linked, ['19', '18', '17', '16', '13'], 'five, never a ticket channel, a thread in one, or a case channel');
+    assert.ok(post.messages[0].content.includes(`last left <t:${Math.floor(leftAt / 1000)}:f>`), 'the header shows the date and time');
+  });
+
+  await scenario('MRS-09 a new application replaces the old one in message 3, and an entry keeps the earlier one as it was', async () => {
+    await join(USER, 'vexthecat'); await drain();
+    now += 60_000; await leave(USER, 'vexthecat'); await drain();
+    forum.approve([{ ...application(), id: '100000000000000623', reviewedAtMs: now, formResponses: [
+      { field_type: 'TEXT_INPUT', label: 'What is your date of birth? Month and year only, MM/YYYY', response: '05/1999', choices: [] }] }]);
+    now += 60_000; await join(USER, 'vexthecat'); await drain();
+    const [threadId, post] = forum.posts()[0];
+    assert.ok(post.messages[2].content.includes('05/1999') && !post.messages[2].content.includes('04/1998'), 'message 3 holds the new application');
+    assert.ok(post.messages[0].content.includes('**Born:** 05/1999'), 'the header reads the new one');
+    const at = post.messages.findIndex(message => message.content.startsWith('**Access application replaced** · '));
+    assert.ok(at > 4, 'an entry below the reserved messages');
+    assert.ok(post.messages[at + 1].content.startsWith('**Earlier access application** · approved') && post.messages[at + 1].content.includes('04/1998'));
+    assert.ok(post.messages[1].content.includes(`/${threadId}/${post.messages[at].id})`), 'the ledger links the replacement');
+    assert.ok(forum.changelog().some(line => line.includes('**Access application replaced**')));
+    const [record] = await rows('member_records'); assert.equal(record.application.requestId, '100000000000000623');
+  });
+
+  await scenario('MRS-10 the regular check opens missing records, notices offline changes and leaves, and distrusts a list that drops many', async () => {
+    await join(USER, 'vexthecat'); await join(OTHER, 'other'); await drain();
+    const member = (userId, username, roles) => ({ userId, bot: false, username, globalName: null, nick: null, roleIds: roles, joinedAtMs: NOW - 9e9 });
+    forum.transport.members = [member(USER, 'vexthecat', [CREW, MUZZLED]), member(THIRD, 'quiet', [CREW]), { ...member(BOT, 'sophie', []), bot: true }];
+    forum.approve([]);
+    now += 3_600_000;
+    const reconciler = createMemberRecordReconciler({ store, transport: forum.transport, mapping, enabled: async () => true, clock: () => now });
+    assert.deepEqual({ ...await reconciler.runDue('check') }, { status: 'reconciled', opened: 1, changed: 1, left: 1, departed: 0 });
+    assert.deepEqual(await reconciler.runDue('check'), { status: 'idle' }, 'not again before six hours');
+    await drain();
+    const named = name => forum.posts().find(([, item]) => item.name.startsWith(name))[1];
+    assert.ok(named('other').messages.at(-1).content.includes('left while she was offline and the exact time is not known'));
+    assert.ok(named('vexthecat').messages.at(-1).content.startsWith('**Muzzled**'));
+    assert.ok(named('quiet').messages[5].content.startsWith('**Record opened**'));
+    for (const tail of ['41', '42', '43', '44', '45', '46']) await join(`1000000000000006${tail}`, `extra${tail}`);
+    forum.transport.members = [];
+    now += 7 * 3_600_000;
+    assert.deepEqual({ ...await reconciler.runDue('check') }, { status: 'failed', code: 'MEMBER_RECORD_RECONCILE_SUSPICIOUS' });
+    assert.equal((await rows('member_record_events')).filter(event => event.kind === 'left').length, 1, 'no leave recorded from a list that drops many');
   });
 }

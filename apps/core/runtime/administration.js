@@ -18,6 +18,7 @@ import { createWhitelistNoticeDispatcher } from '../discord/whitelist-notices.js
 import { createMemberRecordDispatcher } from '../discord/member-records.js';
 import { createMemberRecordStore } from '../storage/member-records.js';
 import { createMemberWatch } from '../discord/member-watch.js';
+import { createMemberRecordReconciler } from '../discord/member-record-reconciler.js';
 import { createCaseDispatcher } from '../discord/case-dispatcher.js';
 import { createOnboardingDispatcher } from '../discord/onboarding-dispatcher.js';
 import { createOnboardingAlertDispatcher } from '../discord/onboarding-alert-dispatcher.js';
@@ -135,12 +136,15 @@ export function createAdministrationLane({ configuration, pool, token, fetch, cl
   if (whitelistNotices) workers.push(whitelistNotices);
   // A post per member in the Staff forum, and the changelog, when configured (owner decisions, 30 October 2026).
   const records = configuration.memberRecords;
-  const memberRecords = records === undefined ? null : createMemberRecordDispatcher({ transport, botUserId: mapping.botUserId, tagIds: records.tagIds, enabled, trace: onTrace,
+  const memberRecords = records === undefined ? null : createMemberRecordDispatcher({ transport, botUserId: mapping.botUserId, tagIds: records.tagIds, protectedCategoryId: policy.categoryId, enabled, trace: onTrace,
     store: createMemberRecordStore({ pool, clock, guildId: mapping.guildId, forumId: records.forumId, changelogThreadId: records.changelogThreadId }) });
   if (memberRecords) workers.push(memberRecords);
+  // Sophie's regular check of the records against Discord's member list (owner, 30 October 2026).
+  const memberRecordReconciler = records === undefined ? null : createMemberRecordReconciler({ transport, mapping, enabled, clock,
+    store: createMemberRecordStore({ pool, clock, guildId: mapping.guildId, forumId: records.forumId, changelogThreadId: records.changelogThreadId }) });
   return { transport, roles, channels, authorization, store, intakeStore, replyStore, issueStore, intakeMessages: answers, replyMessages,
     screenMessages: screens, alertMessages: alerts, commands, workers, caseIntake, automationRecovery, sophieMember,
-    whitelistGrants: createWhitelistGrantDispatcher({ outbox, store, discord: roles, enabled }), whitelistNotices, memberRecords,
+    whitelistGrants: createWhitelistGrantDispatcher({ outbox, store, discord: roles, enabled }), whitelistNotices, memberRecords, memberRecordReconciler,
     responseAdapters: { onboardingNavigation: createOnboardingNavigation({ ...common, channels }), onboardingAssistance: assistance,
       onboardingDeliveryIssues: deliveryIssues, caseLifecycle, caseStaff, caseIntake, caseContacts, caseDeliveryIssues, publicAnswers, caseAnswers, knowledgeLookup, sophieMember, shuttleProgress } };
 }

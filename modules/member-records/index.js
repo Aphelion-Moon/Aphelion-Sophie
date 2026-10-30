@@ -369,7 +369,7 @@ export function renderHeader(record) {
   const when = record.joinedAtMs ? stamp(record.joinedAtMs) : 'date unknown';
   const joins = record.joinCount === null ? `${when} · earlier joins not recorded`
     : `${when} · ${record.joinCount === 1 ? 'first join' : `join ${record.joinCount}`}`;
-  const left = record.lastLeftAtMs ? ` · last left ${stamp(record.lastLeftAtMs)}` : '';
+  const left = record.lastLeftAtMs ? ` · last left ${stamp(record.lastLeftAtMs, 'f')}` : '';
   const application = record.application;
   const gameLine = (name, value) => `${name}: ${value ? `${literal(value)} (given on application)` : 'not on record'}`;
   const earlier = (record.earlierNames ?? []).map(name => literal(cleanLine(name, 40))).filter(Boolean);
@@ -499,11 +499,26 @@ function joinWords(joinCount) {
   return joinCount === null || joinCount === undefined ? 'rejoined (earlier joins not recorded)' : joinCount === 1 ? 'first join' : `join ${joinCount}`;
 }
 
+export const RECENT_MESSAGES_SHOWN = 5;
+
+/**
+ * A leaver's most recent messages, newest first, as links (owner direction, 30 October 2026). Sophie keeps only message and
+ * channel IDs and times, never content; the caller has already left out channels Staff should not be pointed at.
+ */
+function recentLines(recent, guildId) {
+  if (!Array.isArray(recent)) return [];
+  if (recent.length === 0) return ['-# No recent messages on record.'];
+  return ['Most recent messages:', ...recent.slice(0, RECENT_MESSAGES_SHOWN).map(item =>
+    `- ${stamp(item.atMs, 'f')} in <#${item.channelId}> · [message](${jumpUrl(guildId, item.channelId, item.messageId)})`)];
+}
+
 /**
  * The text of one automatic entry. Each carries a written UTC time so Discord search can find it by date.
  * @param {{ kind: string, atMs: number }} event
+ * @param {{ guildId?: string, recent?: { channelId: string, messageId: string, atMs: number }[] }} [context] a leave's recent
+ *   messages, already filtered
  */
-export function entryText(event) {
+export function entryText(event, context = {}) {
   const at = utcText(event.atMs);
   switch (event.kind) {
     case 'record.opened':
@@ -512,7 +527,15 @@ export function entryText(event) {
     case 'watched': return `**Watch on**${event.by ? ` by <@${event.by}>` : ''} · ${at}`;
     case 'unwatched': return `**Watch off**${event.by ? ` by <@${event.by}>` : ''} · ${at}`;
     case 'joined': return `**Joined** · ${at} · ${joinWords(event.joinCount)}`;
-    case 'left': return `**Left or removed** · ${at}${event.hadWhitelist ? ' · Whitelist ends; a fresh Shuttle run is needed to regain it' : ''}`;
+    case 'left': {
+      // A leave seen live carries its exact time; one Sophie's check found later says so.
+      const when = event.noticed ? `noticed ${at}, while Sophie's check ran; the member left while she was offline and the exact time is not known`
+        : `${at} (${stamp(event.atMs, 'f')})`;
+      return fit([`**Left or removed** · ${when}${event.hadWhitelist ? ' · Whitelist ends; a fresh Shuttle run is needed to regain it' : ''}`,
+        ...recentLines(context.recent, context.guildId)]);
+    }
+    case 'application.replaced':
+      return `**Access application replaced** · ${at} · the new application, approved ${stamp(event.approvedAtMs)}${event.approvedBy ? ` by <@${event.approvedBy}>` : ''}, is now in the post's third message. The earlier one follows as it was.`;
     case 'whitelist.granted': return event.bySophie
       ? `**Whitelist granted by Sophie** · ${at}${event.timing ? ` · ${formatDuration(event.timing.focusedMs)} focused (${formatDuration(event.timing.wallMs)} from boarding) · ${event.timing.pages} pages` : ''}`
       : `**Whitelist given** · ${at} · not by Sophie`;
@@ -538,8 +561,19 @@ export function entryLabel(event) {
     case 'unmuzzled': return 'Unmuzzled';
     case 'name.changed': return 'Name changed';
     case 'application': return 'Access application';
+    case 'application.replaced': return 'Access application replaced';
     default: throw new Error('MEMBER_RECORD_EVENT_UNKNOWN');
   }
+}
+
+/**
+ * The messages one entry is posted as: one, except a replaced application, whose entry is followed by the earlier
+ * application as it was (owner direction, 30 October 2026: the old and new application documented in the post).
+ */
+export function entryParts(event, context = {}) {
+  const first = entryText(event, context);
+  if (event.kind !== 'application.replaced' || !event.previous) return [first];
+  return [first, ...renderApplication(event.previous).map((text, index) => index === 0 ? text.replace('**Access application**', '**Earlier access application**') : text)];
 }
 
 /**

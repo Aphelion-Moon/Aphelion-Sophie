@@ -205,7 +205,7 @@ test('MR-14 automatic entries carry a written UTC time; unknown kinds are refuse
     `**Record opened** · 30 Oct 2026, 13:02 UTC · already in the server, joined ${stamp(APPROVED - 1_000)}. Events before this are not recorded.`);
   assert.equal(entryText({ kind: 'joined', atMs: APPROVED, joinCount: 2 }), '**Joined** · 30 Oct 2026, 13:02 UTC · join 2');
   assert.equal(entryText({ kind: 'left', atMs: APPROVED, hadWhitelist: true }),
-    '**Left or removed** · 30 Oct 2026, 13:02 UTC · Whitelist ends; a fresh Shuttle run is needed to regain it');
+    '**Left or removed** · 30 Oct 2026, 13:02 UTC (<t:1793365320:f>) · Whitelist ends; a fresh Shuttle run is needed to regain it');
   assert.equal(entryText({ kind: 'whitelist.granted', atMs: APPROVED, bySophie: true, timing: { focusedMs: 845_000, pages: 23, wallMs: 3_130_000, fromStop: 0 } }),
     '**Whitelist granted by Sophie** · 30 Oct 2026, 13:02 UTC · 14m 05s focused (52m 10s from boarding) · 23 pages');
   assert.equal(entryText({ kind: 'muzzled', atMs: APPROVED, by: STAFFER }), `**Muzzled** by <@${STAFFER}> · 30 Oct 2026, 13:02 UTC`);

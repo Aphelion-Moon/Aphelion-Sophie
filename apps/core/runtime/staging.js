@@ -330,6 +330,12 @@ export async function createStagingRuntime({ configuration, pool, aiControlPool 
           if (!['idle', 'disabled', 'settled'].includes(recorded?.status)) trace(`MEMBER_RECORD_${String(recorded?.status).toUpperCase().replace(/[^A-Z]/g, '_').slice(0, 24)}`, { code: recorded?.code ?? null });
           if (recorded?.status === 'retry' && recorded.attempts === 5) fault('MEMBER_RECORD_DELIVERY_FAILING', { code: recorded.code });
         }
+        // Sophie's regular records check: at start, then every six hours (owner, 30 October 2026).
+        if (delivery.memberRecordReconciler && active()) {
+          const checked = await delivery.memberRecordReconciler.runDue(owner);
+          if (checked?.status === 'reconciled') trace(`MEMBER_RECORD_CHECK_OPENED_${checked.opened}_CHANGED_${checked.changed}_LEFT_${checked.left}_DEPARTED_${checked.departed}`);
+          if (checked?.status === 'failed') fault('MEMBER_RECORD_CHECK_FAILED', { code: checked.code });
+        }
         return;
       }
       await reconciler.runOnce();

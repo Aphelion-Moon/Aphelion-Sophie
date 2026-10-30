@@ -211,6 +211,7 @@ export function createDiscordTransport({ guildId, token, fetch, clock, enabled, 
         if (!write && ['automation-source','automation-message'].includes(route) && [10003,10008].includes(data.code)) return null;
         if (!write && route === 'automation-emoji' && data.code === 10014) return null;
         if (!write && route === 'member' && data.code === 10007) return null;
+        if (!write && route === 'record-user' && data.code === 10013) return null;
         if (!write && route === 'channel' && data.code === 10003) return null;
         // An Activity instance that has ended (or never existed) is simply absent.
         if (!write && route === 'activity-instance') return null;
@@ -504,6 +505,30 @@ export function createDiscordTransport({ guildId, token, fetch, clock, enabled, 
         return { id: item.id, userId: item.user_id, status: item.application_status, reviewedAtMs: Number.isFinite(reviewedAtMs) ? reviewedAtMs : null,
           approvedBy: /^[1-9][0-9]{16,19}$/u.test(item.actioned_by_user?.id ?? '') ? item.actioned_by_user.id : null, formResponses };
       });
+    },
+    /**
+     * One page of the server's members for Sophie's regular member records check: who, their names, roles and join time.
+     * Everything else Discord sends is dropped here.
+     */
+    async getMemberRecordMembers({ after = '0', limit = 200 } = {}) {
+      requireCondition(recordForumId !== null && /^(0|[1-9][0-9]{16,19})$/u.test(after), 'DISCORD_SCOPE_REFUSED'); requireInteger(limit, 1, 200);
+      const rows = await request('GET', `/guilds/${guildId}/members?limit=${limit}&after=${after}`, 'member-list');
+      requireCondition(Array.isArray(rows) && rows.length <= limit, 'DISCORD_RESPONSE_INVALID');
+      const text = value => typeof value === 'string' ? value.slice(0, 64) : null;
+      return rows.map(row => {
+        requireId(row?.user?.id); requireCondition(Array.isArray(row.roles) && row.roles.length <= 500, 'DISCORD_RESPONSE_INVALID');
+        const joined = Date.parse(row.joined_at ?? '');
+        return { userId: row.user.id, bot: row.user.bot === true, username: text(row.user.username), globalName: text(row.user.global_name), nick: text(row.nick),
+          roleIds: row.roles.filter(id => /^[1-9][0-9]{16,19}$/u.test(id)), joinedAtMs: Number.isFinite(joined) ? joined : null };
+      });
+    },
+    /** A Discord account's names, for the record of someone who has left. Null when the account no longer exists. */
+    async getRecordUser(userId) {
+      requireId(userId); requireCondition(recordForumId !== null, 'DISCORD_SCOPE_REFUSED');
+      const user = await request('GET', `/users/${userId}`, 'record-user');
+      if (user === null) return null;
+      return { username: typeof user?.username === 'string' ? user.username.slice(0, 64) : null,
+        globalName: typeof user?.global_name === 'string' ? user.global_name.slice(0, 64) : null, bot: user?.bot === true };
     },
     async getMember(userId) { requireId(userId); return request('GET', `/guilds/${guildId}/members/${userId}`, 'member'); },
     async getMemberPage(after = null) {

@@ -26,11 +26,11 @@ function applicationMessages(application) {
  * recorded at once, and nonces come from the record and slot, so a retry continues rather than posting twice. Messages
  * name members without notifying anyone. No AI, no ticket data.
  */
-export function createMemberRecordDispatcher({ store, transport: discord, botUserId, tagIds, enabled, trace = () => {},
+export function createMemberRecordDispatcher({ store, transport: discord, botUserId, tagIds, protectedCategoryId, enabled, trace = () => {},
   wait = ms => new Promise(resolve => setTimeout(resolve, ms)) }) {
-  requireId(botUserId); requireRecord(tagIds);
+  requireId(botUserId); requireId(protectedCategoryId); requireRecord(tagIds);
   const methods = ['createMemberRecordThread', 'editMemberRecordThread', 'createMemberRecordMessage', 'editMemberRecordMessage', 'getChannel', 'getMemberRecordThreads', 'getApprovedJoinRequests'];
-  requireCondition(typeof enabled === 'function' && typeof trace === 'function' && typeof wait === 'function' && ['claim', 'progress', 'finish', 'retry', 'renew', 'ensureExclusions'].every(key => typeof store?.[key] === 'function') &&
+  requireCondition(typeof enabled === 'function' && typeof trace === 'function' && typeof wait === 'function' && ['claim', 'progress', 'finish', 'retry', 'renew', 'ensureExclusions', 'excludedChannels'].every(key => typeof store?.[key] === 'function') &&
     methods.every(key => typeof discord?.[key] === 'function') && discord.guildId === store.guildId, 'TRUSTED_ADAPTERS_REQUIRED');
   for (const name of records.TAGS) requireId(tagIds[name]);
   const { guildId, changelogThreadId } = store;
@@ -44,6 +44,35 @@ export function createMemberRecordDispatcher({ store, transport: discord, botUse
       catch (error) { if (attempt >= 7 || !['DISCORD_TRANSPORT_DISABLED', 'DISCORD_BUSY'].includes(error?.code)) throw error; await wait(250); }
     }
   }])));
+
+  /**
+   * A leaver's latest messages that Staff may be pointed at, newest first, at most five: never in the protected category
+   * (the other bot's tickets) or a channel or thread under it, and never in a channel Sophie's case records exclude. A
+   * channel that no longer exists is left out. Channel reads are kept for this process.
+   */
+  const parents = new Map();
+  async function parentsOf(channelId) {
+    if (!parents.has(channelId)) {
+      const channel = await transport.getChannel(channelId);
+      parents.set(channelId, channel === null ? null : channel.parent_id ?? '');
+      if (parents.size > 500) parents.delete(parents.keys().next().value);
+    }
+    return parents.get(channelId);
+  }
+  async function linkable(recent) {
+    const shown = [];
+    const candidates = recent.filter(item => typeof item?.channelId === 'string' && typeof item.messageId === 'string' && Number.isSafeInteger(item.atMs));
+    const excludedIds = await store.excludedChannels([...new Set(candidates.map(item => item.channelId))].slice(0, 50));
+    for (const item of candidates) {
+      if (shown.length >= records.RECENT_MESSAGES_SHOWN) break;
+      const parent = await parentsOf(item.channelId); if (parent === null) continue;
+      const grandparent = parent ? await parentsOf(parent) : '';
+      const lineage = [item.channelId, parent, grandparent].filter(Boolean);
+      if (lineage.includes(protectedCategoryId) || excludedIds.has(item.channelId) || (parent && (await store.excludedChannels([parent])).size)) continue;
+      shown.push(item);
+    }
+    return shown;
+  }
 
   /** The newest approved application Discord holds for a member who just joined; one page is enough for a fresh join. */
   async function lookupApplication(userId) {
@@ -70,14 +99,18 @@ export function createMemberRecordDispatcher({ store, transport: discord, botUse
     if (application === null || application.recheck === true) {
       const looked = await lookupApplication(userId);
       const same = looked.status !== 'found' && application?.status === 'found' || looked.requestId !== undefined && looked.requestId === application?.requestId;
+      const previous = application?.status === 'found' ? application : null;
       application = same ? { ...application, recheck: false } : looked;
-      const event = !same && application.status === 'found' ? { eventId: `application.${application.requestId}`, kind: 'application', atMs: application.approvedAtMs,
-        detail: { approvedAtMs: application.approvedAtMs } } : undefined;
-      await store.progress(lease, { application, ...(event ? { applicationEvent: event } : {}) });
-      if (event && !events.some(item => item.eventId === event.eventId)) {
-        events.push({ ...event, messageId: null, changelogMessageId: null });
-        events.sort((a, b) => a.atMs - b.atMs || (a.eventId < b.eventId ? -1 : 1));
-      }
+      const added = !same && application.status === 'found' ? [{ eventId: `application.${application.requestId}`, kind: 'application', atMs: application.approvedAtMs,
+        detail: { approvedAtMs: application.approvedAtMs } }] : [];
+      // A new application replaces the earlier one in the post's third message; an entry says so and keeps the earlier one
+      // as it was (owner direction, 30 October 2026).
+      if (added.length && previous) added.push({ eventId: `application.replaced.${application.requestId}`, kind: 'application.replaced', atMs: Date.now(),
+        detail: { approvedAtMs: application.approvedAtMs, approvedBy: application.approvedBy ?? null,
+          previous: { requestId: previous.requestId, approvedAtMs: previous.approvedAtMs, approvedBy: previous.approvedBy ?? null, answers: previous.answers } } });
+      await store.progress(lease, { application, ...(added.length ? { applicationEvent: added } : {}) });
+      for (const event of added) if (!events.some(item => item.eventId === event.eventId)) events.push({ ...event, messageId: null, changelogMessageId: null });
+      events.sort((a, b) => a.atMs - b.atMs || (a.eventId < b.eventId ? -1 : 1));
     }
     const facts = application?.status === 'found' ? records.applicationFacts(application.answers, application.approvedAtMs) : null;
     const mutes = job.mutes;
@@ -166,9 +199,12 @@ export function createMemberRecordDispatcher({ store, transport: discord, botUse
         for (const event of applicationEvents) event.messageId = messages.application;
         await store.progress(lease, { entries: Object.fromEntries(applicationEvents.map(event => [event.eventId, messages.application])) });
       }
-      // Each new entry, oldest first.
+      // Each new entry, oldest first; a replaced application's entry is followed by the earlier application.
       for (const event of pendingEntries) {
-        event.messageId = await post(threadId, `entry.${event.eventId}`, records.entryText(entryOf(event)));
+        const context = event.kind === 'left' && Array.isArray(event.detail.recent) ? { guildId, recent: await linkable(event.detail.recent) } : {};
+        const [first, ...rest] = records.entryParts(entryOf(event), context);
+        event.messageId = await post(threadId, `entry.${event.eventId}`, first);
+        for (const [index, text] of rest.entries()) await post(threadId, `entry.${event.eventId}.${index + 2}`, text);
         await store.progress(lease, { entries: { [event.eventId]: event.messageId } }); await step();
       }
       const ledger = ledgerOf();

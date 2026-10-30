@@ -216,3 +216,19 @@ test('MR-25 people who have left get a record too: approved applicants and membe
     '**Record opened** · 30 Oct 2026, 15:00 UTC · not in the server; known from an approved application. Join and leave dates before this are not recorded.');
   assert.deepEqual([seen.profile.username, seen.application.status, seen.events[0].detail.source], [null, 'none', 'records']);
 });
+
+test('MR-26 a leave gives its date and time and at most five message links; a replaced application keeps the earlier one', async () => {
+  const { entryParts, RECENT_MESSAGES_SHOWN } = await import('../modules/member-records/index.js');
+  const recent = Array.from({ length: 7 }, (_, index) => ({ channelId: ids(50), messageId: ids(90 + index), atMs: AT - index * 1000 }));
+  const text = entryText({ kind: 'left', atMs: AT, hadWhitelist: false }, { guildId: GUILD, recent });
+  assert.ok(text.startsWith(`**Left or removed** · 30 Oct 2026, 15:00 UTC (<t:${AT / 1000}:f>)`));
+  assert.equal(text.split('\n').filter(line => line.startsWith('- ')).length, RECENT_MESSAGES_SHOWN);
+  assert.ok(text.includes(`[message](https://discord.com/channels/${GUILD}/${ids(50)}/${ids(90)})`) && text.includes(`<#${ids(50)}>`));
+  assert.ok(entryText({ kind: 'left', atMs: AT, noticed: true }).includes('the exact time is not known'));
+  assert.equal(entryText({ kind: 'left', atMs: AT }).split('\n').length, 1, 'an entry from before message links has none');
+  const parts = entryParts({ kind: 'application.replaced', atMs: AT, approvedAtMs: AT - 1000, approvedBy: ids(8),
+    previous: { approvedAtMs: AT - 9e9, approvedBy: null, answers: [{ label: 'What is your date of birth?', value: '04/1998' }] } });
+  assert.equal(parts.length, 2); assert.ok(parts[0].startsWith('**Access application replaced** · ') && parts[0].includes(`by <@${ids(8)}>`));
+  assert.ok(parts[1].startsWith('**Earlier access application** · approved') && parts[1].includes('04/1998'));
+  assert.equal(entryLabel({ kind: 'application.replaced' }), 'Access application replaced');
+});
