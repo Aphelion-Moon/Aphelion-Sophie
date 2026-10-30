@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  MESSAGE_MAX, TITLE_MAX, accountCreatedMs, ageAt, birthLine, cleanLine, entryLabel, entryText, interpretBirth,
+  APPLICATION_NONE, MESSAGE_MAX, TITLE_MAX, accountCreatedMs, applicationAnswers, ageAt, birthLine, cleanLine, entryLabel, entryText, interpretBirth,
   interpretGameNames, jumpUrl, literal, recordTags, recordTitle, renderApplication, renderHeader, renderLedger, shortLabel, stamp, utcText,
 } from '../modules/member-records/index.js';
 
@@ -63,13 +63,29 @@ test('MR-06 age at approval is fixed, with a range where a month cannot settle i
   assert.equal(birthLine(interpretBirth('soon', APPROVED), APPROVED), 'could not be read; see the application');
 });
 
-test('MR-07 game accounts are taken only where the applicant labelled them', () => {
-  assert.deepEqual(interpretGameNames('BYOND: Vex Wolf, SS14: VexWolf'), { ckey: 'vexwolf', ckeyAsWritten: 'Vex Wolf', ss14: 'VexWolf' });
-  assert.deepEqual(interpretGameNames('ckey - vex_wolf / ss14 - none'), { ckey: 'vexwolf', ckeyAsWritten: 'vex_wolf', ss14: null });
-  assert.deepEqual(interpretGameNames('SS13: VexWolf (ckey vexwolf) SS14: n/a'), { ckey: 'vexwolf', ckeyAsWritten: 'VexWolf', ss14: null });
-  assert.deepEqual(interpretGameNames('My SS14 username is Vex_Wolf and my byond is vexwolf'), { ckey: 'vexwolf', ckeyAsWritten: 'vexwolf', ss14: 'Vex_Wolf' });
-  assert.deepEqual(interpretGameNames('vexwolf for both'), { ckey: null, ckeyAsWritten: null, ss14: null });
-  assert.deepEqual(interpretGameNames(''), { ckey: null, ckeyAsWritten: null, ss14: null });
+test('MR-07 game accounts: labelled values as labelled, short unlabelled answers as named, prose left alone', () => {
+  const games = (ckey, ckeyAsWritten, ss14, unlabelled = []) => ({ ckey, ckeyAsWritten, ss14, unlabelled });
+  assert.deepEqual(interpretGameNames('BYOND: Vex Wolf, SS14: VexWolf'), games('vexwolf', 'Vex Wolf', 'VexWolf'));
+  assert.deepEqual(interpretGameNames('ckey - vex_wolf / ss14 - none'), games('vexwolf', 'vex_wolf', null));
+  assert.deepEqual(interpretGameNames('SS13: VexWolf (ckey vexwolf) SS14: n/a'), games('vexwolf', 'VexWolf', null));
+  assert.deepEqual(interpretGameNames('My SS14 username is Vex_Wolf and my byond is vexwolf'), games('vexwolf', 'vexwolf', 'Vex_Wolf'));
+  assert.deepEqual(interpretGameNames('vexwolf for both'), games('vexwolf', 'vexwolf', 'vexwolf'));
+  assert.deepEqual(interpretGameNames(''), games(null, null, null));
+  // Unlabelled names: what the question asked decides what they are.
+  const current = 'What is your BYOND ckey and/or SS14 username? Please identify each.';
+  assert.deepEqual(interpretGameNames('vexwolf', current), games(null, null, null, ['vexwolf']));
+  assert.deepEqual(interpretGameNames('vexwolf, VexW', current), games(null, null, null, ['vexwolf', 'VexW']));
+  assert.deepEqual(interpretGameNames('Vex Wolf, 04/1998', 'What is your BYOND Ckey? What is your MM/YYYY date of birth?'), games(null, null, null, ['Vex', 'Wolf']));
+  assert.deepEqual(interpretGameNames('vexwolf2000 - 04/1998', 'What is your BYOND Ckey? What is your MM/YYYY date of birth?'), games('vexwolf2000', 'vexwolf2000', null));
+  assert.deepEqual(interpretGameNames('DOB: 04/1998, ckey vexwolf', 'What is your BYOND Ckey? What is your MM/YYYY date of birth?'), games('vexwolf', 'vexwolf', null));
+  assert.deepEqual(interpretGameNames('I have played on many servers over the years and this is my name', current), games(null, null, null));
+});
+
+test('MR-07b dates are found inside combined answers from older forms', () => {
+  const month = (year, m) => ({ status: 'month', year, month: m, monthUnclear: false });
+  for (const text of ['vexwolf 04/1998', 'vexwolf, 04/1998', 'vexwolf2000 - 04/1998', '04/1998 vexwolf', 'vex_wolf 04/1998', 'ckey: vex | 04/1998', 'Marcus 04/1998', 'vex 25/04/1998'])
+    assert.deepEqual(interpretBirth(text, APPROVED), month(1998, 4), text);
+  assert.deepEqual(interpretBirth('vexwolf', APPROVED).status, 'unreadable');
 });
 
 test('MR-08 the live questions get short labels; others keep a cut copy of their own', () => {
@@ -80,6 +96,13 @@ test('MR-08 the live questions get short labels; others keep a cut copy of their
     'What SS13 / SS14 servers have you played on before? Have you played any other true roleplaying games, TTRPGs, MMOs, or MUDs?',
     'How did you find Aphelion, and why do you want to join? If someone referred you, who? Separately: …',
   ].map(shortLabel), ['Age check', 'Born', 'Game accounts', 'Played before', 'Found us · why · furries']);
+  assert.deepEqual([
+    'What is your BYOND Ckey? What is your MM/YYYY date of birth?',
+    'Do you accept having an age-check performed during the interview? You will need to provide an OBSCURED official document proving your age, with your CKEY',
+    'Have you been banned from any other Space Station 13 server before? This isn\'t automatically disqualifying.',
+    'What SS13 servers or roleplaying games have you played before?',
+    'How did you find us? Why are you applying? What are your thoughts on furries?',
+  ].map(shortLabel), ['Game account · born', 'Age check', 'Banned elsewhere', 'Played before', 'Found us · why · furries']);
   assert.equal(shortLabel('Favourite colour?'), 'Favourite colour?');
 });
 
@@ -159,6 +182,22 @@ test('MR-13 the application is transcribed with short labels, literally, split w
   assert.ok(long.slice(1).every(message => message.startsWith('-# Access application, continued')));
   assert.ok(long.join(' ').includes('\\*end\\*'));
   assert.throws(() => renderApplication({ approvedAtMs: APPROVED, approvedBy: 'x', answers: [] }), /INVALID_DISCORD_ID/);
+});
+
+test('MR-15 join-request form responses become answers; nothing else is read', () => {
+  assert.deepEqual(applicationAnswers([
+    { field_type: 'MULTIPLE_CHOICE', label: 'Age check?', choices: ['Yes', 'No'], response: 0 },
+    { field_type: 'MULTIPLE_CHOICE', label: 'Odd', choices: ['Yes'], response: 7 },
+    { field_type: 'TEXT_INPUT', label: 'Born?', response: '04/1998' },
+    { field_type: 'PARAGRAPH', label: 'Why?', response: 42 },
+    { field_type: 'TERMS', label: 'Rules', response: true },
+    { field_type: 'TERMS', label: 'Rules again' },
+  ]), [
+    { label: 'Age check?', value: ['Yes'] }, { label: 'Odd', value: null }, { label: 'Born?', value: '04/1998' },
+    { label: 'Why?', value: null }, { label: 'Rules', value: true }, { label: 'Rules again', value: true },
+  ]);
+  assert.throws(() => applicationAnswers(null), /INVALID_APPLICATION/);
+  assert.ok(APPLICATION_NONE.startsWith('-# Reserved by Sophie: the access application.'));
 });
 
 test('MR-14 automatic entries carry a written UTC time; unknown kinds are refused', () => {

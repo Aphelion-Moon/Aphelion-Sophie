@@ -126,39 +126,48 @@ export function interpretBirth(text, atMs) {
   const nowYear = new Date(atMs).getUTCFullYear();
   const raw = cleanLine(text, 120).toLowerCase();
   const unreadable = { status: 'unreadable', year: null, month: null, monthUnclear: false };
-  const fullYear = value => value.length === 4 ? Number(value) : (2_000 + Number(value) <= nowYear ? 2_000 : 1_900) + Number(value);
+  const fullYear = value => { const digits = value.replace("'", ''); return digits.length === 4 ? Number(digits) : (2_000 + Number(digits) <= nowYear ? 2_000 : 1_900) + Number(digits); };
   const result = (year, month, monthUnclear = false) => {
-    if (!Number.isInteger(year) || year < 1_900 || year > nowYear) return unreadable;
-    if (month !== null && (!Number.isInteger(month) || month < 1 || month > 12)) return unreadable;
+    if (!Number.isInteger(year) || year < 1_900 || year > nowYear) return null;
+    if (month !== null && (!Number.isInteger(month) || month < 1 || month > 12)) return null;
     return month === null ? { status: 'year', year, month: null, monthUnclear } : { status: 'month', year, month, monthUnclear: false };
   };
-  const word = (raw.match(/[a-z]{3,9}/g) ?? [])
-    .map(item => MONTHS.findIndex(name => name.startsWith(item))).find(index => index >= 0);
-  const numbers = raw.match(/\d+/g) ?? [];
-  if (word !== undefined) {
-    const year = numbers.find(value => value.length === 4) ?? numbers.find(value => value.length === 2 && Number(value) > 31);
-    return year ? result(fullYear(year), word + 1) : unreadable;
-  }
-  if (numbers.length === 1 && numbers[0].length === 6) return result(Number(numbers[0].slice(2)), Number(numbers[0].slice(0, 2)));
-  if (numbers.length === 1 && numbers[0].length === 4) return result(Number(numbers[0]), null);
-  if (numbers.length === 2) {
-    const [a, b] = numbers;
-    if (b.length === 4 && a.length <= 2) return result(Number(b), Number(a));
-    if (a.length === 4 && b.length <= 2) return result(Number(a), Number(b));
-    if (a.length <= 2 && b.length === 2) return result(fullYear(b), Number(a));
-    return unreadable;
-  }
-  if (numbers.length === 3) {
-    const [a, b, c] = numbers;
-    if (a.length === 4) return result(Number(a), Number(b));
-    if (c.length !== 4 && c.length !== 2) return unreadable;
-    const year = fullYear(c), first = Number(a), second = Number(b);
+  const dayOrMonth = (year, first, second) => {
     if (first > 12 && second <= 12) return result(year, second);
     if (second > 12 && first <= 12) return result(year, first);
     if (first === second) return result(year, first);
     return result(year, null, true);
+  };
+  // Answers often carry other text (older forms asked for the ckey in the same question), so the date is found inside the
+  // answer, most specific shape first.
+  const numeric = [
+    [/(?<!\d)(\d{4})[/.-](\d{1,2})[/.-](\d{1,2})(?!\d)/, m => result(Number(m[1]), Number(m[2]))],
+    [/(?<!\d)(\d{1,2})[/.-](\d{1,2})[/.-](\d{4}|\d{2})(?!\d)/, m => dayOrMonth(fullYear(m[3]), Number(m[1]), Number(m[2]))],
+    [/(?<!\d)(\d{1,2})\s*[/.-]\s*(\d{4})(?!\d)/, m => result(Number(m[2]), Number(m[1]))],
+    [/(?<!\d)(\d{4})\s*[/.-]\s*(\d{1,2})(?!\d)/, m => result(Number(m[1]), Number(m[2]))],
+  ];
+  for (const [pattern, read] of numeric) { const match = raw.match(pattern); if (match) { const found = read(match); if (found) return found; } }
+  for (const match of raw.matchAll(/(?<![a-z])([a-z]{3,9})\.?,?\s*(?:(\d{1,2})(?:st|nd|rd|th)?,?\s+)?('?\d{4}|'\d{2}|\d{2})(?!\d)/g)) {
+    const month = MONTHS.findIndex(name => name.startsWith(match[1]));
+    const found = month >= 0 ? result(fullYear(match[3]), month + 1) : null; if (found) return found;
   }
+  for (const match of raw.matchAll(/(?<!\d)\d{1,2}(?:st|nd|rd|th)?\s+(?:of\s+)?([a-z]{3,9})\.?,?\s*(\d{4})(?!\d)/g)) {
+    const month = MONTHS.findIndex(name => name.startsWith(match[1]));
+    const found = month >= 0 ? result(Number(match[2]), month + 1) : null; if (found) return found;
+  }
+  const short = raw.match(/(?<!\d)(\d{1,2})\s*\/\s*(\d{2})(?!\d)/);
+  if (short) { const found = result(fullYear(short[2]), Number(short[1])); if (found) return found; }
+  const alone = raw.match(/^(\d{2})(\d{4})$/) ?? raw.match(/^()(\d{4})$/);
+  if (alone) return result(Number(alone[2]), alone[1] ? Number(alone[1]) : null) ?? unreadable;
   return unreadable;
+}
+
+/** The answer with every date-of-birth shape taken out, for reading names from a combined question. */
+function withoutDates(text) {
+  return text.replace(/(?<!\d)\d{4}[/.-]\d{1,2}(?:[/.-]\d{1,2})?(?!\d)/g, ' ')
+    .replace(/(?<!\d)\d{1,2}[/.-]\d{1,2}[/.-](?:\d{4}|\d{2})(?!\d)/g, ' ')
+    .replace(/(?<!\d)\d{1,2}\s*[/.-]\s*(?:\d{4}|\d{2})(?!\d)/g, ' ')
+    .replace(/(?<![a-z])(?:jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\.?,?\s*(?:\d{1,2}(?:st|nd|rd|th)?,?\s+)?'?\d{2,4}(?!\d)/gi, ' ');
 }
 
 /** The age at a time from a month-and-year birth, as a range (a month is not a day). */
@@ -188,32 +197,50 @@ const LEADING_WORDS = new RegExp(`^(?:${LABEL_WORDS}|account|key|user\\s?name|na
 /** The BYOND key's canonical ckey: lower case letters and digits only. */
 export function ckeyOf(key) { return String(key ?? '').toLowerCase().replace(/[^a-z0-9]/g, ''); }
 
+const FILLER = /^(?:dob|d\.?o\.?b|born|birthday|birth|date|of|my|is|and|or|the|ckey|byond|key|username|user|name|ss1[34]|ss|both|for|n\/?a|none|same)$/i;
+
 /**
- * Reads the game-accounts answer ("What is your BYOND ckey and/or SS14 username? Please identify each."). Only labelled
- * values are taken; unlabelled answers stay as written in the transcription. Self-reported, never verified here.
+ * Reads the game-account answer. Labelled values ("BYOND: x, SS14: y") are taken as labelled. Otherwise, a short answer
+ * of one to three names is kept as named: as the ckey when the question asked only for a BYOND ckey, else with the game
+ * not stated. Dates (older forms asked for the date of birth in the same question) and filler words are set aside;
+ * longer prose is left to the transcription. Self-reported, never verified here.
+ * @param {string} text the answer
+ * @param {string} [label] the question, which says what an unlabelled name is
  */
-export function interpretGameNames(text) {
-  const raw = cleanLine(text, 300);
-  const found = { ckey: null, ckeyAsWritten: null, ss14: null };
+export function interpretGameNames(text, label = '') {
+  const raw = cleanLine(withoutDates(cleanLine(text, 300)), 300);
+  const found = { ckey: null, ckeyAsWritten: null, ss14: null, unlabelled: [] };
+  const setCkey = value => { if (!found.ckey && ckeyOf(value)) { found.ckeyAsWritten = cleanLine(value, 32); found.ckey = ckeyOf(value).slice(0, 30); } };
   const segments = raw.replace(LABEL, '\n$1').split(/\n|[,;|]|\s\/\s|\band\b/i).map(item => item.trim()).filter(Boolean);
   for (const segment of segments) {
-    const label = segment.match(LEADING_LABEL)?.[1]?.toLowerCase();
-    if (!label) continue;
+    const kind = segment.match(LEADING_LABEL)?.[1]?.toLowerCase();
+    if (!kind) continue;
     const value = segment.replace(LEADING_WORDS, '').split(/\s+\(/)[0].replace(/[\s()"'`.,:;!-]+$/g, '').trim();
     if (!value || NONE.test(value)) continue;
-    if (/14|robust/.test(label)) { if (!found.ss14) found.ss14 = cleanLine(value.split(/\s+/)[0], 32); }
-    else if (!found.ckey && ckeyOf(value)) { found.ckeyAsWritten = cleanLine(value, 32); found.ckey = ckeyOf(value).slice(0, 30); }
+    if (/14|robust/.test(kind)) { if (!found.ss14) found.ss14 = cleanLine(value.split(/\s+/)[0], 32); }
+    else setCkey(value);
   }
+  if (found.ckey || found.ss14) return found;
+  const names = [...new Set(raw.split(/[\s,;|/:()–—-]+/u)
+    .map(item => item.replace(/^[^\p{L}\p{N}_]+|[^\p{L}\p{N}_]+$/gu, ''))
+    .filter(item => item && /\p{L}/u.test(item) && !FILLER.test(item) && !NONE.test(item)))];
+  if (names.length === 0 || names.length > 3) return found;
+  const both = /\bss\s?13\s*(?:\/|&|\+|and)\s*(?:ss\s?)?14\b|\bboth\b|\bsame\b/i.test(String(text ?? ''));
+  if (names.length === 1 && both) { setCkey(names[0]); found.ss14 = cleanLine(names[0], 32); }
+  else if (names.length === 1 && /ckey|byond/i.test(label) && !/ss\s?14/i.test(label)) setCkey(names[0]);
+  else found.unlabelled = names.map(name => cleanLine(name, 32));
   return found;
 }
 
-/** Short labels for the current application questions (form of 28 October 2026); other questions keep their own. */
+/** Short labels for the application questions, current and older forms; other questions keep their own, cut. */
 export function shortLabel(label) {
   const text = String(label ?? '');
-  if (/age check/i.test(text)) return 'Age check';
+  if (/ckey|ss14/i.test(text) && /birth/i.test(text)) return 'Game account · born';
+  if (/age[\s-]?check/i.test(text)) return 'Age check';
   if (/date of birth/i.test(text)) return 'Born';
   if (/ckey|ss14 user/i.test(text)) return 'Game accounts';
-  if (/servers have you played|played on before/i.test(text)) return 'Played before';
+  if (/banned/i.test(text)) return 'Banned elsewhere';
+  if (/have you played|played on before/i.test(text)) return 'Played before';
   if (/how did you find/i.test(text)) return 'Found us · why · furries';
   return cleanLine(text, 60);
 }
@@ -301,6 +328,7 @@ export function renderHeader(record) {
     '**Game accounts**',
     gameLine('SS13, Meridian Rift', gameValue(application?.games, 'ckey')),
     gameLine('SS14, Wolfgate', gameValue(application?.games, 'ss14')),
+    application?.games?.unlabelled?.length ? `Named on application, game not stated: ${application.games.unlabelled.map(name => literal(name)).join(', ')}` : null,
     record.note ? `-# ${record.note}` : null,
   ]);
 }
@@ -336,6 +364,27 @@ export const RESERVED = Object.freeze({
 
 /** The application slot when Discord does not let Sophie read approved applications. */
 export const APPLICATION_UNAVAILABLE = '-# Reserved by Sophie: the access application. Not available yet: Discord does not let Sophie read approved applications.';
+
+/** The application slot when Discord holds no approved application for the member (for example, joined before Apply to Join). */
+export const APPLICATION_NONE = '-# Reserved by Sophie: the access application. None on record: Discord holds no approved application for this member.';
+
+/**
+ * A Discord join request's form responses as answers for `renderApplication`: a multiple-choice answer becomes the chosen
+ * text, a terms field becomes agreed or not, text stays as written. Only the form responses are read; the request's
+ * interview field never is.
+ */
+export function applicationAnswers(formResponses) {
+  requireCondition(Array.isArray(formResponses) && formResponses.length <= 50, 'INVALID_APPLICATION');
+  return formResponses.map(field => {
+    const label = String(field?.label ?? '');
+    if (field?.field_type === 'MULTIPLE_CHOICE') {
+      const choices = Array.isArray(field.choices) ? field.choices : [];
+      return { label, value: Number.isInteger(field.response) && typeof choices[field.response] === 'string' ? [choices[field.response]] : null };
+    }
+    if (field?.field_type === 'TERMS') return { label, value: field.response === undefined ? true : field.response === true };
+    return { label, value: typeof field?.response === 'string' ? field.response : null };
+  });
+}
 
 /**
  * An approved access application, transcribed with short labels and the answers as written, over as many messages as

@@ -2766,3 +2766,14 @@ Staff and Lead Ops holders: header, ledger, three reserved messages, a "Record o
 archived. Its state file records every post and message ID so core can adopt them; nothing in core, the database or the
 installed release changed. Not built yet: core's integration (migration, outbox, gateway events, the backfill of everyone
 else, application transcription, the copy of the discussion), each needing its own install approval.
+
+**Applications readable, 30 October (15:14 local).** The owner: "her bot role has been adjusted. See what you can update now
+for the staff threads already made." Sophie now holds Kick Members, which is what Discord wants for listing join requests:
+436 approved applications, the earliest from 20 July 2026. Older forms asked for the ckey and the date of birth in one
+question, and most applicants wrote a bare name without saying which game it is for, so the readers find the date inside
+the answer and keep a short unlabelled answer as named (as the ckey when the question asked only for a ckey, otherwise
+"game not stated"). Measured over all 436 (counts only): date read as month and year for 409, month unclear for 14,
+unreadable for 13; a game name found for 430. Each Staff post was refreshed in place: reserved message 3 holds the
+transcribed application (14 of 22; the other 8 say none is on record), the header shows Born and the game names, the
+ledger links the application, and each post is archived again. Read-back verified, no problems. Only form responses, the
+reviewer and the review time are read; interviews and rejected or pending requests never are.
