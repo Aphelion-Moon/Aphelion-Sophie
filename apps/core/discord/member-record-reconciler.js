@@ -9,17 +9,22 @@ const USERS_PER_RUN = 25;
  * You decide."): when core starts and every six hours, it reads Discord's member list and approved applications (reads
  * only) and brings the records in line: a record for every current member who lacks one, the joins, leaves, role and name
  * changes made while Sophie was offline (marked as noticed, not seen), and a Left record for people who have left that
- * Sophie can name (approved applicants and members her records saw; at most 25 account lookups a run). Core then posts
+ * Sophie can name (approved applicants and members her records saw; at most 25 account lookups a run). It also refreshes the
+ * channel map the message store relies on, and clears message text older than 30 days. Core then posts
  * the changes as usual, behind live work. A member list that would mean more than a few leaves at once is not trusted.
  */
 export function createMemberRecordReconciler({ store, transport, mapping, enabled, clock, intervalMs = 6 * 3_600_000 }) {
-  requireCondition(['reconcile', 'seenUserIds', 'recordedMembers', 'open'].every(key => typeof store?.[key] === 'function') &&
-    ['getMemberRecordMembers', 'getApprovedJoinRequests', 'getRecordUser'].every(key => typeof transport?.[key] === 'function') &&
+  requireCondition(['reconcile', 'seenUserIds', 'recordedMembers', 'open', 'recordChannels', 'expireMessages'].every(key => typeof store?.[key] === 'function') &&
+    ['getMemberRecordMembers', 'getApprovedJoinRequests', 'getRecordUser', 'getRecordChannelMap'].every(key => typeof transport?.[key] === 'function') &&
     typeof enabled === 'function' && typeof clock === 'function' && Number.isSafeInteger(intervalMs) && intervalMs >= 60_000, 'TRUSTED_ADAPTERS_REQUIRED');
   requireId(mapping?.botUserId);
   let nextAt = 0;
   async function run() {
     const startedAtMs = clock();
+    // The channel map decides which channels' messages are kept (never the ticket category); a resumed Gateway sends none.
+    await store.recordChannels(await transport.getRecordChannelMap());
+    // Message text older than 30 days, and who wrote a message older than a year, is cleared.
+    const expired = await store.expireMessages();
     const members = [];
     for (let after = '0', page = 0; ; page += 1) {
       requireCondition(page < 50, 'MEMBER_RECORD_RECONCILE_LIMIT');
@@ -50,7 +55,7 @@ export function createMemberRecordReconciler({ store, transport, mapping, enable
     }
     let departed = 0;
     for (const item of planDepartedMemberRecords({ people, current, recorded, approved, mapping, now: clock() })) if ((await store.open(item)).opened) departed += 1;
-    return { ...counts, departed };
+    return { ...counts, departed, textCleared: expired.textCleared };
   }
   return Object.freeze({
     /** Runs when due (at start, then every interval); a failed run is tried again in ten minutes. */

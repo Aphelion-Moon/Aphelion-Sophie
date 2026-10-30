@@ -23,6 +23,8 @@ export async function resetTables(pool, list) {
 
 /** The core and Shuttle state most workflow suites start from: one list instead of a copy per suite. */
 export const CORE_STATE_TABLES = Object.freeze([
+  'sophie_core.member_messages',
+  'sophie_core.member_record_channels',
   'sophie_core.member_record_messages',
   'sophie_core.member_record_events',
   'sophie_core.member_records',

@@ -157,7 +157,7 @@ export async function createStagingRuntime({ configuration, pool, aiControlPool 
       channels:createAutomationChannels({transport}),ingress:createAutomationIngress({guildId:fixed.mapping.guildId,botUserId:fixed.mapping.botUserId,clock})}) : null,
     caseCapture: fixed.captureEnabled ? createCaseMessageCapture({ guildId: fixed.mapping.guildId, clock }) : null,
     // Member joins, leaves, role and name changes, and the Staff discussion in record posts (owner decisions, 30 October 2026).
-    memberRecords: fixed.memberRecords ? createMemberRecordIngress({ guildId: fixed.mapping.guildId }) : null, onMemberRecordFault: code => fault(code) });
+    memberRecords: fixed.memberRecords ? createMemberRecordIngress({ guildId: fixed.mapping.guildId, protectedCategoryId: fixed.casePolicy.categoryId }) : null, onMemberRecordFault: code => fault(code) });
   const observer = createGatewayObserver({ journal, mapping: fixed.mapping, applicationId: fixed.applicationId, clock, ai: aiGateway });
   // Every Discord request and authorization check asks this gate (two database reads), several at once within one member's
   // request; callers asking while a check is under way share its answer instead of each sending their own (Activity audit,
@@ -327,7 +327,7 @@ export async function createStagingRuntime({ configuration, pool, aiControlPool 
         // failing is reported once, at its fifth try; it goes on retrying, up to an hour apart.
         if (delivery.memberRecords && active()) {
           const recorded = await delivery.memberRecords.runOnce(owner);
-          if (!['idle', 'disabled', 'settled'].includes(recorded?.status)) trace(`MEMBER_RECORD_${String(recorded?.status).toUpperCase().replace(/[^A-Z]/g, '_').slice(0, 24)}`, { code: recorded?.code ?? null });
+          if (!['idle', 'disabled', 'settled', 'deferred'].includes(recorded?.status)) trace(`MEMBER_RECORD_${String(recorded?.status).toUpperCase().replace(/[^A-Z]/g, '_').slice(0, 24)}`, { code: recorded?.code ?? null });
           if (recorded?.status === 'retry' && recorded.attempts === 5) fault('MEMBER_RECORD_DELIVERY_FAILING', { code: recorded.code });
         }
         // Sophie's regular records check: at start, then every six hours (owner, 30 October 2026).

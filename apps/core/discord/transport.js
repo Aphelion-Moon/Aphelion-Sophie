@@ -522,6 +522,35 @@ export function createDiscordTransport({ guildId, token, fetch, clock, enabled, 
           roleIds: row.roles.filter(id => /^[1-9][0-9]{16,19}$/u.test(id)), joinedAtMs: Number.isFinite(joined) ? joined : null };
       });
     },
+    /**
+     * Recent message deletions in the audit log (View Audit Log, given 30 October 2026): who deleted, whose messages, where,
+     * how many and when. Discord logs a deletion only when someone deletes another person's messages.
+     */
+    async getMessageDeleteAudit() {
+      requireCondition(recordForumId !== null, 'DISCORD_SCOPE_REFUSED');
+      const entries = [];
+      for (const action of [72, 73]) {
+        const data = await request('GET', `/guilds/${guildId}/audit-logs?action_type=${action}&limit=50`, 'audit-log');
+        requireCondition(Array.isArray(data?.audit_log_entries) && data.audit_log_entries.length <= 50, 'DISCORD_RESPONSE_INVALID');
+        for (const item of data.audit_log_entries) {
+          if (!/^[1-9][0-9]{16,19}$/u.test(item?.id ?? '') || !/^[1-9][0-9]{16,19}$/u.test(item.user_id ?? '')) continue;
+          entries.push({ bulk: action === 73, byUserId: item.user_id, targetId: typeof item.target_id === 'string' ? item.target_id : null,
+            channelId: typeof item.options?.channel_id === 'string' ? item.options.channel_id : action === 73 ? item.target_id ?? null : null,
+            count: Number(item.options?.count ?? 0), createdAtMs: Number((BigInt(item.id) >> 22n) + 1_420_070_400_000n) });
+        }
+      }
+      return entries;
+    },
+    /** The server's channels and active threads with their parents, for the message store's channel map. */
+    async getRecordChannelMap() {
+      requireCondition(recordForumId !== null, 'DISCORD_SCOPE_REFUSED');
+      const channels = await request('GET', `/guilds/${guildId}/channels`, 'guild-channels');
+      const active = await request('GET', `/guilds/${guildId}/threads/active`, 'record-threads');
+      const items = [...(Array.isArray(channels) ? channels : []), ...(Array.isArray(active?.threads) ? active.threads : [])];
+      requireCondition(items.length <= 5000, 'DISCORD_RESPONSE_INVALID');
+      return items.filter(item => /^[1-9][0-9]{16,19}$/u.test(item?.id ?? '') && (item.parent_id == null || /^[1-9][0-9]{16,19}$/u.test(item.parent_id)))
+        .map(item => ({ channelId: item.id, parentId: item.parent_id ?? null, deleted: false }));
+    },
     /** A Discord account's names, for the record of someone who has left. Null when the account no longer exists. */
     async getRecordUser(userId) {
       requireId(userId); requireCondition(recordForumId !== null, 'DISCORD_SCOPE_REFUSED');

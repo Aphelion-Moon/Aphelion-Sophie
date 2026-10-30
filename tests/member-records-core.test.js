@@ -232,3 +232,20 @@ test('MR-26 a leave gives its date and time and at most five message links; a re
   assert.ok(parts[1].startsWith('**Earlier access application** · approved') && parts[1].includes('04/1998'));
   assert.equal(entryLabel({ kind: 'application.replaced' }), 'Access application replaced');
 });
+
+test('MR-27 channel events build the channel map; deletion and edit entries quote text literally and fit Discord', async () => {
+  const { entryParts, MESSAGE_MAX } = await import('../modules/member-records/index.js');
+  const ingress = createMemberRecordIngress({ guildId: GUILD, protectedCategoryId: ids(9) });
+  assert.equal(ingress.protectedCategoryId, ids(9));
+  assert.deepEqual(ingress.prepare({ t: 'THREAD_CREATE', d: { guild_id: GUILD, id: ids(51), parent_id: ids(50), name: 'secret name' } }).items,
+    [{ channelId: ids(51), parentId: ids(50), deleted: false }]);
+  assert.deepEqual(ingress.prepare({ t: 'GUILD_CREATE', d: { id: GUILD, channels: [{ id: ids(50), parent_id: ids(9) }], threads: [{ id: ids(51), parent_id: ids(50) }] } }).items.length, 2);
+  assert.equal(ingress.prepare({ t: 'GUILD_CREATE', d: { id: ids(2), channels: [] } }), null, 'another server');
+  const deleted = entryParts({ kind: 'message.deleted', atMs: AT, channelId: ids(50), count: 1,
+    messages: [{ messageId: ids(60), sentAtMs: AT - 1000, content: `<@${ids(12)}> @here [link](https://example.test) ${'x'.repeat(5000)}`, attachments: [] }] }, { guildId: GUILD, deletedBy: 'author' });
+  assert.ok(deleted.length >= 2 && deleted.every(part => part.length <= MESSAGE_MAX));
+  assert.ok(deleted[0].includes('most likely by the author') && deleted.join('\n').includes('\\<\\@') && !/(^|[^\\])@here/u.test(deleted.join('\n')));
+  const edited = entryParts({ kind: 'message.edited', atMs: AT, channelId: ids(50), messageId: ids(60), sentAtMs: AT - 1000, before: null, after: 'new' }, { guildId: GUILD });
+  assert.ok(edited[0].includes('-# Earlier text not kept.') && edited[0].includes('> new'));
+  assert.equal(entryLabel({ kind: 'message.deleted', count: 3 }), 'Messages deleted');
+});

@@ -193,7 +193,7 @@ export function createGatewayJournal({ pool, mapping, clock, caseCapture = null,
           await client.query('SAVEPOINT member_record');
           try {
             await recordMemberRecordObservation(client, { guildId: fixed.guildId, mapping: fixed, event: memberRecord,
-              epoch: Number(row.continuity_epoch), sequence, observedAt });
+              epoch: Number(row.continuity_epoch), sequence, observedAt, protectedCategoryId: memberRecords.protectedCategoryId ?? null });
             await client.query('RELEASE SAVEPOINT member_record');
           } catch (error) {
             await client.query('ROLLBACK TO SAVEPOINT member_record');

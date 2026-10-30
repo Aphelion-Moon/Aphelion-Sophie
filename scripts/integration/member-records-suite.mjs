@@ -75,6 +75,9 @@ function simulatedForum() {
     },
     members: [],
     async getMemberRecordMembers({ after }) { calls.push(['members']); return structuredClone(transport.members.filter(member => BigInt(member.userId) > BigInt(after))); },
+    audit: [],
+    async getMessageDeleteAudit() { calls.push(['audit']); return structuredClone(transport.audit); },
+    async getRecordChannelMap() { calls.push(['channel-map']); return [...CHANNELS].map(([channelId, parentId]) => ({ channelId, parentId: parentId || null, deleted: false })); },
     async getRecordUser(userId) { calls.push(['user', userId]); return { username: `user${userId.slice(-3)}`, globalName: null, bot: false }; },
     async getMemberRecordThreads() { calls.push(['search']); return [...threads].filter(([key]) => key !== CHANGELOG).map(([key, thread]) => ({ id: key, name: thread.name, ownerId: thread.ownerId })); },
     async getApprovedJoinRequests() { calls.push(['requests']); return structuredClone(approved); },
@@ -116,7 +119,7 @@ export async function runMemberRecordsSuite(cluster, run) {
     await resetTables(admin, 'sophie_core.member_record_messages, sophie_core.member_record_events, sophie_core.member_records, sophie_core.case_exclusions');
     now = NOW; faults = [];
     journal = createGatewayJournal({ pool, mapping, clock: () => now, reconcileMembers: false,
-      memberRecords: createMemberRecordIngress({ guildId: GUILD }), onMemberRecordFault: code => faults.push(code) });
+      memberRecords: createMemberRecordIngress({ guildId: GUILD, protectedCategoryId: PROTECTED }), onMemberRecordFault: code => faults.push(code) });
     observer = createGatewayObserver({ journal, mapping, applicationId: APPLICATION, clock: () => now });
     await observer.acquire('gateway-worker');
     ({ connection } = await observer.beginIdentify());
@@ -125,7 +128,7 @@ export async function runMemberRecordsSuite(cluster, run) {
     await observer.accept(connection, guildEvent()); sequence = 2;
     forum = simulatedForum(); forum.approve([application()]);
     store = createMemberRecordStore({ pool, clock: () => now, guildId: GUILD, forumId: FORUM, changelogThreadId: CHANGELOG });
-    dispatcher = createMemberRecordDispatcher({ store, transport: forum.transport, botUserId: BOT, tagIds: TAG_IDS, protectedCategoryId: PROTECTED, enabled: async () => true });
+    dispatcher = createMemberRecordDispatcher({ store, transport: forum.transport, botUserId: BOT, tagIds: TAG_IDS, protectedCategoryId: PROTECTED, enabled: async () => true, clock: () => now });
     await work();
   });
 
@@ -321,11 +324,16 @@ export async function runMemberRecordsSuite(cluster, run) {
     await admin.query('INSERT INTO sophie_core.case_exclusions (guild_id, channel_id) VALUES ($1, $2)', [GUILD, CASE]);
     const say = (channel, tail, author = USER) => { now += 1_000; return send('MESSAGE_CREATE', { guild_id: GUILD, channel_id: channel, id: `1000000000000007${tail}`,
       content: 'hello', author: { id: author, username: 'someone' }, attachments: [], timestamp: new Date(now).toISOString() }); };
+    await say(GENERAL, 10);
+    assert.equal((await rows('member_records'))[0].recent_messages.length, 0, 'nothing kept from a channel whose place is unknown');
+    await store.recordChannels(await forum.transport.getRecordChannelMap());
     for (const [channel, tail] of [[GENERAL, 11], [TICKET, 12], [GENERAL, 13], [CASE, 14], [TICKET_THREAD, 15], [GENERAL, 16], [GENERAL, 17], [GENERAL, 18], [GENERAL, 19]]) await say(channel, tail);
     await say(threadId, 20); await say(GENERAL, 21, OTHER);
     const [kept] = await rows('member_records');
-    assert.deepEqual(kept.recent_messages.map(item => item.messageId.slice(-2)), ['19', '18', '17', '16', '15', '13', '12', '11'], 'IDs only, newest first; not record posts or excluded case channels');
-    assert.ok(kept.recent_messages.every(item => Object.keys(item).sort().join() === 'atMs,channelId,messageId'), 'no content kept');
+    assert.deepEqual(kept.recent_messages.map(item => item.messageId.slice(-2)), ['19', '18', '17', '16', '13', '11'],
+      'IDs only, newest first; never tickets, threads under them, case channels or record posts');
+    assert.ok(kept.recent_messages.every(item => Object.keys(item).sort().join() === 'atMs,channelId,messageId'), 'no content in the leave links');
+    assert.deepEqual((await rows('member_messages', 'message_id')).map(row => row.message_id.slice(-2)), ['11', '13', '16', '17', '18', '19'], 'text kept only where allowed');
     now += 60_000; const leftAt = now; await leave(USER, 'vexthecat'); await drain();
     const entry = post.messages.at(-1).content;
     assert.ok(entry.startsWith('**Left or removed** · ') && entry.includes(`(<t:${Math.floor(leftAt / 1000)}:f>)`), entry);
@@ -358,7 +366,7 @@ export async function runMemberRecordsSuite(cluster, run) {
     forum.approve([]);
     now += 3_600_000;
     const reconciler = createMemberRecordReconciler({ store, transport: forum.transport, mapping, enabled: async () => true, clock: () => now });
-    assert.deepEqual({ ...await reconciler.runDue('check') }, { status: 'reconciled', opened: 1, changed: 1, left: 1, departed: 0 });
+    assert.deepEqual({ ...await reconciler.runDue('check') }, { status: 'reconciled', opened: 1, changed: 1, left: 1, departed: 0, textCleared: 0 });
     assert.deepEqual(await reconciler.runDue('check'), { status: 'idle' }, 'not again before six hours');
     await drain();
     const named = name => forum.posts().find(([, item]) => item.name.startsWith(name))[1];
@@ -370,5 +378,51 @@ export async function runMemberRecordsSuite(cluster, run) {
     now += 7 * 3_600_000;
     assert.deepEqual({ ...await reconciler.runDue('check') }, { status: 'failed', code: 'MEMBER_RECORD_RECONCILE_SUSPICIOUS' });
     assert.equal((await rows('member_record_events')).filter(event => event.kind === 'left').length, 1, 'no leave recorded from a list that drops many');
+  });
+
+  await scenario('MRS-11 deleted and edited messages are entered in the author\'s post, with who deleted them from the audit log', async () => {
+    await join(USER, 'vexthecat'); await drain();
+    const post = forum.posts()[0][1], ledgerBefore = post.messages[1].content, changelogBefore = forum.changelog().length;
+    await store.recordChannels(await forum.transport.getRecordChannelMap());
+    const say = (channel, tail, content) => { now += 1_000; return send('MESSAGE_CREATE', { guild_id: GUILD, channel_id: channel, id: `1000000000000008${tail}`,
+      content, author: { id: USER, username: 'vexthecat' }, attachments: tail === '02' ? [{ id: '100000000000000899', filename: 'proof.png', content_type: 'image/png', size: 5 }] : [],
+      timestamp: new Date(now).toISOString() }); };
+    await say(GENERAL, '01', 'first words'); await say(GENERAL, '02', 'second @everyone'); await say(GENERAL, '03', 'third'); await say(GENERAL, '04', 'fourth');
+    await say(TICKET, '05', 'ticket text');
+    assert.equal((await rows('member_messages')).length, 4, 'nothing kept from the ticket channel');
+    // An edit, with the text before and after.
+    now += 1_000; await send('MESSAGE_UPDATE', { guild_id: GUILD, channel_id: GENERAL, id: '100000000000000801', content: 'first words, edited',
+      author: { id: USER, username: 'vexthecat' }, attachments: [], timestamp: new Date(now - 5_000).toISOString(), edited_timestamp: new Date(now).toISOString() });
+    // A link preview resends the message unchanged: no entry.
+    await send('MESSAGE_UPDATE', { guild_id: GUILD, channel_id: GENERAL, id: '100000000000000801', content: 'first words, edited',
+      author: { id: USER, username: 'vexthecat' }, attachments: [], timestamp: new Date(now - 5_000).toISOString(), edited_timestamp: new Date(now).toISOString() });
+    await drain();
+    const edited = post.messages.at(-1).content;
+    assert.ok(edited.startsWith('**Message edited** · ') && edited.includes('> first words\n**After**\n> first words, edited'), edited);
+    // The author deletes one: entered after a short wait, as most likely theirs.
+    now += 1_000; await send('MESSAGE_DELETE', { guild_id: GUILD, channel_id: GENERAL, id: '100000000000000802' });
+    assert.deepEqual((await drain()).map(result => result.status), ['deferred'], 'waits for the audit log');
+    now += 20_000; await due(); await drain();
+    const own = post.messages.at(-1).content;
+    assert.ok(own.startsWith('**Message deleted** · ') && own.includes('most likely by the author') && own.includes('> second \\@everyone') && own.includes('attachments: proof.png'), own);
+    // A moderator deletes another: the audit log names them.
+    forum.transport.audit = [{ bulk: false, byUserId: STAFF, targetId: USER, channelId: GENERAL, count: 1, createdAtMs: now + 1_000 }];
+    now += 1_000; await send('MESSAGE_DELETE', { guild_id: GUILD, channel_id: GENERAL, id: '100000000000000801' });
+    now += 20_000; await due(); await drain();
+    assert.ok(post.messages.at(-1).content.includes(`deleted by <@${STAFF}> (audit log)`) && post.messages.at(-1).content.includes('> first words, edited'));
+    // Text older than 30 days is cleared; a purge is one entry; a ticket deletion is never entered.
+    await admin.query("UPDATE sophie_core.member_messages SET content = NULL, content_cleared = true WHERE message_id IN ('100000000000000803', '100000000000000804')");
+    forum.transport.audit = [{ bulk: true, byUserId: STAFF, targetId: GENERAL, channelId: GENERAL, count: 2, createdAtMs: now + 1_000 }];
+    now += 1_000; await send('MESSAGE_DELETE_BULK', { guild_id: GUILD, channel_id: GENERAL, ids: ['100000000000000803', '100000000000000804'] });
+    await send('MESSAGE_DELETE', { guild_id: GUILD, channel_id: TICKET, id: '100000000000000805' });
+    now += 20_000; await due(); await drain();
+    const purge = post.messages.at(-1).content;
+    assert.ok(purge.startsWith('**2 messages deleted** · ') && purge.includes(`deleted by <@${STAFF}>`) && purge.split('Text no longer kept').length === 3, purge);
+    assert.equal((await rows('member_record_events')).filter(event => event.kind === 'message.deleted').length, 3);
+    assert.equal(post.messages[1].content, ledgerBefore, 'deletions and edits stay out of the ledger');
+    assert.equal(forum.changelog().length, changelogBefore, 'and out of the changelog');
+    // The synthetic IDs date from 2015: past 30 days and past a year, so text and authors are cleared, and rows stay.
+    assert.deepEqual(await store.expireMessages(), { textCleared: 2, authorsCleared: 4 });
+    assert.ok((await rows('member_messages')).every(row => row.content === null && row.author_id === null && row.channel_id === null));
   });
 }

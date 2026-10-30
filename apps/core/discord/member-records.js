@@ -6,6 +6,9 @@ const QUIET = Object.freeze({ parse: [], users: [], roles: [], replied_user: fal
 const SUPPRESS_EMBEDS = 1 << 2;
 const RESERVED_SLOTS = ['ledger', 'application', 'games', 'spare'];
 const RENEW_AFTER_MS = 20_000;
+const DELETION_WAIT_MS = 15_000;
+// Entries kept in the post only, out of the ledger and the changelog, which they would flood.
+const QUIET_KINDS = ['message.deleted', 'message.edited'];
 const NOT_CREATED = ['RATE_LIMITED', 'DISCORD_TRANSPORT_DISABLED', 'DISCORD_BUSY', 'DISCORD_AUTHORIZATION_FAILED', 'DISCORD_SCOPE_REFUSED', 'INVALID_DISCORD_PAYLOAD'];
 const sha = value => createHash('sha256').update(typeof value === 'string' ? value : JSON.stringify(value)).digest('hex');
 const nonceOf = (...parts) => sha(parts.join(':')).slice(0, 24);
@@ -27,9 +30,9 @@ function applicationMessages(application) {
  * name members without notifying anyone. No AI, no ticket data.
  */
 export function createMemberRecordDispatcher({ store, transport: discord, botUserId, tagIds, protectedCategoryId, enabled, trace = () => {},
-  wait = ms => new Promise(resolve => setTimeout(resolve, ms)) }) {
+  wait = ms => new Promise(resolve => setTimeout(resolve, ms)), clock = Date.now }) {
   requireId(botUserId); requireId(protectedCategoryId); requireRecord(tagIds);
-  const methods = ['createMemberRecordThread', 'editMemberRecordThread', 'createMemberRecordMessage', 'editMemberRecordMessage', 'getChannel', 'getMemberRecordThreads', 'getApprovedJoinRequests'];
+  const methods = ['createMemberRecordThread', 'editMemberRecordThread', 'createMemberRecordMessage', 'editMemberRecordMessage', 'getChannel', 'getMemberRecordThreads', 'getApprovedJoinRequests', 'getMessageDeleteAudit'];
   requireCondition(typeof enabled === 'function' && typeof trace === 'function' && typeof wait === 'function' && ['claim', 'progress', 'finish', 'retry', 'renew', 'ensureExclusions', 'excludedChannels'].every(key => typeof store?.[key] === 'function') &&
     methods.every(key => typeof discord?.[key] === 'function') && discord.guildId === store.guildId, 'TRUSTED_ADAPTERS_REQUIRED');
   for (const name of records.TAGS) requireId(tagIds[name]);
@@ -85,9 +88,28 @@ export function createMemberRecordDispatcher({ store, transport: discord, botUse
     return { status: 'found', requestId: found.id, approvedAtMs: found.reviewedAtMs, approvedBy: found.approvedBy, answers: records.applicationAnswers(found.formResponses) };
   }
 
+  /**
+   * Who deleted a member's message, from the audit log: Discord logs only deletions of someone else's messages, grouped by
+   * who deleted, whose and where, with a count; a purge is logged against the channel. No matching entry means the author,
+   * most likely. Read once per record, after a short wait (see converge).
+   */
+  async function deletedBy(event, userId, audit) {
+    if (audit === null) return 'unknown';
+    const near = (entry, before, after) => entry.createdAtMs >= event.atMs - before && entry.createdAtMs <= event.atMs + after;
+    const found = event.bulk ? audit.find(entry => entry.bulk && entry.channelId === event.channelId && near(entry, 120_000, 60_000))
+      : audit.find(entry => !entry.bulk && entry.targetId === userId && entry.channelId === event.channelId && near(entry, 15 * 60_000, 60_000));
+    return found ? { userId: found.byUserId } : 'author';
+  }
+
   async function converge(job) {
     const { lease, record } = job, { userId, profile } = record;
     const events = job.events.map(event => ({ ...event }));
+    // A deletion is entered a little after it happens, once the audit log has it.
+    const fresh = events.filter(event => event.kind === 'message.deleted' && !event.messageId && clock() - event.atMs < DELETION_WAIT_MS);
+    if (fresh.length) {
+      const error = new Error('MEMBER_RECORD_DEFERRED'); error.code = 'MEMBER_RECORD_DEFERRED';
+      error.retryAfterMs = Math.max(1_000, DELETION_WAIT_MS - (clock() - Math.min(...fresh.map(event => event.atMs)))); throw error;
+    }
     const messages = { ...record.messages }, delivered = { ...record.delivered };
     let renewedAt = Date.now();
     const step = async () => { if (Date.now() - renewedAt > RENEW_AFTER_MS) { await store.renew(lease); renewedAt = Date.now(); } };
@@ -105,7 +127,7 @@ export function createMemberRecordDispatcher({ store, transport: discord, botUse
         detail: { approvedAtMs: application.approvedAtMs } }] : [];
       // A new application replaces the earlier one in the post's third message; an entry says so and keeps the earlier one
       // as it was (owner direction, 30 October 2026).
-      if (added.length && previous) added.push({ eventId: `application.replaced.${application.requestId}`, kind: 'application.replaced', atMs: Date.now(),
+      if (added.length && previous) added.push({ eventId: `application.replaced.${application.requestId}`, kind: 'application.replaced', atMs: clock(),
         detail: { approvedAtMs: application.approvedAtMs, approvedBy: application.approvedBy ?? null,
           previous: { requestId: previous.requestId, approvedAtMs: previous.approvedAtMs, approvedBy: previous.approvedBy ?? null, answers: previous.answers } } });
       await store.progress(lease, { application, ...(added.length ? { applicationEvent: added } : {}) });
@@ -149,7 +171,8 @@ export function createMemberRecordDispatcher({ store, transport: discord, botUse
     const entryOf = event => ({ kind: event.kind, atMs: event.atMs, ...event.detail });
     const pendingEntries = events.filter(event => event.kind !== 'application' && !event.messageId);
     const ledgerOf = () => records.renderLedger([
-      ...events.filter(event => event.messageId).map(event => ({ atMs: event.atMs, label: records.entryLabel(entryOf(event)), messageId: event.messageId })),
+      // Deleted and edited messages stay in the post only; listing each would crowd the ledger.
+      ...events.filter(event => event.messageId && !QUIET_KINDS.includes(event.kind)).map(event => ({ atMs: event.atMs, label: records.entryLabel(entryOf(event)), messageId: event.messageId })),
       ...appMessages.slice(1).map((_, index) => messages[`application${index + 2}`]).filter(Boolean)
         .map(messageId => ({ atMs: application.approvedAtMs, label: 'Access application, continued', messageId })),
     ], { guildId, channelId: threadId });
@@ -200,8 +223,14 @@ export function createMemberRecordDispatcher({ store, transport: discord, botUse
         await store.progress(lease, { entries: Object.fromEntries(applicationEvents.map(event => [event.eventId, messages.application])) });
       }
       // Each new entry, oldest first; a replaced application's entry is followed by the earlier application.
+      let audit;
       for (const event of pendingEntries) {
-        const context = event.kind === 'left' && Array.isArray(event.detail.recent) ? { guildId, recent: await linkable(event.detail.recent) } : {};
+        if (event.kind === 'message.deleted' && audit === undefined) {
+          try { audit = await transport.getMessageDeleteAudit(); }
+          catch (error) { if (error?.code !== 'DISCORD_AUTHORIZATION_FAILED') throw error; audit = null; }
+        }
+        const context = event.kind === 'left' && Array.isArray(event.detail.recent) ? { guildId, recent: await linkable(event.detail.recent) }
+          : event.kind === 'message.deleted' ? { guildId, deletedBy: await deletedBy(entryOf(event), userId, audit) } : { guildId };
         const [first, ...rest] = records.entryParts(entryOf(event), context);
         event.messageId = await post(threadId, `entry.${event.eventId}`, first);
         for (const [index, text] of rest.entries()) await post(threadId, `entry.${event.eventId}.${index + 2}`, text);
@@ -228,7 +257,7 @@ export function createMemberRecordDispatcher({ store, transport: discord, botUse
     }
     // Every entry gets one line in the changelog, linking to it. The changelog post archives itself after a quiet week, so
     // it is checked (at most every ten minutes) and woken before Sophie writes there.
-    const unlisted = events.filter(item => item.messageId && !item.changelogMessageId);
+    const unlisted = events.filter(item => item.messageId && !item.changelogMessageId && !QUIET_KINDS.includes(item.kind));
     if (unlisted.length && Date.now() - changelogCheckedAt > 600_000) {
       const changelog = await transport.getChannel(changelogThreadId);
       if (changelog === null) { const error = new Error('MEMBER_RECORD_CHANGELOG_MISSING'); error.code = 'MEMBER_RECORD_CHANGELOG_MISSING'; throw error; }
@@ -258,7 +287,8 @@ export function createMemberRecordDispatcher({ store, transport: discord, botUse
       } catch (error) {
         const code = typeof error?.code === 'string' && /^[A-Z0-9_]{1,64}$/u.test(error.code) ? error.code : 'MEMBER_RECORD_DELIVERY_FAILED';
         if (code === 'MEMBER_RECORD_LEASE_LOST') return { status: 'lease_lost', code };
-        await store.retry(job.lease, code, code === 'RATE_LIMITED' && Number.isSafeInteger(error.retryAfterMs) ? Math.min(86_400_000, error.retryAfterMs) : 0).catch(() => {});
+        await store.retry(job.lease, code, ['RATE_LIMITED', 'MEMBER_RECORD_DEFERRED'].includes(code) && Number.isSafeInteger(error.retryAfterMs) ? Math.min(86_400_000, error.retryAfterMs) : 0).catch(() => {});
+        if (code === 'MEMBER_RECORD_DEFERRED') return { status: 'deferred' };
         return { status: 'retry', code, attempts: job.attempts };
       }
     },

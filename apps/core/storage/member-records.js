@@ -10,7 +10,7 @@ import { inTransaction } from './transaction.js';
  * dispatcher (apps/core/discord/member-records.js) converges one record at a time under a lease. No AI reads any of it.
  */
 
-const EVENT_KINDS = Object.freeze(['record.opened', 'joined', 'left', 'whitelist.granted', 'whitelist.lost', 'muzzled', 'unmuzzled', 'name.changed', 'application', 'watched', 'unwatched', 'application.replaced']);
+const EVENT_KINDS = Object.freeze(['record.opened', 'joined', 'left', 'whitelist.granted', 'whitelist.lost', 'muzzled', 'unmuzzled', 'name.changed', 'application', 'watched', 'unwatched', 'application.replaced', 'message.deleted', 'message.edited']);
 const SLOT = /^(?:header|ledger|application|application[2-9]|games|spare)$/u;
 const EVENT_ID = /^[A-Za-z0-9._-]{1,160}$/u;
 const NO_ROLES = Object.freeze({ crew: false, whitelist: false, muzzled: false, staff: false, leadOps: false });
@@ -50,7 +50,7 @@ export function profileOf({ username, globalName = null, nick = null, present, r
 
 /** Whether a value came from the member records ingress (apps/core/discord/member-record-ingress.js), which freezes what it keeps. */
 export function requireMemberRecordEvent(event) {
-  requireCondition(event !== null && typeof event === 'object' && Object.isFrozen(event) && ['member', 'message', 'delete'].includes(event.kind), 'MEMBER_RECORD_OBSERVATION_INVALID');
+  requireCondition(event !== null && typeof event === 'object' && Object.isFrozen(event) && ['member', 'message', 'delete', 'channels'].includes(event.kind), 'MEMBER_RECORD_OBSERVATION_INVALID');
 }
 
 /** Whether Sophie's own Whitelist grant for the member is under way or just done (its confirmation enters it). */
@@ -78,12 +78,98 @@ async function applyObservation(client, { guildId, userId, row, observation, atM
   return next.events.length;
 }
 
+// Message text is kept 30 days, who wrote which message a year (owner, 30 October 2026: "30 days").
+export const MESSAGE_TEXT_KEPT_MS = 30 * 86_400_000;
+export const MESSAGE_AUTHOR_KEPT_MS = 365 * 86_400_000;
+const DISCORD_EPOCH = 1_420_070_400_000n;
+const sentAt = messageId => Number((BigInt(messageId) >> 22n) + DISCORD_EPOCH);
+
+async function saveChannels(client, guildId, items) {
+  for (const item of items) {
+    requireId(item.channelId); if (item.parentId !== null) requireId(item.parentId);
+    await client.query(`INSERT INTO sophie_core.member_record_channels (guild_id, channel_id, parent_id, deleted) VALUES ($1, $2, $3, $4)
+      ON CONFLICT (guild_id, channel_id) DO UPDATE SET parent_id = EXCLUDED.parent_id, deleted = EXCLUDED.deleted`, [guildId, item.channelId, item.parentId, item.deleted === true]);
+  }
+}
+
+/**
+ * Whether Sophie may keep a member's messages from this channel: its place is known (the channel and every parent above
+ * it), nothing in that line is the protected ticket category, and nothing in it is a channel her case records exclude (her
+ * case channels, the records forum and its changelog). An unknown channel keeps nothing.
+ */
+async function channelKeepable(client, guildId, channelId, protectedCategoryId) {
+  const lineage = [];
+  for (let id = channelId, depth = 0; id !== null; depth += 1) {
+    if (depth > 3) return false;
+    const row = (await client.query('SELECT parent_id FROM sophie_core.member_record_channels WHERE guild_id = $1 AND channel_id = $2', [guildId, id])).rows[0];
+    if (!row) return false;
+    lineage.push(id); id = row.parent_id;
+  }
+  if (protectedCategoryId === null || lineage.includes(protectedCategoryId)) return false;
+  return !(await client.query('SELECT 1 FROM sophie_core.case_exclusions WHERE guild_id = $1 AND channel_id = ANY($2::text[]) LIMIT 1', [guildId, lineage])).rowCount;
+}
+
+/**
+ * A recorded member's message: its ID for the leave links, and its text for 30 days, so a later deletion or edit can be
+ * entered in their post. An edit of a kept message is an entry with the text before and after.
+ */
+async function keepMessage(client, { guildId, event, observedAt, protectedCategoryId }) {
+  const author = (await client.query('SELECT 1 FROM sophie_core.member_records WHERE guild_id = $1 AND user_id = $2', [guildId, event.authorId])).rowCount;
+  if (!author || !await channelKeepable(client, guildId, event.channelId, protectedCategoryId)) return;
+  const attachments = (event.attachments ?? []).map(item => ({ filename: item.filename ?? null, contentType: item.contentType ?? null, size: item.size ?? null }));
+  if (event.type === 'MESSAGE_CREATE') {
+    // The last ten message IDs and times, never content, for the leave links.
+    await client.query(`UPDATE sophie_core.member_records SET recent_messages = (SELECT COALESCE(jsonb_agg(item ORDER BY position), '[]'::jsonb)
+        FROM jsonb_array_elements(jsonb_build_array($3::jsonb) || recent_messages) WITH ORDINALITY AS listed(item, position) WHERE position <= 10)
+      WHERE guild_id = $1 AND user_id = $2`, [guildId, event.authorId, { channelId: event.channelId, messageId: event.messageId, atMs: event.messageAtMs ?? observedAt }]);
+    await client.query(`INSERT INTO sophie_core.member_messages (guild_id, message_id, channel_id, author_id, sent_at_ms, content, attachments)
+      VALUES ($1, $2, $3, $4, $5, $6, $7) ON CONFLICT DO NOTHING`, [guildId, event.messageId, event.channelId, event.authorId, sentAt(event.messageId),
+      event.content.slice(0, 4000), JSON.stringify(attachments)]);
+    return;
+  }
+  const row = (await client.query(`SELECT author_id, content, content_cleared, deleted_at_ms FROM sophie_core.member_messages
+    WHERE guild_id = $1 AND message_id = $2 FOR UPDATE`, [guildId, event.messageId])).rows[0];
+  const after = event.content.slice(0, 4000);
+  if (row && (row.author_id !== event.authorId || row.deleted_at_ms !== null || row.content === after)) return;
+  // Without a kept copy, only a fresh edit counts: Discord also resends messages when a link preview arrives.
+  if (!row && !(Number.isSafeInteger(event.editedAtMs) && Math.abs(observedAt - event.editedAtMs) < 120_000)) return;
+  await insertEvents(client, guildId, event.authorId, [{ eventId: `edit.${event.messageId}.${observedAt}`, kind: 'message.edited', atMs: observedAt,
+    detail: { channelId: event.channelId, messageId: event.messageId, sentAtMs: sentAt(event.messageId), before: row && !row.content_cleared ? row.content : null, after } }]);
+  if (row) await client.query(`UPDATE sophie_core.member_messages SET content = CASE WHEN content_cleared THEN NULL ELSE $3 END, edited_at_ms = $4
+    WHERE guild_id = $1 AND message_id = $2`, [guildId, event.messageId, after, observedAt]);
+  await touch(client, guildId, event.authorId, null, observedAt);
+}
+
+/**
+ * Deleted messages Sophie kept, entered in each author's post: one entry per author for each deletion event (a purge is one
+ * entry), with the text while it is kept (at most 50 messages shown with their text). Who deleted them is looked up in the
+ * audit log when the entry is posted. A message Sophie never kept cannot be attributed, so it is not entered.
+ */
+async function enterDeletions(client, { guildId, event, observedAt, epoch, sequence }) {
+  const rows = (await client.query(`SELECT message_id, channel_id, author_id, sent_at_ms, content, attachments, content_cleared FROM sophie_core.member_messages
+    WHERE guild_id = $1 AND message_id = ANY($2::text[]) AND author_id IS NOT NULL AND deleted_at_ms IS NULL FOR UPDATE`, [guildId, event.messageIds])).rows;
+  if (!rows.length) return;
+  await client.query('UPDATE sophie_core.member_messages SET deleted_at_ms = $3 WHERE guild_id = $1 AND message_id = ANY($2::text[])',
+    [guildId, rows.map(row => row.message_id), observedAt]);
+  const byAuthor = new Map();
+  for (const row of rows) byAuthor.set(row.author_id, [...(byAuthor.get(row.author_id) ?? []), row]);
+  for (const [authorId, messages] of byAuthor) {
+    if (!(await client.query('SELECT 1 FROM sophie_core.member_records WHERE guild_id = $1 AND user_id = $2', [guildId, authorId])).rowCount) continue;
+    messages.sort((a, b) => Number(a.sent_at_ms) - Number(b.sent_at_ms));
+    await insertEvents(client, guildId, authorId, [{ eventId: `del.${epoch}.${sequence}.${authorId}`, kind: 'message.deleted', atMs: observedAt,
+      detail: { channelId: event.channelId, bulk: event.type === 'MESSAGE_DELETE_BULK', count: messages.length,
+        messages: messages.slice(0, 50).map(row => ({ messageId: row.message_id, sentAtMs: Number(row.sent_at_ms), content: row.content_cleared ? null : row.content,
+          attachments: row.attachments ?? [] })) } }]);
+    await touch(client, guildId, authorId, null, observedAt);
+  }
+}
+
 /**
  * Called only inside the Gateway cursor transaction (apps/core/storage/gateway-journal.js). Member changes update the
  * member's record (a join with no record opens one); a message in one of the record posts is copied as an observation. A
  * member with no record yet is left to the backfill, except on a join. Bots and Sophie herself get no record.
  */
-export async function recordMemberRecordObservation(client, { guildId, mapping, event, epoch, sequence, observedAt }) {
+export async function recordMemberRecordObservation(client, { guildId, mapping, event, epoch, sequence, observedAt, protectedCategoryId = null }) {
   requireRecord(event); requireInteger(epoch, 0); requireInteger(sequence, 0); requireInteger(observedAt, 1);
   if (event.kind === 'member') {
     if (event.bot || event.userId === mapping.botUserId) return;
@@ -103,16 +189,11 @@ export async function recordMemberRecordObservation(client, { guildId, mapping, 
     await applyObservation(client, { guildId, userId: event.userId, row, observation, atMs: observedAt, eventId: id });
     return;
   }
+  if (event.kind === 'channels') { await saveChannels(client, guildId, event.items); return; }
   requireCondition(['message', 'delete'].includes(event.kind), 'MEMBER_RECORD_OBSERVATION_INVALID');
   const record = (await client.query('SELECT user_id FROM sophie_core.member_records WHERE guild_id = $1 AND thread_id = $2', [guildId, event.channelId])).rows[0];
-  // A member's latest messages, as IDs and times only, so a leave can link to them (owner direction, 30 October 2026). Not
-  // record posts, nor channels Sophie's case records exclude (her case channels, the forum and its changelog).
-  if (event.kind === 'message' && event.type === 'MESSAGE_CREATE' && event.authorId && event.authorId !== mapping.botUserId && !record &&
-    !(await client.query('SELECT 1 FROM sophie_core.case_exclusions WHERE guild_id = $1 AND channel_id = $2', [guildId, event.channelId])).rowCount) {
-    await client.query(`UPDATE sophie_core.member_records SET recent_messages = (SELECT COALESCE(jsonb_agg(item ORDER BY position), '[]'::jsonb)
-        FROM jsonb_array_elements(jsonb_build_array($3::jsonb) || recent_messages) WITH ORDINALITY AS listed(item, position) WHERE position <= 10)
-      WHERE guild_id = $1 AND user_id = $2`, [guildId, event.authorId, { channelId: event.channelId, messageId: event.messageId, atMs: event.messageAtMs ?? observedAt }]);
-  }
+  if (!record && event.kind === 'message' && event.authorId && event.authorId !== mapping.botUserId) await keepMessage(client, { guildId, event, observedAt, protectedCategoryId });
+  if (!record && event.kind === 'delete') await enterDeletions(client, { guildId, event, observedAt, epoch, sequence });
   if (!record) return;
   if (event.kind === 'message' && event.authorId === mapping.botUserId) return;
   for (const messageId of event.kind === 'delete' ? event.messageIds : [event.messageId]) {
@@ -241,6 +322,23 @@ export function createMemberRecordStore({ pool, clock, guildId, forumId, changel
       });
       return counts;
     },
+    /**
+     * Clears message text older than 30 days and who wrote a message older than a year (owner, 30 October 2026: "30
+     * days"). The runtime cannot delete rows, so an expired row keeps only its message ID and times.
+     */
+    async expireMessages() {
+      const now = clock(); requireInteger(now, 1);
+      const text = await pool.query(`UPDATE sophie_core.member_messages SET content = NULL, attachments = NULL, content_cleared = true
+        WHERE guild_id = $1 AND NOT content_cleared AND sent_at_ms < $2`, [guildId, now - MESSAGE_TEXT_KEPT_MS]);
+      const authors = await pool.query(`UPDATE sophie_core.member_messages SET author_id = NULL, channel_id = NULL
+        WHERE guild_id = $1 AND author_id IS NOT NULL AND sent_at_ms < $2`, [guildId, now - MESSAGE_AUTHOR_KEPT_MS]);
+      return { textCleared: text.rowCount, authorsCleared: authors.rowCount };
+    },
+    /** The server's channels and active threads, read over REST by the regular check, so a resumed Gateway has a channel map. */
+    async recordChannels(items) {
+      requireCondition(Array.isArray(items) && items.length <= 5000, 'MEMBER_RECORD_RECONCILE_INVALID');
+      return inTransaction(pool, client => saveChannels(client, guildId, items));
+    },
     /** Everyone Sophie's own records have seen in the server (members she observed, Shuttle Activity runs), for people who have left. */
     async seenUserIds() {
       return (await pool.query(`SELECT user_id FROM sophie_core.members WHERE guild_id = $1
@@ -368,7 +466,7 @@ export function createMemberRecordStore({ pool, clock, guildId, forumId, changel
       return inTransaction(pool, async client => {
         await leased(client, lease);
         await client.query(`UPDATE sophie_core.member_records SET lease_owner = NULL, lease_until = NULL, last_error_code = $3,
-          attempts = CASE WHEN $3 IN ('RATE_LIMITED', 'DISCORD_TRANSPORT_DISABLED', 'DISCORD_BUSY') THEN GREATEST(attempts - 1, 0) ELSE attempts END,
+          attempts = CASE WHEN $3 IN ('RATE_LIMITED', 'DISCORD_TRANSPORT_DISABLED', 'DISCORD_BUSY', 'MEMBER_RECORD_DEFERRED') THEN GREATEST(attempts - 1, 0) ELSE attempts END,
           due_at = clock_timestamp() + GREATEST($4::double precision, LEAST(3600000, power(2, LEAST(attempts, 12)) * 1000)) * interval '1 millisecond'
           WHERE guild_id = $1 AND user_id = $2`, [guildId, lease.userId, code, retryAfterMs]);
       });

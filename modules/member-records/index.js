@@ -562,15 +562,65 @@ export function entryLabel(event) {
     case 'name.changed': return 'Name changed';
     case 'application': return 'Access application';
     case 'application.replaced': return 'Access application replaced';
+    case 'message.deleted': return event.count === 1 ? 'Message deleted' : 'Messages deleted';
+    case 'message.edited': return 'Message edited';
     default: throw new Error('MEMBER_RECORD_EVENT_UNKNOWN');
   }
 }
 
+/** Someone's text as a literal block quote, in pieces that each fit a message with room to spare. */
+function quotedPieces(text) {
+  const pieces = [], characters = [...String(text ?? '')];
+  // Escaping can double the length, so raw pieces stay under half a message.
+  for (let start = 0; start < characters.length; start += 850) pieces.push(literal(characters.slice(start, start + 850).join('')).split('\n').map(line => `> ${line}`).join('\n'));
+  return pieces.length ? pieces : ['> *(no text)*'];
+}
+
+/** Blocks joined into as few messages as fit. */
+function pack(blocks) {
+  const parts = [];
+  for (const block of blocks) {
+    if (parts.length && parts.at(-1).length + 1 + block.length <= MESSAGE_MAX) parts[parts.length - 1] += `\n${block}`;
+    else parts.push(block);
+  }
+  return parts;
+}
+
+/** Who deleted a message, as the audit log tells it when the entry is posted. */
+function deletedByText(by) {
+  if (by?.userId) return `deleted by <@${by.userId}> (audit log)`;
+  if (by === 'author') return 'no moderator deletion in the audit log, so most likely by the author';
+  return 'who deleted it could not be checked';
+}
+
+/**
+ * A deletion or an edit of a member's message (owner, 30 October 2026: Staff asked for deleted messages in each post; text
+ * kept 30 days). The text is quoted literally, so it can mention, format or link nothing.
+ */
+function messageEntryParts(event, context) {
+  const at = utcText(event.atMs);
+  if (event.kind === 'message.edited') {
+    return pack([`**Message edited** · ${at} · in <#${event.channelId}> · sent ${stamp(event.sentAtMs, 'f')} · [message](${jumpUrl(context.guildId, event.channelId, event.messageId)})`,
+      '**Before**', ...(event.before === null || event.before === undefined ? ['-# Earlier text not kept.'] : quotedPieces(event.before)), '**After**', ...quotedPieces(event.after)]);
+  }
+  const shown = event.messages ?? [];
+  const blocks = [`**${event.count === 1 ? 'Message deleted' : `${event.count} messages deleted`}** · ${at} · in <#${event.channelId}> · ${deletedByText(context.deletedBy)}`];
+  for (const message of shown) {
+    const files = (message.attachments ?? []).map(item => cleanLine(item.filename, 80)).filter(Boolean);
+    blocks.push(`-# Sent ${stamp(message.sentAtMs, 'f')}${files.length ? ` · attachments: ${literal(files.join(', '))}` : ''}`);
+    blocks.push(...(message.content === null || message.content === undefined ? ['-# Text no longer kept (Sophie keeps it for 30 days).'] : quotedPieces(message.content)));
+  }
+  if (event.count > shown.length) blocks.push(`-# ${event.count - shown.length} more not shown.`);
+  return pack(blocks);
+}
+
 /**
  * The messages one entry is posted as: one, except a replaced application, whose entry is followed by the earlier
- * application as it was (owner direction, 30 October 2026: the old and new application documented in the post).
+ * application as it was (owner direction, 30 October 2026: the old and new application documented in the post), and a
+ * deleted or edited message, whose text can take several.
  */
 export function entryParts(event, context = {}) {
+  if (event.kind === 'message.deleted' || event.kind === 'message.edited') return messageEntryParts(event, context);
   const first = entryText(event, context);
   if (event.kind !== 'application.replaced' || !event.previous) return [first];
   return [first, ...renderApplication(event.previous).map((text, index) => index === 0 ? text.replace('**Access application**', '**Earlier access application**') : text)];

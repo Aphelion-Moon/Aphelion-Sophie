@@ -136,7 +136,7 @@ export function createAdministrationLane({ configuration, pool, token, fetch, cl
   if (whitelistNotices) workers.push(whitelistNotices);
   // A post per member in the Staff forum, and the changelog, when configured (owner decisions, 30 October 2026).
   const records = configuration.memberRecords;
-  const memberRecords = records === undefined ? null : createMemberRecordDispatcher({ transport, botUserId: mapping.botUserId, tagIds: records.tagIds, protectedCategoryId: policy.categoryId, enabled, trace: onTrace,
+  const memberRecords = records === undefined ? null : createMemberRecordDispatcher({ transport, botUserId: mapping.botUserId, tagIds: records.tagIds, protectedCategoryId: policy.categoryId, enabled, clock, trace: onTrace,
     store: createMemberRecordStore({ pool, clock, guildId: mapping.guildId, forumId: records.forumId, changelogThreadId: records.changelogThreadId }) });
   if (memberRecords) workers.push(memberRecords);
   // Sophie's regular check of the records against Discord's member list (owner, 30 October 2026).
