@@ -1,5 +1,22 @@
 # Verification and release limits
 
+## Production installs of 8372861 and 35ec844 (member records) — 30 October 2026
+
+- **8372861 (16:37 UTC; owner: "go ahead and install the full bundle of updates"):** the 0b9298a work below plus deleted
+  and edited messages (migration 083). `prepare.mjs` passed (12 files, 3 new; migrations 082-083); 082 and 083 applied
+  (83 migrations) with runtime grants for `member_messages` and `member_record_channels`; pre-start, boundary, installed
+  and public checks passed. First regular check (16:39 UTC): nothing opened, changed or left; channel map 704 channels;
+  messages being kept. **Found:** it had marked 451 unchanged records as changed (jsonb key order), so their headers were
+  re-edited.
+- **35ec844 (16:43 UTC; owner: "Go ahead and install when you're done."):** the key-order fix (1 file, no migration).
+  Pre-start, boundary and installed checks passed; the public check saw 503 once from the Activity host while core
+  started, and passed on the rerun. The check after the restart marked nothing.
+- **Offline:** `npm test` 927 passed (MR-27 new) before the fix, then the member records unit tests 29 and storage suite 11
+  passed with it (MR-16b new); `npm run check` passed; `test:storage:fast` 1055 passed, 0 failed (MRS-11 new). On a
+  synthetic cluster 082-083 applied, the revert returned to 81 migrations, and both applied again.
+- **Not covered:** a real deletion or edit entry and its audit-log attribution in production (none yet); the 30-day expiry
+  on real data.
+
 ## Prepared: 0b9298a (member records: leave links, replaced applications, regular check) — 30 October 2026
 
 - **Offline:** `npm test` 926 passed (new MR-26; MR-14 updated for the leave time); `npm run check` passed;

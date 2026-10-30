@@ -1,6 +1,6 @@
 # Current implementation workplan
 
-Revision: 2026-10-30-production-e881f29. Mistral Small 4 (mistral-small-2603) on the official EU API is the selected provider for trial; DeepSeek Flash is withdrawn. Local models are historical, explicitly selected alternatives only; no automatic fallback. Continue the DS workstream with synthetic data; full readiness and activation remain open.
+Revision: 2026-10-30-production-35ec844. Mistral Small 4 (mistral-small-2603) on the official EU API is the selected provider for trial; DeepSeek Flash is withdrawn. Local models are historical, explicitly selected alternatives only; no automatic fallback. Continue the DS workstream with synthetic data; full readiness and activation remain open.
 
 All production release gates remain open; pure and isolated database checks are not full application acceptance.
 
@@ -1828,7 +1828,7 @@ Boundary: A model or profile change alters mistralProfileHash and needs policy r
 
 Status: **in_progress**. Phase: Community administration. Priority: P1.
 
-Depends on: None. Acceptance: MR-01 to MR-15, MR-07b (rendering), MR-16 to MR-23 (observation, changelog, transport allowance, ingress, configuration, backfill planner, AI exclusion), MR-24 (/member watch: parsing, Staff check, production command set), MR-25 (records for people who have left), MRS-07 (Watch entry and tag; a Left post; a rejoin continues it), MR-26, MRS-08 to MRS-10 (leave time and message links, replaced application, regular check), MRS-01 to MRS-06 (storage: post convergence, entries, Sophie's Whitelist, uncertain delivery, discussion copy and Gateway isolation, backfill and adoption), SA15 (the grant confirmation writes the entry), One post per member across leave and rejoin; the ledger links only to posted entries; no AI path reads the forum.
+Depends on: None. Acceptance: MR-01 to MR-15, MR-07b (rendering), MR-16 to MR-23 (observation, changelog, transport allowance, ingress, configuration, backfill planner, AI exclusion), MR-24 (/member watch: parsing, Staff check, production command set), MR-25 (records for people who have left), MRS-07 (Watch entry and tag; a Left post; a rejoin continues it), MR-26, MRS-08 to MRS-10 (leave time and message links, replaced application, regular check), MR-16b, MR-27, MRS-11 (key-order comparison; deleted and edited messages with audit-log attribution, 30-day text expiry), MRS-01 to MRS-06 (storage: post convergence, entries, Sophie's Whitelist, uncertain delivery, discussion copy and Gateway isolation, backfill and adoption), SA15 (the grant confirmation writes the entry), One post per member across leave and rejoin; the ledger links only to posted entries; no AI path reads the forum.
 
 Owner decisions of 30 October 2026 in the decision log; proposal, probes, Staff test run, changelog, backfill and read-back scripts in .agent_docs/aphelion-sophie/member-records-forum-2026-10-30; install packet deployment-d8efd40-production-2026-10-30.
 
@@ -1844,12 +1844,14 @@ Implemented scope:
 - e881f29 installed 15:37 UTC: gate refusals retried, rate limits as waits, /member watch for Staff and Lead Ops (migration 081; registered in the main server), records for people who have left; every packet check passed; commits pushed to origin main
 - Departed backfill 15:40 UTC: 10 records (8 approved applicants, 2 from Sophie's records), opened as Left
 - Backfill delivered: 483 of 488 records posted by 15:57 UTC, none failing
+- 8372861 installed 16:37 UTC (bundle with 0b9298a; migrations 082-083 with grants): leave times and message links, replaced applications, the regular check, deleted and edited messages (text 30 days, authors a year)
+- 35ec844 installed 16:43 UTC: profiles compared regardless of key order (the first check had marked 451 unchanged records; the one-time header refresh then converged)
 
 Remaining scope:
 
-- Install 0b9298a (prepared, packet deployment-0b9298a-production-2026-10-30): leave times and five message links, replaced applications kept as an entry, the regular records check at start and every six hours; needs the owner's approval
-- Live checks: /member watch run by Staff, a real join, leave and Staff discussion copy
-- Later: Discord moderation (Guild Moderation intent, View Audit Log) and SSymphony game records
+- Live checks: a real deletion and edit entry, a moderator deletion attributed from the audit log, /member watch by Staff, a real leave with message links
+- Privacy notice line: message text kept 30 days, authors a year, deleted and edited messages kept in the record
+- Later: Discord moderation (bans, kicks via the audit log) and SSymphony game records
 
 Full task deliverables:
 

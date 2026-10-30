@@ -2820,3 +2820,13 @@ links up to five, leaving out the protected ticket category and threads under it
 message 3 and an entry keeps the earlier one. The backfill becomes a regular check in core (at start and every six hours,
 reads only), which also catches changes made while Sophie was offline and refuses a member list that would mean more than
 a few leaves at once. Built as 0b9298a; prepared, awaiting install approval. "I will process additional users later."
+
+**Deleted messages (30 October 2026, evening).** Staff asked for deleted messages in each member's post rather than Carl-bot's
+log channel. After research on how logging bots work (each logs only what it stored beforehand, for hours to two weeks), the
+owner chose "30 days" for message text, gave Sophie View Audit Log, and asked: "Once youre done putting all that together,
+go ahead and install the full bundle of updates." Sophie keeps recorded members' message text 30 days and who wrote which
+message a year (rows are cleared, not deleted), never from the ticket category, threads under it, case-excluded channels or
+record posts. A deletion or edit is entered in the author's post, with the moderator from the audit log when there is one;
+these entries stay out of the ledger and changelog. Deleted text entered in a record stays with the record. Installed as
+8372861 at 16:37 UTC with 0b9298a, then 35ec844 at 16:43 UTC ("Go ahead and install when you're done.") fixing a key-order
+comparison that made the first regular check mark 451 unchanged records.
