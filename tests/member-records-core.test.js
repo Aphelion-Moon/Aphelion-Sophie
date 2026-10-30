@@ -50,6 +50,19 @@ test('MR-16b a profile read back from PostgreSQL, keys in its own order, is not 
   assert.deepEqual(seen.events, []); assert.equal(seen.changed, false);
 });
 
+test('MR-16c role changes while the member stays are one entry; Whitelist and Muzzled, joins and leaves are not counted here', () => {
+  const base = profile({ roleIds: [ids(4), ids(40)] });
+  const ignore = { ignoreRoleIds: [ids(6), ids(5)] };
+  const changed = observeMember(base, { present: true, roles: { crew: true, whitelist: true }, roleIds: [ids(4), ids(41), ids(6)], username: 'vexthecat', globalName: 'Vex' }, AT, ignore);
+  assert.deepEqual(changed.events.filter(event => event.kind === 'roles.changed'), [{ kind: 'roles.changed', added: [ids(41)], removed: [ids(40)] }]);
+  assert.deepEqual(changed.profile.roleIds, [ids(4), ids(41), ids(6)].sort());
+  assert.deepEqual(observeMember(base, { present: false, roles: {}, roleIds: [] }, AT, ignore).events.map(event => event.kind), ['left']);
+  const first = observeMember(profile(), { present: true, roles: { crew: true }, roleIds: [ids(4)], username: 'vexthecat', globalName: 'Vex' }, AT, ignore);
+  assert.deepEqual(first.events, []); assert.deepEqual(first.profile.roleIds, [ids(4)]);
+  assert.equal(entryText({ kind: 'roles.changed', atMs: AT, added: [ids(41)], removed: [ids(40)] }, { roleNames: { [ids(41)]: 'Event Host' }, changedBy: 'unknown' }),
+    '**Roles changed** · 30 Oct 2026, 15:00 UTC · who changed them could not be checked\nAdded: Event Host\nRemoved: a deleted role');
+});
+
 test('MR-17 entries, rejoins and changelog lines read plainly and link to the entry', () => {
   assert.equal(entryText({ kind: 'joined', atMs: AT, joinCount: null }), '**Joined** · 30 Oct 2026, 15:00 UTC · rejoined (earlier joins not recorded)');
   assert.equal(entryLabel({ kind: 'joined', joinCount: null }), 'Joined · rejoined (earlier joins not recorded)');

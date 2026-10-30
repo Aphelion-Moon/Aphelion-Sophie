@@ -36,7 +36,7 @@ export function planMemberRecordBackfill({ members, approved, recorded, staffRun
     const application = applicationOf(approved.get(member.userId));
     const staff = staffRun.members[member.userId];
     const profile = profileOf({ username: member.username, globalName: member.globalName, nick: member.nick, present: true,
-      roles: memberRoleFlags(member.roleIds, mapping), joinedAtMs: member.joinedAtMs, joinCount: null, note: staff ? STAFF_RUN_NOTE : BACKFILL_NOTE });
+      roles: memberRoleFlags(member.roleIds, mapping), roleIds: member.roleIds.filter(id => id !== mapping.guildId), joinedAtMs: member.joinedAtMs, joinCount: null, note: staff ? STAFF_RUN_NOTE : BACKFILL_NOTE });
     const applicationEvent = application.status === 'found' ? { eventId: `application.${application.requestId}`, kind: 'application',
       atMs: application.approvedAtMs, detail: { approvedAtMs: application.approvedAtMs } } : null;
     if (staff?.threadId && staff.ledgerLinked && staff.messages?.opened) {

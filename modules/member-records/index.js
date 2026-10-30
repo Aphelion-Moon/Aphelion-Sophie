@@ -143,7 +143,7 @@ function shownName(username, displayName) {
  * @param {number} atMs when Sophie saw it
  * @returns {{ profile: object, events: object[], changed: boolean }}
  */
-export function observeMember(profile, observation, atMs, { whitelistBySophie = false } = {}) {
+export function observeMember(profile, observation, atMs, { whitelistBySophie = false, ignoreRoleIds = [] } = {}) {
   requireCondition(Number.isSafeInteger(atMs) && atMs > 0, 'INVALID_TIME');
   const next = structuredClone(profile), events = [];
   const before = { ...Object.fromEntries(ROLE_KEYS.map(key => [key, false])), ...(profile.roles ?? {}) };
@@ -178,6 +178,18 @@ export function observeMember(profile, observation, atMs, { whitelistBySophie = 
       }
       next.username = username; next.displayName = displayName;
     }
+  }
+  // Every other role change while the member stays is an entry too (owner, 30 October 2026: "Add role changes to the
+  // automatic entries."). Whitelist and Muzzled keep their own entries, so `ignoreRoleIds` leaves them out here. A record
+  // that has never held role IDs takes them as they are, without an entry; a join or a leave is its own entry.
+  if (Array.isArray(observation.roleIds)) {
+    const now = observation.present ? [...new Set(observation.roleIds)].sort() : [];
+    if (Array.isArray(profile.roleIds) && profile.present && observation.present) {
+      const counted = id => !ignoreRoleIds.includes(id);
+      const added = now.filter(id => !profile.roleIds.includes(id) && counted(id)), removed = profile.roleIds.filter(id => !now.includes(id) && counted(id));
+      if (added.length || removed.length) events.push({ kind: 'roles.changed', added, removed });
+    }
+    next.roleIds = now;
   }
   // Compared with keys in a fixed order: PostgreSQL stores JSON objects in its own key order, so the stored profile and the
   // one built here can differ in order alone (seen in production, 30 October 2026: every check touched every record).
@@ -395,6 +407,8 @@ export function renderHeader(record) {
     `**Moderation:** ${mutes}`,
     `**Born:** ${application ? birthLine(application.birth, application.approvedAtMs) : 'no application on record'}`,
     `**Earlier names:** ${earlier.length ? earlier.slice(-8).join(', ') : 'none on record'}`,
+    // The member's roles now, by name (owner, 30 October 2026, with role change entries).
+    Array.isArray(record.roleNames) ? `**Roles:** ${record.roleNames.length ? cut(record.roleNames.map(name => literal(cleanLine(name, 60))).join(', '), 400) : 'none'}` : null,
     '',
     '**Game accounts**',
     gameLine('SS13, Meridian Rift', gameValue(application?.games, 'ckey')),
@@ -552,6 +566,14 @@ export function entryText(event, context = {}) {
     case 'muzzled': return `**Muzzled**${event.by ? ` by <@${event.by}>` : ''} · ${at}`;
     case 'unmuzzled': return `**Unmuzzled**${event.by ? ` by <@${event.by}>` : ''} · ${at}`;
     case 'name.changed': return `**Name changed** · ${at} · ${literal(cleanLine(event.from, 60))} → ${literal(cleanLine(event.to, 60))}`;
+    case 'roles.changed': {
+      // Role names as they are when the entry is posted (a mention of a role is never sent); a deleted role says so.
+      const names = ids => ids.map(id => context.roleNames?.[id] ? literal(cleanLine(context.roleNames[id], 60)) : 'a deleted role').join(', ');
+      const by = context.changedBy?.userId ? `by <@${context.changedBy.userId}> (audit log)`
+        : context.changedBy === 'none' ? 'who changed them is not in the audit log' : 'who changed them could not be checked';
+      return fit([`**Roles changed** · ${at}${event.noticed ? ' (found by Sophie\'s check; she was offline when it happened)' : ''} · ${by}`,
+        ...(event.added?.length ? [`Added: ${names(event.added)}`] : []), ...(event.removed?.length ? [`Removed: ${names(event.removed)}`] : [])]);
+    }
     default: throw new Error('MEMBER_RECORD_EVENT_UNKNOWN');
   }
 }
@@ -569,6 +591,7 @@ export function entryLabel(event) {
     case 'muzzled': return 'Muzzled';
     case 'unmuzzled': return 'Unmuzzled';
     case 'name.changed': return 'Name changed';
+    case 'roles.changed': return 'Roles changed';
     case 'application': return 'Access application';
     case 'application.replaced': return 'Access application replaced';
     case 'message.deleted': return event.count === 1 ? 'Message deleted' : 'Messages deleted';
@@ -657,7 +680,7 @@ export const CHANGELOG_OPENING = [
   'Every automatic update Sophie makes to the member records appears here as it happens, newest at the bottom, each with a link to the entry in that member\'s post.',
   '',
   '### Each member\'s post',
-  '- **Header**, kept up to date: names and Discord ID, account age, status (in server or left, Crew, Whitelisted, Muzzled, Staff, Lead Ops), join date and count, last leave, Shuttle run and reading time, mutes on record, birth month and year and game accounts (from the application), earlier names.',
+  '- **Header**, kept up to date: names and Discord ID, account age, status (in server or left, Crew, Whitelisted, Muzzled, Staff, Lead Ops), join date and count, last leave, Shuttle run and reading time, mutes on record, birth month and year and game accounts (from the application), earlier names, current roles.',
   '- **Ledger:** links to Sophie\'s entries in the post.',
   '- **Access application:** the approved application, transcribed. A newer one replaces it; the older one is kept as an entry.',
   '- **Game records** (reserved for Meridian Rift and Wolfgate) and one spare message.',
@@ -667,6 +690,7 @@ export const CHANGELOG_OPENING = [
   '- Joined, rejoined, and left (with the time and links to their 5 latest messages)',
   '- Whitelist granted by Sophie (with Shuttle reading time) or given by someone else, and removed',
   '- Muzzled and unmuzzled',
+  '- Other role changes: roles added or removed, and who changed them (from the audit log)',
   '- Name changes',
   '- Access application, and application replaced',
   '- Watch on or off (`/member watch`, all Staff)',

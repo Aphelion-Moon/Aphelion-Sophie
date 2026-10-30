@@ -541,6 +541,17 @@ export function createDiscordTransport({ guildId, token, fetch, clock, enabled, 
       }
       return entries;
     },
+    /** Recent member role updates in the audit log: who changed whose roles, which were added and removed, and when. */
+    async getRoleUpdateAudit() {
+      requireCondition(recordForumId !== null, 'DISCORD_SCOPE_REFUSED');
+      const data = await request('GET', `/guilds/${guildId}/audit-logs?action_type=25&limit=50`, 'audit-log');
+      requireCondition(Array.isArray(data?.audit_log_entries) && data.audit_log_entries.length <= 50, 'DISCORD_RESPONSE_INVALID');
+      const ids = (changes, key) => (Array.isArray(changes) ? changes : []).filter(change => change?.key === key)
+        .flatMap(change => Array.isArray(change.new_value) ? change.new_value : []).map(role => role?.id).filter(id => /^[1-9][0-9]{16,19}$/u.test(id ?? ''));
+      return data.audit_log_entries.filter(item => /^[1-9][0-9]{16,19}$/u.test(item?.id ?? '') && /^[1-9][0-9]{16,19}$/u.test(item.user_id ?? ''))
+        .map(item => ({ byUserId: item.user_id, targetId: typeof item.target_id === 'string' ? item.target_id : null, added: ids(item.changes, '$add'),
+          removed: ids(item.changes, '$remove'), createdAtMs: Number((BigInt(item.id) >> 22n) + 1_420_070_400_000n) }));
+    },
     /** The server's channels and active threads with their parents, for the message store's channel map. */
     async getRecordChannelMap() {
       requireCondition(recordForumId !== null, 'DISCORD_SCOPE_REFUSED');

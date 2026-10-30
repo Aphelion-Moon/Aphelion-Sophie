@@ -9,6 +9,9 @@ const RENEW_AFTER_MS = 20_000;
 const DELETION_WAIT_MS = 15_000;
 // Entries kept in the post only, out of the ledger and the changelog, which they would flood.
 const QUIET_KINDS = ['message.deleted', 'message.edited'];
+// Entries posted a little after they happen, once the audit log has who did it.
+const WAIT_FOR_AUDIT = ['message.deleted', 'roles.changed'];
+const ROLE_NAMES_KEPT_MS = 600_000;
 const NOT_CREATED = ['RATE_LIMITED', 'DISCORD_TRANSPORT_DISABLED', 'DISCORD_BUSY', 'DISCORD_AUTHORIZATION_FAILED', 'DISCORD_SCOPE_REFUSED', 'INVALID_DISCORD_PAYLOAD'];
 const sha = value => createHash('sha256').update(typeof value === 'string' ? value : JSON.stringify(value)).digest('hex');
 const nonceOf = (...parts) => sha(parts.join(':')).slice(0, 24);
@@ -32,7 +35,7 @@ function applicationMessages(application) {
 export function createMemberRecordDispatcher({ store, transport: discord, botUserId, tagIds, protectedCategoryId, enabled, trace = () => {},
   wait = ms => new Promise(resolve => setTimeout(resolve, ms)), clock = Date.now }) {
   requireId(botUserId); requireId(protectedCategoryId); requireRecord(tagIds);
-  const methods = ['createMemberRecordThread', 'editMemberRecordThread', 'createMemberRecordMessage', 'editMemberRecordMessage', 'getChannel', 'getMemberRecordThreads', 'getApprovedJoinRequests', 'getMessageDeleteAudit'];
+  const methods = ['createMemberRecordThread', 'editMemberRecordThread', 'createMemberRecordMessage', 'editMemberRecordMessage', 'getChannel', 'getMemberRecordThreads', 'getApprovedJoinRequests', 'getMessageDeleteAudit', 'getRoleUpdateAudit', 'getRoles'];
   requireCondition(typeof enabled === 'function' && typeof trace === 'function' && typeof wait === 'function' && ['claim', 'progress', 'finish', 'retry', 'renew', 'ensureExclusions', 'excludedChannels'].every(key => typeof store?.[key] === 'function') &&
     methods.every(key => typeof discord?.[key] === 'function') && discord.guildId === store.guildId, 'TRUSTED_ADAPTERS_REQUIRED');
   for (const name of records.TAGS) requireId(tagIds[name]);
@@ -101,11 +104,33 @@ export function createMemberRecordDispatcher({ store, transport: discord, botUse
     return found ? { userId: found.byUserId } : 'author';
   }
 
+  /** The server's role names and positions, read at most every ten minutes. */
+  let roleCache = null;
+  async function roleNames() {
+    if (roleCache === null || clock() - roleCache.at > ROLE_NAMES_KEPT_MS) {
+      const roles = await transport.getRoles();
+      requireCondition(Array.isArray(roles) && roles.length <= 500, 'DISCORD_RESPONSE_INVALID');
+      roleCache = { at: clock(), names: Object.fromEntries(roles.filter(role => typeof role?.id === 'string' && typeof role.name === 'string').map(role => [role.id, role.name])),
+        positions: Object.fromEntries(roles.filter(role => typeof role?.id === 'string').map(role => [role.id, Number(role.position) || 0])) };
+    }
+    return roleCache;
+  }
+
+  /** Who changed a member's roles, from the audit log: the entry for this member, close in time, naming one of these roles. */
+  function changedBy(event, userId, audit) {
+    if (audit === null) return 'unknown';
+    // An added role matches an entry that added it, a removed one an entry that removed it.
+    const matches = entry => (event.added ?? []).some(id => entry.added.includes(id)) || (event.removed ?? []).some(id => entry.removed.includes(id));
+    const found = audit.filter(entry => entry.targetId === userId && Math.abs(entry.createdAtMs - event.atMs) <= 120_000 && matches(entry))
+      .sort((a, b) => Math.abs(a.createdAtMs - event.atMs) - Math.abs(b.createdAtMs - event.atMs))[0];
+    return found ? { userId: found.byUserId } : 'none';
+  }
+
   async function converge(job) {
     const { lease, record } = job, { userId, profile } = record;
     const events = job.events.map(event => ({ ...event }));
     // A deletion is entered a little after it happens, once the audit log has it.
-    const fresh = events.filter(event => event.kind === 'message.deleted' && !event.messageId && clock() - event.atMs < DELETION_WAIT_MS);
+    const fresh = events.filter(event => WAIT_FOR_AUDIT.includes(event.kind) && !event.messageId && clock() - event.atMs < DELETION_WAIT_MS);
     if (fresh.length) {
       const error = new Error('MEMBER_RECORD_DEFERRED'); error.code = 'MEMBER_RECORD_DEFERRED';
       error.retryAfterMs = Math.max(1_000, DELETION_WAIT_MS - (clock() - Math.min(...fresh.map(event => event.atMs)))); throw error;
@@ -136,9 +161,14 @@ export function createMemberRecordDispatcher({ store, transport: discord, botUse
     }
     const facts = application?.status === 'found' ? records.applicationFacts(application.answers, application.approvedAtMs) : null;
     const mutes = job.mutes;
+    // The member's roles by name, highest first, once the record holds their role IDs.
+    const roleList = Array.isArray(profile.roleIds) && profile.present ? await (async () => {
+      const { names, positions } = await roleNames();
+      return profile.roleIds.filter(id => names[id]).sort((a, b) => (positions[b] ?? 0) - (positions[a] ?? 0)).map(id => names[id]);
+    })() : undefined;
     const header = records.renderHeader({ userId, username: profile.username, displayName: profile.displayName, present: profile.present, roles: profile.roles,
       joinedAtMs: profile.joinedAtMs ?? null, joinCount: profile.joinCount ?? null, lastLeftAtMs: profile.lastLeftAtMs ?? null, shuttle: job.shuttle, mutes,
-      application: facts, earlierNames: profile.earlierNames ?? [], note: profile.note ?? null, updatedAtMs: record.updatedAtMs });
+      application: facts, earlierNames: profile.earlierNames ?? [], note: profile.note ?? null, updatedAtMs: record.updatedAtMs, roleNames: roleList });
     const appMessages = applicationMessages(application);
     const title = records.recordTitle({ userId, username: profile.username, displayName: profile.displayName });
 
@@ -223,14 +253,19 @@ export function createMemberRecordDispatcher({ store, transport: discord, botUse
         await store.progress(lease, { entries: Object.fromEntries(applicationEvents.map(event => [event.eventId, messages.application])) });
       }
       // Each new entry, oldest first; a replaced application's entry is followed by the earlier application.
-      let audit;
+      let audit, roleAudit;
       for (const event of pendingEntries) {
+        if (event.kind === 'roles.changed' && roleAudit === undefined) {
+          try { roleAudit = await transport.getRoleUpdateAudit(); }
+          catch (error) { if (error?.code !== 'DISCORD_AUTHORIZATION_FAILED') throw error; roleAudit = null; }
+        }
         if (event.kind === 'message.deleted' && audit === undefined) {
           try { audit = await transport.getMessageDeleteAudit(); }
           catch (error) { if (error?.code !== 'DISCORD_AUTHORIZATION_FAILED') throw error; audit = null; }
         }
         const context = event.kind === 'left' && Array.isArray(event.detail.recent) ? { guildId, recent: await linkable(event.detail.recent) }
-          : event.kind === 'message.deleted' ? { guildId, deletedBy: await deletedBy(entryOf(event), userId, audit) } : { guildId };
+          : event.kind === 'message.deleted' ? { guildId, deletedBy: await deletedBy(entryOf(event), userId, audit) }
+          : event.kind === 'roles.changed' ? { guildId, roleNames: (await roleNames()).names, changedBy: changedBy(entryOf(event), userId, roleAudit) } : { guildId };
         const [first, ...rest] = records.entryParts(entryOf(event), context);
         event.messageId = await post(threadId, `entry.${event.eventId}`, first);
         for (const [index, text] of rest.entries()) await post(threadId, `entry.${event.eventId}.${index + 2}`, text);

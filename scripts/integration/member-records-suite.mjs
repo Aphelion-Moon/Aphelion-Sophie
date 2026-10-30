@@ -17,7 +17,7 @@ import { resetCoreState, resetTables } from '../../tests/fixtures/reset.js';
 const FORUM = '100000000000000601', CHANGELOG = '100000000000000602', THIRD = '100000000000000603', FOURTH = '100000000000000604';
 const TAG_IDS = { 'In server': '100000000000000611', Left: '100000000000000612', Whitelisted: '100000000000000613', Muzzled: '100000000000000614',
   Staff: '100000000000000615', Watch: '100000000000000616' };
-const REQUEST = '100000000000000621', APPROVER = '100000000000000622';
+const REQUEST = '100000000000000621', APPROVER = '100000000000000622', EVENT_HOST = '100000000000000640';
 // Ordinary channels for a leaver's message links: a public one, a ticket channel in the protected category, a thread in a
 // ticket channel, and one of Sophie's excluded case channels.
 const PROTECTED = '100000000000000631', GENERAL = '100000000000000632', TICKET = '100000000000000633', TICKET_THREAD = '100000000000000634', CASE = '100000000000000635';
@@ -75,7 +75,10 @@ function simulatedForum() {
     },
     members: [],
     async getMemberRecordMembers({ after }) { calls.push(['members']); return structuredClone(transport.members.filter(member => BigInt(member.userId) > BigInt(after))); },
-    audit: [],
+    audit: [], roleAudit: [],
+    async getRoleUpdateAudit() { calls.push(['role-audit']); return structuredClone(transport.roleAudit); },
+    async getRoles() { calls.push(['roles']); return [{ id: CREW, name: 'Crew', position: 1 }, { id: WHITELIST, name: 'Whitelisted', position: 2 },
+      { id: MUZZLED, name: 'Muzzled', position: 3 }, { id: STAFF, name: 'Staff', position: 5 }, { id: EVENT_HOST, name: 'Event Host', position: 4 }]; },
     async getMessageDeleteAudit() { calls.push(['audit']); return structuredClone(transport.audit); },
     async getRecordChannelMap() { calls.push(['channel-map']); return [...CHANNELS].map(([channelId, parentId]) => ({ channelId, parentId: parentId || null, deleted: false })); },
     async getRecordUser(userId) { calls.push(['user', userId]); return { username: `user${userId.slice(-3)}`, globalName: null, bot: false }; },
@@ -424,5 +427,31 @@ export async function runMemberRecordsSuite(cluster, run) {
     // The synthetic IDs date from 2015: past 30 days and past a year, so text and authors are cleared, and rows stay.
     assert.deepEqual(await store.expireMessages(), { textCleared: 2, authorsCleared: 4 });
     assert.ok((await rows('member_messages')).every(row => row.content === null && row.author_id === null && row.channel_id === null));
+  });
+
+  await scenario('MRS-12 role changes are entries naming the roles and who changed them; the header lists the roles', async () => {
+    await join(USER, 'vexthecat', [CREW]); await drain();
+    const post = forum.posts()[0][1];
+    assert.ok(post.messages[0].content.includes('**Roles:** Crew'));
+    forum.transport.roleAudit = [{ byUserId: OTHER, targetId: USER, added: [STAFF, EVENT_HOST], removed: [], createdAtMs: now + 1_000 }];
+    now += 1_000; await update(USER, 'vexthecat', [CREW, STAFF, EVENT_HOST]);
+    assert.deepEqual((await drain()).map(result => result.status), ['deferred'], 'waits for the audit log');
+    now += 20_000; await due(); await drain();
+    assert.equal(post.messages.at(-1).content.split(' · ')[0], '**Roles changed**');
+    assert.ok(post.messages.at(-1).content.endsWith(`by <@${OTHER}> (audit log)\nAdded: Staff, Event Host`), post.messages.at(-1).content);
+    assert.ok(post.messages[0].content.includes('**Roles:** Staff, Event Host, Crew'), 'highest first');
+    assert.ok(post.messages[1].content.includes('Roles changed') && forum.changelog().at(-1).includes('**Roles changed**'));
+    // No audit entry: said so. Whitelist and Muzzled keep their own entries, not a second one here.
+    now += 1_000; await update(USER, 'vexthecat', [CREW, STAFF, WHITELIST]);
+    now += 20_000; await due(); await drain();
+    const [removedEntry, whitelistEntry] = post.messages.slice(-2).map(message => message.content);
+    assert.ok(removedEntry.includes('who changed them is not in the audit log\nRemoved: Event Host') || whitelistEntry.includes('who changed them is not in the audit log\nRemoved: Event Host'));
+    assert.equal(post.messages.filter(message => message.content.startsWith('**Roles changed**')).length, 2);
+    assert.ok(post.messages.some(message => message.content.startsWith('**Whitelist given**')));
+    // A record from before role IDs were kept takes them silently.
+    await admin.query("UPDATE sophie_core.member_records SET profile = profile - 'roleIds'");
+    now += 1_000; await update(USER, 'vexthecat', [CREW, STAFF, WHITELIST, EVENT_HOST]);
+    assert.equal((await rows('member_record_events')).filter(event => event.kind === 'roles.changed').length, 2, 'no entry for the first role IDs');
+    assert.deepEqual((await rows('member_records'))[0].profile.roleIds, [STAFF, CREW, WHITELIST, EVENT_HOST].sort());
   });
 }
