@@ -1,5 +1,20 @@
 # Verification and release limits
 
+## Production install of e881f29 (member records: fixes, /member watch, people who have left) — 30 October 2026
+
+- **Install (15:37 UTC; owner: "Commit and install, yes."):** `prepare.mjs` passed against the installed d8efd40 (15
+  reviewed files, 2 new; only migration 081, a check constraint; runtime unchanged). Migration 081 applied (81
+  migrations); pre-start, service boundary, installed and public checks passed. `register-commands.mjs`: the main server
+  now has /lookup, /member (watch), /sophie and /whitelist (post, progress).
+- **Departed backfill (15:40 UTC):** `backfill.mjs --departed`: 10 people not in the server (8 approved applicants, 2
+  from Sophie's records), all accounts found, 10 records opened as Left.
+- **Since the restart:** no `MEMBER_RECORD_RETRY` traces; the main backfill continued (313 of 488 delivered at 15:40 UTC).
+  The changelog post was pinned at 15:26 UTC once the owner gave Sophie Manage Threads on the forum.
+- **Offline:** `npm test` 925 passed (new MR-24, MR-25; command-set tests now include /member); `npm run check` passed;
+  `test:storage:fast` 1051 passed, 0 failed (new MRS-07). On a synthetic cluster 081 applied, the packet's revert removed
+  Watch entries and restored 080's check (80 migrations), and 081 applied again.
+- **Not covered:** /member watch run by a real Staff member; the Watch tag applied on a real post.
+
 ## Production install of d8efd40 (member records, P56) — 30 October 2026
 
 - **Install (15:02 UTC; owner approval quoted in `approval.json`: "deal with P56, then install and publish"):**

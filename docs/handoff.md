@@ -7,9 +7,17 @@ policy is in [the owner decisions](decisions/0001-owner-policy.md), remaining wo
 for the next session: where the Shuttle Activity work stands, what is left before it opens, and how to work on it.
 Where it disagrees with those records, they win.
 
-## Newest: member records installed (30 October 2026, 15:02 UTC)
+## Newest: e881f29 (30 October 2026, 15:37 UTC)
 
-Production runs **`d8efd40` (schema 080)**. Core keeps the member records itself; the section after this one describes
+Production runs **`e881f29` (schema 081)**, pushed to `origin/main`. On top of the d8efd40 notes below: the two fixes are
+installed; Staff and Lead Ops have **`/member watch member: on:`** (registered in the main server), which records an entry
+and sets or removes the Watch tag; people who have left have records too (`backfill.mjs --departed`, 10 opened). The
+changelog post is pinned (the owner gave Sophie Manage Threads on the forum). Packet:
+`.agent_docs/aphelion-sophie/deployment-e881f29-production-2026-10-30` (`register-commands.mjs --rollback` removes /member).
+
+## Member records installed (30 October 2026, 15:02 UTC)
+
+Production ran **`d8efd40` (schema 080)**. Core keeps the member records itself; the section after this one describes
 the state before the install and its "Next" list is done.
 
 - **What core does:** each record (`sophie_core.member_records`) holds what the post should show and what is delivered;

@@ -2800,3 +2800,13 @@ on 30 October ("New post for everyone"); the 22 Staff test-run posts are adopted
 above quoted in the packet's `approval.json`; every packet check passed. The backfill ran at 15:05 UTC (478 records, the 22
 Staff posts adopted). The fix `207a1d1` (retrying a request the delivery gate refused for a moment) is committed, not
 installed.
+
+**Watch, people who have left, and the second install (30 October 2026, afternoon).** Asked who may set Watch: "All staff
+can use the member watch command." `/member watch member: on:` uses the same Staff and Lead Ops check as `/whitelist
+progress`, so the capability policy does not change; each change is an entry naming who made it. Asked whether people who
+have left get records: "Logs should be kept on all members, including those who have left." Discord lists no former
+members, so these are the approved applicants and members Sophie's own records saw who are not in the server; they open as
+Left with no join or leave date. Asked to install the fixes and push: "Commit and install, yes." `e881f29` installed at
+15:37 UTC (migration 081) and pushed to origin main; 10 departed records opened at 15:40 UTC. The owner also gave Sophie
+Manage Threads on the forum, and the changelog post is now pinned. Untracked story and rules scripts were deleted on the
+owner's word ("You can dispose of those scripts").
