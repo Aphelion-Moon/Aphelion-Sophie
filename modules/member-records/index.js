@@ -569,10 +569,16 @@ export function entryText(event, context = {}) {
     case 'roles.changed': {
       // Role names as they are when the entry is posted (a mention of a role is never sent); a deleted role says so.
       const names = ids => ids.map(id => context.roleNames?.[id] ? literal(cleanLine(context.roleNames[id], 60)) : 'a deleted role').join(', ');
-      const by = context.changedBy?.userId ? `by <@${context.changedBy.userId}> (audit log)`
+      const actors = context.changedBy?.userIds ?? (context.changedBy?.userId ? [context.changedBy.userId] : []);
+      const by = actors.length ? `by ${actors.slice(0, 5).map(id => `<@${id}>`).join(', ')}${actors.length > 5 ? ` and ${actors.length - 5} more` : ''} (audit log)`
         : context.changedBy === 'none' ? 'who changed them is not in the audit log' : 'who changed them could not be checked';
-      return fit([`**Roles changed** · ${at}${event.noticed ? ' (found by Sophie\'s check; she was offline when it happened)' : ''} · ${by}`,
-        ...(event.added?.length ? [`Added: ${names(event.added)}`] : []), ...(event.removed?.length ? [`Removed: ${names(event.removed)}`] : [])]);
+      // Quick changes are one entry (see the store's ROLE_WINDOW_MS): the net result, and roles that came and went.
+      const span = (event.changes ?? 1) > 1 ? ` · ${event.changes} changes over ${formatDuration(Math.max(0, (event.lastAtMs ?? event.atMs) - event.atMs))}` : '';
+      const added = event.added ?? [], removed = event.removed ?? [];
+      const brief = (event.touched ?? []).filter(id => !added.includes(id) && !removed.includes(id));
+      return fit([`**Roles changed** · ${at}${event.noticed ? ' (found by Sophie\'s check; she was offline when it happened)' : ''}${span} · ${by}`,
+        ...(added.length ? [`Added: ${names(added)}`] : []), ...(removed.length ? [`Removed: ${names(removed)}`] : []),
+        ...(brief.length ? [`Added and removed again: ${names(brief)}`] : []), ...(!added.length && !removed.length && !brief.length ? ['-# No change in the end.'] : [])]);
     }
     default: throw new Error('MEMBER_RECORD_EVENT_UNKNOWN');
   }

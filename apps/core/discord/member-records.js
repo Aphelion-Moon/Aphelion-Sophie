@@ -1,6 +1,7 @@
 import { createHash } from 'node:crypto';
 import { requireCondition, requireId, requireName, requireRecord } from '../../../contracts/validation.js';
 import * as records from '../../../modules/member-records/index.js';
+import { ROLE_WINDOW_MS } from '../storage/member-records.js';
 
 const QUIET = Object.freeze({ parse: [], users: [], roles: [], replied_user: false });
 const SUPPRESS_EMBEDS = 1 << 2;
@@ -9,8 +10,8 @@ const RENEW_AFTER_MS = 20_000;
 const DELETION_WAIT_MS = 15_000;
 // Entries kept in the post only, out of the ledger and the changelog, which they would flood.
 const QUIET_KINDS = ['message.deleted', 'message.edited'];
-// Entries posted a little after they happen, once the audit log has who did it.
-const WAIT_FOR_AUDIT = ['message.deleted', 'roles.changed'];
+// Role changes are posted once the member's roles have been quiet this long (see waitFor), within the store's window.
+const ROLE_QUIET_MS = 20_000;
 const ROLE_NAMES_KEPT_MS = 600_000;
 const NOT_CREATED = ['RATE_LIMITED', 'DISCORD_TRANSPORT_DISABLED', 'DISCORD_BUSY', 'DISCORD_AUTHORIZATION_FAILED', 'DISCORD_SCOPE_REFUSED', 'INVALID_DISCORD_PAYLOAD'];
 const sha = value => createHash('sha256').update(typeof value === 'string' ? value : JSON.stringify(value)).digest('hex');
@@ -116,24 +117,42 @@ export function createMemberRecordDispatcher({ store, transport: discord, botUse
     return roleCache;
   }
 
-  /** Who changed a member's roles, from the audit log: the entry for this member, close in time, naming one of these roles. */
+  /**
+   * Who changed a member's roles, from the audit log: every entry for this member within the change's time span (a minute
+   * either side) that added a role the change added or touched, or removed one it removed or touched. Several people
+   * are all named, first to act first.
+   */
   function changedBy(event, userId, audit) {
     if (audit === null) return 'unknown';
-    // An added role matches an entry that added it, a removed one an entry that removed it.
-    const matches = entry => (event.added ?? []).some(id => entry.added.includes(id)) || (event.removed ?? []).some(id => entry.removed.includes(id));
-    const found = audit.filter(entry => entry.targetId === userId && Math.abs(entry.createdAtMs - event.atMs) <= 120_000 && matches(entry))
-      .sort((a, b) => Math.abs(a.createdAtMs - event.atMs) - Math.abs(b.createdAtMs - event.atMs))[0];
-    return found ? { userId: found.byUserId } : 'none';
+    // A role that came and went matches either direction; a net addition or removal only its own.
+    const brief = (event.touched ?? []).filter(id => !(event.added ?? []).includes(id) && !(event.removed ?? []).includes(id));
+    const added = [...(event.added ?? []), ...brief], removed = [...(event.removed ?? []), ...brief];
+    const matches = entry => added.some(id => entry.added.includes(id)) || removed.some(id => entry.removed.includes(id));
+    const last = event.lastAtMs ?? event.atMs;
+    const found = audit.filter(entry => entry.targetId === userId && entry.createdAtMs >= event.atMs - 60_000 && entry.createdAtMs <= last + 60_000 && matches(entry))
+      .sort((a, b) => a.createdAtMs - b.createdAtMs);
+    const userIds = [...new Set(found.map(entry => entry.byUserId))];
+    return userIds.length ? { userId: userIds[0], userIds } : 'none';
+  }
+
+  /**
+   * How long an entry still waits before it is posted: a deletion 15 s, for the audit log; a role change until the member's
+   * roles have been quiet for 20 s, and never more than two minutes after the first change, so quick changes are one entry.
+   */
+  function waitFor(event) {
+    if (event.messageId) return 0;
+    if (event.kind === 'message.deleted') return DELETION_WAIT_MS - (clock() - event.atMs);
+    if (event.kind === 'roles.changed') return Math.min(ROLE_QUIET_MS - (clock() - (event.detail?.lastAtMs ?? event.atMs)), ROLE_WINDOW_MS - (clock() - event.atMs));
+    return 0;
   }
 
   async function converge(job) {
     const { lease, record } = job, { userId, profile } = record;
     const events = job.events.map(event => ({ ...event }));
-    // A deletion is entered a little after it happens, once the audit log has it.
-    const fresh = events.filter(event => WAIT_FOR_AUDIT.includes(event.kind) && !event.messageId && clock() - event.atMs < DELETION_WAIT_MS);
-    if (fresh.length) {
+    const waits = events.map(waitFor).filter(ms => ms > 0);
+    if (waits.length) {
       const error = new Error('MEMBER_RECORD_DEFERRED'); error.code = 'MEMBER_RECORD_DEFERRED';
-      error.retryAfterMs = Math.max(1_000, DELETION_WAIT_MS - (clock() - Math.min(...fresh.map(event => event.atMs)))); throw error;
+      error.retryAfterMs = Math.max(1_000, Math.min(...waits)); throw error;
     }
     const messages = { ...record.messages }, delivered = { ...record.delivered };
     let renewedAt = Date.now();

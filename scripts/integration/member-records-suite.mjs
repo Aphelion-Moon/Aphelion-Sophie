@@ -454,4 +454,45 @@ export async function runMemberRecordsSuite(cluster, run) {
     assert.equal((await rows('member_record_events')).filter(event => event.kind === 'roles.changed').length, 2, 'no entry for the first role IDs');
     assert.deepEqual((await rows('member_records'))[0].profile.roleIds, [STAFF, CREW, WHITELIST, EVENT_HOST].sort());
   });
+
+  await scenario('MRS-13 quick role changes are one entry with the net result; work the regular check finds waits behind live work', async () => {
+    // As seen in production on 30 October 2026: a role picker gave a new member roles one at a time, seconds apart.
+    await join(USER, 'seebooo', [CREW]); await drain();
+    const post = forum.posts()[0][1], entriesBefore = post.messages.length, changelogBefore = forum.changelog().length;
+    const picker = '100000000000000650', R = n => `1000000000000006${60 + n}`;
+    const steps = [[CREW, R(1)], [CREW, R(1), R(2)], [CREW, R(1), R(2), R(3)], [CREW, R(1), R(2), R(3), R(4)], [CREW, R(1), R(2), R(4)], [CREW, R(1), R(2), R(4), R(5)]];
+    forum.transport.roleAudit = [];
+    for (const roles of steps) {
+      now += 3_000;
+      const previous = forum.transport.roleAudit.length ? steps[forum.transport.roleAudit.length - 1] : [CREW];
+      forum.transport.roleAudit.push({ byUserId: picker, targetId: USER, added: roles.filter(id => !previous.includes(id)), removed: previous.filter(id => !roles.includes(id)), createdAtMs: now });
+      await update(USER, 'seebooo', roles);
+      assert.deepEqual((await drain()).map(result => result.status), ['deferred'], 'still changing: waits');
+    }
+    assert.equal((await rows('member_record_events')).filter(event => event.kind === 'roles.changed').length, 1, 'one entry gathers them');
+    now += 21_000; await due(); await drain();
+    assert.equal(post.messages.length, entriesBefore + 1, 'one entry posted');
+    const entry = post.messages.at(-1).content;
+    assert.ok(entry.startsWith('**Roles changed** · ') && entry.includes(' · 6 changes over 15s · ') && entry.includes(`by <@${picker}> (audit log)`), entry);
+    assert.ok(entry.includes('\nAdded: a deleted role, a deleted role, a deleted role, a deleted role\nAdded and removed again: a deleted role'), entry);
+    assert.equal(forum.changelog().length, changelogBefore + 1, 'one changelog line');
+    // Changes that never stop are posted two minutes after the first, and the next ones start a new entry.
+    for (let index = 0; index < 50; index += 1) {
+      now += 3_000; await update(USER, 'seebooo', index % 2 ? [CREW, R(1)] : [CREW, R(1), R(6)]);
+      const results = await drain();
+      if (results.some(result => result.status === 'settled')) break;
+    }
+    const roleEntries = (await rows('member_record_events')).filter(event => event.kind === 'roles.changed');
+    assert.ok(roleEntries.length >= 2 && roleEntries[1].message_id, 'posted within the two-minute cap');
+    assert.ok(Number(roleEntries[1].detail.lastAtMs) - Number(roleEntries[1].at_ms) <= 120_000);
+    // The regular check's own work (role IDs filled in, changes found later) does not jump ahead of live work.
+    await admin.query("UPDATE sophie_core.member_records SET profile = profile - 'roleIds'");
+    const reconciler = createMemberRecordReconciler({ store, transport: forum.transport, mapping, enabled: async () => true, clock: () => now });
+    forum.transport.members = [{ userId: USER, bot: false, username: 'seebooo', globalName: null, nick: null, roleIds: [CREW, R(1)], joinedAtMs: NOW }];
+    forum.approve([]); now += 600_000; await due(); await drain();
+    await reconciler.runDue('check');
+    assert.equal((await rows('member_records'))[0].background, true, 'filled in by the check: background');
+    now += 1_000; await join(THIRD, 'newcomer'); await drain();
+    assert.ok(forum.calls.filter(([kind]) => kind === 'thread').at(-1)[1].startsWith('newcomer'), 'the newcomer was served');
+  });
 }

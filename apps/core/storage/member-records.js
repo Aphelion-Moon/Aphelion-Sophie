@@ -31,9 +31,32 @@ async function insertEvents(client, guildId, userId, events) {
 }
 
 /** Raises the wanted revision so the dispatcher takes the record up again; live work goes ahead of the backfill. */
-async function touch(client, guildId, userId, profile, atMs) {
+async function touch(client, guildId, userId, profile, atMs, { background = false } = {}) {
+  // Work Sophie's regular check finds waits behind live work, unless the record already has live work waiting (seen in
+  // production, 30 October 2026: the check's role fill-in put 478 records ahead of a member who had just joined).
   await client.query(`UPDATE sophie_core.member_records SET profile = COALESCE($3, profile), revision = revision + 1, updated_at_ms = $4,
-    background = false, due_at = LEAST(due_at, clock_timestamp()) WHERE guild_id = $1 AND user_id = $2`, [guildId, userId, profile, atMs]);
+    background = CASE WHEN $5 THEN background OR delivered_revision >= revision ELSE false END, due_at = LEAST(due_at, clock_timestamp())
+    WHERE guild_id = $1 AND user_id = $2`, [guildId, userId, profile, atMs, background]);
+}
+
+// Role changes for one member close together are one entry (owner, 30 October 2026, after a role picker gave a new member
+// nine roles in 32 seconds, each its own entry): a change joins the member's waiting role entry while it has not been
+// posted, its first change is under two minutes old, and the record is not being delivered at that moment.
+export const ROLE_WINDOW_MS = 120_000;
+
+/** Adds a role change to the member's waiting role entry; false when there is none to join. */
+async function mergeRoleChange(client, { guildId, userId, row, change, atMs, before, after, ignoreRoleIds }) {
+  if (row.lease_until instanceof Date && row.lease_until.getTime() > Date.now()) return false;
+  const open = (await client.query(`SELECT event_id, detail FROM sophie_core.member_record_events WHERE guild_id = $1 AND user_id = $2
+    AND kind = 'roles.changed' AND message_id IS NULL AND at_ms > $3 ORDER BY at_ms DESC LIMIT 1 FOR UPDATE`, [guildId, userId, atMs - ROLE_WINDOW_MS])).rows[0];
+  if (!open) return false;
+  const first = Array.isArray(open.detail.before) ? open.detail.before : before;
+  const counted = id => !ignoreRoleIds.includes(id);
+  const touched = [...new Set([...(open.detail.touched ?? [...(open.detail.added ?? []), ...(open.detail.removed ?? [])]), ...change.added, ...change.removed])].sort();
+  const detail = { ...open.detail, before: first, after, added: after.filter(id => !first.includes(id) && counted(id)), removed: first.filter(id => !after.includes(id) && counted(id)),
+    touched, changes: (open.detail.changes ?? 1) + 1, lastAtMs: atMs };
+  await client.query('UPDATE sophie_core.member_record_events SET detail = $4 WHERE guild_id = $1 AND user_id = $2 AND event_id = $3', [guildId, userId, open.event_id, detail]);
+  return true;
 }
 
 /** The member's role flags from Discord role IDs. */
@@ -72,9 +95,19 @@ async function applyObservation(client, { guildId, userId, row, observation, atM
   // A rejoin may come with a new application: look again.
   if (next.events.some(item => item.kind === 'joined')) await client.query(`UPDATE sophie_core.member_records
     SET application = CASE WHEN application IS NULL THEN NULL ELSE application || '{"recheck": true}'::jsonb END WHERE guild_id = $1 AND user_id = $2`, [guildId, userId]);
-  await insertEvents(client, guildId, userId, next.events.map(({ kind, ...detail }, index) => ({ eventId: eventId(`${index}`), kind, atMs,
-    detail: { ...detail, ...(noticed ? { noticed: true } : {}), ...(kind === 'left' ? { recent: row.recent_messages ?? [] } : {}) } })));
-  if (next.changed || next.events.length) await touch(client, guildId, userId, next.profile, atMs);
+  const ignoreRoleIds = [mapping.whitelist, mapping.muzzled, guildId];
+  const before = Array.isArray(row.profile.roleIds) ? row.profile.roleIds : [], after = next.profile.roleIds ?? [];
+  const fresh = [];
+  for (const [index, { kind, ...detail }] of next.events.entries()) {
+    if (kind === 'roles.changed') {
+      if (await mergeRoleChange(client, { guildId, userId, row, change: detail, atMs, before, after, ignoreRoleIds })) continue;
+      Object.assign(detail, { before, after, touched: [...new Set([...detail.added, ...detail.removed])].sort(), changes: 1, lastAtMs: atMs });
+    }
+    fresh.push({ eventId: eventId(`${index}`), kind, atMs,
+      detail: { ...detail, ...(noticed ? { noticed: true } : {}), ...(kind === 'left' ? { recent: row.recent_messages ?? [] } : {}) } });
+  }
+  await insertEvents(client, guildId, userId, fresh);
+  if (next.changed || next.events.length) await touch(client, guildId, userId, next.profile, atMs, { background: noticed });
   return next.events.length;
 }
 
@@ -173,7 +206,7 @@ export async function recordMemberRecordObservation(client, { guildId, mapping, 
   requireRecord(event); requireInteger(epoch, 0); requireInteger(sequence, 0); requireInteger(observedAt, 1);
   if (event.kind === 'member') {
     if (event.bot || event.userId === mapping.botUserId) return;
-    const row = (await client.query('SELECT profile, recent_messages FROM sophie_core.member_records WHERE guild_id = $1 AND user_id = $2 FOR UPDATE',
+    const row = (await client.query('SELECT profile, recent_messages, lease_until FROM sophie_core.member_records WHERE guild_id = $1 AND user_id = $2 FOR UPDATE',
       [guildId, event.userId])).rows[0];
     const roles = event.present ? memberRoleFlags(event.roleIds, mapping) : { ...NO_ROLES };
     const observation = { present: event.present, roles, roleIds: event.present ? event.roleIds.filter(id => id !== guildId) : [], username: event.username, globalName: event.globalName, nick: event.nick, joinedAtMs: event.joinedAtMs };
@@ -297,7 +330,7 @@ export function createMemberRecordStore({ pool, clock, guildId, forumId, changel
       const counts = { opened: 0, changed: 0, left: 0 };
       const eventId = userId => suffix => `r.${startedAtMs}.${userId}.${suffix}`;
       for (const [userId, member] of listed) await inTransaction(pool, async client => {
-        const row = (await client.query('SELECT profile, recent_messages, updated_at_ms FROM sophie_core.member_records WHERE guild_id = $1 AND user_id = $2 FOR UPDATE',
+        const row = (await client.query('SELECT profile, recent_messages, updated_at_ms, lease_until FROM sophie_core.member_records WHERE guild_id = $1 AND user_id = $2 FOR UPDATE',
           [guildId, userId])).rows[0];
         const observation = { present: true, roles: memberRoleFlags(member.roleIds, mapping), roleIds: member.roleIds.filter(id => id !== guildId), username: member.username, globalName: member.globalName,
           nick: member.nick, joinedAtMs: member.joinedAtMs };
@@ -315,7 +348,7 @@ export function createMemberRecordStore({ pool, clock, guildId, forumId, changel
         if (await applyObservation(client, { guildId, userId, row, observation, atMs: at, eventId: eventId(userId), noticed: true, mapping })) counts.changed += 1;
       });
       for (const userId of missing) await inTransaction(pool, async client => {
-        const row = (await client.query('SELECT profile, recent_messages, updated_at_ms FROM sophie_core.member_records WHERE guild_id = $1 AND user_id = $2 FOR UPDATE',
+        const row = (await client.query('SELECT profile, recent_messages, updated_at_ms, lease_until FROM sophie_core.member_records WHERE guild_id = $1 AND user_id = $2 FOR UPDATE',
           [guildId, userId])).rows[0];
         if (!row || Number(row.updated_at_ms) >= startedAtMs || row.profile.present !== true) return;
         if (await applyObservation(client, { guildId, userId, row, observation: { present: false, roles: {}, roleIds: [] }, atMs: at, eventId: eventId(userId), noticed: true, mapping })) counts.left += 1;
