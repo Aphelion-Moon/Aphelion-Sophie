@@ -67,7 +67,7 @@ function simulatedForum() {
       const thread = threads.get(channelId);
       return thread ? { id: channelId, parent_id: FORUM, applied_tags: [...thread.tags], thread_metadata: { archived: thread.archived } } : null;
     },
-    async getMemberRecordThreads() { return [...threads].filter(([key]) => key !== CHANGELOG).map(([key, thread]) => ({ id: key, name: thread.name, ownerId: thread.ownerId })); },
+    async getMemberRecordThreads() { calls.push(['search']); return [...threads].filter(([key]) => key !== CHANGELOG).map(([key, thread]) => ({ id: key, name: thread.name, ownerId: thread.ownerId })); },
     async getApprovedJoinRequests() { calls.push(['requests']); return structuredClone(approved); },
   };
   return { transport, threads, calls, fail: fault => { failNext = fault; }, approve: list => { approved = list; },
@@ -214,6 +214,15 @@ export async function runMemberRecordsSuite(cluster, run) {
     await due(); assert.deepEqual(await drain(), [], 'nothing is claimed while delivery is paused');
     await admin.query('UPDATE sophie_core.discord_backoff SET paused = false');
     await drain(); assert.match(post.messages.at(-1).content, /^\*\*Name changed\*\*/);
+    // A post creation Discord rate-limited made nothing: the record waits without counting a failure or searching later.
+    await join(THIRD, 'later');
+    forum.fail({ method: 'thread', code: 'RATE_LIMITED' });
+    assert.deepEqual((await drain()).map(result => [result.status, result.code]), [['retry', 'RATE_LIMITED']]);
+    const limitedJoin = (await rows('member_records')).find(row => row.user_id === THIRD);
+    assert.deepEqual([limitedJoin.create_started, limitedJoin.attempts, limitedJoin.thread_id], [false, 0, null]);
+    await due(); const searches = forum.calls.length; await drain();
+    assert.ok(!forum.calls.slice(searches).some(([kind]) => kind === 'search'), 'no search for a post that was never made');
+    assert.equal(forum.posts().length, 2);
     // A request the delivery gate refused never left: it is asked again in a moment, and the record still settles.
     forum.fail({ method: 'post', code: 'DISCORD_TRANSPORT_DISABLED' });
     now += 1_000; await update(USER, 'vexier', [CREW]);

@@ -6,6 +6,7 @@ const QUIET = Object.freeze({ parse: [], users: [], roles: [], replied_user: fal
 const SUPPRESS_EMBEDS = 1 << 2;
 const RESERVED_SLOTS = ['ledger', 'application', 'games', 'spare'];
 const RENEW_AFTER_MS = 20_000;
+const NOT_CREATED = ['RATE_LIMITED', 'DISCORD_TRANSPORT_DISABLED', 'DISCORD_BUSY', 'DISCORD_AUTHORIZATION_FAILED', 'DISCORD_SCOPE_REFUSED', 'INVALID_DISCORD_PAYLOAD'];
 const sha = value => createHash('sha256').update(typeof value === 'string' ? value : JSON.stringify(value)).digest('hex');
 const nonceOf = (...parts) => sha(parts.join(':')).slice(0, 24);
 
@@ -97,8 +98,15 @@ export function createMemberRecordDispatcher({ store, transport: discord, botUse
       if (threadId === null) {
         await store.progress(lease, { createStarted: true });
         const tags = records.recordTags({ present: profile.present, roles: profile.roles }).map(name => tagIds[name]);
-        const created = await transport.createMemberRecordThread({ name: title, auto_archive_duration: 1440, applied_tags: tags,
-          message: { content: header, allowed_mentions: { ...QUIET }, flags: SUPPRESS_EMBEDS } });
+        let created;
+        try {
+          created = await transport.createMemberRecordThread({ name: title, auto_archive_duration: 1440, applied_tags: tags,
+            message: { content: header, allowed_mentions: { ...QUIET }, flags: SUPPRESS_EMBEDS } });
+        } catch (error) {
+          // Refused before any post was made (a rate limit, the gate, a refusal): the next try need not look for one.
+          if (NOT_CREATED.includes(error?.code)) await store.progress(lease, { createStarted: false });
+          throw error;
+        }
         requireId(created?.id); threadId = created.id;
         Object.assign(delivered, { header: sha(header), title, tags: [...tags].sort().join(',') });
       }

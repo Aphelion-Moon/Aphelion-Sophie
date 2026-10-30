@@ -221,8 +221,9 @@ export function createMemberRecordStore({ pool, clock, guildId, forumId, changel
       return inTransaction(pool, async client => {
         const row = await leased(client, lease);
         if (createStarted !== undefined) {
-          requireCondition(createStarted === true, 'MEMBER_RECORD_PROGRESS_INVALID');
-          await client.query('UPDATE sophie_core.member_records SET create_started = true WHERE guild_id = $1 AND user_id = $2', [guildId, lease.userId]);
+          // False only when Discord certainly made no post (the creation was refused before it was made).
+          requireCondition(typeof createStarted === 'boolean' && (createStarted || row.thread_id === null), 'MEMBER_RECORD_PROGRESS_INVALID');
+          await client.query('UPDATE sophie_core.member_records SET create_started = $3 WHERE guild_id = $1 AND user_id = $2', [guildId, lease.userId, createStarted]);
         }
         if (threadId !== undefined) {
           requireId(threadId); requireCondition(row.thread_id === null || row.thread_id === threadId, 'MEMBER_RECORD_THREAD_CONFLICT');
@@ -261,13 +262,17 @@ export function createMemberRecordStore({ pool, clock, guildId, forumId, changel
         [guildId, lease.userId, revision, delivered]);
       });
     },
-    /** Tries again later: Discord's own wait when it gave one, else doubling from a second up to an hour. */
+    /**
+     * Tries again later: Discord's own wait when it gave one, else doubling from a second up to an hour. Waiting for a
+     * rate limit or the delivery gate is not a failed attempt, so it never counts toward the failing alert.
+     */
     async retry(lease, code, retryAfterMs = 0) {
       requireCondition(typeof code === 'string' && /^[A-Z0-9_]{1,64}$/u.test(code), 'MEMBER_RECORD_PROGRESS_INVALID');
       requireInteger(retryAfterMs, 0, 86_400_000);
       return inTransaction(pool, async client => {
         await leased(client, lease);
         await client.query(`UPDATE sophie_core.member_records SET lease_owner = NULL, lease_until = NULL, last_error_code = $3,
+          attempts = CASE WHEN $3 IN ('RATE_LIMITED', 'DISCORD_TRANSPORT_DISABLED', 'DISCORD_BUSY') THEN GREATEST(attempts - 1, 0) ELSE attempts END,
           due_at = clock_timestamp() + GREATEST($4::double precision, LEAST(3600000, power(2, LEAST(attempts, 12)) * 1000)) * interval '1 millisecond'
           WHERE guild_id = $1 AND user_id = $2`, [guildId, lease.userId, code, retryAfterMs]);
       });
