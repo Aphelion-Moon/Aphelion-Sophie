@@ -22,6 +22,7 @@ import { inTransaction } from './transaction.js';
 import { enqueue, finishClaim, lockClaim, validateClaim } from './outbox.js';
 import { readRunTiming } from './shuttle-timing.js';
 import { runTimingSummary } from '../../../modules/onboarding/timing.js';
+import { recordSophieWhitelist } from './member-records.js';
 
 async function queueReconciliation(client, member, sourceOperation, suffix = 'reconcile') {
   await enqueue(client, { kind: 'whitelist.reconcile', guildId: member.guildId, userId: member.userId,
@@ -47,8 +48,8 @@ async function queueMemberInspection(client, member, suffix = 'observed') {
  * these methods must never be bound directly to client-controlled JSON.
  * authorize is injected by the composition root and must check current capabilities.
  */
-export function createCoreStore({ pool, clock, authorize, authorizeRecorded = async () => false, resolveCaseResponder = async () => null, resolveCaseParticipant = async () => null, authorizeCaseParticipant = async () => false, casePolicy = null, caseVerification = null, onboardingMessageVerification = null, onboardingAlertVerification = null, whitelistNotices = false, whitelistReconciliation = true }) {
-  requireCondition(typeof whitelistNotices === 'boolean' && typeof whitelistReconciliation === 'boolean', 'TRUSTED_ADAPTERS_REQUIRED');
+export function createCoreStore({ pool, clock, authorize, authorizeRecorded = async () => false, resolveCaseResponder = async () => null, resolveCaseParticipant = async () => null, authorizeCaseParticipant = async () => false, casePolicy = null, caseVerification = null, onboardingMessageVerification = null, onboardingAlertVerification = null, whitelistNotices = false, whitelistReconciliation = true, memberRecords = false }) {
+  requireCondition(typeof whitelistNotices === 'boolean' && typeof whitelistReconciliation === 'boolean' && typeof memberRecords === 'boolean', 'TRUSTED_ADAPTERS_REQUIRED');
   // Production (Activity and AI only) runs no reconciliation and Sophie never removes Whitelist there, so it queues none: an
   // uncertain grant is settled by its own next attempt (owner's production install of 24 October 2026 found one such job
   // left behind, after the member's own update overtook the read confirming the add).
@@ -286,9 +287,12 @@ export function createCoreStore({ pool, clock, authorize, authorizeRecorded = as
           // else gave is not hers to announce.
           // It carries the Activity run's focused reading time (owner request, 25 October 2026); null for a channel Shuttle
           // or a run from before timing.
+          const timing = (whitelistNotices || memberRecords) && (confirm || job.dispatch_started) ? runTimingSummary(await readRunTiming(client, session.id), clock()) : null;
           if (whitelistNotices && (confirm || job.dispatch_started)) await enqueue(client, { kind: 'whitelist.notice',
-            operationId: `${claim.operationId}.notice`, guildId: member.guildId, userId: member.userId, sessionId: session.id,
-            timing: runTimingSummary(await readRunTiming(client, session.id), clock()) });
+            operationId: `${claim.operationId}.notice`, guildId: member.guildId, userId: member.userId, sessionId: session.id, timing });
+          // The same grant is an entry in the member's record (owner decisions, 30 October 2026).
+          if (memberRecords && (confirm || job.dispatch_started)) await recordSophieWhitelist(client, { guildId: member.guildId, userId: member.userId,
+            operationId: claim.operationId, atMs: clock(), timing });
           return { deliver: false, confirmed: true, session: complete };
         }
         // Revalidate the fence after lock waits and mark the possible external effect durably.

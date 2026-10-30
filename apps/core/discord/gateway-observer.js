@@ -107,6 +107,9 @@ export function createGatewayObserver({ journal, mapping, applicationId, clock, 
       }
       // Optional social work is isolated from the administrative event transaction.
       try { aiMessage = ai?.prepare(payload) ?? null; } catch { invalidateAi(); }
+      // Member records are kept apart too: a payload they cannot read is skipped, never a Gateway failure.
+      let memberRecord = null;
+      try { memberRecord = journal.prepareMemberRecord?.(payload) ?? null; } catch { memberRecord = null; }
       pending++;
       const work = tail.then(async () => {
         requireCondition(!failed && handle === connection, 'GATEWAY_PROCESSING_FAILED');
@@ -117,7 +120,7 @@ export function createGatewayObserver({ journal, mapping, applicationId, clock, 
           return { duplicate: false };
         }
         requireCondition(sessionId !== null, 'GATEWAY_STATE_CONFLICT');
-        return journal.dispatch(lease, { sessionId, ...projected, caseMessage, automationMessage });
+        return journal.dispatch(lease, { sessionId, ...projected, caseMessage, automationMessage, memberRecord });
       }).catch(async error => {
         if (!failed) failure ??= { event: payload.t, cause: failureCause(error) };
         failed = true; revision++; acknowledgedAt = null;

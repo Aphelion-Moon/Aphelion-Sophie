@@ -2777,3 +2777,21 @@ unreadable for 13; a game name found for 430. Each Staff post was refreshed in p
 transcribed application (14 of 22; the other 8 say none is on record), the header shows Born and the game names, the
 ledger links the application, and each post is archived again. Read-back verified, no problems. Only form responses, the
 reviewer and the review time are read; interviews and rejected or pending requests never are.
+
+**Changelog post and core integration (30 October 2026, afternoon).** The owner: "I want a changelog thread pinned in the
+forum where sophie outputs all of her updates, with links. After that, deal with P56, then install and publish." A
+host-only command opened the post "Sophie's changelog" in the forum (ID ending 7086, recorded in the working folder's
+`changelog-state.json`). Discord refused the pin (`50001`): pinning a forum post needs Manage Threads, which Sophie does not
+hold, so the owner pins it by hand or grants Manage Threads on the forum. Core then posts one line there for every
+automatic entry it makes in a member's post, with a link to the entry.
+
+Core keeps the records itself (migration 080). Each record holds what the post should show and what has been delivered;
+core brings one post up to date at a time, behind member-facing work, and a failed or uncertain step is continued rather
+than posted twice. The Gateway opens a record when a member joins and enters joins, leaves (with the Whitelist note), the
+Whitelist role given or removed by someone else, the Muzzled role given or removed, and name changes; Sophie's own
+Whitelist grant is entered at its confirmation with the reading time. A new member's approved application is read once
+from Discord. Staff discussion in the posts is copied into Sophie's database as created, edited and deleted. The forum, its
+posts and the changelog are permanent case exclusions and are refused by the AI context check before any lookup, so no
+AI path can reach them. Production's Discord allowance grows by exactly this: opening a post in that one forum and changing
+a post's name, tags or archived state. "Publish" is read as the backfill of every current member, which the owner asked for
+on 30 October ("New post for everyone"); the 22 Staff test-run posts are adopted, not opened again.

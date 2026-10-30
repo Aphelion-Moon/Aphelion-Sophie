@@ -7,6 +7,7 @@ import { validateDashboardAuth } from '../../../contracts/dashboard-auth.js';
 import { validateActivityConfiguration } from '../../../modules/onboarding/activity.js';
 import { validateTranscriptExportPolicy } from '../../../modules/tickets/transcript-export.js';
 import { RESPONDER_TYPES, responderRoles } from '../../../platform/authorization/case-responders.js';
+import { TAGS as MEMBER_RECORD_TAGS } from '../../../modules/member-records/index.js';
 
 /** Staging is an explicit deployment scope, never a switch that approves production. No secrets in this document. */
 /**
@@ -20,7 +21,7 @@ export function validateStagingRuntime(value) {
   const production = value?.environment === 'production';
   requireKeys(value, ['schemaVersion', 'environment', 'isolatedGuild', 'applicationId', 'publicKeyHex', 'mapping',
     'capabilityPolicy', 'casePolicy', 'limits', 'definitionId', 'captureEnabled', 'interactionPort', 'dashboardPort',
-    'dashboard', 'workerIntervalMs', 'exportPolicy', ...(production ? ['scope'] : []), ...['automationEnabled', 'activity', 'aiChannelExceptions', 'errorAlerts', 'whitelistNotices'].filter(key => Object.hasOwn(value, key))]);
+    'dashboard', 'workerIntervalMs', 'exportPolicy', ...(production ? ['scope'] : []), ...['automationEnabled', 'activity', 'aiChannelExceptions', 'errorAlerts', 'whitelistNotices', 'memberRecords'].filter(key => Object.hasOwn(value, key))]);
   requireCondition(value.schemaVersion === 1 && (value.environment === 'staging' && value.isolatedGuild === true ||
     production && value.isolatedGuild === false && value.scope === 'activity-ai'), 'ISOLATED_STAGING_REQUIRED');
   // Nothing that writes case records, captures messages, automates channels or exports cases runs in production.
@@ -42,6 +43,16 @@ export function validateStagingRuntime(value) {
   if (value.whitelistNotices !== undefined) {
     requireKeys(value.whitelistNotices, ['channelId'], 'STAGING_CONFIGURATION_INVALID'); requireId(value.whitelistNotices.channelId);
     requireCondition(![value.casePolicy?.categoryId, value.mapping?.guildId].includes(value.whitelistNotices.channelId), 'STAGING_CONFIGURATION_INVALID');
+  }
+  // The member records forum, its changelog post and its tags (owner decisions, 30 October 2026); never an AI context.
+  if (value.memberRecords !== undefined) {
+    const records = value.memberRecords;
+    requireKeys(records, ['forumId', 'changelogThreadId', 'tagIds'], 'STAGING_CONFIGURATION_INVALID');
+    requireId(records.forumId); requireId(records.changelogThreadId);
+    requireKeys(records.tagIds, [...MEMBER_RECORD_TAGS], 'STAGING_CONFIGURATION_INVALID'); Object.values(records.tagIds).forEach(requireId);
+    const ids = [records.forumId, records.changelogThreadId, ...Object.values(records.tagIds)];
+    requireCondition(new Set(ids).size === ids.length && ![value.casePolicy?.categoryId, value.mapping?.guildId].some(id => ids.includes(id)) &&
+      !(value.aiChannelExceptions ?? []).some(id => ids.includes(id)), 'STAGING_CONFIGURATION_INVALID');
   }
   requireId(value.applicationId); requireName(value.definitionId);
   requireCondition(typeof value.publicKeyHex === 'string' && /^[a-fA-F0-9]{64}$/.test(value.publicKeyHex), 'INTERACTION_VERIFIER_CONFIGURATION_INVALID');

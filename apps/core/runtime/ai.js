@@ -29,7 +29,9 @@ export function createAiRuntime({ configuration, corePool, controlPool, worker, 
   knowledge = withCodeSearch(knowledge, codeSearch, onFault);
   const transport = createDiscordTransport({ guildId: mapping.guildId, token, fetch, clock, enabled, scope: runtimeScope(configuration), ...(rateLimits ? { limits: rateLimits } : {}) });
   const observations = createAiObservations({ pool: corePool, transport, guildState, authorityStore: createActorAuthorityStore({ pool: corePool, clock }),
-    capabilityPolicy, mapping, protectedCategoryId: casePolicy.categoryId, aiChannelExceptions: configuration.aiChannelExceptions ?? [], observer, clock, trace: onFault });
+    capabilityPolicy, mapping, protectedCategoryId: casePolicy.categoryId, aiChannelExceptions: configuration.aiChannelExceptions ?? [], observer, clock, trace: onFault,
+    // The member records forum and every post in it are never an AI context (owner decisions, 30 October 2026).
+    excludedParentIds: configuration.memberRecords ? [configuration.memberRecords.forumId] : [] });
   const ingress = createAiIngress({ guildId: mapping.guildId, botUserId: mapping.botUserId, clock });
   let recovered = false;
   const admission = createAiAdmission({ pool: controlPool, guildId: mapping.guildId, ingress, ...observations, clock,

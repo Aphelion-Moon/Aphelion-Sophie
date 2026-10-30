@@ -8,7 +8,8 @@ import { aiDigest } from '../storage/ai-controls.js';
  * the Gateway is not current. The returned narrow adapters cannot expose case content or credentials.
  */
 export function createAiObservations({ pool, transport, guildState, authorityStore, capabilityPolicy, mapping, protectedCategoryId, observer, clock,
-  aiChannelExceptions = [], trace = () => {}, wait = ms => new Promise(resolve => setTimeout(resolve, ms)) }) {
+  aiChannelExceptions = [], excludedParentIds = [], trace = () => {}, wait = ms => new Promise(resolve => setTimeout(resolve, ms)) }) {
+  requireCondition(Array.isArray(excludedParentIds) && excludedParentIds.length <= 5 && excludedParentIds.every(id => typeof id === 'string' && /^[0-9]{1,20}$/u.test(id)), 'TRUSTED_ADAPTERS_REQUIRED');
   requireCondition(guildState && ['accept', 'ready', 'session', 'revision', 'guild', 'roles', 'channel', 'member', 'rememberMember', 'emoji', 'message'].every(name => typeof guildState[name] === 'function'), 'TRUSTED_ADAPTERS_REQUIRED');
   const members = new WeakMap();
   let generation = 0;
@@ -43,6 +44,8 @@ export function createAiObservations({ pool, transport, guildState, authoritySto
   async function excluded(channelId, parentId = null) {
     const excepted = aiChannelExceptions.includes(channelId) && parentId === protectedCategoryId;
     if (channelId === protectedCategoryId || parentId === protectedCategoryId && !excepted) return true;
+    // The member records forum and its posts (owner decisions, 30 October 2026), whatever the case exclusions say.
+    if (excludedParentIds.includes(channelId) || parentId !== null && excludedParentIds.includes(parentId)) return true;
     return (await pool.query('SELECT 1 FROM sophie_core.case_exclusions WHERE guild_id=$1 AND channel_id=ANY($2::text[]) LIMIT 1',
       [guildId, [channelId, ...(parentId && !excepted ? [parentId] : [])]])).rowCount > 0;
   }

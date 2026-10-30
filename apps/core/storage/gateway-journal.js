@@ -9,15 +9,21 @@ import { enqueue } from './outbox.js';
 import { recordCaseConversation } from './case-conversations.js';
 import { recordAiDeparture } from './ai-departures.js';
 import { recordCaseCaptureGap, closeCaseCaptureGap, markCaseCapturePermissions } from './case-capture-coverage.js';
+import { recordMemberRecordObservation, requireMemberRecordEvent } from './member-records.js';
 
 export const gatewayMappingHash = mapping => createHash('sha256').update(JSON.stringify([mapping.guildId,mapping.botUserId,mapping.crew,
   mapping.muzzled,mapping.whitelist,mapping.staff,mapping.leadOps,[...mapping.externallyOwnedRoleIds].sort()])).digest('hex');
 
 /** Ordered metadata/revocations and a separate optional core case-content sink share one cursor commit. */
 // leaseMs: how long Gateway ownership outlives its last renewal (30 s in every deployment; tests may shorten it).
-export function createGatewayJournal({ pool, mapping, clock, caseCapture = null, automation = null, leaseMs = 30_000, reconcileMembers = true }) {
+// memberRecords (optional): the member records ingress (apps/core/discord/member-record-ingress.js). Its writes run in a
+// savepoint of the cursor transaction, so a failure there is reported through onMemberRecordFault and never stops the Gateway.
+export function createGatewayJournal({ pool, mapping, clock, caseCapture = null, automation = null, leaseMs = 30_000, reconcileMembers = true,
+  memberRecords = null, onMemberRecordFault = () => {} }) {
   validateRoleMapping(mapping); requireCondition(typeof clock === 'function', 'TRUSTED_ADAPTERS_REQUIRED');
   requireInteger(leaseMs, 3_000, 300_000);
+  requireCondition(memberRecords === null || (memberRecords.guildId === mapping.guildId && typeof memberRecords.prepare === 'function' &&
+    typeof onMemberRecordFault === 'function'), 'TRUSTED_ADAPTERS_REQUIRED');
   requireCondition(caseCapture === null || (caseCapture.guildId === mapping.guildId &&
     ['prepare', 'inspect', 'content', 'discard'].every(key => typeof caseCapture[key] === 'function')), 'TRUSTED_ADAPTERS_REQUIRED');
   requireCondition(automation === null || (automation.guildId === mapping.guildId &&
@@ -59,9 +65,10 @@ export function createGatewayJournal({ pool, mapping, clock, caseCapture = null,
     }
   }
   return Object.freeze({
-    messageIntents: caseCapture === null && automation === null ? 0 : 33280,
+    messageIntents: caseCapture === null && automation === null && memberRecords === null ? 0 : 33280,
     prepareCaseMessage: payload => caseCapture?.prepare(payload) ?? null,
     prepareAutomationMessage: payload => automation?.prepare(payload) ?? null,
+    prepareMemberRecord: payload => memberRecords?.prepare(payload) ?? null,
     async acquire(owner) {
       requireName(owner);
       return inTransaction(pool, async client => {
@@ -160,10 +167,12 @@ export function createGatewayJournal({ pool, mapping, clock, caseCapture = null,
         await locked(client, lease);
       });
     },
-    async dispatch(lease, { sessionId, sequence, change, caseMessage = null, automationMessage = null }) {
+    async dispatch(lease, { sessionId, sequence, change, caseMessage = null, automationMessage = null, memberRecord = null }) {
       validateGatewaySession(sessionId); requireInteger(sequence); validateGatewayChange(change);
       requireCondition(caseMessage === null || caseCapture !== null, 'CASE_CAPTURE_DISABLED');
       requireCondition(automationMessage === null || automation !== null,'AUTOMATION_DISABLED');
+      requireCondition(memberRecord === null || memberRecords !== null, 'MEMBER_RECORDS_DISABLED');
+      if (memberRecord !== null) requireMemberRecordEvent(memberRecord);
       const normalized = structuredClone(change);
       if (normalized.kind === 'member') normalized.roleIds.sort();
       return inTransaction(pool, async client => {
@@ -180,6 +189,18 @@ export function createGatewayJournal({ pool, mapping, clock, caseCapture = null,
           epoch: Number(row.continuity_epoch), sequence });
         if (automationMessage !== null && row.status === 'current' && row.guild_available) await automation.record(client,
           {proof:automationMessage,epoch:Number(row.continuity_epoch),sequence});
+        if (memberRecord !== null) {
+          await client.query('SAVEPOINT member_record');
+          try {
+            await recordMemberRecordObservation(client, { guildId: fixed.guildId, mapping: fixed, event: memberRecord,
+              epoch: Number(row.continuity_epoch), sequence, observedAt });
+            await client.query('RELEASE SAVEPOINT member_record');
+          } catch (error) {
+            await client.query('ROLLBACK TO SAVEPOINT member_record');
+            try { onMemberRecordFault(typeof error?.code === 'string' && /^[A-Z0-9_]{1,64}$/u.test(error.code) ? error.code : 'MEMBER_RECORD_OBSERVATION_FAILED'); }
+            catch { /* Reporting never affects the Gateway. */ }
+          }
+        }
         let available = row.guild_available;
         if (normalized.kind === 'member') {
           const member = await lockMember(client, fixed.guildId, normalized.userId);

@@ -35,6 +35,7 @@ import { runCaseDeliverySuite } from './integration/case-delivery-suite.mjs';
 import { runGatewaySuite } from './integration/gateway-suite.mjs';
 import { runOnboardingEntrySuite } from './integration/onboarding-entry-suite.mjs';
 import { runShuttleActivitySuite } from './integration/shuttle-activity-suite.mjs';
+import { runMemberRecordsSuite } from './integration/member-records-suite.mjs';
 import { runOnboardingScreenSuite } from './integration/onboarding-screen-suite.mjs';
 import { runOnboardingNavigationSuite } from './integration/onboarding-navigation-suite.mjs';
 import { runOnboardingAssistanceSuite } from './integration/onboarding-assistance-suite.mjs';
@@ -83,7 +84,7 @@ if (from !== null && !/^run[A-Za-z]+Suite$/u.test(from)) throw new Error('UNKNOW
 const selectedSuites = { 'onboarding-staff': [runOnboardingAssistanceSuite, runOnboardingPauseSuite, runOnboardingDeliveryIssueSuite, runOnboardingArtifactRecoverySuite, runOnboardingChannelChoiceSuite, runOnboardingStaffSuite], members: [runMemberDeliverySuite], ai: [runAiControlsSuite,runAiEffectsSuite,runAiPreferencesSuite,runAiMemoriesSuite,runAiPrivacySuite,runGatewaySuite,runAiKnowledgeSuite], configuration:[(cluster,run)=>runPermissionEditorSuite(cluster,run,true)], 'onboarding-lifecycle': [runOnboardingChannelLifecycleSuite], 'system-wording': [runSystemWordingSuite], onboarding: [runOnboardingScreenSuite, runOnboardingPauseSuite, runOnboardingNavigationSuite, runOnboardingAlertSuite, runOnboardingArtifactRecoverySuite, runSystemWordingSuite], 'staging-upgrade': [runRecoverySuite, runStagingUpgradeSuite], permissions: [runPermissionEditorSuite, runAuthorizationSuite], 'shuttle-authoring': [runOnboardingAuthoringSuite, runOnboardingScreenSuite, runOnboardingPauseSuite], authorization: [runAuthorizationSuite], 'dashboard-auth': [runDashboardAuthSuite], 'automation-recovery': [runAutomationRecoverySuite], 'automation-delivery': [runAutomationDeliverySuite], 'automation-admission': [runAutomationAdmissionSuite,runGatewaySuite], automation: [runAutomationPoliciesSuite], answers: [runCuratedAnswersSuite], replies: [runCaseRepliesSuite], 'contact-navigation': [runCaseContactsSuite, runContactNavigationSuite], 'contact-entry': [runCaseContactsSuite, runContactEntrySuite], management: [runCaseLifecycleSuite, runCaseStaffSuite, runCaseParticipantsSuite, runCaseManagementSuite], labels: [runCaseStaffSuite, runCaseLabelsSuite], notes: [runCaseNotesSuite], controls: [runRecoveryControlsSuite], recovery: [runRecoverySuite], transcripts: [runCaseTranscriptsSuite], staging: [runStagingRuntimeSuite], exports: [runCaseTranscriptsSuite, runCaseExportsSuite],
   'attachment-operations': [runCaseAttachmentsSuite, runAttachmentOperationsSuite],
   intake: [runCaseIntakeSuite, runCaseIntakeDeliverySuite, runCaseDeliveryIssueSuite],
-  'direct-notices': [runCaseDirectNoticeSuite], forms: [runCaseFormAuthoringSuite], activity: [runShuttleActivitySuite] };
+  'direct-notices': [runCaseDirectNoticeSuite], forms: [runCaseFormAuthoringSuite], activity: [runShuttleActivitySuite], 'member-records': [runMemberRecordsSuite] };
 if (process.argv.slice(2).some(value => !['--keep-going', '--worker', '--order=reverse'].includes(value) && !value.startsWith('--from=') && !value.startsWith('--shard=') && !value.startsWith('--suite=')) ||
     process.argv.filter(value => value.startsWith('--suite=')).length > 1 || (selected !== null && !Object.hasOwn(selectedSuites, selected))) throw new Error('UNKNOWN_STORAGE_SUITE_ARGUMENT');
 const results = [], failedSuites = [];
@@ -133,7 +134,7 @@ try {
     }
   };
   const suites = [runAiKnowledgeSuite,runAiControlsSuite,runAiEffectsSuite,runAiPreferencesSuite,runAiMemoriesSuite,runAiPrivacySuite,runOnboardingChannelLifecycleSuite,runStagingUpgradeSuite,runPermissionEditorSuite,runAutomationRecoverySuite, runAutomationDeliverySuite, runAutomationAdmissionSuite, runAutomationPoliciesSuite, runCuratedAnswersSuite, runCaseRepliesSuite, runContactNavigationSuite, runContactEntrySuite, runCaseManagementSuite, runCaseLabelsSuite, runCaseNotesSuite, runRecoveryControlsSuite, runRecoverySuite, runDeliverySuite, runMemberDeliverySuite, runAuthorizationSuite, runCaseDeliverySuite, runGatewaySuite,
-    runOnboardingEntrySuite, runShuttleActivitySuite, runOnboardingScreenSuite, runOnboardingNavigationSuite, runOnboardingAssistanceSuite, runOnboardingPauseSuite,
+    runOnboardingEntrySuite, runShuttleActivitySuite, runMemberRecordsSuite, runOnboardingScreenSuite, runOnboardingNavigationSuite, runOnboardingAssistanceSuite, runOnboardingPauseSuite,
     runOnboardingAlertSuite, runOnboardingStaffSuite, runOnboardingDeliveryIssueSuite, runOnboardingArtifactRecoverySuite, runOnboardingChannelChoiceSuite,
     runCaseLifecycleSuite, runCaseStaffSuite, runCaseInspectionSuite, runDashboardAuthSuite, runOnboardingAuthoringSuite,
     runCaseIntakeSuite, runCaseIntakeDeliverySuite, runCaseDeliveryIssueSuite, runCaseDirectNoticeSuite, runCaseFormAuthoringSuite, runPlayerReportSuite,

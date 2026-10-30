@@ -27,6 +27,7 @@ import { createAdministrationLane } from './administration.js';
 import { createDiscordTransport, createDiscordRateLimits } from '../discord/transport.js';
 import { createDiscordRoles } from '../discord/roles.js';
 import { createCaseMessageCapture } from '../discord/case-message-capture.js';
+import { createMemberRecordIngress } from '../discord/member-record-ingress.js';
 import { createGatewayJournal } from '../storage/gateway-journal.js';
 import { createGatewayObserver } from '../discord/gateway-observer.js';
 import { createGatewaySupervisor } from '../discord/gateway-supervisor.js';
@@ -154,7 +155,9 @@ export async function createStagingRuntime({ configuration, pool, aiControlPool 
   const journal = createGatewayJournal({ pool, mapping: fixed.mapping, clock, leaseMs: gatewayLeaseMs, reconcileMembers: !limited,
     automation: fixed.automationEnabled === true ? createAutomationAdmission({guildId:fixed.mapping.guildId,protectedCategoryId:fixed.casePolicy.categoryId,
       channels:createAutomationChannels({transport}),ingress:createAutomationIngress({guildId:fixed.mapping.guildId,botUserId:fixed.mapping.botUserId,clock})}) : null,
-    caseCapture: fixed.captureEnabled ? createCaseMessageCapture({ guildId: fixed.mapping.guildId, clock }) : null });
+    caseCapture: fixed.captureEnabled ? createCaseMessageCapture({ guildId: fixed.mapping.guildId, clock }) : null,
+    // Member joins, leaves, role and name changes, and the Staff discussion in record posts (owner decisions, 30 October 2026).
+    memberRecords: fixed.memberRecords ? createMemberRecordIngress({ guildId: fixed.mapping.guildId }) : null, onMemberRecordFault: code => fault(code) });
   const observer = createGatewayObserver({ journal, mapping: fixed.mapping, applicationId: fixed.applicationId, clock, ai: aiGateway });
   // Every Discord request and authorization check asks this gate (two database reads), several at once within one member's
   // request; callers asking while a check is under way share its answer instead of each sending their own (Activity audit,
@@ -229,7 +232,8 @@ export async function createStagingRuntime({ configuration, pool, aiControlPool 
     const knowledge = aiKnowledgeAdmin === null && !knowledgeAdmin ? null : createAiKnowledgeHttp({ auth, authorization, knowledge: aiKnowledgeAdmin ?? knowledgeAdmin.editor, invalidate: () => aiRuntime?.invalidate() });
     const qualificationObservations = aiActivationPool === null || guildState === null ? null : createAiObservations({ pool, transport: browser.transport, guildState,
       authorityStore: createActorAuthorityStore({ pool, clock }), capabilityPolicy: fixed.capabilityPolicy, mapping: fixed.mapping,
-      protectedCategoryId: fixed.casePolicy.categoryId, aiChannelExceptions: fixed.aiChannelExceptions ?? [], observer, clock });
+      protectedCategoryId: fixed.casePolicy.categoryId, aiChannelExceptions: fixed.aiChannelExceptions ?? [], observer, clock,
+      excludedParentIds: fixed.memberRecords ? [fixed.memberRecords.forumId] : [] });
     const activation = qualificationObservations === null || aiApproval === null ? null : createAiActivation({ pool: aiActivationPool,
       guildId: fixed.mapping.guildId, authorize: authorization.authorize, inspectChannel: qualificationObservations.inspectChannel,
       approval: aiApproval, workerRelease: () => aiRuntime?.qualifiedRelease?.() ?? null, restoreCurrent: aiRestoreCurrent, clock,
@@ -318,6 +322,13 @@ export async function createStagingRuntime({ configuration, pool, aiControlPool 
         if (delivery.whitelistNotices && active()) {
           const noticed = await delivery.whitelistNotices.runOnce(owner);
           if (!['idle', 'disabled'].includes(noticed?.status)) trace(`WHITELIST_NOTICE_${String(noticed?.status).toUpperCase().replace(/[^A-Z]/g, '_').slice(0, 24)}`, { code: noticed?.code ?? null });
+        }
+        // Then one member record, behind the member-facing work (owner decisions, 30 October 2026). A record that keeps
+        // failing is reported once, at its fifth try; it goes on retrying, up to an hour apart.
+        if (delivery.memberRecords && active()) {
+          const recorded = await delivery.memberRecords.runOnce(owner);
+          if (!['idle', 'disabled', 'settled'].includes(recorded?.status)) trace(`MEMBER_RECORD_${String(recorded?.status).toUpperCase().replace(/[^A-Z]/g, '_').slice(0, 24)}`, { code: recorded?.code ?? null });
+          if (recorded?.status === 'retry' && recorded.attempts === 5) fault('MEMBER_RECORD_DELIVERY_FAILING', { code: recorded.code });
         }
         return;
       }

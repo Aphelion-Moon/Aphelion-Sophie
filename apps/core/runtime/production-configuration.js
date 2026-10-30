@@ -9,12 +9,13 @@ import { validateStagingRuntime } from './configuration.js';
  * controls; `activityTesterRoles` (optional) adds roles to the tester gate (owner decision, 24 October 2026: Staff), and
  * `activityStatus` (optional, 'testing' by default) set to 'open' admits every eligible member. `errorAlerts` (optional,
  * { channelId, roleName }) posts Sophie's errors to a channel and pings that role. `whitelistNotices` (optional, { channelId }) says
- * there each time Sophie's grant of Whitelist is confirmed (owner request, 24 October 2026: the staff bot channel). Mute, case and form grants are present only because the policy contract requires them; no route or command
+ * there each time Sophie's grant of Whitelist is confirmed (owner request, 24 October 2026: the staff bot channel). `memberRecords`
+ * (optional, { forumId, changelogThreadId, tagIds }) keeps a post per member in a Staff forum (owner decisions, 30 October 2026). Mute, case and form grants are present only because the policy contract requires them; no route or command
  * can use them in this scope.
  */
 export function productionConfiguration(input) {
   requireKeys(input, ['guildId', 'applicationId', 'publicKeyHex', 'botUserId', 'roles', 'protectedCategoryId', 'dashboardOrigin', 'activityOrigin',
-    'interactionPort', 'dashboardPort', 'activityPort', ...['aiChannelExceptions', 'activityTesterRoles', 'activityStatus', 'errorAlerts', 'whitelistNotices'].filter(key => Object.hasOwn(input ?? {}, key))]);
+    'interactionPort', 'dashboardPort', 'activityPort', ...['aiChannelExceptions', 'activityTesterRoles', 'activityStatus', 'errorAlerts', 'whitelistNotices', 'memberRecords'].filter(key => Object.hasOwn(input ?? {}, key))]);
   requireKeys(input.roles, ['crew', 'muzzled', 'whitelist', 'staff', 'leadOps'], 'INVALID_ROLE_OWNERSHIP');
   for (const id of [input.guildId, input.applicationId, input.botUserId, input.protectedCategoryId, ...Object.values(input.roles)]) requireId(id);
   requireCondition(new Set(Object.values(input.roles)).size === 5 && !Object.values(input.roles).includes(input.guildId), 'INVALID_ROLE_OWNERSHIP');
@@ -42,7 +43,10 @@ export function productionConfiguration(input) {
     // Sophie's errors to a channel, pinging a role (owner request, 24 October 2026).
     ...(input.errorAlerts ? { errorAlerts: { channelId: input.errorAlerts.channelId, roleName: input.errorAlerts.roleName } } : {}),
     // A line in a staff channel for each Whitelist Sophie gives (owner request, 24 October 2026).
-    ...(input.whitelistNotices ? { whitelistNotices: { channelId: input.whitelistNotices.channelId } } : {}) };
+    ...(input.whitelistNotices ? { whitelistNotices: { channelId: input.whitelistNotices.channelId } } : {}),
+    // The member records forum, with its changelog post and tags (owner decisions, 30 October 2026).
+    ...(input.memberRecords ? { memberRecords: { forumId: input.memberRecords.forumId, changelogThreadId: input.memberRecords.changelogThreadId,
+      tagIds: { ...input.memberRecords.tagIds } } } : {}) };
   validateStagingRuntime(configuration);
   return configuration;
 }

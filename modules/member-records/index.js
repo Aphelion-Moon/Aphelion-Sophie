@@ -114,6 +114,68 @@ export function recordTags({ present, roles, watch = false }) {
 }
 
 // ---------------------------------------------------------------------------------------------------------------------
+// Following the member.
+
+const ROLE_KEYS = ['crew', 'whitelist', 'muzzled', 'staff', 'leadOps'];
+const EARLIER_NAMES_KEPT = 20;
+
+/** How the member is named in a name-change entry: `Display (@username)`, or `@username`. */
+function shownName(username, displayName) {
+  const user = cleanLine(username, 40) || 'unknown', shown = cleanLine(displayName, 60);
+  return shown && shown.toLowerCase() !== user.toLowerCase() ? `${shown} (@${user})` : `@${user}`;
+}
+
+/**
+ * What a Gateway member change means for a record: the next profile, the entries it adds, and whether anything the post
+ * shows changed. A join (from not present) counts the join when the count is known; a leave clears the roles. Role changes
+ * while the member stays become entries: Whitelist given or removed (Sophie's own grant is entered by its confirmation,
+ * so `whitelistBySophie` skips it here), Muzzled or not. A new username or display name becomes an entry and the old
+ * one is kept in the earlier names. A leave carries no names, so none are compared.
+ * @param {object} profile the record's profile
+ * @param {{ present: boolean, roles: object, username?: string|null, globalName?: string|null, nick?: string|null, joinedAtMs?: number|null }} observation
+ * @param {number} atMs when Sophie saw it
+ * @returns {{ profile: object, events: object[], changed: boolean }}
+ */
+export function observeMember(profile, observation, atMs, { whitelistBySophie = false } = {}) {
+  requireCondition(Number.isSafeInteger(atMs) && atMs > 0, 'INVALID_TIME');
+  const next = structuredClone(profile), events = [];
+  const before = { ...Object.fromEntries(ROLE_KEYS.map(key => [key, false])), ...(profile.roles ?? {}) };
+  const roles = Object.fromEntries(ROLE_KEYS.map(key => [key, observation.present && observation.roles?.[key] === true]));
+  const joined = !profile.present && observation.present;
+  if (joined) {
+    next.present = true;
+    next.joinCount = Number.isSafeInteger(profile.joinCount) ? profile.joinCount + 1 : null;
+    if (Number.isSafeInteger(observation.joinedAtMs) && observation.joinedAtMs > 0) next.joinedAtMs = observation.joinedAtMs;
+    events.push({ kind: 'joined', joinCount: next.joinCount });
+  } else if (profile.present && !observation.present) {
+    next.present = false; next.lastLeftAtMs = atMs;
+    events.push({ kind: 'left', hadWhitelist: before.whitelist });
+  }
+  next.roles = roles;
+  if (observation.present) {
+    // On a join every role it arrives with is new; while staying, only a change is.
+    const was = joined ? Object.fromEntries(ROLE_KEYS.map(key => [key, false])) : before;
+    if (!was.whitelist && roles.whitelist && !whitelistBySophie) events.push({ kind: 'whitelist.granted', bySophie: false });
+    if (was.whitelist && !roles.whitelist) events.push({ kind: 'whitelist.lost' });
+    if (!was.muzzled && roles.muzzled) events.push({ kind: 'muzzled', by: null });
+    if (was.muzzled && !roles.muzzled && !joined) events.push({ kind: 'unmuzzled', by: null });
+    if (observation.username !== undefined) {
+      const username = observation.username ?? profile.username ?? null;
+      const displayName = observation.nick ?? observation.globalName ?? null;
+      const from = shownName(profile.username, profile.displayName), to = shownName(username, displayName);
+      if (from !== to) {
+        events.push({ kind: 'name.changed', from, to });
+        const earlier = [...(profile.earlierNames ?? [])];
+        for (const name of [profile.username, profile.displayName]) if (name && ![username, displayName].includes(name) && !earlier.includes(name)) earlier.push(name);
+        next.earlierNames = earlier.slice(-EARLIER_NAMES_KEPT);
+      }
+      next.username = username; next.displayName = displayName;
+    }
+  }
+  return { profile: next, events, changed: JSON.stringify(next) !== JSON.stringify(profile) };
+}
+
+// ---------------------------------------------------------------------------------------------------------------------
 // Interpreting the access application (owner: "Interpret and store DOB"; the form asks for MM/YYYY).
 
 /**
@@ -387,6 +449,18 @@ export function applicationAnswers(formResponses) {
 }
 
 /**
+ * Born and game accounts from an application's answers, on the current form (separate questions) or older ones (the ckey
+ * and date of birth in one question). The age-check answer is never read as a date.
+ * @param {{ label: string, value: unknown }[]} answers from `applicationAnswers`
+ */
+export function applicationFacts(answers, approvedAtMs) {
+  const asked = answer => !/age[\s-]?check/i.test(answer.label) && typeof answer.value === 'string';
+  const birth = answers.find(answer => asked(answer) && /birth/i.test(answer.label));
+  const games = answers.find(answer => asked(answer) && /ckey|byond|ss14 user/i.test(answer.label));
+  return { approvedAtMs, birth: interpretBirth(birth?.value ?? '', approvedAtMs), games: interpretGameNames(games?.value ?? '', games?.label ?? '') };
+}
+
+/**
  * An approved access application, transcribed with short labels and the answers as written, over as many messages as
  * it needs. Interviews are never read.
  * @param {{ approvedAtMs: number, approvedBy: string|null, answers: { label: string, value: string|string[]|boolean|null }[] }} application
@@ -420,6 +494,11 @@ export function renderApplication({ approvedAtMs, approvedBy, answers }) {
   return messages;
 }
 
+/** A join's count in words; null when joins from before the record are unknown. */
+function joinWords(joinCount) {
+  return joinCount === null || joinCount === undefined ? 'rejoined (earlier joins not recorded)' : joinCount === 1 ? 'first join' : `join ${joinCount}`;
+}
+
 /**
  * The text of one automatic entry. Each carries a written UTC time so Discord search can find it by date.
  * @param {{ kind: string, atMs: number }} event
@@ -429,7 +508,7 @@ export function entryText(event) {
   switch (event.kind) {
     case 'record.opened':
       return `**Record opened** · ${at} · already in the server${event.joinedAtMs ? `, joined ${stamp(event.joinedAtMs)}` : ''}. Events before this are not recorded.`;
-    case 'joined': return `**Joined** · ${at} · ${event.joinCount === 1 ? 'first join' : `join ${event.joinCount}`}`;
+    case 'joined': return `**Joined** · ${at} · ${joinWords(event.joinCount)}`;
     case 'left': return `**Left or removed** · ${at}${event.hadWhitelist ? ' · Whitelist ends; a fresh Shuttle run is needed to regain it' : ''}`;
     case 'whitelist.granted': return event.bySophie
       ? `**Whitelist granted by Sophie** · ${at}${event.timing ? ` · ${formatDuration(event.timing.focusedMs)} focused (${formatDuration(event.timing.wallMs)} from boarding) · ${event.timing.pages} pages` : ''}`
@@ -446,7 +525,7 @@ export function entryText(event) {
 export function entryLabel(event) {
   switch (event.kind) {
     case 'record.opened': return 'Record opened · already in the server';
-    case 'joined': return event.joinCount === 1 ? 'Joined · first join' : `Joined · join ${event.joinCount}`;
+    case 'joined': return `Joined · ${joinWords(event.joinCount)}`;
     case 'left': return 'Left or removed';
     case 'whitelist.granted': return event.bySophie ? 'Whitelist granted by Sophie' : 'Whitelist given, not by Sophie';
     case 'whitelist.lost': return 'Whitelist removed';
@@ -457,3 +536,22 @@ export function entryLabel(event) {
     default: throw new Error('MEMBER_RECORD_EVENT_UNKNOWN');
   }
 }
+
+/**
+ * One line in the changelog post: when, what, whose record, and a link to the entry. The member is named by mention (shown
+ * as their name, never notified) and by username, so the changelog can be searched.
+ * @param {{ kind: string, atMs: number }} event
+ * @param {{ guildId: string, userId: string, username: string|null, threadId: string, messageId: string }} where
+ */
+export function changelogLine(event, { guildId, userId, username, threadId, messageId }) {
+  requireId(userId);
+  const user = cleanLine(username, 40);
+  return `\`${utcText(event.atMs)}\` **${literal(entryLabel(event))}** · <@${userId}>${user ? ` (${literal(user)})` : ''} · [entry](${jumpUrl(guildId, threadId, messageId)})`;
+}
+
+/** The changelog post's opening message (the post itself was opened by the host-only command of 30 October 2026). */
+export const CHANGELOG_OPENING = [
+  '## Sophie\'s changelog',
+  'Every automatic update Sophie makes to the member records appears here as it happens, newest at the bottom, each with a link to the entry in that member\'s post.',
+  '-# Kept by Sophie. Staff can reply here, but replies will end up between her entries.',
+].join('\n');

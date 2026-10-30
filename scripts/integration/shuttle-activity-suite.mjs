@@ -370,8 +370,11 @@ export async function runShuttleActivitySuite(cluster, run) {
   await scenario('SA15 Sophie tells Staff once for each Whitelist she gives, never for one given by hand', async () => {
     // Owner request, 24 October 2026: a line in the staff bot channel when the Onboarding Activity gives Whitelist.
     const announcing = createCoreStore({ pool, clock: () => now, authorize: authorization.authorize, authorizeRecorded: authorization.authorizeRecorded,
-      casePolicy, caseVerification: discord.channels.verification, whitelistNotices: true });
+      casePolicy, caseVerification: discord.channels.verification, whitelistNotices: true, memberRecords: true });
     const granting = createRoleDispatcher({ outbox, store: announcing, discord: discord.roles, enabled: () => healthy });
+    // The member has a record (owner decisions, 30 October 2026): the same grant becomes one entry there, with the reading time.
+    await admin.query(`INSERT INTO sophie_core.member_records (guild_id, user_id, profile, opened_at_ms, updated_at_ms) VALUES ($1, $2, $3, $4, $4)`,
+      [GUILD, USER, { username: 'synthetic', displayName: null, present: true, roles: { crew: true }, joinedAtMs: NOW, joinCount: 1, lastLeftAtMs: null, earlierNames: [], note: null }, NOW]);
     const posts = [], CHANNEL = '100000000000000555';
     let failNext = false;
     const notices = createWhitelistNoticeDispatcher({ outbox, channelId: CHANNEL, enabled: () => healthy, transport: { guildId: GUILD,
@@ -403,12 +406,16 @@ export async function runShuttleActivitySuite(cluster, run) {
       `Time to completion: ${formatDuration(stops * 30_000)} focused (${formatDuration(stops * 40_000)} from boarding) · ${stops * 2} pages, average 15s a page`);
     assert.deepEqual(body.allowed_mentions, { parse: [], users: [], roles: [], replied_user: false }, 'nobody is notified');
     assert.deepEqual((await rows('outbox')).filter(row => row.kind === 'whitelist.notice').map(row => row.status), ['done']);
+    const entries = await rows('member_record_events');
+    assert.deepEqual(entries.map(row => [row.user_id, row.kind, row.detail.bySophie, row.detail.timing?.pages]), [[USER, 'whitelist.granted', true, stops * 2]]);
+    assert.equal((await rows('member_records'))[0].profile.roles.whitelist, true);
     // A member given the role by hand before Sophie's grant ran: the run completes, and no notice is queued.
     await ride(OWNER);
     discord.state.members.set(OWNER, [...discord.state.members.get(OWNER), WHITELIST]);
     await drain(granting);
     assert.equal((await activity.describe(await member(OWNER))).run.whitelist, 'confirmed');
     assert.equal((await rows('outbox')).filter(row => row.kind === 'whitelist.notice').length, 1);
+    assert.equal((await rows('member_record_events')).length, 1, 'a role given by hand is not an entry of Sophie\'s');
   }, 'open');
 
   await scenario('SA18 focused time is credited to the stop left, never more than the time that passed, and once per request', async () => {

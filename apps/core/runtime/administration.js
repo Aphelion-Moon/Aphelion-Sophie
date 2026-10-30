@@ -15,6 +15,8 @@ import { createCaseDeliveryIssueStore } from '../storage/case-delivery-issues.js
 import { createOutbox } from '../storage/outbox.js';
 import { createRoleDispatcher, createWhitelistGrantDispatcher, createMembershipDispatcher } from '../discord/dispatcher.js';
 import { createWhitelistNoticeDispatcher } from '../discord/whitelist-notices.js';
+import { createMemberRecordDispatcher } from '../discord/member-records.js';
+import { createMemberRecordStore } from '../storage/member-records.js';
 import { createCaseDispatcher } from '../discord/case-dispatcher.js';
 import { createOnboardingDispatcher } from '../discord/onboarding-dispatcher.js';
 import { createOnboardingAlertDispatcher } from '../discord/onboarding-alert-dispatcher.js';
@@ -57,7 +59,9 @@ export function createAdministrationLane({ configuration, pool, token, fetch, cl
   // In production (Activity and AI only) this lane may add exactly one role: Whitelist, at the end of the Shuttle (owner decision,
   // 24 October 2026).
   const transport = createDiscordTransport({ guildId: mapping.guildId, token, fetch, clock, enabled, scope: runtimeScope(configuration),
-    ...(runtimeScope(configuration) === 'activity-ai' ? { grantRoleIds: [mapping.whitelist] } : {}), ...(rateLimits ? { limits: rateLimits } : {}) });
+    ...(runtimeScope(configuration) === 'activity-ai' ? { grantRoleIds: [mapping.whitelist] } : {}), ...(rateLimits ? { limits: rateLimits } : {}),
+    // Member records: posts in their one forum (owner decisions, 30 October 2026).
+    ...(configuration.memberRecords ? { recordForumId: configuration.memberRecords.forumId } : {}) });
   // Role, member and channel observations are checked against the authority boundary, so message traffic (including
   // this bot's own posts) no longer overtakes them; message reads keep the full continuity.
   const readAuthority = observer.readAuthorityBoundary ?? null;
@@ -71,7 +75,8 @@ export function createAdministrationLane({ configuration, pool, token, fetch, cl
   const replyMessages = createCaseReplyMessages(messageOptions);
   const store = createCoreStore({ pool, clock, authorize, authorizeRecorded, resolveCaseResponder, resolveCaseParticipant, authorizeCaseParticipant,
     casePolicy: policy, caseVerification: channels.verification, onboardingMessageVerification: screens.verification, onboardingAlertVerification: alerts.verification,
-    whitelistNotices: configuration.whitelistNotices !== undefined, whitelistReconciliation: runtimeScope(configuration) === 'full' });
+    whitelistNotices: configuration.whitelistNotices !== undefined, whitelistReconciliation: runtimeScope(configuration) === 'full',
+    memberRecords: configuration.memberRecords !== undefined });
   const intakeStore = createCaseIntakeStore({ pool, clock, authorize, authorizeRecorded, resolveCaseParticipant, authorizeCaseParticipant,
     policy, limits, verification: channels.verification });
   const deliveryStore = createCaseIntakeDeliveryStore({ pool, clock, policy, caseVerification: channels.verification, messageVerification: answers.verification });
@@ -124,9 +129,14 @@ export function createAdministrationLane({ configuration, pool, token, fetch, cl
   const whitelistNotices = configuration.whitelistNotices === undefined ? null :
     createWhitelistNoticeDispatcher({ outbox, transport, channelId: configuration.whitelistNotices.channelId, enabled });
   if (whitelistNotices) workers.push(whitelistNotices);
+  // A post per member in the Staff forum, and the changelog, when configured (owner decisions, 30 October 2026).
+  const records = configuration.memberRecords;
+  const memberRecords = records === undefined ? null : createMemberRecordDispatcher({ transport, botUserId: mapping.botUserId, tagIds: records.tagIds, enabled, trace: onTrace,
+    store: createMemberRecordStore({ pool, clock, guildId: mapping.guildId, forumId: records.forumId, changelogThreadId: records.changelogThreadId }) });
+  if (memberRecords) workers.push(memberRecords);
   return { transport, roles, channels, authorization, store, intakeStore, replyStore, issueStore, intakeMessages: answers, replyMessages,
     screenMessages: screens, alertMessages: alerts, commands, workers, caseIntake, automationRecovery, sophieMember,
-    whitelistGrants: createWhitelistGrantDispatcher({ outbox, store, discord: roles, enabled }), whitelistNotices,
+    whitelistGrants: createWhitelistGrantDispatcher({ outbox, store, discord: roles, enabled }), whitelistNotices, memberRecords,
     responseAdapters: { onboardingNavigation: createOnboardingNavigation({ ...common, channels }), onboardingAssistance: assistance,
       onboardingDeliveryIssues: deliveryIssues, caseLifecycle, caseStaff, caseIntake, caseContacts, caseDeliveryIssues, publicAnswers, caseAnswers, knowledgeLookup, sophieMember, shuttleProgress } };
 }

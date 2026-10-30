@@ -1,4 +1,4 @@
-import { requireCondition, requireId, requireKeys } from '../../../contracts/validation.js';
+import { requireCondition, requireId, requireInteger, requireKeys } from '../../../contracts/validation.js';
 import { validateOverwrites } from '../../../platform/authorization/discord-permissions.js';
 import { requireScreenId, validateOnboardingPart } from '../../../modules/onboarding/screens.js';
 import { validateOnboardingAlertPayload } from '../../../modules/onboarding/alerts.js';
@@ -90,10 +90,24 @@ const ACTIVITY_AI_WRITES = Object.freeze([
 const MEMBER_ROLE_ADD = /^\/guilds\/\d{17,20}\/members\/\d{17,20}\/roles\/(\d{17,20})$/u;
 export const activityAiWriteAllowed = (method, path, grantRoleIds = []) => method === 'GET' || ACTIVITY_AI_WRITES.some(([verb, pattern]) => verb === method && pattern.test(path)) ||
   method === 'PUT' && grantRoleIds.includes(MEMBER_ROLE_ADD.exec(path)?.[1]);
+/**
+ * Member records (owner decisions, 30 October 2026): a transport given the records forum may also open a post there, and
+ * change a post's name, tags or archived state (Discord lets a post's creator do that without Manage Threads). Nothing
+ * else about a channel can be changed this way: no permissions, parent, topic or any other field.
+ */
+const RECORD_THREAD_FIELDS = Object.freeze(['name', 'archived', 'applied_tags']);
+export const memberRecordWriteAllowed = (method, path, body, recordForumId = null) => recordForumId !== null && (
+  method === 'POST' && path === `/channels/${recordForumId}/threads` ||
+  method === 'PATCH' && /^\/channels\/\d{17,20}$/u.test(path) && body !== null && typeof body === 'object' && !Array.isArray(body) &&
+    Object.keys(body).length > 0 && Object.keys(body).every(key => RECORD_THREAD_FIELDS.includes(key)));
+const QUIET_MENTIONS = JSON.stringify({ parse: [], users: [], roles: [], replied_user: false });
+const SUPPRESS_EMBEDS = 1 << 2;
+const recordText = content => typeof content === 'string' && content.length > 0 && content.length <= 2_000 && !/@(everyone|here)|<@[!&]/u.test(content);
 
 export function createDiscordTransport({ guildId, token, fetch, clock, enabled, limits = createDiscordRateLimits(),
-  wait = ms => new Promise(resolve => setTimeout(resolve, ms)), scope = 'full', grantRoleIds = [] }) {
+  wait = ms => new Promise(resolve => setTimeout(resolve, ms)), scope = 'full', grantRoleIds = [], recordForumId = null }) {
   requireId(guildId); requireCondition(['full', 'activity-ai'].includes(scope), 'TRUSTED_ADAPTERS_REQUIRED');
+  if (recordForumId !== null) { requireId(recordForumId); requireCondition(recordForumId !== guildId, 'TRUSTED_ADAPTERS_REQUIRED'); }
   requireCondition(Array.isArray(grantRoleIds) && grantRoleIds.length <= 1 && grantRoleIds.every(id => /^[1-9][0-9]{16,19}$/u.test(id) && id !== guildId), 'TRUSTED_ADAPTERS_REQUIRED');
   requireCondition(typeof token === 'string' && token.length >= 20 && !/\s/.test(token), 'DISCORD_TOKEN_REQUIRED');
   requireCondition(typeof fetch === 'function' && typeof clock === 'function' && typeof enabled === 'function' && typeof wait === 'function', 'TRUSTED_ADAPTERS_REQUIRED');
@@ -119,7 +133,8 @@ export function createDiscordTransport({ guildId, token, fetch, clock, enabled, 
   }
   const blockedFor = key => Math.max(limits.globalUntil, limits.cooldowns.get(key) ?? 0) - clock();
   async function request(method, path, route, body = undefined, jsonResult = false, deadline = null) {
-    if (scope === 'activity-ai') requireCondition(activityAiWriteAllowed(method, path.split('?')[0], grantRoleIds), 'DISCORD_SCOPE_REFUSED');
+    if (scope === 'activity-ai') requireCondition(activityAiWriteAllowed(method, path.split('?')[0], grantRoleIds) ||
+      memberRecordWriteAllowed(method, path.split('?')[0], body ?? null, recordForumId), 'DISCORD_SCOPE_REFUSED');
     const budget = () => Math.min(SHORT_WAIT_MS, deadline === null ? SHORT_WAIT_MS : deadline - clock() - 250);
     const release = await turn(Math.max(1, budget()), method === 'GET' ? limitKey(limits, method, path).key : null);
     try {
@@ -203,11 +218,13 @@ export function createDiscordTransport({ guildId, token, fetch, clock, enabled, 
         // A Shuttle message someone deleted is reported as missing, so its group can be posted again in order.
         if (route === 'shuttle-message-edit' && data.code === 10008) return null;
         if (route === 'shuttle-message-delete' && [10003, 10008].includes(data.code)) return null;
+        // A member record message or post someone deleted is reported as missing, so Sophie can post it again.
+        if (['record-message-edit', 'record-thread-edit'].includes(route) && [10003, 10008].includes(data.code)) return null;
         throw new DiscordError('DISCORD_RESOURCE_MISSING');
       }
       if (response.status >= 500) throw new DiscordError(write ? 'DELIVERY_UNCERTAIN' : 'DISCORD_UNAVAILABLE');
       if (write) {
-        const created = response.status === 201 && ['guild-command', 'staging-channel-create', 'channel-create'].includes(route);
+        const created = response.status === 201 && ['guild-command', 'staging-channel-create', 'channel-create', 'record-thread-create'].includes(route);
         if (response.status !== (jsonResult ? 200 : 204) && !created) throw new DiscordError('DELIVERY_UNCERTAIN');
         if (jsonResult) return await boundedJson(response);
         return;
@@ -422,6 +439,71 @@ export function createDiscordTransport({ guildId, token, fetch, clock, enabled, 
     async replaceCaseAudience(channelId, parentId, overwrites) {
       requireId(channelId); requireId(parentId); validateOverwrites(overwrites);
       return request('PATCH', `/channels/${channelId}`, 'channel-edit', { parent_id: parentId, permission_overwrites: overwrites }, true);
+    },
+    /**
+     * Opens a member's post in the records forum: its title, Sophie's tags and the header as its first message. Plain
+     * text that names members without notifying anyone, with link previews off.
+     */
+    async createMemberRecordThread(body) {
+      requireCondition(recordForumId !== null, 'DISCORD_SCOPE_REFUSED');
+      requireCondition(body !== null && typeof body === 'object' && JSON.stringify(Object.keys(body).sort()) === JSON.stringify(['applied_tags', 'auto_archive_duration', 'message', 'name']) &&
+        typeof body.name === 'string' && body.name.length > 0 && body.name.length <= 100 && body.auto_archive_duration === 1440 &&
+        Array.isArray(body.applied_tags) && body.applied_tags.length <= 5 && body.applied_tags.every(id => /^[1-9][0-9]{16,19}$/u.test(id)) &&
+        JSON.stringify(Object.keys(body.message ?? {}).sort()) === JSON.stringify(['allowed_mentions', 'content', 'flags']) && recordText(body.message.content) &&
+        JSON.stringify(body.message.allowed_mentions) === QUIET_MENTIONS && body.message.flags === SUPPRESS_EMBEDS, 'INVALID_DISCORD_PAYLOAD');
+      return request('POST', `/channels/${recordForumId}/threads`, 'record-thread-create', body, true);
+    },
+    /** A post's name, Sophie's tags on it, or whether it is archived. Null when the post no longer exists. */
+    async editMemberRecordThread(threadId, body) {
+      requireId(threadId); requireCondition(recordForumId !== null && threadId !== recordForumId, 'DISCORD_SCOPE_REFUSED');
+      requireCondition(memberRecordWriteAllowed('PATCH', `/channels/${threadId}`, body, recordForumId) &&
+        (body.name === undefined || typeof body.name === 'string' && body.name.length > 0 && body.name.length <= 100) &&
+        (body.archived === undefined || typeof body.archived === 'boolean') &&
+        (body.applied_tags === undefined || Array.isArray(body.applied_tags) && body.applied_tags.length <= 5 && body.applied_tags.every(id => /^[1-9][0-9]{16,19}$/u.test(id))), 'INVALID_DISCORD_PAYLOAD');
+      return request('PATCH', `/channels/${threadId}`, 'record-thread-edit', body, true);
+    },
+    /** One of Sophie's messages in a member's post or the changelog; the nonce makes a resend one message. */
+    async createMemberRecordMessage(channelId, nonce, content) {
+      requireId(channelId); requireCondition(recordForumId !== null && typeof nonce === 'string' && /^[a-f0-9]{24}$/u.test(nonce) && recordText(content), 'INVALID_DISCORD_PAYLOAD');
+      return request('POST', `/channels/${channelId}/messages`, 'record-message-create',
+        { content, allowed_mentions: JSON.parse(QUIET_MENTIONS), flags: SUPPRESS_EMBEDS, nonce, enforce_nonce: true }, true);
+    },
+    /** Edits one of Sophie's record messages (header, ledger, application). Null when it was deleted. */
+    async editMemberRecordMessage(channelId, messageId, content) {
+      requireId(channelId); requireId(messageId); requireCondition(recordForumId !== null && recordText(content), 'INVALID_DISCORD_PAYLOAD');
+      return request('PATCH', `/channels/${channelId}/messages/${messageId}`, 'record-message-edit',
+        { content, allowed_mentions: JSON.parse(QUIET_MENTIONS), flags: SUPPRESS_EMBEDS }, true);
+    },
+    /** Posts in the records forum that Sophie may already have opened: active ones, then the newest archived ones. */
+    async getMemberRecordThreads() {
+      requireCondition(recordForumId !== null, 'DISCORD_SCOPE_REFUSED');
+      const active = await request('GET', `/guilds/${guildId}/threads/active`, 'record-threads');
+      const archived = await request('GET', `/channels/${recordForumId}/threads/archived/public?limit=100`, 'record-threads');
+      const threads = [...(Array.isArray(active?.threads) ? active.threads : []), ...(Array.isArray(archived?.threads) ? archived.threads : [])];
+      return threads.filter(thread => thread?.parent_id === recordForumId).map(thread => {
+        requireId(thread.id); return { id: thread.id, name: typeof thread.name === 'string' ? thread.name : '', ownerId: thread.owner_id ?? null };
+      });
+    },
+    /**
+     * Approved Apply to Join requests, newest first (owner direction, 30 October 2026; an undocumented interface the owner
+     * accepted). Only the form answers, who approved and when are kept; the interview and every other field are dropped
+     * here and never read.
+     */
+    async getApprovedJoinRequests({ before = null, limit = 50 } = {}) {
+      if (before !== null) requireId(before); requireInteger(limit, 1, 50);
+      const data = await request('GET', `/guilds/${guildId}/requests?status=APPROVED&limit=${limit}${before === null ? '' : `&before=${before}`}`, 'join-requests');
+      const list = data?.guild_join_requests;
+      requireCondition(Array.isArray(list) && list.length <= limit, 'DISCORD_RESPONSE_INVALID');
+      return list.map(item => {
+        requireId(item?.id); requireId(item.user_id);
+        const reviewedAtMs = Date.parse(item.reviewed_at ?? item.created_at ?? '');
+        const formResponses = (Array.isArray(item.form_responses) ? item.form_responses : []).slice(0, 50).map(field => ({
+          field_type: typeof field?.field_type === 'string' ? field.field_type : null, label: typeof field?.label === 'string' ? field.label.slice(0, 300) : '',
+          response: typeof field?.response === 'string' ? field.response.slice(0, 4_000) : Number.isInteger(field?.response) || typeof field?.response === 'boolean' ? field.response : null,
+          choices: Array.isArray(field?.choices) ? field.choices.slice(0, 20).filter(choice => typeof choice === 'string').map(choice => choice.slice(0, 200)) : [] }));
+        return { id: item.id, userId: item.user_id, status: item.application_status, reviewedAtMs: Number.isFinite(reviewedAtMs) ? reviewedAtMs : null,
+          approvedBy: /^[1-9][0-9]{16,19}$/u.test(item.actioned_by_user?.id ?? '') ? item.actioned_by_user.id : null, formResponses };
+      });
     },
     async getMember(userId) { requireId(userId); return request('GET', `/guilds/${guildId}/members/${userId}`, 'member'); },
     async getMemberPage(after = null) {
