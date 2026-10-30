@@ -647,9 +647,34 @@ export function changelogLine(event, { guildId, userId, username, threadId, mess
   return `\`${utcText(event.atMs)}\` **${literal(entryLabel(event))}** · <@${userId}>${user ? ` (${literal(user)})` : ''} · [entry](${jumpUrl(guildId, threadId, messageId)})`;
 }
 
-/** The changelog post's opening message (the post itself was opened by the host-only command of 30 October 2026). */
+/**
+ * The changelog post's opening message (the post was opened by a host-only command of 30 October 2026, and this text set
+ * there the same day at the owner's request: "Update the OP in the pinned thread to include a list of all features and types
+ * of tracked information for this forum feature."). Keep it in step with what the records hold.
+ */
 export const CHANGELOG_OPENING = [
   '## Sophie\'s changelog',
   'Every automatic update Sophie makes to the member records appears here as it happens, newest at the bottom, each with a link to the entry in that member\'s post.',
+  '',
+  '### Each member\'s post',
+  '- **Header**, kept up to date: names and Discord ID, account age, status (in server or left, Crew, Whitelisted, Muzzled, Staff, Lead Ops), join date and count, last leave, Shuttle run and reading time, mutes on record, birth month and year and game accounts (from the application), earlier names.',
+  '- **Ledger:** links to Sophie\'s entries in the post.',
+  '- **Access application:** the approved application, transcribed. A newer one replaces it; the older one is kept as an entry.',
+  '- **Game records** (reserved for Meridian Rift and Wolfgate) and one spare message.',
+  '- **Tags:** In server or Left, Whitelisted, Muzzled, Staff, Watch.',
+  '',
+  '### Automatic entries',
+  '- Joined, rejoined, and left (with the time and links to their 5 latest messages)',
+  '- Whitelist granted by Sophie (with Shuttle reading time) or given by someone else, and removed',
+  '- Muzzled and unmuzzled',
+  '- Name changes',
+  '- Access application, and application replaced',
+  '- Watch on or off (`/member watch`, all Staff)',
+  '- Deleted messages (the text, attachments, and who deleted them from the audit log) and edited messages (before and after). These stay in the member\'s post and are not listed here.',
+  '',
+  '### Good to know',
+  '- Sophie checks the member list when she starts and every 6 hours, catching joins, leaves and changes made while she was offline, and opens records for people who have left that she can name.',
+  '- She keeps message text for 30 days and who wrote each message for a year, never from tickets.',
+  '- Staff discussion in a member\'s post is copied into Sophie\'s records. No AI reads any of it.',
   '-# Kept by Sophie. Staff can reply here, but replies will end up between her entries.',
 ].join('\n');
