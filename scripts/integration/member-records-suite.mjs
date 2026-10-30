@@ -214,6 +214,11 @@ export async function runMemberRecordsSuite(cluster, run) {
     await due(); assert.deepEqual(await drain(), [], 'nothing is claimed while delivery is paused');
     await admin.query('UPDATE sophie_core.discord_backoff SET paused = false');
     await drain(); assert.match(post.messages.at(-1).content, /^\*\*Name changed\*\*/);
+    // A request the delivery gate refused never left: it is asked again in a moment, and the record still settles.
+    forum.fail({ method: 'post', code: 'DISCORD_TRANSPORT_DISABLED' });
+    now += 1_000; await update(USER, 'vexier', [CREW]);
+    assert.deepEqual((await drain()).map(result => result.status), ['settled']);
+    assert.match(post.messages.at(-1).content, /^\*\*Name changed\*\* · .*vexier/u);
   });
 
   await scenario('MRS-05 Staff discussion in a record post is copied; other channels and Sophie\'s own messages are not, and a failure never stops the Gateway', async () => {

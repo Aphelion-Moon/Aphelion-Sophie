@@ -25,14 +25,24 @@ function applicationMessages(application) {
  * recorded at once, and nonces come from the record and slot, so a retry continues rather than posting twice. Messages
  * name members without notifying anyone. No AI, no ticket data.
  */
-export function createMemberRecordDispatcher({ store, transport, botUserId, tagIds, enabled, trace = () => {} }) {
+export function createMemberRecordDispatcher({ store, transport: discord, botUserId, tagIds, enabled, trace = () => {},
+  wait = ms => new Promise(resolve => setTimeout(resolve, ms)) }) {
   requireId(botUserId); requireRecord(tagIds);
-  requireCondition(typeof enabled === 'function' && typeof trace === 'function' && ['claim', 'progress', 'finish', 'retry', 'renew', 'ensureExclusions'].every(key => typeof store?.[key] === 'function') &&
-    ['createMemberRecordThread', 'editMemberRecordThread', 'createMemberRecordMessage', 'editMemberRecordMessage', 'getChannel', 'getMemberRecordThreads', 'getApprovedJoinRequests']
-      .every(key => typeof transport?.[key] === 'function') && transport.guildId === store.guildId, 'TRUSTED_ADAPTERS_REQUIRED');
+  const methods = ['createMemberRecordThread', 'editMemberRecordThread', 'createMemberRecordMessage', 'editMemberRecordMessage', 'getChannel', 'getMemberRecordThreads', 'getApprovedJoinRequests'];
+  requireCondition(typeof enabled === 'function' && typeof trace === 'function' && typeof wait === 'function' && ['claim', 'progress', 'finish', 'retry', 'renew', 'ensureExclusions'].every(key => typeof store?.[key] === 'function') &&
+    methods.every(key => typeof discord?.[key] === 'function') && discord.guildId === store.guildId, 'TRUSTED_ADAPTERS_REQUIRED');
   for (const name of records.TAGS) requireId(tagIds[name]);
   const { guildId, changelogThreadId } = store;
   let excluded = false, changelogCheckedAt = 0;
+  // Each message Sophie posts comes back as a Gateway event, and while it is being recorded the delivery gate reads "not
+  // current" for a moment, so the next request is refused before it leaves (and the transport's queue can be briefly
+  // busy). A request refused that way was never sent: it waits a moment and is asked again, rather than failing the record.
+  const transport = Object.freeze(Object.fromEntries(methods.map(name => [name, async (...input) => {
+    for (let attempt = 0; ; attempt += 1) {
+      try { return await discord[name](...input); }
+      catch (error) { if (attempt >= 7 || !['DISCORD_TRANSPORT_DISABLED', 'DISCORD_BUSY'].includes(error?.code)) throw error; await wait(250); }
+    }
+  }])));
 
   /** The newest approved application Discord holds for a member who just joined; one page is enough for a fresh join. */
   async function lookupApplication(userId) {
