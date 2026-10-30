@@ -2712,3 +2712,57 @@ minutes. The service boundary, installed and public checks then passed (79 migra
 Rule for later packets: a migration that adds a table also grants it to the runtime roles, as its staging counterpart
 would hold. Folder `.agent_docs/aphelion-sophie/deployment-bbe844c-production-2026-10-25`; `rollback.ps1` restores `7ecf473`
 (and `register-commands.mjs --rollback` puts `/whitelist` back to `post` only).
+
+### Member records: a Staff forum with one post per member - 30 October 2026
+
+**Owner request.** "I want to run a single forum, which has header posts edited by Sophie, that maintains a thread for each
+user that joins the server, which has information documented about them automatically, so that is easily searchable. We
+will later want to have bans, notes, and other automated documentation entered into the thread later, but that will need
+Sophie to have access to the readout of Symphony from both the SS13 and SS14 servers hosted locally on this machine."
+The proposal, probes and the Staff test run are in `GitHub/.agent_docs/aphelion-sophie/member-records-forum-2026-10-30`.
+
+**Owner decisions** (asked and answered on 30 October):
+- *Who:* "New post for everyone. We're at about 500 now." Bots get no post.
+- *Retention:* "Records stay forever." The reason, for the record: safety and ban evasion; members may still ask what is
+  held about them.
+- *Visibility:* "Staff." The forum is `1562315014998728727` in the Staff category: "Use this forum in the Staff category."
+- *Staff discussion:* "Staff will discuss and leave informal notes about players in their threads. Sophie should put
+  automatic data in there, and keep a ledger in the header or second post of each thread with links to these automatic
+  actions stored later in the thread." Asked about Staff reading their own posts and colleagues': "Don't worry about staff
+  message at all. They're going to do whatever they want."
+- *Reserved messages:* "Since the main posts of each thread could potentially be overflown, I also want sophie to create 3
+  additional placeholder messages in each thread". Each post opens with five of Sophie's messages: header, ledger, the
+  access application, game records, a spare.
+- *A copy of the discussion:* "She can copy into her DB." (Not built yet. No AI reads it.)
+
+**Amendment to "Admission, Crew and Muzzled" (18 September).** That decision says Sophie must "not perform age assessment,
+read admission evidence or build an interview system". The owner now directs: "Sophie should read from the approved
+applications list from Discord's access, and transcribe information from there into the threads. She should not attempt
+to enter Interviews." Also: "Interpret and store DOB in the ticket." and "We don't need to document rejected applications."
+Sophie transcribes approved applications and reads the date of birth as a month and year (the form asks for MM/YYYY). She
+decides nothing from them, sets no role from them, and never opens, joins or reads an interview. On possible minors: "Everyone
+that enters the server is age checked by me personally. If the application says no, but was accepted, I convinced them to do
+it in the ticket. All other applications are turned away." So Sophie raises no age alert. Discord does not document join
+requests; the owner accepts that: "I don't particularly care if discord changes how things are done, we can adapt in the
+future."
+
+**Names are stored.** The Shuttle rule (the member's username shown only to them, never stored or logged) stays scoped to the
+Shuttle. Member records deliberately keep username, display name and their changes, so the forum can be searched.
+
+**Blacklisting** (18 September: "no blacklist role, blacklist database ... Sophie does not import blacklist reasons") is
+unchanged for now: a departure is recorded as "Left or removed". Bringing Discord or game bans into the records (later
+phases, with SSymphony) will amend it and is not decided here.
+
+**Read-only probes** (owner: "I approve the read only check."), 13:09 UTC: the application form is readable (five
+questions, form version of 28 October); listing approved applications is refused, `403 Missing Permissions`. Sophie holds
+no Kick Members, Manage Server, View Audit Log or Manage Threads. Transcription waits for the owner to grant the permission
+Discord wants (Kick Members is the likely one) and a rerun of `probe-join-requests.mjs`.
+
+**Staff test run** (owner: "Start off with a test run of our Staff users first."). `modules/member-records` renders the
+title, tags, header, ledger, reserved messages, entries and applications (MR-01 to MR-14). A host-only script in the folder
+above, as Sophie's production bot and reading the production database read-only (latest Activity run, mutes), added the
+forum's tags (In server, Left, Whitelisted, Muzzled, Staff; Watch moderated) and opened one post for each of the 22 current
+Staff and Lead Ops holders: header, ledger, three reserved messages, a "Record opened" entry the ledger links to, then
+archived. Its state file records every post and message ID so core can adopt them; nothing in core, the database or the
+installed release changed. Not built yet: core's integration (migration, outbox, gateway events, the backfill of everyone
+else, application transcription, the copy of the discussion), each needing its own install approval.

@@ -198,6 +198,7 @@ Milestone entries preserve their checkpoint evidence. Current next steps and own
 | Production-test preparation: artwork removed, Shuttle wording, channel title and category (P36, P14, P10, P11) | Owner direction of 20 October. All branches merged into main. Sophie's custom artwork, manifests, brand profiles and the dashboard avatar are removed (text identity only). Member-facing Shuttle replies no longer mention Staff help and the Shuttle case type is labelled "Shuttle". New Shuttle channels are titled "<Discord username>'s Shuttle" from a fresh member read (username not stored; tickets keep case-… names). An optional casePolicy.shuttleCategoryId, chosen on the Permissions page, places Shuttle channels in their own category; changing it advances the case-policy version, the apply step inventories and seals each retained channel into its case type's category, and the category is recorded as a case exclusion for AI and automation. | See docs/verification.md (20 October 2026, production-test preparation). | Not deployed. Choose the Shuttle category on the Permissions page and apply it after deployment; set the bot account avatar in Discord if wanted. |
 | Sophie keeps her own memories (automatic member and channel memory) (P24, P32) | Owner direction of 20 October 2026 supersedes the 11 October member-notes-only rule. Sophie may add up to two memories to any outcome (no extra provider call): member memories (one subject) and channel memories (up to four subjects). Members are stored as subjects with {n} placeholders, never names or turn labels; identifiers are masked. Turns see up to eight member memories about the people present and four recent channel memories. Memories expire 90 days after last use, are capped per member and channel, carry each subject's preference epoch (journal-backed restore fence), are erased on departure, and are cancelled before delivery if changed. Members see, edit, forget or turn off memory on their AI preferences page; ai.memory.audit holders list and delete any memory. Migration 073 (sophie_ai.memories, sophie_ai.memory_optouts). Memory runs only under an accepted processing policy with automaticMemory: true, which changes the consent binding. | See docs/verification.md (20 October 2026, Sophie keeps her own memories) and docs/ai-memory.md. | Not deployed. Owner: revise the notice (draft in docs/ai-memory.md), re-accept the policy with automaticMemory, grant the control role on the two new tables, grant ai.memory.audit, deploy the new worker release; members then opt in again. Live behaviour with Mistral (how often and how well she writes memories) is untested. |
 | Shuttle reading time in Whitelist notices, /whitelist progress, and the first log review (P50) | Owner request of 25 October 2026. The Activity measures focused reading time per stop and sends it with Continue, Back and Check; core credits it once per request, capped by the time that passed (migration 079: shuttle_activity_runs.attention_at_ms/completed_at_ms, shuttle_activity_attention). The staff-bot-channel notice adds "Time to completion: … focused (… from boarding) · N pages, average … a page". Staff and Lead Ops run /whitelist progress member: for a private view of a member's Discord state, run position, grant state and timing. Log review fixes: a sign-in never resends a spent Discord code and retries its post-exchange reads; AI disabled is traced once. | See docs/verification.md (Production install of bbe844c). | Installed 25 October 2026. Watch the first timed notices and a Staff progress check; fix the GitHub token's access (FORBIDDEN). |
+| Member records: rendering and the Staff test run (P56) | Owner decisions of 30 October 2026. modules/member-records renders each member's post: header, ledger, three reserved messages, entries and application transcription, with date-of-birth and game-name interpretation. A host-only script opened posts for the 22 current Staff and Lead Ops holders in the Staff forum (header, ledger, reserved, a Record opened entry the ledger links to), added the forum's tags and archived each post. Core and the installed release are unchanged. | npm test: 913 passed, none failed (MR-01 to MR-14 included); npm run check passed; staff-test-verify.json: 22 posts checked, no problems. | Core integration and its install, the backfill of everyone else, application transcription (permission), the discussion copy. |
 
 ## Next implementation sequence
 
@@ -227,7 +228,7 @@ These are bounded next steps within the task dependencies below. An unresolved l
 
 ## Task status
 
-Status counts: 3 complete; 42 in progress; 7 planned, not started. These are full-task statuses, not a percentage of code or release readiness.
+Status counts: 3 complete; 43 in progress; 7 planned, not started. These are full-task statuses, not a percentage of code or release readiness.
 
 An in-progress task can contain several verified milestones and still have unfinished implementation or acceptance. Acceptance IDs below link requirements to tasks; they do not assert that those specifications have passed.
 
@@ -289,6 +290,7 @@ An in-progress task can contain several verified milestones and still have unfin
 | P53 — Grounding, capabilities and community vocabulary | pending | P51 |
 | P54 — Retrieval, citations, code search and lookup | pending | P51 |
 | P55 — Model profile and the probe as a release gate | pending | P52, P53 |
+| P56 — Member records: a Staff forum with one post per member | in_progress | None |
 
 ## P00 — Freeze scope and deployment inputs
 
@@ -1821,3 +1823,34 @@ Full task deliverables:
 - M8: trials of strict JSON schema output, temperature by context (support and staff about 0.2) and mistral-medium for support, compared on cases-review.json
 
 Boundary: A model or profile change alters mistralProfileHash and needs policy re-acceptance and requalification.
+
+## P56 — Member records: a Staff forum with one post per member
+
+Status: **in_progress**. Phase: Community administration. Priority: P1.
+
+Depends on: None. Acceptance: MR-01 to MR-14 (rendering), One post per member across leave and rejoin; the ledger links only to posted entries; no AI path reads the forum.
+
+Owner decisions of 30 October 2026 in the decision log; proposal, probes and the Staff test run in .agent_docs/aphelion-sophie/member-records-forum-2026-10-30.
+
+Implemented scope:
+
+- Rendering module and tests (MR-01 to MR-14)
+- Staff test run: 22 posts for current Staff and Lead Ops in forum 1562315014998728727, verified read-back
+
+Remaining scope:
+
+- Core integration and its install
+- Backfill of the other members
+- Application transcription after the permission is granted
+- Discussion copy
+
+Full task deliverables:
+
+- modules/member-records: title, tags, header, ledger, three reserved messages, entries, application transcription, date-of-birth and game-name interpretation
+- Core integration: migration 080 (member_records, member_record_events, runtime grants), outbox kinds member.record.open/entry/header, producers in the gateway projection, Shuttle grant, member actions and Whitelist loss
+- Adoption of the Staff test run posts from staff-test-state.json; host-only paced backfill of every current member
+- Approved-application transcription (needs the permission Discord asks for; undocumented join-request interface)
+- Copy of the forum discussion into Sophie's database (owner: "She can copy into her DB"; never AI)
+- Later: Discord moderation (Guild Moderation intent, View Audit Log) and SSymphony/game records for Meridian Rift and Wolfgate
+
+Boundary: No AI reads or writes member records. Sophie decides nothing and sets no role from an application, and never opens, joins or reads an interview. Rejected applications are not recorded.

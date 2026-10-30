@@ -7,6 +7,26 @@ policy is in [the owner decisions](decisions/0001-owner-policy.md), remaining wo
 for the next session: where the Shuttle Activity work stands, what is left before it opens, and how to work on it.
 Where it disagrees with those records, they win.
 
+## Newest: member records (30 October 2026)
+
+Production runs `bbe844c` (schema 079) in the main Aphelion server; the Shuttle Activity is open. The sections below this one
+are the 23 October snapshot and are partly out of date; the decision log and workplan win.
+
+- **What:** a Staff forum (`1562315014998728727`, "staff-evidence-logs", Staff category) with one post per member, kept
+  indefinitely. Each post opens with Sophie's header, ledger and three reserved messages; Staff discuss freely below; Sophie's
+  automatic entries are linked from the ledger. Decisions, including the amendment to the admission rule (approved
+  applications are transcribed; interviews never touched), are in the decision log entry of 30 October; task P56.
+- **Done:** `modules/member-records` (rendering, MR-01 to MR-14) and a Staff test run: 22 posts for current Staff and Lead
+  Ops, verified, archived. They were made by a host-only script, not by core, so **they do not update yet**.
+- **Folder:** `GitHub/.agent_docs/aphelion-sophie/member-records-forum-2026-10-30`: `proposal.md` (the design and the
+  loose-ends review), the probes, `staff-test-run.mjs` (`--plan`, `--run [--limit N]`, `--verify`), `staff-test-state.json`
+  (every post and message ID, for core to adopt), `show-post.mjs`.
+- **Blocked:** reading approved applications returns `403 Missing Permissions`. The owner needs to give Sophie the
+  permission Discord wants (try Kick Members in a separate role, then Manage Server), then rerun `probe-join-requests.mjs`.
+- **Next:** core integration (migration 080 with runtime grants, outbox kinds, producers, adoption of the test posts),
+  the backfill of everyone else (about 470 posts), application transcription, the copy of the discussion. Each install,
+  the backfill and any permission change need the owner's recorded approval.
+
 ## Where things stand
 
 **Update, 23 October 2026, 01:00 UTC:** `791e2fe` is installed in the **main Aphelion server** in the Activity-and-AI
