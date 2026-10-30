@@ -1,345 +1,241 @@
-# Sophie development handoff — 30 October 2026 (member records), with the 23 October snapshot below
+# Sophie development handoff — 30 October 2026, night
 
-Sophie provides deterministic community administration, Whitelist onboarding, private cases and website
-configuration. No AI may receive ticket or onboarding session content. Read [AGENTS.md](../AGENTS.md) first; current
-policy is in [the owner decisions](decisions/0001-owner-policy.md), remaining work and release gates in
-[the workplan](workplan.md), and the checks actually run in [verification](verification.md). This page is a snapshot
-for the next session: where the Shuttle Activity work stands, what is left before it opens, and how to work on it.
-Where it disagrees with those records, they win.
+Sophie provides deterministic community administration, Whitelist onboarding, private cases and website configuration.
+No AI may receive ticket or onboarding session content.
 
-## Newest: a45ca0f in production (30 October 2026, 22:27 UTC)
+Read [AGENTS.md](../AGENTS.md) first. The other records, which win where this page disagrees:
+- current policy: [the owner decisions](decisions/0001-owner-policy.md);
+- remaining work and release gates: [the workplan](workplan.md);
+- the checks actually run: [verification](verification.md).
 
-Production runs **a45ca0f** (schema 084, pushed): a6fa5b3 plus quick role changes as one entry and the evening audit fixes. Since e881f29 it added the following (decision log, verification):
-- **8372861:** leave times and five message links, replaced applications kept as an entry, the regular check in core (at
-  start and every 6 h), and deleted and edited messages (text kept 30 days, authors a year, attribution from the audit log).
-- **35ec844:** profiles compared regardless of jsonb key order.
-- **a6fa5b3:** role change entries and a Roles line in each header.
+This page is a snapshot for the next session: what runs in production, what the member records do, what is left, and how
+to work safely. Earlier snapshots are in this file's git history.
 
-The pinned changelog post's opening lists every feature. Its text is `CHANGELOG_OPENING` in `modules/member-records`;
-re-post it with `member-records-forum-2026-10-30/edit-changelog-opening.mjs --run`.
+## Production now
 
-**Installed last:** `deployment-a45ca0f-production-2026-10-30` (the template for the next packet).
+- **Release:** **`a45ca0f`** (schema 084), installed 30 October 2026 at 22:27 UTC. Everything is pushed to `origin/main`.
+- **Server:** the main Aphelion server, in the Activity-and-AI production mode (`scope: activity-ai`). Another bot owns
+  roles, cases and moderation; Sophie only adds Whitelist at the end of the Shuttle.
+- **Host and database:** Windows Server 2022 host, `C:\Aphelion\Sophie`; database `sophie_prod_main`.
+  - Services: `aphelion-bot` (core), `aphelion-bot-ai-worker`, `aphelion-bot-activity`, `aphelion-bot-tunnel`,
+    `aphelion-bot-postgres`.
+  - They start at boot and restart on failure.
+  - Node 24.22.1 is pinned. A host Node update needs a runtime pin and review first.
+- **Shuttle Activity:** open to every eligible member since 24 October (Shuttle version 6). Sophie grants Whitelist when a
+  member finishes.
+- **Notices and alerts:**
+  - Whitelist notices with reading time go to the staff bot channel `1528802745136447508`.
+  - Error alerts go to `1528812406724231288`, pinging @matriarch.
+- **Commands in the main server:** `/lookup`, `/member watch`, `/sophie`, and `/whitelist` with `post` and `progress`.
+- **AI:** switched off in production; the log says `AI_ADMISSION_SKIPPED_AI_DISABLED`. The owner's focus is elsewhere,
+  so don't press for Go live after each release; it stays in the workplan.
+- **Known noise in the core log** (`C:\Aphelion\Sophie\logs\core\aphelion-bot.err.log`):
+  - `KNOWLEDGE_SOURCE_GITHUB_FORBIDDEN` hourly: the GitHub token's access still needs fixing;
+  - `DASHBOARD_DENIED_DASHBOARD_CREDENTIAL_INVALID` after each restart: old sessions, harmless.
+- **Every install, publication and production write needs the owner's recorded approval.** Approval for one step does not
+  carry over to the next. The last packet, `.agent_docs/aphelion-sophie/deployment-a45ca0f-production-2026-10-30`, is
+  the template for the next one.
 
-**Tools in `member-records-forum-2026-10-30`:**
-- `verify-records.mjs [n]`: read-back of delivered posts;
-- `inspect-post.mjs <thread>`: first lines and the event timeline of one post;
-- `backfill.mjs [--departed]`: manual backfill, now also done by the regular check.
+## Member records (P56)
 
-**Gotcha:** a Bash heredoc on this host collapses backslashes, quoted or not. Write code containing backslashes with
-the Write or Edit tool only.
+### What Sophie keeps
 
-## e881f29 (30 October 2026, 15:37 UTC)
+The Staff forum is `1562315014998728727` ("staff-evidence-logs"), with one post per member, kept forever. Every current
+member has a post, and so do the people who have left that Sophie can name.
 
-Production runs **`e881f29` (schema 081)**, pushed to `origin/main`. On top of the d8efd40 notes below: the two fixes are
-installed; Staff and Lead Ops have **`/member watch member: on:`** (registered in the main server), which records an entry
-and sets or removes the Watch tag; people who have left have records too (`backfill.mjs --departed`, 10 opened). The
-changelog post is pinned (the owner gave Sophie Manage Threads on the forum). Packet:
-`.agent_docs/aphelion-sophie/deployment-e881f29-production-2026-10-30` (`register-commands.mjs --rollback` removes /member).
+**Each post opens with five of Sophie's messages:**
+1. **Header**, kept up to date: names and ID, account age, status, joins, last leave (date and time), Shuttle run and
+   reading time, mutes, birth month and year and game accounts (from the application), earlier names, current roles.
+2. **Ledger:** links to her entries.
+3. **Access application:** transcribed. A newer one replaces it, and the older one is kept as an entry.
+4. **Game records:** reserved for Meridian Rift and Wolfgate, waiting on SSymphony.
+5. **Spare.**
 
-## Member records installed (30 October 2026, 15:02 UTC)
+**Tags:** In server or Left, Whitelisted, Muzzled, Staff, Watch.
 
-Production ran **`d8efd40` (schema 080)**. Core keeps the member records itself; the section after this one describes
-the state before the install and its "Next" list is done.
+**Entries:**
+- joined and rejoined;
+- left, with the time and links to the 5 latest messages;
+- Whitelist granted by Sophie (with reading time), given by someone else, or removed;
+- Muzzled and unmuzzled;
+- other role changes, with who changed them from the audit log, and quick changes combined into one entry;
+- name changes;
+- application, and application replaced;
+- Watch on or off (`/member watch`, Staff and Lead Ops);
+- deleted messages (text, attachments, who deleted them) and edited messages (before and after). These two stay in the
+  post only, out of the ledger and the changelog.
 
-- **What core does:** each record (`sophie_core.member_records`) holds what the post should show and what is delivered;
-  the dispatcher (`apps/core/discord/member-records.js`) brings one post up to date per worker tick, after Whitelist
-  grants and notices, live work before backfill. Entries come from the Gateway (join, leave, Whitelist and Muzzled roles,
-  names) and from Sophie's Whitelist confirmation. Every entry gets a line in the **changelog post** (thread ID ending
-  7086 in the forum). Staff messages in record posts are copied to `member_record_messages`. The forum and its posts are
-  case exclusions and refused by the AI context check.
-- **Backfill:** run at 15:05 UTC (478 records; 22 Staff posts adopted). Core was still posting them at the time of
-  writing, about 6 a minute. Watch it with `$env:TEMP\mr-progress.mjs`-style read-only queries, or
-  `member-records-forum-2026-10-30/verify-records.mjs [n]` (GET-only read-back of n delivered posts).
-- **Not installed:** `207a1d1` and `601d5ad`: retry a request the delivery gate refused for a moment (`DISCORD_TRANSPORT_DISABLED`
-  after Sophie's own post), and treat Discord's rate limit on post creation as a wait. Harmless meanwhile: records continue.
-- **Owner actions:** pin the changelog post (Sophie's pin was refused: no Manage Threads); decide who may set the Watch tag.
-- **Packet:** `.agent_docs/aphelion-sophie/deployment-d8efd40-production-2026-10-30` (template for the next one;
-  `rollback.ps1` drops the records tables and restores bbe844c; posts already made stay in Discord).
-- **Gotcha:** never write a JavaScript replacement string with backslashes through a Bash heredoc into `node -e` or
-  `node -`; the string escapes collapse them. Use the Edit tool.
+**Changelog:** the pinned post "Sophie's changelog" (thread `1565736855431807086`) gets one line per entry, except
+deletions and edits. Its opening lists every feature. The text is `CHANGELOG_OPENING` in `modules/member-records/index.js`;
+re-post it with `member-records-forum-2026-10-30/edit-changelog-opening.mjs --run` (2,000 characters at most; 1,966 now).
 
-## Member records before the install (30 October 2026)
+**Regular check:** in core, at start and every 6 hours, beside the worker loop. It reads the member list and approved
+applications, opens missing records (including people who have left), notices changes made while Sophie was offline, and
+refreshes the channel map. It refuses a member list that would mean more than a few leaves at once.
 
-Production ran `bbe844c` (schema 079) in the main Aphelion server; the Shuttle Activity is open. The sections below this one
-are the 23 October snapshot and are partly out of date; the decision log and workplan win.
+**Message store:**
+- text is kept 30 days, and who wrote which message a year (rows are cleared, never deleted);
+- nothing is kept from the ticket category, threads under it, case-excluded channels or record posts;
+- a channel whose place is unknown keeps nothing;
+- deleted or edited text entered in a post stays with the record (pinned post, decision log).
 
-### What it is
+**Never AI:** the forum and its posts are case exclusions and are refused by the AI context check. Staff discussion in a
+post is copied into `member_record_messages`, and no AI reads it.
 
-A Staff forum with one post per member, kept indefinitely. The forum is `1562315014998728727`, named
-"staff-evidence-logs", in the Staff category. It already held one post that is not Sophie's.
+### Where the code is
 
-Each post opens with five of Sophie's messages:
-1. **Header**, which she edits: a summary of the member.
-2. **Ledger**, which she edits: jump links to her automatic entries further down.
-3. **Access application**, reserved: the transcribed approved application.
-4. **Game records**, reserved for Meridian Rift and Wolfgate: a placeholder until SSymphony.
-5. **Spare**, reserved and deliberately unassigned.
+| Part | File |
+|---|---|
+| Rendering, wording, observation logic (pure) | `modules/member-records/index.js` |
+| Store, Gateway sink, role merging, regular check data | `apps/core/storage/member-records.js` |
+| Dispatcher (one record per tick, lease, audit attribution) | `apps/core/discord/member-records.js` |
+| Gateway field extraction | `apps/core/discord/member-record-ingress.js` |
+| Regular check | `apps/core/discord/member-record-reconciler.js` |
+| `/member watch` | `apps/core/discord/member-watch.js` |
+| Backfill planners (also used by the check) | `apps/core/operator/member-record-backfill.js` |
+| Production write allowance and record methods | `apps/core/discord/transport.js` |
+| Migrations | `apps/core/storage/migrations/080`–`084` |
+| Tests | `tests/member-records*.test.js`, `scripts/integration/member-records-suite.mjs` (`--suite=member-records`) |
 
-Below these, Staff discuss freely and Sophie posts her automatic entries.
+### Production at handoff
 
-Owner decisions are in the decision log entry of 30 October ("Member records: ..."), task **P56** in the workplan:
-- Everyone gets a post (about 495 members, bots excluded), and records stay forever. Staff can see the forum.
-- Sophie transcribes approved applications (this amends the 18 September admission rule) and reads the date of birth as a
-  month and year. Interviews, and rejected or pending applications, are never read.
-- Staff discussion is copied into Sophie's database. No AI ever reads member records or the forum.
-- There are no age alerts, because the owner age-checks every member personally.
-- Names are stored, for search. Blacklisting is unchanged for now: departures say "Left or removed".
+Read-only check at 22:28 UTC:
+- 489 records, 479 of them present, all delivered, none erroring;
+- 436 with an approved application;
+- 634 messages kept, none from tickets;
+- real entries so far: edits, a deletion ("most likely by the author"), role changes and name changes.
 
-### State at 15:25 local, 30 October
+### Not seen live yet
 
-- **Commits on `main`:** `dbcfee3`, `ff80cc4` and `50f88db`. They are **not pushed**. Production still runs `bbe844c`;
-  core and the database are unchanged.
-- **`modules/member-records/index.js`:** pure rendering and interpretation, with tests MR-01 to MR-15 and MR-07b in
-  `tests/member-records.test.js`. `npm test` passed 915 and `npm run check` passed.
-- **Staff test run:**
-  - 22 posts exist, one per current Staff or Lead Ops holder.
-  - 14 have their application transcribed. The other 8 say none is on record, the owner's post among them.
-  - All are archived, and the read-back check passed.
-  - A **host-only script** made them, so **they do not update yet**.
-  - The forum's tags are In server, Left, Whitelisted, Muzzled and Staff, plus Watch (moderated). Their IDs are in the
-    state file.
-- **Discord permissions:**
-  - Sophie now holds **Kick Members**. The owner adjusted her role at about 15:14, and listing approved join requests
-    needs that permission.
-  - She also holds a role named "ssymphony", which gives her Manage Channels in the forum.
-  - She has no Manage Threads, View Audit Log or Ban Members. Unarchiving and archiving her own posts works without
-    Manage Threads.
-- **Discord applications:** 436 approved, from 20 July 2026, covering 434 members.
-  - The interface is undocumented: `GET /guilds/{id}/requests?status=APPROVED&limit=100&before=<id>` returns
-    `{ guild_join_requests }`.
-  - Each request has `form_responses` (multiple choice gives a `response` index into `choices`), `reviewed_at`,
-    `actioned_by_user`, `user_id` and `interview_channel_id`. **Never touch `interview_channel_id`.**
-  - Older forms combine the ckey and date of birth in one question, and most game answers are a bare name. Measured over
-    all 436:
-    - date of birth: read for 409, month unclear for 14, unreadable for 13;
-    - game name: found for 430.
+These are covered by tests, but worth a look the first time each happens:
+- a combined role entry;
+- a moderator deletion attributed from the audit log;
+- a deleted "@everyone" message, or a very long quote;
+- `/member watch` used by Staff;
+- a leave with message links;
+- a replaced application.
 
-### Working folder
+### Open, in order
 
-`GitHub/.agent_docs/aphelion-sophie/member-records-forum-2026-10-30`. Run its scripts with
-`C:\Aphelion\Sophie\package\runtime\node.exe`, as an administrator. They read the token through
+1. **Privacy notice:** a line saying message text is kept 30 days, authors a year, and deleted or edited messages are kept
+   in the record. This is the owner's wording to approve.
+2. **Carl-bot's deleted-message log** (channel `1530218851785113641`) can stay as a backstop or go: the owner's call.
+3. **Later:**
+   - Discord moderation (bans and kicks via the audit log);
+   - SSymphony game records for Meridian Rift and Wolfgate;
+   - an index for the 30-day expiry once `member_messages` grows;
+   - a concurrency test of a Gateway member update during the Whitelist confirmation (the lock order was fixed by
+     reading the code).
+
+### Tools (working folder `GitHub/.agent_docs/aphelion-sophie/member-records-forum-2026-10-30`)
+
+Run them with `C:\Aphelion\Sophie\package\runtime\node.exe`, unsandboxed. They read the token through
 `staging/renewal/secret-field.mjs` and never print it.
 
-| File | What it is |
+| Script | What it does |
 |---|---|
-| `proposal.md` | The design, the loose-ends review, and **"Core integration plan"** at the end: the build list for the next session |
-| `staff-test-run.mjs` | `--plan`, `--run [--limit N]`, `--applications [--refresh]`, `--stats`, `--verify`. Read-only use of the production database (latest Activity run, mutes). |
-| `staff-test-state.json` | Every post, message and tag ID, and the per-member application status. Core must **adopt** these posts, never create second ones. No application text is stored. |
-| `show-post.mjs` | `<n>` shows a post as stored; `--masked <n>` shows a transcribed post with every value masked |
-| `probe-*.mjs`, `inspect-*.mjs`, `*.json` | Read-only probes and their outputs |
+| `verify-records.mjs [n]` | GET-only read-back of n delivered posts |
+| `inspect-post.mjs <thread>` | First lines of Sophie's messages and the event timeline of one post (no Staff text) |
+| `backfill.mjs --plan or --run [--departed]` | Manual backfill; the regular check now does this |
+| `edit-changelog-opening.mjs --check or --run` | Updates the pinned post's opening from `changelog-opening.md` |
+| `create-changelog.mjs` | Created the changelog post; `--run` only retries the pin |
 
-### Next: core integration (needs the owner's approval to install; the backfill needs its own)
+### Today's releases (30 October 2026)
 
-Follow "Core integration plan" in `proposal.md`, step by step. The model for the wiring is the Whitelist notice
-(`apps/core/discord/whitelist-notices.js`, `outbox.js`, `core-store.js`, and `runtime/administration.js`,
-`configuration.js`, `production-configuration.js`, `staging.js`).
-1. **Migration `080-member-records.sql`:**
-   - The tables `member_records`, `member_record_events` and `member_record_messages`.
-   - The outbox kinds `member.record.open`, `member.record.entry` and `member.record.header`.
-   - **Explicit grants to the runtime roles** (production copies grants; see the `bbe844c` install).
-2. **Store and dispatcher:**
-   - Write the ledger only after the entry's message ID is recorded.
-   - Unarchive before editing, and archive again after.
-   - Take nonces from the operation ID.
-   - Use `allowed_mentions` with nothing allowed, and the suppress-embeds flag.
-3. **Producers:**
-   - Gateway member add, update and remove. The projection must start carrying `username`, `global_name`, `nick` and
-     `joined_at`.
-   - The Whitelist grant confirmation, member actions (mute and unmute), and Whitelist loss.
-   - On a join, fetch that member's approved application and transcribe it into message 3.
-4. **Adoption and backfill:** a host-only command imports `staff-test-state.json`, then runs a paced backfill of the
-   other members of about 470 posts, through the store. Archive each post straight away: the server already had 489
-   active threads.
-5. **Discussion copy:** capture forum threads into `member_record_messages`, in the style of `case-message-capture.js`.
-   Add a hard exclusion of the forum and its threads from AI ingress, with a test.
-6. **Packet:**
-   - Tests: unit, plus `scripts/test-storage.mjs --suite=...`.
-   - A deployment folder copied from `deployment-bbe844c-production-2026-10-25`, with `approval.json` quoting the owner.
-   - Record the work in `docs/workplan.json` (P56), `docs/verification.md` and the decision log.
-
-### Gotchas from this session
-
-- **No Linux shell on the host.** The remote Linux shell (device bash) did not start ("hypervisor is not running").
-  Desktop Commander PowerShell works. For runs longer than about 2 minutes, use `Start-Process cmd.exe` with an
-  output file and an `.exit` sentinel.
-- **Escapes in written files.** Desktop Commander's write and edit can turn `\uXXXX` escapes into the real characters.
-  After writing a file with such escapes, check it for stray invisible characters (see the PowerShell scan in this
-  session's history), or build the characters with `String.fromCharCode`.
-- **Module boundary.** Code under `modules/` may import only `contracts/` and its own files (`npm run check`). For that
-  reason `formatDuration` is a local copy of `modules/onboarding/timing.js`.
-- **NULL completion times.** `shuttle_activity_runs.completed_at_ms` is NULL for runs finished before 25 October. Read
-  `sessions.state->>'status' = 'complete'` instead (logged in MISTAKES.md).
-- **No test install.** The test Discord no longer has an install. Test in production behind owner approval, as the
-  Staff run did.
-
-## Where things stand
-
-**Update, 23 October 2026, 01:00 UTC:** `791e2fe` is installed in the **main Aphelion server** in the Activity-and-AI
-production mode, on the new `sophie_prod_main` database (decision log entry of 23 October). The test Discord no longer has
-Sophie's commands. The story still has to be published (after the owner's first dashboard sign-in), and AI goes live when
-the owner publishes the character, budget and channel settings. Rollback: `rollback.ps1` in the deployment folder. The
-bullets below describe the state before this install.
-
-- **Installed release:** `sophie-mistral-a0eb904` (schema 075), installed 22 October 2026 at 21:14 UTC as a
-  source-only update, on the Windows Server 2022 host under `C:\Aphelion\Sophie`. Services: `aphelion-bot` (core),
-  `aphelion-bot-ai-worker`, `aphelion-bot-activity` (the closed "not boarding yet" screen on `127.0.0.1:38124`, kept
-  for rollback) and `aphelion-bot-tunnel` (cloudflared, tunnel `sophie-staging`). PostgreSQL holds the staging
-  database.
-- **Discord:** Sophie's existing application, which is also the Activity's application, in the **test Discord**.
-  Sophie is not in the main Aphelion server yet.
-- **Hosts:** `sophie.a13.info` (dashboard and interactions) and `onboarding.a13.info` (the Activity, served by core on
-  `127.0.0.1:38125`).
-- **Activity status `testing`:** only the owner and current holders of the configured lead ops role get past the
-  closed screen, checked on every request from Sophie's current role reads.
-- **Story:** the Shuttle copy is published as **version 5** (21:15 UTC). Runs keep the version they started on: the
-  owner's test run is on version 3, so seeing version 5 needs a new run.
-- **Git:** work is on `main`, pushed to `origin` on 23 October (the Shuttle branch was merged with the owner's
-  approval). Six commits after the push are not installed: `15252f9` (dashboard sign-in), `bbe039d` (one Yes or No
-  and `/sophie`), `28eb1e5` (contexts and longer replies), `a560420` (staff channels), `7115fce` (Guidebook,
-  Wolfgate, authenticated GitHub sync) and `c33a418` (code search). Schema 076 is new and unapplied.
-- **AI:** the AI worker runs in staging under the owner-accepted Mistral processing policy. The Shuttle has no AI path.
-  Memory is off in the installed release (no `automaticMemory` in its policy); the owner accepted automatic memory on
-  23 October, and notice revision 4 is drafted in [ai-notice-r4.md](ai-notice-r4.md).
-- **Host:** the Sophie services start at boot since 23 October (rollback in
-  `.agent_docs/aphelion-sophie/service-autostart-2026-10-23`). The deployment scripts still expect `Manual`, so the
-  next adapter must expect the new start types. The read-only GitHub token is staged at
-  `C:\Aphelion\Sophie\trust\github-token.txt` (core-only ACL) and goes into core's `credentials.githubToken` at the
-  next install.
-- **Dashboard sign-in** is broken in the installed release (Discord now reports the Activity's scope too). The fix is
-  `15252f9`, bundled with the production install by the owner's choice; meanwhile, removing Sophie under Discord's
-  Authorized Apps and signing in again works around it.
-
-## Next: the move to the main server (P50)
-
-Owner decisions of 23 October (decision log): the install moves from the test Discord to the main Aphelion server with a
-fresh production database, for closed testing of the Shuttle Activity behind the tester gate, Sophie's AI with memory,
-and `/sophie`. Tickets, cases, moderation, Crew assignment and Whitelist delivery stay off until the cutover. Before the
-packet: the owner invites Sophie and gives the guild ID, tester role, AI channels with their contexts and the staff
-channels; check that each case and role module can be switched off independently. The packet carries migration 076 and
-its grants, the processing policy with notice revision 4, `automaticMemory` and `staffChannels`, the GitHub token,
-the worker requalification (new profile hash), command registration in the main guild, and the live checks in P50.
-
-## What was done (the Shuttle Activity, 21–22 October 2026)
-
-The Shuttle became a Discord Activity: an ASCII-art visual novel in which Sophie, a radio voice (never depicted),
-talks the member through five stops with two companions, Rook and Pip. Each step is in the decision log and
-verification.
-
-| When | What | Release |
+| Release | Installed (UTC) | What |
 |---|---|---|
-| 21 Oct | Decisions D1–D10 (Activity surface, agent-made art, Sophie as a radio voice, Cozette, rules post, presence, the Shuttle leaves tickets, production application with a tester gate, main page, CC0/CC BY sounds); 24 sounds chosen, converted (FFmpeg LGPL, build-time only) and approved; `onboarding.a13.info` chosen | — |
-| 22 Oct | Embedded App SDK 2.5.0 pinned; closed-screen service; deployed in testing with migration 074, `/whitelist post` registered, route switched to core | `fe25c83`, `b6af5d8` |
-| 22 Oct | Second pass: moments, viewscreens, arrival links, layout editor (migration 075); layout pass | `052864c`, `2063a50` |
-| 22 Oct | Third pass: richer scenes, conveyor, station board, boarding pass | `0d446fe` |
-| 22 Oct | Fourth pass: the Shuttle as a story, 17 story sounds, SC-07; host-only publishing command; story version 3 | `135f2a6`, `a620ce0`, `cf0c125` |
-| 22 Oct | Fifth pass: the owner's design picks, walk-behind depth, full-page title, launch post wording; story version 4 | `ceb46cb` |
-| 22 Oct | Audit of the whole Activity | `f6c787e` |
-| 22 Oct | Sixth pass: pages and beats that follow the reader, click-to-continue mark, the member's own name on the title window, Beepsky, the staging lint, the review's scene fixes; story version 5 | `a0eb904` |
+| `d8efd40` | 15:02 | Core keeps the records; changelog post; backfill of 478 (22 Staff posts adopted) |
+| `e881f29` | 15:37 | Delivery fixes; `/member watch`; records for people who have left |
+| `8372861` | 16:37 | Leave times and links; replaced applications; regular check; deleted and edited messages (082, 083) |
+| `35ec844` | 16:43 | Profiles compared regardless of jsonb key order |
+| `a6fa5b3` | 17:49 | Role change entries; Roles line in headers (084) |
+| `a45ca0f` | 22:27 | Quick role changes as one entry; the evening audit's fixes |
 
-Offline evidence on `a0eb904`: `npm test` 799 passed, `npm run check` passed, `npm run test:storage:fast` 1029 passed
-with none failed. Every install passed its pre-start, boundary, installation, dashboard and public checks.
+`0b9298a` and `a137906` were prepared and then folded into later releases. Their folders say so.
 
-## What is left before the opening
+## Shuttle Activity: what is left (P41)
 
-In order. Each install, publication and the opening needs a recorded owner approval.
+- **Not built:**
+  - moving a run in progress in a channel into the Activity at the same step (today the Activity tells the member to
+    finish in their channel);
+  - the text version reachable from the rules post, sharing the same run.
+- **Checks inside Discord, not yet done:**
+  - links opening inside the app;
+  - audio unlock, picture-in-picture, presence and screen readers;
+  - phone portrait with a long username;
+  - the per-platform report (P40).
+- **Later-pass candidates,** recorded but not approved: auto mode, skipping pages already read, small choices that gate
+  nothing.
 
-1. **Owner review of the sixth pass** in the test Discord, on a new run (version 5). The owner re-posts the launch post
-   with `/whitelist post` to show its new wording.
-2. **Checks inside Discord**, none done yet:
-   - whether `discord.com/channels` links open inside the app (desktop and mobile);
-   - audio unlock, picture-in-picture, presence and screen readers;
-   - mobile portrait, and the username title with a long name at phone width;
-   - text shown at once: whether the sea lion's strike lands after the reading time;
-   - the platform report for Windows desktop, web, iOS and Android (P40: launch time, layouts, the launch notice and
-     the Activities permission).
-3. **Not built yet** (P41), both part of the approved design:
-   - moving a run in progress in a channel into the Activity at the same step (today the Activity tells the member to
-     finish in their channel);
-   - the text version reachable from the rules post, sharing the same run (D5's route for clients that cannot open
-     Activities).
-4. **Tester acceptance** on every platform: sign-in, every stop, Whitelist and the door ("Deploying" step 4 in
-   [the Activity doc](shuttle-activity.md)).
-5. **The opening** ("Deploying" step 5, its own recorded approval):
-   - set the runtime configuration's `activity.status` to `open`. This is a configuration change: the source-only
-     deployment scripts refuse it (they check that the configuration is unchanged), so it needs its own prepared and
-     reviewed procedure;
-   - the ticket switch happens here, not before: new Shuttle runs stop opening a ticket channel (decision of
-     22 October). Runs already in a channel keep their channel rules;
-   - post the launch post in the rules channel.
-6. **Candidates for a later pass,** recorded but not approved: auto mode, skipping pages already read, small choices
-   that gate nothing.
+## How to work
 
-## Beyond the test Discord: owner decisions needed
+### Tests
 
-"Deploying to the server" may mean more than the opening. The records say:
+Run `npm test`, `npm run check` and `npm run test:storage:fast` (isolated PostgreSQL), and record the actual counts. For
+a small edit, run only the affected test files. Last full run: 931 unit tests and 1058 storage tests passed.
 
-- Sophie is not in the main Aphelion server. The workplan's release status is that **all production release gates
-  remain open**, and the cutover tasks (P30 pilot and cutover ledger, P31 cutting over administrative
-  responsibilities) have not started.
-- A separate testing application is planned "down the road" (21 October). Until then the tester gate is the only
-  protection.
+### Install (production, source-only)
 
-Ask the owner what the deployment covers: which guild, what moves when, role and channel IDs, and the cutover order.
-Then record the answers before acting. Do not infer any of these.
+1. Copy the last packet folder's scripts and JSON into `deployment-<sha>-production-<date>`.
+2. Run `git archive --format=zip -o source-<sha>.zip <sha> -- apps contracts modules platform legal content/shuttle-activity
+   package.json package-lock.json LICENSE`, then unzip it into `pinned/source`.
+3. Adapt the scripts, replacing the identifiers in order: the full commit hashes first, then the short hashes and
+   folder names.
+4. Set the reviewed file list and count (`git diff --name-only <installed> <sha> -- …`), the migrations added and their
+   count, and `migrate-production.mjs` / `revert-migration.mjs`.
+5. **A migration that adds a table must grant it** like `shuttle_activity_runs` in `migrate-production.mjs`, or core will
+   not start.
+6. Rehearse the migration and its revert on a synthetic cluster (`scripts/lib/postgres-test-cluster.mjs`).
+7. Run `prepare.mjs` (read-only against production).
+8. Write `approval.json` quoting the owner.
+9. Run `run-deployment.ps1` elevated and unsandboxed (`Start-Process pwsh -Verb RunAs`, then wait for `run.exit`).
+10. If the public check sees 503 in the first minute, run `verify-public.mjs` again before calling it failed.
 
-## How to work on the Activity
+`rollback.ps1` restores the preserved installation; `revert-migration.mjs` undoes that release's migration.
 
-- **Copy:** edit `content/onboarding/story.md`, then `node scripts/build-onboarding-story.mjs` (definition, draft and
-  preview). `tests/onboarding-story.test.js` holds the meaning checklist.
-- **Moments** (beats, page breaks, reveal phrases): `scripts/author-shuttle-viewscreens.mjs` writes
-  `content/shuttle-activity/moments.json`.
-- **Scenes:** `scripts/author-shuttle-scenes.mjs` writes `content/shuttle-activity/scenes/*.json`. The format and
-  each scene's staging are in [the scenes doc](shuttle-activity-scenes.md). The staging lint
-  (`tests/shuttle-staging-lint.test.js`) must stay clean.
-- **Scratch tools** (not in the repository) are in `GitHub/.agent_docs/aphelion-sophie/shuttle-activity-tools/`. Run
-  them from the repository root:
-  - `dump.mjs <scene> <layout> <time> '<stateJson>' [rows]` prints a composed scene as text;
-  - `audit-overlap.mjs [scene]` is the walk-behind audit;
-  - `audit-collisions.mjs [scene]` finds layers overwriting each other;
-  - `hidden.mjs <scene> <layout> <sprite> '<stateJson>'` shows where a sprite is hidden;
-  - `who.mjs <scene> <layout> <x> <y>` names the actor that paints a cell;
-  - `adapt-deployment-a0eb904.cjs` is the last deployment adapter, the template for the next.
-- **Tests:** `npm test`, `npm run check` and `npm run test:storage:fast` (isolated PostgreSQL). Record the actual
-  counts.
-- **Install (source-only).**
-  1. Create `GitHub/.agent_docs/aphelion-sophie/deployment-<sha>-<date>` and copy the previous folder's `*.ps1`,
-     `*.mjs`, `activity-configuration.json` and `processing-policy.json`.
-  2. Run `git archive --format=zip -o source-<sha>.zip <sha> -- apps contracts modules platform legal
-     content/shuttle-activity package.json package-lock.json LICENSE`, then unzip it into `pinned/source`.
-  3. Adapt the scripts with a copy of the last adapter (commits, the reviewed file list and count, the backup name,
-     the release name, the served-file checks), and write `approval.json` quoting the owner's approval.
-  4. Run `run-deployment.ps1` in an elevated, unsandboxed PowerShell (the sandbox cannot read `C:\Aphelion`), then
-     `node verify-public.mjs`. `rollback.ps1` in the folder restores the preserved installation.
-- **Publish the story** with the host-only command (details in [publishing](shuttle-publishing.md)). Run
-  `C:\Aphelion\Sophie\package\runtime\node.exe C:\Aphelion\Sophie\package\source\apps\core\shuttle-publishing.mjs`
-  with `--config C:\Aphelion\Sophie\staging\runtime.json --database C:\Aphelion\Sophie\staging\core.json
-  --confirm-guild <guildId> --author <ownerUserId>`, both read from `C:\Aphelion\Sophie\staging\bootstrap-seed.json`:
-  1. `status`;
-  2. `save --document <folder>\story-draft.json` (the committed draft, copied into the deployment folder);
-  3. `publish --revision N --sha256 H --expect-version <current> --expect-status published`;
-  4. recompute both hashes from the committed draft with `canonicalOnboardingDraft`, `reviewOnboardingDraft` and
-     SHA-256 of their JSON, and record them.
-- **After each milestone:** update `docs/workplan.json` and run `node scripts/build-workplan.mjs`; update
-  `docs/verification.md`, the decision log and the status section of [the Activity doc](shuttle-activity.md).
+### Read-only production queries
+
+Use `C:\Aphelion\Sophie\production\owner.json` inside `BEGIN READ ONLY`. Print counts and fixed fields, never member
+text.
+
+### The Activity
+
+- **Copy:** edit `content/onboarding/story.md`, then run `node scripts/build-onboarding-story.mjs`.
+- **Moments:** `scripts/author-shuttle-viewscreens.mjs`.
+- **Scenes:** `scripts/author-shuttle-scenes.mjs`. The staging lint must stay clean.
+- **Scratch tools:** `GitHub/.agent_docs/aphelion-sophie/shuttle-activity-tools/`.
+- **Publishing the story:** see [publishing](shuttle-publishing.md). Its paths were written for the staging install; check
+  them against the production files before publishing.
+
+### After each milestone
+
+Update `docs/workplan.json` and run `node scripts/build-workplan.mjs`. Then update `docs/verification.md`, the decision
+log and this page.
 
 ## Gotchas
 
-- **The browser pane crashed the desktop app** when a new tab was created and resized. Prefer text dumps of composed
-  scenes, and do not open or resize new preview tabs.
-- **Shell escapes:** Bash heredocs and inline `node -e` on this host can collapse backslashes and turn `\u0000` into
-  raw bytes. Use the Write and Edit tools (or `String.fromCharCode(92)`) for backslash-heavy edits.
-- **`SERVICE_CHILD_STILL_RUNNING`:** an install can refuse before writing anything if a child process outlives the
-  2-second check after the stop. Confirm no core or worker process is left, then run the same folder again.
-- **Vendored files:** the repository ignores `dist/`. A test now checks that every vendored SDK file is tracked; keep it.
-- **Run versions:** a published copy reaches new runs only.
+- **Bash heredocs on this host collapse backslashes**, quoted or not, and `node -e` does too. Write any code or text with
+  a backslash using the Write or Edit tool. This bit three times on 30 October.
+- **PostgreSQL stores jsonb keys in its own order.** Compare JSON values with keys sorted (`canonicalJson` in the module),
+  never as raw text.
+- **Fake transports in tests skip the real payload checks.** Run rendered text through the real transport (MR-28 does) when
+  wording changes.
+- **Changing production capability grants** needs a `capabilityPolicy.version` bump, or every authorization fails.
+- **Installs:** `SERVICE_CHILD_STILL_RUNNING` means a child process outlived the stop. Confirm none is left, then run the
+  same folder again.
+- **An install restarts core** and interrupts anyone in the Shuttle. Check that no run is active first: a read-only query
+  of runs with recent attention, and ask the owner.
+- **The browser pane crashed the desktop app** when a new tab was created and resized. Use text dumps instead.
+- **The repository ignores `dist/`.** A test checks that every vendored SDK file is tracked; keep it.
+- **A published story reaches new runs only.**
 
-## Standing rules for this work
+## Standing rules
 
-- No AI anywhere in the Shuttle or tickets. Synthetic data only in tests, fixtures and screenshots.
-- The member's Discord username (title window) and boarding pass are shown only to them, never stored or logged.
-- Never print Discord or Cloudflare tokens or other secrets. When the owner supplies a Cloudflare token, use it only in
-  request headers, and touch no tunnel, rule, DNS record or R2 secret beyond the approved change.
-- Production and test-Discord installs, publications, service changes and the opening each need a recorded owner
-  approval. Approval for one step does not carry over to the next.
-- New dependencies must be MIT unless a scope decision is recorded. SS13 is shared culture only; no SS13 sprite or
-  sound is copied. Sophie is never depicted.
+- No AI anywhere in the Shuttle, tickets or member records. Use synthetic data only in tests, fixtures and screenshots.
+- The member's username on the Shuttle title window and their boarding pass are shown only to them, never stored or
+  logged.
+  - Member records deliberately store names, for search (owner decision of 30 October).
+- Never print Discord or Cloudflare tokens or other secrets.
+- New dependencies must be MIT unless a scope decision is recorded.
+- SS13 is shared culture only; no SS13 sprite or sound is copied.
+- Sophie is never depicted.
