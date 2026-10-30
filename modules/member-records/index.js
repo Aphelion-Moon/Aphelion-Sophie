@@ -119,6 +119,13 @@ export function recordTags({ present, roles, watch = false }) {
 const ROLE_KEYS = ['crew', 'whitelist', 'muzzled', 'staff', 'leadOps'];
 const EARLIER_NAMES_KEPT = 20;
 
+/** JSON text with object keys sorted, so equal values compare equal whatever order their keys came in. */
+function canonicalJson(value) {
+  const sort = item => Array.isArray(item) ? item.map(sort) : item !== null && typeof item === 'object'
+    ? Object.fromEntries(Object.keys(item).sort().map(key => [key, sort(item[key])])) : item;
+  return JSON.stringify(sort(value));
+}
+
 /** How the member is named in a name-change entry: `Display (@username)`, or `@username`. */
 function shownName(username, displayName) {
   const user = cleanLine(username, 40) || 'unknown', shown = cleanLine(displayName, 60);
@@ -172,7 +179,9 @@ export function observeMember(profile, observation, atMs, { whitelistBySophie = 
       next.username = username; next.displayName = displayName;
     }
   }
-  return { profile: next, events, changed: JSON.stringify(next) !== JSON.stringify(profile) };
+  // Compared with keys in a fixed order: PostgreSQL stores JSON objects in its own key order, so the stored profile and the
+  // one built here can differ in order alone (seen in production, 30 October 2026: every check touched every record).
+  return { profile: next, events, changed: canonicalJson(next) !== canonicalJson(profile) };
 }
 
 // ---------------------------------------------------------------------------------------------------------------------

@@ -42,6 +42,14 @@ test('MR-16 a member change becomes the next profile and its entries', () => {
   assert.equal(renamed.profile.username, 'vexy'); assert.equal(renamed.profile.displayName, 'Captain Vex');
 });
 
+test('MR-16b a profile read back from PostgreSQL, keys in its own order, is not a change', () => {
+  // jsonb orders keys by length, then bytes: roles come back as crew, staff, leadOps, muzzled, whitelist.
+  const stored = { note: null, roles: { crew: true, staff: false, leadOps: false, muzzled: false, whitelist: true }, present: true, username: 'vexthecat',
+    joinCount: null, joinedAtMs: AT - 1e9, displayName: 'Vex', earlierNames: [], lastLeftAtMs: null };
+  const seen = observeMember(stored, { present: true, roles: { crew: true, whitelist: true }, username: 'vexthecat', globalName: 'Vex', nick: null }, AT);
+  assert.deepEqual(seen.events, []); assert.equal(seen.changed, false);
+});
+
 test('MR-17 entries, rejoins and changelog lines read plainly and link to the entry', () => {
   assert.equal(entryText({ kind: 'joined', atMs: AT, joinCount: null }), '**Joined** · 30 Oct 2026, 15:00 UTC · rejoined (earlier joins not recorded)');
   assert.equal(entryLabel({ kind: 'joined', joinCount: null }), 'Joined · rejoined (earlier joins not recorded)');
