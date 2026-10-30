@@ -124,7 +124,7 @@ test('MR-10 the header summarises the member within one message', () => {
     shuttle: { startedAtMs: APPROVED - 3_130_000, completedAtMs: APPROVED, timing: { focusedMs: 845_000, pages: 23, wallMs: 3_130_000, fromStop: 0 } },
     application: { approvedAtMs: APPROVED, birth: interpretBirth('04/1998', APPROVED), games: interpretGameNames('BYOND: Vex Wolf, SS14: VexWolf') },
   });
-  assert.ok(header.startsWith('## Vex (@vexthecat)\n'));
+  assert.ok(header.startsWith('## Vex (\\@vexthecat)\n'), 'the @ is escaped, so a name never reads as a mention');
   for (const part of [`<@${USER}>`, `\`${USER}\``, '**Status:** In server · Crew · Whitelisted', '· first join', '14m 05s focused (52m 10s from boarding) · 23 pages, average 37s a page',
     '2 mutes on record', '**Born:** 04/1998 (28 at approval)', '**Earlier names:** oldvex', 'SS13, Meridian Rift: vexwolf \\(written Vex Wolf\\) (given on application)',
     'SS14, Wolfgate: VexWolf (given on application)'])
@@ -135,7 +135,7 @@ test('MR-10 the header summarises the member within one message', () => {
 test('MR-11 a backfilled header says what it could not know', () => {
   const header = renderHeader({ ...base, displayName: 'vexthecat', joinCount: null, mutes: null, roles: { crew: true, staff: true, leadOps: true },
     note: 'Joined before records began: join date from Discord, earlier events not recorded.' });
-  assert.ok(header.startsWith('## @vexthecat\n'));
+  assert.ok(header.startsWith('## \\@vexthecat\n'));
   for (const part of ['earlier joins not recorded', '**Moderation:** not read yet', '**Born:** no application on record', 'In server · Crew · Staff · Lead Ops',
     'SS13, Meridian Rift: not on record', '-# Joined before records began'])
     assert.ok(header.includes(part), part);
@@ -146,7 +146,7 @@ test('MR-11 a backfilled header says what it could not know', () => {
     .includes(`**Shuttle:** boarded ${stamp(old)}, not finished`));
   assert.ok(renderHeader(base).includes('**Shuttle:** no Activity run on record'));
   const hostile = renderHeader({ ...base, displayName: '# @everyone **x**', earlierNames: Array.from({ length: 50 }, (_, i) => `n${i}${'x'.repeat(60)}`) });
-  assert.ok(hostile.startsWith('## \\# \\@everyone \\*\\*x\\*\\* (@vexthecat)') && hostile.length <= MESSAGE_MAX);
+  assert.ok(hostile.startsWith('## \\# \\@everyone \\*\\*x\\*\\* (\\@vexthecat)') && hostile.length <= MESSAGE_MAX);
 });
 
 test('MR-12 the ledger lists entries newest first as links and stays within one message', () => {

@@ -291,8 +291,15 @@ export function createCoreStore({ pool, clock, authorize, authorizeRecorded = as
           if (whitelistNotices && (confirm || job.dispatch_started)) await enqueue(client, { kind: 'whitelist.notice',
             operationId: `${claim.operationId}.notice`, guildId: member.guildId, userId: member.userId, sessionId: session.id, timing });
           // The same grant is an entry in the member's record (owner decisions, 30 October 2026).
-          if (memberRecords && (confirm || job.dispatch_started)) await recordSophieWhitelist(client, { guildId: member.guildId, userId: member.userId,
-            operationId: claim.operationId, atMs: clock(), timing });
+          // In its own savepoint: a member records failure must never fail the member's Whitelist confirmation (audit,
+          // 30 October 2026); the entry is then missing, and the regular check still sees the role.
+          if (memberRecords && (confirm || job.dispatch_started)) {
+            await client.query('SAVEPOINT member_record_whitelist');
+            try {
+              await recordSophieWhitelist(client, { guildId: member.guildId, userId: member.userId, operationId: claim.operationId, atMs: clock(), timing });
+              await client.query('RELEASE SAVEPOINT member_record_whitelist');
+            } catch { await client.query('ROLLBACK TO SAVEPOINT member_record_whitelist'); }
+          }
           return { deliver: false, confirmed: true, session: complete };
         }
         // Revalidate the fence after lock waits and mark the possible external effect durably.

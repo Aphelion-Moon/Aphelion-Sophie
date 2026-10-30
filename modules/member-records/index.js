@@ -383,7 +383,8 @@ export function renderHeader(record) {
   requireId(record.userId);
   const user = cleanLine(record.username, 40) || 'unknown';
   const shown = cleanLine(record.displayName, 60);
-  const heading = shown && shown.toLowerCase() !== user.toLowerCase() ? `${literal(shown)} (@${literal(user)})` : `@${literal(user)}`;
+  // The @ is escaped with the name, so a username such as "heretic" never reads as @here (audit, 30 October 2026).
+  const heading = shown && shown.toLowerCase() !== user.toLowerCase() ? `${literal(shown)} (${literal(`@${user}`)})` : literal(`@${user}`);
   const roles = record.roles ?? {};
   const status = [record.present ? 'In server' : 'Left or removed', roles.crew && 'Crew', roles.whitelist && 'Whitelisted',
     roles.muzzled && 'Muzzled', roles.staff && 'Staff', roles.leadOps && 'Lead Ops'].filter(Boolean).join(' · ');
@@ -446,6 +447,9 @@ export const RESERVED = Object.freeze({
   games: '-# Reserved by Sophie: game records for Meridian Rift (SS13) and Wolfgate (SS14).',
   spare: '-# Reserved by Sophie.',
 });
+
+/** A continuation message a shorter, newer application no longer needs. */
+export const APPLICATION_UNUSED = '-# Reserved by Sophie: no longer used; the application above is shorter. The earlier one is kept as an entry below.';
 
 /** The application slot when Discord does not let Sophie read approved applications. */
 export const APPLICATION_UNAVAILABLE = '-# Reserved by Sophie: the access application. Not available yet: Discord does not let Sophie read approved applications.';
@@ -577,8 +581,9 @@ export function entryText(event, context = {}) {
       const added = event.added ?? [], removed = event.removed ?? [];
       const brief = (event.touched ?? []).filter(id => !added.includes(id) && !removed.includes(id));
       return fit([`**Roles changed** · ${at}${event.noticed ? ' (found by Sophie\'s check; she was offline when it happened)' : ''}${span} · ${by}`,
-        ...(added.length ? [`Added: ${names(added)}`] : []), ...(removed.length ? [`Removed: ${names(removed)}`] : []),
-        ...(brief.length ? [`Added and removed again: ${names(brief)}`] : []), ...(!added.length && !removed.length && !brief.length ? ['-# No change in the end.'] : [])]);
+        // Each list is cut to fit one message, however many roles changed at once (audit, 30 October 2026).
+        ...(added.length ? [`Added: ${cut(names(added), 550)}`] : []), ...(removed.length ? [`Removed: ${cut(names(removed), 550)}`] : []),
+        ...(brief.length ? [`Added and removed again: ${cut(names(brief), 550)}`] : []), ...(!added.length && !removed.length && !brief.length ? ['-# No change in the end.'] : [])]);
     }
     default: throw new Error('MEMBER_RECORD_EVENT_UNKNOWN');
   }
@@ -607,10 +612,20 @@ export function entryLabel(event) {
 }
 
 /** Someone's text as a literal block quote, in pieces that each fit a message with room to spare. */
+const QUOTE_PIECE_MAX = 1_900;
 function quotedPieces(text) {
-  const pieces = [], characters = [...String(text ?? '')];
-  // Escaping can double the length, so raw pieces stay under half a message.
-  for (let start = 0; start < characters.length; start += 850) pieces.push(literal(characters.slice(start, start + 850).join('')).split('\n').map(line => `> ${line}`).join('\n'));
+  const quote = raw => literal(raw).split('\n').map(line => `> ${line}`).join('\n');
+  // Escaping and the quote marks can more than double the length (one emoji per line did, audit of 30 October 2026), so
+  // each piece is measured after quoting and halved until it fits.
+  const pieces = [];
+  const place = characters => {
+    const quoted = quote(characters.join(''));
+    if (quoted.length <= QUOTE_PIECE_MAX || characters.length <= 1) { if (quoted.trim() !== '>') pieces.push(quoted.slice(0, QUOTE_PIECE_MAX)); return; }
+    const middle = Math.ceil(characters.length / 2);
+    place(characters.slice(0, middle)); place(characters.slice(middle));
+  };
+  const characters = [...String(text ?? '')];
+  for (let start = 0; start < characters.length; start += 850) place(characters.slice(start, start + 850));
   return pieces.length ? pieces : ['> *(no text)*'];
 }
 
@@ -683,7 +698,7 @@ export function changelogLine(event, { guildId, userId, username, threadId, mess
  */
 export const CHANGELOG_OPENING = [
   '## Sophie\'s changelog',
-  'Every automatic update Sophie makes to the member records appears here as it happens, newest at the bottom, each with a link to the entry in that member\'s post.',
+  'Every automatic update Sophie makes to the member records appears here, newest at the bottom, each with a link to the entry in that member\'s post.',
   '',
   '### Each member\'s post',
   '- **Header**, kept up to date: names and Discord ID, account age, status (in server or left, Crew, Whitelisted, Muzzled, Staff, Lead Ops), join date and count, last leave, Shuttle run and reading time, mutes on record, birth month and year and game accounts (from the application), earlier names, current roles.',
@@ -704,7 +719,7 @@ export const CHANGELOG_OPENING = [
   '',
   '### Good to know',
   '- Sophie checks the member list when she starts and every 6 hours, catching joins, leaves and changes made while she was offline, and opens records for people who have left that she can name.',
-  '- She keeps message text for 30 days and who wrote each message for a year, never from tickets.',
+  '- She keeps message text for 30 days and who wrote each message for a year, never from tickets. A deleted or edited message entered in a post stays with that record.',
   '- Staff discussion in a member\'s post is copied into Sophie\'s records. No AI reads any of it.',
-  '-# Kept by Sophie. Staff can reply here, but replies will end up between her entries.',
+  '-# Kept by Sophie; replies here end up between her entries.',
 ].join('\n');

@@ -265,7 +265,15 @@ export function createMemberRecordDispatcher({ store, transport: discord, botUse
         }
         applicationHashes[index] = appHashes[index]; await step();
       }
-      delivered.application = applicationHashes.slice(0, appMessages.length);
+      // A shorter application than before leaves continuation messages it no longer needs: they say so rather than keep
+      // the earlier text (the earlier application is kept as its own entry).
+      for (let index = appMessages.length; index < 9; index += 1) {
+        const slot = `application${index + 1}`;
+        if (!messages[slot] || applicationHashes[index] === sha(records.APPLICATION_UNUSED)) continue;
+        await transport.editMemberRecordMessage(threadId, messages[slot], records.APPLICATION_UNUSED);
+        applicationHashes[index] = sha(records.APPLICATION_UNUSED); await step();
+      }
+      delivered.application = applicationHashes;
       const applicationEvents = events.filter(event => event.kind === 'application' && !event.messageId);
       if (application?.status === 'found' && applicationEvents.length) {
         for (const event of applicationEvents) event.messageId = messages.application;
@@ -285,9 +293,16 @@ export function createMemberRecordDispatcher({ store, transport: discord, botUse
         const context = event.kind === 'left' && Array.isArray(event.detail.recent) ? { guildId, recent: await linkable(event.detail.recent) }
           : event.kind === 'message.deleted' ? { guildId, deletedBy: await deletedBy(entryOf(event), userId, audit) }
           : event.kind === 'roles.changed' ? { guildId, roleNames: (await roleNames()).names, changedBy: changedBy(entryOf(event), userId, roleAudit) } : { guildId };
-        const [first, ...rest] = records.entryParts(entryOf(event), context);
-        event.messageId = await post(threadId, `entry.${event.eventId}`, first);
-        for (const [index, text] of rest.entries()) await post(threadId, `entry.${event.eventId}.${index + 2}`, text);
+        // Every part is checked against Discord's limit before any is sent, and each part's message is recorded as soon as it
+        // is posted, so a part that fails is tried again without posting the earlier ones twice (audit, 30 October 2026).
+        const parts = records.entryParts(entryOf(event), context).map(text => text.length <= records.MESSAGE_MAX ? text : `${text.slice(0, records.MESSAGE_MAX - 2)} …`);
+        const postedParts = Array.isArray(event.detail.postedParts) ? [...event.detail.postedParts] : [];
+        for (const [index, text] of parts.entries()) {
+          if (postedParts[index]) continue;
+          postedParts[index] = await post(threadId, index === 0 ? `entry.${event.eventId}` : `entry.${event.eventId}.${index + 1}`, text);
+          if (index < parts.length - 1) await store.progress(lease, { entryParts: { [event.eventId]: postedParts } });
+        }
+        event.messageId = postedParts[0];
         await store.progress(lease, { entries: { [event.eventId]: event.messageId } }); await step();
       }
       const ledger = ledgerOf();

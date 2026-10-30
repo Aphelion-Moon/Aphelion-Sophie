@@ -189,18 +189,6 @@ export function createGatewayJournal({ pool, mapping, clock, caseCapture = null,
           epoch: Number(row.continuity_epoch), sequence });
         if (automationMessage !== null && row.status === 'current' && row.guild_available) await automation.record(client,
           {proof:automationMessage,epoch:Number(row.continuity_epoch),sequence});
-        if (memberRecord !== null) {
-          await client.query('SAVEPOINT member_record');
-          try {
-            await recordMemberRecordObservation(client, { guildId: fixed.guildId, mapping: fixed, event: memberRecord,
-              epoch: Number(row.continuity_epoch), sequence, observedAt, protectedCategoryId: memberRecords.protectedCategoryId ?? null });
-            await client.query('RELEASE SAVEPOINT member_record');
-          } catch (error) {
-            await client.query('ROLLBACK TO SAVEPOINT member_record');
-            try { onMemberRecordFault(typeof error?.code === 'string' && /^[A-Z0-9_]{1,64}$/u.test(error.code) ? error.code : 'MEMBER_RECORD_OBSERVATION_FAILED'); }
-            catch { /* Reporting never affects the Gateway. */ }
-          }
-        }
         let available = row.guild_available;
         if (normalized.kind === 'member') {
           const member = await lockMember(client, fixed.guildId, normalized.userId);
@@ -232,6 +220,20 @@ export function createGatewayJournal({ pool, mapping, clock, caseCapture = null,
           }
           if (!normalized.present || normalized.bot) await caseInspections(client, { userId: normalized.userId, source: `event.${row.continuity_epoch}.${sequence}` });
           if (normalized.userId === fixed.botUserId) await markCaseCapturePermissions(client, fixed.guildId, { from: observedAt });
+        }
+        // Member records come after the member row above is locked, the same order as Sophie's Whitelist confirmation
+        // (members, then member_records), so the two never deadlock (audit, 30 October 2026).
+        if (memberRecord !== null) {
+          await client.query('SAVEPOINT member_record');
+          try {
+            await recordMemberRecordObservation(client, { guildId: fixed.guildId, mapping: fixed, event: memberRecord,
+              epoch: Number(row.continuity_epoch), sequence, observedAt, protectedCategoryId: memberRecords.protectedCategoryId ?? null });
+            await client.query('RELEASE SAVEPOINT member_record');
+          } catch (error) {
+            await client.query('ROLLBACK TO SAVEPOINT member_record');
+            try { onMemberRecordFault(typeof error?.code === 'string' && /^[A-Z0-9_]{1,64}$/u.test(error.code) ? error.code : 'MEMBER_RECORD_OBSERVATION_FAILED'); }
+            catch { /* Reporting never affects the Gateway. */ }
+          }
         }
         if (['authority', 'role'].includes(normalized.kind)) {
           await markCaseCapturePermissions(client, fixed.guildId, { from: observedAt });

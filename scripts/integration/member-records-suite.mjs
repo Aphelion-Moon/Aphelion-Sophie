@@ -30,7 +30,11 @@ function simulatedForum() {
   const threads = new Map([[CHANGELOG, { name: 'Sophie\'s changelog', tags: [], archived: true, ownerId: BOT, messages: [] }]]);
   const calls = [];
   let failNext = null, approved = [];
-  const failing = (method, effect = false) => { if (failNext?.method !== method) return null; const fault = failNext; failNext = null; return { ...fault, effect }; };
+  const failing = (method, effect = false) => {
+    if (failNext?.method !== method) return null;
+    if (failNext.skip) { failNext.skip -= 1; return null; }
+    const fault = failNext; failNext = null; return { ...fault, effect };
+  };
   const error = code => Object.assign(new Error(code), { code });
   const open = threadId => { const thread = threads.get(threadId); if (!thread) throw error('DISCORD_RESOURCE_MISSING'); if (thread.archived) throw error('DELIVERY_UNCERTAIN'); return thread; };
   const transport = {
@@ -145,7 +149,7 @@ export async function runMemberRecordsSuite(cluster, run) {
     const [threadId, post] = posts[0];
     assert.equal(post.name, `vexthecat · Vex · ${USER}`); assert.deepEqual(post.tags, [TAG_IDS['In server']]); assert.equal(post.archived, true);
     const contents = post.messages.map(message => message.content);
-    assert.match(contents[0], /^## Vex \(@vexthecat\)/); assert.match(contents[0], /\*\*Born:\*\* 04\/1998/); assert.match(contents[0], /SS13, Meridian Rift: vexcat/);
+    assert.ok(contents[0].startsWith('## Vex (\\@vexthecat)')); assert.match(contents[0], /\*\*Born:\*\* 04\/1998/); assert.match(contents[0], /SS13, Meridian Rift: vexcat/);
     assert.match(contents[1], /^\*\*Ledger\*\* · 2 automatic entries/);
     assert.match(contents[2], /^\*\*Access application\*\* · approved/); assert.match(contents[2], /04\/1998/);
     assert.match(contents[3], /Reserved by Sophie: game records/); assert.equal(contents[4], '-# Reserved by Sophie.');
@@ -286,7 +290,7 @@ export async function runMemberRecordsSuite(cluster, run) {
     await drain();
     assert.deepEqual(forum.calls.filter(([kind]) => kind === 'thread').map(([, name]) => name), [`newcomer · ${FOURTH}`, `quiet · ${THIRD}`], 'the live join first; the Staff post is not opened again');
     const adopted = forum.threads.get(staffPost);
-    assert.match(adopted.messages[0].content, /^## @staffer/); assert.match(adopted.messages[0].content, /Opened in the Staff test run/);
+    assert.ok(adopted.messages[0].content.startsWith('## \\@staffer')); assert.match(adopted.messages[0].content, /Opened in the Staff test run/);
     assert.match(adopted.messages[1].content, /^\*\*Ledger\*\* · 1 automatic entry/); assert.equal(adopted.messages[2].content, '-# Reserved by Sophie: the access application. None on record: Discord holds no approved application for this member.');
     assert.equal(adopted.messages.length, 6, 'nothing new posted in the adopted post'); assert.equal(adopted.archived, true);
     const quiet = forum.posts().find(([, post]) => post.name.startsWith('quiet'))[1];
@@ -494,5 +498,36 @@ export async function runMemberRecordsSuite(cluster, run) {
     assert.equal((await rows('member_records'))[0].background, true, 'filled in by the check: background');
     now += 1_000; await join(THIRD, 'newcomer'); await drain();
     assert.ok(forum.calls.filter(([kind]) => kind === 'thread').at(-1)[1].startsWith('newcomer'), 'the newcomer was served');
+  });
+
+  await scenario('MRS-14 a multi-part entry whose later part fails is finished without posting its first part again; a shorter application frees old messages', async () => {
+    // A long application first: its transcription takes two messages.
+    forum.approve([{ ...application(), formResponses: [...application().formResponses,
+      { field_type: 'PARAGRAPH', label: 'How did you find us?', response: 'word '.repeat(500), choices: [] }] }]);
+    await join(USER, 'vexthecat'); await drain();
+    const [threadId, post] = forum.posts()[0];
+    const [record] = await rows('member_records'); assert.ok(record.messages.application2, 'a continuation message');
+    await store.recordChannels(await forum.transport.getRecordChannelMap());
+    now += 1_000; await send('MESSAGE_CREATE', { guild_id: GUILD, channel_id: GENERAL, id: '100000000000000901', content: 'line\n'.repeat(700),
+      author: { id: USER, username: 'vexthecat' }, attachments: [], timestamp: new Date(now).toISOString() });
+    now += 1_000; await send('MESSAGE_DELETE', { guild_id: GUILD, channel_id: GENERAL, id: '100000000000000901' });
+    now += 20_000; await due();
+    forum.fail({ method: 'post', code: 'DELIVERY_UNCERTAIN', skip: 1 });
+    assert.deepEqual((await drain()).map(result => [result.status, result.code]), [['retry', 'DELIVERY_UNCERTAIN']]);
+    const [waiting] = (await rows('member_record_events')).filter(event => event.kind === 'message.deleted');
+    assert.equal(waiting.message_id, null); assert.equal(waiting.detail.postedParts.length, 1, 'the first part is recorded');
+    await due(); await drain();
+    const firsts = post.messages.filter(message => message.content.startsWith('**Message deleted**'));
+    assert.equal(firsts.length, 1, 'the first part was not posted again');
+    const at = post.messages.indexOf(firsts[0]);
+    assert.ok(post.messages.slice(at + 1).length >= 1 && post.messages.slice(at).every(message => message.content.length <= 2_000));
+    // A rejoin with a short application: message 3 is replaced and the continuation says it is no longer used.
+    now += 60_000; await leave(USER, 'vexthecat'); await drain();
+    forum.approve([{ ...application(), id: '100000000000000624', reviewedAtMs: now }]);
+    now += 60_000; await join(USER, 'vexthecat'); await drain();
+    const continuation = post.messages.find(message => message.id === record.messages.application2);
+    assert.ok(continuation.content.startsWith('-# Reserved by Sophie: no longer used'), continuation.content);
+    assert.ok(post.messages.some(message => message.content.startsWith('**Earlier access application**')));
+    assert.ok(!post.messages[1].content.includes(`/${threadId}/${record.messages.application2})`), 'the ledger no longer links it');
   });
 }

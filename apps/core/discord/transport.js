@@ -102,7 +102,9 @@ export const memberRecordWriteAllowed = (method, path, body, recordForumId = nul
     Object.keys(body).length > 0 && Object.keys(body).every(key => RECORD_THREAD_FIELDS.includes(key)));
 const QUIET_MENTIONS = JSON.stringify({ parse: [], users: [], roles: [], replied_user: false });
 const SUPPRESS_EMBEDS = 1 << 2;
-const recordText = content => typeof content === 'string' && content.length > 0 && content.length <= 2_000 && !/@(everyone|here)|<@[!&]/u.test(content);
+// An escaped `\@everyone` or `\@here` is plain text (member records quote people's words that way), so only an unescaped one
+// is refused; Discord would not ping either way, as every record message sends no allowed mentions.
+const recordText = content => typeof content === 'string' && content.length > 0 && content.length <= 2_000 && !/(?<!\\)@(everyone|here)|<@[!&]/u.test(content);
 
 export function createDiscordTransport({ guildId, token, fetch, clock, enabled, limits = createDiscordRateLimits(),
   wait = ms => new Promise(resolve => setTimeout(resolve, ms)), scope = 'full', grantRoleIds = [], recordForumId = null }) {
@@ -117,6 +119,8 @@ export function createDiscordTransport({ guildId, token, fetch, clock, enabled, 
   // Reads (GET) queue per rate-limit bucket instead, so independent reads (roles, a member, a channel) overlap rather than
   // each waiting a full round trip; reads of one bucket and all writes stay in order.
   let tail = Promise.resolve(), sent = 0;
+  // Record posts this transport has confirmed are in the records forum (editMemberRecordThread).
+  const recordThreads = new Set();
   const readTails = new Map();
   async function turn(budgetMs, readKey = null) {
     const previous = readKey === null ? tail : readTails.get(readKey) ?? Promise.resolve(); let release;
@@ -461,6 +465,13 @@ export function createDiscordTransport({ guildId, token, fetch, clock, enabled, 
         (body.name === undefined || typeof body.name === 'string' && body.name.length > 0 && body.name.length <= 100) &&
         (body.archived === undefined || typeof body.archived === 'boolean') &&
         (body.applied_tags === undefined || Array.isArray(body.applied_tags) && body.applied_tags.length <= 5 && body.applied_tags.every(id => /^[1-9][0-9]{16,19}$/u.test(id))), 'INVALID_DISCORD_PAYLOAD');
+      // Only a post in the records forum (audit, 30 October 2026): its parent is read once and remembered for this process.
+      if (!recordThreads.has(threadId)) {
+        const channel = await request('GET', `/channels/${threadId}`, 'channel');
+        if (channel === null) return null;
+        requireCondition(channel?.parent_id === recordForumId, 'DISCORD_SCOPE_REFUSED');
+        recordThreads.add(threadId); if (recordThreads.size > 5_000) recordThreads.delete(recordThreads.values().next().value);
+      }
       return request('PATCH', `/channels/${threadId}`, 'record-thread-edit', body, true);
     },
     /** One of Sophie's messages in a member's post or the changelog; the nonce makes a resend one message. */

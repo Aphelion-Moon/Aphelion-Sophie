@@ -270,3 +270,45 @@ test('MR-27 channel events build the channel map; deletion and edit entries quot
   assert.ok(edited[0].includes('-# Earlier text not kept.') && edited[0].includes('> new'));
   assert.equal(entryLabel({ kind: 'message.deleted', count: 3 }), 'Messages deleted');
 });
+
+test('MR-28 everything Sophie renders passes the real transport check: escaped mentions, long quotes, many roles (audit, 30 October 2026)', async () => {
+  const { entryParts, renderHeader, MESSAGE_MAX } = await import('../modules/member-records/index.js');
+  const sent = [];
+  const transport = createDiscordTransport({ guildId: GUILD, token: 'synthetic-token-not-a-secret-xx', clock: Date.now, enabled: async () => true, scope: 'activity-ai',
+    recordForumId: FORUM, fetch: async (url, init) => { sent.push(JSON.parse(init.body).content); return Response.json({ id: ids(65) }); } });
+  const send = text => transport.createMemberRecordMessage(POST, 'b'.repeat(24), text);
+  // A username that starts with "here" or "everyone".
+  for (const username of ['heretic', 'everyone_else']) {
+    const header = renderHeader({ userId: MEMBER, username, displayName: null, present: true, roles: {}, joinedAtMs: null, joinCount: null, lastLeftAtMs: null,
+      shuttle: null, mutes: 0, application: null, earlierNames: [], note: null, updatedAtMs: AT });
+    await send(header);
+  }
+  // Deleted spam that mentions everyone, and a quote that escaping makes long (one emoji a line).
+  const deletion = (content, count = 1) => entryParts({ kind: 'message.deleted', atMs: AT, channelId: ids(50), count,
+    messages: [{ messageId: ids(60), sentAtMs: AT - 1000, content, attachments: [] }] }, { guildId: GUILD, deletedBy: 'author' });
+  for (const parts of [deletion('@everyone free nitro, @here too'), deletion(Array.from({ length: 425 }, () => '😀').join('\n')), deletion('*_'.repeat(2000))]) {
+    assert.ok(parts.every(part => part.length <= MESSAGE_MAX), JSON.stringify(parts.map(part => part.length)));
+    for (const part of parts) await send(part);
+  }
+  // Sixty roles with long names in one change.
+  const many = Array.from({ length: 60 }, (_, index) => ids(300 + index));
+  const roles = entryText({ kind: 'roles.changed', atMs: AT, added: many, removed: many.slice(0, 30), touched: many },
+    { roleNames: Object.fromEntries(many.map(id => [id, `A rather long role name ${id}`])), changedBy: 'none' });
+  assert.ok(roles.length <= MESSAGE_MAX); await send(roles);
+  // An unescaped mention is still refused.
+  await assert.rejects(send('hello @everyone'), /INVALID_DISCORD_PAYLOAD/);
+  assert.ok(sent.length >= 7);
+});
+
+test('MR-29 a post\'s name, tags or archived state can be changed only for a post in the records forum', async () => {
+  const calls = [];
+  let parent = FORUM;
+  const transport = createDiscordTransport({ guildId: GUILD, token: 'synthetic-token-not-a-secret-xx', clock: Date.now, enabled: async () => true, scope: 'activity-ai',
+    recordForumId: FORUM, fetch: async (url, init) => { calls.push(init.method); return Response.json(init.method === 'GET' ? { id: POST, parent_id: parent } : { id: POST }); } });
+  await transport.editMemberRecordThread(POST, { archived: true });
+  await transport.editMemberRecordThread(POST, { archived: false });
+  assert.deepEqual(calls, ['GET', 'PATCH', 'PATCH'], 'the parent is read once');
+  parent = ids(70);
+  await assert.rejects(transport.editMemberRecordThread(ids(66), { name: 'renamed' }), /DISCORD_SCOPE_REFUSED/, 'a channel outside the forum');
+  assert.equal(calls.filter(method => method === 'PATCH').length, 2);
+});

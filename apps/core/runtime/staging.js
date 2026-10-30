@@ -302,6 +302,8 @@ export async function createStagingRuntime({ configuration, pool, aiControlPool 
   }
   const owner = `staging.${randomUUID()}`;
   let ticking = false, scheduled = false, wakeQueued = false;
+  // Sophie's regular member records check, while one runs (it runs beside the worker loop).
+  let checking = null;
   function tick() {
     if (ticking || !active()) return Promise.resolve();
     ticking = true;
@@ -331,10 +333,12 @@ export async function createStagingRuntime({ configuration, pool, aiControlPool 
           if (recorded?.status === 'retry' && recorded.attempts === 5) fault('MEMBER_RECORD_DELIVERY_FAILING', { code: recorded.code });
         }
         // Sophie's regular records check: at start, then every six hours (owner, 30 October 2026).
-        if (delivery.memberRecordReconciler && active()) {
-          const checked = await delivery.memberRecordReconciler.runDue(owner);
-          if (checked?.status === 'reconciled') trace(`MEMBER_RECORD_CHECK_OPENED_${checked.opened}_CHANGED_${checked.changed}_LEFT_${checked.left}_DEPARTED_${checked.departed}`);
-          if (checked?.status === 'failed') fault('MEMBER_RECORD_CHECK_FAILED', { code: checked.code });
+        // It runs beside the worker loop, not in it, so Whitelist grants never wait for it (audit, 30 October 2026); one at a time.
+        if (delivery.memberRecordReconciler && active() && checking === null) {
+          checking = delivery.memberRecordReconciler.runDue(owner).then(checked => {
+            if (checked?.status === 'reconciled') trace(`MEMBER_RECORD_CHECK_OPENED_${checked.opened}_CHANGED_${checked.changed}_LEFT_${checked.left}_DEPARTED_${checked.departed}`);
+            if (checked?.status === 'failed' && active()) fault('MEMBER_RECORD_CHECK_FAILED', { code: checked.code });
+          }, () => { if (active()) fault('MEMBER_RECORD_CHECK_FAILED'); }).finally(() => { checking = null; });
         }
         return;
       }
@@ -364,7 +368,7 @@ export async function createStagingRuntime({ configuration, pool, aiControlPool 
   }
   async function stop() {
     stopping = true; clearTimeout(timer);
-    const results = await Promise.allSettled([interactions.close(), dashboardListening ? dashboard.close() : undefined, activityListening ? activity.close() : undefined, aiRuntime?.stop(), preferenceExpiry?.stop(), gateway.stop(), workerTask]);
+    const results = await Promise.allSettled([interactions.close(), dashboardListening ? dashboard.close() : undefined, activityListening ? activity.close() : undefined, aiRuntime?.stop(), preferenceExpiry?.stop(), gateway.stop(), workerTask, checking]);
     results.push(...await Promise.allSettled([knowledgeAdministration?.stop()]));
     dashboardListening = false; activityListening = false;
     await gatewayTask;

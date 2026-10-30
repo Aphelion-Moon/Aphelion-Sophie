@@ -338,8 +338,10 @@ export function createMemberRecordStore({ pool, clock, guildId, forumId, changel
           const request = approved.get(userId);
           const application = request ? { status: 'found', requestId: request.id, approvedAtMs: request.reviewedAtMs, approvedBy: request.approvedBy ?? null,
             answers: applicationAnswers(request.formResponses) } : { status: 'none' };
-          await client.query(`INSERT INTO sophie_core.member_records (guild_id, user_id, profile, application, background, opened_at_ms, updated_at_ms)
-            VALUES ($1, $2, $3, $4, true, $5, $5)`, [guildId, userId, profileOf({ ...observation, joinCount: null, note }), application, at]);
+          const inserted = await client.query(`INSERT INTO sophie_core.member_records (guild_id, user_id, profile, application, background, opened_at_ms, updated_at_ms)
+            VALUES ($1, $2, $3, $4, true, $5, $5) ON CONFLICT DO NOTHING`, [guildId, userId, profileOf({ ...observation, joinCount: null, note }), application, at]);
+          // A join the Gateway recorded since the row was read: that record stands, and the run goes on (audit, 30 October 2026).
+          if (!inserted.rowCount) return;
           await insertEvents(client, guildId, userId, [{ eventId: `opened.${userId}`, kind: 'record.opened', atMs: at, detail: { joinedAtMs: member.joinedAtMs } },
             ...(request ? [{ eventId: `application.${request.id}`, kind: 'application', atMs: request.reviewedAtMs, detail: { approvedAtMs: request.reviewedAtMs } }] : [])]);
           counts.opened += 1; return;
@@ -391,7 +393,7 @@ export function createMemberRecordStore({ pool, clock, guildId, forumId, changel
      * Leases the next record with work, live work first. Nothing is claimed while Discord delivery is paused or the
      * Gateway is not current, the same barrier the outbox uses.
      */
-    async claim(owner, leaseMs = 60_000) {
+    async claim(owner, leaseMs = 120_000) {
       requireName(owner); requireInteger(leaseMs, 5_000, 120_000);
       return inTransaction(pool, async client => {
         const delivery = await client.query('SELECT NOT paused AND until_at <= clock_timestamp() AS allowed FROM sophie_core.discord_backoff WHERE singleton');
@@ -431,7 +433,7 @@ export function createMemberRecordStore({ pool, clock, guildId, forumId, changel
       });
     },
     /** Keeps a long convergence's lease. */
-    async renew(lease, leaseMs = 60_000) {
+    async renew(lease, leaseMs = 120_000) {
       requireInteger(leaseMs, 5_000, 120_000);
       return inTransaction(pool, async client => {
         await leased(client, lease);
@@ -444,7 +446,7 @@ export function createMemberRecordStore({ pool, clock, guildId, forumId, changel
      * a creation about to be attempted, Sophie's message for a slot, an entry's message, a changelog line, the
      * application read from Discord (with its event).
      */
-    async progress(lease, { threadId, createStarted, slots, entries, changelog, application, applicationEvent }) {
+    async progress(lease, { threadId, createStarted, slots, entries, changelog, application, applicationEvent, entryParts }) {
       return inTransaction(pool, async client => {
         const row = await leased(client, lease);
         if (createStarted !== undefined) {
@@ -465,6 +467,15 @@ export function createMemberRecordStore({ pool, clock, guildId, forumId, changel
         if (application !== undefined) {
           requireCondition(['found', 'none', 'unavailable'].includes(application?.status), 'MEMBER_RECORD_APPLICATION_INVALID');
           await client.query('UPDATE sophie_core.member_records SET application = $3 WHERE guild_id = $1 AND user_id = $2', [guildId, lease.userId, application]);
+        }
+        // The messages of a multi-part entry posted so far, so a retry continues after them.
+        if (entryParts !== undefined) {
+          requireRecord(entryParts);
+          for (const [eventId, ids] of Object.entries(entryParts)) {
+            requireCondition(EVENT_ID.test(eventId) && Array.isArray(ids) && ids.length <= 20, 'MEMBER_RECORD_EVENT_INVALID'); ids.forEach(id => { if (id) requireId(id); });
+            await client.query(`UPDATE sophie_core.member_record_events SET detail = detail || jsonb_build_object('postedParts', $4::jsonb)
+              WHERE guild_id = $1 AND user_id = $2 AND event_id = $3 AND message_id IS NULL`, [guildId, lease.userId, eventId, JSON.stringify(ids)]);
+          }
         }
         if (applicationEvent !== undefined) await insertEvents(client, guildId, lease.userId, Array.isArray(applicationEvent) ? applicationEvent : [applicationEvent]);
         for (const [column, updates] of [['message_id', entries], ['changelog_message_id', changelog]]) {
