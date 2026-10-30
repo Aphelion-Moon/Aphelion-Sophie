@@ -21,8 +21,8 @@ the state before the install and its "Next" list is done.
 - **Backfill:** run at 15:05 UTC (478 records; 22 Staff posts adopted). Core was still posting them at the time of
   writing, about 6 a minute. Watch it with `$env:TEMP\mr-progress.mjs`-style read-only queries, or
   `member-records-forum-2026-10-30/verify-records.mjs [n]` (GET-only read-back of n delivered posts).
-- **Not installed:** `207a1d1` retries a request the delivery gate refused for a moment (`DISCORD_TRANSPORT_DISABLED`
-  after Sophie's own post). Harmless meanwhile: the record continues on its next attempt.
+- **Not installed:** `207a1d1` and `601d5ad`: retry a request the delivery gate refused for a moment (`DISCORD_TRANSPORT_DISABLED`
+  after Sophie's own post), and treat Discord's rate limit on post creation as a wait. Harmless meanwhile: records continue.
 - **Owner actions:** pin the changelog post (Sophie's pin was refused: no Manage Threads); decide who may set the Watch tag.
 - **Packet:** `.agent_docs/aphelion-sophie/deployment-d8efd40-production-2026-10-30` (template for the next one;
   `rollback.ps1` drops the records tables and restores bbe844c; posts already made stay in Discord).

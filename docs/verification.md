@@ -14,7 +14,8 @@
   every entry posted, linked from the ledger and listed in the changelog).
 - **Seen in production:** a few `MEMBER_RECORD_RETRY code=DISCORD_TRANSPORT_DISABLED`: the delivery gate refuses the
   request after Sophie's own post while its Gateway event is recorded. Nothing is sent twice; the record continues on its
-  next attempt. Fixed in 207a1d1 (not installed).
+  next attempt. Fixed in 207a1d1 (not installed). Discord also rate-limits post creation in the forum (about 30 s at a
+  time); records wait and continue. 601d5ad (not installed) stops those waits counting as failed attempts.
 - **Offline:** `npm test` 923 passed (new MR-16 to MR-23); `npm run check` passed; `test:storage:fast` 1050 passed, 0
   failed (new MRS-01 to MRS-06; SA15 extended). On a synthetic cluster 080 applied, the packet's revert returned the
   database to the 79 migrations bbe844c verifies, and 080 applied again. After the install: 207a1d1's MRS suite 6 passed.

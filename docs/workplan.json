@@ -1992,7 +1992,7 @@
         "Discussion copy into member_record_messages and the AI exclusion of the forum (code check and case exclusions)"
       ],
       "remaining_scope": [
-        "Install 207a1d1: retry requests the delivery gate refused for a moment (seen as DISCORD_TRANSPORT_DISABLED retries during the backfill); needs the owner's approval",
+        "Install 207a1d1 and 601d5ad: retry requests the delivery gate refused for a moment, and treat Discord's rate limit on post creation as a wait (not a failed attempt, no search for a post never made); needs the owner's approval",
         "Pin the changelog post (owner by hand, or Manage Threads for Sophie on the forum)",
         "Watch tag: Lead Ops only, or a later /member watch command (open question)",
         "A rejoin's older application kept as its own entry (today message 3 shows the newest)",
