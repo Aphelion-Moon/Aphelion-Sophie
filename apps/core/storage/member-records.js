@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { requireCondition, requireId, requireInteger, requireName, requireRecord } from '../../../contracts/validation.js';
-import { applicationAnswers, observeMember } from '../../../modules/member-records/index.js';
+import { applicationAnswers, canonicalJson, observeMember, requireGames } from '../../../modules/member-records/index.js';
 import { inTransaction } from './transaction.js';
 
 /**
@@ -385,6 +385,30 @@ export function createMemberRecordStore({ pool, clock, guildId, forumId, changel
       return new Set((await pool.query('SELECT channel_id FROM sophie_core.case_exclusions WHERE guild_id = $1 AND channel_id = ANY($2::text[])',
         [guildId, channelIds])).rows.map(row => row.channel_id));
     },
+    /**
+     * The games feed (owner direction, 31 October 2026): every record's wanted games value from `byUser` (Discord ID to
+     * `{ status: 'linked', servers }`), and `{ status: 'none' }` for a member with no link. Only a record whose value
+     * changed is written and raised, behind live work, so a quiet feed posts nothing.
+     * @returns {Promise<{ changed: number }>}
+     */
+    async setGames(byUser) {
+      requireCondition(byUser instanceof Map, 'MEMBER_RECORD_GAMES_INVALID');
+      for (const [userId, games] of byUser) { requireId(userId); requireGames(games); }
+      const at = clock(); requireInteger(at, 1);
+      const rows = (await pool.query('SELECT user_id, games FROM sophie_core.member_records WHERE guild_id = $1', [guildId])).rows;
+      let changed = 0;
+      for (const row of rows) {
+        const wanted = byUser.get(row.user_id) ?? { status: 'none' };
+        if (row.games !== null && canonicalJson(row.games) === canonicalJson(wanted)) continue;
+        // Raised as touch() raises a background change, but the header's "updated" time is the member's, not the feed's:
+        // left as it is, so a games change edits only the games message.
+        await pool.query(`UPDATE sophie_core.member_records SET games = $3, revision = revision + 1,
+          background = background OR delivered_revision >= revision, due_at = LEAST(due_at, clock_timestamp())
+          WHERE guild_id = $1 AND user_id = $2 AND games IS DISTINCT FROM $3::jsonb`, [guildId, row.user_id, wanted]);
+        changed += 1;
+      }
+      return { changed };
+    },
     /** The member IDs that already have a record, for the backfill. */
     async recordedMembers() {
       return (await pool.query('SELECT user_id FROM sophie_core.member_records WHERE guild_id = $1', [guildId])).rows.map(row => row.user_id);
@@ -428,7 +452,7 @@ export function createMemberRecordStore({ pool, clock, guildId, forumId, changel
         const mutes = Number((await client.query(`SELECT (SELECT COUNT(*) FROM sophie_core.member_actions WHERE guild_id = $1 AND user_id = $2 AND muted)
           + (SELECT COUNT(*) FROM sophie_core.member_record_events WHERE guild_id = $1 AND user_id = $2 AND kind = 'muzzled') AS mutes`, [guildId, lease.userId])).rows[0].mutes);
         return { lease, revision: row.revision, attempts: row.attempts, record: { userId: row.user_id, threadId: row.thread_id, messages: row.messages,
-          profile: row.profile, application: row.application, delivered: row.delivered, createStarted: row.create_started,
+          profile: row.profile, application: row.application, games: row.games ?? null, delivered: row.delivered, createStarted: row.create_started,
           openedAtMs: Number(row.opened_at_ms), updatedAtMs: Number(row.updated_at_ms) }, events, shuttle, mutes };
       });
     },

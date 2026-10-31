@@ -120,7 +120,7 @@ const ROLE_KEYS = ['crew', 'whitelist', 'muzzled', 'staff', 'leadOps'];
 const EARLIER_NAMES_KEPT = 20;
 
 /** JSON text with object keys sorted, so equal values compare equal whatever order their keys came in. */
-function canonicalJson(value) {
+export function canonicalJson(value) {
   const sort = item => Array.isArray(item) ? item.map(sort) : item !== null && typeof item === 'object'
     ? Object.fromEntries(Object.keys(item).sort().map(key => [key, sort(item[key])])) : item;
   return JSON.stringify(sort(value));
@@ -447,6 +447,80 @@ export const RESERVED = Object.freeze({
   games: '-# Reserved by Sophie: game records for Meridian Rift (SS13) and Wolfgate (SS14).',
   spare: '-# Reserved by Sophie.',
 });
+
+// The games slot (owner direction, 31 October 2026): the member's linked game accounts and their character names, read
+// from the central identity database (C:\Aphelion\Central; Symphony owns the links, Sophie only reads them).
+export const GAME_SERVERS = Object.freeze([
+  Object.freeze({ kind: 'ss13', label: 'SS13 · Meridian Rift' }),
+  Object.freeze({ kind: 'ss14', label: 'SS14 · Wolfgate' }),
+]);
+const GAMES_HEADING = '**Game records** · verified links held by Symphony, checked every 15 minutes';
+const GAMES_SERVER_MAX = 860;
+
+/**
+ * Whether a stored games value is one this renderer reads: `{ status: 'none' }`, or `{ status: 'linked', servers }` with
+ * each server's kind, account and characters as the central database gives them.
+ */
+export function requireGames(games) {
+  requireCondition(games !== null && typeof games === 'object' && ['none', 'linked'].includes(games.status), 'MEMBER_RECORD_GAMES_INVALID');
+  if (games.status === 'none') return games;
+  requireCondition(Array.isArray(games.servers) && games.servers.length <= 10, 'MEMBER_RECORD_GAMES_INVALID');
+  for (const server of games.servers) {
+    requireCondition(server !== null && typeof server === 'object' && GAME_SERVERS.some(item => item.kind === server.kind) &&
+      typeof server.accountId === 'string' && /^[a-z0-9-]{1,40}$/u.test(server.accountId) && Array.isArray(server.characters) && server.characters.length <= 200 &&
+      (server.linkedAtMs === null || Number.isSafeInteger(server.linkedAtMs)), 'MEMBER_RECORD_GAMES_INVALID');
+  }
+  return games;
+}
+
+/** One server's lines: the account, when it was linked, and as many character names as fit, the selected one first. */
+function gameServerLines(server, label, applied) {
+  const account = server.kind === 'ss13'
+    ? `\`${server.accountId}\`${server.displayName && ckeyOf(server.displayName) === server.accountId && server.displayName !== server.accountId ? ` (key ${literal(cleanLine(server.displayName, 40))})` : ''}`
+    : `${server.displayName ? literal(cleanLine(server.displayName, 40)) : 'name not seen yet'} · \`${server.accountId}\``;
+  const lines = [`**${label}**`, `Account: ${account}${server.linkedAtMs ? ` · linked ${stamp(server.linkedAtMs)}` : ''}`];
+  if (server.conflict) lines.push('⚠ Linked differently on another server of this game: Symphony leaves that to Staff to settle.');
+  if (applied && (server.kind === 'ss13' ? applied !== server.accountId : applied.toLowerCase() !== String(server.displayName ?? '').toLowerCase())) {
+    lines.push(`-# The application named ${literal(applied)} here.`);
+  }
+  const names = server.characters.map(character => `${character.selected ? '**' : ''}${literal(cleanLine(character.name, 64))}${character.selected ? '**' : ''}`);
+  if (!names.length) { lines.push('Characters: none saved'); return lines; }
+  const intro = `Characters (${names.length}${names.length > 1 ? ', selected in bold' : ''}): `;
+  const used = lines.join('\n').length + 1;
+  let shown = 0, text = intro;
+  for (const name of names) {
+    const rest = names.length - shown - 1;
+    const next = `${shown ? `${text}, ` : text}${name}`;
+    if (used + next.length + (rest ? ` +${rest} more`.length : 0) > GAMES_SERVER_MAX) break;
+    text = next; shown += 1;
+  }
+  lines.push(shown < names.length ? `${text}${shown ? ' ' : ''}+${names.length - shown} more` : text);
+  return lines;
+}
+
+/**
+ * The games message. Self-reported names from the application are compared, never trusted: a link Symphony holds is
+ * the fact, the application's name is shown under it only when it differs. Nothing here is AI.
+ * @param {object} games `requireGames`
+ * @param {{ ckey?: string|null, ss14?: string|null }|null} [application] the application's game names, when there is one
+ */
+export function renderGames(games, application = null) {
+  requireGames(games);
+  const lines = [GAMES_HEADING];
+  for (const { kind, label } of GAME_SERVERS) {
+    const linked = games.status === 'linked' ? games.servers.filter(server => server.kind === kind) : [];
+    const applied = kind === 'ss13' ? application?.ckey ?? null : application?.ss14 ?? null;
+    lines.push('');
+    if (!linked.length) {
+      lines.push(`**${label}**`, `Not linked${applied ? ` · the application named ${literal(applied)}` : ''}`);
+      continue;
+    }
+    // One live server per game today; a second would be named, not drawn, so the message keeps to Discord's limit.
+    lines.push(...gameServerLines(linked[0], label, applied));
+    if (linked.length > 1) lines.push(`-# Also linked on ${linked.length - 1} more ${label.split(' · ')[0]} ${linked.length === 2 ? 'server' : 'servers'}.`);
+  }
+  return fit(lines);
+}
 
 /** A continuation message a shorter, newer application no longer needs. */
 export const APPLICATION_UNUSED = '-# Reserved by Sophie: no longer used; the application above is shorter. The earlier one is kept as an entry below.';

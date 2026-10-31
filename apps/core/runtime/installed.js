@@ -12,6 +12,7 @@ import { createProcessingApproval } from '../../../modules/assistant/processing-
 import { createPreferenceJournal } from '../storage/preference-journal.js';
 import { createKnowledgeRuntime } from '../../knowledge/runtime.js';
 import { requireGithubToken } from '../../knowledge/sources/github.js';
+import { createCentralIdentity, createCentralIdentityPool } from '../storage/central-identity.js';
 
 export const INSTALLED_PREFERENCE_JOURNAL = 'C:\\Aphelion\\Sophie\\preferences\\watermarks.jsonl';
 
@@ -58,7 +59,7 @@ export async function createInstalledCoreService({pipes,signal,onFault,onTrace=(
   const {configuration,qualified,keys}=installedRoleContext(pipes,'core',signal);Object.values(keys).forEach(key=>key.fill(0));
   const options=configuration.core;
   requireKeys(options,['runtime','database','ownerDatabase','controlDatabase','knowledgeDatabase','credentials',
-    ...['processingPolicy','preferenceJournal','knowledgeOwnerDatabase'].filter(key=>Object.hasOwn(options,key))],'AI_INSTALLATION_INVALID');
+    ...['processingPolicy','preferenceJournal','knowledgeOwnerDatabase','centralDatabase'].filter(key=>Object.hasOwn(options,key))],'AI_INSTALLATION_INVALID');
   // githubToken (optional; owner-supplied 23 October 2026): a read-only token that lifts GitHub's anonymous rate limit for the
   // repository sync and code search. Only core reads it; it is sent only to api.github.com.
   requireKeys(options.credentials,['token','clientSecret',...(Object.hasOwn(options.credentials,'githubToken')?['githubToken']:[])],'AI_INSTALLATION_INVALID');
@@ -80,6 +81,9 @@ export async function createInstalledCoreService({pipes,signal,onFault,onTrace=(
     const pool=add(options.database),controlPool=add(options.controlDatabase),knowledgePool=add(options.knowledgeDatabase);
     const ownerPool=options.ownerDatabase?add(options.ownerDatabase):null;
     const knowledgeOwnerPool=options.knowledgeOwnerDatabase?add(options.knowledgeOwnerDatabase):null;
+    // The central identity database, read-only, for the records' games messages (owner, 31 October 2026); optional.
+    const centralPool=options.centralDatabase?createCentralIdentityPool(options.centralDatabase,onFault):null;if(centralPool)pools.push(centralPool);
+    const centralIdentity=centralPool?createCentralIdentity({pool:centralPool}):null;
     function add(database){const value=createPool(database,onFault);pools.push(value);return value;}
     if(!ownerPool)await checkRuntimeDatabase(pool);
     await requireInstalledAiDatabase(controlPool,'control');await requireInstalledAiDatabase(knowledgePool,'knowledge');
@@ -103,7 +107,7 @@ export async function createInstalledCoreService({pipes,signal,onFault,onTrace=(
     const compose=async input=>{
       const worker=createInstalledAiWorker({pipes,signal});let instance,closed;
       try {instance=await runtimeFactory({...input,aiControlPool:controlPool,aiKnowledge,aiWorker:worker,aiApproval,aiPreferenceJournal,
-        aiActivationPool:ownerPool,aiRestoreCurrent:restoreCurrent,aiGithubToken:githubToken,
+        aiActivationPool:ownerPool,aiRestoreCurrent:restoreCurrent,aiGithubToken:githubToken,centralIdentity,
         aiKnowledgeAdminFactory:knowledgeOwnerPool===null?null:({authorize,invalidate})=>createKnowledgeRuntime({pool:knowledgeOwnerPool,
           guildId:input.configuration.mapping.guildId,authorize,qualified,restoreCurrent:async()=>{await requireUnquarantinedDatabase(knowledgeOwnerPool);return true;},
           fetchImpl,invalidate,onFault,githubToken})});}

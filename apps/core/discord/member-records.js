@@ -189,6 +189,10 @@ export function createMemberRecordDispatcher({ store, transport: discord, botUse
       joinedAtMs: profile.joinedAtMs ?? null, joinCount: profile.joinCount ?? null, lastLeftAtMs: profile.lastLeftAtMs ?? null, shuttle: job.shuttle, mutes,
       application: facts, earlierNames: profile.earlierNames ?? [], note: profile.note ?? null, updatedAtMs: record.updatedAtMs, roleNames: roleList });
     const appMessages = applicationMessages(application);
+    // The games message: the reserved text until the games feed has read the member (owner direction, 31 October 2026).
+    // Posts made before then were given the reserved text, so that is what they are taken to show.
+    const games = record.games ? records.renderGames(record.games, facts?.games ?? null) : records.RESERVED.games;
+    const deliveredGames = delivered.games ?? sha(records.RESERVED.games);
     const title = records.recordTitle({ userId, username: profile.username, displayName: profile.displayName });
 
     // The post. A creation whose outcome was never confirmed is looked for before trying again.
@@ -232,6 +236,7 @@ export function createMemberRecordDispatcher({ store, transport: discord, botUse
     const appHashes = appMessages.map(sha);
     const threadWork = RESERVED_SLOTS.some(slot => !messages[slot]) || appMessages.slice(1).some((_, index) => !messages[`application${index + 2}`]) ||
       pendingEntries.length > 0 || appHashes.some((hash, index) => delivered.application?.[index] !== hash) || delivered.header !== sha(header) ||
+      deliveredGames !== sha(games) ||
       delivered.title !== title || delivered.tags !== tagKey ||
       (application?.status === 'found' && events.some(event => event.kind === 'application' && !event.messageId));
 
@@ -246,11 +251,22 @@ export function createMemberRecordDispatcher({ store, transport: discord, botUse
       // Sophie's five messages open the post; Staff discuss below them.
       for (const slot of RESERVED_SLOTS) {
         if (messages[slot]) continue;
-        const content = slot === 'ledger' ? records.renderLedger([], { guildId, channelId: threadId }) : slot === 'application' ? appMessages[0] : records.RESERVED[slot];
+        const content = slot === 'ledger' ? records.renderLedger([], { guildId, channelId: threadId }) : slot === 'application' ? appMessages[0]
+          : slot === 'games' ? games : records.RESERVED[slot];
         messages[slot] = await post(threadId, slot, content);
         await store.progress(lease, { slots: { [slot]: messages[slot] } }); await step();
         if (slot === 'application') delivered.application = [appHashes[0]];
         if (slot === 'ledger') delivered.ledger = sha(content);
+        if (slot === 'games') delivered.games = sha(content);
+      }
+      // The games message follows the feed. One deleted by hand is posted again, below the discussion, like the application.
+      if ((delivered.games ?? sha(records.RESERVED.games)) !== sha(games)) {
+        const edited = await transport.editMemberRecordMessage(threadId, messages.games, games);
+        if (edited === null) {
+          messages.games = await post(threadId, `games.again.${sha(games).slice(0, 8)}`, games);
+          await store.progress(lease, { slots: { games: messages.games } });
+        }
+        delivered.games = sha(games); await step();
       }
       // A transcription longer than one message continues below.
       const applicationHashes = [...(delivered.application ?? [])];

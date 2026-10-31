@@ -106,7 +106,7 @@ export function logDetail(context) {
 }
 
 /** Explicit staging host. Construction starts no listener, connection, registration, migration or service. */
-export async function createStagingRuntime({ configuration, pool, aiControlPool = null, aiPreferenceJournal = null, aiWorker = null, aiKnowledge = null, aiKnowledgeAdmin = null, aiKnowledgeAdminFactory = null, aiApproval = null, aiActivationPool = null, aiRestoreCurrent = async () => false, aiGithubToken = null, token, clientSecret = null, fetch, connect, clock = Date.now, random = Math.random, onFault, onTrace = () => {}, rateLimits = createDiscordRateLimits(), configurationApplyEnabled = false, gatewayLeaseMs = 30_000 }) {
+export async function createStagingRuntime({ configuration, pool, aiControlPool = null, aiPreferenceJournal = null, aiWorker = null, aiKnowledge = null, aiKnowledgeAdmin = null, aiKnowledgeAdminFactory = null, aiApproval = null, aiActivationPool = null, aiRestoreCurrent = async () => false, aiGithubToken = null, centralIdentity = null, token, clientSecret = null, fetch, connect, clock = Date.now, random = Math.random, onFault, onTrace = () => {}, rateLimits = createDiscordRateLimits(), configurationApplyEnabled = false, gatewayLeaseMs = 30_000 }) {
   validateStagingRuntime(configuration); const fixed = structuredClone(configuration);
   // Production, Activity and AI only: no role, case, moderation, Shuttle-channel, automation or permission work (configuration.js).
   const limited = runtimeScope(fixed) === 'activity-ai';
@@ -197,7 +197,7 @@ export async function createStagingRuntime({ configuration, pool, aiControlPool 
     createSophieMemberCommands({ authorization, member: aiMemberControls(authorization), verifier: laneVerifier, transport: laneTransport,
       guildId: fixed.mapping.guildId, enabled: laneEnabled, readSystemText: laneText });
   const lane = (extra = {}) => createAdministrationLane({ configuration: fixed, pool, token, fetch, clock, enabled, rateLimits, observer, principals, verifier, onFault: fault, onTrace: trace, readSystemText, knowledge:aiKnowledge, ...extra });
-  const requests = lane({ sophieMemberFactory }), delivery = lane();
+  const requests = lane({ sophieMemberFactory }), delivery = lane({ centralIdentity });
   const responder = createInteractionResponder({ verifier, applicationId: fixed.applicationId, fetch, clock, enabled, readSystemText, ...requests.responseAdapters });
   // A recorded Shuttle change has already committed its render intent, so delivery starts now instead of at the next
   // interval. The diagnostic is a fixed code: the command result and whole milliseconds, never IDs or content.
@@ -303,7 +303,7 @@ export async function createStagingRuntime({ configuration, pool, aiControlPool 
   const owner = `staging.${randomUUID()}`;
   let ticking = false, scheduled = false, wakeQueued = false;
   // Sophie's regular member records check, while one runs (it runs beside the worker loop).
-  let checking = null;
+  let checking = null, feeding = null;
   function tick() {
     if (ticking || !active()) return Promise.resolve();
     ticking = true;
@@ -340,6 +340,13 @@ export async function createStagingRuntime({ configuration, pool, aiControlPool 
             if (checked?.status === 'failed' && active()) fault('MEMBER_RECORD_CHECK_FAILED', { code: checked.code });
           }, () => { if (active()) fault('MEMBER_RECORD_CHECK_FAILED'); }).finally(() => { checking = null; });
         }
+        // The games feed from the central identity database, every 15 minutes, beside the loop like the check (owner, 31 October 2026).
+        if (delivery.memberRecordGames && active() && feeding === null) {
+          feeding = delivery.memberRecordGames.runDue(owner).then(fed => {
+            if (fed?.status === 'fed' && fed.changed > 0) trace(`MEMBER_RECORD_GAMES_CHANGED_${fed.changed}`);
+            if (fed?.status === 'failed' && active()) fault('MEMBER_RECORD_GAMES_FAILED', { code: fed.code });
+          }, () => { if (active()) fault('MEMBER_RECORD_GAMES_FAILED'); }).finally(() => { feeding = null; });
+        }
         return;
       }
       await reconciler.runOnce();
@@ -368,7 +375,7 @@ export async function createStagingRuntime({ configuration, pool, aiControlPool 
   }
   async function stop() {
     stopping = true; clearTimeout(timer);
-    const results = await Promise.allSettled([interactions.close(), dashboardListening ? dashboard.close() : undefined, activityListening ? activity.close() : undefined, aiRuntime?.stop(), preferenceExpiry?.stop(), gateway.stop(), workerTask, checking]);
+    const results = await Promise.allSettled([interactions.close(), dashboardListening ? dashboard.close() : undefined, activityListening ? activity.close() : undefined, aiRuntime?.stop(), preferenceExpiry?.stop(), gateway.stop(), workerTask, checking, feeding]);
     results.push(...await Promise.allSettled([knowledgeAdministration?.stop()]));
     dashboardListening = false; activityListening = false;
     await gatewayTask;

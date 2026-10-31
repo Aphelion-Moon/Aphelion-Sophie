@@ -7,6 +7,7 @@ import { createMemberRecordStore, recordSophieWhitelist } from '../../apps/core/
 import { planMemberRecordBackfill, planDepartedMemberRecords } from '../../apps/core/operator/member-record-backfill.js';
 import { inTransaction } from '../../apps/core/storage/transaction.js';
 import { createMemberRecordReconciler } from '../../apps/core/discord/member-record-reconciler.js';
+import { createMemberRecordGamesFeed } from '../../apps/core/discord/member-record-games.js';
 import { mapping, CREW, WHITELIST, MUZZLED, BOT } from '../../tests/fixtures/discord.js';
 import { GUILD, USER, OTHER, STAFF, NOW } from '../../tests/fixtures/domain.js';
 import { APPLICATION } from '../../tests/fixtures/interactions.js';
@@ -529,5 +530,53 @@ export async function runMemberRecordsSuite(cluster, run) {
     assert.ok(continuation.content.startsWith('-# Reserved by Sophie: no longer used'), continuation.content);
     assert.ok(post.messages.some(message => message.content.startsWith('**Earlier access application**')));
     assert.ok(!post.messages[1].content.includes(`/${threadId}/${record.messages.application2})`), 'the ledger no longer links it');
+  });
+
+  await scenario('MRS-15 the games feed fills each post\'s games message from the central database, edits only what changed, and fails safe', async () => {
+    await join(USER, 'vexthecat', [CREW], 'Vex'); await join(OTHER, 'otter'); await drain();
+    const guid = '0f8fad5b-d9cb-469f-a165-70867728950e';
+    const linked = (name = 'Rook @everyone Halden') => new Map([[USER, { status: 'linked', servers: [
+      { kind: 'ss13', server: 'Meridian Rift', accountId: 'vexwolf', displayName: 'VexWolf', linkedAtMs: NOW - 86_400_000, conflict: false,
+        characters: [{ slot: 2, name, selected: true }, { slot: 1, name: 'Ada Vance', selected: false }] },
+      { kind: 'ss14', server: 'Wolfgate', accountId: guid, displayName: 'VexCat', linkedAtMs: null, conflict: true, characters: [] }] }]]);
+    const central = { records: linked(), async readGameRecords() { return central.records; } };
+    const feed = createMemberRecordGamesFeed({ store, central, enabled: async () => true, clock: () => now });
+    assert.deepEqual(await feed.runDue('games'), { status: 'fed', linked: 1, changed: 2 }, 'both records: one linked, one with none');
+    assert.ok((await rows('member_records')).every(row => row.background), 'behind live work');
+    const before = forum.calls.length;
+    await drain();
+    const post = userId => forum.posts().map(([, item]) => item).find(item => item.name.endsWith(` · ${userId}`));
+    const vex = post(USER).messages[3].content, otter = post(OTHER).messages[3].content;
+    assert.ok(vex.startsWith('**Game records** · verified links held by Symphony'), vex);
+    assert.match(vex, /\*\*SS13 · Meridian Rift\*\*\nAccount: `vexwolf` \(key VexWolf\) · linked <t:\d+:D>/);
+    assert.match(vex, /Characters \(2, selected in bold\): \*\*Rook \\@everyone Halden\*\*, Ada Vance/);
+    assert.match(vex, /-# The application named vexcat here\./, 'the application\'s ckey differs from the link');
+    assert.ok(vex.includes(`**SS14 · Wolfgate**\nAccount: VexCat · \`${guid}\`\n⚠ Linked differently`), vex);
+    assert.match(otter, /\*\*SS13 · Meridian Rift\*\*\nNot linked\n\n\*\*SS14 · Wolfgate\*\*\nNot linked$/);
+    assert.equal(forum.calls.slice(before).filter(([kind]) => kind === 'post').length, 0, 'edited in place, nothing new posted');
+    assert.ok(post(USER).archived && post(OTHER).archived, 'archived again');
+    // Nothing changed: nothing written, nothing edited.
+    now += 15 * 60_000;
+    assert.deepEqual(await feed.runDue('games'), { status: 'fed', linked: 1, changed: 0 });
+    assert.deepEqual(await drain(), []);
+    // A character renamed: one record raised, one message edited.
+    now += 15 * 60_000; central.records = linked('Rook Halden');
+    assert.deepEqual(await feed.runDue('games'), { status: 'fed', linked: 1, changed: 1 });
+    const edits = forum.calls.length; await drain();
+    assert.equal(forum.calls.slice(edits).filter(([kind]) => kind === 'edit').length, 1);
+    assert.match(post(USER).messages[3].content, /\*\*Rook Halden\*\*/);
+    // A failed read changes nothing and is tried again a minute later, not at once.
+    now += 15 * 60_000; central.readGameRecords = async () => { throw Object.assign(new Error('down'), { code: 'CENTRAL_DATABASE_UNAVAILABLE' }); };
+    assert.deepEqual(await feed.runDue('games'), { status: 'failed', code: 'CENTRAL_DATABASE_UNAVAILABLE' });
+    assert.deepEqual(await feed.runDue('games'), { status: 'idle' });
+    assert.deepEqual(await drain(), []);
+    // A games message deleted by hand is posted again.
+    post(OTHER).messages.splice(3, 1); now += 60_000;
+    central.readGameRecords = async () => new Map([[OTHER, { status: 'linked', servers: [{ kind: 'ss14', server: 'Wolfgate', accountId: guid, displayName: 'Otter',
+      linkedAtMs: null, conflict: false, characters: [] }] }]]);
+    assert.deepEqual(await feed.runDue('games'), { status: 'fed', linked: 1, changed: 2 }, 'one now linked, the other no longer');
+    await drain();
+    assert.match(post(OTHER).messages.at(-1).content, /^\*\*Game records\*\*[\s\S]*Account: Otter/);
+    assert.match(post(USER).messages[3].content, /\*\*SS13 · Meridian Rift\*\*\nNot linked · the application named vexcat/);
   });
 }

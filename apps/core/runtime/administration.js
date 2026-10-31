@@ -19,6 +19,7 @@ import { createMemberRecordDispatcher } from '../discord/member-records.js';
 import { createMemberRecordStore } from '../storage/member-records.js';
 import { createMemberWatch } from '../discord/member-watch.js';
 import { createMemberRecordReconciler } from '../discord/member-record-reconciler.js';
+import { createMemberRecordGamesFeed } from '../discord/member-record-games.js';
 import { createCaseDispatcher } from '../discord/case-dispatcher.js';
 import { createOnboardingDispatcher } from '../discord/onboarding-dispatcher.js';
 import { createOnboardingAlertDispatcher } from '../discord/onboarding-alert-dispatcher.js';
@@ -56,7 +57,7 @@ import { createKnowledgeLookupCommands } from '../discord/knowledge-lookup.js';
 import { inspectAutomationChannel } from '../storage/automation-channel-policy.js';
 
 /** One request lane owns its proof issuers and serial transport. Workers use a separate lane. */
-export function createAdministrationLane({ configuration, pool, token, fetch, clock, enabled, rateLimits, observer, principals, verifier, onFault, onTrace = () => {}, readSystemText, knowledge = null, sophieMemberFactory = null }) {
+export function createAdministrationLane({ configuration, pool, token, fetch, clock, enabled, rateLimits, observer, principals, verifier, onFault, onTrace = () => {}, readSystemText, knowledge = null, sophieMemberFactory = null, centralIdentity = null }) {
   const { mapping, casePolicy: policy, limits, definitionId, capabilityPolicy } = configuration;
   // In production (Activity and AI only) this lane may add exactly one role: Whitelist, at the end of the Shuttle (owner decision,
   // 24 October 2026).
@@ -142,9 +143,13 @@ export function createAdministrationLane({ configuration, pool, token, fetch, cl
   // Sophie's regular check of the records against Discord's member list (owner, 30 October 2026).
   const memberRecordReconciler = records === undefined ? null : createMemberRecordReconciler({ transport, mapping, enabled, clock,
     store: createMemberRecordStore({ pool, clock, guildId: mapping.guildId, forumId: records.forumId, changelogThreadId: records.changelogThreadId }) });
+  // Linked game accounts and character names into each post's games message, where the central database is configured
+  // (owner direction, 31 October 2026).
+  const memberRecordGames = records === undefined || centralIdentity === null ? null : createMemberRecordGamesFeed({ central: centralIdentity, enabled, clock,
+    store: createMemberRecordStore({ pool, clock, guildId: mapping.guildId, forumId: records.forumId, changelogThreadId: records.changelogThreadId }) });
   return { transport, roles, channels, authorization, store, intakeStore, replyStore, issueStore, intakeMessages: answers, replyMessages,
     screenMessages: screens, alertMessages: alerts, commands, workers, caseIntake, automationRecovery, sophieMember,
-    whitelistGrants: createWhitelistGrantDispatcher({ outbox, store, discord: roles, enabled }), whitelistNotices, memberRecords, memberRecordReconciler,
+    whitelistGrants: createWhitelistGrantDispatcher({ outbox, store, discord: roles, enabled }), whitelistNotices, memberRecords, memberRecordReconciler, memberRecordGames,
     responseAdapters: { onboardingNavigation: createOnboardingNavigation({ ...common, channels }), onboardingAssistance: assistance,
       onboardingDeliveryIssues: deliveryIssues, caseLifecycle, caseStaff, caseIntake, caseContacts, caseDeliveryIssues, publicAnswers, caseAnswers, knowledgeLookup, sophieMember, shuttleProgress } };
 }
