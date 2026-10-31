@@ -13,7 +13,10 @@ to work safely. Earlier snapshots are in this file's git history.
 
 ## Production now
 
-- **Release:** **`a45ca0f`** (schema 084), installed 30 October 2026 at 22:27 UTC. Everything is pushed to `origin/main`.
+- **Release:** **`456f27d`** (schema 085), installed 31 October 2026 at 01:51 UTC. Everything is pushed to `origin/main`.
+- **Central identity database:** core reads `aphelion_central` (127.0.0.1:5490, service `aphelion-central-postgres`) as
+  `sophie_central_reader`, read-only, for the posts' games messages (ADR 0006). Its docs are in the `Aphelion-Central`
+  repository.
 - **Server:** the main Aphelion server, in the Activity-and-AI production mode (`scope: activity-ai`). Another bot owns
   roles, cases and moderation; Sophie only adds Whitelist at the end of the Shuttle.
 - **Host and database:** Windows Server 2022 host, `C:\Aphelion\Sophie`; database `sophie_prod_main`.
@@ -33,8 +36,8 @@ to work safely. Earlier snapshots are in this file's git history.
   - `KNOWLEDGE_SOURCE_GITHUB_FORBIDDEN` hourly: the GitHub token's access still needs fixing;
   - `DASHBOARD_DENIED_DASHBOARD_CREDENTIAL_INVALID` after each restart: old sessions, harmless.
 - **Every install, publication and production write needs the owner's recorded approval.** Approval for one step does not
-  carry over to the next. The last packet, `.agent_docs/aphelion-sophie/deployment-a45ca0f-production-2026-10-30`, is
-  the template for the next one.
+  carry over to the next. The last packet, `.agent_docs/aphelion-sophie/deployment-456f27d-production-2026-10-31`, is
+  the template for the next one (it has a migration and its rehearsal, `rehearse-migration.mjs`).
 
 ## Member records (P56)
 
@@ -48,7 +51,9 @@ member has a post, and so do the people who have left that Sophie can name.
    reading time, mutes, birth month and year and game accounts (from the application), earlier names, current roles.
 2. **Ledger:** links to her entries.
 3. **Access application:** transcribed. A newer one replaces it, and the older one is kept as an entry.
-4. **Game records:** reserved for Meridian Rift and Wolfgate, waiting on SSymphony.
+4. **Game records:** the verified Meridian Rift and Wolfgate accounts and their character names, from the central
+   identity database every 15 minutes (owner, 31 October 2026). Conflicts are flagged, and so is a self-reported
+   application name that differs.
 5. **Spare.**
 
 **Tags:** In server or Left, Whitelisted, Muzzled, Staff, Watch.
