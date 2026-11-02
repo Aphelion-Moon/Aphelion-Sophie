@@ -303,7 +303,7 @@ export async function createStagingRuntime({ configuration, pool, aiControlPool 
   const owner = `staging.${randomUUID()}`;
   let ticking = false, scheduled = false, wakeQueued = false;
   // Sophie's regular member records check, while one runs (it runs beside the worker loop).
-  let checking = null, feeding = null;
+  let checking = null, feeding = null, moderating = null;
   function tick() {
     if (ticking || !active()) return Promise.resolve();
     ticking = true;
@@ -347,6 +347,13 @@ export async function createStagingRuntime({ configuration, pool, aiControlPool 
             if (fed?.status === 'failed' && active()) fault('MEMBER_RECORD_GAMES_FAILED', { code: fed.code });
           }, () => { if (active()) fault('MEMBER_RECORD_GAMES_FAILED'); }).finally(() => { feeding = null; });
         }
+        // Game bans, notes and admin help tickets from the same database, every 15 minutes, beside the loop (owner, 2 November 2026).
+        if (delivery.memberRecordModeration && active() && moderating === null) {
+          moderating = delivery.memberRecordModeration.runDue(owner).then(fed => {
+            if (fed?.status === 'fed' && fed.entered + fed.changed > 0) trace(`MEMBER_RECORD_MODERATION_ENTERED_${fed.entered}_CHANGED_${fed.changed}`);
+            if (fed?.status === 'failed' && active()) fault('MEMBER_RECORD_MODERATION_FAILED', { code: fed.code });
+          }, () => { if (active()) fault('MEMBER_RECORD_MODERATION_FAILED'); }).finally(() => { moderating = null; });
+        }
         return;
       }
       await reconciler.runOnce();
@@ -375,7 +382,7 @@ export async function createStagingRuntime({ configuration, pool, aiControlPool 
   }
   async function stop() {
     stopping = true; clearTimeout(timer);
-    const results = await Promise.allSettled([interactions.close(), dashboardListening ? dashboard.close() : undefined, activityListening ? activity.close() : undefined, aiRuntime?.stop(), preferenceExpiry?.stop(), gateway.stop(), workerTask, checking, feeding]);
+    const results = await Promise.allSettled([interactions.close(), dashboardListening ? dashboard.close() : undefined, activityListening ? activity.close() : undefined, aiRuntime?.stop(), preferenceExpiry?.stop(), gateway.stop(), workerTask, checking, feeding, moderating]);
     results.push(...await Promise.allSettled([knowledgeAdministration?.stop()]));
     dashboardListening = false; activityListening = false;
     await gatewayTask;

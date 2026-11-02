@@ -20,6 +20,7 @@ import { createMemberRecordStore } from '../storage/member-records.js';
 import { createMemberWatch } from '../discord/member-watch.js';
 import { createMemberRecordReconciler } from '../discord/member-record-reconciler.js';
 import { createMemberRecordGamesFeed } from '../discord/member-record-games.js';
+import { createMemberRecordModerationFeed } from '../discord/member-record-moderation.js';
 import { createCaseDispatcher } from '../discord/case-dispatcher.js';
 import { createOnboardingDispatcher } from '../discord/onboarding-dispatcher.js';
 import { createOnboardingAlertDispatcher } from '../discord/onboarding-alert-dispatcher.js';
@@ -147,9 +148,14 @@ export function createAdministrationLane({ configuration, pool, token, fetch, cl
   // (owner direction, 31 October 2026).
   const memberRecordGames = records === undefined || centralIdentity === null ? null : createMemberRecordGamesFeed({ central: centralIdentity, enabled, clock,
     store: createMemberRecordStore({ pool, clock, guildId: mapping.guildId, forumId: records.forumId, changelogThreadId: records.changelogThreadId }) });
+  // The game servers' bans, notes and admin help tickets as entries in each post, from the same database (owner direction,
+  // 2 November 2026).
+  const memberRecordModeration = records === undefined || centralIdentity === null ? null : createMemberRecordModerationFeed({ central: centralIdentity, enabled, clock,
+    store: createMemberRecordStore({ pool, clock, guildId: mapping.guildId, forumId: records.forumId, changelogThreadId: records.changelogThreadId }) });
   return { transport, roles, channels, authorization, store, intakeStore, replyStore, issueStore, intakeMessages: answers, replyMessages,
     screenMessages: screens, alertMessages: alerts, commands, workers, caseIntake, automationRecovery, sophieMember,
     whitelistGrants: createWhitelistGrantDispatcher({ outbox, store, discord: roles, enabled }), whitelistNotices, memberRecords, memberRecordReconciler, memberRecordGames,
+    memberRecordModeration,
     responseAdapters: { onboardingNavigation: createOnboardingNavigation({ ...common, channels }), onboardingAssistance: assistance,
       onboardingDeliveryIssues: deliveryIssues, caseLifecycle, caseStaff, caseIntake, caseContacts, caseDeliveryIssues, publicAnswers, caseAnswers, knowledgeLookup, sophieMember, shuttleProgress } };
 }

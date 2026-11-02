@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { requireCondition, requireId, requireInteger, requireName, requireRecord } from '../../../contracts/validation.js';
-import { applicationAnswers, canonicalJson, observeMember, requireGames } from '../../../modules/member-records/index.js';
+import { applicationAnswers, canonicalJson, moderationEventId, observeMember, requireGames, requireModerationRow } from '../../../modules/member-records/index.js';
 import { inTransaction } from './transaction.js';
 
 /**
@@ -10,7 +10,8 @@ import { inTransaction } from './transaction.js';
  * dispatcher (apps/core/discord/member-records.js) converges one record at a time under a lease. No AI reads any of it.
  */
 
-const EVENT_KINDS = Object.freeze(['record.opened', 'joined', 'left', 'whitelist.granted', 'whitelist.lost', 'muzzled', 'unmuzzled', 'name.changed', 'application', 'watched', 'unwatched', 'application.replaced', 'message.deleted', 'message.edited', 'roles.changed']);
+const EVENT_KINDS = Object.freeze(['record.opened', 'joined', 'left', 'whitelist.granted', 'whitelist.lost', 'muzzled', 'unmuzzled', 'name.changed', 'application', 'watched', 'unwatched', 'application.replaced', 'message.deleted', 'message.edited', 'roles.changed',
+  'game.ban', 'game.note', 'game.ticket', 'game.changed']);
 const SLOT = /^(?:header|ledger|application|application[2-9]|games|spare)$/u;
 const EVENT_ID = /^[A-Za-z0-9._-]{1,160}$/u;
 const NO_ROLES = Object.freeze({ crew: false, whitelist: false, muzzled: false, staff: false, leadOps: false });
@@ -409,6 +410,55 @@ export function createMemberRecordStore({ pool, clock, guildId, forumId, changel
       }
       return { changed };
     },
+    /**
+     * The moderation feed (owner direction, 2 November 2026): rows of the central database's member_moderation view
+     * (`requireModerationRow`). A final record new to a member's post is an entry; one whose revision or presence changed
+     * since is a change entry; anything else enters nothing. Only members who already have a record are written, as
+     * background work. Everything entered by the guild's first run is history, kept out of the changelog.
+     * @returns {Promise<{ entered: number, changed: number, skipped: number }>}
+     */
+    async enterModeration(rows) {
+      requireCondition(Array.isArray(rows) && rows.length <= 100_000, 'MEMBER_RECORD_MODERATION_INVALID');
+      rows.forEach(requireModerationRow);
+      const at = clock(); requireInteger(at, 1);
+      return inTransaction(pool, async client => {
+        const backfill = (await client.query('SELECT 1 FROM sophie_core.member_record_sources WHERE guild_id = $1 LIMIT 1', [guildId])).rowCount === 0;
+        const recorded = new Set((await client.query('SELECT user_id FROM sophie_core.member_records WHERE guild_id = $1', [guildId])).rows.map(row => row.user_id));
+        const known = new Map((await client.query('SELECT user_id, source_key, revision, present, detail FROM sophie_core.member_record_sources WHERE guild_id = $1', [guildId])).rows
+          .map(row => [`${row.user_id}:${row.source_key}`, row]));
+        const counts = { entered: 0, changed: 0, skipped: 0 }, touched = new Set();
+        for (const row of rows) {
+          if (!recorded.has(row.discordId)) { counts.skipped += 1; continue; }
+          const sourceKey = `${row.serverId}.${row.sourceKey}`, previous = known.get(`${row.discordId}:${sourceKey}`);
+          const where = { game: row.game, serverId: row.serverId, sourceKey: row.sourceKey, recordKind: row.recordKind };
+          let event = null;
+          if (!previous) {
+            // A ticket still open in the current round waits until it is closed or the round ends; a record removed before
+            // Sophie saw it is not entered.
+            if (!row.final || !row.present) continue;
+            event = { eventId: moderationEventId(row.serverId, row.sourceKey), kind: `game.${row.recordKind}`, atMs: row.occurredAtMs ?? at,
+              detail: { ...where, record: row.detail, ...(backfill ? { backfill: true } : {}) } };
+            counts.entered += 1;
+          } else if ((previous.revision !== row.revision && row.final) || previous.present !== row.present) {
+            const mark = !row.present ? 'x' : previous.present ? 'r' : 'p';
+            event = { eventId: moderationEventId(row.serverId, row.sourceKey, { mark, revision: row.revision }), kind: 'game.changed', atMs: at,
+              detail: { ...where, before: previous.detail, after: row.present ? row.detail : previous.detail, present: row.present, wasPresent: previous.present,
+                ...(backfill ? { backfill: true } : {}) } };
+            counts.changed += 1;
+          } else continue;
+          await insertEvents(client, guildId, row.discordId, [event]);
+          await client.query(`INSERT INTO sophie_core.member_record_sources (guild_id, user_id, source_key, revision, present, detail, entered_at_ms)
+            VALUES ($1, $2, $3, $4, $5, $6, $7) ON CONFLICT (guild_id, user_id, source_key) DO UPDATE SET revision = EXCLUDED.revision,
+            present = EXCLUDED.present, detail = EXCLUDED.detail, entered_at_ms = EXCLUDED.entered_at_ms`,
+          [guildId, row.discordId, sourceKey, row.revision, row.present, row.present ? row.detail : previous.detail, at]);
+          touched.add(row.discordId);
+        }
+        // Raised as touch() raises a background change; the header's "updated" time is the member's, not the feed's.
+        for (const userId of touched) await client.query(`UPDATE sophie_core.member_records SET revision = revision + 1,
+          background = background OR delivered_revision >= revision, due_at = LEAST(due_at, clock_timestamp()) WHERE guild_id = $1 AND user_id = $2`, [guildId, userId]);
+        return counts;
+      });
+    },
     /** The member IDs that already have a record, for the backfill. */
     async recordedMembers() {
       return (await pool.query('SELECT user_id FROM sophie_core.member_records WHERE guild_id = $1', [guildId])).rows.map(row => row.user_id);
@@ -451,9 +501,16 @@ export function createMemberRecordStore({ pool, clock, guildId, forumId, changel
         // Mutes on record: Sophie's own mute actions and the Muzzled role seen given since records began.
         const mutes = Number((await client.query(`SELECT (SELECT COUNT(*) FROM sophie_core.member_actions WHERE guild_id = $1 AND user_id = $2 AND muted)
           + (SELECT COUNT(*) FROM sophie_core.member_record_events WHERE guild_id = $1 AND user_id = $2 AND kind = 'muzzled') AS mutes`, [guildId, lease.userId])).rows[0].mutes);
+        // Game bans, notes and admin helps on record, per game, for the header (owner direction, 2 November 2026).
+        const gameModeration = {};
+        for (const event of events) {
+          if (!['game.ban', 'game.note', 'game.ticket'].includes(event.kind)) continue;
+          const counts = gameModeration[event.detail.game] ??= { ban: 0, note: 0, ticket: 0 };
+          counts[event.kind.slice(5)] += 1;
+        }
         return { lease, revision: row.revision, attempts: row.attempts, record: { userId: row.user_id, threadId: row.thread_id, messages: row.messages,
           profile: row.profile, application: row.application, games: row.games ?? null, delivered: row.delivered, createStarted: row.create_started,
-          openedAtMs: Number(row.opened_at_ms), updatedAtMs: Number(row.updated_at_ms) }, events, shuttle, mutes };
+          openedAtMs: Number(row.opened_at_ms), updatedAtMs: Number(row.updated_at_ms) }, events, shuttle, mutes, gameModeration };
       });
     },
     /** Keeps a long convergence's lease. */

@@ -1828,7 +1828,7 @@ Boundary: A model or profile change alters mistralProfileHash and needs policy r
 
 Status: **in_progress**. Phase: Community administration. Priority: P1.
 
-Depends on: None. Acceptance: MR-01 to MR-15, MR-07b (rendering), MR-16 to MR-23 (observation, changelog, transport allowance, ingress, configuration, backfill planner, AI exclusion), MR-24 (/member watch: parsing, Staff check, production command set), MR-25 (records for people who have left), MRS-07 (Watch entry and tag; a Left post; a rejoin continues it), MR-26, MRS-08 to MRS-10 (leave time and message links, replaced application, regular check), MR-16b, MR-27, MRS-11 (key-order comparison; deleted and edited messages with audit-log attribution, 30-day text expiry), MR-16c, MRS-12 (role change entries with audit-log attribution; roles in the header), MRS-13 (quick role changes as one entry; the regular check behind live work), MR-28, MR-29, MRS-14 (audit: rendered text through the real transport check, thread edits limited to the forum, multi-part retry, shorter replaced application), MRS-01 to MRS-06 (storage: post convergence, entries, Sophie's Whitelist, uncertain delivery, discussion copy and Gateway isolation, backfill and adoption), SA15 (the grant confirmation writes the entry), One post per member across leave and rejoin; the ledger links only to posted entries; no AI path reads the forum.
+Depends on: None. Acceptance: MR-01 to MR-15, MR-07b (rendering), MR-16 to MR-23 (observation, changelog, transport allowance, ingress, configuration, backfill planner, AI exclusion), MR-24 (/member watch: parsing, Staff check, production command set), MR-25 (records for people who have left), MRS-07 (Watch entry and tag; a Left post; a rejoin continues it), MR-26, MRS-08 to MRS-10 (leave time and message links, replaced application, regular check), MR-16b, MR-27, MRS-11 (key-order comparison; deleted and edited messages with audit-log attribution, 30-day text expiry), MR-16c, MRS-12 (role change entries with audit-log attribution; roles in the header), MRS-13 (quick role changes as one entry; the regular check behind live work), MR-28, MR-29, MRS-14 (audit: rendered text through the real transport check, thread edits limited to the forum, multi-part retry, shorter replaced application), MRS-01 to MRS-06 (storage: post convergence, entries, Sophie's Whitelist, uncertain delivery, discussion copy and Gateway isolation, backfill and adoption), SA15 (the grant confirmation writes the entry), One post per member across leave and rejoin; the ledger links only to posted entries; no AI path reads the forum, MR-40 to MR-48, MRS-16 (game moderation: rendering, quiet tickets, 20-part cap, change entries, hostile text through the real transport, row checks, feed timing, header counts, changelog opening; storage: entered once, history out of the changelog, lifts, closed tickets, removals).
 
 Owner decisions of 30 October 2026 in the decision log; proposal, probes, Staff test run, changelog, backfill and read-back scripts in .agent_docs/aphelion-sophie/member-records-forum-2026-10-30; install packet deployment-d8efd40-production-2026-10-30.
 
@@ -1850,12 +1850,16 @@ Implemented scope:
 - The one-time header refresh after 8372861 finished: all 488 records delivered by 17:15 UTC
 - a6fa5b3 installed 17:49 UTC (migration 084): role change entries with audit-log attribution, roles in each header; the first check filled role IDs for all 478 present members with no entries; pinned post text updated 17:51 UTC; first real message.edited entries recorded
 - a45ca0f installed 22:27 UTC: quick role changes as one entry, the audit fixes; the regular check (22:28 UTC, beside the worker loop) changed nothing; pinned opening re-posted 22:29 UTC (1,966 characters)
+- 456f27d installed 31 October 01:51 UTC (migration 085): games messages from the central identity database every 15 minutes
+- Game moderation built offline 2 November 2026 (not committed or installed): Aphelion-Central migration 005 (identity.moderation_records, view identity.member_moderation) and sync readers for Meridian Rift (SS13_ban grouped per decision, SS13_messages, SS13_ticket per round and number) and Wolfgate (server and role bans, notes, messages, watchlists); Sophie migration 086, store enterModeration, moderation feed beside the games feed, rendering and header counts; changelog opening reworded (1,991 characters). Tests: npm test 949 passed; npm run check passed; storage 1060 passed, 0 failed (4 shards); Central 13 passed; Central 001-005 rehearsed on a synthetic cluster
 
 Remaining scope:
 
+- Game moderation release, each step with recorded owner approval: commit Aphelion-Central (no commits yet) and Sophie; run Central migration 005 and a sync --dry-run (counts only); install Sophie with migration 086 (grant member_record_sources to sophie_prod_core); re-post the changelog opening; watch the first feed run (history kept out of the changelog)
+- Wolfgate ahelps: the PR plan in .agent_docs/aphelion-sophie/wolfgate-ahelp-persistence/PLAN.md, then a Central reader; opening the PR needs the owner's go-ahead
 - Live checks: a real deletion and edit entry, a moderator deletion attributed from the audit log, /member watch by Staff, a real leave with message links
 - Privacy notice line: message text kept 30 days, authors a year, deleted and edited messages kept in the record
-- Later: Discord moderation (bans, kicks via the audit log) and SSymphony game records
+- Later: Discord moderation (bans, kicks via the audit log)
 - Later: an index for the 30-day text expiry once member_messages grows (today a full scan every 6 h)
 - A concurrency test for a Gateway member update during the Whitelist confirmation (the lock order is fixed by reading, not by a test)
 
@@ -1867,6 +1871,6 @@ Full task deliverables:
 - Adoption of the Staff test run posts from staff-test-state.json; host-only paced backfill of every current member
 - Approved-application transcription (needs the permission Discord asks for; undocumented join-request interface)
 - Copy of the forum discussion into Sophie's database (owner: "She can copy into her DB"; never AI)
-- Later: Discord moderation (Guild Moderation intent, View Audit Log) and SSymphony/game records for Meridian Rift and Wolfgate
+- Game moderation from Meridian Rift and Wolfgate (owner, 2 November 2026): bans, unbans, notes, messages, watchlist entries (secret marked) and admin help transcripts, read from Aphelion-Central identity.member_moderation (migration 086, member_record_sources); Wolfgate ahelps wait for a Wolfgate PR. Later: Discord moderation (Guild Moderation intent, View Audit Log)
 
 Boundary: No AI reads or writes member records. Sophie decides nothing and sets no role from an application, and never opens, joins or reads an interview. Rejected applications are not recorded. /member watch changes only the record's Watch tag and entry, never roles or access.

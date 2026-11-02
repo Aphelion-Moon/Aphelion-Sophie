@@ -2840,3 +2840,29 @@ thread to include a list of all features and types of tracked information for th
 **Audit fixes installed (30 October 2026, night).** Asked to audit the day's work while a member finished their Shuttle run,
 then "Fix them now" and "Install and push": a45ca0f (quick role changes as one entry, and the audit's fixes) installed at
 22:27 UTC; the pinned opening now says deleted or edited messages entered in a post stay with the record.
+
+### Game moderation in the member records - 2 November 2026
+
+**Owner request.** "investigate the local logs and databases for both Meridian Rift and Wolfgate. Both should store, or
+produce, admin help tickets / notes / bans. I want the final results of these logged in the staff-intel forum in each
+user's threads." Asked and answered the same day:
+- *What:* "Bans and unbans", "Notes, messages, watchlist", "Secret notes too", "Admin help tickets".
+- *Ahelp depth:* "Full transcript".
+- *History:* "Everything stored".
+- *Wolfgate ahelps:* "Skip for now and prepare a plan for a PR for wolfgate." Wolfgate's deployed build keeps no ahelp
+  anywhere on the host; it only relays them to Discord.
+
+**This settles the open point above** (30 October: bringing game bans into the records "is not decided here") and amends
+the 18 September Blacklisting paragraph only as far as game moderation goes: the game servers' own bans, unbans, notes,
+messages, watchlist entries (secret ones included, marked as secret) and admin help transcripts are entered in the
+member's post. Blacklisting itself is unchanged: it stays with humans removing Discord access, and Sophie imports no
+blacklist reasons or internal documents.
+
+**How.** The game databases stay SSymphony's and the games': Aphelion-Central's sync copies the moderation rows into
+`identity.moderation_records` with its existing read-only sessions, and Sophie reads them through the view
+`identity.member_moderation` (amendment to [0006](0006-central-identity.md)). Only accounts with a valid Discord link reach
+a post, and only members who already have a record. A ban or note becomes one entry, and a later lift, edit or deletion a
+follow-up entry; a ticket is entered once closed or once its round has ended, its transcript quoted in full. Tickets
+stay in the post only, out of the ledger and the changelog; bans and notes get both, except the first run's history,
+which skips the changelog. No AI reads any of it: the forum stays a permanent case exclusion, and tests use synthetic
+data only.

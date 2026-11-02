@@ -99,7 +99,8 @@ post is copied into `member_record_messages`, and no AI reads it.
 | `/member watch` | `apps/core/discord/member-watch.js` |
 | Backfill planners (also used by the check) | `apps/core/operator/member-record-backfill.js` |
 | Production write allowance and record methods | `apps/core/discord/transport.js` |
-| Migrations | `apps/core/storage/migrations/080`–`084` |
+| Games feed and game moderation feed | `apps/core/discord/member-record-games.js`, `member-record-moderation.js`; reader `apps/core/storage/central-identity.js` |
+| Migrations | `apps/core/storage/migrations/080`–`086` |
 | Tests | `tests/member-records*.test.js`, `scripts/integration/member-records-suite.mjs` (`--suite=member-records`) |
 
 ### Production at handoff
@@ -119,6 +120,22 @@ These are covered by tests, but worth a look the first time each happens:
 - `/member watch` used by Staff;
 - a leave with message links;
 - a replaced application.
+
+### Game moderation (built 2 November 2026, not installed)
+
+The owner asked for Meridian Rift and Wolfgate admin help tickets, notes and bans in each member's post: all of them,
+secret notes too (marked), full ticket transcripts, and everything already stored.
+- **Path:** the game databases → Aphelion-Central's sync (migration 005, `identity.moderation_records`, view
+  `identity.member_moderation`; `sync/moderation.mjs` shapes the rows, no IP or HWID) → Sophie's moderation feed every
+  15 minutes (migration 086, `member_record_sources`) → entries in the post.
+- **Entries:** `game.ban`, `game.note`, `game.ticket`, and `game.changed` for a later lift, edit, deletion, closed or
+  reopened ticket, or removal. Tickets stay out of the ledger and changelog. The first run's history skips the changelog.
+  The header's Moderation line counts each game's bans, notes and admin helps.
+- **Wolfgate ahelps:** not stored anywhere on the host; the PR plan is in
+  `GitHub/.agent_docs/aphelion-sophie/wolfgate-ahelp-persistence/PLAN.md`.
+- **Release, each step approved:** commit both repositories; Central `npm run migrate` then `npm run sync:dry` (counts
+  only); a Sophie packet with migration 086 (grant `member_record_sources` to `sophie_prod_core`); re-post the changelog
+  opening (1,991 characters); watch the first feed run.
 
 ### Open, in order
 

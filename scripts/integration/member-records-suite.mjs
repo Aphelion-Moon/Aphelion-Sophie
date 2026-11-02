@@ -8,6 +8,7 @@ import { planMemberRecordBackfill, planDepartedMemberRecords } from '../../apps/
 import { inTransaction } from '../../apps/core/storage/transaction.js';
 import { createMemberRecordReconciler } from '../../apps/core/discord/member-record-reconciler.js';
 import { createMemberRecordGamesFeed } from '../../apps/core/discord/member-record-games.js';
+import { createMemberRecordModerationFeed } from '../../apps/core/discord/member-record-moderation.js';
 import { mapping, CREW, WHITELIST, MUZZLED, BOT } from '../../tests/fixtures/discord.js';
 import { GUILD, USER, OTHER, STAFF, NOW } from '../../tests/fixtures/domain.js';
 import { APPLICATION } from '../../tests/fixtures/interactions.js';
@@ -578,5 +579,62 @@ export async function runMemberRecordsSuite(cluster, run) {
     await drain();
     assert.match(post(OTHER).messages.at(-1).content, /^\*\*Game records\*\*[\s\S]*Account: Otter/);
     assert.match(post(USER).messages[3].content, /\*\*SS13 · Meridian Rift\*\*\nNot linked · the application named vexcat/);
+  });
+
+  await scenario('MRS-16 game bans, notes and admin help tickets are entered once, history stays out of the changelog, and later changes follow', async () => {
+    await join(USER, 'vexthecat'); await join(OTHER, 'otter'); await drain();
+    const changelogBefore = forum.changelog().length;
+    const at = NOW - 86_400_000;
+    const row = (sourceKey, recordKind, detail, change = {}) => ({ discordId: USER, serverId: 'meridian-main', game: 'ss13', sourceKey, recordKind, occurredAtMs: at,
+      final: true, revision: 'a'.repeat(32), detail, present: true, ...change });
+    const ban = { scope: 'server', roles: [], admin: 'TestAdmin', reason: 'Synthetic reason', roundId: 7, expiresAt: null, lifted: false, lifts: [] };
+    const note = { type: 'note', admin: 'TestAdmin', text: 'Synthetic secret note', severity: 'minor', secret: true, deleted: null };
+    const ticket = { roundId: 5, number: 1, urgent: false, outcome: 'resolved', handledBy: 'testadmin', closedAt: at + 60_000, messagesOmitted: 0,
+      messages: [{ at, action: 'Ticket Opened', from: 'vexcat', to: null, text: 'Synthetic help request' }, { at: at + 60_000, action: 'Resolved', from: 'testadmin', to: null, text: 'Resolved by TestAdmin' }] };
+    const open = { ...ticket, number: 2, outcome: 'open', handledBy: null, closedAt: null, messages: ticket.messages.slice(0, 1) };
+    const central = { rows: [row('ban.4', 'ban', ban), row('note.9', 'note', note, { game: 'ss14', serverId: 'wolfgate' }), row('ticket.5.1', 'ticket', ticket),
+      row('ticket.5.2', 'ticket', open, { final: false }), row('ban.5', 'ban', ban, { discordId: THIRD })] };
+    central.readModerationRecords = async () => structuredClone(central.rows);
+    const feed = createMemberRecordModerationFeed({ store, central, enabled: async () => true, clock: () => now });
+    assert.deepEqual(await feed.runDue('moderation'), { status: 'fed', read: 5, entered: 3, changed: 0, skipped: 1 }, 'the open ticket waits; no record, no entry');
+    const raised = (await rows('member_records')).filter(record => record.delivered_revision < record.revision);
+    assert.deepEqual(raised.map(record => [record.user_id, record.background]), [[USER, true]], 'only the member with records, behind live work');
+    await drain();
+    const post = forum.posts().map(([, item]) => item).find(item => item.name.endsWith(` · ${USER}`));
+    const contents = post.messages.map(message => message.content);
+    assert.ok(contents.some(text => /^\*\*Meridian Rift admin help\*\* · ticket #1, round 5/.test(text) && text.includes('> Synthetic help request')));
+    assert.ok(contents.some(text => /^\*\*Meridian Rift ban\*\* · .* · by TestAdmin\nDuration: permanent/.test(text)));
+    assert.ok(contents.some(text => /^\*\*Wolfgate note\*\* · secret ·/.test(text)));
+    assert.match(contents[0], /\*\*Moderation:\*\* no mutes on record · Meridian Rift: 1 ban, 1 admin help · Wolfgate: 1 note/);
+    assert.match(contents[1], /Meridian Rift ban/); assert.match(contents[1], /Wolfgate note \\\(secret\\\)/);
+    assert.ok(!contents[1].includes('admin help'), 'tickets stay out of the ledger');
+    assert.equal(forum.changelog().length, changelogBefore, 'history entered by the first run stays out of the changelog');
+    assert.equal(post.archived, true);
+    // The same rows again: nothing.
+    now += 15 * 60_000;
+    assert.deepEqual(await feed.runDue('moderation'), { status: 'fed', read: 5, entered: 0, changed: 0, skipped: 1 });
+    assert.deepEqual(await drain(), []);
+    // The ban is lifted and the open ticket closes: a change entry (in the changelog) and a ticket (not in it).
+    now += 15 * 60_000;
+    central.rows[0] = row('ban.4', 'ban', { ...ban, lifted: true, lifts: [{ role: null, at: now, by: 'OtherAdmin' }] }, { revision: 'b'.repeat(32) });
+    central.rows[3] = row('ticket.5.2', 'ticket', { ...open, outcome: 'closed', handledBy: 'testadmin', closedAt: now }, { revision: 'c'.repeat(32) });
+    assert.deepEqual(await feed.runDue('moderation'), { status: 'fed', read: 5, entered: 1, changed: 1, skipped: 1 });
+    await drain();
+    assert.ok(post.messages.some(message => /^\*\*Meridian Rift ban updated\*\* · .*\n\*\*Lifted\*\* by OtherAdmin/.test(message.content)));
+    assert.ok(post.messages.some(message => /^\*\*Meridian Rift admin help\*\* · ticket #2/.test(message.content)));
+    assert.deepEqual(forum.changelog().slice(changelogBefore).map(line => line.match(/\*\*(.+?)\*\*/)[1]), ['Meridian Rift ban updated']);
+    // The note removed in game: one more change entry; the post keeps what it had.
+    now += 15 * 60_000; central.rows[1].present = false;
+    assert.deepEqual(await feed.runDue('moderation'), { status: 'fed', read: 5, entered: 0, changed: 1, skipped: 1 });
+    await drain();
+    assert.match(post.messages.at(-1).content, /^\*\*Wolfgate note updated\*\* · .*\nNo longer in the game database/);
+    const ids = (await rows('member_record_events')).filter(event => event.kind.startsWith('game.')).map(event => event.event_id).sort();
+    assert.deepEqual(ids, ['gm.meridian-main.ban.4', `gm.meridian-main.ban.4.r${'b'.repeat(8)}`, 'gm.meridian-main.ticket.5.1', 'gm.meridian-main.ticket.5.2',
+      'gm.wolfgate.note.9', `gm.wolfgate.note.9.x${'a'.repeat(8)}`]);
+    assert.equal((await rows('member_record_sources')).length, 4);
+    // A failed read enters nothing and is tried again a minute later.
+    now += 15 * 60_000; central.readModerationRecords = async () => { throw Object.assign(new Error('down'), { code: 'CENTRAL_DATABASE_UNAVAILABLE' }); };
+    assert.deepEqual(await feed.runDue('moderation'), { status: 'failed', code: 'CENTRAL_DATABASE_UNAVAILABLE' });
+    assert.deepEqual(await feed.runDue('moderation'), { status: 'idle' });
   });
 }

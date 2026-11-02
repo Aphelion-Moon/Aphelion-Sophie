@@ -34,6 +34,17 @@ BYOND/SS14 role stay with SSymphony. Sophie writes nothing to the central databa
 Discord write beyond editing her own games message in her own record posts, and no AI reads any of it: the forum stays
 a permanent case exclusion.
 
+## Game moderation (amendment, 2 November 2026)
+
+The owner asked for the game servers' bans, notes and admin help tickets in the member records ([0001](0001-owner-policy.md),
+"Game moderation in the member records"). Central's sync also copies them, from the same read-only sessions, into
+`identity.moderation_records`: one row per Meridian Rift ban (role-ban rows grouped), note, message or watchlist entry
+and admin help ticket (its actions in order), and per Wolfgate ban, role ban, note, message and watchlist entry, each
+with a revision hash; a row its source no longer has is marked not present. The view `identity.member_moderation` gives
+each row to every Discord ID with a valid link to its account. Sophie reads that view every 15 minutes as
+`sophie_central_reader` and enters what is new or changed in her own record posts. She still writes nothing to the
+central or any game database, and no AI reads any of it.
+
 ## Configuration
 
 `core.centralDatabase` in `trust\core.json`: `{ host: "127.0.0.1", port: 5490, database: "aphelion_central", user:

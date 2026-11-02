@@ -1,5 +1,24 @@
 # Verification and release limits
 
+## Game moderation in the member records, built offline — 2 November 2026
+
+- **Scope (owner, 2 November 2026):** Meridian Rift and Wolfgate bans, unbans, notes, messages and watchlist entries
+  (secret ones marked), and Meridian Rift admin help transcripts, entered in each member's #staff-intel post. Wolfgate
+  keeps no ahelp on the host, so its tickets wait for a Wolfgate PR (plan only).
+- **Offline, Sophie:** `npm test` 949 passed (MR-40 to MR-48 new; MR-45 runs hostile reasons, notes, names and tickets
+  through the real transport check); `npm run check` passed; `test:storage:fast` 1060 passed, 0 failed (MRS-16 new:
+  entered once, history kept out of the changelog, a lift and a closed ticket as later entries, a removal, a failed read).
+- **Offline, Aphelion-Central:** `npm test` 13 passed (moderation shaping: role-ban rows grouped, ticket transcripts and
+  finality, notes, no IP or HWID kept, revisions). Migrations 001 to 005 and two synthetic sync runs rehearsed on a
+  throwaway cluster: the second run changed nothing, removed rows were marked, `central_sync` cannot delete, and
+  `sophie_central_reader` sees only linked rows of live servers and still nothing in `symphony`.
+- **Read-only checks of the sources:** Wolfgate table columns from the live catalog (read-only session); Meridian Rift
+  columns from the repository's schema and its `LogAhelp` calls. No row content was read.
+- **Not done:** nothing committed (Aphelion-Central has no commits yet); no production migration, sync or install; the
+  changelog opening not re-posted. Each needs the owner's recorded approval.
+- **Not covered:** a sync against the real game databases (the dry run is the first production step); SS13 ban edits
+  are flagged, not itemised (the `edits` column is free text).
+
 ## Audit of the member records work, and a45ca0f prepared — 30 October 2026, evening
 
 - **Production (read-only, about 21:00 UTC):**

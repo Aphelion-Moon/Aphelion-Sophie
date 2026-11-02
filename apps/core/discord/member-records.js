@@ -8,8 +8,9 @@ const SUPPRESS_EMBEDS = 1 << 2;
 const RESERVED_SLOTS = ['ledger', 'application', 'games', 'spare'];
 const RENEW_AFTER_MS = 20_000;
 const DELETION_WAIT_MS = 15_000;
-// Entries kept in the post only, out of the ledger and the changelog, which they would flood.
-const QUIET_KINDS = ['message.deleted', 'message.edited'];
+// Entries kept in the post only, out of the ledger and the changelog, which they would flood: deleted and edited messages,
+// and game admin help tickets (records.quietEntry).
+const quiet = event => records.quietEntry(event.kind, event.detail);
 // Role changes are posted once the member's roles have been quiet this long (see waitFor), within the store's window.
 const ROLE_QUIET_MS = 20_000;
 const ROLE_NAMES_KEPT_MS = 600_000;
@@ -186,7 +187,7 @@ export function createMemberRecordDispatcher({ store, transport: discord, botUse
       return profile.roleIds.filter(id => names[id]).sort((a, b) => (positions[b] ?? 0) - (positions[a] ?? 0)).map(id => names[id]);
     })() : undefined;
     const header = records.renderHeader({ userId, username: profile.username, displayName: profile.displayName, present: profile.present, roles: profile.roles,
-      joinedAtMs: profile.joinedAtMs ?? null, joinCount: profile.joinCount ?? null, lastLeftAtMs: profile.lastLeftAtMs ?? null, shuttle: job.shuttle, mutes,
+      joinedAtMs: profile.joinedAtMs ?? null, joinCount: profile.joinCount ?? null, lastLeftAtMs: profile.lastLeftAtMs ?? null, shuttle: job.shuttle, mutes, gameModeration: job.gameModeration,
       application: facts, earlierNames: profile.earlierNames ?? [], note: profile.note ?? null, updatedAtMs: record.updatedAtMs, roleNames: roleList });
     const appMessages = applicationMessages(application);
     // The games message: the reserved text until the games feed has read the member (owner direction, 31 October 2026).
@@ -225,7 +226,7 @@ export function createMemberRecordDispatcher({ store, transport: discord, botUse
     const pendingEntries = events.filter(event => event.kind !== 'application' && !event.messageId);
     const ledgerOf = () => records.renderLedger([
       // Deleted and edited messages stay in the post only; listing each would crowd the ledger.
-      ...events.filter(event => event.messageId && !QUIET_KINDS.includes(event.kind)).map(event => ({ atMs: event.atMs, label: records.entryLabel(entryOf(event)), messageId: event.messageId })),
+      ...events.filter(event => event.messageId && !quiet(event)).map(event => ({ atMs: event.atMs, label: records.entryLabel(entryOf(event)), messageId: event.messageId })),
       ...appMessages.slice(1).map((_, index) => messages[`application${index + 2}`]).filter(Boolean)
         .map(messageId => ({ atMs: application.approvedAtMs, label: 'Access application, continued', messageId })),
     ], { guildId, channelId: threadId });
@@ -340,9 +341,10 @@ export function createMemberRecordDispatcher({ store, transport: discord, botUse
       }
       await step();
     }
-    // Every entry gets one line in the changelog, linking to it. The changelog post archives itself after a quiet week, so
-    // it is checked (at most every ten minutes) and woken before Sophie writes there.
-    const unlisted = events.filter(item => item.messageId && !item.changelogMessageId && !QUIET_KINDS.includes(item.kind));
+    // Every entry gets one line in the changelog, linking to it, except the game moderation history entered by the first
+    // feed run (owner direction, 2 November 2026). The changelog post archives itself after a quiet week, so it is checked
+    // (at most every ten minutes) and woken before Sophie writes there.
+    const unlisted = events.filter(item => item.messageId && !item.changelogMessageId && !quiet(item) && item.detail?.backfill !== true);
     if (unlisted.length && Date.now() - changelogCheckedAt > 600_000) {
       const changelog = await transport.getChannel(changelogThreadId);
       if (changelog === null) { const error = new Error('MEMBER_RECORD_CHANGELOG_MISSING'); error.code = 'MEMBER_RECORD_CHANGELOG_MISSING'; throw error; }

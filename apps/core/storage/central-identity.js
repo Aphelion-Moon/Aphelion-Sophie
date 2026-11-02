@@ -1,5 +1,5 @@
 import { requireCondition, requireId } from '../../../contracts/validation.js';
-import { requireGames } from '../../../modules/member-records/index.js';
+import { requireGames, requireModerationRow } from '../../../modules/member-records/index.js';
 
 export { createCentralIdentityPool } from './pool.js';
 
@@ -35,6 +35,19 @@ export function createCentralIdentity({ pool }) {
         byUser.set(row.discord_id, requireGames({ status: 'linked', servers: (Array.isArray(row.servers) ? row.servers : []).map(serverOf) }));
       }
       return byUser;
+    },
+    /**
+     * Every game moderation record (ban, note, admin help ticket) of a live server, once for each Discord member linked to
+     * its account (docs/decisions/0006-central-identity.md, amendment of 2 November 2026), as `requireModerationRow` reads it.
+     */
+    async readModerationRecords() {
+      const rows = (await pool.query(`SELECT discord_id::text AS discord_id, server_id, kind, source_key, record_kind,
+          (extract(epoch FROM occurred_at) * 1000)::bigint::text AS occurred_at_ms, final, revision, detail, present
+        FROM identity.member_moderation ORDER BY occurred_at NULLS FIRST, server_id, source_key`)).rows;
+      requireCondition(rows.length <= 100_000, 'CENTRAL_IDENTITY_RESPONSE_INVALID');
+      return rows.map(row => requireModerationRow({ discordId: row.discord_id, serverId: row.server_id, game: row.kind, sourceKey: row.source_key,
+        recordKind: row.record_kind, occurredAtMs: row.occurred_at_ms === null ? null : Number(row.occurred_at_ms), final: row.final, revision: row.revision,
+        detail: row.detail, present: row.present }));
     },
   });
 }

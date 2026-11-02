@@ -374,6 +374,7 @@ function gameValue(games, which) {
  * @param {number|null} record.lastLeftAtMs
  * @param {object|null} record.shuttle the latest Activity run, or null
  * @param {number|null} record.mutes mutes on record, or null when not read
+ * @param {object} [record.gameModeration] game bans, notes and admin helps on record per game (`gameModerationText`)
  * @param {object|null} record.application `{ approvedAtMs, birth, games }`, or null when there is none on record
  * @param {string[]} record.earlierNames
  * @param {string|null} record.note a closing note in small text
@@ -405,7 +406,7 @@ export function renderHeader(record) {
     `**Status:** ${status}`,
     `**Joined:** ${joins}${left}`,
     `**Shuttle:** ${shuttleLine(record.shuttle)}`,
-    `**Moderation:** ${mutes}`,
+    `**Moderation:** ${mutes}${gameModerationText(record.gameModeration)}`,
     `**Born:** ${application ? birthLine(application.birth, application.approvedAtMs) : 'no application on record'}`,
     `**Earlier names:** ${earlier.length ? earlier.slice(-8).join(', ') : 'none on record'}`,
     // The member's roles now, by name (owner, 30 October 2026, with role change entries).
@@ -659,6 +660,8 @@ export function entryText(event, context = {}) {
         ...(added.length ? [`Added: ${cut(names(added), 550)}`] : []), ...(removed.length ? [`Removed: ${cut(names(removed), 550)}`] : []),
         ...(brief.length ? [`Added and removed again: ${cut(names(brief), 550)}`] : []), ...(!added.length && !removed.length && !brief.length ? ['-# No change in the end.'] : [])]);
     }
+    case 'game.ban': case 'game.note': case 'game.ticket': return moderationParts(event)[0];
+    case 'game.changed': return moderationChangeParts(event)[0];
     default: throw new Error('MEMBER_RECORD_EVENT_UNKNOWN');
   }
 }
@@ -681,6 +684,7 @@ export function entryLabel(event) {
     case 'application.replaced': return 'Access application replaced';
     case 'message.deleted': return event.count === 1 ? 'Message deleted' : 'Messages deleted';
     case 'message.edited': return 'Message edited';
+    case 'game.ban': case 'game.note': case 'game.ticket': case 'game.changed': return moderationLabel(event);
     default: throw new Error('MEMBER_RECORD_EVENT_UNKNOWN');
   }
 }
@@ -741,6 +745,188 @@ function messageEntryParts(event, context) {
   return pack(blocks);
 }
 
+// ---------------------------------------------------------------------------------------------------------------------
+// Game moderation (owner direction, 2 November 2026): the game servers' bans, notes, messages, watchlist entries and admin
+// help tickets, read from the central identity database's member_moderation view and entered in the member's post. The text
+// is quoted literally. No AI reads any of it.
+
+export const GAME_MODERATION_KINDS = Object.freeze(['game.ban', 'game.note', 'game.ticket', 'game.changed']);
+const MODERATION_SERVER = /^[a-z0-9-]{1,40}$/u;
+const MODERATION_SOURCE = /^(?:(?:ban|roleban|note|message|watchlist)\.[0-9]{1,20}|ticket\.[0-9]{1,20}\.[0-9]{1,10})$/u;
+const MODERATION_DETAIL_MAX = 2_000_000;
+const RECORD_KIND = Object.freeze({ ban: 'ban', roleban: 'ban', note: 'note', message: 'note', watchlist: 'note', ticket: 'ticket' });
+// An entry is posted as at most this many messages (the store keeps up to 20 part IDs per entry).
+const MODERATION_PARTS_MAX = 20;
+
+/**
+ * Whether a row of the central database's member_moderation view is one Sophie enters: who it is for, which server and
+ * source record, its kind, revision and detail. The detail's fields are read defensively when rendered.
+ */
+export function requireModerationRow(row) {
+  requireCondition(row !== null && typeof row === 'object', 'MEMBER_RECORD_MODERATION_INVALID');
+  requireId(row.discordId);
+  requireCondition(MODERATION_SERVER.test(row.serverId) && GAME_SERVERS.some(item => item.kind === row.game) && MODERATION_SOURCE.test(row.sourceKey) &&
+    RECORD_KIND[row.sourceKey.split('.')[0]] === row.recordKind && /^[0-9a-f]{32}$/u.test(row.revision) && typeof row.final === 'boolean' &&
+    typeof row.present === 'boolean' && (row.occurredAtMs === null || (Number.isSafeInteger(row.occurredAtMs) && row.occurredAtMs > 0)) &&
+    row.detail !== null && typeof row.detail === 'object' && !Array.isArray(row.detail) && JSON.stringify(row.detail).length <= MODERATION_DETAIL_MAX,
+  'MEMBER_RECORD_MODERATION_INVALID');
+  return row;
+}
+
+/**
+ * The entry ID of a source record in a member's post, and of a later change to it: `r` a new revision, `x` removed in the
+ * game database, `p` present there again.
+ */
+export function moderationEventId(serverId, sourceKey, change = null) {
+  requireCondition(change === null || (['r', 'x', 'p'].includes(change.mark) && /^[0-9a-f]{32}$/u.test(change.revision)), 'MEMBER_RECORD_MODERATION_INVALID');
+  return `gm.${serverId}.${sourceKey}${change === null ? '' : `.${change.mark}${change.revision.slice(0, 8)}`}`;
+}
+
+/** Entries kept in the post only, out of the ledger and the changelog: deleted and edited messages, and admin help tickets. */
+export function quietEntry(kind, detail = {}) {
+  return kind === 'message.deleted' || kind === 'message.edited' || kind === 'game.ticket' || (kind === 'game.changed' && detail?.recordKind === 'ticket');
+}
+
+const gameName = game => GAME_SERVERS.find(item => item.kind === game)?.label.split(' · ')[1] ?? 'Game';
+const who = name => (typeof name === 'string' && cleanLine(name, 40)) ? literal(cleanLine(name, 40)) : 'an unknown admin';
+const timeOf = ms => Number.isSafeInteger(ms) && ms > 0 ? ms : null;
+const when = ms => timeOf(ms) ? `${stamp(ms, 'f')} (${utcText(ms)})` : 'time not recorded';
+const NOTE_TYPES = Object.freeze({ note: 'note', message: 'admin message', watchlist: 'watchlist entry' });
+const TICKET_OUTCOMES = Object.freeze({ resolved: 'Resolved', closed: 'Closed', rejected: 'Rejected', ic: 'Marked as an IC issue' });
+const TICKET_SYSTEM_ACTIONS = ['Resolved', 'Closed', 'Rejected', 'IC Issue', 'Reopened'];
+
+function banTitle(record) { return record?.scope === 'role' ? 'role ban' : 'ban'; }
+function noteTitle(record) { return NOTE_TYPES[record?.type] ?? 'note'; }
+
+/** A ban's lifts: the whole ban, or the roles lifted so far. */
+function liftLines({ lifted, lifts }) {
+  const list = Array.isArray(lifts) ? lifts : [];
+  return lifted ? [`**Lifted**${list[0]?.by ? ` by ${who(list[0].by)}` : ''} · ${when(list[0]?.at)}`]
+    : list.slice(0, 10).map(lift => `Lifted for ${literal(cleanLine(lift?.role, 60)) || 'a role'}${lift?.by ? ` by ${who(lift.by)}` : ''} · ${when(lift?.at)}`);
+}
+
+function banLines(record) {
+  const roles = Array.isArray(record.roles) ? record.roles.map(role => literal(cleanLine(role, 60))).filter(Boolean) : [];
+  const facts = [Number.isSafeInteger(record.roundId) ? `round ${record.roundId}` : null, typeof record.severity === 'string' ? `severity ${literal(record.severity)}` : null,
+    record.appliesToAdmins ? 'applies to admins too' : null, record.edited ? `edited in game${record.editedBy ? ` by ${who(record.editedBy)}` : ''}` : null].filter(Boolean);
+  return [
+    `Duration: ${timeOf(record.expiresAt) ? `until ${when(record.expiresAt)}` : 'permanent'}`,
+    roles.length ? `Roles: ${cut(roles.join(', '), 800)}` : null,
+    facts.length ? `-# ${facts.join(' · ')}` : null,
+    ...liftLines(record),
+  ].filter(line => line !== null);
+}
+
+function noteLines(record) {
+  const facts = [typeof record.severity === 'string' && record.severity !== 'none' ? `severity ${literal(record.severity)}` : null,
+    Number.isSafeInteger(record.roundId) ? `round ${record.roundId}` : null, timeOf(record.expiresAt) ? `expires ${stamp(record.expiresAt, 'D')}` : null,
+    record.seen === true ? 'seen by the player' : record.seen === false ? 'not yet seen by the player' : null,
+    record.edited ? `edited in game${record.editedBy ? ` by ${who(record.editedBy)}` : ''}` : null].filter(Boolean);
+  return [facts.length ? `-# ${facts.join(' · ')}` : null,
+    record.deleted ? `**Deleted in game**${record.deleted.by ? ` by ${who(record.deleted.by)}` : ''}${timeOf(record.deleted.at) ? ` · ${when(record.deleted.at)}` : ''}` : null].filter(line => line !== null);
+}
+
+/** Blocks joined into messages, at most `max` of them; what does not fit is counted in a closing line. */
+function packLimited(blocks, max, rest) {
+  const parts = [];
+  for (const [index, block] of blocks.entries()) {
+    const joins = parts.length && parts.at(-1).length + 1 + block.length <= MESSAGE_MAX;
+    if (!joins && parts.length === max) {
+      const note = rest(blocks.slice(index));
+      if (parts.at(-1).length + 1 + note.length <= MESSAGE_MAX) parts[parts.length - 1] += `\n${note}`;
+      else parts[parts.length - 1] = `${parts.at(-1).slice(0, MESSAGE_MAX - note.length - 3)}…\n${note}`;
+      return parts;
+    }
+    if (joins) parts[parts.length - 1] += `\n${block}`; else parts.push(block);
+  }
+  return parts;
+}
+
+/** One ticket message: when, what, who to whom, and the text quoted (a closing or reopening line is shown without quote). */
+function ticketMessageBlocks(message) {
+  const action = cleanLine(message?.action, 20) || 'Message';
+  const route = `${who(message?.from)}${message?.to ? ` → ${who(message.to)}` : ''}`;
+  const head = `-# ${timeOf(message?.at) ? utcText(message.at) : 'time not recorded'} · ${literal(action)} · ${route}`;
+  return TICKET_SYSTEM_ACTIONS.includes(action) ? [head] : [head, ...quotedPieces(message?.text)];
+}
+
+function ticketOutcome(record) {
+  const outcome = TICKET_OUTCOMES[record.outcome];
+  if (!outcome) return 'Not closed in game; the round has ended';
+  return `${outcome}${record.handledBy ? ` by ${who(record.handledBy)}` : ''}${timeOf(record.closedAt) ? ` · ${when(record.closedAt)}` : ''}`;
+}
+
+function moderationParts(event) {
+  const record = event.record ?? {}, name = gameName(event.game), at = timeOf(event.atMs) ? utcText(event.atMs) : 'time not recorded';
+  if (event.kind === 'game.ban') {
+    return packLimited([`**${name} ${banTitle(record)}** · ${at} · by ${who(record.admin)}`, ...banLines(record), '**Reason**', ...quotedPieces(record.reason)],
+      MODERATION_PARTS_MAX, () => '-# The rest is in the game database.');
+  }
+  if (event.kind === 'game.note') {
+    return packLimited([`**${name} ${noteTitle(record)}**${record.secret ? ' · secret' : ''} · ${at} · by ${who(record.admin)}`, ...noteLines(record), ...quotedPieces(record.text)],
+      MODERATION_PARTS_MAX, () => '-# The rest is in the game database.');
+  }
+  const messages = Array.isArray(record.messages) ? record.messages : [];
+  const head = `**${name} admin help** · ticket ${Number.isSafeInteger(record.number) ? `#${record.number}` : ''}${Number.isSafeInteger(record.roundId) ? `, round ${record.roundId}` : ''} · opened ${at}${record.urgent ? ' · urgent' : ''}`;
+  const omitted = Number.isSafeInteger(record.messagesOmitted) ? record.messagesOmitted : 0;
+  const blocks = [head, `${ticketOutcome(record)} · ${messages.length + omitted} ${messages.length + omitted === 1 ? 'message' : 'messages'}`,
+    ...messages.flatMap(ticketMessageBlocks), ...(omitted ? [`-# ${omitted} more messages are in the game database.`] : [])];
+  return packLimited(blocks, MODERATION_PARTS_MAX, rest => `-# ${rest.filter(block => block.startsWith('-# ')).length} more messages not shown here; the full ticket is in the game database.`);
+}
+
+/** What changed in a source record since the post was given it: a lift, an edit, a deletion, more ticket messages. */
+function moderationChangeParts(event) {
+  const before = event.before ?? {}, after = event.after ?? {}, name = gameName(event.game), at = utcText(event.atMs);
+  const title = event.recordKind === 'ban' ? banTitle(after) : event.recordKind === 'note' ? noteTitle(after) : 'admin help';
+  const blocks = [`**${name} ${title} updated** · ${at}${event.recordKind === 'ticket' && Number.isSafeInteger(after.number) ? ` · ticket #${after.number}, round ${after.roundId}` : ''}`];
+  if (event.present === false) blocks.push('No longer in the game database: removed there. What was entered before stays in this post.');
+  else if (event.wasPresent === false) blocks.push('Back in the game database.');
+  if (event.present === false) { /* nothing more to compare */ } else if (event.recordKind === 'ban') {
+    if (after.lifted && !before.lifted) blocks.push(...liftLines({ lifted: true, lifts: after.lifts }));
+    else if (JSON.stringify(after.lifts ?? []) !== JSON.stringify(before.lifts ?? [])) blocks.push(...liftLines({ lifts: (after.lifts ?? []).slice((before.lifts ?? []).length) }));
+    if (after.expiresAt !== before.expiresAt) blocks.push(`Duration now: ${timeOf(after.expiresAt) ? `until ${when(after.expiresAt)}` : 'permanent'}`);
+    if (JSON.stringify(after.roles ?? []) !== JSON.stringify(before.roles ?? [])) blocks.push(`Roles now: ${cut((after.roles ?? []).map(role => literal(cleanLine(role, 60))).join(', ') || 'none', 800)}`);
+    if (after.reason !== before.reason) blocks.push('**Reason now**', ...quotedPieces(after.reason));
+    if (after.edited && !before.edited && blocks.length === 1) blocks.push(`Edited in game${after.editedBy ? ` by ${who(after.editedBy)}` : ''}.`);
+  } else if (event.recordKind === 'note') {
+    if (after.deleted && !before.deleted) blocks.push(...noteLines({ deleted: after.deleted }));
+    if (Boolean(after.secret) !== Boolean(before.secret)) blocks.push(after.secret ? 'Now secret.' : 'No longer secret.');
+    if (after.severity !== before.severity) blocks.push(`Severity now: ${literal(after.severity ?? 'none')}`);
+    if (after.expiresAt !== before.expiresAt) blocks.push(timeOf(after.expiresAt) ? `Expires ${stamp(after.expiresAt, 'D')}` : 'No longer expires.');
+    if (after.text !== before.text) blocks.push(`**Text now**${after.editedBy ? ` (edited by ${who(after.editedBy)})` : ''}`, ...quotedPieces(after.text));
+  } else {
+    const earlier = Array.isArray(before.messages) ? before.messages.length : 0, messages = Array.isArray(after.messages) ? after.messages.slice(earlier) : [];
+    if (after.outcome !== before.outcome) blocks.push(ticketOutcome(after));
+    blocks.push(...messages.flatMap(ticketMessageBlocks));
+  }
+  if (blocks.length === 1) blocks.push('-# Details changed in the game database.');
+  return packLimited(blocks, MODERATION_PARTS_MAX, rest => `-# ${rest.length} more lines not shown here; the full record is in the game database.`);
+}
+
+/** The ledger's label for a game moderation entry. */
+function moderationLabel(event) {
+  const name = gameName(event.game);
+  if (event.kind === 'game.ban') return `${name} ${banTitle(event.record)}`;
+  if (event.kind === 'game.note') return `${name} ${noteTitle(event.record)}${event.record?.secret ? ' (secret)' : ''}`;
+  if (event.kind === 'game.ticket') return `${name} admin help`;
+  const title = event.recordKind === 'ban' ? banTitle(event.after) : event.recordKind === 'note' ? noteTitle(event.after) : 'admin help';
+  return `${name} ${title} updated`;
+}
+
+/**
+ * The header's count of game moderation on record, per game: `{ ss13: { ban, note, ticket }, ss14: … }`, or null when not
+ * read. A game with nothing on record is left out.
+ */
+function gameModerationText(counts) {
+  if (!counts || typeof counts !== 'object') return '';
+  const words = (count, one, many) => `${count} ${count === 1 ? one : many}`;
+  return GAME_SERVERS.map(({ kind }) => {
+    const c = counts[kind] ?? {};
+    const parts = [c.ban ? words(c.ban, 'ban', 'bans') : null, c.note ? words(c.note, 'note', 'notes') : null, c.ticket ? words(c.ticket, 'admin help', 'admin helps') : null].filter(Boolean);
+    return parts.length ? ` · ${gameName(kind)}: ${parts.join(', ')}` : '';
+  }).join('');
+}
+
 /**
  * The messages one entry is posted as: one, except a replaced application, whose entry is followed by the earlier
  * application as it was (owner direction, 30 October 2026: the old and new application documented in the post), and a
@@ -748,6 +934,8 @@ function messageEntryParts(event, context) {
  */
 export function entryParts(event, context = {}) {
   if (event.kind === 'message.deleted' || event.kind === 'message.edited') return messageEntryParts(event, context);
+  if (event.kind === 'game.changed') return moderationChangeParts(event);
+  if (GAME_MODERATION_KINDS.includes(event.kind)) return moderationParts(event);
   const first = entryText(event, context);
   if (event.kind !== 'application.replaced' || !event.previous) return [first];
   return [first, ...renderApplication(event.previous).map((text, index) => index === 0 ? text.replace('**Access application**', '**Earlier access application**') : text)];
@@ -772,13 +960,13 @@ export function changelogLine(event, { guildId, userId, username, threadId, mess
  */
 export const CHANGELOG_OPENING = [
   '## Sophie\'s changelog',
-  'Every automatic update Sophie makes to the member records appears here, newest at the bottom, each with a link to the entry in that member\'s post.',
+  'Every automatic update Sophie makes to member records appears here, newest at the bottom, with a link to the entry.',
   '',
   '### Each member\'s post',
-  '- **Header**, kept up to date: names and Discord ID, account age, status (in server or left, Crew, Whitelisted, Muzzled, Staff, Lead Ops), join date and count, last leave, Shuttle run and reading time, mutes on record, birth month and year and game accounts (from the application), earlier names, current roles.',
+  '- **Header**, kept up to date: names and Discord ID, account age, status (in server or left, and key roles), join date and count, last leave, Shuttle run and reading time, mutes and game moderation on record, birth month and year and game accounts (from the application), earlier names, current roles.',
   '- **Ledger:** links to Sophie\'s entries in the post.',
   '- **Access application:** the approved application, transcribed. A newer one replaces it; the older one is kept as an entry.',
-  '- **Game records** (reserved for Meridian Rift and Wolfgate) and one spare message.',
+  '- **Game records:** linked Meridian Rift and Wolfgate accounts and characters; one spare message.',
   '- **Tags:** In server or Left, Whitelisted, Muzzled, Staff, Watch.',
   '',
   '### Automatic entries',
@@ -789,10 +977,11 @@ export const CHANGELOG_OPENING = [
   '- Name changes',
   '- Access application, and application replaced',
   '- Watch on or off (`/member watch`, all Staff)',
-  '- Deleted messages (the text, attachments, and who deleted them from the audit log) and edited messages (before and after). These stay in the member\'s post and are not listed here.',
+  '- Deleted messages (the text, attachments, and who deleted them from the audit log) and edited messages (before and after), post only',
+  '- Meridian Rift and Wolfgate bans, unbans, notes, messages and watchlist entries (secret marked) and admin help transcripts (post only)',
   '',
   '### Good to know',
-  '- Sophie checks the member list when she starts and every 6 hours, catching joins, leaves and changes made while she was offline, and opens records for people who have left that she can name.',
+  '- Sophie checks the member list at start and every 6 hours, catching what changed while she was offline, and opens records for named people who have left.',
   '- She keeps message text for 30 days and who wrote each message for a year, never from tickets. A deleted or edited message entered in a post stays with that record.',
   '- Staff discussion in a member\'s post is copied into Sophie\'s records. No AI reads any of it.',
   '-# Kept by Sophie; replies here end up between her entries.',
