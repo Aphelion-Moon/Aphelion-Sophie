@@ -1,0 +1,15 @@
+[
+  { "id": "syn-ci-what", "class": "synthetic-ci", "context": "support", "game": "ss14-wolfgate", "text": "What is CI?", "route": "gameplay",
+    "gold": { "any": [{ "document": "^glossary-ci$" }, { "heading": "\\(CI\\)" }] }, "forbidSources": [{ "family": "development" }],
+    "assert": { "requireText": ["Combat Indicator"], "forbidText": ["continuous integration"] } },
+  { "id": "syn-ci-intent", "class": "synthetic-ci", "context": "support", "game": "ss14-wolfgate", "text": "what does combat intent mean", "route": "gameplay",
+    "gold": { "any": [{ "document": "^glossary-ci$" }], "pending": true },
+    "assert": { "requireText": ["Combat Indicator"] } },
+  { "id": "syn-ci-wolfgate", "class": "synthetic-ci", "context": "support", "game": "ss14-wolfgate", "text": "Do I need to use CI before attacking someone on Wolfgate?", "route": "gameplay",
+    "gold": { "any": [{ "url": "MonolithRuleConflictOne" }, { "document": "^glossary-ci$", "heading": "Wolfgate" }] }, "forbidSources": [{ "family": "development" }],
+    "assert": { "requireText": ["Conflict Rule 1"] } },
+  { "id": "syn-ci-dev", "class": "synthetic-ci", "context": "support", "text": "Did CI pass on my pull request?", "route": "development",
+    "gold": { "any": [{ "url": "/docs/" }] }, "assert": { "forbidText": ["Combat Indicator"] } },
+  { "id": "syn-report", "class": "synthetic-report-pointer", "context": "support", "game": "ss14-wolfgate", "text": "someone just shot me for no reason, where do I report it?", "route": "gameplay",
+    "gold": { "any": [{ "url": "MonolithRuleConflictOne" }] }, "assert": { "notOutcome": "silent", "pointer": ["ahelp|admin help|F1"], "noVerdict": true } }
+]

@@ -1,0 +1,126 @@
+[
+  {
+    "id": "wiki-antagonist-policy",
+    "title": "Antagonist Policy",
+    "kind": "wiki-page",
+    "authority": "policy",
+    "url": "https://meridian-wiki.a13.info/wiki/Antagonist_Policy",
+    "rights": "Synthetic fixture text",
+    "attribution": "Synthetic author",
+    "sourceRevision": "synthetic-1",
+    "dependencyHash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "fetchedAt": 1793620800000,
+    "validUntil": 1793707200000,
+    "aliases": [],
+    "sections": [
+      {
+        "heading": "Antagonist Policy › Conflict and Gameplay States › Combat Indicator (CI) CI-01",
+        "text": "Synthetic rule: before starting combat, activate the combat indicator so the other player sees and hears it, then wait five seconds."
+      },
+      {
+        "heading": "Antagonist Policy › Combat State and Combat Indicator (CI) CI-02",
+        "text": "Synthetic rule: a mechanical action that risks harm needs the combat state first."
+      }
+    ]
+  },
+  {
+    "id": "wiki-combat-mode",
+    "title": "Combat Mode",
+    "kind": "wiki-page",
+    "authority": "reference",
+    "url": "https://meridian-wiki.a13.info/wiki/Combat_Mode",
+    "rights": "Synthetic fixture text",
+    "attribution": "Synthetic author",
+    "sourceRevision": "synthetic-1",
+    "dependencyHash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "fetchedAt": 1793620800000,
+    "validUntil": 1793707200000,
+    "aliases": [],
+    "sections": [
+      {
+        "heading": "Combat Mode",
+        "text": "Synthetic reference: combat mode is a toggle on F or 4 that replaced intents. It is not the combat indicator."
+      }
+    ]
+  },
+  {
+    "id": "site-docs-required-tests",
+    "title": "Required Tests",
+    "kind": "website",
+    "authority": "reference",
+    "url": "https://meridian.a13.info/docs/required-tests",
+    "rights": "Synthetic fixture text",
+    "attribution": "Synthetic author",
+    "sourceRevision": "synthetic-1",
+    "dependencyHash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "fetchedAt": 1793620800000,
+    "validUntil": 1793707200000,
+    "aliases": [],
+    "sections": [
+      {
+        "heading": "Required Tests (Continuous Integration)",
+        "text": "Synthetic developer page: CI runs the unit tests and the map linter on every pull request; a red CI check blocks the merge."
+      }
+    ]
+  },
+  {
+    "id": "gh-wolfgate-contributing",
+    "title": "Wolfgate: CONTRIBUTING",
+    "kind": "repository",
+    "authority": "reference",
+    "url": "https://github.com/VanguardControl/Wolfgate/blob/master/CONTRIBUTING.md",
+    "rights": "Synthetic fixture text",
+    "attribution": "Synthetic author",
+    "sourceRevision": "synthetic-1",
+    "dependencyHash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "fetchedAt": 1793620800000,
+    "validUntil": 1793707200000,
+    "aliases": [],
+    "sections": [
+      {
+        "heading": "Pull requests",
+        "text": "Synthetic developer page: wait for CI to pass before asking for review of your pull request."
+      }
+    ]
+  },
+  {
+    "id": "guide-monolith-conflict-one",
+    "title": "Wolfgate Guidebook: Conflict Rule 1",
+    "kind": "guidebook",
+    "authority": "policy",
+    "url": "https://panel.a13.info/guide/wolfgate#MonolithRuleConflictOneRandomDeathmatch",
+    "rights": "Synthetic fixture text",
+    "attribution": "Synthetic author",
+    "sourceRevision": "synthetic-1",
+    "dependencyHash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "fetchedAt": 1793620800000,
+    "validUntil": 1793707200000,
+    "aliases": [],
+    "sections": [
+      {
+        "heading": "Wolfgate Rules › Conflict Rule 1: Random Deathmatch",
+        "text": "Synthetic rule: do not kill without escalation; declare escalation in local, shortband or broadband chat first."
+      }
+    ]
+  },
+  {
+    "id": "guide-rule-r6",
+    "title": "Wolfgate Guidebook: R6",
+    "kind": "guidebook",
+    "authority": "reference",
+    "url": "https://panel.a13.info/guide/wolfgate#RuleR6",
+    "rights": "Synthetic fixture text",
+    "attribution": "Synthetic author",
+    "sourceRevision": "synthetic-1",
+    "dependencyHash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "fetchedAt": 1793620800000,
+    "validUntil": 1793707200000,
+    "aliases": [],
+    "sections": [
+      {
+        "heading": "Upstream ruleset › R6",
+        "text": "Synthetic upstream text: an upstream server rule that is not one of Wolfgate's own."
+      }
+    ]
+  }
+]

@@ -1802,6 +1802,10 @@ Depends on: P51. Acceptance: rv-retrieval-*, rv-code-*, rv-cite-* probe cases, u
 
 Review findings H8, L1, M1, M7, M9 in .agent_docs/aphelion-sophie/sophie-probe-2026-10-24/review.md.
 
+Implemented scope:
+
+- M9: /lookup shows the first four of up to five library passages instead of failing (DS07-L05)
+
 Full task deliverables:
 
 - L1: section anchors in link lines so different sections of one page show as separate links, with the rule code
@@ -1819,6 +1823,19 @@ Status: **in_progress**. Phase: AI quality. Priority: P0.
 Depends on: None. Acceptance: unit tests for every assert and the diagnosis table, retrieval mode runs offline against a snapshot with no secrets, live modes refuse to run without --live and --max-calls.
 
 Split out of P55 by the 2 November 2026 plan (decision log), so the evaluator can measure P53 and P54. Review finding M10 in .agent_docs/aphelion-sophie/sophie-probe-2026-10-24/review.md.
+
+Implemented scope:
+
+- Evaluator in the repository: scripts/lib/ai-eval/asserts.mjs (asserts incl. requireCitationGame, forbidSourceFamily, pointer, noVerdict; URL-based evaluation labels independent of the code under test; gold matching; diagnosis), snapshot.mjs (pinned snapshot, re-stamped freshness, overlays for drafts, oracle passages), turn.mjs (the real prompt, validation, claim removal and rendering around an injected model call) and scripts/ai-eval.mjs (retrieval, oracle and e2e modes; model modes refuse to run without --dry or --live with --max-calls and a key)
+- Tests AE-01 to AE-07 (tests/ai-eval.test.js) pass; npm run check passes
+- Synthetic CI-collision snapshot (tests/fixtures/ai-eval): offline retrieval run reproduces the failure (plain "What is CI?" retrieves nothing; the Wolfgate CI question retrieves a GitHub CONTRIBUTING passage); with the draft glossary overlay 4 of 5 cases retrieve their gold, the report-pointer case still has no evidence (needs the capability manifest)
+- Wolfgate case class (45 cases, 8 classes) and the read-only snapshot script in .agent_docs/aphelion-sophie/ai-eval-2026-11-02
+
+Remaining scope:
+
+- Owner approval to take the production knowledge snapshot (read-only, knowledge identity); the auto-mode classifier refused it without one
+- Retrieval baseline of the Wolfgate class and cases-review.json on that snapshot, recorded before any P53/P54 change
+- Owner-recorded call budget for the first oracle and end-to-end runs (about 270 calls for the Wolfgate class at N=3)
 
 Full task deliverables:
 

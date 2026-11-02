@@ -1,0 +1,28 @@
+{
+  "id": "glossary-ci",
+  "title": "CI: Combat Indicator",
+  "kind": "owner-publication",
+  "authority": "policy",
+  "url": "https://example.test/glossary/ci",
+  "rights": "Synthetic fixture text",
+  "attribution": "Synthetic author",
+  "sourceRevision": "synthetic-1",
+  "dependencyHash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "fetchedAt": 1793620800000,
+  "validUntil": null,
+  "aliases": [
+    "CI",
+    "combat indicator",
+    "combat intent"
+  ],
+  "sections": [
+    {
+      "heading": "Combat Indicator (CI) on Meridian Rift",
+      "text": "Synthetic glossary: CI is the Combat Indicator, a Meridian Rift rule (Antagonist Policy CI-01). \"Combat intent\" means the same thing."
+    },
+    {
+      "heading": "CI on Wolfgate",
+      "text": "Synthetic glossary: Wolfgate does not use CI. Escalation follows Conflict Rule 1: declare it in local, shortband or broadband chat."
+    }
+  ]
+}
