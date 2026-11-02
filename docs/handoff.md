@@ -203,7 +203,10 @@ runs when handed the right passages, but only 93 of 135 in the real turn. The mo
   the owner publishes.
 - No model training.
 
-**On `main`, not installed and not pushed** (main is 15 commits ahead of `origin/main`):
+**On `main`, not installed and not pushed** (main is 17 commits ahead of `origin/main`). Since 17:45 on 2 November the
+main checkout has been on `claude/radio-p58-domain` (another session's radio work, P58); these AI commits went to `main`
+through a separate worktree. That branch also edits `docs/workplan.json`, so expect a conflict there when it merges:
+take both sides and run `node scripts/build-workplan.mjs`.
 
 | What | Commits |
 |---|---|
@@ -212,19 +215,32 @@ runs when handed the right passages, but only 93 of 135 in the real turn. The mo
 | Every synced document names its game; upstream SS14 rulesets are titled as such (the next sync re-reads every wiki and Guidebook page once) | merge `d277acd` |
 | "Open draft file" on the Approved knowledge page | merge `39096c6` |
 | Routing: gameplay questions get no developer pages and no code search; the channel's game is ranked higher and upstream rulesets lower; evidence names its source and game; a question with no evidence is told not to answer from general knowledge | `c57fc97` |
+| Glossary: an entry (`glossary-<slug>`) whose alias the question names anywhere comes first; its other names lift the community's own pages, never developer pages or upstream rulesets; a term in capitals finds headings that spell it out | `bfbfed7` |
 
 **Measured** (retrieval only, no model calls), Wolfgate questions on the labelled snapshot:
 
-| Measure | Before routing | After routing |
-|---|---|---|
-| Right passage found | 30 of 42 | 33 of 42 |
-| Questions returning an upstream ruleset | 12 | 6 |
-| Upstream ruleset ranked first | 7 | 3 |
-| Developer pages on gameplay questions | 2 | 0 |
+| Measure | Before routing | After routing | With the 27 glossary drafts |
+|---|---|---|---|
+| A passage that answers it found | 30 of 42 | 34 of 42 | 40 of 42 |
+| Questions returning an upstream ruleset | 12 | 6 | 3 |
+| Upstream ruleset ranked first | 7 | 3 | 1 |
+| Developer pages on gameplay questions | 2 | 0 | 0 |
 
-- CI questions still find the right passage in only 2 of 6, and report or appeal questions in 1 of 5. The glossary
-  (next step) and the capability manifest address these.
-- Until an install and the re-sync, production documents carry no game. Only the developer-page filter would act.
+- The routing column was re-scored after five cases' gold was extended to accept the glossary section that paraphrases a
+  passage they already accepted, hence 34 rather than 33.
+- The two misses have nothing to find: the GitHub source is empty while its token is refused, and appeals need the
+  capability manifest.
+- Until an install and the re-sync, production documents carry no game. Only the developer-page filter would act. The
+  glossary works once the owner publishes the entries, labels or not.
+
+**Glossary drafts:** `GitHub/.agent_docs/aphelion-sophie/glossary-2026-11-02/drafts`, 27 files, nothing published.
+- Each file opens in the dashboard with "Open draft file"; the owner reviews and publishes each one.
+- Each definition paraphrases the snapshot passages it cites. `sources.txt` holds those passages
+  (`extract-sources.mjs`, `find-text.mjs`), and `build-drafts.mjs` rebuilds the files and checks them against the
+  dashboard's draft reader.
+- One document per term, one section per game.
+- The editor has no game field, so published entries carry no game label. They don't need one to lead.
+- Measure a change with `--overlay <drafts folder>` on the evaluator.
 - **Narrowing to know about:** a plain-language code question ("how does the cloning system work") no longer triggers code
   search. It needs a developer word, a file name or an identifier.
 
@@ -244,16 +260,15 @@ tickets, member records, case exclusions, the rules channel and channels @everyo
 needs the owner's channel list and an approval for each run.
 
 **Next, in order:**
-1. Glossary documents with alias expansion. Start with `glossary-ci`; the draft overlay is
-   `tests/fixtures/ai-eval/glossary-ci.overlay.json`.
-2. Capability manifest and channel directory, the incident-verdict rule and check, and the lexical support check.
-3. The harvest, once the owner names channels.
+1. Capability manifest and channel directory, the incident-verdict rule and check, and the lexical support check.
+2. The owner reviews and publishes the glossary drafts.
+3. The harvest, once the owner names channels; more glossary terms come from it.
 4. A live trial on budget.
 5. An install, on approval.
 
 **Owner inputs outstanding:**
 - harvest channels;
-- approval of each glossary and harvest document;
+- review and publication of the 27 glossary drafts, and approval of each harvest document;
 - leaving the upstream rulesets out entirely, or keeping them relabelled;
 - which historical pages to withdraw (Red Server Policy, the Starter Guide's "Intents");
 - the manifest and context briefs;
@@ -278,8 +293,9 @@ needs the owner's channel list and an approval for each run.
 ### Tests
 
 Run `npm test`, `npm run check` and `npm run test:storage:fast` (isolated PostgreSQL), and record the actual counts. For
-a small edit, run only the affected test files. Last full runs: 965 unit tests (2 November, after routing) and 1058
-storage tests passed. On 2 November only the AI storage suites ran (`node scripts/test-storage.mjs --suite=ai`, 102 passed).
+a small edit, run only the affected test files. Last full runs: 981 unit tests (2 November, after the glossary) and 1058
+storage tests passed. On 2 November only the AI storage suites ran (`node scripts/test-storage.mjs --suite=ai`, 103 passed
+after the glossary).
 
 ### Install (production, source-only)
 
