@@ -1,5 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { createHash } from 'node:crypto';
+import { canonicalKnowledgeDocument, KNOWLEDGE_GAMES } from '../modules/assistant/knowledge.js';
 import { blocksToSections, markdownToSections, splitSection, packDocuments, documentIdBase, SECTION_CHARS, SYNC_VALIDITY_MS } from '../apps/knowledge/sources/sectioning.js';
 import { createSourceReader } from '../apps/knowledge/sources/http.js';
 import { createWikiCollector, wikiPageUrl } from '../apps/knowledge/sources/wiki.js';
@@ -56,6 +58,28 @@ test('KS-02 packing yields canonical documents with stable ids, parts, a content
   assert.throws(() => packDocuments({ ...base, maxParts: 21 }), /INVALID|21/u);
   assert.throws(() => packDocuments({ ...base, kind: 'owner-publication' }), /KNOWLEDGE_SYNC_INVALID/);
   assert.equal(wikiPageUrl('Songs/Pop, Rock'), 'https://meridian-wiki.a13.info/wiki/Songs/Pop%2C_Rock');
+});
+
+test('KS-11 a document names its game only when it has one, so an unlabelled document keeps its earlier digest', () => {
+  const digest = value => createHash('sha256').update(JSON.stringify(value)).digest('hex');
+  const doc = { id: 'wiki-x-abcdef', title: 'X', kind: 'wiki-page', authority: 'policy', url: 'https://meridian-wiki.a13.info/wiki/X', rights: 'CC BY-NC-SA 4.0',
+    attribution: 'Meridian Wiki contributors', sourceRevision: 'wiki:page:1:r2:f3', dependencyHash: 'a'.repeat(64), fetchedAt: 1_000_000, validUntil: 1_000_000 + 86400000,
+    aliases: ['Y', 'B'], sections: [{ heading: 'X', text: 'Text' }] };
+  // Digests recorded before the game label existed.
+  assert.equal(digest(canonicalKnowledgeDocument(doc)), 'b65ffed0ea9be081c35781d64ea3a457a472c46379872f5b34614e6f1aca8628');
+  assert.equal(Object.hasOwn(canonicalKnowledgeDocument(doc), 'game'), false);
+  const base = { idBase: 'wiki-x-abcdef', title: 'X', kind: 'wiki-page', authority: 'reference', url: 'https://meridian-wiki.a13.info/wiki/X',
+    rights: 'CC', attribution: 'Wiki', sourceRevision: 'wiki:page:1:r2', fetchedAt: 1_000_000, sections: [{ heading: 'S', text: 'Body' }] };
+  const [plain] = packDocuments(base).documents;
+  assert.equal(plain.dependencyHash, 'e9981573c2509f395eaa26543973989d302a157f6a01b1cab9fe9472df05a914');
+  assert.equal(digest(plain), 'cee916f09fe81d7afd12cda2947952a9690053d234cd0e9d7dcf81b6d55b7ddb');
+  for (const game of KNOWLEDGE_GAMES) assert.equal(canonicalKnowledgeDocument({ ...doc, game }).game, game);
+  const [labelled] = packDocuments({ ...base, game: 'ss13-meridian' }).documents;
+  assert.equal(labelled.game, 'ss13-meridian'); assert.notEqual(labelled.dependencyHash, plain.dependencyHash, 'the label is part of the content');
+  assert.deepEqual(canonicalKnowledgeDocument(labelled), labelled, 'a labelled document is already canonical');
+  for (const game of [null, undefined, '', 'ss14', 'SS13-Meridian'])
+    assert.throws(() => canonicalKnowledgeDocument({ ...doc, game }), /KNOWLEDGE_DOCUMENT_INVALID/);
+  assert.throws(() => packDocuments({ ...base, game: 'wolfgate' }), /KNOWLEDGE_DOCUMENT_INVALID/);
 });
 
 test('KS-03 the source reader stays on its origins, caps bodies and reports only fixed codes', async () => {
