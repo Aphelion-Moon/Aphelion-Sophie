@@ -7,6 +7,7 @@ const assets = [
   ['/ai-knowledge', '../../dashboard/ai-knowledge.html', 'text/html; charset=utf-8'],
   ['/dashboard/ai-knowledge-app.js', '../../dashboard/ai-knowledge-app.js', 'text/javascript; charset=utf-8'],
   ['/dashboard/wiki-review.js', '../../dashboard/wiki-review.js', 'text/javascript; charset=utf-8'],
+  ['/dashboard/knowledge-draft.js', '../../dashboard/knowledge-draft.js', 'text/javascript; charset=utf-8'],
   ['/ai-preferences', '../../dashboard/ai-preferences.html', 'text/html; charset=utf-8'],
   ['/dashboard/ai-app.js', '../../dashboard/ai-app.js', 'text/javascript; charset=utf-8'],
   ['/dashboard/ai-memories-view.js', '../../dashboard/ai-memories-view.js', 'text/javascript; charset=utf-8'],
