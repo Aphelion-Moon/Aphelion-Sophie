@@ -1,4 +1,5 @@
 import { createDashboardApi } from './api.js';
+import { KNOWLEDGE_DRAFT_LIMITS, readKnowledgeDraft } from './knowledge-draft.js';
 import { mountDashboardShell } from './shell.js';
 import { renderWikiReview } from './wiki-review.js';
 
@@ -74,6 +75,22 @@ function useWiki() {
   el('document-state').textContent = 'Wiki source attached. Enter complete reviewed extracts below, including qualifications. Publishing requires a separate confirmation.';
   changed(); notice('Source attached to the editor. No text was published or automatically summarized.');
 }
+// A draft prepared offline only fills the editor; publishing still goes through the review and confirmation below.
+async function openDraft(file) {
+  const read = file.size <= KNOWLEDGE_DRAFT_LIMITS.fileBytes ? readKnowledgeDraft(await file.text()) : { ok: false, problem: 'The file is larger than a draft can be.' };
+  if (!read.ok) { el('error').textContent = `This draft was not opened. ${read.problem}`; el('error').hidden = false; return; }
+  const { draft } = read, existing = catalogueRows.some(row => row.id === draft.id);
+  if (existing) {
+    // A new revision of an owner publication keeps its epoch; a synced or wiki-bound one is never replaced by a draft.
+    const value = await api.knowledgeDocument(draft.id);
+    if (value.document && value.document.kind !== 'owner-publication') { el('error').textContent = 'This draft was not opened. A synced or wiki-bound publication already uses its name; rename the draft.'; el('error').hidden = false; return; }
+    edit(value);
+  } else edit();
+  for (const [id,value] of [['document-id',draft.id],['document-title',draft.title],['authority',draft.authority],['source-url',draft.url],['rights',draft.rights],['attribution',draft.attribution],['source-revision',draft.sourceRevision]]) el(id).value = value;
+  el('aliases').value = draft.aliases.join('\n'); el('sections').replaceChildren(); draft.sections.forEach(addSection);
+  el('document-state').textContent = `${existing ? `Draft for ${draft.id}; it replaces revision ${record.revision} only once you publish it.` : 'Draft for a new public document.'} Opened from ${file.name}. Nothing is published until you review and confirm it.`;
+  changed(); notice('Draft opened in the editor. Check every section and the source fields, then review the publication.');
+}
 const sourceNames = { wiki: 'Meridian wiki', site: 'Main website', gh: 'GitHub repositories', guide: 'Wolfgate Guidebook' };
 async function loadSources() {
   const status = await api.knowledgeSourcesStatus(), list = el('sources-status'); list.replaceChildren();
@@ -138,6 +155,8 @@ el('sync-sources').addEventListener('click',() => perform(async () => {
 }));
 el('use-wiki').addEventListener('click',useWiki);
 el('new-document').addEventListener('click',() => edit());
+el('open-draft').addEventListener('click',() => { if (!busy) el('draft-file').click(); });
+el('draft-file').addEventListener('change',() => { const file = el('draft-file').files?.[0]; el('draft-file').value = ''; if (file) perform(() => openDraft(file)); });
 el('retry').addEventListener('click',() => perform(load));
 el('logout').addEventListener('click',() => perform(async () => { await api.logout(); clear(); phase = 'denied'; }));
 el('review-document').addEventListener('click',() => perform(review));
