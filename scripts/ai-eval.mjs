@@ -14,6 +14,7 @@
 //   [--dry | --live --max-calls <n> --provider-key <file>]
 import { readFile, writeFile } from 'node:fs/promises';
 import { createKnowledgeLibrary } from '../apps/knowledge/library.js';
+import { routeQuestion } from '../apps/knowledge/routing.js';
 import { createMistralClient, MISTRAL_MODEL } from '../apps/knowledge-worker/mistral-client.js';
 import { createMistralTransport } from '../apps/knowledge-worker/http-transport.js';
 import { canonicalPersonality, DRAFT_PERSONALITY } from '../modules/assistant/personality.js';
@@ -82,7 +83,8 @@ try {
     const request = { guildId, channelId: '100000000000000999', deadline: Date.now() + 20000, context: { name: item.context, game: item.game ?? null } };
     const retrieved = await library.lookup(item.text, request, conversation);
     const gold = goldPassages(passages, item.gold);
-    result.retrieval = { goldInSnapshot: item.gold ? goldHit(passages, item.gold) : null, goldHit: goldHit(retrieved, item.gold),
+    result.retrieval = { route: routeQuestion(item.text, request.context), routeExpected: item.route ?? null,
+      goldInSnapshot: item.gold ? goldHit(passages, item.gold) : null, goldHit: goldHit(retrieved, item.gold),
       forbidden: forbiddenRows(retrieved, forbidSources).length, rows: retrieved.map(row), ...(item.gold?.pending ? { pending: true } : {}) };
     for (const modelMode of modelModes) {
       const runs = Number(option('--runs') ?? item.runs ?? 1), records = [];
@@ -100,7 +102,8 @@ try {
     results.push(result);
     const top = result.retrieval.rows.slice(0, 3).map(entry => entry.id.replace(/\.r\d+\./u, '.')).join(', ') || '(none)';
     console.log(`${item.id}: ${result.diagnosis}  gold=${result.retrieval.goldInSnapshot === null ? '-' : `${result.retrieval.goldHit ? 'hit' : 'miss'}${result.retrieval.goldInSnapshot ? '' : ' (absent)'}`}` +
-      `${result.retrieval.forbidden ? ` forbidden=${result.retrieval.forbidden}` : ''}${result.oracle?.runs ? ` oracle=${result.oracle.passed}/${result.oracle.runs}` : ''}` +
+      `${result.retrieval.forbidden ? ` forbidden=${result.retrieval.forbidden}` : ''}` +
+      `${result.retrieval.routeExpected && result.retrieval.route !== result.retrieval.routeExpected ? ` route=${result.retrieval.route}` : ''}${result.oracle?.runs ? ` oracle=${result.oracle.passed}/${result.oracle.runs}` : ''}` +
       `${result.endToEnd?.runs ? ` e2e=${result.endToEnd.passed}/${result.endToEnd.runs}` : ''}  top: ${top}`);
   }
 } finally {

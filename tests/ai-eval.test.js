@@ -83,7 +83,8 @@ test('AE-04 diagnosis says where a failure lies', () => {
   assert.equal(diagnose({ gold: true, retrieval: hit }), 'retrieved');
   assert.equal(diagnose({ gold: false, retrieval: { goldInSnapshot: null, goldHit: null, forbidden: 0 }, endToEnd: none }), 'undetermined');
   assert.deepEqual(summarize([{ class: 'a', diagnosis: 'pass' }, { class: 'a', diagnosis: 'model' }, { diagnosis: 'pass' }]),
-    { cases: 3, byDiagnosis: { pass: 2, model: 1 }, byClass: { a: { cases: 2, pass: 1, model: 1 }, unclassified: { cases: 1, pass: 1 } } });
+    { cases: 3, byDiagnosis: { pass: 2, model: 1 }, byClass: { a: { cases: 2, pass: 1, model: 1 }, unclassified: { cases: 1, pass: 1 } }, misrouted: [] });
+  assert.deepEqual(summarize([{ id: 'x', diagnosis: 'pass', retrieval: { route: 'development', routeExpected: 'gameplay' } }, { id: 'y', diagnosis: 'pass', retrieval: { route: 'gameplay', routeExpected: 'gameplay' } }]).misrouted, ['x']);
 });
 
 test('AE-05 a snapshot loads fresh, with overlays replacing documents and importer documents relabelled', () => {
@@ -101,7 +102,8 @@ test('AE-05 a snapshot loads fresh, with overlays replacing documents and import
 test('AE-06 gold passages for the oracle are shaped as the lookup returns them', () => {
   const passages = passagesOf(documentsForLoad(corpus, NOW).map(document => ({ document, publicationHash: 'b'.repeat(64) })));
   assert.equal(passages.length, 6);
-  assert.deepEqual(Object.keys(passages[0]).sort(), ['attribution', 'authority', 'epoch', 'exact', 'heading', 'id', 'publicationHash', 'rights', 'sourceRevision', 'text', 'title', 'url', 'validUntil']);
+  assert.deepEqual(Object.keys(passages[0]).sort(), ['attribution', 'authority', 'epoch', 'exact', 'family', 'game', 'heading', 'id', 'publicationHash', 'rights', 'sourceRevision', 'text', 'title', 'url', 'validUntil']);
+  assert.deepEqual([...new Set(passages.map(row => row.family))].sort(), ['development', 'gameplay'], 'passages carry the family the lookup reports');
   assert.deepEqual(goldPassages(passages, { any: [{ document: 'owner-glossary-ci' }, { heading: '\\(CI\\)' }] }).map(row => row.id),
     ['owner-glossary-ci.r1.s0', 'owner-glossary-ci.r1.s1', 'wiki-antagonist-policy.r1.s0']);
   assert.deepEqual(goldPassages(passages, { all: [{ document: 'owner-glossary-ci' }, { url: 'MonolithRule' }] }).map(row => row.id), ['owner-glossary-ci.r1.s0', 'guide-conflict-one.r1.s0']);

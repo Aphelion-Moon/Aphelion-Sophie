@@ -136,5 +136,7 @@ export function summarize(results) {
     row.cases++; row[result.diagnosis] = (row[result.diagnosis] ?? 0) + 1;
     byDiagnosis[result.diagnosis] = (byDiagnosis[result.diagnosis] ?? 0) + 1;
   }
-  return { cases: results.length, byDiagnosis, byClass };
+  // Cases whose question was routed otherwise than the case expects (gameplay, development or mixed).
+  const misrouted = results.filter(result => result.retrieval?.routeExpected && result.retrieval.route !== result.retrieval.routeExpected).map(result => result.id);
+  return { cases: results.length, byDiagnosis, byClass, misrouted };
 }

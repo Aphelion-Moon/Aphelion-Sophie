@@ -6,6 +6,7 @@ import { readFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { canonicalKnowledgeDocument } from '../../../modules/assistant/knowledge.js';
 import { insertPublication } from '../../../apps/knowledge/mirror.js';
+import { familyOf } from '../../../apps/knowledge/source-family.js';
 import { goldMatches } from './asserts.mjs';
 
 const sha256 = bytes => createHash('sha256').update(bytes).digest('hex');
@@ -55,7 +56,8 @@ export function passagesOf(loaded) {
   return loaded.flatMap(({ document, publicationHash }) => document.sections.map((section, index) => ({
     id: `${document.id}.r1.s${index}`, title: document.title, heading: section.heading, text: section.text, url: document.url,
     authority: document.authority, publicationHash, epoch: 1, validUntil: document.validUntil, rights: document.rights,
-    attribution: document.attribution, sourceRevision: document.sourceRevision, exact: false })));
+    attribution: document.attribution, sourceRevision: document.sourceRevision, exact: false,
+    family: familyOf({ documentId: document.id, url: document.url }), game: document.game ?? null })));
 }
 
 /**
