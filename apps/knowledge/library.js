@@ -1,8 +1,10 @@
 import { createHash } from 'node:crypto';
 import { requireCondition, requireId, requireInteger } from '../../contracts/validation.js';
-import { canonicalKnowledgeDocument, requireKnowledgeSourceId } from '../../modules/assistant/knowledge.js';
+import { canonicalKnowledgeDocument, KNOWLEDGE_GAMES, requireKnowledgeSourceId } from '../../modules/assistant/knowledge.js';
 import { createWikiImports, mediaWikiDocumentCurrent, mediaWikiReviewEpoch } from './imports.js';
 import { createSourceMirror, insertPublication, SYNC_PREFIXES } from './mirror.js';
+import { routeQuestion } from './routing.js';
+import { FAMILY_SQL } from './source-family.js';
 
 const digest = value => createHash('sha256').update(JSON.stringify(value)).digest('hex');
 const hash = value => requireCondition(typeof value === 'string' && /^[a-f0-9]{64}$/.test(value), 'KNOWLEDGE_HASH_INVALID');
@@ -140,19 +142,26 @@ export function createKnowledgeLibrary({ pool, guildId, authorize, restoreCurren
      * ("explain", "supposed", "wiki") are not search words unless nothing else is left. Identical passages (a page transcluded into another) count once; at most
      * two passages per document; a page the question names leads with its opening sections. A rule code in the question
      * ("CR 1", "CR1", "CR-01", "Core Rule 1") selects the passages whose heading carries that code, first, whatever else
-     * the message says: "CR" and "1" are too common for the word weights to find them in a chatty message.
+     * the message says: "CR" and "1" are too common for the word weights to find them in a chatty message. "SS13" and
+     * "SS14" are game names, not rule codes.
+     * A chat turn's question is routed first (routing.js, plan of 2 November 2026): on the gameplay route developer pages
+     * are left out, a passage of the context's game ranks a little higher and an upstream SS14 ruleset a little lower, so
+     * a Wolfgate question still finds Meridian's rule where the Guidebook has none. Passages carry their family and game.
      */
     async lookup(query, request, conversation = '') {
       requireCondition(typeof query === 'string' && query.trim().length > 0 && query.length <= 4000 && typeof conversation === 'string' && conversation.length <= 4000 &&
         request.guildId === guildId && clock() < request.deadline, 'KNOWLEDGE_QUERY_INVALID');
+      const route = routeQuestion(query, request.context ?? null), game = route === 'gameplay' ? request.context.game ?? null : null;
+      requireCondition(game === null || KNOWLEDGE_GAMES.includes(game), 'KNOWLEDGE_QUERY_INVALID');
       await ready();
+      const gameName = (letters, number) => letters.toLowerCase() === 'ss' && ['13', '14'].includes(String(Number(number)));
       // Rule codes are written CR10, CR 10 or CR-10; the pages index "cr" and "10", so a joined code also searches its parts.
-      const codes = value => value.replace(/\b(\p{L}{1,8})-?(\d{1,4})\b/gu, '$&  $1 $2');
+      const codes = value => value.replace(/\b(\p{L}{1,8})-?(\d{1,4})\b/gu, (code, letters, number) => gameName(letters, number) ? code : `${code}  ${letters} ${number}`);
       const filler = /\b(?:sophie|soph|explain|tell|say|says|said|know|supposed|mean|means|please|pls|omg|lol|wiki|page|whats|hows|whos|wheres|whys|thats|dont|cant|wont|isnt|arent|im|ive|youre|gonna|wanna|gotta)\b/giu;
       const terms = codes(query), recent = codes(conversation).replace(filler, ' '), focus = terms.replace(filler, ' ');
       // Heading patterns for the codes asked about; "CR 1" never matches "CR 10". Only letters and digits reach the pattern.
       const named = [...new Set([...query.matchAll(/(?<![\p{L}\p{N}])(\p{L}{1,10})[ -]?0*(\d{1,4})(?![\p{L}\p{N}])/gu)]
-        .map(([, letters, number]) => `(^|[^[:alnum:]])${letters.toLowerCase()}[ -]?0*${Number(number)}([^0-9]|$)`))].slice(0, 4);
+        .filter(([, letters, number]) => !gameName(letters, number)).map(([, letters, number]) => `(^|[^[:alnum:]])${letters.toLowerCase()}[ -]?0*${Number(number)}([^0-9]|$)`))].slice(0, 4);
       // Constant text for ts_stat (word rarity); only the validated guild ID is formatted into it, as a literal.
       const live = `FROM sophie_knowledge.chunks c JOIN sophie_knowledge.documents d ON d.guild_id=c.guild_id AND d.id=c.document_id
         WHERE c.guild_id=%L AND c.revision=d.revision AND c.text IS NOT NULL AND NOT d.withdrawn AND d.source_current AND (d.valid_until IS NULL OR d.valid_until>clock_timestamp())`;
@@ -180,6 +189,7 @@ export function createKnowledgeLibrary({ pool, guildId, authorize, restoreCurren
         ), matched AS (
           SELECT c.source_id AS id,c.document_id,c.title,c.heading,c.text,c.url,c.authority,c.publication_sha256 AS "publicationHash",d.epoch,d.valid_until AS "validUntil",
             p.document->>'rights' AS rights,p.document->>'attribution' AS attribution,p.document->>'sourceRevision' AS "sourceRevision",
+            ${FAMILY_SQL} AS family, p.document->>'game' AS game,
             (lower(c.title)=lower($2) OR EXISTS(SELECT 1 FROM unnest(c.aliases) alias WHERE lower(alias)=lower($2))) AS exact,
             m.*, n.wanted, ts_rank(c.search,n.probe,1) AS rank,
             c.document_id NOT LIKE '%-p%' AND c.source_id ~ '\\.s[01]$' AS opening,
@@ -198,17 +208,19 @@ export function createKnowledgeLibrary({ pool, guildId, authorize, restoreCurren
             AND (d.valid_until IS NULL OR d.valid_until>clock_timestamp()) AND
             (lower(c.title)=lower($2) OR EXISTS(SELECT 1 FROM unnest(c.aliases) alias WHERE lower(alias)=lower($2)) OR c.search @@ n.probe
               OR EXISTS(SELECT 1 FROM unnest($6::text[]) code WHERE c.heading ~* code))
+            AND ($7::text <> 'gameplay' OR ${FAMILY_SQL} <> 'development')
         ), ranked AS (
-          SELECT *, score + CASE WHEN opening AND title_covered > 0 AND title_covered >= wanted / 3 THEN 4 ELSE 0 END AS total_score
+          SELECT *, score + CASE WHEN opening AND title_covered > 0 AND title_covered >= wanted / 3 THEN 4 ELSE 0 END
+            + CASE WHEN $7::text <> 'gameplay' THEN 0 ELSE CASE WHEN game IN ($8::text, 'both') THEN 1.5 ELSE 0 END - CASE WHEN game = 'ss14-upstream' THEN 3 ELSE 0 END END AS total_score
           -- A passage needs at least one fairly specific word (in at most about one passage in six: ln 7 = 1.95) unless the conversation backs it.
           FROM matched WHERE exact OR coded OR hits >= 1 AND covered >= 1.9 AND covered >= wanted / 2 OR title_covered > 0 AND title_covered >= wanted / 3 OR hits >= 1 AND context_covered >= 3
         ), kept AS (
           SELECT *, row_number() OVER (PARTITION BY document_id ORDER BY exact DESC,coded DESC,total_score DESC,context_covered DESC,rank DESC,id) AS within,
             row_number() OVER (PARTITION BY md5(text) ORDER BY exact DESC,coded DESC,total_score DESC,context_covered DESC,rank DESC,id) AS copy FROM ranked
         )
-        SELECT id,title,heading,text,url,authority,"publicationHash",epoch,"validUntil",rights,attribution,"sourceRevision",exact FROM kept
+        SELECT id,title,heading,text,url,authority,"publicationHash",epoch,"validUntil",rights,attribution,"sourceRevision",exact,family,game FROM kept
         WHERE (within<=2 OR coded) AND copy=1 ORDER BY exact DESC,coded DESC,total_score DESC,context_covered DESC,rank DESC,id LIMIT 5`,
-      [guildId,query,terms,focus,recent,named])).rows.map(row => ({ ...row, epoch: Number(row.epoch), validUntil: row.validUntil?.getTime() ?? null }));
+      [guildId,query,terms,focus,recent,named,route,game])).rows.map(row => ({ ...row, epoch: Number(row.epoch), validUntil: row.validUntil?.getTime() ?? null }));
       // Each passage is checked on its own: one that is no longer current is dropped, not every passage with it.
       const kept = [];
       for (const row of rows) if (await available([row], request)) kept.push(row);

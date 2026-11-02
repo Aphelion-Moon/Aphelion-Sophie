@@ -66,11 +66,14 @@ test('the knowledge wrapper adds code only where the context turns it on and che
   const code = { id: 'code-aaaaaaaaaaaa.r1.s0', publicationHash: 'f'.repeat(64) };
   let searched = 0, valid = true;
   const knowledge = withCodeSearch(library, { search: async () => { searched++; return [code]; }, current: () => valid });
-  assert.equal((await knowledge.lookup('q', { context: { codeSearch: false } })).length, 6); assert.equal(searched, 0);
-  const found = await knowledge.lookup('q', { context: { codeSearch: true, game: null } });
+  const question = 'Where is `AlphaSystem` defined?';
+  assert.equal((await knowledge.lookup(question, { context: { codeSearch: false } })).length, 6); assert.equal(searched, 0);
+  assert.equal((await knowledge.lookup('how does the cloning system work', { context: { codeSearch: true, game: null } })).length, 6);
+  assert.equal(searched, 0, 'a question routed to gameplay never searches code');
+  const found = await knowledge.lookup(question, { context: { codeSearch: true, game: null } });
   assert.equal(found.length, 6); assert.equal(found.at(-1), code, 'code takes the place of the lowest-ranked passage');
   assert.equal(await knowledge.current(found, {}), true); valid = false; assert.equal(await knowledge.current(found, {}), false);
   const faults = [], failing = withCodeSearch(library, { search: async () => { throw new Error('CODE_SEARCH_LIMITED'); }, current: () => true }, code => faults.push(code));
-  assert.equal((await failing.lookup('q', { context: { codeSearch: true } })).length, 6); assert.deepEqual(faults, ['AI_CODE_SEARCH_LIMITED']);
+  assert.equal((await failing.lookup(question, { context: { codeSearch: true } })).length, 6); assert.deepEqual(faults, ['AI_CODE_SEARCH_LIMITED']);
   assert.equal(withCodeSearch(library, null), library);
 });

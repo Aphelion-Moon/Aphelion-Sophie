@@ -2,6 +2,8 @@ import { createHash } from 'node:crypto';
 import { requireCondition } from '../../contracts/validation.js';
 import { createSourceReader } from './sources/http.js';
 import { GITHUB_SOURCE, requireGithubToken } from './sources/github.js';
+import { codeIdentifier, codeSignals, messageWords } from './code-signals.js';
+import { routeQuestion } from './routing.js';
 
 /**
  * Code questions (owner decision, 23 October 2026): in contexts with code search on, Sophie may read the community's
@@ -29,14 +31,11 @@ const LICENCES = { ...GITHUB_SOURCE.licences };
 /** The search words for a message, or null when it does not look like a question about code. */
 export function codeSearchTerms(text) {
   requireCondition(typeof text === 'string' && text.length <= 4000, 'AI_INPUT_INVALID');
-  const quoted = [...text.matchAll(/`([^`\n]{2,60})`/gu)].map(match => match[1].trim());
-  const words = text.replace(/`[^`\n]*`/gu, ' ').split(/[^A-Za-z0-9_.\/-]+/u).filter(Boolean);
-  const identifier = word => /[a-z][A-Z]|_[A-Za-z]|^[A-Z][a-z]+[A-Z]/u.test(word) || /\.(?:cs|dm|dme|yml|yaml|ftl|js|ts|py|json|xml|toml|md)$/iu.test(word) || /[a-z]\/[a-z]/iu.test(word);
-  const specific = [...quoted, ...words.filter(identifier)];
+  const words = messageWords(text), specific = codeSignals(text);
   if (!specific.length && !CODE_HINT.test(text)) return null;
   // Never search with something that looks like an ID, a number or a redaction marker.
   const usable = word => TERM.test(word) && !/\d{5,}/u.test(word) && !/^(?:member|email|phone|id)$/iu.test(word);
-  const plain = words.filter(word => word.length >= 4 && !STOP.has(word.toLowerCase()) && !identifier(word));
+  const plain = words.filter(word => word.length >= 4 && !STOP.has(word.toLowerCase()) && !codeIdentifier(word));
   const terms = [...new Set([...specific, ...plain].map(word => word.replace(/^[./-]+|[./-]+$/gu, '')).filter(usable))].slice(0, 5);
   return terms.length ? terms : null;
 }
@@ -116,14 +115,17 @@ export function createCodeSearch({ token, fetchImpl = fetch, clock = Date.now, p
   });
 }
 
-/** Library knowledge plus code search for contexts that turn it on. Code sources never reach the library. */
+/**
+ * Library knowledge plus code search for contexts that turn it on. Code sources never reach the library. A question routed
+ * to gameplay never searches code (plan of 2 November 2026), whatever words of code search's own it uses.
+ */
 export function withCodeSearch(knowledge, codeSearch, onFault = () => {}) {
   if (codeSearch === null) return knowledge;
   const isCode = source => typeof source?.id === 'string' && source.id.startsWith('code-');
   return Object.freeze({
     async lookup(text, request, recentText) {
       const found = await knowledge.lookup(text, request, recentText);
-      if (request?.context?.codeSearch !== true) return found;
+      if (request?.context?.codeSearch !== true || routeQuestion(text, request.context) === 'gameplay') return found;
       let code = [];
       try { code = await codeSearch.search({ text, game: request.context.game ?? null }); }
       catch (error) { try { onFault(/^CODE_[A-Z_]+$/u.test(error?.message ?? '') ? `AI_${error.message}` : 'AI_CODE_SEARCH_UNAVAILABLE'); } catch { /* Diagnostics only. */ } }

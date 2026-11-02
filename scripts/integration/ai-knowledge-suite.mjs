@@ -6,6 +6,7 @@ import { createKnowledgeLibrary } from '../../apps/knowledge/library.js';
 import { createMediaWikiCollector, POLICIES_SOURCE } from '../../apps/knowledge/mediawiki.js';
 import { createWikiExtractor } from '../../apps/knowledge/extraction.js';
 import { packDocuments } from '../../apps/knowledge/sources/sectioning.js';
+import { familyOf, FAMILY_SQL } from '../../apps/knowledge/source-family.js';
 
 export async function runAiKnowledgeSuite(cluster, run) {
   const { adminPool: admin, knowledgePool: pool, corePool } = cluster;
@@ -318,5 +319,37 @@ export async function runAiKnowledgeSuite(cluster, run) {
       page('wiki-death-bbbbbb', 'Death', 'policy', [{ heading: 'Death › Post Mortality Blackout', text: 'After revival you remember neither your death nor the events leading to it.' }]) ], complete: false });
     const blackout = await synced.lookup('Sophie what is blackout policy', request(), 'Member 1: what is the tooling dependency policy? it pins every package and records compatibility evidence for the release gate');
     assert.match(blackout[0]?.heading ?? '', /Post Mortality Blackout/u);
+  });
+  await run('AI22 routing: a gameplay question leaves developer pages out and prefers its game; family SQL agrees with familyOf (KF-01)', async () => {
+    const pairs = [['code-abcdefabcdef', 'https://github.com/VanguardControl/Wolfgate/blob/a/b.cs#L1-L30'], ['gh-wolfgate-aaaaaa', 'https://github.com/VanguardControl/Wolfgate'],
+      ['gh-wolfgate-recent-bbbbbb', 'https://github.com/VanguardControl/Wolfgate/pulls'], ['site-docs-cccccc', 'https://meridian.a13.info/docs/developer/ci/'],
+      ['site-roadmap-dddddd', 'https://meridian.a13.info/roadmap/'], ['site-lore-eeeeee', 'https://meridian.a13.info/lore/'], ['site-docs-ffffff', 'https://meridian.a13.info/docsx/'],
+      ['guide-roadmap-aaaaaa', 'https://panel.a13.info/guide/wolfgate'], ['guide-r6-bbbbbb', 'https://panel.a13.info/guide/wolfgate#RuleR6'],
+      ['wiki-ci-cccccc', 'https://meridian-wiki.a13.info/wiki/CI'], ['glossary-ci', 'https://example.test/pulls']];
+    const sql = (await pool.query(`SELECT ${FAMILY_SQL} AS family FROM unnest($1::text[],$2::text[]) AS c(document_id,url)`, [pairs.map(pair => pair[0]), pairs.map(pair => pair[1])])).rows;
+    assert.deepEqual(sql.map(row => row.family), pairs.map(([documentId, url]) => familyOf({ documentId, url })));
+    assert.deepEqual(sql.map(row => row.family), ['development', 'development', 'general', 'development', 'general', 'gameplay', 'gameplay', 'general', 'gameplay', 'gameplay', 'gameplay']);
+    // The synthetic CI collision: a developer page and a Meridian wiki page both say "CI".
+    const at = Date.now(), entry = (idBase, title, kind, url, game, text, sourceRevision = `${idBase}:1`) => ({ idBase, sourceRevision, documents: packDocuments({ idBase, title, kind,
+      authority: 'reference', game, url, rights: 'Synthetic fixture', attribution: 'Synthetic', sourceRevision, fetchedAt: at, sections: [{ heading: `${title} › Rule`, text }] }).documents });
+    await synced.mirror.apply('site', { entries: [entry('site-ci-aaaaaa', 'Continuous Integration', 'website', 'https://meridian.a13.info/docs/developer/ci/', 'ss13-meridian',
+      'CI runs the required checks on every pull request and must pass before a merge.')], complete: false });
+    await synced.mirror.apply('wiki', { entries: [entry('wiki-combat-indicator-bbbbbb', 'Combat Indicator', 'wiki-page', 'https://meridian-wiki.a13.info/wiki/Combat_Indicator', 'ss13-meridian',
+      'Turn on the Combat Indicator (CI) before you start a fight.'),
+      entry('wiki-boarding-cccccc', 'Boarding rules', 'wiki-page', 'https://meridian-wiki.a13.info/wiki/Boarding_rules', 'ss13-meridian', 'Declare escalation before boarding a ship. Meridian.')], complete: false });
+    await synced.mirror.apply('guide', { entries: [entry('guide-boarding-dddddd', 'Boarding rules', 'guidebook', 'https://panel.a13.info/guide/wolfgate#WFBoarding', 'ss14-wolfgate',
+      'Declare escalation before boarding a ship. Wolfgate.'),
+      entry('guide-boarding-up-eeeeee', 'Boarding rules', 'guidebook', 'https://panel.a13.info/guide/wolfgate#RuleR99', 'ss14-upstream', 'Declare escalation before boarding a ship. Upstream.')], complete: false });
+    const chat = game => ({ ...request(), context: { name: 'support', game, codeSearch: true } });
+    const mixed = await synced.lookup('What is CI?', request());
+    assert.ok(mixed.some(row => row.family === 'development') && mixed.some(row => row.family === 'gameplay'), '/lookup searches every family');
+    const gameplay = await synced.lookup('What is CI?', chat('ss14-wolfgate'));
+    assert.ok(gameplay.length > 0 && gameplay.every(row => row.family !== 'development'), 'a gameplay question never gets a developer page');
+    assert.ok((await synced.lookup('Did CI pass on my pull request?', chat('ss14-wolfgate'))).some(row => row.family === 'development'), 'a developer question still does');
+    const order = async game => (await synced.lookup('do I declare escalation before boarding?', chat(game))).filter(row => row.title === 'Boarding rules').map(row => row.game);
+    assert.deepEqual(await order('ss14-wolfgate'), ['ss14-wolfgate', 'ss13-meridian', 'ss14-upstream'], 'the context game first, an upstream ruleset last');
+    assert.deepEqual(await order('ss13-meridian'), ['ss13-meridian', 'ss14-wolfgate', 'ss14-upstream']);
+    assert.equal((await order(null)).at(-1), 'ss14-upstream', 'with no game an upstream ruleset still trails');
+    await assert.rejects(synced.lookup('What is CI?', { ...chat(null), context: { name: 'support', game: 'tg-station' } }), /KNOWLEDGE_QUERY_INVALID/);
   });
 }
