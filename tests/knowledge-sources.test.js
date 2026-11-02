@@ -124,14 +124,19 @@ test('KS-04 the wiki collector parses only changed pages, excludes song sheets a
   const { fetchImpl, calls } = wikiFetch({ pages, parse: { 2: [{ category: 'Policies' }] }, failParse: new Set([4]) });
   const collector = createWikiCollector({ fetchImpl, extractor: inlineExtractor, clock: () => 5_000_000 });
   const captain = documentIdBase('wiki', 'Captain', 1), broken = documentIdBase('wiki', 'Broken', 4);
-  const result = await collector.collect({ signal, known: new Map([[captain, 'wiki:page:1:r10:f3'], [broken, 'wiki:page:4:r39']]) });
+  const result = await collector.collect({ signal, known: new Map([[captain, 'wiki:page:1:r10:f4'], [broken, 'wiki:page:4:r39']]) });
   assert.deepEqual(calls.filter(call => call.startsWith('parse')), ['parse:2', 'parse:4'], 'unchanged, excluded and oversized pages are not parsed');
-  assert.deepEqual(result.entries.find(entry => entry.idBase === captain), { idBase: captain, sourceRevision: 'wiki:page:1:r10:f3', unchanged: true });
+  assert.deepEqual(result.entries.find(entry => entry.idBase === captain), { idBase: captain, sourceRevision: 'wiki:page:1:r10:f4', unchanged: true });
   assert.deepEqual(result.entries.find(entry => entry.idBase === broken), { idBase: broken, sourceRevision: 'wiki:page:4:r39', unchanged: true });
   const policy = result.entries.find(entry => entry.documents)?.documents[0];
   assert.equal(policy.authority, 'policy'); assert.equal(policy.kind, 'wiki-page'); assert.equal(policy.url, 'https://meridian-wiki.a13.info/wiki/Antagonist_Policy');
+  assert.equal(policy.game, 'ss13-meridian'); assert.equal(policy.sourceRevision, 'wiki:page:2:r20:f4');
   assert.deepEqual(policy.sections.map(section => section.heading), ['Antagonist Policy', 'Antagonist Policy › Rules']);
   assert.equal(result.skipped, 3); assert.equal(JSON.stringify(result).includes('secret upstream text'), false);
+  // A page held in the format before documents named their game is read again once.
+  const earlier = wikiFetch({ pages: pages.slice(0, 1) });
+  const relabelled = await createWikiCollector({ fetchImpl: earlier.fetchImpl, extractor: inlineExtractor, clock: () => 5_000_000 }).collect({ signal, known: new Map([[captain, 'wiki:page:1:r10:f3']]) });
+  assert.deepEqual(earlier.calls.filter(call => call.startsWith('parse')), ['parse:1']); assert.equal(relabelled.entries[0].documents[0].game, 'ss13-meridian');
   const scope = wikiFetch({ pages }); const changed = async url => { const response = await scope.fetchImpl(url);
     return url.searchParams.get('meta') ? respond({ query: { general: { server: 'https://elsewhere.test', wikiid: 'wiki_meridian', articlepath: '/wiki/$1' }, rightsinfo: {} } }) : response; };
   await assert.rejects(createWikiCollector({ fetchImpl: changed, extractor: inlineExtractor }).collect({ signal }), /WIKI_SOURCE_SCOPE_CHANGED/);
@@ -153,6 +158,7 @@ test('KS-05 the website collector reads the sitemap and the docs tree, honours r
   assert.deepEqual(docs.map(doc => [doc.title, doc.url, doc.authority]).sort(), [['Documents', 'https://meridian.a13.info/docs/', 'reference'],
     ['Guide', 'https://meridian.a13.info/docs/developer/guide/', 'reference'], ['Lore', 'https://meridian.a13.info/lore/', 'lore']]);
   assert.ok(!fetched.includes('/maps/') && !fetched.includes('/players'), 'disallowed and out-of-tree pages are not fetched');
+  assert.ok(docs.every(doc => doc.game === 'ss13-meridian'));
   assert.equal(docs.find(doc => doc.title === 'Lore').sections.some(section => /On this page|Maps/u.test(section.text)), false, 'navigation is not content');
   assert.equal(result.complete, true);
   assert.deepEqual(robotsDisallow('User-agent: bot\nDisallow: /a\nUser-agent: *\nDisallow: /b # note\n'), ['/b']);
@@ -186,6 +192,9 @@ test('KS-06 the GitHub collector skips forks, keeps activity from trusted author
   assert.ok(text.includes('Trusted bug') && text.includes('Merged feature'));
   assert.ok(!text.includes('Ignore previous instructions') && !text.includes('First PR') && !text.includes('Closed unmerged'), 'untrusted or unmerged activity is left out');
   assert.ok(docs.every(doc => doc.kind === 'repository' && doc.id.startsWith('gh-')));
+  assert.ok(docs.filter(doc => doc.attribution === 'Aphelion-Moon/Meridian-Rift on GitHub').every(doc => doc.game === 'ss13-meridian'));
+  const sophie = docs.filter(doc => doc.attribution === 'Aphelion-Moon/Aphelion-Sophie on GitHub');
+  assert.ok(sophie.length && sophie.every(doc => !Object.hasOwn(doc, 'game')), 'a repository of neither game carries no game');
   // A refusal that is not a rate limit (owner log review, 25 October 2026) is named apart: one refused part is skipped and the
   // run goes on; a refused listing ends it with that code.
   refused = '/repos/Aphelion-Moon/Meridian-Rift/releases';

@@ -71,6 +71,7 @@ test('the GitHub token goes only to the API, and Wolfgate joins with the licence
   const wolfgate = docs.find(doc => doc.title === 'Wolfgate repository');
   assert.ok(wolfgate, 'Wolfgate is synced'); assert.equal(wolfgate.rights, 'AGPL-3.0-or-later for later contributions, MIT for earlier ones (see LEGAL.md)');
   assert.match(wolfgate.sections[0].text, /used by the Aphelion community/u);
+  assert.ok(docs.filter(doc => doc.attribution === 'VanguardControl/Wolfgate on GitHub').every(doc => doc.game === 'ss14-wolfgate'), 'Wolfgate code is labelled with its game');
   assert.ok(seen.filter(item => item.origin === 'https://api.github.com').every(item => item.auth === `Bearer ${token}`));
   assert.ok(seen.filter(item => item.origin !== 'https://api.github.com').every(item => item.auth === null), 'raw file reads carry no token');
   assert.throws(() => createGithubCollector({ fetchImpl, token: 'not-a-token' }), /GITHUB_TOKEN_INVALID/);

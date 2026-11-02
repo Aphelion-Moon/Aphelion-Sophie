@@ -12,8 +12,8 @@ export const WIKI_SOURCE = Object.freeze({
   excludedPrefixes: ['Songs/'], maxWikitextBytes: 400000, maxPages: 600,
 });
 const sha256 = value => createHash('sha256').update(value).digest('hex');
-// Bump when the text a page produces changes, so every page is read again once.
-const WIKI_FORMAT = 'f3';
+// Bump when the documents a page produces change, so every page is read again once. f4: documents name their game.
+const WIKI_FORMAT = 'f4';
 const policyCategories = /^(?:polic(?:y|ies)|rules?)$/iu, loreCategories = /^lore$/iu;
 
 export const wikiPageUrl = title => `${WIKI_SOURCE.origin}/wiki/${encodeURIComponent(title.replaceAll(' ', '_')).replace(/%2F/giu, '/').replace(/%3A/giu, ':')}`;
@@ -67,7 +67,7 @@ export function createWikiCollector({ fetchImpl = fetch, extractor, clock = Date
           const authority = categories.some(name => policyCategories.test(name)) ? 'policy' : categories.some(name => loreCategories.test(name)) ? 'lore' : 'reference';
           const display = cleanText(String(parsed.displaytitle ?? '').replace(/<[^>]*>/gu, ''));
           const revision = `wiki:page:${page.pageId}:r${parsed.revid}:${WIKI_FORMAT}`;
-          const packed = packDocuments({ idBase, title: page.title, kind: 'wiki-page', authority, url: wikiPageUrl(page.title), rights,
+          const packed = packDocuments({ idBase, title: page.title, kind: 'wiki-page', authority, game: 'ss13-meridian', url: wikiPageUrl(page.title), rights,
             attribution: 'Meridian Wiki contributors', maxParts: 20,
             sourceRevision: revision, fetchedAt: clock(), aliases: display && display !== page.title ? [display] : [],
             sections: blocksToSections(extraction.blocks, page.title) });
