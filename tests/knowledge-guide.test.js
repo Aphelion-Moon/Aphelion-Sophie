@@ -13,11 +13,14 @@ const index = (change = {}) => ({ server: 'wolfgate', name: 'Aphelion', repo: 'V
   entries: {
     ActiveRules: { title: 'Server rules', parent: null, children: ['RuleOne'], rule: true, text: '# Server rules\nFollow these rules.' },
     RuleOne: { title: 'No griefing', parent: 'ActiveRules', children: [], rule: true, text: 'Do not destroy the station without a reason.' },
-    UpstreamRules: { title: 'Frontier ruleset', parent: null, children: [], rule: true, text: 'An upstream ruleset kept for reference.' },
+    FrontierRuleset: { title: 'Frontier ruleset', parent: null, children: ['FrontierRuleZeroTolerance'], rule: true, text: 'An upstream ruleset kept for reference.' },
+    FrontierRuleZeroTolerance: { title: 'Zero Tolerance', parent: 'FrontierRuleset', children: [], rule: true, text: 'Absolute rules of another server.' },
+    RoleplayRules: { title: 'Roleplay Rules', parent: null, children: ['RuleR6'], rule: true, text: '# Roleplay Rules\nRoleplay rules of another server.' },
+    RuleR6: { title: 'R6', parent: 'RoleplayRules', children: [], rule: true, text: '# R6\nDo not metacommunicate on Wizard\'s Den.' },
     NewPlayer: { title: 'New? Start here!', parent: null, children: [], rule: false, text: '## Welcome\nYou have begun your shift.' },
   }, ...change });
 
-test('the Guidebook collector marks only the active ruleset as policy and links each entry', async () => {
+test('the Guidebook collector marks only the active ruleset as policy, labels upstream rulesets and links each entry', async () => {
   const urls = [];
   const collector = createGuideCollector({ fetchImpl: async url => { urls.push(String(url)); return respond(index()); }, clock: () => Date.parse('2026-10-23T00:00:00Z') });
   const result = await collector.collect({ signal });
@@ -26,13 +29,29 @@ test('the Guidebook collector marks only the active ruleset as policy and links 
   const byTitle = Object.fromEntries(docs.map(doc => [doc.title, doc]));
   assert.equal(byTitle['Wolfgate Guidebook: No griefing'].authority, 'policy');
   assert.equal(byTitle['Wolfgate Guidebook: Server rules'].authority, 'policy');
-  assert.equal(byTitle['Wolfgate Guidebook: Frontier ruleset'].authority, 'reference', 'other rulesets stay reference');
+  const upstream = 'Upstream SS14 ruleset (reference, not Wolfgate rules): ';
+  for (const title of ['Frontier ruleset', 'Zero Tolerance', 'Roleplay Rules', 'R6']) {
+    const doc = byTitle[upstream + title];
+    assert.ok(doc, `${title} is relabelled as an upstream reference`);
+    assert.equal(doc.authority, 'reference'); assert.equal(doc.game, 'ss14-upstream');
+    assert.ok(doc.sections.every(section => section.heading.startsWith(upstream)), 'evidence headings carry the label too');
+  }
+  assert.equal(byTitle[`${upstream}R6`].url, 'https://panel.a13.info/guide/wolfgate#RuleR6');
+  assert.ok(docs.filter(doc => doc.game !== 'ss14-upstream').every(doc => doc.game === 'ss14-wolfgate' && doc.title.startsWith('Wolfgate Guidebook: ')),
+    'the rest of the Guidebook (ruleset, guides, roadmap) is Wolfgate');
+  assert.equal(byTitle['Wolfgate Guidebook: No griefing'].game, 'ss14-wolfgate'); assert.equal(byTitle['Wolfgate Guidebook: Roadmap'].game, 'ss14-wolfgate');
   assert.equal(byTitle['Wolfgate Guidebook: New? Start here!'].authority, 'reference');
   assert.equal(byTitle['Wolfgate Guidebook: No griefing'].url, 'https://panel.a13.info/guide/wolfgate#RuleOne');
   assert.match(byTitle['Wolfgate Guidebook: Roadmap'].sections[0].text, /Synthetic medicine \(Complete\): Wounds on body parts\./u);
   assert.ok(docs.every(doc => doc.kind === 'guidebook' && doc.id.startsWith('guide-') && doc.sourceRevision.includes(commit)));
   const again = await collector.collect({ signal, known: new Map(result.entries.map(entry => [entry.idBase, entry.sourceRevision])) });
   assert.ok(again.entries.every(entry => entry.unchanged), 'an unchanged build is not re-read');
+  const earlier = await collector.collect({ signal, known: new Map(result.entries.map(entry => [entry.idBase, entry.sourceRevision.replace(/:f2$/u, '')])) });
+  assert.ok(earlier.entries.every(entry => entry.documents), 'entries held before documents named their game are read again once');
+  // The active ruleset wins: an upstream root that becomes the rules root is Wolfgate policy.
+  const moved = await createGuideCollector({ fetchImpl: async () => respond(index({ rulesRoot: 'FrontierRuleset' })) }).collect({ signal });
+  const zero = moved.entries.flatMap(entry => entry.documents ?? []).find(doc => doc.url.endsWith('#FrontierRuleZeroTolerance'));
+  assert.deepEqual([zero.title, zero.authority, zero.game], ['Wolfgate Guidebook: Zero Tolerance', 'policy', 'ss14-wolfgate']);
   assert.ok(SYNC_PREFIXES.includes('guide'));
 });
 
@@ -71,6 +90,7 @@ test('the GitHub token goes only to the API, and Wolfgate joins with the licence
   const wolfgate = docs.find(doc => doc.title === 'Wolfgate repository');
   assert.ok(wolfgate, 'Wolfgate is synced'); assert.equal(wolfgate.rights, 'AGPL-3.0-or-later for later contributions, MIT for earlier ones (see LEGAL.md)');
   assert.match(wolfgate.sections[0].text, /used by the Aphelion community/u);
+  assert.ok(docs.filter(doc => doc.attribution === 'VanguardControl/Wolfgate on GitHub').every(doc => doc.game === 'ss14-wolfgate'), 'Wolfgate code is labelled with its game');
   assert.ok(seen.filter(item => item.origin === 'https://api.github.com').every(item => item.auth === `Bearer ${token}`));
   assert.ok(seen.filter(item => item.origin !== 'https://api.github.com').every(item => item.auth === null), 'raw file reads carry no token');
   assert.throws(() => createGithubCollector({ fetchImpl, token: 'not-a-token' }), /GITHUB_TOKEN_INVALID/);

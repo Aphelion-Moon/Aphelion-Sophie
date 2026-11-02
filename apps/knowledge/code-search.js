@@ -12,7 +12,7 @@ import { GITHUB_SOURCE, requireGithubToken } from './sources/github.js';
 export const CODE_SEARCH_SCOPE = Object.freeze({
   organisations: [GITHUB_SOURCE.organisation], repositories: [...GITHUB_SOURCE.extraRepositories],
   // A context's game narrows the search to that game's code.
-  games: { 'ss14-wolfgate': ['VanguardControl/Wolfgate'], 'ss13-meridian': ['Aphelion-Moon/Meridian-Rift'] },
+  games: GITHUB_SOURCE.games,
   // Sophie's own docs are internal engineering records, as in the documentation sync.
   excludedPaths: [/^Aphelion-Moon\/Aphelion-Sophie\/docs\//u],
 });

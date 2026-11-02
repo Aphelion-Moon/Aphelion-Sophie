@@ -16,7 +16,10 @@ export const GITHUB_SOURCE = Object.freeze({
   // no licence for it; its LEGAL.md states the terms below.
   extraRepositories: ['VanguardControl/Wolfgate'],
   licences: { 'VanguardControl/Wolfgate': 'AGPL-3.0-or-later for later contributions, MIT for earlier ones (see LEGAL.md)' },
+  // Each game's own repositories. Their documents carry the game; other repositories carry none. Code search narrows by it too.
+  games: { 'ss14-wolfgate': ['VanguardControl/Wolfgate'], 'ss13-meridian': ['Aphelion-Moon/Meridian-Rift'] },
 });
+const gameOf = fullName => Object.keys(GITHUB_SOURCE.games).find(game => GITHUB_SOURCE.games[game].includes(fullName)) ?? null;
 const day = value => typeof value === 'string' && /^\d{4}-\d\d-\d\d/u.test(value) ? value.slice(0, 10) : 'unknown date';
 const name = value => { requireCondition(typeof value === 'string' && /^[A-Za-z0-9._-]{1,100}$/u.test(value), 'GITHUB_RESPONSE_INVALID'); return value; };
 // A rate limit ends the whole run (the mirror keeps what it holds); any other failure skips one part of one repository.
@@ -61,7 +64,7 @@ export function createGithubCollector({ fetchImpl = fetch, clock = Date.now, tok
         requireCondition(/^[A-Za-z0-9._/-]{1,100}$/u.test(branch), 'GITHUB_RESPONSE_INVALID');
         const home = `${GITHUB_SOURCE.site}/${owner}/${repoName}`, licence = GITHUB_SOURCE.licences[`${owner}/${repoName}`] ??
           (repo.license?.spdx_id && repo.license.spdx_id !== 'NOASSERTION' ? repo.license.spdx_id : 'no stated licence');
-        const rights = licence, attribution = `${owner}/${repoName} on GitHub`;
+        const rights = licence, attribution = `${owner}/${repoName} on GitHub`, game = gameOf(`${owner}/${repoName}`);
         // Overview and README.
         const overview = [`${owner}/${repoName} is a public GitHub repository ${owner === GITHUB_SOURCE.organisation ? 'of the Aphelion project' : 'used by the Aphelion community'}.`,
           repo.description ? `Description: ${short(repo.description, 500)}` : null, repo.language ? `Main language: ${repo.language}.` : null,
@@ -72,7 +75,7 @@ export function createGithubCollector({ fetchImpl = fetch, clock = Date.now, tok
           const readme = await api(`/repos/${owner}/${repoName}/readme`, signal, true);
           const text = readme?.encoding === 'base64' && typeof readme.content === 'string' && readme.size <= 524288 ? Buffer.from(readme.content, 'base64').toString('utf8') : '';
           const contributing = await raw(owner, repoName, branch, 'CONTRIBUTING.md', signal) ?? await raw(owner, repoName, branch, '.github/CONTRIBUTING.md', signal);
-          add(`${owner}/${repoName}`, `${repoName} repository`, { authority: 'reference', url: home, rights, attribution, aliases: [repoName, `${owner}/${repoName}`],
+          add(`${owner}/${repoName}`, `${repoName} repository`, { authority: 'reference', game, url: home, rights, attribution, aliases: [repoName, `${owner}/${repoName}`],
             sourceRevision: `github:${owner}/${repoName}:overview`, sections: [{ heading: `${repoName} › Overview`, text: overview },
               ...(text.isWellFormed() ? markdownToSections(text, `${repoName} README`) : []),
               ...(contributing?.isWellFormed() ? markdownToSections(contributing, `${repoName} contributing guide`) : [])] });
@@ -85,7 +88,7 @@ export function createGithubCollector({ fetchImpl = fetch, clock = Date.now, tok
             const path = `docs/${name(file.name)}`, text = await raw(owner, repoName, branch, path, signal);
             if (!text?.isWellFormed()) { skipped++; continue; }
             const title = `${repoName}: ${file.name.replace(/\.md$/iu, '').replace(/[-_]+/gu, ' ')}`;
-            add(`${owner}/${repoName}/${path}`, title, { authority: 'reference', url: `${home}/blob/${encodeURIComponent(branch)}/${path}`, rights, attribution,
+            add(`${owner}/${repoName}/${path}`, title, { authority: 'reference', game, url: `${home}/blob/${encodeURIComponent(branch)}/${path}`, rights, attribution,
               sourceRevision: `github:${owner}/${repoName}:${path}:${short(file.sha, 40)}`, sections: markdownToSections(text, title) });
           }
         } catch (error) { rethrow(error, signal); skipped++; }
@@ -106,7 +109,7 @@ export function createGithubCollector({ fetchImpl = fetch, clock = Date.now, tok
           if (merged.length) sections.push({ heading: `${repoName} › Recently merged pull requests ${as}`, text: merged.map(item =>
             `#${item.number} ${short(item.title, 200)} — merged ${day(item.merged_at)}${item.body ? `\n${short(item.body, 400)}` : ''}`).join('\n\n') });
           if (!sections.length) sections.push({ heading: `${repoName} › Activity ${as}`, text: `No releases, open issues or open pull requests ${as}.` });
-          add(`${owner}/${repoName}#activity`, `${repoName} recent activity`, { authority: 'reference', url: `${home}/pulls`,
+          add(`${owner}/${repoName}#activity`, `${repoName} recent activity`, { authority: 'reference', game, url: `${home}/pulls`,
             rights: 'text by its authors', attribution: `${owner}/${repoName} on GitHub`, sourceRevision: `github:${owner}/${repoName}:activity`, sections });
         } catch (error) { rethrow(error, signal); skipped++; }
       }

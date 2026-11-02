@@ -1,5 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { createHash } from 'node:crypto';
+import { canonicalKnowledgeDocument, KNOWLEDGE_GAMES } from '../modules/assistant/knowledge.js';
 import { blocksToSections, markdownToSections, splitSection, packDocuments, documentIdBase, SECTION_CHARS, SYNC_VALIDITY_MS } from '../apps/knowledge/sources/sectioning.js';
 import { createSourceReader } from '../apps/knowledge/sources/http.js';
 import { createWikiCollector, wikiPageUrl } from '../apps/knowledge/sources/wiki.js';
@@ -58,6 +60,28 @@ test('KS-02 packing yields canonical documents with stable ids, parts, a content
   assert.equal(wikiPageUrl('Songs/Pop, Rock'), 'https://meridian-wiki.a13.info/wiki/Songs/Pop%2C_Rock');
 });
 
+test('KS-11 a document names its game only when it has one, so an unlabelled document keeps its earlier digest', () => {
+  const digest = value => createHash('sha256').update(JSON.stringify(value)).digest('hex');
+  const doc = { id: 'wiki-x-abcdef', title: 'X', kind: 'wiki-page', authority: 'policy', url: 'https://meridian-wiki.a13.info/wiki/X', rights: 'CC BY-NC-SA 4.0',
+    attribution: 'Meridian Wiki contributors', sourceRevision: 'wiki:page:1:r2:f3', dependencyHash: 'a'.repeat(64), fetchedAt: 1_000_000, validUntil: 1_000_000 + 86400000,
+    aliases: ['Y', 'B'], sections: [{ heading: 'X', text: 'Text' }] };
+  // Digests recorded before the game label existed.
+  assert.equal(digest(canonicalKnowledgeDocument(doc)), 'b65ffed0ea9be081c35781d64ea3a457a472c46379872f5b34614e6f1aca8628');
+  assert.equal(Object.hasOwn(canonicalKnowledgeDocument(doc), 'game'), false);
+  const base = { idBase: 'wiki-x-abcdef', title: 'X', kind: 'wiki-page', authority: 'reference', url: 'https://meridian-wiki.a13.info/wiki/X',
+    rights: 'CC', attribution: 'Wiki', sourceRevision: 'wiki:page:1:r2', fetchedAt: 1_000_000, sections: [{ heading: 'S', text: 'Body' }] };
+  const [plain] = packDocuments(base).documents;
+  assert.equal(plain.dependencyHash, 'e9981573c2509f395eaa26543973989d302a157f6a01b1cab9fe9472df05a914');
+  assert.equal(digest(plain), 'cee916f09fe81d7afd12cda2947952a9690053d234cd0e9d7dcf81b6d55b7ddb');
+  for (const game of KNOWLEDGE_GAMES) assert.equal(canonicalKnowledgeDocument({ ...doc, game }).game, game);
+  const [labelled] = packDocuments({ ...base, game: 'ss13-meridian' }).documents;
+  assert.equal(labelled.game, 'ss13-meridian'); assert.notEqual(labelled.dependencyHash, plain.dependencyHash, 'the label is part of the content');
+  assert.deepEqual(canonicalKnowledgeDocument(labelled), labelled, 'a labelled document is already canonical');
+  for (const game of [null, undefined, '', 'ss14', 'SS13-Meridian'])
+    assert.throws(() => canonicalKnowledgeDocument({ ...doc, game }), /KNOWLEDGE_DOCUMENT_INVALID/);
+  assert.throws(() => packDocuments({ ...base, game: 'wolfgate' }), /KNOWLEDGE_DOCUMENT_INVALID/);
+});
+
 test('KS-03 the source reader stays on its origins, caps bodies and reports only fixed codes', async () => {
   const seen = [];
   const reader = createSourceReader({ prefix: 'SITE', origins: ['https://meridian.a13.info'], fetchImpl: async url => { seen.push(String(url));
@@ -100,14 +124,19 @@ test('KS-04 the wiki collector parses only changed pages, excludes song sheets a
   const { fetchImpl, calls } = wikiFetch({ pages, parse: { 2: [{ category: 'Policies' }] }, failParse: new Set([4]) });
   const collector = createWikiCollector({ fetchImpl, extractor: inlineExtractor, clock: () => 5_000_000 });
   const captain = documentIdBase('wiki', 'Captain', 1), broken = documentIdBase('wiki', 'Broken', 4);
-  const result = await collector.collect({ signal, known: new Map([[captain, 'wiki:page:1:r10:f3'], [broken, 'wiki:page:4:r39']]) });
+  const result = await collector.collect({ signal, known: new Map([[captain, 'wiki:page:1:r10:f4'], [broken, 'wiki:page:4:r39']]) });
   assert.deepEqual(calls.filter(call => call.startsWith('parse')), ['parse:2', 'parse:4'], 'unchanged, excluded and oversized pages are not parsed');
-  assert.deepEqual(result.entries.find(entry => entry.idBase === captain), { idBase: captain, sourceRevision: 'wiki:page:1:r10:f3', unchanged: true });
+  assert.deepEqual(result.entries.find(entry => entry.idBase === captain), { idBase: captain, sourceRevision: 'wiki:page:1:r10:f4', unchanged: true });
   assert.deepEqual(result.entries.find(entry => entry.idBase === broken), { idBase: broken, sourceRevision: 'wiki:page:4:r39', unchanged: true });
   const policy = result.entries.find(entry => entry.documents)?.documents[0];
   assert.equal(policy.authority, 'policy'); assert.equal(policy.kind, 'wiki-page'); assert.equal(policy.url, 'https://meridian-wiki.a13.info/wiki/Antagonist_Policy');
+  assert.equal(policy.game, 'ss13-meridian'); assert.equal(policy.sourceRevision, 'wiki:page:2:r20:f4');
   assert.deepEqual(policy.sections.map(section => section.heading), ['Antagonist Policy', 'Antagonist Policy › Rules']);
   assert.equal(result.skipped, 3); assert.equal(JSON.stringify(result).includes('secret upstream text'), false);
+  // A page held in the format before documents named their game is read again once.
+  const earlier = wikiFetch({ pages: pages.slice(0, 1) });
+  const relabelled = await createWikiCollector({ fetchImpl: earlier.fetchImpl, extractor: inlineExtractor, clock: () => 5_000_000 }).collect({ signal, known: new Map([[captain, 'wiki:page:1:r10:f3']]) });
+  assert.deepEqual(earlier.calls.filter(call => call.startsWith('parse')), ['parse:1']); assert.equal(relabelled.entries[0].documents[0].game, 'ss13-meridian');
   const scope = wikiFetch({ pages }); const changed = async url => { const response = await scope.fetchImpl(url);
     return url.searchParams.get('meta') ? respond({ query: { general: { server: 'https://elsewhere.test', wikiid: 'wiki_meridian', articlepath: '/wiki/$1' }, rightsinfo: {} } }) : response; };
   await assert.rejects(createWikiCollector({ fetchImpl: changed, extractor: inlineExtractor }).collect({ signal }), /WIKI_SOURCE_SCOPE_CHANGED/);
@@ -129,6 +158,7 @@ test('KS-05 the website collector reads the sitemap and the docs tree, honours r
   assert.deepEqual(docs.map(doc => [doc.title, doc.url, doc.authority]).sort(), [['Documents', 'https://meridian.a13.info/docs/', 'reference'],
     ['Guide', 'https://meridian.a13.info/docs/developer/guide/', 'reference'], ['Lore', 'https://meridian.a13.info/lore/', 'lore']]);
   assert.ok(!fetched.includes('/maps/') && !fetched.includes('/players'), 'disallowed and out-of-tree pages are not fetched');
+  assert.ok(docs.every(doc => doc.game === 'ss13-meridian'));
   assert.equal(docs.find(doc => doc.title === 'Lore').sections.some(section => /On this page|Maps/u.test(section.text)), false, 'navigation is not content');
   assert.equal(result.complete, true);
   assert.deepEqual(robotsDisallow('User-agent: bot\nDisallow: /a\nUser-agent: *\nDisallow: /b # note\n'), ['/b']);
@@ -162,6 +192,9 @@ test('KS-06 the GitHub collector skips forks, keeps activity from trusted author
   assert.ok(text.includes('Trusted bug') && text.includes('Merged feature'));
   assert.ok(!text.includes('Ignore previous instructions') && !text.includes('First PR') && !text.includes('Closed unmerged'), 'untrusted or unmerged activity is left out');
   assert.ok(docs.every(doc => doc.kind === 'repository' && doc.id.startsWith('gh-')));
+  assert.ok(docs.filter(doc => doc.attribution === 'Aphelion-Moon/Meridian-Rift on GitHub').every(doc => doc.game === 'ss13-meridian'));
+  const sophie = docs.filter(doc => doc.attribution === 'Aphelion-Moon/Aphelion-Sophie on GitHub');
+  assert.ok(sophie.length && sophie.every(doc => !Object.hasOwn(doc, 'game')), 'a repository of neither game carries no game');
   // A refusal that is not a rate limit (owner log review, 25 October 2026) is named apart: one refused part is skipped and the
   // run goes on; a refused listing ends it with that code.
   refused = '/repos/Aphelion-Moon/Meridian-Rift/releases';

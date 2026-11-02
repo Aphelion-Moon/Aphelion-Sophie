@@ -123,9 +123,10 @@ export function splitSection({ heading, text }) {
 
 /**
  * Packs sections into canonical documents: idBase, idBase-p2, … Returns at most maxParts documents and reports whether
- * text was left out. dependencyHash is the content digest, so unchanged content can be recognised across syncs.
+ * text was left out. dependencyHash is the content digest, so unchanged content can be recognised across syncs. game is
+ * left out of a document (and of its digest) when null.
  */
-export function packDocuments({ idBase, title, kind, authority, url, rights, attribution, sourceRevision, fetchedAt, aliases = [], sections, maxParts = 8 }) {
+export function packDocuments({ idBase, title, kind, authority, game = null, url, rights, attribution, sourceRevision, fetchedAt, aliases = [], sections, maxParts = 8 }) {
   requireCondition(SYNCED_KNOWLEDGE_KINDS.includes(kind) && /^[a-z][a-z0-9-]{0,44}$/u.test(idBase), 'KNOWLEDGE_SYNC_INVALID'); requireInteger(fetchedAt, 1); requireInteger(maxParts, 1, 20);
   const parts = sections.flatMap(splitSection).filter(section => section.text);
   if (!parts.length) return { documents: [], truncated: false };
@@ -136,10 +137,11 @@ export function packDocuments({ idBase, title, kind, authority, url, rights, att
   }
   if (group.length) groups.push(group);
   const cleanTitle = clip(title, 180), cleanAliases = [...new Set(aliases.map(alias => clip(alias, 100)).filter(Boolean))].slice(0, 20);
+  const labelled = game === null ? {} : { game };
   const documents = groups.slice(0, maxParts).map((sectionsOfPart, index) => {
     const partTitle = index === 0 ? cleanTitle : `${cleanTitle} (part ${index + 1})`;
-    const content = { title: partTitle, url, authority, aliases: cleanAliases, sections: sectionsOfPart };
-    return canonicalKnowledgeDocument({ id: index === 0 ? idBase : `${idBase}-p${index + 1}`, title: partTitle, kind, authority, url, rights: clip(rights, 300),
+    const content = { title: partTitle, url, authority, ...labelled, aliases: cleanAliases, sections: sectionsOfPart };
+    return canonicalKnowledgeDocument({ id: index === 0 ? idBase : `${idBase}-p${index + 1}`, title: partTitle, kind, authority, ...labelled, url, rights: clip(rights, 300),
       attribution: clip(attribution, 500), sourceRevision: clip(sourceRevision, 160), dependencyHash: sha(JSON.stringify(content)),
       fetchedAt, validUntil: fetchedAt + SYNC_VALIDITY_MS, aliases: cleanAliases, sections: sectionsOfPart });
   });

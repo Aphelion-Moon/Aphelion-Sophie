@@ -60,7 +60,7 @@ export function createWebsiteCollector({ fetchImpl = fetch, extractor, clock = D
           const sections = blocksToSections(extraction.blocks, title);
           const content = sha256(JSON.stringify(sections));
           const packed = packDocuments({ idBase: documentIdBase(SITE_SOURCE.prefix, final.pathname, final.pathname), title, kind: 'website',
-            authority: final.pathname.startsWith('/lore') ? 'lore' : 'reference', url: final.href,
+            authority: final.pathname.startsWith('/lore') ? 'lore' : 'reference', game: 'ss13-meridian', url: final.href,
             rights: 'Aphelion project', attribution: 'Meridian Rift website',
             sourceRevision: `site:${final.pathname}:${content.slice(0, 16)}`, fetchedAt: clock(), sections, maxParts: 4 });
           if (packed.documents.length) entries.push({ idBase: packed.documents[0].id, sourceRevision: packed.documents[0].sourceRevision, documents: packed.documents });

@@ -3,9 +3,15 @@ import { requireCondition, requireId, requireInteger, requireKeys, requireName }
 export const MEDIAWIKI_EXTRACTOR_REVISION = 'mediawiki-structured-v1';
 /** Kinds the source synchronizer owns and publishes on its own (owner decision, 12 October 2026). */
 export const SYNCED_KNOWLEDGE_KINDS = Object.freeze(['wiki-page', 'website', 'repository', 'guidebook']);
+/** The game a document is about (plan of 2 November 2026). ss14-upstream: SS14 text Wolfgate carries but does not apply. */
+export const KNOWLEDGE_GAMES = Object.freeze(['ss13-meridian', 'ss14-wolfgate', 'ss14-upstream', 'both']);
 
 export function canonicalKnowledgeDocument(value) {
-  requireKeys(value, ['id', 'title', 'kind', 'authority', 'url', 'rights', 'attribution', 'sourceRevision', 'dependencyHash', 'fetchedAt', 'validUntil', 'aliases', 'sections'], 'KNOWLEDGE_DOCUMENT_INVALID');
+  // game is optional and present only when set, so a document without one keeps its earlier canonical form and digest.
+  const game = value?.game;
+  requireKeys(value, ['id', 'title', 'kind', 'authority', 'url', 'rights', 'attribution', 'sourceRevision', 'dependencyHash', 'fetchedAt', 'validUntil', 'aliases', 'sections',
+    ...(game === undefined ? [] : ['game'])], 'KNOWLEDGE_DOCUMENT_INVALID');
+  requireCondition(game === undefined || KNOWLEDGE_GAMES.includes(game), 'KNOWLEDGE_DOCUMENT_INVALID');
   requireCondition(typeof value.id === 'string' && /^[a-z][a-z0-9-]{0,47}$/.test(value.id), 'KNOWLEDGE_DOCUMENT_INVALID');
   const text = (item, limit) => requireCondition(typeof item === 'string' && item.trim().length > 0 && item.length <= limit && item.isWellFormed() && !/[\u0000-\u0008\u000b\u000c\u000e-\u001f]/u.test(item), 'KNOWLEDGE_DOCUMENT_INVALID');
   text(value.title, 200); text(value.rights, 300); text(value.attribution, 500); text(value.sourceRevision, 160);
@@ -23,7 +29,7 @@ export function canonicalKnowledgeDocument(value) {
   let size = 0;
   const sections = value.sections.map(section => { requireKeys(section, ['heading', 'text'], 'KNOWLEDGE_DOCUMENT_INVALID'); text(section.heading, 160); text(section.text, 4000); size += section.text.length; return { heading: section.heading, text: section.text }; });
   requireCondition(size <= 32000, 'KNOWLEDGE_DOCUMENT_INVALID');
-  return { id: value.id, title: value.title, kind: value.kind, authority: value.authority, url: url.href, rights: value.rights, attribution: value.attribution,
+  return { id: value.id, title: value.title, kind: value.kind, authority: value.authority, ...(game === undefined ? {} : { game }), url: url.href, rights: value.rights, attribution: value.attribution,
     sourceRevision: value.sourceRevision, dependencyHash: value.dependencyHash, fetchedAt: value.fetchedAt, validUntil: value.validUntil, aliases: [...value.aliases].sort(), sections };
 }
 
