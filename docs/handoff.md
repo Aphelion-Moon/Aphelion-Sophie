@@ -203,10 +203,11 @@ runs when handed the right passages, but only 93 of 135 in the real turn. The mo
   the owner publishes.
 - No model training.
 
-**On `main`, not installed and not pushed** (main is 17 commits ahead of `origin/main`). Since 17:45 on 2 November the
-main checkout has been on `claude/radio-p58-domain` (another session's radio work, P58); these AI commits went to `main`
-through a separate worktree. That branch also edits `docs/workplan.json`, so expect a conflict there when it merges:
-take both sides and run `node scripts/build-workplan.mjs`.
+**On `main`, not installed and not pushed** (main is 21 commits ahead of `origin/main`). For part of the evening of
+2 November another session had the main checkout on `claude/radio-p58-domain` (radio, P58, not merged); the glossary
+commits went to `main` through a separate worktree. Check the branch before committing. That branch also edits
+`docs/workplan.json`, so expect a conflict there when it merges: take both sides and run
+`node scripts/build-workplan.mjs`.
 
 | What | Commits |
 |---|---|
@@ -216,6 +217,9 @@ take both sides and run `node scripts/build-workplan.mjs`.
 | "Open draft file" on the Approved knowledge page | merge `39096c6` |
 | Routing: gameplay questions get no developer pages and no code search; the channel's game is ranked higher and upstream rulesets lower; evidence names its source and game; a question with no evidence is told not to answer from general knowledge | `c57fc97` |
 | Glossary: an entry (`glossary-<slug>`) whose alias the question names anywhere comes first; its other names lift the community's own pages, never developer pages or upstream rulesets; a term in capitals finds headings that spell it out | `bfbfed7` |
+| No Contact staff button on AI replies (owner direction, 2 November); buttons already posted still work | `65b8ceb` |
+| Capability manifest in the prompt (her real commands, what she cannot do, how Whitelist is earned), the owner's channel directory (dashboard, AI page), and reply checks: unlisted channels and commands, incident verdicts and promises to report, numbers no source gives | `da650cd` |
+| Evaluator: turns use the same checks; `ai-eval-rejudge.mjs --replay` re-runs stored live replies through them | `3d914af` |
 
 **Measured** (retrieval only, no model calls), Wolfgate questions on the labelled snapshot:
 
@@ -232,6 +236,16 @@ take both sides and run `node scripts/build-workplan.mjs`.
   capability manifest.
 - Until an install and the re-sync, production documents carry no game. Only the developer-page filter would act. The
   glossary works once the owner publishes the entries, labels or not.
+- **Narrowing to know about:** a plain-language code question ("how does the cloning system work") no longer triggers code
+  search. It needs a developer word, a file name or an identifier.
+
+**Reply checks, replayed** on the 270 stored replies of the 2 November live run, without model calls
+(`live-all-45df8b8-replay-da650cd.json`; list removals with `removed-sentences.mjs`):
+- They removed 9 invented channels (`#wolfgate-dev`, `#📢-announcements` and others), 3 incident verdicts ("That's
+  definitely RDM") and 1 wrong number ("about 250 meters" for the rule's 256). No case got worse.
+- `wg-rep-verdict` still fails: its replies offer the Contact staff button, which the published character's example
+  names, and skip escalation.
+- Until the owner lists channels in the directory, Sophie names none.
 
 **Glossary drafts:** `GitHub/.agent_docs/aphelion-sophie/glossary-2026-11-02/drafts`, 27 files, nothing published.
 - Each file opens in the dashboard with "Open draft file"; the owner reviews and publishes each one.
@@ -241,8 +255,6 @@ take both sides and run `node scripts/build-workplan.mjs`.
 - One document per term, one section per game.
 - The editor has no game field, so published entries carry no game label. They don't need one to lead.
 - Measure a change with `--overlay <drafts folder>` on the evaluator.
-- **Narrowing to know about:** a plain-language code question ("how does the cloning system work") no longer triggers code
-  search. It needs a developer word, a file name or an identifier.
 
 **Evaluation folder:** `GitHub/.agent_docs/aphelion-sophie/ai-eval-2026-11-02`.
 - `snapshot-2026-11-02`: the production knowledge, read-only, taken on the owner's approval.
@@ -260,18 +272,24 @@ tickets, member records, case exclusions, the rules channel and channels @everyo
 needs the owner's channel list and an approval for each run.
 
 **Next, in order:**
-1. Capability manifest and channel directory, the incident-verdict rule and check, and the lexical support check.
-2. The owner reviews and publishes the glossary drafts.
-3. The harvest, once the owner names channels; more glossary terms come from it.
+1. The owner fills the channel directory, reviews the fallback and capability wording, publishes the glossary drafts, and
+   republishes the character without "the Contact staff button".
+2. The harvest, once the owner names channels; more glossary terms come from it.
+3. Historical pages (H7), "Member N" labels and the silent-turn template (H5), character examples with citations (M5),
+   context briefs and the game per channel (M6).
 4. A live trial on budget.
 5. An install, on approval.
 
 **Owner inputs outstanding:**
+- the channel directory: which channels Sophie may name (rules, announcements, tickets, ban appeals…) and their IDs;
+- the wording of `ai.reply.unsupported_removed` (wording page) and of the capability text (`modules/assistant/capabilities.js`);
+- the character example that still offers "the Contact staff button";
+- how a member appeals a Wolfgate ban: nothing in the sources says;
 - harvest channels;
 - review and publication of the 27 glossary drafts, and approval of each harvest document;
 - leaving the upstream rulesets out entirely, or keeping them relabelled;
 - which historical pages to withdraw (Red Server Policy, the Starter Guide's "Intents");
-- the manifest and context briefs;
+- context briefs;
 - each call budget and each install.
 
 ## Shuttle Activity: what is left (P41)
@@ -293,9 +311,9 @@ needs the owner's channel list and an approval for each run.
 ### Tests
 
 Run `npm test`, `npm run check` and `npm run test:storage:fast` (isolated PostgreSQL), and record the actual counts. For
-a small edit, run only the affected test files. Last full runs: 981 unit tests (2 November, after the glossary) and 1058
-storage tests passed. On 2 November only the AI storage suites ran (`node scripts/test-storage.mjs --suite=ai`, 103 passed
-after the glossary).
+a small edit, run only the affected test files. Last full runs: 976 unit tests on main (2 November, after the reply checks) and 1058
+storage tests passed. On 2 November only the AI storage suites ran (`node scripts/test-storage.mjs --suite=ai`, 104 passed
+after the reply checks).
 
 ### Install (production, source-only)
 
