@@ -673,7 +673,11 @@ export async function runStagingRuntimeSuite(cluster, run) {
       return message.id;
     };
     const publicId = await sendMessage(PUBLIC_CHANNEL, 'public beacon');
-    await waitForGateway(async () => (await cluster.adminPool.query('SELECT state FROM sophie_ai.request_receipts WHERE guild_id=$1 AND message_id=$2', [GUILD, publicId])).rows[0]?.state === 'silent');
+    // The worker answers silence; an addressed public beacon then gets the owner's fixed wording (review H5, 2 November 2026).
+    await waitForGateway(async () => (await cluster.adminPool.query('SELECT state FROM sophie_ai.request_receipts WHERE guild_id=$1 AND message_id=$2', [GUILD, publicId])).rows[0]?.state === 'delivered');
+    assert.ok(f.faults.includes('AI_TURN_SILENT_ADDRESSED'));
+    // Only the beacons' fixed replies are written, and only to the public channel.
+    const publicReply = call => call.method === 'POST' && call.path.endsWith(`/channels/${PUBLIC_CHANNEL}/messages`);
     assert.equal(calls.worker.length, 1); assert.equal(calls.knowledge.length, 1); assert.equal(calls.qualification, 1);
     assert.equal(calls.knowledge[0].sources, 1);
     // Expire the member interval before the negative probes. A recent public
@@ -689,10 +693,11 @@ export async function runStagingRuntimeSuite(cluster, run) {
     f.peer.connections[0].send(gatewayEvent(++sequence, 'CHANNEL_UPDATE', moved));
     await waitForGateway(async () => Number((await f.rows('gateway_lifecycle'))[0].sequence) === sequence);
     excludedIds.push(await sendMessage('911', 'EXCLUDED_SENTINEL_MOVED'));
-    assert.equal(f.discord.state.calls.some(call => call.method !== 'GET'), false);
+    assert.equal(f.discord.state.calls.some(call => call.method !== 'GET' && !publicReply(call)), false);
+    assert.equal(f.discord.state.calls.filter(publicReply).length, 1);
     excludedIds.push(await exerciseExcludedCaseArtifacts(f, sendMessage));
     const secondPublicId = await sendMessage(PUBLIC_CHANNEL, 'public beacon');
-    await waitForGateway(async () => (await cluster.adminPool.query('SELECT state FROM sophie_ai.request_receipts WHERE guild_id=$1 AND message_id=$2', [GUILD, secondPublicId])).rows[0]?.state === 'silent');
+    await waitForGateway(async () => (await cluster.adminPool.query('SELECT state FROM sophie_ai.request_receipts WHERE guild_id=$1 AND message_id=$2', [GUILD, secondPublicId])).rows[0]?.state === 'delivered');
     const secondIntervalStart = f.clock.now;
     await waitForGateway(() => f.clock.now - secondIntervalStart >= QUALIFIED_MEMBER_INTERVAL_MS, QUALIFIED_MEMBER_INTERVAL_MS + 5000);
     const held = f.aiProbe.holdNextReply(); let lateId;
@@ -716,8 +721,9 @@ export async function runStagingRuntimeSuite(cluster, run) {
     assert.deepEqual(calls.lookups.map(call => call.sources), [1, 0, 0]);
     const receipts = (await cluster.adminPool.query('SELECT * FROM sophie_ai.request_receipts WHERE guild_id=$1', [GUILD])).rows;
     assert.deepEqual(receipts.map(row => row.message_id).sort(), [publicId, secondPublicId, lateId].sort());
-    assert.ok(receipts.every(row => row.state === (row.message_id === lateId ? 'cancelled' : 'silent')));
-    assert.equal((await cluster.adminPool.query('SELECT 1 FROM sophie_ai.effects WHERE guild_id=$1', [GUILD])).rowCount, 0);
+    assert.ok(receipts.every(row => row.state === (row.message_id === lateId ? 'cancelled' : 'delivered')));
+    assert.equal((await cluster.adminPool.query('SELECT 1 FROM sophie_ai.effects WHERE guild_id=$1', [GUILD])).rowCount, 2, 'the two beacons\' fixed replies');
+    assert.equal(f.discord.state.calls.filter(publicReply).length, 2);
     assert.equal((await cluster.adminPool.query('SELECT 1 FROM sophie_ai.provider_attempts WHERE guild_id=$1', [GUILD])).rowCount, 0);
     assert.equal((await f.rows('outbox')).some(row => JSON.stringify(row).includes('EXCLUDED_SENTINEL')), false);
     assert.equal(f.discord.state.calls.some(call => excludedIds.some(id => call.path.endsWith(`/messages/${id}`))), false);
