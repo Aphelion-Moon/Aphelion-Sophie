@@ -3,6 +3,7 @@ import { requireCondition, requireId, requireInteger } from '../../contracts/val
 import { canonicalKnowledgeDocument, KNOWLEDGE_GAMES, requireKnowledgeSourceId } from '../../modules/assistant/knowledge.js';
 import { createWikiImports, mediaWikiDocumentCurrent, mediaWikiReviewEpoch } from './imports.js';
 import { createSourceMirror, insertPublication, SYNC_PREFIXES } from './mirror.js';
+import { acronymCandidates, GLOSSARY_PREFIX, queryPhrases } from './query-expansion.js';
 import { routeQuestion } from './routing.js';
 import { FAMILY_SQL } from './source-family.js';
 
@@ -147,6 +148,10 @@ export function createKnowledgeLibrary({ pool, guildId, authorize, restoreCurren
      * A chat turn's question is routed first (routing.js, plan of 2 November 2026): on the gameplay route developer pages
      * are left out, a passage of the context's game ranks a little higher and an upstream SS14 ruleset a little lower, so
      * a Wolfgate question still finds Meridian's rule where the Guidebook has none. Passages carry their family and game.
+     * Off the development route, a glossary entry whose alias the question names anywhere comes right after an exact match,
+     * the entry's other names count toward ranking other passages ("combat indicator" for "CI") without raising what the
+     * question asked for, and a term in capitals selects headings that spell it out ("Combat Indicator (CI)") like a rule
+     * code (query-expansion.js).
      */
     async lookup(query, request, conversation = '') {
       requireCondition(typeof query === 'string' && query.trim().length > 0 && query.length <= 4000 && typeof conversation === 'string' && conversation.length <= 4000 &&
@@ -162,6 +167,9 @@ export function createKnowledgeLibrary({ pool, guildId, authorize, restoreCurren
       // Heading patterns for the codes asked about; "CR 1" never matches "CR 10". Only letters and digits reach the pattern.
       const named = [...new Set([...query.matchAll(/(?<![\p{L}\p{N}])(\p{L}{1,10})[ -]?0*(\d{1,4})(?![\p{L}\p{N}])/gu)]
         .filter(([, letters, number]) => !gameName(letters, number)).map(([, letters, number]) => `(^|[^[:alnum:]])${letters.toLowerCase()}[ -]?0*${Number(number)}([^0-9]|$)`))].slice(0, 4);
+      // Glossary expansion and bracketed heading terms are off for developer questions. Only capital letters reach a pattern.
+      const expand = route !== 'development', phrases = expand ? queryPhrases(query) : [];
+      const headed = [...named, ...(expand ? acronymCandidates(query).map(term => `\\(${term.toLowerCase()}\\)`) : [])];
       // Constant text for ts_stat (word rarity); only the validated guild ID is formatted into it, as a literal.
       const live = `FROM sophie_knowledge.chunks c JOIN sophie_knowledge.documents d ON d.guild_id=c.guild_id AND d.id=c.document_id
         WHERE c.guild_id=%L AND c.revision=d.revision AND c.text IS NOT NULL AND NOT d.withdrawn AND d.source_current AND (d.valid_until IS NULL OR d.valid_until>clock_timestamp())`;
@@ -173,6 +181,19 @@ export function createKnowledgeLibrary({ pool, guildId, authorize, restoreCurren
         ), total AS (
           SELECT greatest(count(*),1)::float8 AS passages FROM sophie_knowledge.chunks c JOIN sophie_knowledge.documents d ON d.guild_id=c.guild_id AND d.id=c.document_id
           WHERE c.guild_id=$1 AND c.revision=d.revision AND c.text IS NOT NULL AND NOT d.withdrawn AND d.source_current AND (d.valid_until IS NULL OR d.valid_until>clock_timestamp())
+        ), glossary AS (
+          -- Current glossary entries a phrase of the question names, with every name each entry has (aliases normalised as
+          -- queryPhrases splits words).
+          SELECT DISTINCT c.document_id, trim(regexp_replace(lower(alias),'[^[:alnum:]]+',' ','g')) AS name
+          FROM sophie_knowledge.chunks c JOIN sophie_knowledge.documents d ON d.guild_id=c.guild_id AND d.id=c.document_id CROSS JOIN LATERAL unnest(c.aliases) alias
+          WHERE c.guild_id=$1 AND c.document_id LIKE '${GLOSSARY_PREFIX}%' AND c.revision=d.revision AND c.text IS NOT NULL AND NOT d.withdrawn AND d.source_current
+            AND (d.valid_until IS NULL OR d.valid_until>clock_timestamp())
+            AND EXISTS(SELECT 1 FROM unnest(c.aliases) given WHERE trim(regexp_replace(lower(given),'[^[:alnum:]]+',' ','g')) = ANY($9::text[]))
+        ), expansion AS (
+          -- The entries' other names as phrases, weighted by the rarity of their words.
+          SELECT phraseto_tsquery('english', g.name) AS phrase, sum(ln(1 + total.passages / s.ndoc)) AS idf
+          FROM (SELECT DISTINCT name FROM glossary WHERE NOT name = ANY($9::text[])) g CROSS JOIN total
+          CROSS JOIN LATERAL unnest(to_tsvector('english', g.name)) l JOIN stat s ON s.word = l.lexeme GROUP BY g.name, total.passages
         ), asked AS (
           SELECT unnest(t.current) AS term, false AS recent FROM terms t
           UNION SELECT word, true FROM terms t, unnest(t.spoken) word WHERE NOT word = ANY(t.current)
@@ -191,6 +212,10 @@ export function createKnowledgeLibrary({ pool, guildId, authorize, restoreCurren
             p.document->>'rights' AS rights,p.document->>'attribution' AS attribution,p.document->>'sourceRevision' AS "sourceRevision",
             ${FAMILY_SQL} AS family, p.document->>'game' AS game,
             (lower(c.title)=lower($2) OR EXISTS(SELECT 1 FROM unnest(c.aliases) alias WHERE lower(alias)=lower($2))) AS exact,
+            c.document_id IN (SELECT document_id FROM glossary) AS aliased,
+            -- A glossary name lifts the community's own pages, never a developer page or an upstream ruleset that uses the word.
+            CASE WHEN ${FAMILY_SQL} = 'development' OR p.document->>'game' = 'ss14-upstream' THEN 0
+              ELSE coalesce((SELECT sum(x.idf) FROM expansion x WHERE c.search @@ x.phrase),0) END AS expanded,
             m.*, n.wanted, ts_rank(c.search,n.probe,1) AS rank,
             c.document_id NOT LIKE '%-p%' AND c.source_id ~ '\\.s[01]$' AS opening,
             EXISTS(SELECT 1 FROM unnest($6::text[]) code WHERE c.heading ~* code) AS coded
@@ -207,20 +232,22 @@ export function createKnowledgeLibrary({ pool, guildId, authorize, restoreCurren
           WHERE c.guild_id=$1 AND c.revision=d.revision AND c.text IS NOT NULL AND NOT d.withdrawn AND d.source_current
             AND (d.valid_until IS NULL OR d.valid_until>clock_timestamp()) AND
             (lower(c.title)=lower($2) OR EXISTS(SELECT 1 FROM unnest(c.aliases) alias WHERE lower(alias)=lower($2)) OR c.search @@ n.probe
-              OR EXISTS(SELECT 1 FROM unnest($6::text[]) code WHERE c.heading ~* code))
+              OR EXISTS(SELECT 1 FROM unnest($6::text[]) code WHERE c.heading ~* code) OR c.document_id IN (SELECT document_id FROM glossary)
+              OR EXISTS(SELECT 1 FROM expansion x WHERE c.search @@ x.phrase))
             AND ($7::text <> 'gameplay' OR ${FAMILY_SQL} <> 'development')
         ), ranked AS (
-          SELECT *, score + CASE WHEN opening AND title_covered > 0 AND title_covered >= wanted / 3 THEN 4 ELSE 0 END
+          SELECT *, score + expanded + CASE WHEN opening AND title_covered > 0 AND title_covered >= wanted / 3 THEN 4 ELSE 0 END
             + CASE WHEN $7::text <> 'gameplay' THEN 0 ELSE CASE WHEN game IN ($8::text, 'both') THEN 1.5 ELSE 0 END - CASE WHEN game = 'ss14-upstream' THEN 3 ELSE 0 END END AS total_score
           -- A passage needs at least one fairly specific word (in at most about one passage in six: ln 7 = 1.95) unless the conversation backs it.
-          FROM matched WHERE exact OR coded OR hits >= 1 AND covered >= 1.9 AND covered >= wanted / 2 OR title_covered > 0 AND title_covered >= wanted / 3 OR hits >= 1 AND context_covered >= 3
+          FROM matched WHERE exact OR aliased OR coded OR (hits >= 1 OR expanded > 0) AND covered + expanded >= 1.9 AND covered + expanded >= wanted / 2
+            OR title_covered > 0 AND title_covered >= wanted / 3 OR hits >= 1 AND context_covered >= 3
         ), kept AS (
-          SELECT *, row_number() OVER (PARTITION BY document_id ORDER BY exact DESC,coded DESC,total_score DESC,context_covered DESC,rank DESC,id) AS within,
-            row_number() OVER (PARTITION BY md5(text) ORDER BY exact DESC,coded DESC,total_score DESC,context_covered DESC,rank DESC,id) AS copy FROM ranked
+          SELECT *, row_number() OVER (PARTITION BY document_id ORDER BY exact DESC,aliased DESC,coded DESC,total_score DESC,context_covered DESC,rank DESC,id) AS within,
+            row_number() OVER (PARTITION BY md5(text) ORDER BY exact DESC,aliased DESC,coded DESC,total_score DESC,context_covered DESC,rank DESC,id) AS copy FROM ranked
         )
         SELECT id,title,heading,text,url,authority,"publicationHash",epoch,"validUntil",rights,attribution,"sourceRevision",exact,family,game FROM kept
-        WHERE (within<=2 OR coded) AND copy=1 ORDER BY exact DESC,coded DESC,total_score DESC,context_covered DESC,rank DESC,id LIMIT 5`,
-      [guildId,query,terms,focus,recent,named,route,game])).rows.map(row => ({ ...row, epoch: Number(row.epoch), validUntil: row.validUntil?.getTime() ?? null }));
+        WHERE (within<=2 OR coded) AND copy=1 ORDER BY exact DESC,aliased DESC,coded DESC,total_score DESC,context_covered DESC,rank DESC,id LIMIT 5`,
+      [guildId,query,terms,focus,recent,headed,route,game,phrases])).rows.map(row => ({ ...row, epoch: Number(row.epoch), validUntil: row.validUntil?.getTime() ?? null }));
       // Each passage is checked on its own: one that is no longer current is dropped, not every passage with it.
       const kept = [];
       for (const row of rows) if (await available([row], request)) kept.push(row);

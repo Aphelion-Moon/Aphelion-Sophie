@@ -7,6 +7,7 @@ import { resolve } from 'node:path';
 import { canonicalKnowledgeDocument } from '../../../modules/assistant/knowledge.js';
 import { insertPublication } from '../../../apps/knowledge/mirror.js';
 import { familyOf } from '../../../apps/knowledge/source-family.js';
+import { KNOWLEDGE_DRAFT_FORMAT, readKnowledgeDraft } from '../../../apps/dashboard/knowledge-draft.js';
 import { goldMatches } from './asserts.mjs';
 
 const sha256 = bytes => createHash('sha256').update(bytes).digest('hex');
@@ -37,6 +38,17 @@ export function documentsForLoad(documents, now, overlays = []) {
     byId.set(document.id, document);
   }
   return [...byId.values()].sort((left, right) => left.id < right.id ? -1 : left.id > right.id ? 1 : 0);
+}
+
+/**
+ * An owner draft (sophie-knowledge-draft-1, the file the dashboard's "Open draft file" reads) as the editor would publish
+ * it: an owner publication with no expiry and the editor's dependency hash. Anything else is returned unchanged.
+ */
+export function draftDocument(value, now) {
+  if (value?.format !== KNOWLEDGE_DRAFT_FORMAT) return value;
+  const read = readKnowledgeDraft(JSON.stringify(value));
+  if (!read.ok) throw new Error(`AI_EVAL_DRAFT_INVALID ${value.id}: ${read.problem}`);
+  return { ...read.draft, kind: 'owner-publication', dependencyHash: sha256(JSON.stringify(read.draft.sections)), fetchedAt: now, validUntil: null };
 }
 
 /** Inserts revision 1 of every document; returns the loaded documents with their publication hashes. */

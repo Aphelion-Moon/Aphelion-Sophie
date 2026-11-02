@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { diagnose, evaluateAsserts, forbiddenRows, goldHit, goldMatches, sourceLabels, summarize } from '../scripts/lib/ai-eval/asserts.mjs';
-import { documentsForLoad, goldPassages, passagesOf } from '../scripts/lib/ai-eval/snapshot.mjs';
+import { documentsForLoad, draftDocument, goldPassages, passagesOf } from '../scripts/lib/ai-eval/snapshot.mjs';
 import { prepareTurn, runTurn } from '../scripts/lib/ai-eval/turn.mjs';
 import { DRAFT_PERSONALITY } from '../modules/assistant/personality.js';
 
@@ -128,4 +128,17 @@ test('AE-07 an evaluated turn runs the real prompt, validation and rendering aro
   assert.equal((await runTurn(item, sources, { ...options, generate: async () => { throw new Error('AI_WORKER_UNAVAILABLE'); } })).error, 'AI_WORKER_UNAVAILABLE');
   assert.equal((await runTurn(item, sources, { ...options, generate: async () => ({ kind: 'reply', text: '' }) })).validation, 'AI_OUTPUT_INVALID');
   assert.equal((await runTurn({ ...item, context: 'nowhere' }, sources, { ...options, generate: async () => null })).error, 'AI_EVAL_CONTEXT_INVALID');
+});
+
+test('AE-08 an owner draft overlays as the editor would publish it; anything else passes through', () => {
+  const draft = { format: 'sophie-knowledge-draft-1', id: 'glossary-ci', title: 'CI: Combat Indicator', authority: 'policy', url: 'https://example.test/glossary',
+    rights: 'Synthetic rights', attribution: 'Synthetic author', sourceRevision: 'synthetic-1', aliases: ['CI', 'combat intent'],
+    sections: [{ heading: 'CI on Wolfgate', text: 'Synthetic: Wolfgate has no CI rule.' }] };
+  const loaded = draftDocument(draft, NOW);
+  assert.equal(loaded.kind, 'owner-publication'); assert.equal(loaded.validUntil, null); assert.equal(loaded.fetchedAt, NOW);
+  assert.match(loaded.dependencyHash, /^[a-f0-9]{64}$/u); assert.equal(Object.hasOwn(loaded, 'format'), false);
+  assert.equal(documentsForLoad([], NOW, [loaded])[0].id, 'glossary-ci');
+  assert.throws(() => draftDocument({ ...draft, sections: [] }, NOW), /AI_EVAL_DRAFT_INVALID glossary-ci/u);
+  const plain = { id: 'wiki-x' };
+  assert.equal(draftDocument(plain, NOW), plain);
 });

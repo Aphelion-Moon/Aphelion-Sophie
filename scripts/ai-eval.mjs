@@ -9,10 +9,11 @@
 // Code search (GitHub) is not part of an evaluation run: it cannot be pinned. Writes only the --out file.
 //
 // node scripts/ai-eval.mjs --cases <cases.json> --snapshot <dir> --out <result.json>
-//   [--mode retrieval|oracle|e2e|all] [--overlay <draft.json>[,<draft.json>]] [--only id1,id2] [--runs n]
+//   [--mode retrieval|oracle|e2e|all] [--overlay <file or folder>[,<file or folder>]] [--only id1,id2] [--runs n]
 //   [--character <personality.json>] [--configuration <ai-configuration.json>]
 //   [--dry | --live --max-calls <n> --provider-key <file>]
-import { readFile, writeFile } from 'node:fs/promises';
+import { readdir, readFile, stat, writeFile } from 'node:fs/promises';
+import { join } from 'node:path';
 import { createKnowledgeLibrary } from '../apps/knowledge/library.js';
 import { routeQuestion } from '../apps/knowledge/routing.js';
 import { createMistralClient, MISTRAL_MODEL } from '../apps/knowledge-worker/mistral-client.js';
@@ -21,7 +22,7 @@ import { canonicalPersonality, DRAFT_PERSONALITY } from '../modules/assistant/pe
 import { canonicalAiConfiguration } from '../modules/assistant/participation.js';
 import { createTestCluster } from './lib/postgres-test-cluster.mjs';
 import { diagnose, evaluateAsserts, forbiddenRows, goldHit, sourceLabels, summarize } from './lib/ai-eval/asserts.mjs';
-import { documentsForLoad, goldPassages, loadDocuments, passagesOf, readSnapshot } from './lib/ai-eval/snapshot.mjs';
+import { documentsForLoad, draftDocument, goldPassages, loadDocuments, passagesOf, readSnapshot } from './lib/ai-eval/snapshot.mjs';
 import { runTurn, prepareTurn } from './lib/ai-eval/turn.mjs';
 
 const args = process.argv.slice(2);
@@ -42,8 +43,12 @@ const read = async path => JSON.parse(await readFile(path, 'utf8'));
 const only = option('--only')?.split(',') ?? null;
 const cases = (await read(casesPath)).filter(item => !only || only.includes(item.id));
 const { manifest, documents } = await readSnapshot(snapshotPath);
+// Overlays: documents or owner drafts (a file, a list of files, or a folder of .json files), loaded after the snapshot.
 const overlays = [];
-for (const path of option('--overlay')?.split(',') ?? []) { const value = await read(path); overlays.push(...(Array.isArray(value) ? value : [value])); }
+for (const path of option('--overlay')?.split(',') ?? []) {
+  const files = (await stat(path)).isDirectory() ? (await readdir(path)).filter(name => name.endsWith('.json')).sort().map(name => join(path, name)) : [path];
+  for (const file of files) { const value = await read(file); overlays.push(...(Array.isArray(value) ? value : [value]).map(item => draftDocument(item, Date.now()))); }
+}
 const character = canonicalPersonality(option('--character') ? await read(option('--character')) : DRAFT_PERSONALITY);
 const configuration = option('--configuration') ? canonicalAiConfiguration(await read(option('--configuration'))) : null;
 const guildId = '100000000000000101';

@@ -352,4 +352,35 @@ export async function runAiKnowledgeSuite(cluster, run) {
     assert.equal((await order(null)).at(-1), 'ss14-upstream', 'with no game an upstream ruleset still trails');
     await assert.rejects(synced.lookup('What is CI?', { ...chat(null), context: { name: 'support', game: 'tg-station' } }), /KNOWLEDGE_QUERY_INVALID/);
   });
+  await run('AI23 a glossary entry named anywhere in a question leads, its other names lift the community\'s pages, and a capitalised term finds its heading', async () => {
+    const at = Date.now(), chat = () => ({ ...request(), context: { name: 'support', game: 'ss14-wolfgate', codeSearch: true } });
+    const entry = (idBase, title, kind, url, game, heading, text) => ({ idBase, sourceRevision: `${idBase}:1`, documents: packDocuments({ idBase, title, kind, authority: 'policy',
+      game, url, rights: 'Synthetic fixture', attribution: 'Synthetic', sourceRevision: `${idBase}:1`, fetchedAt: at, sections: [{ heading, text }] }).documents });
+    // Pages that say "combat indicator" without "CI": one of the community's, one upstream ruleset.
+    await synced.mirror.apply('wiki', { entries: [entry('wiki-signalling-aaaaaa', 'Signalling', 'wiki-page', 'https://meridian-wiki.a13.info/wiki/Signalling', 'ss13-meridian',
+      'Signalling › Before a fight', 'Raise the combat indicator and wait before you shoot.'),
+      entry('wiki-mechanics-bbbbbb', 'Mechanics', 'wiki-page', 'https://meridian-wiki.a13.info/wiki/Mechanics', 'ss13-meridian', 'Mechanics › Permanent Mechanical State (PMS)',
+        'A legacy status that waives the waiting protection.')], complete: false });
+    await synced.mirror.apply('guide', { entries: [entry('guide-signals-up-cccccc', 'Signals', 'guidebook', 'https://panel.a13.info/guide/wolfgate#RuleR98', 'ss14-upstream',
+      'Signals › Upstream', 'Upstream servers have no combat indicator at all.')], complete: false });
+    const ids = rows => rows.map(row => row.id.replace(/\.r\d+\.s\d+$/u, ''));
+    const before = ids(await synced.lookup('What is CI?', chat()));
+    assert.ok(!before.includes('wiki-signalling-aaaaaa') && !before.includes('glossary-ci'), 'without the entry nothing knows what CI stands for');
+    const glossary = { id: 'glossary-ci', title: 'CI: Combat Indicator', kind: 'owner-publication', authority: 'policy', url: 'https://example.test/glossary/ci',
+      rights: 'Synthetic fixture', attribution: 'Synthetic author', sourceRevision: 'synthetic-1', dependencyHash: 'c'.repeat(64), fetchedAt: at, validUntil: null,
+      aliases: ['CI', 'combat indicator', 'combat intent'], sections: [{ heading: 'CI on Meridian Rift', text: 'Synthetic: the Combat Indicator signals combat.' },
+        { heading: 'CI on Wolfgate', text: 'Synthetic: Wolfgate has no such rule; escalation is declared in chat.' }] };
+    const review = await library.review({ actor, expectedEpoch: 0, document: glossary });
+    await library.publish({ actor, expectedEpoch: 0, document: glossary, reviewHash: review.reviewHash, requestId: 'c1'.repeat(32), confirmed: true });
+    const after = ids(await synced.lookup('What is CI?', chat()));
+    assert.deepEqual(after.slice(0, 2), ['glossary-ci', 'glossary-ci'], 'the entry leads');
+    assert.ok(after.includes('wiki-signalling-aaaaaa'), '"combat indicator" lifts a page that never says CI');
+    assert.ok(!after.includes('guide-signals-up-cccccc'), 'but not an upstream ruleset');
+    assert.equal(ids(await synced.lookup('so what does combat intent even mean in a fight', chat()))[0], 'glossary-ci', 'an alias anywhere in the message');
+    assert.ok(!ids(await synced.lookup('Did CI pass on my pull request?', chat())).includes('glossary-ci'), 'a developer question is not expanded');
+    // Words the corpus holds, so "pms" alone covers too little of the message to qualify.
+    const chatty = 'the captain said something about PMS near the airlocks while boarding the shuttle with sensors and pumps';
+    assert.ok(ids(await synced.lookup(chatty, chat())).includes('wiki-mechanics-bbbbbb'), 'a capitalised term finds the heading that spells it out');
+    assert.ok(!ids(await synced.lookup(chatty.replace('PMS', 'pms'), chat())).includes('wiki-mechanics-bbbbbb'), 'lower case in a long message does not');
+  });
 }
