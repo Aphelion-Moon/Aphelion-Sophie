@@ -2903,3 +2903,12 @@ memories are per-member notes, not a knowledge store. Community knowledge goes i
 end-to-end modes, so every failure is labelled coverage, retrieval, interference or model (P55a). Then game labels on
 sources, gameplay/development routing, a glossary with alias expansion, the capability manifest, the harvest (P57), and
 budgeted live trials before any Go live. AI stays off in production meanwhile.
+
+### Contact staff button removed from Sophie's replies - 2 November 2026
+
+**Owner direction.** "Remove the quick contact staff button from Sophie please." Since 4 October core attached one fixed
+Contact staff button to every validated AI reply (P24/T26). AI replies now carry no components. The control's custom ID
+stays routable, so a button on a reply already posted still opens the private category chooser; the ticket panel and the
+Staff-created contact flow are unchanged. The published character's example reply "the Contact staff button reaches them"
+is owner text and still names the button: changing it is an owner publication. Sophie's capability text must not offer the
+button.

@@ -10,7 +10,6 @@ import { automationPayload, automationEmoji } from '../../../modules/automation/
 import { validateAiMessagePayload } from '../../../modules/assistant/output.js';
 import { validateSophiePanel } from '../../../modules/assistant/member-panel.js';
 import { AI_DEADLINE_MS } from '../../../modules/assistant/participation.js';
-import { contactStaffControl } from '../../../modules/tickets/intake.js';
 import { shuttleChannelName } from '../../../modules/tickets/channel-policy.js';
 
 /** Stable errors never retain tokens, URLs, response bodies or the original fetch error. */
@@ -250,10 +249,10 @@ export function createDiscordTransport({ guildId, token, fetch, clock, enabled, 
       return { id: raw.id, channelId: raw.channel_id, authorId: raw.author?.id, bot: raw.author?.bot === true,
         webhook: raw.webhook_id != null, type: raw.type, revision: raw.edited_timestamp ?? 'original' };
     },
+    // Owner direction, 2 November 2026: AI replies carry no Contact staff button (it was attached to every reply since 4 October).
     async createAiMessage(channelId, messageId, payload, deadline) {
       requireId(channelId); requireId(messageId); validateAiMessagePayload(payload);
       return request('POST', `/channels/${channelId}/messages`, 'automation-create', { ...payload,
-        components: [contactStaffControl()],
         nonce: messageId, enforce_nonce: true, message_reference: { message_id: messageId, channel_id: channelId, fail_if_not_exists: true } }, true, deadline);
     },
     /** The member's own Sophie panel, sent to their DMs at their request. Fixed panel components only. */

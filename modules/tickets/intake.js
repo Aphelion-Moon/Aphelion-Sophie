@@ -104,7 +104,10 @@ export function parseCaseIntakeControl(value) {
   requireCondition(status !== null, 'INVALID_CASE_INTAKE_CONTROL'); return { command: 'ticket.destination', caseToken: status[1] };
 }
 
-/** Core-owned navigation only: no category, source message or generated form data. */
+/**
+ * Core-owned navigation only: no category, source message or generated form data. AI replies stopped carrying it on
+ * 2 November 2026 (owner direction); its custom ID stays routable, so buttons already posted still open the chooser.
+ */
 export function contactStaffControl() {
   return { type: 1, components: [{ type: 2, style: 2, label: 'Contact staff', custom_id: TICKET_ENTRY_CONTROL }] };
 }

@@ -1024,6 +1024,7 @@ Implemented scope:
 
 - Core Gateway handoff now composes metadata observations, current audience/presence gates, consent, short-lived context, public retrieval, inference queue and fixed output. Stable AI continuity ignores ordinary traffic but invalidates audience changes. Input trimming retains policy/current question; brief typing is limited to admitted addressed turns.
 - Core adds fixed Contact staff navigation after closed AI payload validation. Current member clicks receive the existing six public categories privately, then freshly authorized blank ordinary forms; Quick Help retains its no-form entry. No AI text, source message ID, category decision or generated field value enters intake.
+- Owner direction, 2 November 2026: AI replies no longer carry the Contact staff button (transport.createAiMessage sends no components; SAI AT-12/13 asserts it). The control stays routable for buttons already posted. Not installed
 
 Remaining scope:
 
