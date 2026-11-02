@@ -32,7 +32,8 @@ to work safely. Earlier snapshots are in this file's git history.
   - Error alerts go to `1528812406724231288`, pinging @matriarch.
 - **Commands in the main server:** `/lookup`, `/member watch`, `/sophie`, and `/whitelist` with `post` and `progress`.
 - **AI:** switched off in production; the log says `AI_ADMISSION_SKIPPED_AI_DISABLED`. The owner's focus is elsewhere,
-  so don't press for Go live after each release; it stays in the workplan.
+  so don't press for Go live after each release; it stays in the workplan. The Wolfgate preparation of 2 November is on
+  `main` but not installed (see [AI: preparing Sophie for Wolfgate](#ai-preparing-sophie-for-wolfgate-2-november-2026)).
 - **Known noise in the core log** (`C:\Aphelion\Sophie\logs\core\aphelion-bot.err.log`):
   - `KNOWLEDGE_SOURCE_GITHUB_FORBIDDEN` hourly since 4eeca3d (every 16 minutes before): the GitHub token is refused for the
     organisation listing, so no GitHub knowledge has synced since 25 October; the token's access still needs fixing;
@@ -184,6 +185,80 @@ Run them with `C:\Aphelion\Sophie\package\runtime\node.exe`, unsandboxed. They r
 
 `0b9298a` and `a137906` were prepared and then folded into later releases. Their folders say so.
 
+## AI: preparing Sophie for Wolfgate (2 November 2026)
+
+Sophie's AI chat was switched on once (23 October) and made things up. The best-known case: "CI" explained as GitHub's
+continuous integration instead of the combat rule. The owner asked whether the model or retrieval was at fault, and for
+her to handle SS14 Wolfgate gameplay questions. Read the decision log entry "Preparing Sophie for Wolfgate gameplay
+questions - 2 November 2026" and workplan tasks P53, P55a, P55b and P57.
+
+**Answer: mostly retrieval and grounding.** In the live run (270 calls on the owner's budget), the model passed 122 of 135
+runs when handed the right passages, but only 93 of 135 in the real turn. The model's own fault is judging incidents
+("That's definitely RDM"); that check is a P53 deliverable.
+
+**Owner decisions (2 November):**
+- CI is the Combat Indicator, and "combat intent" is an alias.
+- Wolfgate has no CI; escalation is Guidebook Conflict Rule 1.
+- The Discord harvest takes only staff posts from public channels the owner names. They are distilled into documents
+  the owner publishes.
+- No model training.
+
+**On `main`, not installed and not pushed** (main is 15 commits ahead of `origin/main`):
+
+| What | Commits |
+|---|---|
+| Evaluator: retrieval, oracle and end-to-end modes, a diagnosis per case, re-judging without new calls | `45df8b8`, `6345c59`, `c2b7344` |
+| `/lookup` shows the first four of five passages instead of failing (M9) | `88af284` |
+| Every synced document names its game; upstream SS14 rulesets are titled as such (the next sync re-reads every wiki and Guidebook page once) | merge `d277acd` |
+| "Open draft file" on the Approved knowledge page | merge `39096c6` |
+| Routing: gameplay questions get no developer pages and no code search; the channel's game is ranked higher and upstream rulesets lower; evidence names its source and game; a question with no evidence is told not to answer from general knowledge | `c57fc97` |
+
+**Measured** (retrieval only, no model calls), Wolfgate questions on the labelled snapshot:
+
+| Measure | Before routing | After routing |
+|---|---|---|
+| Right passage found | 30 of 42 | 33 of 42 |
+| Questions returning an upstream ruleset | 12 | 6 |
+| Upstream ruleset ranked first | 7 | 3 |
+| Developer pages on gameplay questions | 2 | 0 |
+
+- CI questions still find the right passage in only 2 of 6, and report or appeal questions in 1 of 5. The glossary
+  (next step) and the capability manifest address these.
+- Until an install and the re-sync, production documents carry no game. Only the developer-page filter would act.
+- **Narrowing to know about:** a plain-language code question ("how does the cloning system work") no longer triggers code
+  search. It needs a developer word, a file name or an identifier.
+
+**Evaluation folder:** `GitHub/.agent_docs/aphelion-sophie/ai-eval-2026-11-02`.
+- `snapshot-2026-11-02`: the production knowledge, read-only, taken on the owner's approval.
+- `snapshot-2026-11-02-labelled`: the same documents with the labels the merged collectors would give them
+  (`label-snapshot.mjs`).
+- `cases-wolfgate.json`: 45 cases.
+- Results, plus `compare-retrieval.mjs` and `analyse.mjs`.
+- Retrieval mode is free. Run it after every change:
+  `node scripts/ai-eval.mjs --cases <folder>/cases-wolfgate.json --snapshot <folder>/snapshot-2026-11-02-labelled --out <file> --mode retrieval`.
+- Live modes need `--live --max-calls n --provider-key <file>` and an owner call budget each time.
+- Reading production for a new snapshot also needs the owner's approval; the classifier blocks it otherwise.
+
+**Harvest tool:** `GitHub/.agent_docs/aphelion-sophie/discord-harvest-2026-11-02`. It reads with GET only and refuses
+tickets, member records, case exclusions, the rules channel and channels @everyone cannot see. It has never been run. It
+needs the owner's channel list and an approval for each run.
+
+**Next, in order:**
+1. Glossary documents with alias expansion. Start with `glossary-ci`; the draft overlay is
+   `tests/fixtures/ai-eval/glossary-ci.overlay.json`.
+2. Capability manifest and channel directory, the incident-verdict rule and check, and the lexical support check.
+3. The harvest, once the owner names channels.
+4. A live trial on budget.
+5. An install, on approval.
+
+**Owner inputs outstanding:**
+- harvest channels;
+- approval of each glossary and harvest document;
+- leaving the upstream rulesets out entirely, or keeping them relabelled;
+- which historical pages to withdraw (Red Server Policy, the Starter Guide's "Intents");
+- the manifest and context briefs;
+- each call budget and each install.
+
 ## Shuttle Activity: what is left (P41)
 
 - **Not built:**
@@ -203,7 +278,8 @@ Run them with `C:\Aphelion\Sophie\package\runtime\node.exe`, unsandboxed. They r
 ### Tests
 
 Run `npm test`, `npm run check` and `npm run test:storage:fast` (isolated PostgreSQL), and record the actual counts. For
-a small edit, run only the affected test files. Last full run: 931 unit tests and 1058 storage tests passed.
+a small edit, run only the affected test files. Last full runs: 965 unit tests (2 November, after routing) and 1058
+storage tests passed. On 2 November only the AI storage suites ran (`node scripts/test-storage.mjs --suite=ai`, 102 passed).
 
 ### Install (production, source-only)
 
@@ -246,7 +322,8 @@ log and this page.
 ## Gotchas
 
 - **Bash heredocs on this host collapse backslashes**, quoted or not, and `node -e` does too. Write any code or text with
-  a backslash using the Write or Edit tool. This bit three times on 30 October.
+  a backslash using the Write or Edit tool. This bit three times on 30 October and again on 2 November. In a script that
+  edits files, pass `String.replace` a function, not a string: `$&`, `$'` and `` $` `` in a replacement string are expanded.
 - **PostgreSQL stores jsonb keys in its own order.** Compare JSON values with keys sorted (`canonicalJson` in the module),
   never as raw text.
 - **Fake transports in tests skip the real payload checks.** Run rendered text through the real transport (MR-28 does) when
