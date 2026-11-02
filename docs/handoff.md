@@ -215,8 +215,9 @@ runs when handed the right passages, but only 93 of 135 in the real turn. The mo
 - No model training.
 
 **Installed as `bc57644` at 18:13 UTC on 2 November and pushed.** The prepared `b166a19` packet was never run and is
-superseded. Not verified yet: the knowledge sync's one-time re-read of the wiki and Guidebook. The read-only count
-(`check-knowledge-sync.mjs` in the bc57644 packet) was refused as a production read without its own owner approval. For part of the evening another session had the main checkout on `claude/radio-p58-domain` (radio, P58, not
+superseded. The knowledge re-read is done (counted at 19:28 UTC on the owner's approval): every wiki document and 359
+of 360 Guidebook documents carry their game, 55 Guidebook entries are upstream rulesets, the 34 website documents are
+labelled, and 404 wiki sections are marked out of date. For part of the evening another session had the main checkout on `claude/radio-p58-domain` (radio, P58, not
 merged); check the branch before committing. That branch also edits `docs/workplan.json`, so expect a conflict there when
 it merges: take both sides and run `node scripts/build-workplan.mjs`.
 
@@ -295,8 +296,8 @@ needs the owner's channel list and an approval for each run.
 - Character proposals for the owner: `GitHub/.agent_docs/aphelion-sophie/character-proposals-2026-11-02/proposals.md`.
 
 **Next, in order:**
-1. With the owner's approval, count the knowledge re-read (`check-knowledge-sync.mjs`, read-only) and take a fresh
-   snapshot, then re-run the retrieval evaluator on production labels.
+1. With the owner's approval, take a fresh knowledge snapshot and re-run the retrieval evaluator on production labels
+   (the re-read itself is counted and done).
 2. The owner fills the channel directory, reviews the wording, publishes the glossary drafts and a revised character,
    and withdraws the Red Server Policy if it is defunct.
 3. The harvest, once the owner names channels; more glossary terms come from it.
@@ -314,7 +315,7 @@ needs the owner's channel list and an approval for each run.
 - leaving the upstream rulesets out entirely, or keeping them relabelled;
 - withdrawing the Red Server Policy (it carries no banner, so the collector cannot tell);
 - context briefs;
-- approval of the read-only knowledge count and a fresh snapshot;
+- approval of a fresh knowledge snapshot (a production read);
 - each call budget, Go live per channel (with the profile re-acceptance) and each install.
 
 ## Shuttle Activity: what is left (P41)

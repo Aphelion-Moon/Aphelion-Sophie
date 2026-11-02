@@ -20,8 +20,9 @@
     live again, which also accepts the new profile.
 - **Not seen live yet:** the reply checks, label replacement and the fixed answer to an addressed silence (AI turns), a
   channel directory entry, and the glossary (no entry is published).
-- **Not checked:** the knowledge sync's one-time re-read (game labels, upstream titles, out-of-date marks). The read-only
-  count `check-knowledge-sync.mjs` in the packet was refused as a production read without its own approval.
+- **Knowledge re-read, counted at 19:28 UTC** on the owner's approval ("Yes, count it"; read-only, knowledge identity,
+  counts only; `knowledge-sync.json` in the packet): wiki 387 of 387 documents re-read and labelled; Guidebook 359 of 360,
+  55 of them upstream rulesets; website 34 of 34 labelled. 404 wiki sections carry "(marked out of date on the wiki)".
 - The prepared `deployment-b166a19-production-2026-11-02` packet was never run and is superseded.
 
 ## Game moderation in the member records, installed — 2 November 2026
