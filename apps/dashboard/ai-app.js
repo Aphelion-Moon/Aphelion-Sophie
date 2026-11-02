@@ -1,6 +1,6 @@
 import { createDashboardApi } from './api.js';
 import { mountDashboardShell } from './shell.js';
-import { canonicalAiConfiguration, defaultParticipation, defaultAiContexts, AI_CONTEXTS, AI_GAMES, AI_MODES, AI_REPLY_LIMIT } from '../../modules/assistant/participation.js';
+import { canonicalAiConfiguration, defaultParticipation, defaultAiContexts, AI_CONTEXTS, AI_DIRECTORY_LIMIT, AI_GAMES, AI_MODES, AI_REPLY_LIMIT } from '../../modules/assistant/participation.js';
 import { canonicalPersonality, DRAFT_PERSONALITY } from '../../modules/assistant/personality.js';
 import { canonicalAiBudget, DEFAULT_AI_BUDGET } from '../../modules/assistant/budget.js';
 import { createMemoryAudit } from './ai-memories-view.js';
@@ -23,8 +23,8 @@ const notice = text => { el('notice').textContent = text; };
 function changed() { dirty = true; pending = null; pendingRequestId = null; if (el('review')) el('review').hidden = true; if (el('review-content')) el('review-content').textContent = ''; }
 function clear() {
   clearDiagnostic();stopWorkerPoll();lastWorker=null;el('diagnostic-channel')?.replaceChildren();el('setup-steps')?.replaceChildren();
-  el('workspace').hidden = true; changed(); configuration.channels = []; configuration.emojis = []; character = { core: '', examples: [] };
-  for (const id of ['channels', 'emojis', 'examples', 'unresolved-spending','budget-balances']) el(id)?.replaceChildren();
+  el('workspace').hidden = true; changed(); configuration.channels = []; configuration.emojis = []; configuration.directory = []; character = { core: '', examples: [] };
+  for (const id of ['channels', 'emojis', 'directory', 'examples', 'unresolved-spending','budget-balances']) el(id)?.replaceChildren();
   for (const id of ['overview-ai','overview-worker','overview-spend','worker-phase','worker-revision']) if (el(id)) el(id).textContent = '';
   for (const id of ['character-core']) if (el(id)) el(id).value = '';
   for (const id of ['monthly-budget', 'price-valid-until', 'hold-evidence']) if (el(id)) el(id).value = '';
@@ -65,9 +65,10 @@ function field(parent, label, value, change, attributes = {}) {
   parent.append(wrapper); return input;
 }
 function upgradeConfiguration(document) {
-  if (document.schemaVersion === 2) return structuredClone(document);
+  // Every draft carries a channel directory, empty until the owner lists channels (plan of 2 November 2026).
+  if (document.schemaVersion === 2) return { directory: [], ...structuredClone(document) };
   return { ...structuredClone(document), schemaVersion: 2, contexts: { ...defaultAiContexts(), chat: { ...defaultAiContexts().chat, deadlineMs: document.deadlineMs } },
-    channels: document.channels.map(channel => ({ ...structuredClone(channel), context: 'chat' })) };
+    channels: document.channels.map(channel => ({ ...structuredClone(channel), context: 'chat' })), directory: [] };
 }
 const contextTitles = { chat: 'Chat', support: 'Support', staff: 'Staff' };
 const gameTitles = { 'ss13-meridian': 'SS13 · Meridian Rift', 'ss14-wolfgate': 'SS14 · Wolfgate' };
@@ -130,6 +131,18 @@ function emojis() {
     const remove = document.createElement('button'); remove.className = 'text-button'; remove.textContent = 'Remove reaction'; remove.addEventListener('click', () => { configuration.emojis.splice(index, 1); changed(); emojis(); }); box.append(remove); el('emojis').append(box);
   });
 }
+// The only channels Sophie may name: a short name she writes as #name, the channel it links to and what it is for.
+function directory() {
+  el('directory').replaceChildren();
+  configuration.directory ??= [];
+  configuration.directory.forEach((entry, index) => {
+    const box = document.createElement('fieldset'), legend = document.createElement('legend'); legend.className = 'visually-hidden'; legend.textContent = `Directory channel ${index + 1}`; box.className = 'ai-row'; box.append(legend);
+    field(box, 'Short name Sophie writes after # (for example, rules)', entry.name, value => { entry.name = value.trim().toLowerCase(); }, { maxlength: 32, pattern: '[a-z0-9][a-z0-9-]*' });
+    field(box, 'Channel ID', entry.channelId, value => { entry.channelId = value.trim(); }, { maxlength: 20, inputmode: 'numeric' });
+    field(box, 'What members use it for', entry.purpose, value => { entry.purpose = value; }, { maxlength: 160 });
+    const remove = document.createElement('button'); remove.className = 'text-button'; remove.textContent = 'Remove from directory'; remove.addEventListener('click', () => { configuration.directory.splice(index, 1); changed(); directory(); }); box.append(remove); el('directory').append(box);
+  });
+}
 function examples() {
   el('examples').replaceChildren();
   character.examples.forEach((example, index) => {
@@ -152,7 +165,7 @@ async function load() {
     if (session.canControlAi) {
       const current = part(overview.configuration); configuration = upgradeConfiguration(current.publication?.document ?? configuration); configurationRevision = current.publication?.revision ?? 0;
       el('participation').hidden = false; el('desired-enabled').checked = configuration.enabled; el('deadline').value = configuration.deadlineMs / 1000;
-      el('active-state').textContent = `Saved revision ${configurationRevision}.`; channels(); contexts(); emojis();
+      el('active-state').textContent = `Saved revision ${configurationRevision}.`; channels(); contexts(); emojis(); directory();
       aiDisabled = current.disabled; el('overview').hidden = false; el('overview-ai').textContent = current.disabled ? 'Disabled' : 'Allowed where each channel and member qualifies';
       const savedBudget = part(overview.budgetPublication); budget = savedBudget.publication?.document ?? { ...DEFAULT_AI_BUDGET }; budgetRevision = savedBudget.publication?.revision ?? 0;
       const spending = part(overview.budget); el('budget').hidden = false;
@@ -263,6 +276,7 @@ el('logout').addEventListener('click', () => perform(async () => { await api.log
 {
   el('add-channel').addEventListener('click', () => { if (configuration.channels.length < 100) { configuration.channels.push({ channelId: '', profile: defaultParticipation(), context: 'chat' }); changed(); channels(); } });
   el('add-emoji').addEventListener('click', () => { if (configuration.emojis.length < 16) { configuration.emojis.push({ key: '', id: null, name: '' }); changed(); emojis(); } });
+  el('add-directory-entry').addEventListener('click', () => { configuration.directory ??= []; if (configuration.directory.length < AI_DIRECTORY_LIMIT) { configuration.directory.push({ name: '', channelId: '', purpose: '' }); changed(); directory(); } });
   el('add-example').addEventListener('click', () => { if (character.examples.length < 8) { character.examples.push({ member: '', sophie: '' }); changed(); examples(); } });
   for (const kind of ['configuration', 'personality', 'budget']) el(`review-${kind}`).addEventListener('click', () => perform(() => review(kind)));
   el('diagnostic-channel').addEventListener('change',clearDiagnostic);

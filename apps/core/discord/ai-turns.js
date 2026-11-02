@@ -1,14 +1,19 @@
 import { requireCondition } from '../../../contracts/validation.js';
-import { validateAiOutput, renderAiReply, withoutUnbackedClaims } from '../../../modules/assistant/output.js';
+import { validateAiOutput, renderAiReply } from '../../../modules/assistant/output.js';
+import { checkedReplyOutput } from '../../../modules/assistant/reply-checks.js';
+import { aiCommandNames } from '../../../modules/assistant/capabilities.js';
 import { aiSpeakerLabels, buildAiPrompt } from '../../knowledge-worker/prompt.js';
 import { encodeMemory } from '../../../modules/assistant/memories.js';
 import { redactAiIdentifiers } from '../../knowledge-worker/redaction.js';
 import { freezeAiMaterial } from '../../knowledge-worker/prompt-contract.js';
 import { effectContextFits } from '../storage/ai-effects.js';
 
+const REMOVED_TRACES = Object.freeze({ claims: 'AI_OUTPUT_CLAIM_REMOVED', references: 'AI_OUTPUT_REFERENCE_REMOVED', verdicts: 'AI_OUTPUT_VERDICT_REMOVED',
+  numbers: 'AI_OUTPUT_NUMBER_REMOVED' });
+
 /** Core owns delivery. No worker can choose a recipient, target message or operational indicator. */
 export function createAiTurns({ admission, scheduler, context, knowledge, messages, clock, memory = null, memories = null, onInvalidate = () => {}, trace = () => {},
-  notifyMemories = null, claimFallback = async () => null }) {
+  notifyMemories = null, claimFallback = async () => null, checkFallback = async () => null }) {
   const outstanding = new Map(), gatherings = new Map(); let stopped = false, generation = 0;
   // Fixed diagnostic codes only: the stage a turn ended at, its outcome and whole seconds since receipt. No IDs or text.
   const code = value => typeof value === 'string' && /^[A-Z][A-Z0-9_]{2,40}$/u.test(value) ? value : 'ERROR';
@@ -152,17 +157,17 @@ export function createAiTurns({ admission, scheduler, context, knowledge, messag
         sources, emojiKeys: request.config.emojis.map(emoji => emoji.key), replyChars: request.context?.replyChars ?? 1600,
         ...(remembered === null ? {} : { memoryLabels: [...speakers.values()], memoryRequester: speakers.get(request.userId) }),
         onDropped: kind => { try { trace(`AI_OUTPUT_DROPPED_${kind}`); } catch { /* Diagnostics only. */ } } });
-      // A sentence claiming a save, note, deletion or compliance that did not happen is removed; nothing left means the
-      // fixed owner wording instead.
+      // A sentence claiming a save, note, deletion or compliance that did not happen is removed, and so is one naming an
+      // unlisted channel or command, judging an incident, or giving a number its sources do not; nothing left means the
+      // fixed owner wording instead (reply-checks.js).
       if (output.kind === 'reply') {
         const own = speakers.get(request.userId), others = [...speakers.values()].filter(label => label !== own);
-        const checked = withoutUnbackedClaims(output.text, { remembered: remembered !== null && (output.memories?.length ?? 0) > 0, others });
-        if (checked.removed > 0) {
-          try { trace('AI_OUTPUT_CLAIM_REMOVED'); } catch { /* Diagnostics only. */ }
-          const text = checked.text ?? await claimFallback();
-          output = text === null ? { kind: 'silent', ...(output.memories ? { memories: output.memories } : {}) }
-            : checked.text === null ? { ...output, text, purpose: 'conversation', support: 'current_conversation', citations: [] } : { ...output, text };
-        }
+        const checked = await checkedReplyOutput(output, { remembered: remembered !== null && (output.memories?.length ?? 0) > 0, others,
+          commands: aiCommandNames(request.context), directory: request.config.directory ?? [], sources,
+          said: [request.text, ...history.filter(item => item.kind !== 'assistant').map(item => item.text)].join('\n'),
+          fallback: kind => kind === 'claim' ? claimFallback() : checkFallback() });
+        for (const [kind, count] of Object.entries(checked.removed)) if (count > 0) { try { trace(REMOVED_TRACES[kind]); } catch { /* Diagnostics only. */ } }
+        output = checked.output;
       }
       if (output.kind === 'silent') { await admission.settle(request, 'silent'); await remember(request, speakers, output, remembered); return { state: 'silent', stage }; }
       stage = 'DELIVER';
@@ -173,7 +178,7 @@ export function createAiTurns({ admission, scheduler, context, knowledge, messag
       // Deadline is propagated through the actual Discord request; no late-send queue or fallback destination.
       requireCondition(clock() < request.deadline, 'AI_DEADLINE_EXPIRED'); attempted = true;
       effect = output.kind === 'reply'
-        ? await messages.reply(request, renderAiReply(output, sources, { replyChars: request.context?.replyChars ?? 1600 }), dependencies, sources)
+        ? await messages.reply(request, renderAiReply(output, sources, { replyChars: request.context?.replyChars ?? 1600, channels: request.config.directory ?? [] }), dependencies, sources)
         : await messages.react(request, request.config.emojis.find(emoji => emoji.key === output.emojiKey), dependencies, sources);
       // A sent reply stays. It is withdrawn only by an explicit event (opt-out, departure, source edit or delete), which
       // marks its effect for cleanup even while this turn is still settling.

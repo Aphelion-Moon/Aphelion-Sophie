@@ -69,13 +69,20 @@ export function withoutUnbackedClaims(text, { remembered, others = [] }) {
   const otherLabel = others.length ? new RegExp(`\\b(?:${others.map(label => label.replace(' ', '\\s+')).join('|')})\\b`, 'u') : null;
   const aboutOther = otherLabel === null ? [] : [{ test: sentence => RECALL.test(sentence) && otherLabel.test(sentence) }];
   const claims = [...(remembered ? CHANGE_CLAIM : [...SAVE_CLAIM, ...CHANGE_CLAIM]), ...aboutOther];
-  // Each sentence keeps its own trailing whitespace, so paragraphs survive; text inside code fences is never touched.
+  return withoutSentences(text, sentence => claims.some(pattern => pattern.test(sentence)));
+}
+
+/**
+ * Removes every sentence `remove` matches and keeps the rest of the reply. Each sentence keeps its own trailing whitespace,
+ * so paragraphs survive; text inside code fences is never touched. `remove` sees the trimmed sentence with curly
+ * apostrophes ("I’ll") as straight ones. Returns the remaining text (null when nothing is left) and how many were removed.
+ */
+export function withoutSentences(text, remove) {
   let fenced = false, removed = 0, rest = '';
   for (const part of text.match(/[^\n]*?(?:[.!?…]+(?=\s|$)|\n|$)\s*/gu) ?? []) {
     const fence = (part.match(/```/gu) ?? []).length % 2 === 1, inside = fenced || part.includes('```');
     if (fence) fenced = !fenced;
-    // Curly apostrophes ("I’ll") are checked as straight ones.
-    if (!inside && claims.some(pattern => pattern.test(part.trim().replace(/[‘’ʼ]/gu, "'")))) { removed++; if (/\n\s*$/u.test(part)) rest = rest.replace(/[ \t]+$/u, '') + '\n'; continue; }
+    if (!inside && part.trim() && remove(part.trim().replace(/[‘’ʼ]/gu, "'"))) { removed++; if (/\n\s*$/u.test(part)) rest = rest.replace(/[ \t]+$/u, '') + '\n'; continue; }
     rest += part;
   }
   if (!removed) return { text, removed: 0 };
@@ -113,12 +120,15 @@ export function splitAiReplyText(text) {
 }
 
 /** Links come only from the authorized source registry; suppress generated mention/link syntax. */
-export function renderAiReply(output, sources, { replyChars = 1600 } = {}) {
+export function renderAiReply(output, sources, { replyChars = 1600, channels = [] } = {}) {
   // Memories are stored by core, never sent; only the reply itself is rendered.
   const { memories: _memories, ...reply } = output;
   output = validateAiOutput(reply, { outcomes: ['reply'], answerOnly: false, sources, emojiKeys: [], replyChars });
+  // A channel in the owner's directory (plan of 2 November 2026) becomes a channel link; a channel mention pings no one.
+  const listed = new Map(channels.map(entry => { requireCondition(/^[1-9]\d{16,19}$/u.test(entry.channelId), 'AI_DIRECTORY_INVALID'); return [entry.name, entry.channelId]; }));
   const text = output.text.replace(/@/gu, '@\u200b').replace(/https?:\/\/\S+/giu, '[link omitted]')
-    .replace(/<[^>]*>/gu, '').replace(/!\[/gu, '[');
+    .replace(/<[^>]*>/gu, '').replace(/!\[/gu, '[')
+    .replace(/(?<![\p{L}\p{N}_&])#([a-z0-9][a-z0-9-]{0,31})(?![\p{L}\p{N}_-])/giu, (named, name) => listed.has(name.toLowerCase()) ? `<#${listed.get(name.toLowerCase())}>` : named);
   // One small-print line per cited page (several passages of one page share it). Links inside the attribution or licence
   // text are dropped rather than shown as placeholders; the page link itself comes from the source registry.
   const plain = value => value.replace(/@/gu, '@\u200b').replace(/\s*\(?https?:\/\/\S+\)?/giu, '').replace(/[<>\r\n*_`~|\\#]/gu, '').replace(/[;,:]\s*$/u, '').trim();

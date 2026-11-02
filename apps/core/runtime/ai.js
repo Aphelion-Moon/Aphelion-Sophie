@@ -62,12 +62,13 @@ export function createAiRuntime({ configuration, corePool, controlPool, worker, 
     // Message edits and deletes also drop cached source metadata, so a changed message is always re-read.
     onInvalidate: filter => { observations.clear(); void effects.invalidate(filter).catch(() => onFault('AI_CONTROL_UNAVAILABLE')); },
     // Owner decisions, 24 October 2026: a saved memory is announced to its member by DM; a reply left empty by the claim
-    // check gets the fixed owner wording.
+    // check gets the fixed owner wording, and one left empty by the reply checks (plan of 2 November 2026) gets its own.
     notifyMemories: async (userId, items) => {
       const notice = renderSophieMemoryNotice(items, await readSystemText()), channel = await transport.createSophieDm(userId);
       await transport.sendSophieDm(channel.id, notice);
     },
-    claimFallback: async () => (await readSystemText())('ai.reply.claim_removed') });
+    claimFallback: async () => (await readSystemText())('ai.reply.claim_removed'),
+    checkFallback: async () => (await readSystemText())('ai.reply.unsupported_removed') });
   const gateway = createAiGateway({ ingress, turns, onFault });
   let timer = null, stopped = false, fingerprint = null, refreshing = Promise.resolve();
   function invalidate() { observations.clear(); gateway.invalidate(); }

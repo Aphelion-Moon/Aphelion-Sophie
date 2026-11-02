@@ -610,4 +610,20 @@ export async function runAiControlsSuite(cluster, run) {
     assert.ok(admitted, reasons.join(',')); assert.equal(admitted.context.name, 'staff'); assert.equal(admitted.binding.restricted, true);
     await staffAdmission.settle(admitted, 'cancelled');
   });
+  await run('AI-DIR the owner\'s channel directory publishes with the configuration and reads back unchanged', async () => {
+    channelAvailable = true; permitted = true;
+    const saved = (await store.current({ actor, kind: 'configuration' })).publication;
+    const directory = [{ name: 'tickets', channelId: '1528112081172172902', purpose: 'Open a ticket' }, { name: 'rules', channelId: '1528112081172172901', purpose: 'Server rules' }];
+    // The directory belongs to schema 2; a schema 1 document is upgraded as the dashboard upgrades it.
+    const current = saved.document.schemaVersion === 2 ? saved.document : { ...saved.document, schemaVersion: 2, contexts: defaultAiContexts(),
+      channels: saved.document.channels.map(channel => ({ ...channel, context: 'chat' })) };
+    const request = { actor, kind: 'configuration', expectedRevision: saved.revision, document: { ...current, directory } };
+    const reviewed = await store.review(request);
+    assert.deepEqual(reviewed.document.directory.map(entry => entry.name), ['rules', 'tickets'], 'canonical order');
+    await store.publish({ ...request, reviewSha256: reviewed.reviewSha256, requestId: 'e1'.repeat(32), confirmed: true });
+    const stored = (await store.current({ actor, kind: 'configuration' })).publication;
+    assert.equal(stored.revision, saved.revision + 1); assert.equal(aiDigest(stored.document), aiDigest(reviewed.document));
+    assert.deepEqual(stored.document.directory, reviewed.document.directory);
+    await assert.rejects(store.review({ ...request, expectedRevision: stored.revision, document: { ...current, directory: [{ ...directory[0], channelId: '42' }] } }), /AI_DIRECTORY_INVALID/);
+  });
 }
