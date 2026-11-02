@@ -228,7 +228,7 @@ These are bounded next steps within the task dependencies below. An unresolved l
 
 ## Task status
 
-Status counts: 3 complete; 44 in progress; 8 planned, not started. These are full-task statuses, not a percentage of code or release readiness.
+Status counts: 3 complete; 46 in progress; 7 planned, not started. These are full-task statuses, not a percentage of code or release readiness.
 
 An in-progress task can contain several verified milestones and still have unfinished implementation or acceptance. Acceptance IDs below link requirements to tasks; they do not assert that those specifications have passed.
 
@@ -287,12 +287,12 @@ An in-progress task can contain several verified milestones and still have unfin
 | P50 — Move to the main server for closed testing | in_progress | P45, P46, P47, P48, P49 |
 | P51 — Sophie accuracy and memory: adversarial review and regression probe | completed | P50 |
 | P52 — Memory privacy and honesty (release blocker for memory) | in_progress | P51 |
-| P53 — Grounding, capabilities and community vocabulary | pending | P51 |
+| P53 — Grounding, capabilities and community vocabulary | in_progress | P51 |
 | P54 — Retrieval, citations, code search and lookup | pending | P51 |
 | P55a — Evaluator: telling model failures from retrieval failures | in_progress | None |
 | P55b — Model profile trials and the probe as a release gate | pending | P52, P53, P55a |
 | P56 — Member records: a Staff forum with one post per member | in_progress | None |
-| P57 — Curated Discord harvest into owner-published knowledge | planned_not_started | None |
+| P57 — Curated Discord harvest into owner-published knowledge | in_progress | None |
 
 ## P00 — Freeze scope and deployment inputs
 
@@ -1774,11 +1774,21 @@ Boundary: Until C1 ships, keep AI off or keep automatic memory unused: a saved m
 
 ## P53 — Grounding, capabilities and community vocabulary
 
-Status: **pending**. Phase: AI quality. Priority: P0.
+Status: **in_progress**. Phase: AI quality. Priority: P0.
 
 Depends on: P51. Acceptance: rv-cap-*, rv-ground-*, rv-auth-*, rv-label-* at their review.md gates, unit tests for each validation check, npm test, npm run check, npm run test:storage:fast.
 
 Review findings C4, H1, H2, H3, H5, H7, M5, M6 in .agent_docs/aphelion-sophie/sophie-probe-2026-10-24/review.md; seed glossary in section 4.
+
+Implemented scope:
+
+- H1 game labels (merged d277acd, 2 November 2026, not installed): canonicalKnowledgeDocument takes an optional game (ss13-meridian, ss14-wolfgate, ss14-upstream, both), present only when set, so unlabelled documents keep their digests byte for byte (KS-11 pins digests recorded before the change). Wiki and website documents are ss13-meridian; GitHub documents take their repository's game from GITHUB_SOURCE.games; Guidebook entries are ss14-wolfgate except the bundled upstream rulesets (Wizard's Den Default, Core Only, Standard and MRP with their rule pages, Role Types, Ban Types, Ban Durations, and Frontier's), which are ss14-upstream and titled "Upstream SS14 ruleset (reference, not Wolfgate rules): ". Against the live Guidebook index: 55 upstream, 22 Wolfgate policy, 282 Wolfgate reference entries. WIKI_FORMAT f4 and GUIDE_FORMAT f2 make the mirror read stored pages once more so they gain the label
+- Tests after the merge on 39096c6: knowledge-guide, knowledge-sources, code-search, knowledge-lookup, ai-eval and the dashboard tests (64 passed); npm run check passed
+
+Remaining scope:
+
+- The labels reach the index only after an install (owner approval) and the one re-read the format bumps force; until then the 2 November snapshot has no labels and the R6 title fault remains in it
+- Routing and source families, the glossary with alias expansion, the capability manifest and channel directory, the incident-verdict rule and check, the lexical support check and the remaining H/C/M deliverables
 
 Full task deliverables:
 
@@ -1835,6 +1845,7 @@ Implemented scope:
 - Retrieval baseline on 45df8b8, Wolfgate class (45 cases): gold retrieved in 33, missed in 10, absent in 2. By class: rules 18/20, lore 3/3, mechanics 4/4, Meridian fallback 2/2, CI 1/5 ("combat intent", the Wolfgate CI question and its follow-up miss), report pointers 1/5, upstream 1/3. Upstream ruleset passages come back in 12 cases and rank first in 7; the defunct Red Server Policy comes back for "What is CI?" and "Who can declare war?". No developer page reached a gameplay question in this snapshot, but the GitHub source is empty until its token is fixed, so routing should land before that fix. Regression set (56 cases) recorded for comparison. Outputs in .agent_docs/aphelion-sophie/ai-eval-2026-11-02
 - First live run on the owner's approval ("Yes, run 270 calls"), 2 November 2026: Wolfgate class, oracle and end-to-end, N=3, mistral-small-2603, published character (personality-2026-10-12), 270 calls, about 1.10M prompt and 32K completion tokens, no turn errors. Model given the gold passages: 122 of 135 runs pass (90%); the real turn: 93 of 135 (69%). Cases: 30 pass, 5 retrieval (Wolfgate CI and its follow-up, castle doctrine, "What are the Wolfgate server rules?" answered from the Frontier ruleset, threatening to report), 4 interference (upstream R11-1, R4 and C5 and Meridian safe zones mixed into Wolfgate answers; C5 made her forbid metacomms outright), 1 model (R6 called a Wolfgate rule because its passage is titled "Wolfgate Guidebook: R6", a labelling fault), 5 flaky (including "That's definitely RDM" in 2 of 3 runs of a leading report question, and an invented event calendar). With only a Meridian passage she gave a correct CI answer but marked it general knowledge with no citation, 3 of 3
 - scripts/ai-eval-rejudge.mjs re-judges stored replies against corrected case asserts without model calls; two over-strict asserts were corrected (a negated "don't need to use CI" matched; the Contact staff button, named by the published character, counts as a report pointer)
+- Retrieval re-run after the P53 H1 and P57 merges (39096c6) on the same snapshot: all 45 Wolfgate cases identical to the 45df8b8 baseline (33 retrieved, 10 retrieval, 2 coverage; same top five). Expected: the snapshot predates the labels and the new upstream titles, so measuring them needs either the routing step or a fresh snapshot after an install
 
 Remaining scope:
 
@@ -1918,11 +1929,21 @@ Boundary: No AI reads or writes member records. Sophie decides nothing and sets 
 
 ## P57 — Curated Discord harvest into owner-published knowledge
 
-Status: **planned_not_started**. Phase: AI quality. Priority: P1.
+Status: **in_progress**. Phase: AI quality. Priority: P1.
 
 Depends on: None. Acceptance: unit tests for the exclusion decision, redaction, author filter and the GET-only wrapper (synthetic fixtures), dashboard test for the draft loader.
 
 Owner decision of 2 November 2026 in the decision log ("Staff posts, named channels").
+
+Implemented scope:
+
+- Host-only harvest tool in .agent_docs/aphelion-sophie/discord-harvest-2026-11-02 (harvest.mjs, policy.mjs, collect.mjs, discord-read.mjs): GET-only reader on allowlisted paths; --plan refuses the ticket category, the member-records forum, case exclusions, channels @everyone cannot see and the rules channel; --run keeps staff-authored posts only, redacted, case-vocabulary messages dropped and counted. 14 synthetic tests pass. Never run against Discord
+- Dashboard "Open draft file" button (merged 39096c6, not installed): reads a local sophie-knowledge-draft-1 JSON file, checks it against the publication limits and the editor's fields, and fills the existing editor; nothing is sent, the owner still reviews and publishes, and the server validates again. Tests: dashboard-knowledge-draft and dashboard-assets pass
+
+Remaining scope:
+
+- Owner names the channels; each --plan and --run is a recorded approval
+- Distil the packet into drafts, measure them by evaluator overlay, owner publishes; delete the packet once its documents are published
 
 Full task deliverables:
 

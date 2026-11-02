@@ -1903,11 +1903,17 @@
         "npm test, npm run check, npm run test:storage:fast"
       ],
       "suggested_owner": "Repository maintainer with owner-published data",
-      "status": "pending",
+      "status": "in_progress",
       "guardrail": "Manifest, directory, glossary, briefs and character changes are owner publications. Validation may refuse or replace a reply; it never grants anything.",
       "implementation_note": "Review findings C4, H1, H2, H3, H5, H7, M5, M6 in .agent_docs/aphelion-sophie/sophie-probe-2026-10-24/review.md; seed glossary in section 4.",
-      "completed_scope": [],
-      "remaining_scope": []
+      "completed_scope": [
+        "H1 game labels (merged d277acd, 2 November 2026, not installed): canonicalKnowledgeDocument takes an optional game (ss13-meridian, ss14-wolfgate, ss14-upstream, both), present only when set, so unlabelled documents keep their digests byte for byte (KS-11 pins digests recorded before the change). Wiki and website documents are ss13-meridian; GitHub documents take their repository's game from GITHUB_SOURCE.games; Guidebook entries are ss14-wolfgate except the bundled upstream rulesets (Wizard's Den Default, Core Only, Standard and MRP with their rule pages, Role Types, Ban Types, Ban Durations, and Frontier's), which are ss14-upstream and titled \"Upstream SS14 ruleset (reference, not Wolfgate rules): \". Against the live Guidebook index: 55 upstream, 22 Wolfgate policy, 282 Wolfgate reference entries. WIKI_FORMAT f4 and GUIDE_FORMAT f2 make the mirror read stored pages once more so they gain the label",
+        "Tests after the merge on 39096c6: knowledge-guide, knowledge-sources, code-search, knowledge-lookup, ai-eval and the dashboard tests (64 passed); npm run check passed"
+      ],
+      "remaining_scope": [
+        "The labels reach the index only after an install (owner approval) and the one re-read the format bumps force; until then the 2 November snapshot has no labels and the R6 title fault remains in it",
+        "Routing and source families, the glossary with alias expansion, the capability manifest and channel directory, the incident-verdict rule and check, the lexical support check and the remaining H/C/M deliverables"
+      ]
     },
     {
       "id": "P54",
@@ -1968,7 +1974,8 @@
         "Production knowledge snapshot taken 2 November 2026 14:39 UTC on the owner's approval (\"Yes, take snapshot\"): read-only, knowledge identity; 780 documents, 5,846 passages (Guidebook 359, wiki 387, website 34; no GitHub documents while the token is refused), SHA-256 fba6e3a5...",
         "Retrieval baseline on 45df8b8, Wolfgate class (45 cases): gold retrieved in 33, missed in 10, absent in 2. By class: rules 18/20, lore 3/3, mechanics 4/4, Meridian fallback 2/2, CI 1/5 (\"combat intent\", the Wolfgate CI question and its follow-up miss), report pointers 1/5, upstream 1/3. Upstream ruleset passages come back in 12 cases and rank first in 7; the defunct Red Server Policy comes back for \"What is CI?\" and \"Who can declare war?\". No developer page reached a gameplay question in this snapshot, but the GitHub source is empty until its token is fixed, so routing should land before that fix. Regression set (56 cases) recorded for comparison. Outputs in .agent_docs/aphelion-sophie/ai-eval-2026-11-02",
         "First live run on the owner's approval (\"Yes, run 270 calls\"), 2 November 2026: Wolfgate class, oracle and end-to-end, N=3, mistral-small-2603, published character (personality-2026-10-12), 270 calls, about 1.10M prompt and 32K completion tokens, no turn errors. Model given the gold passages: 122 of 135 runs pass (90%); the real turn: 93 of 135 (69%). Cases: 30 pass, 5 retrieval (Wolfgate CI and its follow-up, castle doctrine, \"What are the Wolfgate server rules?\" answered from the Frontier ruleset, threatening to report), 4 interference (upstream R11-1, R4 and C5 and Meridian safe zones mixed into Wolfgate answers; C5 made her forbid metacomms outright), 1 model (R6 called a Wolfgate rule because its passage is titled \"Wolfgate Guidebook: R6\", a labelling fault), 5 flaky (including \"That's definitely RDM\" in 2 of 3 runs of a leading report question, and an invented event calendar). With only a Meridian passage she gave a correct CI answer but marked it general knowledge with no citation, 3 of 3",
-        "scripts/ai-eval-rejudge.mjs re-judges stored replies against corrected case asserts without model calls; two over-strict asserts were corrected (a negated \"don't need to use CI\" matched; the Contact staff button, named by the published character, counts as a report pointer)"
+        "scripts/ai-eval-rejudge.mjs re-judges stored replies against corrected case asserts without model calls; two over-strict asserts were corrected (a negated \"don't need to use CI\" matched; the Contact staff button, named by the published character, counts as a report pointer)",
+        "Retrieval re-run after the P53 H1 and P57 merges (39096c6) on the same snapshot: all 45 Wolfgate cases identical to the 45df8b8 baseline (33 retrieved, 10 retrieval, 2 coverage; same top five). Expected: the snapshot predates the labels and the new upstream titles, so measuring them needs either the routing step or a fresh snapshot after an install"
       ],
       "remaining_scope": [
         "Re-run retrieval mode after each P53/P54 change on the same snapshot, and the live modes (owner budget each time) before any Go live"
@@ -2079,11 +2086,17 @@
         "dashboard test for the draft loader"
       ],
       "suggested_owner": "Repository maintainer; owner names the channels, approves each run and publishes each document",
-      "status": "planned_not_started",
+      "status": "in_progress",
       "guardrail": "Raw messages never enter the knowledge store, a Mistral prompt or a memory. Only core's bot identity reads Discord, from the host. The rules channel stays excluded (P20, P39). Each run is its own recorded approval.",
       "implementation_note": "Owner decision of 2 November 2026 in the decision log (\"Staff posts, named channels\").",
-      "completed_scope": [],
-      "remaining_scope": []
+      "completed_scope": [
+        "Host-only harvest tool in .agent_docs/aphelion-sophie/discord-harvest-2026-11-02 (harvest.mjs, policy.mjs, collect.mjs, discord-read.mjs): GET-only reader on allowlisted paths; --plan refuses the ticket category, the member-records forum, case exclusions, channels @everyone cannot see and the rules channel; --run keeps staff-authored posts only, redacted, case-vocabulary messages dropped and counted. 14 synthetic tests pass. Never run against Discord",
+        "Dashboard \"Open draft file\" button (merged 39096c6, not installed): reads a local sophie-knowledge-draft-1 JSON file, checks it against the publication limits and the editor's fields, and fills the existing editor; nothing is sent, the owner still reviews and publishes, and the server validates again. Tests: dashboard-knowledge-draft and dashboard-assets pass"
+      ],
+      "remaining_scope": [
+        "Owner names the channels; each --plan and --run is a recorded approval",
+        "Distil the packet into drafts, measure them by evaluator overlay, owner publishes; delete the packet once its documents are published"
+      ]
     }
   ],
   "checkpoint": {
