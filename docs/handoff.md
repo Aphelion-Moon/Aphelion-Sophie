@@ -218,7 +218,7 @@ runs when handed the right passages, but only 93 of 135 in the real turn. The mo
 superseded. The knowledge re-read is done (counted at 19:28 UTC on the owner's approval): every wiki document and 359
 of 360 Guidebook documents carry their game, 55 Guidebook entries are upstream rulesets, the 34 website documents are
 labelled, and 404 wiki sections are marked out of date. For part of the evening another session had the main checkout on
-the radio branch: see [Radio](#radio-p58-built-offline-on-three-branches-not-merged).
+the radio branch: see [Radio](#radio-p58-built-offline-integrated-on-one-branch-not-merged-into-main).
 
 | What | Commits |
 |---|---|
@@ -317,7 +317,7 @@ needs the owner's channel list and an approval for each run.
 - approval of a fresh knowledge snapshot (a production read);
 - each call budget, Go live per channel (with the profile re-acceptance) and each install.
 
-## Radio (P58): built offline on three branches, not merged
+## Radio (P58): built offline, integrated on one branch, not merged into main
 
 On 2 November the owner asked for a radio. Sophie plays SoundCloud and YouTube (through yt-dlp) in a voice channel. Staff
 run it, Crew make requests, and Mewn the Matriarch keeps primary control. It must not eat into the Discord rate limits the
@@ -343,7 +343,8 @@ rest of Sophie needs. Choices that day:
   SoundCloud path is not the official API;
 - scope decisions for FFmpeg on the production host (today build-time only), for yt-dlp and what its build bundles
   (Python, GPL-2.0 mutagen), and for Node as yt-dlp's JavaScript runtime;
-- that the guild owner holds `radio.configure`.
+- that the guild owner holds `radio.configure`;
+- how Sophie becomes a speaker on the Stage (below).
 
 Staging comes first; the Shuttle's production-first exception does not cover the radio.
 
@@ -353,23 +354,32 @@ Staging comes first; the Shuttle's production-first exception does not cover the
 | `claude/adoring-wiles-924b1e` (R1) | `919e710`, `5f0758c` | Core: migration 087 (`gateway_lifecycle.voice_enabled`); intent 128 only while a radio is configured, a change forcing a fresh Identify; voice dispatches advance only the cursor; Stage presence in memory; op 4 within a radio sub-budget; voice session broker (backoff 5 s to 5 min, stops after 5 failures) | RAD-G01 to G10; storage suites expect 87 migrations |
 | `claude/modest-margulis-077137` (R2) | `1e4db13` to `1dc0599` (6) | `apps/radio-worker/`: voice gateway v8, UDP discovery and RTP with both rtpsize AEAD modes, Ogg Opus demuxer, hrtime pacer; a check keeps the worker away from core, case, member and AI code (T46) | RAD-V01 to V16, T46 |
 
-**Branch status:**
-- Each session ran its own tests. Nobody has run `npm test` or the storage suites on the three together.
-- None is merged or pushed. Merge when the owner asks, in this order: the domain branch, then R1, then R2.
-- `docs/workplan.json` will conflict: take both sides and run `node scripts/build-workplan.mjs`.
-- R1 and R2 branch from `c2b7344`, 13 commits behind `main`. R1 takes migration 087, so the radio tables are 088.
+**Branch status (2 November, evening):**
+- On the owner's go-ahead the three are merged, in order, on `claude/radio-p58` (worktree
+  `.claude/worktrees/radio-p58`), from `main` at `d220585`. There were no textual conflicts.
+- Tested together there: `npm run check` passed; `npm test` 1019 passed, 0 failed; `npm run test:storage:fast` 1063
+  passed and 1 failed. The failure was AI18: R1 had moved it to 87 migrations but still compared the gateway row
+  without `voice_enabled`. Fixed in `caf1457`; `--suite=ai` then passed 105 of 105.
+- `claude/radio-p58` is not merged into `main` and not pushed. Keep it off `main` until the owner decisions are recorded:
+  the next install is built from `main`, and it would carry migration 087.
+- Build R3 onwards on `claude/radio-p58`. The three source branches are kept, but are now superseded.
+- R1 takes migration 087, so the radio tables are 088.
 
 **Left, in order:**
-1. R3 media: yt-dlp and FFmpeg child processes, with no audio written to disk.
-2. R4 migration 088 and the store. A new table must be granted to `sophie_prod_core`.
-3. R5 capabilities, with a `capabilityPolicy.version` bump:
+1. The Stage speaker step. No branch builds it. A bot joins a Stage muted, as audience. To speak, Sophie unmutes herself
+   (`PATCH /guilds/{guild}/voice-states/@me`, `suppress: false`), which needs Mute Members on that channel. Starting the
+   Stage (a Stage instance) needs Stage moderator permissions. The owner chooses: Sophie holds those on the radio channel
+   (one or two REST calls per session, inside the radio sub-budget), or Staff invite her to speak each session.
+2. R3 media: yt-dlp and FFmpeg child processes, with no audio written to disk.
+3. R4 migration 088 and the store. A new table must be granted to `sophie_prod_core`.
+4. R5 capabilities, with a `capabilityPolicy.version` bump:
    - `radio.request` for Crew, Staff and Lead Ops;
    - `radio.operate` for Staff and Lead Ops;
    - `radio.configure` for the guild owner.
-4. R6 `/radio` and the panel, in their own interaction lane.
-5. R7 the dashboard page.
-6. R8 the service, firewall, pinned tools, licences and `docs/radio.md`.
-7. A staging run in a Stage channel, then a one-hour soak counting REST calls by route.
+5. R6 `/radio` and the panel, in their own interaction lane.
+6. R7 the dashboard page.
+7. R8 the service, firewall, pinned tools, licences and `docs/radio.md`.
+8. A staging run in a Stage channel, then a one-hour soak counting REST calls by route.
 
 Later: regular voice channels through DAVE (`@snazzah/davey`, MIT, after its own licence review).
 
