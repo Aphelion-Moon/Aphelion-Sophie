@@ -1963,12 +1963,13 @@
         "Evaluator in the repository: scripts/lib/ai-eval/asserts.mjs (asserts incl. requireCitationGame, forbidSourceFamily, pointer, noVerdict; URL-based evaluation labels independent of the code under test; gold matching; diagnosis), snapshot.mjs (pinned snapshot, re-stamped freshness, overlays for drafts, oracle passages), turn.mjs (the real prompt, validation, claim removal and rendering around an injected model call) and scripts/ai-eval.mjs (retrieval, oracle and e2e modes; model modes refuse to run without --dry or --live with --max-calls and a key)",
         "Tests AE-01 to AE-07 (tests/ai-eval.test.js) pass; npm run check passes",
         "Synthetic CI-collision snapshot (tests/fixtures/ai-eval): offline retrieval run reproduces the failure (plain \"What is CI?\" retrieves nothing; the Wolfgate CI question retrieves a GitHub CONTRIBUTING passage); with the draft glossary overlay 4 of 5 cases retrieve their gold, the report-pointer case still has no evidence (needs the capability manifest)",
-        "Wolfgate case class (45 cases, 8 classes) and the read-only snapshot script in .agent_docs/aphelion-sophie/ai-eval-2026-11-02"
+        "Wolfgate case class (45 cases, 8 classes) and the read-only snapshot script in .agent_docs/aphelion-sophie/ai-eval-2026-11-02",
+        "Production knowledge snapshot taken 2 November 2026 14:39 UTC on the owner's approval (\"Yes, take snapshot\"): read-only, knowledge identity; 780 documents, 5,846 passages (Guidebook 359, wiki 387, website 34; no GitHub documents while the token is refused), SHA-256 fba6e3a5...",
+        "Retrieval baseline on 45df8b8, Wolfgate class (45 cases): gold retrieved in 33, missed in 10, absent in 2. By class: rules 18/20, lore 3/3, mechanics 4/4, Meridian fallback 2/2, CI 1/5 (\"combat intent\", the Wolfgate CI question and its follow-up miss), report pointers 1/5, upstream 1/3. Upstream ruleset passages come back in 12 cases and rank first in 7; the defunct Red Server Policy comes back for \"What is CI?\" and \"Who can declare war?\". No developer page reached a gameplay question in this snapshot, but the GitHub source is empty until its token is fixed, so routing should land before that fix. Regression set (56 cases) recorded for comparison. Outputs in .agent_docs/aphelion-sophie/ai-eval-2026-11-02"
       ],
       "remaining_scope": [
-        "Owner approval to take the production knowledge snapshot (read-only, knowledge identity); the auto-mode classifier refused it without one",
-        "Retrieval baseline of the Wolfgate class and cases-review.json on that snapshot, recorded before any P53/P54 change",
-        "Owner-recorded call budget for the first oracle and end-to-end runs (about 270 calls for the Wolfgate class at N=3)"
+        "Owner-recorded call budget for the first oracle and end-to-end runs (Wolfgate class at N=3: about 270 calls), which says whether the model or retrieval fails each case",
+        "Re-run the retrieval baseline after each P53/P54 change on the same snapshot"
       ]
     },
     {
