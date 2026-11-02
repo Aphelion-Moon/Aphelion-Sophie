@@ -2912,3 +2912,10 @@ stays routable, so a button on a reply already posted still opens the private ca
 Staff-created contact flow are unchanged. The published character's example reply "the Contact staff button reaches them"
 is owner text and still names the button: changing it is an owner publication. Sophie's capability text must not offer the
 button.
+
+**Released (2 November 2026).** The owner: "Are updates installed and pushed for Sophie? Please do so if not." `main` was
+pushed (`bc57644`), and with one Shuttle run open the owner chose "Install now". Sophie `bc57644` was installed at 18:13 UTC
+on `4eeca3d`: the Wolfgate AI preparation of this day (routing, game labels, glossary support, capability manifest and
+channel directory, reply checks, out-of-date wiki sections) and the removal of the Contact staff button from AI replies.
+The Mistral profile hash changed (redaction v2); AI stays dark until each channel goes live again. Folder
+`deployment-bc57644-production-2026-11-02`.

@@ -1,5 +1,29 @@
 # Verification and release limits
 
+## Wolfgate AI preparation and reply checks, installed — 2 November 2026
+
+- **Owner:** "Are updates installed and pushed for Sophie? Please do so if not." One Shuttle run was open with recent
+  attention; asked, the owner answered "Install now". Both are quoted in `approval.json`.
+- **Sophie bc57644, 18:13 UTC** (`deployment-bc57644-production-2026-11-02`), on 4eeca3d. 31 source files (7 new), no
+  migration. `main` was pushed to GitHub first (`19d2644..bc57644`).
+  - Before the run: `prepare.mjs` passed against 4eeca3d (baseline equals Git and its manifest; exactly the 31 reviewed
+    files; 212 dependency files). At the commit: `npm test` 981/981, `npm run check`, `test:storage:fast` 1063/1063.
+  - The Mistral profile hash changes, `1af6801f…` to `da972d96…` (redaction `direct-identifiers-v2`). `prepare.mjs`
+    records the change; the regenerated trust files for core and the worker both carry the new hash, and the worker
+    started.
+  - The run: pre-start, boundary, installation (29 of 29) and public checks passed; core, the worker, PostgreSQL and the
+    tunnel are running.
+  - The member records check at start failed once (`DISCORD_TRANSPORT_DISABLED`, 18:14:22 UTC, while core took over the
+    Gateway after the restart). Its 10-minute retry passed at 18:24:33 UTC (nothing opened, changed or left). The log
+    otherwise shows only the known noise and the interrupted Shuttle run signing in again.
+  - AI had been switched on at 17:00:35 UTC, before the install; no AI turn ran before or after it. Each channel needs Go
+    live again, which also accepts the new profile.
+- **Not seen live yet:** the reply checks, label replacement and the fixed answer to an addressed silence (AI turns), a
+  channel directory entry, and the glossary (no entry is published).
+- **Not checked:** the knowledge sync's one-time re-read (game labels, upstream titles, out-of-date marks). The read-only
+  count `check-knowledge-sync.mjs` in the packet was refused as a production read without its own approval.
+- The prepared `deployment-b166a19-production-2026-11-02` packet was never run and is superseded.
+
 ## Game moderation in the member records, installed — 2 November 2026
 
 - **Owner:** "Install and update main when you are ready." Quoted in both packets' `approval.json`.

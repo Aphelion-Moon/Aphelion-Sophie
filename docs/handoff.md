@@ -13,8 +13,10 @@ to work safely. Earlier snapshots are in this file's git history.
 
 ## Production now
 
-- **Release:** **`4eeca3d`** (schema 086), installed 2 November 2026 at 14:08 UTC: game moderation in the record posts, the
-  Gateway queue fix and the hourly GitHub 403 retry. Before it, `456f27d` (schema 085), from 31 October.
+- **Release:** **`bc57644`** (schema 086, no migration), installed 2 November 2026 at 18:13 UTC: the Wolfgate AI preparation
+  and reply checks, and no Contact staff button on AI replies (`deployment-bc57644-production-2026-11-02`). Before it,
+  `4eeca3d` (schema 086) from 14:08 UTC that day: game moderation in the record posts, the Gateway queue fix and the hourly
+  GitHub 403 retry.
 - **Central identity database:** core reads `aphelion_central` (127.0.0.1:5490, service `aphelion-central-postgres`) as
   `sophie_central_reader`, read-only, for the posts' games messages (ADR 0006). Its docs are in the `Aphelion-Central`
   repository.
@@ -31,16 +33,20 @@ to work safely. Earlier snapshots are in this file's git history.
   - Whitelist notices with reading time go to the staff bot channel `1528802745136447508`.
   - Error alerts go to `1528812406724231288`, pinging @matriarch.
 - **Commands in the main server:** `/lookup`, `/member watch`, `/sophie`, and `/whitelist` with `post` and `progress`.
-- **AI:** switched off in production; the log says `AI_ADMISSION_SKIPPED_AI_DISABLED`. The owner's focus is elsewhere,
-  so don't press for Go live after each release; it stays in the workplan. The Wolfgate preparation of 2 November is on
-  `main` but not installed (see [AI: preparing Sophie for Wolfgate](#ai-preparing-sophie-for-wolfgate-2-november-2026)).
+- **AI:** switched on at 17:00 UTC on 2 November, but no channel is live: the log says
+  `AI_ADMISSION_SKIPPED_CHANNEL_NOT_CONFIGURED` (or `NO_CONSENT`), and no AI turn has run. After each release, each channel
+  needs Go live again on the dashboard; after `bc57644` that also accepts the new Mistral profile. The owner's focus is
+  elsewhere, so don't press for Go live. The Wolfgate preparation is installed (see
+  [AI: preparing Sophie for Wolfgate](#ai-preparing-sophie-for-wolfgate-2-november-2026)).
 - **Known noise in the core log** (`C:\Aphelion\Sophie\logs\core\aphelion-bot.err.log`):
   - `KNOWLEDGE_SOURCE_GITHUB_FORBIDDEN` hourly since 4eeca3d (every 16 minutes before): the GitHub token is refused for the
     organisation listing, so no GitHub knowledge has synced since 25 October; the token's access still needs fixing;
   - `DASHBOARD_DENIED_DASHBOARD_CREDENTIAL_INVALID` after each restart: old sessions, harmless.
 - **Every install, publication and production write needs the owner's recorded approval.** Approval for one step does not
-  carry over to the next. The last packet, `.agent_docs/aphelion-sophie/deployment-456f27d-production-2026-10-31`, is
-  the template for the next one (it has a migration and its rehearsal, `rehearse-migration.mjs`).
+  carry over to the next. Templates: `.agent_docs/aphelion-sophie/deployment-bc57644-production-2026-11-02` for a
+  source-only release (with `check-shuttle-quiet.mjs`, and `build-packet.mjs`, which builds a packet from the previous one),
+  and `deployment-4eeca3d-production-2026-11-02` for one with a migration and its rehearsal (`rehearse-migration.mjs`).
+  A release that changes the Mistral profile hash must say so in `prepare.mjs`, as bc57644's does, or the check refuses it.
 
 ## Member records (P56)
 
@@ -203,11 +209,10 @@ runs when handed the right passages, but only 93 of 135 in the real turn. The mo
   the owner publishes.
 - No model training.
 
-**On `main`, not installed and not pushed** (main is 23 commits ahead of `origin/main`). For part of the evening of
-2 November another session had the main checkout on `claude/radio-p58-domain` (radio, P58, not merged); the glossary
-commits went to `main` through a separate worktree. Check the branch before committing. That branch also edits
-`docs/workplan.json`, so expect a conflict there when it merges: take both sides and run
-`node scripts/build-workplan.mjs`.
+**Installed as `bc57644` at 18:13 UTC on 2 November and pushed.** The prepared `b166a19` packet was never run and is
+superseded. For part of the evening another session had the main checkout on `claude/radio-p58-domain` (radio, P58, not
+merged); check the branch before committing. That branch also edits `docs/workplan.json`, so expect a conflict there when
+it merges: take both sides and run `node scripts/build-workplan.mjs`.
 
 | What | Commits |
 |---|---|
@@ -235,8 +240,8 @@ commits went to `main` through a separate worktree. Check the branch before comm
   passage they already accepted, hence 34 rather than 33.
 - The two misses have nothing to find: the GitHub source is empty while its token is refused, and appeals need the
   capability manifest.
-- Until an install and the re-sync, production documents carry no game. Only the developer-page filter would act. The
-  glossary works once the owner publishes the entries, labels or not.
+- Installed with `bc57644`: the knowledge sync re-reads every wiki and Guidebook page once, after which documents carry
+  their game. The glossary works once the owner publishes the entries, labels or not.
 - **Narrowing to know about:** a plain-language code question ("how does the cloning system work") no longer triggers code
   search. It needs a developer word, a file name or an identifier.
 
@@ -287,8 +292,7 @@ needs the owner's channel list and an approval for each run.
    and withdraws the Red Server Policy if it is defunct.
 2. The harvest, once the owner names channels; more glossary terms come from it.
 3. Context briefs and the game per channel (M6, a schema change that needs approval).
-4. A live trial on budget, with the profile re-accepted.
-5. An install, on approval.
+4. Go live in a channel (which re-accepts the profile), then a live trial on budget.
 
 **Owner inputs outstanding:**
 - the channel directory: which channels Sophie may name (rules, announcements, tickets, ban appeals…) and their IDs;
@@ -301,7 +305,7 @@ needs the owner's channel list and an approval for each run.
 - leaving the upstream rulesets out entirely, or keeping them relabelled;
 - withdrawing the Red Server Policy (it carries no banner, so the collector cannot tell);
 - context briefs;
-- each call budget, the profile re-acceptance and each install.
+- each call budget, Go live per channel (with the profile re-acceptance) and each install.
 
 ## Shuttle Activity: what is left (P41)
 
