@@ -80,7 +80,8 @@ function observerFixture(capacity = 2) {
     dispatch: async (_, record) => { if (block) await block; calls.push(record); cursor = record.sequence; current = true; },
     readContinuity: async () => current ? `journal.${cursor}` : null,
   };
-  const observer = createGatewayObserver({ journal, mapping, applicationId: APPLICATION, clock: () => now, capacity });
+  // null: the observer's own default capacity.
+  const observer = createGatewayObserver({ journal, mapping, applicationId: APPLICATION, clock: () => now, ...(capacity === null ? {} : { capacity }) });
   return { observer, calls, block: promise => { block = promise; }, advance: ms => { now += ms; } };
 }
 
@@ -116,4 +117,17 @@ test('queue overflow halts the observer without exposing raw failures or retaini
   assert.equal(outcomes[1].status, 'rejected');
   assert.equal(outcomes[1].reason.message, 'GATEWAY_PROCESSING_FAILED');
   assert.equal(await observer.isCurrent(), false);
+});
+
+test('the default queue holds a reorder of all 250 roles while the journal is busy (production, 26 October to 1 November 2026)', async () => {
+  const { observer, block, calls } = observerFixture(null);
+  await observer.acquire('worker'); const { connection } = await observer.beginIdentify();
+  await observer.accept(connection, readyEvent()); await observer.accept(connection, guildEvent());
+  observer.heartbeatAcknowledged(connection, 10_000);
+  let release; block(new Promise(resolve => { release = resolve; }));
+  const burst = Array.from({ length: 250 }, (_, index) =>
+    observer.accept(connection, gatewayEvent(3 + index, 'GUILD_ROLE_UPDATE', { guild_id: GUILD, role: { id: String(100000000000000000n + BigInt(index)) } })));
+  release(); const outcomes = await Promise.allSettled(burst);
+  assert.deepEqual(outcomes.filter(outcome => outcome.status === 'rejected'), []);
+  assert.equal(calls.length, 251); assert.equal(await observer.isCurrent(), true);
 });

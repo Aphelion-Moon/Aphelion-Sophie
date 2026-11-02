@@ -4,7 +4,9 @@ import { sourceErrorCode } from './sources/http.js';
 const MINUTE = 60000;
 /** Wiki revision checks are cheap (two API calls); the site is small; GitHub is rate-limited; the Guidebook is one index file. */
 export const SOURCE_INTERVALS = Object.freeze({ wiki: 30 * MINUTE, site: 180 * MINUTE, gh: 180 * MINUTE, guide: 180 * MINUTE });
-const RETRY_MS = 15 * MINUTE, RATE_LIMIT_RETRY_MS = 60 * MINUTE;
+// A refused token (403) is a configuration fault that a retry will not fix soon; it waits like a rate limit
+// (production, 25 October to 2 November 2026: GITHUB_FORBIDDEN every 16 minutes).
+const RETRY_MS = 15 * MINUTE, LONG_RETRY_MS = 60 * MINUTE;
 
 /**
  * Runs each due source collection in turn and hands the result to the mirror. One failing source never blocks another;
@@ -35,7 +37,7 @@ export function createSourceSync({ mirror, collectors, clock = Date.now, onFault
           if (signal.aborted) return;
           const code = /^KNOWLEDGE_[A-Z_]+$/u.test(error?.message) ? error.message : sourceErrorCode(error, label(prefix), signal);
           entry.last = { ok: false, startedAt, finishedAt: clock(), code };
-          entry.nextAt = clock() + (code.endsWith('_RATE_LIMITED') ? RATE_LIMIT_RETRY_MS : RETRY_MS);
+          entry.nextAt = clock() + (/_(RATE_LIMITED|FORBIDDEN)$/u.test(code) ? LONG_RETRY_MS : RETRY_MS);
           try { onFault(`KNOWLEDGE_SOURCE_${code}`); } catch { /* Reporting never affects sync. */ }
         } finally { entry.running = false; }
       }

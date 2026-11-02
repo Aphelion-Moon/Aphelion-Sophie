@@ -178,13 +178,16 @@ test('KS-07 due sources run in turn, a failure backs off without blocking the ot
   const mirror = { knownRevisions: async prefix => new Map([[`${prefix}-known`, 'r1']]), apply: async (prefix, result) => { applied.push([prefix, result.entries.length]); return { published: 1, refreshed: 0, unchanged: 0, stale: 0, excluded: 0 }; } };
   const collectors = [{ prefix: 'wiki', collect: async ({ known }) => ({ entries: [{ known: known.get('wiki-known') }], listed: 1 }) },
     { prefix: 'site', collect: async () => { throw new Error('upstream said: secret'); } },
-    { prefix: 'gh', collect: async () => { throw new Error('GITHUB_RATE_LIMITED'); } }];
+    { prefix: 'gh', collect: async () => { throw new Error('GITHUB_RATE_LIMITED'); } },
+    { prefix: 'guide', collect: async () => { throw new Error('GUIDE_FORBIDDEN'); } }];
   const sync = createSourceSync({ mirror, collectors, clock: () => now, onFault: code => faults.push(code) });
   await sync.runDue({ signal });
-  assert.deepEqual(applied, [['wiki', 1]]); assert.deepEqual(faults, ['KNOWLEDGE_SOURCE_SITE_SYNC_FAILED', 'KNOWLEDGE_SOURCE_GITHUB_RATE_LIMITED']);
+  assert.deepEqual(applied, [['wiki', 1]]);
+  assert.deepEqual(faults, ['KNOWLEDGE_SOURCE_SITE_SYNC_FAILED', 'KNOWLEDGE_SOURCE_GITHUB_RATE_LIMITED', 'KNOWLEDGE_SOURCE_GUIDE_FORBIDDEN']);
   const status = sync.status(); assert.equal(status.wiki.last.ok, true); assert.equal(status.site.last.code, 'SITE_SYNC_FAILED');
   assert.equal(JSON.stringify(status).includes('secret'), false);
   assert.equal(status.wiki.nextAt, 30 * 60000); assert.equal(status.site.nextAt, 15 * 60000); assert.equal(status.gh.nextAt, 60 * 60000);
+  assert.equal(status.guide.nextAt, 60 * 60000, 'a refused token waits like a rate limit');
   now = 20 * 60000; await sync.runDue({ signal }); assert.equal(applied.length, 1, 'only the site retried; it failed again');
   sync.requestAll(); await sync.runDue({ signal }); assert.equal(applied.length, 2);
 });

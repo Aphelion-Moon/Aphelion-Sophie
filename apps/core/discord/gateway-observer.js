@@ -11,8 +11,12 @@ function failureCause(error) {
   return /timeout exceeded when trying to connect/u.test(String(error?.message)) ? 'DATABASE_POOL_TIMEOUT' : 'UNEXPECTED_ERROR';
 }
 
+// Reordering roles sends one GUILD_ROLE_UPDATE per moved role, and Discord allows 250 roles in a server. At 64, such a
+// burst overflowed the queue and replaced the connection (production, 26 October to 1 November 2026: five times).
+const CAPACITY = 256;
+
 /** Core socket supervisor owns this interface. It is never an HTTP/component handler. */
-export function createGatewayObserver({ journal, mapping, applicationId, clock, capacity = 64, ai = null }) {
+export function createGatewayObserver({ journal, mapping, applicationId, clock, capacity = CAPACITY, ai = null }) {
   validateRoleMapping(mapping); requireId(applicationId); requireInteger(capacity, 1, 256);
   requireCondition(typeof clock === 'function', 'TRUSTED_ADAPTERS_REQUIRED');
   // Bitwise composition would silently absorb an arbitrary value; only the two reviewed sets are accepted.
