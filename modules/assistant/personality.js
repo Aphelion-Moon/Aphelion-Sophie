@@ -1,12 +1,21 @@
 import { requireCondition, requireKeys } from '../../contracts/validation.js';
 
+/**
+ * An example is small talk unless it says it answers from general knowledge (review M5: eight uncited small-talk examples,
+ * including a factual and a lore answer, taught her that facts need no source). `support` is optional, so a character
+ * without it keeps its form and digest.
+ */
+export const EXAMPLE_SUPPORT = Object.freeze(['current_conversation', 'general_knowledge']);
+
 export function canonicalPersonality(value) {
   requireKeys(value, ['core', 'examples'], 'AI_PERSONALITY_INVALID');
   requireCondition(typeof value.core === 'string' && value.core.trim().length > 0 && value.core.length <= 4000 && value.core.isWellFormed(), 'AI_PERSONALITY_INVALID');
   requireCondition(Array.isArray(value.examples) && value.examples.length <= 8, 'AI_PERSONALITY_INVALID');
   for (const example of value.examples) {
-    requireKeys(example, ['member', 'sophie'], 'AI_PERSONALITY_INVALID');
-    for (const text of Object.values(example)) requireCondition(typeof text === 'string' && text.length > 0 && text.length <= 600 && text.isWellFormed(), 'AI_PERSONALITY_INVALID');
+    const marked = example !== null && typeof example === 'object' && Object.hasOwn(example, 'support');
+    requireKeys(example, ['member', 'sophie', ...(marked ? ['support'] : [])], 'AI_PERSONALITY_INVALID');
+    for (const text of [example.member, example.sophie]) requireCondition(typeof text === 'string' && text.length > 0 && text.length <= 600 && text.isWellFormed(), 'AI_PERSONALITY_INVALID');
+    requireCondition(!marked || EXAMPLE_SUPPORT.includes(example.support), 'AI_PERSONALITY_INVALID');
   }
   return structuredClone(value);
 }

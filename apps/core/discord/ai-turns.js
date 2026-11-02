@@ -1,6 +1,6 @@
 import { requireCondition } from '../../../contracts/validation.js';
 import { validateAiOutput, renderAiReply } from '../../../modules/assistant/output.js';
-import { checkedReplyOutput } from '../../../modules/assistant/reply-checks.js';
+import { answeredOutput, checkedReplyOutput } from '../../../modules/assistant/reply-checks.js';
 import { aiCommandNames } from '../../../modules/assistant/capabilities.js';
 import { aiSpeakerLabels, buildAiPrompt } from '../../knowledge-worker/prompt.js';
 import { encodeMemory } from '../../../modules/assistant/memories.js';
@@ -9,11 +9,11 @@ import { freezeAiMaterial } from '../../knowledge-worker/prompt-contract.js';
 import { effectContextFits } from '../storage/ai-effects.js';
 
 const REMOVED_TRACES = Object.freeze({ claims: 'AI_OUTPUT_CLAIM_REMOVED', references: 'AI_OUTPUT_REFERENCE_REMOVED', verdicts: 'AI_OUTPUT_VERDICT_REMOVED',
-  numbers: 'AI_OUTPUT_NUMBER_REMOVED' });
+  numbers: 'AI_OUTPUT_NUMBER_REMOVED', labels: 'AI_OUTPUT_LABEL_REPLACED' });
 
 /** Core owns delivery. No worker can choose a recipient, target message or operational indicator. */
 export function createAiTurns({ admission, scheduler, context, knowledge, messages, clock, memory = null, memories = null, onInvalidate = () => {}, trace = () => {},
-  notifyMemories = null, claimFallback = async () => null, checkFallback = async () => null }) {
+  notifyMemories = null, claimFallback = async () => null, checkFallback = async () => null, silentFallback = async () => null }) {
   const outstanding = new Map(), gatherings = new Map(); let stopped = false, generation = 0;
   // Fixed diagnostic codes only: the stage a turn ended at, its outcome and whole seconds since receipt. No IDs or text.
   const code = value => typeof value === 'string' && /^[A-Z][A-Z0-9_]{2,40}$/u.test(value) ? value : 'ERROR';
@@ -162,13 +162,18 @@ export function createAiTurns({ admission, scheduler, context, knowledge, messag
       // fixed owner wording instead (reply-checks.js).
       if (output.kind === 'reply') {
         const own = speakers.get(request.userId), others = [...speakers.values()].filter(label => label !== own);
-        const checked = await checkedReplyOutput(output, { remembered: remembered !== null && (output.memories?.length ?? 0) > 0, others,
+        const checked = await checkedReplyOutput(output, { remembered: remembered !== null && (output.memories?.length ?? 0) > 0, own, others,
           commands: aiCommandNames(request.context), directory: request.config.directory ?? [], sources,
           said: [request.text, ...history.filter(item => item.kind !== 'assistant').map(item => item.text)].join('\n'),
           fallback: kind => kind === 'claim' ? claimFallback() : checkFallback() });
         for (const [kind, count] of Object.entries(checked.removed)) if (count > 0) { try { trace(REMOVED_TRACES[kind]); } catch { /* Diagnostics only. */ } }
         output = checked.output;
       }
+      // A member who addressed Sophie gets an answer: silence becomes the owner's fixed wording for the context (review H5).
+      const answered = await answeredOutput(output, { addressed: request.decision.proactive === false && request.decision.outcomes.includes('reply'),
+        contextName: request.context?.name ?? 'chat', wording: silentFallback });
+      if (answered.templated) { try { trace('AI_TURN_SILENT_ADDRESSED'); } catch { /* Diagnostics only. */ } }
+      output = answered.output;
       if (output.kind === 'silent') { await admission.settle(request, 'silent'); await remember(request, speakers, output, remembered); return { state: 'silent', stage }; }
       stage = 'DELIVER';
       if (!await dependenciesCurrent(request, sources, history, saved, remembered) || !await admission.beginDelivery(request)) {

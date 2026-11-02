@@ -149,6 +149,14 @@ function examples() {
     const box = document.createElement('fieldset'), legend = document.createElement('legend'); legend.textContent = `Example ${index + 1}`; box.className = 'ai-card ai-grid'; box.append(legend);
     field(box, 'Synthetic member message', example.member, value => { example.member = value; }, { multiline: true, maxlength: 600 });
     field(box, 'Sophie’s example reply', example.sophie, value => { example.sophie = value; }, { multiline: true, maxlength: 600 });
+    // A factual reply is shown to the model as an answer from general knowledge, never as small talk (review M5).
+    const kindLabel = document.createElement('label'), kind = document.createElement('select'); kindLabel.textContent = 'This reply is';
+    for (const [value, text] of [['current_conversation', 'Small talk'], ['general_knowledge', 'An answer from general knowledge (no source)']]) {
+      const option = document.createElement('option'); option.value = value; option.textContent = text; kind.append(option);
+    }
+    kind.value = example.support ?? 'current_conversation';
+    kind.addEventListener('change', () => { if (kind.value === 'general_knowledge') example.support = kind.value; else delete example.support; changed(); });
+    kindLabel.append(kind); box.append(kindLabel);
     const remove = document.createElement('button'); remove.className = 'text-button ai-remove'; remove.textContent = 'Remove example'; remove.addEventListener('click', () => { character.examples.splice(index, 1); changed(); examples(); }); box.append(remove); el('examples').append(box);
   });
 }

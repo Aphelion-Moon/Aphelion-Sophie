@@ -1,7 +1,8 @@
 import { isIP } from 'node:net';
 import { requireCondition } from '../../contracts/validation.js';
 
-export const AI_REDACTION_VERSION = 'direct-identifiers-v1';
+// v2 (review M5, 2 November 2026): faces such as "@_@" stay; the character's emote reached the model as "[handle]".
+export const AI_REDACTION_VERSION = 'direct-identifiers-v2';
 const invisible = /[\u200b\u200e\u200f\u202a-\u202e\u2060\u2066-\u2069\ufeff]/gu;
 const normalize = text => text.normalize('NFKC').replace(invisible, '');
 const escape = text => text.replace(/[.*+?^${}()|[\]\\]/gu, '\\$&');
@@ -21,7 +22,8 @@ export function redactAiIdentifiers(text, aliases = []) {
     .replace(/\b(?:[a-z][a-z0-9+.-]{1,15}:\/\/|www\.)[^\s<>"`]+/giu, '[link]')
     // Scan tokens once: unanchored email/domain patterns can repeatedly rescan long nonmatches.
     .replace(/[^\s<>()\[\]{}"`,;]+/gu, value => {
-      if (value.includes('@')) return value.startsWith('@') ? '[handle]' : '[email]';
+      // A handle or an address has at least two letters or digits; "@_@" and "@w@" are faces.
+      if (value.includes('@')) return (value.match(/[\p{L}\p{N}]/gu) ?? []).length < 2 ? value : value.startsWith('@') ? '[handle]' : '[email]';
       const withoutSlashes = value.startsWith('//') ? value.slice(2) : value;
       const end = withoutSlashes.search(/[/?#]/u);
       const host = end < 0 ? withoutSlashes : withoutSlashes.slice(0, end);

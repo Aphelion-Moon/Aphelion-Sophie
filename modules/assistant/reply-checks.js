@@ -82,18 +82,59 @@ export function citedText(output, sources) {
 }
 
 /**
- * A validated reply as it is delivered, shared by core's turns and the evaluator: unbacked claims removed first
- * (withoutUnbackedClaims), then the checks above. When nothing is left, `fallback('claim')` or `fallback('check')` gives the
- * owner's wording and the reply then rests on the conversation; a null fallback means silence. Memories ride along.
+ * Turn labels ("Member 1") are how the prompt names speakers, never how Sophie should address anyone (review H5: "Congrats,
+ * Member 1!"). A label used to address someone is dropped; any other becomes "you" for the requester and "another member"
+ * for anyone else. Returns the text and how many labels were replaced.
  */
-export async function checkedReplyOutput(output, { remembered, others = [], commands = [], directory = [], said = '', sources = [], fallback = async () => null }) {
+export function withoutMemberLabels(text, { own = null } = {}) {
+  let replaced = 0;
+  const count = value => { replaced++; return value; };
+  const word = (label, forms) => label === own ? forms[0] : forms[1];
+  // A replacement that opens a sentence is capitalised.
+  const opens = (whole, offset) => /(?:^|[.!?…]\s+|\n\s*)$/u.test(whole.slice(0, offset));
+  const cased = (value, whole, offset) => opens(whole, offset) ? `${value[0].toUpperCase()}${value.slice(1)}` : value;
+  const rest = text
+    // Addressing: "Congrats, Member 1!", "Hey Member 2,", "Member 1, here's the thing", "You're Member 1, the red panda".
+    .replace(/,\s*Member [1-9]\d?(?=\s*(?:[!?.,;:…)]|$))/gu, () => count(''))
+    .replace(/\b(Hey|Hi|Hello|Hiya|Thanks|Thank you|Sorry|Okay|OK|Welcome back|Welcome|Morning|Night|Congrats|Congratulations|Aww|Oh)\s+Member [1-9]\d?\b/giu, (_, greeting) => count(greeting))
+    .replace(/\b(you(?:'re| are))\s+Member [1-9]\d?,?\s*/giu, (_, you) => count(`${you} `))
+    .replace(/Member [1-9]\d?,\s*(\p{Ll})?/gu, (match, next, offset, whole) => opens(whole, offset) ? count(next ? next.toUpperCase() : '') : match)
+    // Naming: "Member 1's ship", "Member 1 is right", "Member 2 said".
+    .replace(/\b(Member [1-9]\d?)'s\b/gu, (_, label, offset, whole) => count(cased(word(label, ['your', 'another member\'s']), whole, offset)))
+    .replace(/\b(Member [1-9]\d?) (is|was|has|does)\b/gu, (_, label, verb, offset, whole) =>
+      count(cased(label === own ? `you ${{ is: 'are', was: 'were', has: 'have', does: 'do' }[verb]}` : `another member ${verb}`, whole, offset)))
+    .replace(/\b(Member [1-9]\d?)\b/gu, (_, label, offset, whole) => count(cased(word(label, ['you', 'another member']), whole, offset)));
+  return { text: rest, replaced };
+}
+
+/**
+ * A validated reply as it is delivered, shared by core's turns and the evaluator: unbacked claims removed first
+ * (withoutUnbackedClaims), then the checks above, then turn labels. When nothing is left, `fallback('claim')` or
+ * `fallback('check')` gives the owner's wording and the reply then rests on the conversation; a null fallback means
+ * silence. Memories ride along.
+ */
+export async function checkedReplyOutput(output, { remembered, own = null, others = [], commands = [], directory = [], said = '', sources = [], fallback = async () => null }) {
   const claims = withoutUnbackedClaims(output.text, { remembered, others });
   const checks = claims.text === null ? { text: null, removed: { references: 0, verdicts: 0, numbers: 0 }, total: 0 }
     : checkReply(claims.text, { commands, directory, cited: citedText(output, sources), said, sourced: output.support === 'provided_sources' });
-  const removed = { claims: claims.removed, ...checks.removed };
-  if (claims.removed + checks.total === 0) return { output, removed };
-  if (checks.text !== null) return { output: { ...output, text: checks.text }, removed };
-  const text = await fallback(claims.text === null ? 'claim' : 'check');
-  return { output: text === null ? { kind: 'silent', ...(output.memories ? { memories: output.memories } : {}) }
-    : { ...output, text, purpose: 'conversation', support: 'current_conversation', citations: [] }, removed };
+  const removed = { claims: claims.removed, ...checks.removed, labels: 0 };
+  if (claims.removed + checks.total > 0 && checks.text === null) {
+    const text = await fallback(claims.text === null ? 'claim' : 'check');
+    return { output: text === null ? { kind: 'silent', ...(output.memories ? { memories: output.memories } : {}) }
+      : { ...output, text, purpose: 'conversation', support: 'current_conversation', citations: [] }, removed };
+  }
+  const named = withoutMemberLabels(checks.text, { own });
+  removed.labels = named.replaced;
+  return { output: claims.removed + checks.total + named.replaced === 0 ? output : { ...output, text: named.text }, removed };
+}
+
+/**
+ * Review H5: a member who addressed Sophie gets an answer. When such a turn comes back silent, the owner's fixed wording
+ * for the context is delivered instead (`wording(contextName)`; null keeps the silence). Memories ride along.
+ */
+export async function answeredOutput(output, { addressed, contextName = 'chat', wording = async () => null }) {
+  if (output.kind !== 'silent' || !addressed) return { output, templated: false };
+  const text = await wording(contextName);
+  if (text === null) return { output, templated: false };
+  return { output: { kind: 'reply', text, purpose: 'conversation', support: 'current_conversation', citations: [], ...(output.memories ? { memories: output.memories } : {}) }, templated: true };
 }

@@ -124,13 +124,13 @@ test('KS-04 the wiki collector parses only changed pages, excludes song sheets a
   const { fetchImpl, calls } = wikiFetch({ pages, parse: { 2: [{ category: 'Policies' }] }, failParse: new Set([4]) });
   const collector = createWikiCollector({ fetchImpl, extractor: inlineExtractor, clock: () => 5_000_000 });
   const captain = documentIdBase('wiki', 'Captain', 1), broken = documentIdBase('wiki', 'Broken', 4);
-  const result = await collector.collect({ signal, known: new Map([[captain, 'wiki:page:1:r10:f4'], [broken, 'wiki:page:4:r39']]) });
+  const result = await collector.collect({ signal, known: new Map([[captain, 'wiki:page:1:r10:f5'], [broken, 'wiki:page:4:r39']]) });
   assert.deepEqual(calls.filter(call => call.startsWith('parse')), ['parse:2', 'parse:4'], 'unchanged, excluded and oversized pages are not parsed');
-  assert.deepEqual(result.entries.find(entry => entry.idBase === captain), { idBase: captain, sourceRevision: 'wiki:page:1:r10:f4', unchanged: true });
+  assert.deepEqual(result.entries.find(entry => entry.idBase === captain), { idBase: captain, sourceRevision: 'wiki:page:1:r10:f5', unchanged: true });
   assert.deepEqual(result.entries.find(entry => entry.idBase === broken), { idBase: broken, sourceRevision: 'wiki:page:4:r39', unchanged: true });
   const policy = result.entries.find(entry => entry.documents)?.documents[0];
   assert.equal(policy.authority, 'policy'); assert.equal(policy.kind, 'wiki-page'); assert.equal(policy.url, 'https://meridian-wiki.a13.info/wiki/Antagonist_Policy');
-  assert.equal(policy.game, 'ss13-meridian'); assert.equal(policy.sourceRevision, 'wiki:page:2:r20:f4');
+  assert.equal(policy.game, 'ss13-meridian'); assert.equal(policy.sourceRevision, 'wiki:page:2:r20:f5');
   assert.deepEqual(policy.sections.map(section => section.heading), ['Antagonist Policy', 'Antagonist Policy › Rules']);
   assert.equal(result.skipped, 3); assert.equal(JSON.stringify(result).includes('secret upstream text'), false);
   // A page held in the format before documents named their game is read again once.

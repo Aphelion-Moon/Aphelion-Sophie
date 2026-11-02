@@ -68,7 +68,9 @@ export function createAiRuntime({ configuration, corePool, controlPool, worker, 
       await transport.sendSophieDm(channel.id, notice);
     },
     claimFallback: async () => (await readSystemText())('ai.reply.claim_removed'),
-    checkFallback: async () => (await readSystemText())('ai.reply.unsupported_removed') });
+    checkFallback: async () => (await readSystemText())('ai.reply.unsupported_removed'),
+    // Review H5: an addressed turn that comes back silent gets the owner's fixed wording instead.
+    silentFallback: async contextName => (await readSystemText())(contextName === 'staff' ? 'ai.reply.silent_addressed_staff' : 'ai.reply.silent_addressed') });
   const gateway = createAiGateway({ ingress, turns, onFault });
   let timer = null, stopped = false, fingerprint = null, refreshing = Promise.resolve();
   function invalidate() { observations.clear(); gateway.invalidate(); }

@@ -13,8 +13,25 @@ export const WIKI_SOURCE = Object.freeze({
 });
 const sha256 = value => createHash('sha256').update(value).digest('hex');
 // Bump when the documents a page produces change, so every page is read again once. f4: documents name their game.
-const WIKI_FORMAT = 'f4';
+// f5: sections the wiki flags as out of date say so.
+const WIKI_FORMAT = 'f5';
 const policyCategories = /^(?:polic(?:y|ies)|rules?)$/iu, loreCategories = /^lore$/iu;
+
+/**
+ * Review H7 (plan of 2 November 2026): a section the wiki itself flags as out of date (a review banner whose reason says
+ * so, or a page archived for historical purposes) is marked in its heading, so Sophie does not present it as current.
+ * A flag on the opening section marks the whole page, and such a page is no longer policy. Banners about styling or
+ * broken links change nothing.
+ */
+export const WIKI_OUTDATED_NOTE = ' (marked out of date on the wiki)';
+const OUTDATED = /This page needs to be reviewed\/updated\.\s*REASON:[^\n]{0,200}?\b(?:out ?dated|out of date|not reflective|remove it|no longer)|archived for historical purposes|has been removed from the game/iu;
+export function markOutdatedSections(sections) {
+  const page = sections.length > 0 && OUTDATED.test(sections[0].text);
+  // Headings hold 160 characters and a long section later gains " (continued n)": the note always fits within 140.
+  const room = 140 - WIKI_OUTDATED_NOTE.length;
+  const note = heading => `${heading.length <= room ? heading : `${heading.slice(0, room - 1).trimEnd()}…`}${WIKI_OUTDATED_NOTE}`;
+  return { page, sections: sections.map(section => page || OUTDATED.test(section.text) ? { ...section, heading: note(section.heading) } : section) };
+}
 
 export const wikiPageUrl = title => `${WIKI_SOURCE.origin}/wiki/${encodeURIComponent(title.replaceAll(' ', '_')).replace(/%2F/giu, '/').replace(/%3A/giu, ':')}`;
 
@@ -64,13 +81,15 @@ export function createWikiCollector({ fetchImpl = fetch, extractor, clock = Date
           const extraction = await extractor.extract({ html: parsed.text, htmlHash: sha256(parsed.text), mode: 'mediawiki', signal, timeoutMs: 5000 });
           requireCondition(extraction.extractorRevision === MEDIAWIKI_EXTRACTOR_REVISION, 'WIKI_EXTRACTION_FAILED');
           const categories = (parsed.categories ?? []).map(item => String(item.category ?? '').replaceAll('_', ' '));
-          const authority = categories.some(name => policyCategories.test(name)) ? 'policy' : categories.some(name => loreCategories.test(name)) ? 'lore' : 'reference';
+          const marked = markOutdatedSections(blocksToSections(extraction.blocks, page.title));
+          const categorised = categories.some(name => policyCategories.test(name)) ? 'policy' : categories.some(name => loreCategories.test(name)) ? 'lore' : 'reference';
+          const authority = marked.page && categorised === 'policy' ? 'reference' : categorised;
           const display = cleanText(String(parsed.displaytitle ?? '').replace(/<[^>]*>/gu, ''));
           const revision = `wiki:page:${page.pageId}:r${parsed.revid}:${WIKI_FORMAT}`;
           const packed = packDocuments({ idBase, title: page.title, kind: 'wiki-page', authority, game: 'ss13-meridian', url: wikiPageUrl(page.title), rights,
             attribution: 'Meridian Wiki contributors', maxParts: 20,
             sourceRevision: revision, fetchedAt: clock(), aliases: display && display !== page.title ? [display] : [],
-            sections: blocksToSections(extraction.blocks, page.title) });
+            sections: marked.sections });
           if (packed.truncated) truncated++;
           if (packed.documents.length) entries.push({ idBase, sourceRevision: revision, documents: packed.documents });
           else skipped.push('EMPTY');

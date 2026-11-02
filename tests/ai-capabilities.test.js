@@ -82,8 +82,7 @@ test('CAP-06 a reply keeps what passes; nothing left gives the owner\'s wording 
   assert.equal((await checkedReplyOutput({ ...reply, text: 'Saved!' }, { remembered: false, fallback })).output.text, 'fallback claim');
   assert.deepEqual((await checkedReplyOutput(reply, { remembered: false })).output, { kind: 'silent', memories: reply.memories });
   const kept = await checkedReplyOutput({ ...reply, text: 'Hello there.' }, { remembered: false, fallback });
-  assert.equal(kept.output.text, 'Hello there.'); assert.deepEqual(kept.removed, { claims: 0, references: 0, verdicts: 0, numbers: 0 });
-});
+  assert.equal(kept.output.text, 'Hello there.'); assert.deepEqual(kept.removed, { claims: 0, references: 0, verdicts: 0, numbers: 0, labels: 0 });});
 
 test('CAP-07 a listed channel renders as a channel link; others stay text', () => {
   const rendered = renderAiReply({ kind: 'reply', text: 'See #rules or #Rules, not #rulesx or C#rules.', purpose: 'answer', support: 'general_knowledge', citations: [] }, [], { channels: directory });

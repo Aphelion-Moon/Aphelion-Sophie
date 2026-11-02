@@ -2108,6 +2108,18 @@
     "max": 300
   },
   {
+    "id": "ai.reply.silent_addressed",
+    "group": "Sophie AI",
+    "source": "I can’t help with that one here.",
+    "max": 300
+  },
+  {
+    "id": "ai.reply.silent_addressed_staff",
+    "group": "Sophie AI",
+    "source": "I can’t help with that one here. Cases are handled in their own channels.",
+    "max": 300
+  },
+  {
     "id": "ai.invite",
     "group": "Sophie AI",
     "source": "Hi! You mentioned me in the server, but I only talk with members who’ve said yes. Press the button to choose; it only takes a moment.",

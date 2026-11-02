@@ -4,7 +4,7 @@
 // call is injected, so the oracle and end-to-end modes share this path and tests use a fake; finishTurn replays stored outputs.
 import { buildAiPrompt, aiSpeakerLabels } from '../../../apps/knowledge-worker/prompt.js';
 import { validateAiOutput, renderAiReply } from '../../../modules/assistant/output.js';
-import { checkedReplyOutput } from '../../../modules/assistant/reply-checks.js';
+import { answeredOutput, checkedReplyOutput } from '../../../modules/assistant/reply-checks.js';
 import { aiCommandNames } from '../../../modules/assistant/capabilities.js';
 import { defaultAiContexts, defaultParticipation, participationDecision } from '../../../modules/assistant/participation.js';
 import { defaultSystemText } from '../../../contracts/system-messages.js';
@@ -63,7 +63,7 @@ export async function finishTurn(record, output, { request, history, memories },
     record.dropped = dropped;
     if (valid.kind === 'reply') {
       const others = [...speakers.values()].filter(label => label !== own);
-      const checked = await checkedReplyOutput(valid, { remembered: memories !== null && (valid.memories?.length ?? 0) > 0, others,
+      const checked = await checkedReplyOutput(valid, { remembered: memories !== null && (valid.memories?.length ?? 0) > 0, own, others,
         commands: aiCommandNames(request.context), directory: request.config.directory ?? [], sources,
         said: [request.text, ...history.filter(item => item.kind !== 'assistant').map(item => item.text)].join('\n'),
         fallback: async kind => defaultSystemText(kind === 'claim' ? 'ai.reply.claim_removed' : 'ai.reply.unsupported_removed') });
@@ -71,6 +71,10 @@ export async function finishTurn(record, output, { request, history, memories },
       if (removed.length) record.removed = Object.fromEntries(removed);
       valid = checked.output;
     }
+    const answered = await answeredOutput(valid, { addressed: request.decision.proactive === false && request.decision.outcomes.includes('reply'),
+      contextName: request.context.name, wording: async name => defaultSystemText(name === 'staff' ? 'ai.reply.silent_addressed_staff' : 'ai.reply.silent_addressed') });
+    if (answered.templated) record.silentAddressed = true;
+    valid = answered.output;
     record.outcome = valid.kind; record.support = valid.support ?? null; record.citations = valid.citations ?? [];
     record.memoriesProposed = valid.memories ?? [];
     if (valid.kind === 'reply') {
