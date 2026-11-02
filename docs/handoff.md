@@ -41,7 +41,11 @@ to work safely. Earlier snapshots are in this file's git history.
 - **Known noise in the core log** (`C:\Aphelion\Sophie\logs\core\aphelion-bot.err.log`):
   - `KNOWLEDGE_SOURCE_GITHUB_FORBIDDEN` hourly since 4eeca3d (every 16 minutes before): the GitHub token is refused for the
     organisation listing, so no GitHub knowledge has synced since 25 October; the token's access still needs fixing;
-  - `DASHBOARD_DENIED_DASHBOARD_CREDENTIAL_INVALID` after each restart: old sessions, harmless.
+  - `AI_ADMISSION_SKIPPED_CHANNEL_NOT_CONFIGURED`, and sometimes `NO_CONSENT` or `AUDIENCE_CHANGED`, for messages in
+    channels without AI since AI was switched on (17:00 UTC, 2 November): diagnostics, not faults;
+  - after a restart: `DASHBOARD_DENIED_DASHBOARD_CREDENTIAL_INVALID` (old sessions), `ACTIVITY_REQUEST_SIGNIN` (an open
+    Shuttle run signing in again), and possibly one `MEMBER_RECORD_CHECK_FAILED code=DISCORD_TRANSPORT_DISABLED` while core
+    takes over the Gateway; that check retries 10 minutes later (seen passing at 18:24 UTC after the bc57644 install).
 - **Every install, publication and production write needs the owner's recorded approval.** Approval for one step does not
   carry over to the next. Templates: `.agent_docs/aphelion-sophie/deployment-bc57644-production-2026-11-02` for a
   source-only release (with `check-shuttle-quiet.mjs`, and `build-packet.mjs`, which builds a packet from the previous one),
@@ -85,7 +89,8 @@ re-post it with `member-records-forum-2026-10-30/edit-changelog-opening.mjs --ru
 
 **Regular check:** in core, at start and every 6 hours, beside the worker loop. It reads the member list and approved
 applications, opens missing records (including people who have left), notices changes made while Sophie was offline, and
-refreshes the channel map. It refuses a member list that would mean more than a few leaves at once.
+refreshes the channel map. It refuses a member list that would mean more than a few leaves at once. A check that fails
+runs again 10 minutes later.
 
 **Message store:**
 - text is kept 30 days, and who wrote which message a year (rows are cleared, never deleted);
@@ -112,9 +117,9 @@ post is copied into `member_record_messages`, and no AI reads it.
 | Migrations | `apps/core/storage/migrations/080`–`086` |
 | Tests | `tests/member-records*.test.js`, `scripts/integration/member-records-suite.mjs` (`--suite=member-records`) |
 
-### Production at handoff
+### Production at the last records check
 
-Read-only check at 22:28 UTC:
+Read-only check on 30 October at 22:28 UTC (not repeated since; a production read needs the owner's approval):
 - 489 records, 479 of them present, all delivered, none erroring;
 - 436 with an approved application;
 - 634 messages kept, none from tickets;
@@ -147,8 +152,8 @@ secret notes too (marked), full ticket transcripts, and everything already store
   - Sophie `4eeca3d` installed at 14:08 UTC.
   - The first run entered 89 records for 33 members, all posted by 14:11 UTC.
   - The changelog opening was re-posted.
-- **Packets:** `deployment-central-005-2026-11-02` and `deployment-4eeca3d-production-2026-11-02`, which is the template
-  for the next one.
+- **Packets:** `deployment-central-005-2026-11-02` and `deployment-4eeca3d-production-2026-11-02` (the template for a
+  release with a migration).
 - **Read-back tools:** `verify-moderation-entries.mjs` and `watch-moderation-delivery.mjs`, both hashes and counts only.
 - **Central deployment:** the sync runs from the copy in `C:\Aphelion\Central\sync`, not from the repository. Deploy a
   change by copying the files there. Run migrations from the repository with `npm run migrate`.
@@ -200,7 +205,7 @@ questions - 2 November 2026" and workplan tasks P53, P55a, P55b and P57.
 
 **Answer: mostly retrieval and grounding.** In the live run (270 calls on the owner's budget), the model passed 122 of 135
 runs when handed the right passages, but only 93 of 135 in the real turn. The model's own fault is judging incidents
-("That's definitely RDM"); that check is a P53 deliverable.
+("That's definitely RDM"); a prompt rule and a reply check now remove such verdicts (`da650cd`).
 
 **Owner decisions (2 November):**
 - CI is the Combat Indicator, and "combat intent" is an alias.
@@ -210,7 +215,8 @@ runs when handed the right passages, but only 93 of 135 in the real turn. The mo
 - No model training.
 
 **Installed as `bc57644` at 18:13 UTC on 2 November and pushed.** The prepared `b166a19` packet was never run and is
-superseded. For part of the evening another session had the main checkout on `claude/radio-p58-domain` (radio, P58, not
+superseded. Not verified yet: the knowledge sync's one-time re-read of the wiki and Guidebook. The read-only count
+(`check-knowledge-sync.mjs` in the bc57644 packet) was refused as a production read without its own owner approval. For part of the evening another session had the main checkout on `claude/radio-p58-domain` (radio, P58, not
 merged); check the branch before committing. That branch also edits `docs/workplan.json`, so expect a conflict there when
 it merges: take both sides and run `node scripts/build-workplan.mjs`.
 
@@ -226,6 +232,7 @@ it merges: take both sides and run `node scripts/build-workplan.mjs`.
 | Capability manifest in the prompt (her real commands, what she cannot do, how Whitelist is earned), the owner's channel directory (dashboard, AI page), and reply checks: unlisted channels and commands, incident verdicts and promises to report, numbers no source gives | `da650cd` |
 | Evaluator: turns use the same checks; `ai-eval-rejudge.mjs --replay` re-runs stored live replies through them | `3d914af` |
 | No turn labels in replies, an answer for addressed silence, example kinds, faces kept by redaction, out-of-date wiki sections (H5, M5, H7) | `d176f27` |
+| Storage scenario P19-RT22 expects the fixed reply to an addressed silence | `bc57644` (installed) |
 
 **Measured** (retrieval only, no model calls), Wolfgate questions on the labelled snapshot:
 
@@ -238,8 +245,8 @@ it merges: take both sides and run `node scripts/build-workplan.mjs`.
 
 - The routing column was re-scored after five cases' gold was extended to accept the glossary section that paraphrases a
   passage they already accepted, hence 34 rather than 33.
-- The two misses have nothing to find: the GitHub source is empty while its token is refused, and appeals need the
-  capability manifest.
+- The two misses have nothing to find: the GitHub source is empty while its token is refused, and nothing says how a
+  member appeals a Wolfgate ban (the owner's to publish, for example as a directory channel or a knowledge document).
 - Installed with `bc57644`: the knowledge sync re-reads every wiki and Guidebook page once, after which documents carry
   their game. The glossary works once the owner publishes the entries, labels or not.
 - **Narrowing to know about:** a plain-language code question ("how does the cloning system work") no longer triggers code
@@ -288,11 +295,13 @@ needs the owner's channel list and an approval for each run.
 - Character proposals for the owner: `GitHub/.agent_docs/aphelion-sophie/character-proposals-2026-11-02/proposals.md`.
 
 **Next, in order:**
-1. The owner fills the channel directory, reviews the wording, publishes the glossary drafts and a revised character,
+1. With the owner's approval, count the knowledge re-read (`check-knowledge-sync.mjs`, read-only) and take a fresh
+   snapshot, then re-run the retrieval evaluator on production labels.
+2. The owner fills the channel directory, reviews the wording, publishes the glossary drafts and a revised character,
    and withdraws the Red Server Policy if it is defunct.
-2. The harvest, once the owner names channels; more glossary terms come from it.
-3. Context briefs and the game per channel (M6, a schema change that needs approval).
-4. Go live in a channel (which re-accepts the profile), then a live trial on budget.
+3. The harvest, once the owner names channels; more glossary terms come from it.
+4. Context briefs and the game per channel (M6, a schema change that needs approval).
+5. Go live in a channel (which re-accepts the profile), then a live trial on budget.
 
 **Owner inputs outstanding:**
 - the channel directory: which channels Sophie may name (rules, announcements, tickets, ban appeals…) and their IDs;
@@ -305,6 +314,7 @@ needs the owner's channel list and an approval for each run.
 - leaving the upstream rulesets out entirely, or keeping them relabelled;
 - withdrawing the Red Server Policy (it carries no banner, so the collector cannot tell);
 - context briefs;
+- approval of the read-only knowledge count and a fresh snapshot;
 - each call budget, Go live per channel (with the profile re-acceptance) and each install.
 
 ## Shuttle Activity: what is left (P41)
@@ -326,33 +336,45 @@ needs the owner's channel list and an approval for each run.
 ### Tests
 
 Run `npm test`, `npm run check` and `npm run test:storage:fast` (isolated PostgreSQL), and record the actual counts. For
-a small edit, run only the affected test files. Last full runs: 981 unit tests on main (2 November, after H5, M5 and H7) and 1058
-storage tests passed. On 2 November only the AI storage suites ran (`node scripts/test-storage.mjs --suite=ai`, 104 passed
-after the reply checks).
+a small edit, run only the affected test files. Last full runs, at `bc57644` (2 November): 981 unit tests and 1063 storage
+tests passed. One suite alone: `node scripts/test-storage.mjs --suite=<name>` (for example `ai`, `staging`,
+`system-wording`, `member-records`).
 
-### Install (production, source-only)
+### Install (production)
 
-1. Copy the last packet folder's scripts and JSON into `deployment-<sha>-production-<date>`.
+Run the full tests at the candidate first, and install the commit at the tip of a pushed or about-to-be-pushed `main`.
+
+1. Make the packet folder `deployment-<sha>-production-<date>` in `GitHub/.agent_docs/aphelion-sophie`.
+   - **Source-only release:** copy `build-packet.mjs` from the last source-only packet (`deployment-bc57644-…`), set its
+     old and new hashes, scope wording and expected file count, and run it. It copies the scripts and reviewed inputs,
+     swaps the identifiers (full hashes first, then short hashes and folder names) and writes the reviewed file list.
+   - **Release with a migration:** start from `deployment-4eeca3d-…` and adapt by hand the same way, plus
+     `migrate-production.mjs` and `revert-migration.mjs`. **A migration that adds a table must grant it** like
+     `shuttle_activity_runs`, or core will not start. Rehearse the migration and its revert on a synthetic cluster
+     (`rehearse-migration.mjs`).
 2. Run `git archive --format=zip -o source-<sha>.zip <sha> -- apps contracts modules platform legal content/shuttle-activity
-   package.json package-lock.json LICENSE`, then unzip it into `pinned/source`.
-3. Adapt the scripts, replacing the identifiers in order: the full commit hashes first, then the short hashes and
-   folder names.
-4. Set the reviewed file list and count (`git diff --name-only <installed> <sha> -- …`), the migrations added and their
-   count, and `migrate-production.mjs` / `revert-migration.mjs`.
-5. **A migration that adds a table must grant it** like `shuttle_activity_runs` in `migrate-production.mjs`, or core will
-   not start.
-6. Rehearse the migration and its revert on a synthetic cluster (`scripts/lib/postgres-test-cluster.mjs`).
-7. Run `prepare.mjs` (read-only against production).
-8. Write `approval.json` quoting the owner.
-9. Run `run-deployment.ps1` elevated and unsandboxed (`Start-Process pwsh -Verb RunAs`, then wait for `run.exit`).
-10. If the public check sees 503 in the first minute, run `verify-public.mjs` again before calling it failed.
+   package.json package-lock.json LICENSE`, then unpack it into `pinned/source` (PowerShell `Expand-Archive`).
+3. Run `prepare.mjs` (read-only against production): it checks the installed baseline against Git and its manifest, the
+   reviewed scope and the dependencies, and copies them into `pinned/source`. **If the release changes the Mistral profile
+   hash**, `prepare.mjs` must record the change (as bc57644's does); the install then writes the new hash into both trust
+   files, which the worker checks at start.
+4. Run `check-shuttle-quiet.mjs` (read-only). If a Shuttle run is open with recent attention, ask the owner whether to wait.
+5. Write `approval.json` quoting the owner.
+6. Run `run-deployment.ps1` elevated and unsandboxed, then wait for `run.exit` (`run.log` holds the statuses):
+   `Start-Process pwsh -Verb RunAs -WorkingDirectory <packet> -ArgumentList '-NoProfile','-ExecutionPolicy','Bypass','-Command',"Set-Location '<packet>'; & '.\run-deployment.ps1' *> run.log; Set-Content -LiteralPath run.exit -Value `$LASTEXITCODE"`.
+7. If the public check sees 503 in the first minute, run `verify-public.mjs` again before calling it failed.
+8. Afterwards: check the services and the core log since the start, record the install (verification, decision log,
+   workplan, this page, the packet's README) and push.
 
-`rollback.ps1` restores the preserved installation; `revert-migration.mjs` undoes that release's migration.
+`rollback.ps1` restores the preserved installation; `revert-migration.mjs` undoes that release's migration. Read each
+packet's rollback notes: after bc57644's knowledge re-read, older releases refuse the game label on synced documents.
 
 ### Read-only production queries
 
 Use `C:\Aphelion\Sophie\production\owner.json` inside `BEGIN READ ONLY`. Print counts and fixed fields, never member
-text.
+text. The auto-mode classifier refuses a production read that the owner's request does not clearly cover ("Production
+Reads"): during the bc57644 install, `prepare.mjs` and `check-shuttle-quiet.mjs` ran, but a knowledge count afterwards was
+refused. Ask the owner for that read, then run it.
 
 ### The Activity
 
@@ -380,8 +402,12 @@ log and this page.
 - **Changing production capability grants** needs a `capabilityPolicy.version` bump, or every authorization fails.
 - **Installs:** `SERVICE_CHILD_STILL_RUNNING` means a child process outlived the stop. Confirm none is left, then run the
   same folder again.
-- **An install restarts core** and interrupts anyone in the Shuttle. Check that no run is active first: a read-only query
-  of runs with recent attention, and ask the owner.
+- **An install restarts core** and interrupts anyone in the Shuttle. Check that no run is active first
+  (`check-shuttle-quiet.mjs`), and ask the owner if one is: on 2 November one was open and the owner chose to install.
+- **Another session may share this checkout.** On 2 November one switched it to its own branch mid-task. Check the branch
+  before every commit; to commit to `main` meanwhile, use a temporary `git worktree add <scratchpad>/main-wt main` (join
+  `node_modules` with a directory junction, copy `.local/postgres-runtime.json`, delete the junction before
+  `git worktree remove`).
 - **The browser pane crashed the desktop app** when a new tab was created and resized. Use text dumps instead.
 - **The repository ignores `dist/`.** A test checks that every vendored SDK file is tracked; keep it.
 - **A published story reaches new runs only.**
