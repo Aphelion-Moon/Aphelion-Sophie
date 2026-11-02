@@ -2872,3 +2872,34 @@ are ready." Aphelion-Central migration 005 and the moderation sync went first, a
 with `b7be05f`) was installed at 14:08 UTC. Every check passed. The first feed run entered 89 records for 33 members, posted
 by 14:11 UTC and kept out of the changelog, and the pinned opening was re-posted. Folders
 `deployment-central-005-2026-11-02` and `deployment-4eeca3d-production-2026-11-02`.
+
+### Preparing Sophie for Wolfgate gameplay questions - 2 November 2026
+
+**Owner request.** Sophie's memory and personality should learn from what the Discord already holds. In testing she read
+"CI" as GitHub workflows instead of the combat rule; the owner asked whether that is a model or a retrieval problem, and
+how Sophie should be prepared to handle what comes up in SS14 Wolfgate gameplay.
+
+**Finding.** Mostly retrieval and grounding; the model makes it worse. "combat intent" is in no published passage, the
+developer pages ("Required Tests (Continuous Integration)") share the index with the rules, Wolfgate has no CI rule and
+evidence names no game, and the contract lets her answer from general knowledge when nothing fits. With the right passage
+supplied she answered CI correctly and cited it. Training the model is excluded (AGENTS.md) and would not fix it; her
+memories are per-member notes, not a knowledge store. Community knowledge goes into owner-published knowledge documents.
+
+**Owner answers.**
+- *Discord:* "Staff posts, named channels". Staff-authored messages in public channels the owner names may be read by a
+  host-only, GET-only operator script, redacted, and distilled by the coding agent into knowledge documents the owner
+  reviews and publishes. This narrowly supersedes the "historical imports" exclusion of the configurable-participation
+  decision and the Discord-history part of [0005](0005-mediawiki-extraction.md), for that scope only. Raw messages never
+  enter the knowledge store, a Mistral prompt or a memory. The Discord rules channel stays excluded: those rules still
+  come from the owner's text file (P20, P39). Tickets, the member-records forum, case exclusions, onboarding and channels
+  @everyone cannot see are refused by the script. Each run is its own recorded approval.
+- *CI:* "Combat Indicator". This settles the 24 October open point; "combat intent" is a search alias.
+- *CI on Wolfgate:* "No, Wolfgate uses CR 1". Escalation on Wolfgate is declared in local, shortband or broadband chat
+  (Guidebook Conflict Rule 1). That is covered, not a gap, so the Meridian fallback does not bring CI to Wolfgate.
+- *First question types:* "Rules and terms", "Mechanics how-to", "Where to report or appeal", "Lore and factions". For
+  reports and appeals Sophie explains the rule and points to ahelp or a ticket; she never judges an incident.
+
+**Plan approved.** Measure first: an evaluator that runs each case in retrieval, oracle (gold passages supplied) and
+end-to-end modes, so every failure is labelled coverage, retrieval, interference or model (P55a). Then game labels on
+sources, gameplay/development routing, a glossary with alias expansion, the capability manifest, the harvest (P57), and
+budgeted live trials before any Go live. AI stays off in production meanwhile.

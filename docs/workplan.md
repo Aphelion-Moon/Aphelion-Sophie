@@ -228,7 +228,7 @@ These are bounded next steps within the task dependencies below. An unresolved l
 
 ## Task status
 
-Status counts: 3 complete; 43 in progress; 7 planned, not started. These are full-task statuses, not a percentage of code or release readiness.
+Status counts: 3 complete; 44 in progress; 8 planned, not started. These are full-task statuses, not a percentage of code or release readiness.
 
 An in-progress task can contain several verified milestones and still have unfinished implementation or acceptance. Acceptance IDs below link requirements to tasks; they do not assert that those specifications have passed.
 
@@ -289,8 +289,10 @@ An in-progress task can contain several verified milestones and still have unfin
 | P52 — Memory privacy and honesty (release blocker for memory) | in_progress | P51 |
 | P53 — Grounding, capabilities and community vocabulary | pending | P51 |
 | P54 — Retrieval, citations, code search and lookup | pending | P51 |
-| P55 — Model profile and the probe as a release gate | pending | P52, P53 |
+| P55a — Evaluator: telling model failures from retrieval failures | in_progress | None |
+| P55b — Model profile trials and the probe as a release gate | pending | P52, P53, P55a |
 | P56 — Member records: a Staff forum with one post per member | in_progress | None |
+| P57 — Curated Discord harvest into owner-published knowledge | planned_not_started | None |
 
 ## P00 — Freeze scope and deployment inputs
 
@@ -1781,13 +1783,14 @@ Review findings C4, H1, H2, H3, H5, H7, M5, M6 in .agent_docs/aphelion-sophie/so
 Full task deliverables:
 
 - H3: owner-published capability manifest and channel directory (commands /sophie, /lookup, /whitelist post; what she cannot do: voice, music, moderation, roles, live server or build status); a rule and a validation check that she never names a channel, command or process outside it
-- H2: owner-approved glossary published as a knowledge document with aliases (CI, PMS, RDM, EORG ...), plus alias query expansion; settle Combat Indicator versus Combat Intent
+- H2: owner-approved glossary published as knowledge documents with aliases (CI, PMS, RDM, EORG ...), one document per term (glossary-<slug>), plus alias query expansion off the development route. Owner, 2 November 2026: CI is Combat Indicator ("combat intent" is an alias); on Wolfgate CI does not apply, escalation follows Guidebook Conflict Rule 1
 - C4: lexical support check for provided_sources answers (numbers, channels, commands and rule codes must appear in a cited passage or the glossary); proactive replies need a retrieval score floor
 - H1: Guidebook upstream rulesets relabelled as upstream references (or left out) and every evidence block names its game; an answer naming Wolfgate cites Wolfgate policy or says it relies on the Meridian fallback
 - H7: defunct or banner-flagged pages (Red Server Policy, Starter Guide intents) withdrawn or marked historical
 - H5: "Member N" labels removed from rendered replies; an addressed turn that comes back silent gets an owner-worded template reply
 - M5: character examples may carry support and citations; owner-written examples for a capability refusal, "not verified" and a memory; joke about herself, never about facts; system message 0 exempt from redaction
 - M6: owner-written context briefs; game per channel (schema change, owner approval); prompts say /sophie instead of the preferences page
+- Routing (2 November 2026 plan): source families (gameplay, development, general) so gameplay questions never retrieve developer pages; a game label on every document (ss13-meridian, ss14-wolfgate, ss14-upstream, both) used as a score preference, never a filter; game and source name in evidence blocks; no answer from general knowledge on community rules when retrieval is empty
 
 Boundary: Manifest, directory, glossary, briefs and character changes are owner publications. Validation may refuse or replace a reply; it never grants anything.
 
@@ -1809,18 +1812,35 @@ Full task deliverables:
 
 Boundary: GitHub token only in Authorization headers to api.github.com; no generic URL fetching.
 
-## P55 — Model profile and the probe as a release gate
+## P55a — Evaluator: telling model failures from retrieval failures
 
-Status: **pending**. Phase: AI quality. Priority: P1.
+Status: **in_progress**. Phase: AI quality. Priority: P0.
 
-Depends on: P52, P53. Acceptance: cases-review.json gates pass before every AI release.
+Depends on: None. Acceptance: unit tests for every assert and the diagnosis table, retrieval mode runs offline against a snapshot with no secrets, live modes refuse to run without --live and --max-calls.
 
-Review findings M8 and M10 in .agent_docs/aphelion-sophie/sophie-probe-2026-10-24/review.md.
+Split out of P55 by the 2 November 2026 plan (decision log), so the evaluator can measure P53 and P54. Review finding M10 in .agent_docs/aphelion-sophie/sophie-probe-2026-10-24/review.md.
 
 Full task deliverables:
 
-- M10: probe evaluator for the assert fields, N runs per case, a pinned knowledge snapshot, and a staging-backed memory suite
-- M8: trials of strict JSON schema output, temperature by context (support and staff about 0.2) and mistral-medium for support, compared on cases-review.json
+- M10: assert evaluator for the cases-review.json assert fields plus requireCitationGame, forbidSourceFamily, pointer and noVerdict; N runs per case
+- Pinned knowledge snapshot loaded into a disposable cluster through insertPublication, with an overlay for unpublished drafts
+- Three modes per case: retrieval (gold hit@5, forbidden sources), oracle (gold passages through the real prompt, client, validation and rendering) and end-to-end; diagnosis per case: coverage, retrieval, interference, model, flaky
+- A Wolfgate gameplay case class (about 45 cases: CI, escalation, NLR, portstriking, war level, safe zones, metacomms, factions, upstream rulesets, mechanics, report pointers, Meridian fallback)
+- An offline retrieval baseline on the current code before any P53/P54 change
+
+Boundary: Synthetic cases only in the repository; real snapshots, live wrappers and run outputs stay in .agent_docs. Live model calls need an owner-recorded budget. The evaluator never writes to a production database.
+
+## P55b — Model profile trials and the probe as a release gate
+
+Status: **pending**. Phase: AI quality. Priority: P1.
+
+Depends on: P52, P53, P55a. Acceptance: cases-review.json and Wolfgate class gates pass before every AI release.
+
+Review finding M8 in .agent_docs/aphelion-sophie/sophie-probe-2026-10-24/review.md; the evaluator is P55a.
+
+Full task deliverables:
+
+- M8: trials of strict JSON schema output, temperature by context (support and staff about 0.2) and mistral-medium for support, compared on cases-review.json and the Wolfgate class; mistral-medium only if oracle-mode failures remain
 
 Boundary: A model or profile change alters mistralProfileHash and needs policy re-acceptance and requalification.
 
@@ -1875,3 +1895,20 @@ Full task deliverables:
 - Game moderation from Meridian Rift and Wolfgate (owner, 2 November 2026): bans, unbans, notes, messages, watchlist entries (secret marked) and admin help transcripts, read from Aphelion-Central identity.member_moderation (migration 086, member_record_sources); Wolfgate ahelps wait for a Wolfgate PR. Later: Discord moderation (Guild Moderation intent, View Audit Log)
 
 Boundary: No AI reads or writes member records. Sophie decides nothing and sets no role from an application, and never opens, joins or reads an interview. Rejected applications are not recorded. /member watch changes only the record's Watch tag and entry, never roles or access.
+
+## P57 — Curated Discord harvest into owner-published knowledge
+
+Status: **planned_not_started**. Phase: AI quality. Priority: P1.
+
+Depends on: None. Acceptance: unit tests for the exclusion decision, redaction, author filter and the GET-only wrapper (synthetic fixtures), dashboard test for the draft loader.
+
+Owner decision of 2 November 2026 in the decision log ("Staff posts, named channels").
+
+Full task deliverables:
+
+- Host-only, GET-only operator script in .agent_docs: --plan refuses ticket category, member-records forum, case exclusions, channels @everyone cannot see and the rules channel; --run reads only staff-authored posts (or listed webhooks) in owner-named public channels, redacted, with case-vocabulary messages dropped
+- Review packet with message links, dates and author roles (no usernames), deleted once its documents are published
+- Distilled drafts (glossary terms, Wolfgate rulings FAQ, process pointers, lore summaries) checked with canonicalKnowledgeDocument and measured by evaluator overlay
+- Dashboard "Open draft file" button that fills the owner knowledge editor; publication stays the owner's act
+
+Boundary: Raw messages never enter the knowledge store, a Mistral prompt or a memory. Only core's bot identity reads Discord, from the host. The rules channel stays excluded (P20, P39). Each run is its own recorded approval.
