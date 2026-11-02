@@ -1,5 +1,31 @@
 # Verification and release limits
 
+## Game moderation in the member records, installed — 2 November 2026
+
+- **Owner:** "Install and update main when you are ready." Quoted in both packets' `approval.json`.
+- **Aphelion-Central, 14:02 UTC** (`deployment-central-005-2026-11-02`):
+  - Migration 005 applied; 001–004 matched their recorded checksums.
+  - The dry run read 88 Meridian Rift and 7 Wolfgate records and wrote nothing. The first real run wrote them; test and
+    mapping servers are read but kept out of the view.
+  - The sync's four files were deployed to `C:\Aphelion\Central\sync\sync`; the previous files are kept in the folder.
+  - All 89 view rows (33 members) pass Sophie's validator and render within Discord's limits:
+    - Meridian Rift: 1 ban, 13 notes, 68 admin help tickets;
+    - Wolfgate: 1 ban, 6 notes.
+- **Sophie 4eeca3d, 14:08 UTC** (`deployment-4eeca3d-production-2026-11-02`):
+  - Before the run: `prepare.mjs` passed against 456f27d, and the 086 rehearsal passed (apply, revert, apply). No Shuttle
+    run was open with attention in the previous hour.
+  - The run: migration 086 applied, granted like `member_record_channels`. Pre-start, boundary, installation and public
+    checks passed.
+  - Delivery: the first feed run entered 89 records. All 89 were posted by 14:11:46 UTC, no record left erroring, none
+    in the changelog.
+  - Read-back of 10 random entries:
+    - each equals the installed renderer, by hash;
+    - tickets are out of the ledger, notes are in it;
+    - none has a changelog line.
+  - The pinned changelog opening was re-posted at 14:11 UTC.
+- **Not seen live yet:** a change entry (a lift, an edit, a deletion or a reopened ticket), and a ticket still open when
+  the release went in that closes later.
+
 ## Game moderation in the member records, built offline — 2 November 2026
 
 - **Scope (owner, 2 November 2026):** Meridian Rift and Wolfgate bans, unbans, notes, messages and watchlist entries

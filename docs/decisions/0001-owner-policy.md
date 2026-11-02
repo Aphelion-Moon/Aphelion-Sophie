@@ -2866,3 +2866,9 @@ follow-up entry; a ticket is entered once closed or once its round has ended, it
 stay in the post only, out of the ledger and the changelog; bans and notes get both, except the first run's history,
 which skips the changelog. No AI reads any of it: the forum stays a permanent case exclusion, and tests use synthetic
 data only.
+
+**Released (2 November 2026).** The owner, asked to commit: "Yes, commit both"; then: "Install and update main when you
+are ready." Aphelion-Central migration 005 and the moderation sync went first, at 14:02 UTC. Sophie `4eeca3d` (migration 086,
+with `b7be05f`) was installed at 14:08 UTC. Every check passed. The first feed run entered 89 records for 33 members, posted
+by 14:11 UTC and kept out of the changelog, and the pinned opening was re-posted. Folders
+`deployment-central-005-2026-11-02` and `deployment-4eeca3d-production-2026-11-02`.

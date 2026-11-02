@@ -1,6 +1,6 @@
 {
   "schema_version": 2,
-  "revision": "2026-10-30-production-a45ca0f",
+  "revision": "2026-11-02-production-4eeca3d",
   "reference_plan_version": "1.1",
   "source": "Sophie-Implementation-Plans-v1.1/backlog.json",
   "owner_decisions": "docs/decisions/0001-owner-policy.md",
@@ -2009,10 +2009,11 @@
         "a6fa5b3 installed 17:49 UTC (migration 084): role change entries with audit-log attribution, roles in each header; the first check filled role IDs for all 478 present members with no entries; pinned post text updated 17:51 UTC; first real message.edited entries recorded",
         "a45ca0f installed 22:27 UTC: quick role changes as one entry, the audit fixes; the regular check (22:28 UTC, beside the worker loop) changed nothing; pinned opening re-posted 22:29 UTC (1,966 characters)",
         "456f27d installed 31 October 01:51 UTC (migration 085): games messages from the central identity database every 15 minutes",
-        "Game moderation built offline 2 November 2026 (not committed or installed): Aphelion-Central migration 005 (identity.moderation_records, view identity.member_moderation) and sync readers for Meridian Rift (SS13_ban grouped per decision, SS13_messages, SS13_ticket per round and number) and Wolfgate (server and role bans, notes, messages, watchlists); Sophie migration 086, store enterModeration, moderation feed beside the games feed, rendering and header counts; changelog opening reworded (1,991 characters). Tests: npm test 949 passed; npm run check passed; storage 1060 passed, 0 failed (4 shards); Central 13 passed; Central 001-005 rehearsed on a synthetic cluster"
+        "Game moderation built offline 2 November 2026 (not committed or installed): Aphelion-Central migration 005 (identity.moderation_records, view identity.member_moderation) and sync readers for Meridian Rift (SS13_ban grouped per decision, SS13_messages, SS13_ticket per round and number) and Wolfgate (server and role bans, notes, messages, watchlists); Sophie migration 086, store enterModeration, moderation feed beside the games feed, rendering and header counts; changelog opening reworded (1,991 characters). Tests: npm test 949 passed; npm run check passed; storage 1060 passed, 0 failed (4 shards); Central 13 passed; Central 001-005 rehearsed on a synthetic cluster",
+        "Game moderation released 2 November 2026 (owner: \"Install and update main when you are ready.\"): Aphelion-Central migration 005 and the moderation sync deployed at 14:02 UTC (88 Meridian Rift and 7 Wolfgate records; 89 view rows for 33 members, all valid); Sophie 4eeca3d installed at 14:08 UTC with migration 086 granted to sophie_prod_core; every packet check passed; the first feed run entered 89 records, all posted by 14:11:46 UTC without errors and kept out of the changelog; a 10-entry read-back matched the renderer; the changelog opening re-posted (1,991 characters)"
       ],
       "remaining_scope": [
-        "Game moderation release, each step with recorded owner approval: commit Aphelion-Central (no commits yet) and Sophie; run Central migration 005 and a sync --dry-run (counts only); install Sophie with migration 086 (grant member_record_sources to sophie_prod_core); re-post the changelog opening; watch the first feed run (history kept out of the changelog)",
+        "Live checks of game moderation: a change entry (lift, edit, deletion, reopened ticket) and a ticket closing after the release",
         "Wolfgate ahelps: the PR plan in .agent_docs/aphelion-sophie/wolfgate-ahelp-persistence/PLAN.md, then a Central reader; opening the PR needs the owner's go-ahead",
         "Live checks: a real deletion and edit entry, a moderator deletion attributed from the audit log, /member watch by Staff, a real leave with message links",
         "Privacy notice line: message text kept 30 days, authors a year, deleted and edited messages kept in the record",

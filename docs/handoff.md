@@ -1,4 +1,4 @@
-# Sophie development handoff — 30 October 2026, night
+# Sophie development handoff — 2 November 2026
 
 Sophie provides deterministic community administration, Whitelist onboarding, private cases and website configuration.
 No AI may receive ticket or onboarding session content.
@@ -13,7 +13,8 @@ to work safely. Earlier snapshots are in this file's git history.
 
 ## Production now
 
-- **Release:** **`456f27d`** (schema 085), installed 31 October 2026 at 01:51 UTC. Everything is pushed to `origin/main`.
+- **Release:** **`4eeca3d`** (schema 086), installed 2 November 2026 at 14:08 UTC: game moderation in the record posts, the
+  Gateway queue fix and the hourly GitHub 403 retry. Before it, `456f27d` (schema 085), from 31 October.
 - **Central identity database:** core reads `aphelion_central` (127.0.0.1:5490, service `aphelion-central-postgres`) as
   `sophie_central_reader`, read-only, for the posts' games messages (ADR 0006). Its docs are in the `Aphelion-Central`
   repository.
@@ -33,7 +34,8 @@ to work safely. Earlier snapshots are in this file's git history.
 - **AI:** switched off in production; the log says `AI_ADMISSION_SKIPPED_AI_DISABLED`. The owner's focus is elsewhere,
   so don't press for Go live after each release; it stays in the workplan.
 - **Known noise in the core log** (`C:\Aphelion\Sophie\logs\core\aphelion-bot.err.log`):
-  - `KNOWLEDGE_SOURCE_GITHUB_FORBIDDEN` hourly: the GitHub token's access still needs fixing;
+  - `KNOWLEDGE_SOURCE_GITHUB_FORBIDDEN` hourly since 4eeca3d (every 16 minutes before): the GitHub token is refused for the
+    organisation listing, so no GitHub knowledge has synced since 25 October; the token's access still needs fixing;
   - `DASHBOARD_DENIED_DASHBOARD_CREDENTIAL_INVALID` after each restart: old sessions, harmless.
 - **Every install, publication and production write needs the owner's recorded approval.** Approval for one step does not
   carry over to the next. The last packet, `.agent_docs/aphelion-sophie/deployment-456f27d-production-2026-10-31`, is
@@ -121,7 +123,7 @@ These are covered by tests, but worth a look the first time each happens:
 - a leave with message links;
 - a replaced application.
 
-### Game moderation (built 2 November 2026, not installed)
+### Game moderation (installed 2 November 2026, 14:08 UTC, as 4eeca3d)
 
 The owner asked for Meridian Rift and Wolfgate admin help tickets, notes and bans in each member's post: all of them,
 secret notes too (marked), full ticket transcripts, and everything already stored.
@@ -133,9 +135,16 @@ secret notes too (marked), full ticket transcripts, and everything already store
   The header's Moderation line counts each game's bans, notes and admin helps.
 - **Wolfgate ahelps:** not stored anywhere on the host; the PR plan is in
   `GitHub/.agent_docs/aphelion-sophie/wolfgate-ahelp-persistence/PLAN.md`.
-- **Release, each step approved:** commit both repositories; Central `npm run migrate` then `npm run sync:dry` (counts
-  only); a Sophie packet with migration 086 (grant `member_record_sources` to `sophie_prod_core`); re-post the changelog
-  opening (1,991 characters); watch the first feed run.
+- **Live since 2 November:**
+  - Central migration 005 and the moderation sync, deployed to `C:\Aphelion\Central\sync\sync` at 14:02 UTC.
+  - Sophie `4eeca3d` installed at 14:08 UTC.
+  - The first run entered 89 records for 33 members, all posted by 14:11 UTC.
+  - The changelog opening was re-posted.
+- **Packets:** `deployment-central-005-2026-11-02` and `deployment-4eeca3d-production-2026-11-02`, which is the template
+  for the next one.
+- **Read-back tools:** `verify-moderation-entries.mjs` and `watch-moderation-delivery.mjs`, both hashes and counts only.
+- **Central deployment:** the sync runs from the copy in `C:\Aphelion\Central\sync`, not from the repository. Deploy a
+  change by copying the files there. Run migrations from the repository with `npm run migrate`.
 
 ### Open, in order
 
