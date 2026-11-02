@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { syntheticInteractions,APPLICATION } from './fixtures/interactions.js';
 import { GUILD,NOW } from './fixtures/domain.js';
 import { createKnowledgeLookupCommands } from '../apps/core/discord/knowledge-lookup.js';
+import { createKnowledgeLookup } from '../apps/core/runtime/knowledge-lookup.js';
 import { createAdministrationCommands } from '../apps/core/discord/onboarding-commands.js';
 import { createInteractionResponder } from '../apps/core/discord/interaction-response.js';
 import { knowledgeLookupReply } from '../modules/assistant/lookup.js';
@@ -51,4 +52,14 @@ test('DS07-L04 maximum source text remains exact within one Discord embed and ex
   assert.ok(embed.title.length+embed.description.length+embed.footer.text.length+embed.fields[0].name.length+embed.fields[0].value.length<=6000);
   assert.match(knowledgeLookupReply({status:'available',sources:[]}).content,/No current reviewed/);
   assert.throws(()=>knowledgeLookupReply({status:'available',sources:[{...source,url:'https://user:password@example.test/'}]}));
+});
+test('DS07-L05 five library passages show the first four instead of failing the lookup',async()=>{
+  const five=[0,1,2,3,4].map(index=>({...source,id:`guide.r1.s${index}`,heading:`Topic ${index}`})),checked=[];
+  const lookup=createKnowledgeLookup({clock:()=>NOW,authorization:{authorize:async()=>true},
+    knowledge:{lookup:async()=>five,current:async sources=>{checked.push(sources.length);return true;}}});
+  const result=await lookup.execute({actor:{userId:'202',guildId:GUILD},query:'topic'});
+  assert.deepEqual(result.sources.map(item=>item.heading),['Topic 0','Topic 1','Topic 2','Topic 3']);assert.deepEqual(checked,[4]);
+  assert.equal(knowledgeLookupReply({status:'available',sources:result.sources}).content.includes('first of 4 matches'),true);
+  const broken=createKnowledgeLookup({clock:()=>NOW,authorization:{authorize:async()=>true},knowledge:{lookup:async()=>null,current:async()=>true}});
+  await assert.rejects(broken.execute({actor:{userId:'202',guildId:GUILD},query:'topic'}),/KNOWLEDGE_RESULT_INVALID/);
 });

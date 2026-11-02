@@ -12,8 +12,10 @@ export function createKnowledgeLookup({authorization,knowledge,clock}) {
     const value=requireLookupQuery(query),request={guildId:actor.guildId,deadline:clock()+10000};
     const allowed=()=>authorization.authorize('answers.read',actor,{guildId:actor.guildId});
     requireCondition(await allowed()===true && await current()===true,'OPERATION_DENIED');
-    const sources=await knowledge.lookup(value,request);
-    requireCondition(Array.isArray(sources) && sources.length<=4,'KNOWLEDGE_RESULT_INVALID');
+    const found=await knowledge.lookup(value,request);
+    requireCondition(Array.isArray(found),'KNOWLEDGE_RESULT_INVALID');
+    // The library returns up to five passages; a lookup shows the first four (review M9, 24 October 2026: five had failed it).
+    const sources=found.slice(0,4);
     await valid(actor,request,sources,current);
     const result={actorId:actor.userId,guildId:actor.guildId,sources:sources.map(presentLookupSource)};
     prepared.set(result,{actor,request,sources,current});return result;
