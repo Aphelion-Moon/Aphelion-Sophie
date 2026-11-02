@@ -217,9 +217,8 @@ runs when handed the right passages, but only 93 of 135 in the real turn. The mo
 **Installed as `bc57644` at 18:13 UTC on 2 November and pushed.** The prepared `b166a19` packet was never run and is
 superseded. The knowledge re-read is done (counted at 19:28 UTC on the owner's approval): every wiki document and 359
 of 360 Guidebook documents carry their game, 55 Guidebook entries are upstream rulesets, the 34 website documents are
-labelled, and 404 wiki sections are marked out of date. For part of the evening another session had the main checkout on `claude/radio-p58-domain` (radio, P58, not
-merged); check the branch before committing. That branch also edits `docs/workplan.json`, so expect a conflict there when
-it merges: take both sides and run `node scripts/build-workplan.mjs`.
+labelled, and 404 wiki sections are marked out of date. For part of the evening another session had the main checkout on
+the radio branch: see [Radio](#radio-p58-built-offline-on-three-branches-not-merged).
 
 | What | Commits |
 |---|---|
@@ -317,6 +316,66 @@ needs the owner's channel list and an approval for each run.
 - context briefs;
 - approval of a fresh knowledge snapshot (a production read);
 - each call budget, Go live per channel (with the profile re-acceptance) and each install.
+
+## Radio (P58): built offline on three branches, not merged
+
+On 2 November the owner asked for a radio. Sophie plays SoundCloud and YouTube (through yt-dlp) in a voice channel. Staff
+run it, Crew make requests, and Mewn the Matriarch keeps primary control. It must not eat into the Discord rate limits the
+rest of Sophie needs. Choices that day:
+- a Stage channel first, `1566856309477871638` (its guild, type and Sophie's permissions there are not checked yet);
+  regular voice channels later, because since 1 March 2026 they require DAVE encryption and Stage channels do not;
+- Crew can request tracks and vote to skip;
+- a station playlist plays when nothing is queued.
+
+**Planned shape:**
+- **Core** keeps the only bot token. It owns the voice-state request (op 4), who is in the channel (in memory, never
+  stored), the queue, and who may do what.
+- **A new service, `aphelion-bot-radio`,** holds no token and no database. Core hands it one voice session at a time. It
+  speaks the voice gateway and UDP, and runs yt-dlp and FFmpeg at Below Normal priority.
+- **Budgets:** audio goes over UDP and costs nothing from Sophie's REST or Gateway budget. Joining and leaving have their
+  own small sub-budget. The panel is one message: button presses answer through the interaction response, and any other
+  edit waits at least 15 seconds and runs at the lowest priority.
+
+**Nothing ships before the owner decides** (none recorded yet; workplan P58 lists them):
+- superseding the voice exclusions in the reference plan (P09, `01-REQUIREMENTS` 36 and 45, `12-IDENTITY` 101, the plan
+  pack's AGENTS 22, licence test T02) and in the P53 capability manifest. Radio is not AI;
+- accepting the third-party content risk: YouTube's terms forbid access outside its player and API, and yt-dlp's
+  SoundCloud path is not the official API;
+- scope decisions for FFmpeg on the production host (today build-time only), for yt-dlp and what its build bundles
+  (Python, GPL-2.0 mutagen), and for Node as yt-dlp's JavaScript runtime;
+- that the guild owner holds `radio.configure`.
+
+Staging comes first; the Shuttle's production-first exception does not cover the radio.
+
+| Branch | Commits | What | Tests reported in its commits |
+|---|---|---|---|
+| `claude/radio-p58-domain` | `d955770`, `5d2f089` | `modules/radio/`: source allowlist and canonical links, owner settings, queue limits and turns, station picks, control precedence (owner hold, then Staff lock, then Crew), epochs, vote-skip; workplan P58 | RAD-D01 to D13 (13 passed), `npm run check` |
+| `claude/adoring-wiles-924b1e` (R1) | `919e710`, `5f0758c` | Core: migration 087 (`gateway_lifecycle.voice_enabled`); intent 128 only while a radio is configured, a change forcing a fresh Identify; voice dispatches advance only the cursor; Stage presence in memory; op 4 within a radio sub-budget; voice session broker (backoff 5 s to 5 min, stops after 5 failures) | RAD-G01 to G10; storage suites expect 87 migrations |
+| `claude/modest-margulis-077137` (R2) | `1e4db13` to `1dc0599` (6) | `apps/radio-worker/`: voice gateway v8, UDP discovery and RTP with both rtpsize AEAD modes, Ogg Opus demuxer, hrtime pacer; a check keeps the worker away from core, case, member and AI code (T46) | RAD-V01 to V16, T46 |
+
+**Branch status:**
+- Each session ran its own tests. Nobody has run `npm test` or the storage suites on the three together.
+- None is merged or pushed. Merge when the owner asks, in this order: the domain branch, then R1, then R2.
+- `docs/workplan.json` will conflict: take both sides and run `node scripts/build-workplan.mjs`.
+- R1 and R2 branch from `c2b7344`, 13 commits behind `main`. R1 takes migration 087, so the radio tables are 088.
+
+**Left, in order:**
+1. R3 media: yt-dlp and FFmpeg child processes, with no audio written to disk.
+2. R4 migration 088 and the store. A new table must be granted to `sophie_prod_core`.
+3. R5 capabilities, with a `capabilityPolicy.version` bump:
+   - `radio.request` for Crew, Staff and Lead Ops;
+   - `radio.operate` for Staff and Lead Ops;
+   - `radio.configure` for the guild owner.
+4. R6 `/radio` and the panel, in their own interaction lane.
+5. R7 the dashboard page.
+6. R8 the service, firewall, pinned tools, licences and `docs/radio.md`.
+7. A staging run in a Stage channel, then a one-hour soak counting REST calls by route.
+
+Later: regular voice channels through DAVE (`@snazzah/davey`, MIT, after its own licence review).
+
+**Expect:**
+- YouTube to refuse this host now and then ("Sign in to confirm you're not a bot"). Never use account cookies.
+- yt-dlp to need an update every few weeks. Pin each one, try it in staging, and get it approved.
 
 ## Shuttle Activity: what is left (P41)
 
