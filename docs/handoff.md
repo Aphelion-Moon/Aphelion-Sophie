@@ -203,7 +203,7 @@ runs when handed the right passages, but only 93 of 135 in the real turn. The mo
   the owner publishes.
 - No model training.
 
-**On `main`, not installed and not pushed** (main is 21 commits ahead of `origin/main`). For part of the evening of
+**On `main`, not installed and not pushed** (main is 23 commits ahead of `origin/main`). For part of the evening of
 2 November another session had the main checkout on `claude/radio-p58-domain` (radio, P58, not merged); the glossary
 commits went to `main` through a separate worktree. Check the branch before committing. That branch also edits
 `docs/workplan.json`, so expect a conflict there when it merges: take both sides and run
@@ -220,6 +220,7 @@ commits went to `main` through a separate worktree. Check the branch before comm
 | No Contact staff button on AI replies (owner direction, 2 November); buttons already posted still work | `65b8ceb` |
 | Capability manifest in the prompt (her real commands, what she cannot do, how Whitelist is earned), the owner's channel directory (dashboard, AI page), and reply checks: unlisted channels and commands, incident verdicts and promises to report, numbers no source gives | `da650cd` |
 | Evaluator: turns use the same checks; `ai-eval-rejudge.mjs --replay` re-runs stored live replies through them | `3d914af` |
+| No turn labels in replies, an answer for addressed silence, example kinds, faces kept by redaction, out-of-date wiki sections (H5, M5, H7) | `d176f27` |
 
 **Measured** (retrieval only, no model calls), Wolfgate questions on the labelled snapshot:
 
@@ -271,26 +272,36 @@ commits went to `main` through a separate worktree. Check the branch before comm
 tickets, member records, case exclusions, the rules channel and channels @everyone cannot see. It has never been run. It
 needs the owner's channel list and an approval for each run.
 
+**Also done (`d176f27`):**
+- "Member N" labels never reach a member.
+- An addressed turn that comes back silent gets the owner's wording.
+- Character examples can be marked as answers from general knowledge.
+- Faces such as "@_@" survive redaction (redaction v2; the Mistral profile hash changed, so re-accept the profile before
+  any Go live).
+- Wiki sections the wiki flags as out of date say so (12 pages and 192 sections on the snapshot; such a page stops being
+  policy).
+- Character proposals for the owner: `GitHub/.agent_docs/aphelion-sophie/character-proposals-2026-11-02/proposals.md`.
+
 **Next, in order:**
-1. The owner fills the channel directory, reviews the fallback and capability wording, publishes the glossary drafts, and
-   republishes the character without "the Contact staff button".
+1. The owner fills the channel directory, reviews the wording, publishes the glossary drafts and a revised character,
+   and withdraws the Red Server Policy if it is defunct.
 2. The harvest, once the owner names channels; more glossary terms come from it.
-3. Historical pages (H7), "Member N" labels and the silent-turn template (H5), character examples with citations (M5),
-   context briefs and the game per channel (M6).
-4. A live trial on budget.
+3. Context briefs and the game per channel (M6, a schema change that needs approval).
+4. A live trial on budget, with the profile re-accepted.
 5. An install, on approval.
 
 **Owner inputs outstanding:**
 - the channel directory: which channels Sophie may name (rules, announcements, tickets, ban appeals…) and their IDs;
-- the wording of `ai.reply.unsupported_removed` (wording page) and of the capability text (`modules/assistant/capabilities.js`);
-- the character example that still offers "the Contact staff button";
+- the wording page entries `ai.reply.unsupported_removed`, `ai.reply.silent_addressed` and
+  `ai.reply.silent_addressed_staff`, and the capability text (`modules/assistant/capabilities.js`);
+- the character: replace the Contact staff example, mark the factual examples, consider the proposed ones;
 - how a member appeals a Wolfgate ban: nothing in the sources says;
 - harvest channels;
 - review and publication of the 27 glossary drafts, and approval of each harvest document;
 - leaving the upstream rulesets out entirely, or keeping them relabelled;
-- which historical pages to withdraw (Red Server Policy, the Starter Guide's "Intents");
+- withdrawing the Red Server Policy (it carries no banner, so the collector cannot tell);
 - context briefs;
-- each call budget and each install.
+- each call budget, the profile re-acceptance and each install.
 
 ## Shuttle Activity: what is left (P41)
 
@@ -311,7 +322,7 @@ needs the owner's channel list and an approval for each run.
 ### Tests
 
 Run `npm test`, `npm run check` and `npm run test:storage:fast` (isolated PostgreSQL), and record the actual counts. For
-a small edit, run only the affected test files. Last full runs: 976 unit tests on main (2 November, after the reply checks) and 1058
+a small edit, run only the affected test files. Last full runs: 981 unit tests on main (2 November, after H5, M5 and H7) and 1058
 storage tests passed. On 2 November only the AI storage suites ran (`node scripts/test-storage.mjs --suite=ai`, 104 passed
 after the reply checks).
 
