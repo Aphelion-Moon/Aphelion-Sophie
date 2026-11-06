@@ -20,3 +20,15 @@ test('T18 outbox claims reject missing fencing, arbitrary job data and invalid I
   assert.throws(() => validateClaim({ ...claim, payload: 'disallowed' }), /INVALID_FIELDS/);
   assert.throws(() => validateClaim({ ...claim, operationId: '../arbitrary' }), /INVALID_OPERATION_ID/);
 });
+
+test('T18 a checked-out database client that loses its connection is reported, not an unhandled error (4 November 2026)', async () => {
+  const { EventEmitter } = await import('node:events');
+  const configuration = { host: '127.0.0.1', port: 55555, database: 'sophie_synthetic', user: 'sophie_test', password: 'synthetic-development-password-only' };
+  const reported = [];
+  const pool = createDatabasePool(configuration, code => reported.push(code));
+  const client = new EventEmitter();
+  pool.emit('connect', client);
+  assert.doesNotThrow(() => client.emit('error', new Error('Connection terminated unexpectedly')));
+  assert.deepEqual(reported, ['DATABASE_UNAVAILABLE']);
+  await pool.end();
+});

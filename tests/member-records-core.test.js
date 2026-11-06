@@ -312,3 +312,20 @@ test('MR-29 a post\'s name, tags or archived state can be changed only for a pos
   await assert.rejects(transport.editMemberRecordThread(ids(66), { name: 'renamed' }), /DISCORD_SCOPE_REFUSED/, 'a channel outside the forum');
   assert.equal(calls.filter(method => method === 'PATCH').length, 2);
 });
+
+test('P56 the channel map reads a server-wide active threads list above 512 KB, and stays bounded', async () => {
+  // 6 November 2026: 920 active threads made a 543 KB list, and the regular records check failed every ten minutes.
+  const thread = n => ({ id: ids(1000 + n), parent_id: FORUM, name: 'x'.repeat(100), thread_metadata: { archived: false, note: 'y'.repeat(450) } });
+  const threads = Array.from({ length: 1000 }, (_, n) => thread(n));
+  const transport = padding => createDiscordTransport({ guildId: GUILD, token: 'synthetic-token-not-a-secret-xx', clock: Date.now, enabled: async () => true,
+    scope: 'activity-ai', recordForumId: FORUM, fetch: async url => new URL(url).pathname.endsWith('/threads/active')
+      ? Response.json({ threads, members: [], has_more: false, padding }) : Response.json([{ id: FORUM, parent_id: null }]) });
+  const map = await transport('').getRecordChannelMap();
+  assert.ok(JSON.stringify({ threads }).length > 512 * 1024);
+  assert.equal(map.length, 1001);
+  await assert.rejects(transport('z'.repeat(4 * 1024 * 1024)).getRecordChannelMap(), /DISCORD_RESPONSE_INVALID/, 'still bounded');
+  // Other reads keep the 512 KB bound.
+  const roles = createDiscordTransport({ guildId: GUILD, token: 'synthetic-token-not-a-secret-xx', clock: Date.now, enabled: async () => true,
+    fetch: async () => Response.json(threads) });
+  await assert.rejects(roles.getRoles(), /DISCORD_RESPONSE_INVALID/);
+});

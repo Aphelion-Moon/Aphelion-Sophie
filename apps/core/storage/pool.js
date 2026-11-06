@@ -1,6 +1,15 @@
 import pg from 'pg';
 import { requireCondition, requireInteger, requireKeys } from '../../../contracts/validation.js';
 
+/**
+ * pg-pool listens for errors only on idle clients. A checked-out client whose connection drops (the host power-off of
+ * 4 November 2026 stopped PostgreSQL while core held one) emits an 'error' nobody handled, and the process exited. Every
+ * client gets its own listener; the query in flight still rejects, and the pool discards the client when it is released.
+ */
+function reportClientErrors(pool, code, onUnavailable) {
+  pool.on('connect', client => client.on('error', () => { try { onUnavailable(code); } catch { /* Never rethrow a database error. */ } }));
+}
+
 /** Explicit configuration only: never fall back to another service's PG* environment. */
 export function createDatabasePool(configuration, onUnavailable) {
   requireKeys(configuration, ['host', 'port', 'database', 'user', 'password']);
@@ -16,6 +25,7 @@ export function createDatabasePool(configuration, onUnavailable) {
     // No raw SQL/credentials/errors are sent to logs by this adapter.
   });
   pool.on('error', () => onUnavailable('DATABASE_UNAVAILABLE'));
+  reportClientErrors(pool, 'DATABASE_UNAVAILABLE', onUnavailable);
   return pool;
 }
 
@@ -36,5 +46,6 @@ export function createCentralIdentityPool(configuration, onUnavailable) {
     max: 2, connectionTimeoutMillis: 5_000, idleTimeoutMillis: 10_000, statement_timeout: 10_000, idle_in_transaction_session_timeout: 10_000,
   });
   pool.on('error', () => onUnavailable('CENTRAL_DATABASE_UNAVAILABLE'));
+  reportClientErrors(pool, 'CENTRAL_DATABASE_UNAVAILABLE', onUnavailable);
   return pool;
 }

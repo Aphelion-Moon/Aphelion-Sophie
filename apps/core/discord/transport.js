@@ -20,8 +20,16 @@ export class DiscordError extends Error {
   }
 }
 
-async function boundedJson(response) {
-  const max = 512 * 1024;
+const RESPONSE_MAX_BYTES = 512 * 1024;
+/**
+ * Reads that list a whole server get a larger bound (6 November 2026: the active threads list reached 543 KB with 920
+ * threads, and the regular member records check failed DISCORD_RESPONSE_INVALID every ten minutes). Discord caps a
+ * server at 1,000 active threads and 500 channels, so 4 MiB stays a bound.
+ */
+const LARGE_READ_ROUTES = Object.freeze(new Set(['record-threads', 'guild-channels']));
+const LARGE_READ_MAX_BYTES = 4 * 1024 * 1024;
+
+async function boundedJson(response, max = RESPONSE_MAX_BYTES) {
   if (Number(response.headers.get('content-length')) > max) throw new DiscordError('DISCORD_RESPONSE_INVALID');
   const reader = response.body?.getReader();
   if (!reader) throw new DiscordError('DISCORD_RESPONSE_INVALID');
@@ -234,7 +242,7 @@ export function createDiscordTransport({ guildId, token, fetch, clock, enabled, 
         return;
       }
       if (response.status !== 200) throw new DiscordError('DISCORD_RESPONSE_INVALID');
-      return await boundedJson(response);
+      return await boundedJson(response, LARGE_READ_ROUTES.has(route) ? LARGE_READ_MAX_BYTES : RESPONSE_MAX_BYTES);
     } catch (error) {
       if (error instanceof DiscordError) throw error;
       throw new DiscordError(write ? 'DELIVERY_UNCERTAIN' : 'DISCORD_UNAVAILABLE');
