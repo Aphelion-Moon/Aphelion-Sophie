@@ -1,5 +1,29 @@
 # Verification and release limits
 
+## Records check and database fixes, installed — 6 November 2026
+
+- **Owner:** "Sophie's got a big list of errors, seems. Go take a look, fix them, and install / deploy the fixes." (quoted in `approval.json`). No Shuttle run was open (`check-shuttle-quiet.mjs`, 12:14:12 UTC).
+- **What failed:** from 05:05 UTC Sophie's member records check failed `DISCORD_RESPONSE_INVALID` every ten minutes and
+  alerted every 30 minutes. A read-only probe (sizes and counts only, `records-check-2026-11-06/probe-sizes.json`) found
+  the server's active threads list at 543 KB (920 threads), over the transport's 512 KB response bound. The other reads
+  the check makes were under it (members page 212 KB, join requests 166 KB, channels 82 KB, roles 37 KB).
+- **Also fixed:** at 19:49 UTC on 4 November, during the host power-off, PostgreSQL stopped while core held a database
+  client; pg-pool listens for errors only on idle clients, so the client's `error` went unhandled and core exited.
+- **Sophie 35d41ef, 12:14 UTC** (`deployment-35d41ef-production-2026-11-06`), on bc57644. 2 source files, no migration,
+  same runtime, policies and Mistral profile.
+  - `transport.js`: the server-wide channel and active-thread reads (`guild-channels`, `record-threads`) get a 4 MiB
+    bound. Discord caps a server at 1,000 active threads and 500 channels. Every other read keeps 512 KB.
+  - `pool.js`: every database client, Sophie's own and the central one, reports `DATABASE_UNAVAILABLE`
+    (`CENTRAL_DATABASE_UNAVAILABLE`) on a connection error instead of throwing.
+  - Tests at the commit: `npm test` 983/983, including the new P56 channel-map test (above 512 KB and still bounded) and
+    T18 client-error test; `npm run check` passed; `test:storage:fast` 1063/1063.
+  - `prepare.mjs` passed against bc57644 (750 source files equal Git and the manifest; exactly the 2 reviewed files;
+    212 dependency files; profile unchanged).
+  - The run: pre-start, boundary, installation and public checks passed; `run.exit` 0.
+  - The member records check at start failed once (DISCORD_TRANSPORT_DISABLED, 12:15:55 UTC, while core took over the Gateway); its 10-minute retry passed at 12:26:09 UTC (nothing opened, changed or left), the first pass since 23:05 UTC on 5 November.
+- **Not changed:** `KNOWLEDGE_SOURCE_GITHUB_FORBIDDEN` (hourly in the log, an alert every 6 hours) is the GitHub token's
+  access, an owner action. `main` is not pushed: the owner asked to install, not to push.
+
 ## Wolfgate AI preparation and reply checks, installed — 2 November 2026
 
 - **Owner:** "Are updates installed and pushed for Sophie? Please do so if not." One Shuttle run was open with recent

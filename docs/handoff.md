@@ -1,4 +1,4 @@
-# Sophie development handoff — 2 November 2026
+# Sophie development handoff — 6 November 2026
 
 Sophie provides deterministic community administration, Whitelist onboarding, private cases and website configuration.
 No AI may receive ticket or onboarding session content.
@@ -13,8 +13,11 @@ to work safely. Earlier snapshots are in this file's git history.
 
 ## Production now
 
-- **Release:** **`bc57644`** (schema 086, no migration), installed 2 November 2026 at 18:13 UTC: the Wolfgate AI preparation
-  and reply checks, and no Contact staff button on AI replies (`deployment-bc57644-production-2026-11-02`). Before it,
+- **Release:** **`35d41ef`** (schema 086, no migration), installed 6 November 2026 at 12:14 UTC: the member records check
+  reads the whole active threads list again (it reached 543 KB, over the 512 KB bound; 4 MiB now for server-wide reads), and
+  a lost database connection no longer ends core (`deployment-35d41ef-production-2026-11-06`; not pushed). Before it,
+  `bc57644` from 18:13 UTC on 2 November: the Wolfgate AI preparation and reply checks, and no Contact staff button on AI
+  replies. Before that,
   `4eeca3d` (schema 086) from 14:08 UTC that day: game moderation in the record posts, the Gateway queue fix and the hourly
   GitHub 403 retry.
 - **Central identity database:** core reads `aphelion_central` (127.0.0.1:5490, service `aphelion-central-postgres`) as
@@ -46,11 +49,67 @@ to work safely. Earlier snapshots are in this file's git history.
   - after a restart: `DASHBOARD_DENIED_DASHBOARD_CREDENTIAL_INVALID` (old sessions), `ACTIVITY_REQUEST_SIGNIN` (an open
     Shuttle run signing in again), and possibly one `MEMBER_RECORD_CHECK_FAILED code=DISCORD_TRANSPORT_DISABLED` while core
     takes over the Gateway; that check retries 10 minutes later (seen passing at 18:24 UTC after the bc57644 install).
+- **Active threads:** the server had 920 active threads on 6 November (Discord allows 1,000 per server); at the cap,
+  nobody can open or unarchive a thread, member-record posts included. Sophie opens her posts with a one-day
+  auto-archive; how many of the 920 are hers was not counted. Worth watching.
 - **Every install, publication and production write needs the owner's recorded approval.** Approval for one step does not
   carry over to the next. Templates: `.agent_docs/aphelion-sophie/deployment-bc57644-production-2026-11-02` for a
   source-only release (with `check-shuttle-quiet.mjs`, and `build-packet.mjs`, which builds a packet from the previous one),
   and `deployment-4eeca3d-production-2026-11-02` for one with a migration and its rehearsal (`rehearse-migration.mjs`).
   A release that changes the Mistral profile hash must say so in `prepare.mjs`, as bc57644's does, or the check refuses it.
+
+## Host network change (4 November 2026)
+
+The owner replaced the host NIC on 4 November 2026. This is a read-only review of the host and Cloudflare afterwards. Nothing
+was changed on the host, in Cloudflare or in production.
+
+- **New adapter:** `Ethernet 4`, Intel X550-T2 port 1, 10 Gbps. It has the same static `45.152.241.75/27` and gateway `.65`.
+  Port 2 (`Ethernet 3`) has no cable. The onboard I210s are disconnected or disabled. No receive or send errors or discards.
+  The network profile is Public, which affects only Windows default rules. Custom rules are on all profiles, and the Bunny
+  CDN rule's local-address scope still matches.
+- **Outage (UTC, clock-corrected):**
+  - a clean power-off at 19:45, then three unclean shutdowns at about 20:38, 21:12 and 21:53 (Kernel-Power 41, no
+    bugcheck, no minidump);
+  - the last boot, about 22:06, started with the clock exactly one hour slow; NTP corrected it at 22:38:52;
+  - until about 22:38 the host had no working DNS: first "No DNS servers configured", then timeouts. All three tunnels
+    were down: the main `bark` tunnel restarted 136 times, `sophie-staging` came up at 22:38:11 and the DMM tunnel at
+    22:39:18. Sophie core's listener restarted at 22:39:26;
+  - records written between about 22:06 and 22:38 by services that kept running (the game servers) carry times one hour
+    early. The core log was not readable from that session (not elevated), so it is not yet checked whether any Shuttle
+    run or member-record entry carries a skewed time.
+- **Healthy at 22:50 UTC:**
+  - all services running;
+  - all three tunnels: 4 connections each on Vienna edges, healthy in Cloudflare;
+  - `sophie.a13.info` 303 to login, `onboarding.a13.info` 200;
+  - tgs, rdp, ftp and the site behind Access.
+- **Fixed by the owner on 4 November 2026, then a clean restart at 22:59:57 UTC:**
+  1. **DNS.** It had been `172.64.36.1` and `8.8.8.8`. The Gateway location "Aphelion - Austria" is keyed to
+     `31.20.186.134/32` and an IPv6 resolver, and the host has no IPv6, so the host's queries matched no location. The
+     owner changed `Ethernet 4` to `1.1.1.1, 8.8.8.8`.
+  2. **NetBIOS.** It had been off on the old NIC (option 2) and on (default) on the new one, with port 139 listening on
+     the public IP. It is option 2 again and port 139 is no longer listening.
+  3. **Results after the restart:**
+     - the clock was right at boot, with NTP adjusting it by about 1 s;
+     - every enabled service is running (`aphelion-bot-ai-supervisor` is Disabled, as before);
+     - all three tunnels have 4 connections;
+     - all hostnames answer;
+     - the main tunnel failed one DNS lookup at start, restarted once, and connected 34 s after boot.
+  4. **Interface number:** `Ethernet 4` is interface index 9 since this restart, not 8. Select it by alias.
+- **DNS order (fixed later on 4 November 2026):**
+  - UDP queries to Cloudflare's resolvers (`1.1.1.1`, `1.0.0.1`, and before that `172.64.36.1`) waited for the 1 s retry
+    on about 15–20% of lookups. Over TCP it was 1 of 20, and `8.8.8.8` showed none.
+  - The owner set `Ethernet 4` to `8.8.8.8, 1.1.1.1`.
+  - Afterwards, 60 of 60 lookups answered with no stall (median about 21 ms, max 31 ms), and all three tunnels kept 4
+    connections.
+  - UDP loss towards Cloudflare's resolvers remains a question for the host provider if it ever matters again.
+- **Seen in the same review, not caused by the NIC:**
+  - `panel.a13.info` (node on 8090) has no Access application;
+  - `cdn2.a13.info` returns 525: an origin rule sends it to plain-HTTP port 8080 while SSL mode is Full;
+  - TLS 1.3 and Always Use HTTPS are off;
+  - the IIS Cloudflare-only rule lacks the IPv6 ranges;
+  - the "ChatGPT" (1455, 1457, 3128–3159, 8081–8112) and "ftp" (80) inbound rules allow any source.
+- **Rotate:** the temporary Cloudflare API token and the R2 access key pair from the review were exposed in a local session
+  transcript, and the file holding them sits on the desktop. Rotate both and delete the file.
 
 ## Member records (P56)
 

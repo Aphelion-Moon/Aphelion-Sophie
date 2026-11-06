@@ -2919,3 +2919,8 @@ on `4eeca3d`: the Wolfgate AI preparation of this day (routing, game labels, glo
 channel directory, reply checks, out-of-date wiki sections) and the removal of the Contact staff button from AI replies.
 The Mistral profile hash changed (redaction v2); AI stays dark until each channel goes live again. Folder
 `deployment-bc57644-production-2026-11-02`.
+
+**Released (6 November 2026).** The owner: "Sophie's got a big list of errors, seems. Go take a look, fix them, and install / deploy the fixes." Sophie `35d41ef` was installed at 12:14 UTC on `bc57644`: the
+member records check reads the server's whole active threads list again (a 4 MiB bound for the server-wide channel and
+thread reads; the list had reached 543 KB), and a database client that loses its connection is reported instead of ending
+core. No migration; `main` not pushed. Folder `deployment-35d41ef-production-2026-11-06`.
