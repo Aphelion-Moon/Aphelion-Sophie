@@ -3,6 +3,16 @@ import { planDepartedMemberRecords } from '../operator/member-record-backfill.js
 
 const NOTE = 'Opened by Sophie\'s regular check: already in the server then; join date from Discord, earlier events not recorded.';
 const USERS_PER_RUN = 25;
+// The check's reads are retried in place on a refusal that passes in seconds, instead of failing the whole run (and paging
+// the errors channel) and waiting ten minutes (production, 15 to 17 November 2026: MEMBER_RECORD_CHECK_FAILED with
+// DISCORD_TRANSPORT_DISABLED twice and DISCORD_UNAVAILABLE once, each passing on the ten-minute retry). The gate shuts for a
+// moment while the Gateway session is not current, or while core records a Gateway event; such a request was never sent.
+// Every read here is a GET, so a Discord timeout or 5xx is safe to ask again. A short rate limit is waited out once.
+const GATE_REFUSALS = new Set(['DISCORD_TRANSPORT_DISABLED', 'DISCORD_BUSY']);
+const READ_RETRY_BUDGET_MS = 30_000;
+const GATE_TRIES = 40;
+const UNAVAILABLE_TRIES = 4;
+const RATE_LIMIT_WAIT_MAX_MS = 5_000;
 
 /**
  * Sophie's regular member records check (owner, 30 October 2026: "Backfill script should probably have an automatic run?
@@ -13,11 +23,28 @@ const USERS_PER_RUN = 25;
  * channel map the message store relies on, and clears message text older than 30 days. Core then posts
  * the changes as usual, behind live work. A member list that would mean more than a few leaves at once is not trusted.
  */
-export function createMemberRecordReconciler({ store, transport, mapping, enabled, clock, intervalMs = 6 * 3_600_000 }) {
+export function createMemberRecordReconciler({ store, transport: discord, mapping, enabled, clock, intervalMs = 6 * 3_600_000,
+  wait = ms => new Promise(resolve => setTimeout(resolve, ms)) }) {
+  const methods = ['getMemberRecordMembers', 'getApprovedJoinRequests', 'getRecordUser', 'getRecordChannelMap'];
   requireCondition(['reconcile', 'seenUserIds', 'recordedMembers', 'open', 'recordChannels', 'expireMessages'].every(key => typeof store?.[key] === 'function') &&
-    ['getMemberRecordMembers', 'getApprovedJoinRequests', 'getRecordUser', 'getRecordChannelMap'].every(key => typeof transport?.[key] === 'function') &&
+    methods.every(key => typeof discord?.[key] === 'function') && typeof wait === 'function' &&
     typeof enabled === 'function' && typeof clock === 'function' && Number.isSafeInteger(intervalMs) && intervalMs >= 60_000, 'TRUSTED_ADAPTERS_REQUIRED');
   requireId(mapping?.botUserId);
+  const transport = Object.freeze(Object.fromEntries(methods.map(name => [name, async (...input) => {
+    const giveUpAt = clock() + READ_RETRY_BUDGET_MS;
+    for (let gate = 0, unavailable = 0, limited = 0; ;) {
+      try { return await discord[name](...input); }
+      catch (error) {
+        let delay = null;
+        if (GATE_REFUSALS.has(error?.code) && ++gate <= GATE_TRIES) delay = Math.min(1_000, 250 * gate);
+        else if (error?.code === 'DISCORD_UNAVAILABLE' && ++unavailable < UNAVAILABLE_TRIES) delay = 1_000 * 2 ** (unavailable - 1);
+        else if (error?.code === 'RATE_LIMITED' && limited++ === 0 && Number.isSafeInteger(error.retryAfterMs) &&
+          error.retryAfterMs > 0 && error.retryAfterMs <= RATE_LIMIT_WAIT_MAX_MS) delay = error.retryAfterMs;
+        if (delay === null || clock() + delay > giveUpAt) throw error;
+        await wait(delay);
+      }
+    }
+  }])));
   let nextAt = 0;
   async function run() {
     const startedAtMs = clock();

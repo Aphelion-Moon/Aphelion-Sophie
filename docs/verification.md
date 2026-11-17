@@ -1,5 +1,21 @@
 # Verification and release limits
 
+## Records check retries, built offline — 18 November 2026 (not installed)
+
+- **What failed:** production (35d41ef) logged `MEMBER_RECORD_CHECK_FAILED` three times: `code=DISCORD_TRANSPORT_DISABLED`
+  at 17:20 UTC on 15 November and 17:31 UTC on 16 November, and `code=DISCORD_UNAVAILABLE` at 23:43 UTC on 17 November.
+  Each came 2 to 5 seconds into a six-hourly run, while core was running normally, and each passed on the ten-minute retry.
+  The check made each Discord read once, so a gate shut for a moment (Gateway session not current) or one read timeout
+  or 5xx failed the whole run and alerted. The record dispatcher already retried gate refusals; the check did not.
+- **Change:** `member-record-reconciler.js` retries its reads in place, and every one is a GET. A shut gate
+  (`DISCORD_TRANSPORT_DISABLED`, `DISCORD_BUSY`) gets up to 40 tries at 250 ms to 1 s. `DISCORD_UNAVAILABLE` gets up to
+  four tries, waiting 1, 2 and 4 s. One rate limit of 5 s or less is waited out. Each read stops retrying after 30 s.
+  Any other error, or a refusal that lasts, fails the check as before, and the ten-minute retry stays.
+- **Tests run:** `tests/member-record-reconciler.test.js` (MR-RC1 to MR-RC5) 5/5 and `npm run check` passed. Not run:
+  the full `npm test`, `test:storage`, and the member-records integration suite (the change is limited to the check's
+  read wrapper).
+- **Release:** not installed. An install needs its own owner approval, with no Shuttle run open.
+
 ## Records check and database fixes, installed — 6 November 2026
 
 - **Owner:** "Sophie's got a big list of errors, seems. Go take a look, fix them, and install / deploy the fixes." (quoted in `approval.json`). No Shuttle run was open (`check-shuttle-quiet.mjs`, 12:14:12 UTC).
