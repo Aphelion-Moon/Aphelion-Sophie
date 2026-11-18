@@ -1,6 +1,6 @@
 # Verification and release limits
 
-## Records check retries, built offline — 18 November 2026 (not installed)
+## Records check retries, installed — 18 November 2026
 
 - **What failed:** production (35d41ef) logged `MEMBER_RECORD_CHECK_FAILED` three times: `code=DISCORD_TRANSPORT_DISABLED`
   at 17:20 UTC on 15 November and 17:31 UTC on 16 November, and `code=DISCORD_UNAVAILABLE` at 23:43 UTC on 17 November.
@@ -11,10 +11,15 @@
   (`DISCORD_TRANSPORT_DISABLED`, `DISCORD_BUSY`) gets up to 40 tries at 250 ms to 1 s. `DISCORD_UNAVAILABLE` gets up to
   four tries, waiting 1, 2 and 4 s. One rate limit of 5 s or less is waited out. Each read stops retrying after 30 s.
   Any other error, or a refusal that lasts, fails the check as before, and the ten-minute retry stays.
-- **Tests run:** `tests/member-record-reconciler.test.js` (MR-RC1 to MR-RC5) 5/5 and `npm run check` passed. Not run:
-  the full `npm test`, `test:storage`, and the member-records integration suite (the change is limited to the check's
-  read wrapper).
-- **Release:** not installed. An install needs its own owner approval, with no Shuttle run open.
+- **Tests at the commit:** `npm test` 988/988 (including MR-RC1 to MR-RC5 in
+  `tests/member-record-reconciler.test.js`); `npm run check` passed; `test:storage:fast` 1063 passed, none failed.
+- **Owner:** "Push and install, Activity is clear now." (quoted in `approval.json`). No Shuttle run was open (`check-shuttle-quiet.mjs`, 01:32:33 UTC;
+  the last run finished 01:05:52 UTC). `main` pushed to origin at 33128eb before the install.
+- **Sophie 33128eb, 01:32 UTC** (`deployment-33128eb-production-2026-11-18`), on 35d41ef. 1 source file, no migration,
+  same runtime, policies and Mistral profile. `prepare.mjs` passed against 35d41ef (750 source files equal Git and the
+  manifest; exactly the 1 reviewed file; 212 dependency files; profile unchanged).
+  - The run: pre-start, boundary, installation and public checks passed; `run.exit` 0.
+  - Records check: passed on its first run at start (01:33:59 UTC, nothing opened or changed), where earlier installs saw one DISCORD_TRANSPORT_DISABLED failure at start; the log since the start shows only the usual restart lines (old dashboard sessions, an Activity sign-in, KNOWLEDGE_SOURCE_GITHUB_FORBIDDEN).
 
 ## Records check and database fixes, installed — 6 November 2026
 

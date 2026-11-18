@@ -2924,3 +2924,8 @@ The Mistral profile hash changed (redaction v2); AI stays dark until each channe
 member records check reads the server's whole active threads list again (a 4 MiB bound for the server-wide channel and
 thread reads; the list had reached 543 KB), and a database client that loses its connection is reported instead of ending
 core. No migration; `main` not pushed. Folder `deployment-35d41ef-production-2026-11-06`.
+
+**Released (18 November 2026).** The owner: "Push and install, Activity is clear now." Sophie `33128eb` was installed at 01:32 UTC on `35d41ef`, after
+`main` was pushed: the regular member records check retries a momentary Discord refusal in place (the gate shut for a
+moment, a read timeout or 5xx, one short rate limit) instead of failing the run; it had failed three times between 15 and
+17 November. No migration. Folder `deployment-33128eb-production-2026-11-18`.

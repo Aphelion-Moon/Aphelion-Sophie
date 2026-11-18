@@ -1,4 +1,4 @@
-# Sophie development handoff — 6 November 2026
+# Sophie development handoff — 18 November 2026
 
 Sophie provides deterministic community administration, Whitelist onboarding, private cases and website configuration.
 No AI may receive ticket or onboarding session content.
@@ -13,9 +13,11 @@ to work safely. Earlier snapshots are in this file's git history.
 
 ## Production now
 
-- **Release:** **`35d41ef`** (schema 086, no migration), installed 6 November 2026 at 12:14 UTC: the member records check
-  reads the whole active threads list again (it reached 543 KB, over the 512 KB bound; 4 MiB now for server-wide reads), and
-  a lost database connection no longer ends core (`deployment-35d41ef-production-2026-11-06`; not pushed). Before it,
+- **Release:** **`33128eb`** (schema 086, no migration), installed 18 November 2026 at 01:32 UTC: the regular member
+  records check retries a momentary Discord refusal in place instead of failing the run
+  (`deployment-33128eb-production-2026-11-18`; main pushed). Before it, `35d41ef` from 12:14 UTC on 6 November: the
+  records check reads the whole active threads list again (4 MiB bound for server-wide reads), and a lost database
+  connection no longer ends core. Before that,
   `bc57644` from 18:13 UTC on 2 November: the Wolfgate AI preparation and reply checks, and no Contact staff button on AI
   replies. Before that,
   `4eeca3d` (schema 086) from 14:08 UTC that day: game moderation in the record posts, the Gateway queue fix and the hourly
@@ -47,8 +49,9 @@ to work safely. Earlier snapshots are in this file's git history.
   - `AI_ADMISSION_SKIPPED_CHANNEL_NOT_CONFIGURED`, and sometimes `NO_CONSENT` or `AUDIENCE_CHANGED`, for messages in
     channels without AI since AI was switched on (17:00 UTC, 2 November): diagnostics, not faults;
   - after a restart: `DASHBOARD_DENIED_DASHBOARD_CREDENTIAL_INVALID` (old sessions), `ACTIVITY_REQUEST_SIGNIN` (an open
-    Shuttle run signing in again), and possibly one `MEMBER_RECORD_CHECK_FAILED code=DISCORD_TRANSPORT_DISABLED` while core
-    takes over the Gateway; that check retries 10 minutes later (seen passing at 18:24 UTC after the bc57644 install).
+    Shuttle run signing in again). Before 33128eb a restart often added one `MEMBER_RECORD_CHECK_FAILED
+    code=DISCORD_TRANSPORT_DISABLED`; the check now retries its reads in place (up to 30 s each) and passed first time at
+    the 33128eb start. A `MEMBER_RECORD_CHECK_FAILED` now means a refusal that lasted; it still retries 10 minutes later.
 - **Active threads:** the server had 920 active threads on 6 November (Discord allows 1,000 per server); at the cap,
   nobody can open or unarchive a thread, member-record posts included. Sophie opens her posts with a one-day
   auto-archive; how many of the 920 are hers was not counted. Worth watching.
